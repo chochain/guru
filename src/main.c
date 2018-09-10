@@ -10,8 +10,7 @@
 #define MEMORY_SIZE (1024*32)
 static uint8_t memory_pool[MEMORY_SIZE];
 
-int guru(uint8_t *mrbbuf)
-{
+int guru(uint8_t *mrbbuf) {
   struct VM *vm;
 
   mrbc_init_alloc(memory_pool, MEMORY_SIZE);
@@ -39,8 +38,7 @@ int guru(uint8_t *mrbbuf)
   return 0;
 }
 
-int main(int argc, char *argv[])
-{
+int main(int argc, char *argv[]) {
   if (argc!=2) {
     printf("Usage: %s <xxxx.mrb>\n", argv[0]);
     return 1;
