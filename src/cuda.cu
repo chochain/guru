@@ -37,12 +37,11 @@ __global__ void k_sum(int N, float *d_y) {	// sum front and back of entire array
 __forceinline__ __device__ void d_sum(int t, float *sum) {	// reduce array sum[2*SZ] into sum[0]
     for (int s=SZ; s>32; s>>=1) {			// folding by half the stride-size
        if (t < s) sum[t] += sum[t + s]; 	// add second half of the block to the first half
-       __syncthreads();						// dataflow flood gate
+       __syncthreads();						// dataflow flood gate between warps
     }
-    if (t<32) {								// unroll last 6 steps for 15% faster
+    if (t<32) {								// unroll last warp, ~= 15% faster
     	sum[t]+=sum[t+32]; sum[t]+=sum[t+16]; sum[t]+=sum[t+8];
     	sum[t]+=sum[t+4];  sum[t]+=sum[t+2];  sum[t]+=sum[t+1];
-    	__syncthreads();
     }
 }
 
@@ -64,25 +63,29 @@ __global__ void k_sum2(int N, float *d_y) {	// sequentially executed in blocks p
 
 void echeck(const char *str) {
     cudaError err = cudaGetLastError();
-    if (cudaSuccess == err) printf("%s, GPU OK\n", str);
+    if (cudaSuccess == err) printf("\nOK> %s: ", str);
     else {
-    	printf("%s, GPU failed: %s\n", str, cudaGetErrorString(err));
+    	printf("\nERR> %s: %s\n", str, cudaGetErrorString(err));
     	exit(-1);
     }
 }
 
-void edump(int N, float msec, float *y, float *d_y) {
-//	k_sum<<<(N+SZ-1)/SZ, SZ>>>(N, d_y);		// vanilla sum, no tuning
-	k_sum2<<<(N+SZ-1)/SZ/2, SZ>>>(N, d_y);	// sum with fancy tuning, half the block count
-	echeck("edump");
+void edump(int N, float msec, float *d_y) {	// write over into d_y (i.e. destructive)
+//	k_sum<<<(n+SZ-1)/SZ, SZ>>>(n, d_y);		// vanilla sum
+	int n    = N;
+	int nblk = (n+SZ-1)/SZ/2;				// block count
+	float v[2];
+	do {
+		k_sum2<<<nblk, SZ>>>(n, d_y);
+		echeck("k_sum2()");
+		cudaMemcpy(&v, d_y, sizeof(float)*2, cudaMemcpyDeviceToHost);
+		cudaDeviceSynchronize();
+		printf("n=%d, nblk=%d: v[0]=%f, v[1]=%f", n, nblk, v[0], v[1]);
+		n    = nblk;
+		nblk = (n>SZ) ? (n+SZ-1)/SZ/2 : 1;	// last block?
+	} while (n>1);
 
-	cudaMemcpy(y, d_y, sizeof(float)*(N+SZ-1)/SZ, cudaMemcpyDeviceToHost);
-	cudaDeviceSynchronize();
-
-	float v = 0.0;
-	for (int i=0; i<(N+SZ-1)/SZ/2; i++)
-		v += y[i];
-	printf("Total: %f, (Bandwidth %f GB/s, %f GFLOPs)\n", v, N*4*3*1e-6/msec, N*2*1e-6/msec);
+	printf("\nTotal: %f, (Bandwidth %f GB/s, %f GFLOPs)\n", v[0], N*4*3*1e-6/msec, N*2*1e-6/msec);
 }
 
 int do_cuda(void) {
@@ -119,7 +122,7 @@ int do_cuda(void) {
 
   float msec = 0;
   cudaEventElapsedTime(&msec, start, stop);
-  edump(N, msec, y, d_y);
+  edump(N, msec, d_y);
 
   cudaMallocManaged(&m_x, N*sizeof(float));
   cudaMallocManaged(&m_y, N*sizeof(float));
@@ -135,7 +138,7 @@ int do_cuda(void) {
   cudaEventRecord(stop);
   cudaEventSynchronize(stop);
   cudaEventElapsedTime(&msec, start, stop);
-  edump(N, msec, y, m_y);
+  edump(N, msec, m_y);
 
   cudaFree(m_x);
   cudaFree(m_y);
