@@ -44,28 +44,7 @@ __forceinline__ __device__ void d_sum2(int t, float *sum) {	// reduce array sum[
     }
 }
 
-__global__ void k_sum1(int N, float *o_y, float *i_y) {	// sum front and back of entire array, destructive
-    __shared__ float sum[SZ*2];				// hold double the thread count
-
-	int t = threadIdx.x;					// thread id [0..511]
-	int i = blockIdx.x*SZ*2 + t;			// in-block index 1024*[0..3] + [0..511]
-	int B = gridDim.x*SZ*2;					// banding width
-
-	sum[t]    = 0.0;
-	sum[SZ+t] = 0.0;
-
-	do {
-		sum[t] 	  += (i < N)    ? i_y[i]    : 0.0;
-		sum[SZ+t] += (SZ+i < N) ? i_y[SZ+i] : 0.0;
-		i += B;
-	} while (i<N);
-
-	d_sum2(t, sum);
-
-	if (t==0) o_y[blockIdx.x] = sum[0]; 	// write each block sum back to output array (in parallel)
-}
-
-__global__ void k_sum2(int N, float *o_y, float *i_y) {	// sequentially executed in blocks per SM
+__global__ void k_sum_rec(int N, float *o_y, float *i_y) {	// recursively in blocks per SM
     __shared__ float sum[2 * SZ];			// hold double the thread count
 
     int t = threadIdx.x;					// [0..511]
@@ -79,6 +58,43 @@ __global__ void k_sum2(int N, float *o_y, float *i_y) {	// sequentially executed
     if (t==0) o_y[blockIdx.x] = sum[0];		// put sum into block head
 }
 
+__global__ void k_sum2(int N, float *o_y, float *i_y) {	// recursively in blocks per SM
+    __shared__ float sum[2 * SZ];			// hold double the thread count
+
+    int t = threadIdx.x;					// [0..511]
+    int	i = blockIdx.x*2*SZ + t;			// global index (every 2 blocks)
+
+    if (blockIdx.x==0) o_y[0] = 0.0;
+
+    sum[t]    = (i < N)    ? i_y[i]    : 0.0;	// copy first half into shared memory
+    sum[SZ+t] = (SZ+i < N) ? i_y[SZ+i] : 0.0;	// copy second half
+
+    d_sum2(t, sum);							// call device function to reduce array
+
+    if (t==0) o_y[0] += sum[0];				// put sum into block head
+}
+
+__global__ void k_sum_fast(int N, float *o_y, float *i_y) {	// sum front and back of entire array, destructive
+    __shared__ float sum[SZ*2];				// hold double the thread count
+
+	int t = threadIdx.x;					// thread id [0..511]
+	int i = blockIdx.x*SZ*2 + t;			// in-block index 1024*[0..3] + [0..511]
+	int B = gridDim.x*SZ*2;					// grid stride size
+
+	sum[t]    = 0.0;
+	sum[SZ+t] = 0.0;
+
+	do {
+		sum[t] 	  += (i < N)    ? i_y[i]    : 0.0;
+		sum[SZ+t] += (SZ+i < N) ? i_y[SZ+i] : 0.0;
+		i += B;								// advance one stride
+	} while (i<=N);
+
+	d_sum2(t, sum);
+
+	if (t==0) o_y[blockIdx.x] = sum[0];		// put sum into block head
+}
+
 void echeck(const char *str) {
 	cudaDeviceSynchronize();
     cudaError err = cudaGetLastError();
@@ -89,38 +105,32 @@ void echeck(const char *str) {
     }
 }
 
-void bmark1(int N, float msec, float *d_y) {
-	int NBLK = 12;							// number_of_sm * max_threads_per_sm / threads_per_block
-	int SZ2  = SZ*2;
-
+void bmark2(int N, float msec, float *d_y) {
+	//	k_sum<<<(N+SZ-1)/SZ, SZ>>>(N, d_y);	// vanilla sum, SZ threads/block
 	float *o_y;
-	cudaMalloc(&o_y, NBLK*sizeof(float));	// allocate output array, sync here
-	echeck("bmark malloc");
+	cudaMalloc(&o_y, sizeof(float));				// allocate output array, sync here
+	echeck("bmark2 malloc");
 
-	k_sum1<<<NBLK, SZ>>>(N, o_y, d_y);		// number_of_sm * max_threads_per_sm / threads_per_block
+	float tot;
+	k_sum2<<<(N+SZ*2-1)/SZ/2, SZ>>>(N, o_y, d_y);	// double-width blocks
+	echeck("k_sum2()");
+	cudaMemcpy(&tot, o_y, sizeof(float), cudaMemcpyDeviceToHost);	// warp sync here
 
-	float v[NBLK], tot = 0.0;
-	cudaMemcpy(&v, o_y, NBLK*sizeof(float), cudaMemcpyDeviceToHost);	// warp sync here
-	for (int i=0; i<NBLK; i++) {
-		tot += v[i];
-		printf("\nv[%02d]=%f => %f", i, v[i], tot);
-	}
 	printf("\nTotal: %f, (Bandwidth %f GB/s, %f GFLOPs)\n", tot, N*4*3*1e-6/msec, N*2*1e-6/msec);
 	cudaFree(o_y);							// release, async
 }
 
-void bmark2(int N, float msec, float *d_y) {// dump array sum
-	//	k_sum<<<(N+SZ-1)/SZ, SZ>>>(N, d_y);	// vanilla sum, SZ threads/block
+void bmark_rec(int N, float msec, float *d_y) {
 	int n = N, SZ2 = SZ*2;
 	int nblk = (n+SZ2-1)/SZ2;				// double-width block count
 
 	float *o_y, *i_y = d_y;
-	cudaMalloc(&o_y, (nblk>1 ? nblk : 2)*sizeof(float));	// allocate output array, sync here
-	echeck("bmark malloc");
+	cudaMalloc(&o_y, (nblk>1 ? nblk : 2)*sizeof(float));				// allocate output array, sync here
+	echeck("bmark_rec malloc");
 
 	float v[2];
-	do {									// recursively down to 1 value
-		k_sum2<<<nblk, SZ>>>(n, o_y, i_y);
+	do {		// recursively down to 1 value
+		k_sum_rec<<<nblk, SZ>>>(n, o_y, i_y);
 		echeck("k_sum2()");
 		cudaMemcpy(&v, o_y, sizeof(float)*2, cudaMemcpyDeviceToHost);	// warp sync here
 		printf("n=%d, nblk=%d: v[0]=%f, v[1]=%f", n, nblk, v[0], v[1]);
@@ -133,8 +143,27 @@ void bmark2(int N, float msec, float *d_y) {// dump array sum
 	cudaFree(o_y);							// release, async
 }
 
+void bmark_fast(int N, float msec, float *d_y) {
+	int NBLK = 12;							// number_of_sm * max_threads_per_sm / threads_per_block
+
+	float *o_y;
+	cudaMalloc(&o_y, NBLK*sizeof(float));	// allocate output array, sync here
+	echeck("bmark_fast malloc");
+
+	k_sum_fast<<<NBLK, SZ>>>(N, o_y, d_y);	// number_of_sm * max_threads_per_sm / threads_per_block
+
+	float v[NBLK];
+	double tot = 0.0;
+	cudaMemcpy(&v, o_y, NBLK*sizeof(float), cudaMemcpyDeviceToHost);	// warp sync here
+
+	for (int i=0; i<NBLK; i++) tot += v[i];	// hand back to CPU to tally up, takes less time
+
+	printf("\nTotal: %f, (Bandwidth %f GB/s, %f GFLOPs)\n", tot, N*4*3*1e-6/msec, N*2*1e-6/msec);
+	cudaFree(o_y);							// release, async
+}
+
 int do_cuda(void) {
-  int N = (1<<24)+1;
+  int N = (1<<24);							// max digit of float precision
 
   float *x, *y, *d_x, *d_y, *m_x, *m_y;
 
@@ -163,8 +192,9 @@ int do_cuda(void) {
 
   float msec = 0;
   cudaEventElapsedTime(&msec, ev0, ev1);
-  bmark1(N, msec, d_y);											// sync included
-/*
+  bmark_rec(N, msec, d_y);
+  bmark2(N, msec, d_y);											// benchmark, external recursive sum
+
   cudaMallocManaged(&m_x, N*sizeof(float));
   cudaMallocManaged(&m_y, N*sizeof(float));
 
@@ -177,13 +207,13 @@ int do_cuda(void) {
   cudaEventRecord(ev1);
   echeck("managed saxpy");
   cudaEventElapsedTime(&msec, ev0, ev1);
-  bmark(N, msec, m_y);											// sync included
+  bmark_fast(N, msec, m_y);										// benchmark, internal loop sum
 
   cudaEventDestroy(ev0);										// release event objects
   cudaEventDestroy(ev1);
   cudaFree(m_x);
   cudaFree(m_y);
- */
+
   cudaFree(d_x);
   cudaFree(d_y);
   free(x);
