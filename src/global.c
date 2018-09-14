@@ -44,7 +44,7 @@ static int search_global_object(mrbc_sym sym_id, mrbc_globaltype gtype)
   int i;
   for(i=0 ; i<global_end ; i++){
     mrbc_globalobject *obj = &mrbc_global[i];
-    if(obj->sym_id == sym_id && obj->gtype == gtype) return i;
+    if (obj->sym_id == sym_id && obj->gtype == gtype) return i;
   }
   return -1;
 }
@@ -54,11 +54,11 @@ static int search_global_object(mrbc_sym sym_id, mrbc_globaltype gtype)
 void global_object_add(mrbc_sym sym_id, mrbc_value v)
 {
   int index = search_global_object(sym_id, MRBC_GLOBAL_OBJECT);
-  if(index == -1) {
+  if (index == -1) {
     index = global_end++;
     assert(index < MAX_GLOBAL_OBJECT_SIZE);	// maybe raise ex
   } else {
-    mrbc_release(&(mrbc_global[index].obj));
+       mrbc_release(&(mrbc_global[index].obj));
   }
 
   mrbc_global[index].gtype = MRBC_GLOBAL_OBJECT;
@@ -73,7 +73,7 @@ void global_object_add(mrbc_sym sym_id, mrbc_value v)
 void const_object_add(mrbc_sym sym_id, mrbc_object *obj)
 {
   int index = search_global_object(sym_id, MRBC_CONST_OBJECT);
-  if(index == -1){
+  if (index == -1){
     index = global_end;
     global_end++;
     assert(index < MAX_GLOBAL_OBJECT_SIZE);	// maybe raise ex
@@ -91,7 +91,7 @@ void const_object_add(mrbc_sym sym_id, mrbc_object *obj)
 mrbc_value global_object_get(mrbc_sym sym_id)
 {
   int index = search_global_object(sym_id, MRBC_GLOBAL_OBJECT);
-  if(index >= 0){
+  if (index >= 0){
     mrbc_dup(&mrbc_global[index].obj);
     return mrbc_global[index].obj;
   } else {
@@ -104,7 +104,7 @@ mrbc_value global_object_get(mrbc_sym sym_id)
 mrbc_object const_object_get(mrbc_sym sym_id)
 {
   int index = search_global_object(sym_id, MRBC_CONST_OBJECT);
-  if(index >= 0){
+  if (index >= 0){
     mrbc_dup(&mrbc_global[index].obj);
     return mrbc_global[index].obj;
   } else {
@@ -121,3 +121,4 @@ void mrbc_global_clear_vm_id(void)
     mrbc_clear_vm_id(&mrbc_global[i].obj);
   }
 }
+     
