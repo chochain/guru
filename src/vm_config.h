@@ -72,4 +72,13 @@
 /* 1: 32bit alignment */
 #define MRBC_REQUIRE_32BIT_ALIGNMENT 0
 
+// CUDA on-device specific implementation, to be optimized later
+#ifdef GURU_USE_CUDA
+#define MEMCPY(d, s, sz)  cudaMemcpy(d, s, sz, cudaMemcpyDeviceToDevice)
+#define MEMSET(d, v, sz)  cudaMemcpy(d, v, sz)
+#else
+#define MEMCPY(d, s, sz)  memcpy(d, s, sz)
+#define MEMSET(d, v, sz)  memset(d, v, sz)
+#endif
+
 #endif

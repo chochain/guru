@@ -26,7 +26,7 @@ uint8_t * load_mrb_file(const char *filename)
 {
   FILE *fp = fopen(filename, "rb");
 
-  if( fp == NULL ) {
+  if (fp==NULL) {
     fprintf(stderr, "File not found\n");
     return NULL;
   }
@@ -38,7 +38,7 @@ uint8_t * load_mrb_file(const char *filename)
 
   // allocate from host memory
   uint8_t *p = malloc(size);
-  if( p != NULL ) {
+  if (p != NULL) {
     fread(p, sizeof(uint8_t), size, fp);
   } else {
     fprintf(stderr, "Memory allocate error.\n");
@@ -70,7 +70,7 @@ static int load_header(struct VM *vm, const uint8_t **pos)
 {
   const uint8_t *p = *pos;
 
-  if( memcmp(p, "RITE0004", 8) != 0 ) {
+  if (memcmp(p, "RITE0004", 8) != 0) {
     vm->error_code = LOAD_FILE_HEADER_ERROR_VERSION;
     return -1;
   }
@@ -79,11 +79,11 @@ static int load_header(struct VM *vm, const uint8_t **pos)
 
   /* Ignore size */
 
-  if( memcmp(p + 14, "MATZ", 4) != 0 ) {
+  if (memcmp(p + 14, "MATZ", 4) != 0) {
     vm->error_code = LOAD_FILE_HEADER_ERROR_MATZ;
     return -1;
   }
-  if( memcmp(p + 18, "0000", 4) != 0 ) {
+  if (memcmp(p + 18, "0000", 4) != 0) {
     vm->error_code = LOAD_FILE_HEADER_ERROR_VERSION;
     return -1;
   }
@@ -130,7 +130,7 @@ static mrbc_irep * load_irep_1(struct VM *vm, const uint8_t **pos)
 
   // new irep
   mrbc_irep *irep = mrbc_irep_alloc(0);
-  if( irep == NULL ) {
+  if (irep==NULL) {
     vm->error_code = LOAD_FILE_IREP_ERROR_ALLOCATION;
     return NULL;
   }
@@ -145,9 +145,9 @@ static mrbc_irep * load_irep_1(struct VM *vm, const uint8_t **pos)
   p += (vm->mrb - p) & 0x03;
 
   // allocate memory for child irep's pointers
-  if( irep->rlen ) {
+  if (irep->rlen) {
     irep->reps = (mrbc_irep **)mrbc_alloc(0, sizeof(mrbc_irep *) * irep->rlen);
-    if( irep->reps == NULL ) {
+    if (irep->reps==NULL) {
       vm->error_code = LOAD_FILE_IREP_ERROR_ALLOCATION;
       return NULL;
     }
@@ -159,24 +159,24 @@ static mrbc_irep * load_irep_1(struct VM *vm, const uint8_t **pos)
 
   // POOL BLOCK
   irep->plen = bin_to_uint32(p);	p += 4;
-  if( irep->plen ) {
+  if (irep->plen) {
     irep->pools = (mrbc_object**)mrbc_alloc(0, sizeof(void*) * irep->plen);
-    if(irep->pools == NULL ) {
+    if (irep->pools==NULL) {
       vm->error_code = LOAD_FILE_IREP_ERROR_ALLOCATION;
       return NULL;
     }
   }
 
   int i;
-  for( i = 0; i < irep->plen; i++ ) {
+  for(i = 0; i < irep->plen; i++) {
     int tt = *p++;
     int obj_size = bin_to_uint16(p);	p += 2;
     mrbc_object *obj = mrbc_obj_alloc(0, MRBC_TT_EMPTY);
-    if( obj == NULL ) {
+    if (obj==NULL) {
       vm->error_code = LOAD_FILE_IREP_ERROR_ALLOCATION;
       return NULL;
     }
-    switch( tt ) {
+    switch(tt) {
 #if MRBC_USE_STRING
     case 0: { // IREP_TT_STRING
       obj->tt = MRBC_TT_STRING;
@@ -193,7 +193,7 @@ static mrbc_irep * load_irep_1(struct VM *vm, const uint8_t **pos)
 #if MRBC_USE_FLOAT
     case 2: { // IREP_TT_FLOAT
       char buf[obj_size+1];
-      memcpy(buf, p, obj_size);
+      buf, p, obj_size);
       buf[obj_size] = '\0';
       obj->tt = MRBC_TT_FLOAT;
       obj->d = atof(buf);
@@ -210,7 +210,7 @@ static mrbc_irep * load_irep_1(struct VM *vm, const uint8_t **pos)
   // SYMS BLOCK
   irep->ptr_to_sym = (uint8_t*)p;
   int slen = bin_to_uint32(p);		p += 4;
-  while( --slen >= 0 ) {
+  while(--slen >= 0) {
     int s = bin_to_uint16(p);		p += 2;
     p += s+1;
   }
@@ -232,10 +232,10 @@ static mrbc_irep * load_irep_1(struct VM *vm, const uint8_t **pos)
 static mrbc_irep * load_irep_0(struct VM *vm, const uint8_t **pos)
 {
   mrbc_irep *irep = load_irep_1(vm, pos);
-  if( !irep ) return NULL;
+  if (!irep) return NULL;
 
   int i;
-  for( i = 0; i < irep->rlen; i++ ) {
+  for(i = 0; i < irep->rlen; i++) {
     irep->reps[i] = load_irep_0(vm, pos);
   }
 
@@ -264,13 +264,13 @@ static int load_irep(struct VM *vm, const uint8_t **pos)
   const uint8_t *p = *pos + 4;			// 4 = skip "RITE"
   int section_size = bin_to_uint32(p);
   p += 4;
-  if( memcmp(p, "0000", 4) != 0 ) {		// rite version
+  if (memcmp(p, "0000", 4) != 0) {		// rite version
     vm->error_code = LOAD_FILE_IREP_ERROR_VERSION;
     return -1;
   }
   p += 4;
   vm->irep = load_irep_0(vm, &p);
-  if( vm->irep == NULL ) {
+  if (vm->irep==NULL) {
     return -1;
   }
 
@@ -313,14 +313,14 @@ int mrbc_upload_bytecode(struct VM *vm, const uint8_t *ptr)
   vm->mrb = ptr;
 
   ret = load_header(vm, &ptr);
-  while( ret == 0 ) {
-    if( memcmp(ptr, "IREP", 4) == 0 ) {
+  while(ret==0) {
+    if (memcmp(ptr, "IREP", 4)==0) {
       ret = load_irep(vm, &ptr);
     }
-    else if( memcmp(ptr, "LVAR", 4) == 0 ) {
+    else if (memcmp(ptr, "LVAR", 4)==0) {
       ret = load_lvar(vm, &ptr);
     }
-    else if( memcmp(ptr, "END\0", 4) == 0 ) {
+    else if (memcmp(ptr, "END\0", 4)==0) {
       break;
     }
   }

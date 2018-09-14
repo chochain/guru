@@ -61,11 +61,11 @@ mrbc_value mrbc_hash_new(struct VM *vm, int size)
     Allocate handle and data buffer.
   */
   mrbc_hash *h = mrbc_alloc(vm, sizeof(mrbc_hash));
-  if( !h ) return value;	// ENOMEM
+  if (!h) return value;	// ENOMEM
 
   mrbc_value *data = mrbc_alloc(vm, sizeof(mrbc_value) * size * 2);
-  if( !data ) {			// ENOMEM
-    mrbc_raw_free( h );
+  if (!data) {			// ENOMEM
+    mrbc_raw_free(h);
     return value;
   }
 
@@ -110,8 +110,8 @@ mrbc_value * mrbc_hash_search(const mrbc_value *hash, const mrbc_value *key)
   mrbc_value *p1 = hash->hash->data;
   const mrbc_value *p2 = p1 + hash->hash->n_stored;
 
-  while( p1 < p2 ) {
-    if( mrbc_compare(p1, key) == 0 ) return p1;
+  while(p1 < p2) {
+    if (mrbc_compare(p1, key)==0) return p1;
     p1 += 2;
   }
   return NULL;
@@ -119,9 +119,9 @@ mrbc_value * mrbc_hash_search(const mrbc_value *hash, const mrbc_value *key)
 
 #ifdef MRBC_HASH_SEARCH_LINER_ITERATOR
   mrbc_hash_iterator ite = mrbc_hash_iterator_new(hash);
-  while( mrbc_hash_i_has_next(&ite) ) {
+  while(mrbc_hash_i_has_next(&ite)) {
     mrbc_value *v = mrbc_hash_i_next(&ite);
-    if( mrbc_compare( v, key ) == 0 ) return v;
+    if (mrbc_compare(v, key)==0) return v;
   }
   return NULL;
 #endif
@@ -140,9 +140,9 @@ int mrbc_hash_set(mrbc_value *hash, mrbc_value *key, mrbc_value *val)
 {
   mrbc_value *v = mrbc_hash_search(hash, key);
   int ret = 0;
-  if( v == NULL ) {
+  if (v==NULL) {
     // set a new value
-    if( (ret = mrbc_array_push(hash, key)) != 0 ) goto RETURN;
+    if ((ret = mrbc_array_push(hash, key)) != 0) goto RETURN;
     ret = mrbc_array_push(hash, val);
 
   } else {
@@ -182,7 +182,7 @@ mrbc_value mrbc_hash_get(mrbc_value *hash, mrbc_value *key)
 mrbc_value mrbc_hash_remove(mrbc_value *hash, mrbc_value *key)
 {
   mrbc_value *v = mrbc_hash_search(hash, key);
-  if( v == NULL ) return mrbc_nil_value();
+  if (v==NULL) return mrbc_nil_value();
 
   mrbc_dec_ref_counter(v);	// key
   mrbc_value val = v[1];		// value
@@ -216,19 +216,19 @@ void mrbc_hash_clear(mrbc_value *hash)
 
   @param  v1	Pointer to mrbc_value
   @param  v2	Pointer to another mrbc_value
-  @retval 0	v1 == v2
+  @retval 0	v1==v2
   @retval 1	v1 != v2
 */
 int mrbc_hash_compare(const mrbc_value *v1, const mrbc_value *v2)
 {
-  if( v1->hash->n_stored != v2->hash->n_stored ) return 1;
+  if (v1->hash->n_stored != v2->hash->n_stored) return 1;
 
   mrbc_value *d1 = v1->hash->data;
   int i;
-  for( i = 0; i < mrbc_hash_size(v1); i++, d1++ ) {
+  for(i = 0; i < mrbc_hash_size(v1); i++, d1++) {
     mrbc_value *d2 = mrbc_hash_search(v2, d1);	// check key
-    if( d2 == NULL ) return 1;
-    if( mrbc_compare( ++d1, ++d2 ) ) return 1;	// check data
+    if (d2==NULL) return 1;
+    if (mrbc_compare(++d1, ++d2)) return 1;	// check data
   }
 
   return 0;
@@ -241,18 +241,18 @@ int mrbc_hash_compare(const mrbc_value *v1, const mrbc_value *v2)
   @param  vm	pointer to VM.
   @param  src	pointer to target hash.
 */
-mrbc_value mrbc_hash_dup( struct VM *vm, mrbc_value *src )
+mrbc_value mrbc_hash_dup(struct VM *vm, mrbc_value *src)
 {
   mrbc_value ret = mrbc_hash_new(vm, mrbc_hash_size(src));
-  if( ret.hash == NULL ) return ret;		// ENOMEM
+  if (ret.hash==NULL) return ret;		// ENOMEM
 
   mrbc_hash *h = src->hash;
-  memcpy( ret.hash->data, h->data, sizeof(mrbc_value) * h->n_stored );
+  MEMCPY(ret.hash->data, h->data, sizeof(mrbc_value) * h->n_stored);
   ret.hash->n_stored = h->n_stored;
 
   mrbc_value *p1 = h->data;
   const mrbc_value *p2 = p1 + h->n_stored;
-  while( p1 < p2 ) {
+  while(p1 < p2) {
     mrbc_dup(p1++);
   }
 
@@ -279,7 +279,7 @@ static void c_hash_new(struct VM *vm, mrbc_value v[], int argc)
 */
 static void c_hash_get(struct VM *vm, mrbc_value v[], int argc)
 {
-  if( argc != 1 ) {
+  if (argc != 1) {
     return;	// raise ArgumentError.
   }
 
@@ -294,7 +294,7 @@ static void c_hash_get(struct VM *vm, mrbc_value v[], int argc)
 */
 static void c_hash_set(struct VM *vm, mrbc_value v[], int argc)
 {
-  if( argc != 2 ) {
+  if (argc != 2) {
     return;	// raise ArgumentError.
   }
 
@@ -320,7 +320,7 @@ static void c_hash_clear(struct VM *vm, mrbc_value v[], int argc)
 */
 static void c_hash_dup(struct VM *vm, mrbc_value v[], int argc)
 {
-  mrbc_value ret = mrbc_hash_dup( vm, &v[0] );
+  mrbc_value ret = mrbc_hash_dup(vm, &v[0]);
 
   SET_RETURN(ret);
 }
@@ -348,7 +348,7 @@ static void c_hash_empty(struct VM *vm, mrbc_value v[], int argc)
 {
   int n = mrbc_hash_size(v);
 
-  if( n ) {
+  if (n) {
     SET_FALSE_RETURN();
   } else {
     SET_TRUE_RETURN();
@@ -363,7 +363,7 @@ static void c_hash_has_key(struct VM *vm, mrbc_value v[], int argc)
 {
   mrbc_value *res = mrbc_hash_search(v, v+1);
 
-  if( res ) {
+  if (res) {
     SET_TRUE_RETURN();
   } else {
     SET_FALSE_RETURN();
@@ -379,15 +379,15 @@ static void c_hash_has_value(struct VM *vm, mrbc_value v[], int argc)
   int ret = 0;
   mrbc_hash_iterator ite = mrbc_hash_iterator_new(&v[0]);
 
-  while( mrbc_hash_i_has_next(&ite) ) {
+  while(mrbc_hash_i_has_next(&ite)) {
     mrbc_value *val = mrbc_hash_i_next(&ite) + 1;	// skip key, get value
-    if( mrbc_compare(val, &v[1]) == 0 ) {
+    if (mrbc_compare(val, &v[1])==0) {
       ret = 1;
       break;
     }
   }
 
-  if( ret ) {
+  if (ret) {
     SET_TRUE_RETURN();
   } else {
     SET_FALSE_RETURN();
@@ -403,16 +403,16 @@ static void c_hash_key(struct VM *vm, mrbc_value v[], int argc)
   mrbc_value *ret = NULL;
   mrbc_hash_iterator ite = mrbc_hash_iterator_new(&v[0]);
 
-  while( mrbc_hash_i_has_next(&ite) ) {
+  while(mrbc_hash_i_has_next(&ite)) {
     mrbc_value *kv = mrbc_hash_i_next(&ite);
-    if( mrbc_compare( &kv[1], &v[1]) == 0 ) {
-      mrbc_dup( &kv[0] );
+    if (mrbc_compare(&kv[1], &v[1])==0) {
+      mrbc_dup(&kv[0]);
       ret = &kv[0];
       break;
     }
   }
 
-  if( ret ) {
+  if (ret) {
     SET_RETURN(*ret);
   } else {
     SET_NIL_RETURN();
@@ -425,10 +425,10 @@ static void c_hash_key(struct VM *vm, mrbc_value v[], int argc)
 */
 static void c_hash_keys(struct VM *vm, mrbc_value v[], int argc)
 {
-  mrbc_value ret = mrbc_array_new( vm, mrbc_hash_size(v) );
+  mrbc_value ret = mrbc_array_new(vm, mrbc_hash_size(v));
   mrbc_hash_iterator ite = mrbc_hash_iterator_new(v);
 
-  while( mrbc_hash_i_has_next(&ite) ) {
+  while(mrbc_hash_i_has_next(&ite)) {
     mrbc_value *key = mrbc_hash_i_next(&ite);
     mrbc_array_push(&ret, key);
     mrbc_dup(key);
@@ -454,14 +454,14 @@ static void c_hash_size(struct VM *vm, mrbc_value v[], int argc)
 */
 static void c_hash_merge(struct VM *vm, mrbc_value v[], int argc)
 {
-  mrbc_value ret = mrbc_hash_dup( vm, &v[0] );
+  mrbc_value ret = mrbc_hash_dup(vm, &v[0]);
   mrbc_hash_iterator ite = mrbc_hash_iterator_new(&v[1]);
 
-  while( mrbc_hash_i_has_next(&ite) ) {
+  while(mrbc_hash_i_has_next(&ite)) {
     mrbc_value *kv = mrbc_hash_i_next(&ite);
-    mrbc_hash_set( &ret, &kv[0], &kv[1] );
-    mrbc_dup( &kv[0] );
-    mrbc_dup( &kv[1] );
+    mrbc_hash_set(&ret, &kv[0], &kv[1]);
+    mrbc_dup(&kv[0]);
+    mrbc_dup(&kv[1]);
   }
 
   SET_RETURN(ret);
@@ -475,11 +475,11 @@ static void c_hash_merge_self(struct VM *vm, mrbc_value v[], int argc)
 {
   mrbc_hash_iterator ite = mrbc_hash_iterator_new(&v[1]);
 
-  while( mrbc_hash_i_has_next(&ite) ) {
+  while(mrbc_hash_i_has_next(&ite)) {
     mrbc_value *kv = mrbc_hash_i_next(&ite);
-    mrbc_hash_set( v, &kv[0], &kv[1] );
-    mrbc_dup( &kv[0] );
-    mrbc_dup( &kv[1] );
+    mrbc_hash_set(v, &kv[0], &kv[1]);
+    mrbc_dup(&kv[0]);
+    mrbc_dup(&kv[1]);
   }
 }
 
@@ -489,10 +489,10 @@ static void c_hash_merge_self(struct VM *vm, mrbc_value v[], int argc)
 */
 static void c_hash_values(struct VM *vm, mrbc_value v[], int argc)
 {
-  mrbc_value ret = mrbc_array_new( vm, mrbc_hash_size(v) );
+  mrbc_value ret = mrbc_array_new(vm, mrbc_hash_size(v));
   mrbc_hash_iterator ite = mrbc_hash_iterator_new(v);
 
-  while( mrbc_hash_i_has_next(&ite) ) {
+  while(mrbc_hash_i_has_next(&ite)) {
     mrbc_value *val = mrbc_hash_i_next(&ite) + 1;
     mrbc_array_push(&ret, val);
     mrbc_dup(val);
@@ -509,28 +509,28 @@ static void c_hash_values(struct VM *vm, mrbc_value v[], int argc)
 static void c_hash_inspect(struct VM *vm, mrbc_value v[], int argc)
 {
   mrbc_value ret = mrbc_string_new_cstr(vm, "{");
-  if( !ret.string ) goto RETURN_NIL;		// ENOMEM
+  if (!ret.string) goto RETURN_NIL;		// ENOMEM
 
   mrbc_hash_iterator ite = mrbc_hash_iterator_new(v);
   int flag_first = 1;
 
-  while( mrbc_hash_i_has_next(&ite) ) {
-    if( !flag_first ) mrbc_string_append_cstr( &ret, ", " );
+  while(mrbc_hash_i_has_next(&ite)) {
+    if (!flag_first) mrbc_string_append_cstr(&ret, ", ");
     flag_first = 0;
     mrbc_value *kv = mrbc_hash_i_next(&ite);
 
-    mrbc_value s1 = mrbc_send( vm, v, argc, &kv[0], "inspect", 0 );
-    mrbc_string_append( &ret, &s1 );
-    mrbc_string_delete( &s1 );
+    mrbc_value s1 = mrbc_send(vm, v, argc, &kv[0], "inspect", 0);
+    mrbc_string_append(&ret, &s1);
+    mrbc_string_delete(&s1);
 
-    mrbc_string_append_cstr( &ret, "=>" );
+    mrbc_string_append_cstr(&ret, "=>");
 
-    s1 = mrbc_send( vm, v, argc, &kv[1], "inspect", 0 );
-    mrbc_string_append( &ret, &s1 );
-    mrbc_string_delete( &s1 );
+    s1 = mrbc_send(vm, v, argc, &kv[1], "inspect", 0);
+    mrbc_string_append(&ret, &s1);
+    mrbc_string_delete(&s1);
   }
 
-  mrbc_string_append_cstr( &ret, "}" );
+  mrbc_string_append_cstr(&ret, "}");
 
   SET_RETURN(ret);
   return;

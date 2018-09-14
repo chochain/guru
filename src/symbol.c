@@ -52,12 +52,12 @@ static int sym_index_pos;	// point to the last(free) sym_index array.
 //================================================================
 /*! search index table
  */
-static int search_index( uint16_t hash, const char *str )
+static int search_index(uint16_t hash, const char *str)
 {
 #ifdef MRBC_SYMBOL_SEARCH_LINER
   int i;
-  for( i = 0; i < sym_index_pos; i++ ) {
-    if( sym_index[i].hash == hash && strcmp(str, sym_index[i].cstr) == 0 ) {
+  for(i = 0; i < sym_index_pos; i++) {
+    if (sym_index[i].hash==hash && strcmp(str, sym_index[i].cstr)==0) {
       return i;
     }
   }
@@ -67,15 +67,15 @@ static int search_index( uint16_t hash, const char *str )
 #ifdef MRBC_SYMBOL_SEARCH_BTREE
   int i = 0;
   do {
-    if( sym_index[i].hash == hash && strcmp(str, sym_index[i].cstr) == 0 ) {
+    if (sym_index[i].hash==hash && strcmp(str, sym_index[i].cstr)==0) {
       return i;
     }
-    if( hash < sym_index[i].hash ) {
+    if (hash < sym_index[i].hash) {
       i = sym_index[i].left;
     } else {
       i = sym_index[i].right;
     }
-  } while( i != 0 );
+  } while(i != 0);
   return -1;
 #endif
 }
@@ -84,11 +84,11 @@ static int search_index( uint16_t hash, const char *str )
 //================================================================
 /*! add to index table
  */
-static int add_index( uint16_t hash, const char *str )
+static int add_index(uint16_t hash, const char *str)
 {
   // check overflow.
-  if( sym_index_pos >= MAX_SYMBOLS_COUNT ) {
-    console_printf( "Overflow %s for '%s'\n", "MAX_SYMBOLS_COUNT", str );
+  if (sym_index_pos >= MAX_SYMBOLS_COUNT) {
+    console_printf("Overflow %s for '%s'\n", "MAX_SYMBOLS_COUNT", str);
     return -1;
   }
 
@@ -101,17 +101,17 @@ static int add_index( uint16_t hash, const char *str )
 #ifdef MRBC_SYMBOL_SEARCH_BTREE
   int i = 0;
 
-  while( 1 ) {
-    if( hash < sym_index[i].hash ) {
+  while(1) {
+    if (hash < sym_index[i].hash) {
       // left side
-      if( sym_index[i].left == 0 ) {	// left is empty?
+      if (sym_index[i].left==0) {	// left is empty?
         sym_index[i].left = sym_id;
         break;
       }
       i = sym_index[i].left;
     } else {
       // right side
-      if( sym_index[i].right == 0 ) {	// right is empty?
+      if (sym_index[i].right==0) {	// right is empty?
         sym_index[i].right = sym_id;
         break;
       }
@@ -136,7 +136,7 @@ mrbc_value mrbc_symbol_new(struct VM *vm, const char *str)
   uint16_t h = calc_hash(str);
   mrbc_sym sym_id = search_index(h, str);
 
-  if( sym_id >= 0 ) {
+  if (sym_id >= 0) {
     ret.i = sym_id;
     return ret;		// already exist.
   }
@@ -144,10 +144,10 @@ mrbc_value mrbc_symbol_new(struct VM *vm, const char *str)
   // create symbol object dynamically.
   int size = strlen(str) + 1;
   char *buf = mrbc_raw_alloc(size);
-  if( buf == NULL ) return ret;		// ENOMEM raise?
+  if (buf==NULL) return ret;		// ENOMEM raise?
 
-  memcpy(buf, str, size);
-  ret.i = add_index( h, buf );
+  MEMCPY(buf, str, size);
+  ret.i = add_index(h, buf);
 
   return ret;
 }
@@ -163,7 +163,7 @@ uint16_t calc_hash(const char *str)
 {
   uint16_t h = 0;
 
-  while( *str != '\0' ) {
+  while(*str != '\0') {
     h = h * 37 + *str;
     str++;
   }
@@ -181,9 +181,9 @@ mrbc_sym str_to_symid(const char *str)
 {
   uint16_t h = calc_hash(str);
   mrbc_sym sym_id = search_index(h, str);
-  if( sym_id >= 0 ) return sym_id;
+  if (sym_id >= 0) return sym_id;
 
-  return add_index( h, str );
+  return add_index(h, str);
 }
 
 
@@ -196,8 +196,8 @@ mrbc_sym str_to_symid(const char *str)
 */
 const char * symid_to_str(mrbc_sym sym_id)
 {
-  if( sym_id < 0 ) return NULL;
-  if( sym_id >= sym_index_pos ) return NULL;
+  if (sym_id < 0) return NULL;
+  if (sym_id >= sym_index_pos) return NULL;
 
   return sym_index[sym_id].cstr;
 }
@@ -212,7 +212,7 @@ static void c_all_symbols(struct VM *vm, mrbc_value v[], int argc)
   mrbc_value ret = mrbc_array_new(vm, sym_index_pos);
 
   int i;
-  for( i = 0; i < sym_index_pos; i++ ) {
+  for(i = 0; i < sym_index_pos; i++) {
     mrbc_value sym1 = {.tt = MRBC_TT_SYMBOL};
     sym1.i = i;
     mrbc_array_push(&ret, &sym1);
