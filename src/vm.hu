@@ -98,8 +98,12 @@ void mrbc_vm_begin(struct VM *vm);
 void mrbc_vm_end(struct VM *vm);
 int mrbc_vm_run(struct VM *vm);
 
+//<< from value.hu
 __GURU__ struct IREP *mrbc_irep_alloc(struct VM *vm);
 __GURU__ void mrbc_irep_free(struct IREP *irep);
+
+//<< from keyvalue.hu to remove dependency
+__GURU__ void mrbc_kv_clear_vm_id(mrbc_kv_handle *kvh);
 
 //================================================================
 /*!@brief

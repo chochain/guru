@@ -1866,7 +1866,7 @@ int mrbc_vm_run(struct VM *vm)
   @return	Pointer of allocated mrbc_irep
 */
 __GURU__
-mrbc_irep *mrbc_irep_alloc(struct VM *vm)
+mrbc_irep *mrbc_irep_alloc(struct VM *vm)  // from value.cu to remove dependency
 {
   mrbc_irep *p = (mrbc_irep *)mrbc_alloc(vm, sizeof(mrbc_irep));
   if (p)
@@ -1880,7 +1880,7 @@ mrbc_irep *mrbc_irep_alloc(struct VM *vm)
   release mrbc_irep holds memory
 */
 __GURU__
-void mrbc_irep_free(mrbc_irep *irep)
+void mrbc_irep_free(mrbc_irep *irep)  // from value.cu to remove dependency
 {
   int i;
 
@@ -1898,4 +1898,23 @@ void mrbc_irep_free(mrbc_irep *irep)
 
   mrbc_raw_free(irep);
 }
+
+//================================================================
+/*! clear vm_id
+
+  @param  kvh	pointer to key-value handle.
+*/
+__GURU__    
+void mrbc_kv_clear_vm_id(mrbc_kv_handle *kvh)  // << from keyvalue.cu
+{
+  mrbc_set_vm_id(kvh, 0);
+
+  mrbc_kv *p1 = kvh->data;
+  const mrbc_kv *p2 = p1 + kvh->n_stored;
+  while (p1 < p2) {
+    mrbc_clear_vm_id(&p1->value);
+    p1++;
+  }
+}
+
 
