@@ -1917,4 +1917,13 @@ void mrbc_kv_clear_vm_id(mrbc_kv_handle *kvh)  // << from keyvalue.cu
   }
 }
 
+__GURU__
+void init_static(void)  // << from static.cu
+{
+  mrbc_init_global();
+
+  mrbc_init_class();
+}
+
+
 

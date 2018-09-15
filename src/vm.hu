@@ -105,6 +105,9 @@ __GURU__ void mrbc_irep_free(struct IREP *irep);
 //<< from keyvalue.hu to remove dependency
 __GURU__ void mrbc_kv_clear_vm_id(mrbc_kv_handle *kvh);
 
+//<< from static.hu
+__GURU__ void init_static(void);
+
 //================================================================
 /*!@brief
   Get 32bit value from memory big endian.
