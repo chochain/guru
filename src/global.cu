@@ -1,10 +1,10 @@
 
 #include "vm_config.h"
 #include <assert.h>
-#include "value.h"
-//#include "static.h"
+#include "guru.hu"
+#include "value.hu"
+#include "vmalloc.hu"
 #include "global.hu"
-//#include "mrubyc.h"
 
 /*
 
@@ -14,7 +14,6 @@
   In case of adding a global object, insertion sort is used.
 
 */
-
 typedef enum {
     MRBC_GLOBAL_OBJECT = 1,
     MRBC_CONST_OBJECT,
@@ -27,19 +26,19 @@ typedef struct GLOBAL_OBJECT {
 } mrbc_globalobject;
 
 // max of global object in mrbc_global[]
-__device__ int               global_end;
-__device__ mrbc_globalobject *mrbc_global;
+__GURU__ int               global_end;
+__GURU__ mrbc_globalobject mrbc_global[MAX_GLOBAL_OBJECT_SIZE];
 
 //
-void  mrbc_init_global(void)
+__GURU__ void  mrbc_init_global(void)
 {
-//    cudaMallocManaged(&mrbc_globalobject, sizeof(mrbc_globalobject)*MAX_GLOBAL_OBJECT_SIZE);     // global
+    global_end = 0;
 }
 
 /* search */
 /* linear search is not efficient! */
 /* TODO: Use binary search */
-__device__ int search_global_object(mrbc_sym sym_id, mrbc_globaltype gtype)
+__GURU__ int search_global_object(mrbc_sym sym_id, mrbc_globaltype gtype)
 {
     int i;
     for (i=0 ; i<global_end ; i++) {
@@ -51,7 +50,7 @@ __device__ int search_global_object(mrbc_sym sym_id, mrbc_globaltype gtype)
 
 /* add */
 /* TODO: Check reference count */
-__device__ void global_object_add(mrbc_sym sym_id, mrbc_value v)
+__GURU__ void global_object_add(mrbc_sym sym_id, mrbc_value v)
 {
     int index = search_global_object(sym_id, MRBC_GLOBAL_OBJECT);
     if (index == -1) {
@@ -68,7 +67,7 @@ __device__ void global_object_add(mrbc_sym sym_id, mrbc_value v)
 }
 
 /* get */
-__device__ mrbc_value global_object_get(mrbc_sym sym_id)
+__GURU__ mrbc_value global_object_get(mrbc_sym sym_id)
 {
     int index = search_global_object(sym_id, MRBC_GLOBAL_OBJECT);
     if (index >= 0) {
@@ -82,7 +81,7 @@ __device__ mrbc_value global_object_get(mrbc_sym sym_id)
 /* add const */
 /* TODO: Check reference count */
 /* TODO: Integrate with global_add */
-__device__ void const_object_add(mrbc_sym sym_id, mrbc_object *obj)
+__GURU__ void const_object_add(mrbc_sym sym_id, mrbc_object *obj)
 {
     int index = search_global_object(sym_id, MRBC_CONST_OBJECT);
     if (index == -1) {
@@ -101,7 +100,7 @@ __device__ void const_object_add(mrbc_sym sym_id, mrbc_object *obj)
 
 /* get const */
 /* TODO: Integrate with get_global_object */
-__device__ mrbc_object const_object_get(mrbc_sym sym_id)
+__GURU__ mrbc_object const_object_get(mrbc_sym sym_id)
 {
     int index = search_global_object(sym_id, MRBC_CONST_OBJECT);
     if (index >= 0) {
@@ -114,7 +113,7 @@ __device__ mrbc_object const_object_get(mrbc_sym sym_id)
 
 
 /* clear vm_id in global object for process terminated. */
-__device__ void mrbc_global_clear_vm_id(void)
+__GURU__ void mrbc_global_clear_vm_id(void)
 {
     int i;
     for (i = 0; i < global_end; i++) {

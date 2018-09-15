@@ -9,7 +9,8 @@ CFLAGS = -Wall -Wpointer-arith -g -DMRBC_DEBUG  # -std=c99 -pedantic -pedantic-e
 
 COMMON_SRCS = 
 RUBY_LIB_SRCS =
-CUDA_SRCS = alloc.cu value.cu keyvalue.cu symbol.cu symbol.cu vmalloc.cu
+CUDA_SRCS = alloc.cu value.cu keyvalue.cu symbol.cu symbol.cu vmalloc.cu \
+	 		global.cu static.cu class.cu
 
 TARGET = libguru.a
 OBJS = $(COMMON_SRCS:.c=.o) $(RUBY_LIB_SRCS:.c=.o) $(CUDA_SRCS:.cu=.o)
@@ -34,16 +35,13 @@ keyvalue.o: keyvalue.cu vm_config.h guru.hu alloc.hu keyvalue.hu
 
 symbol.o: symbol.cu 	vm_config.h guru.hu alloc.h symbol.hu
 
-vmalloc.o: vmalloc.cu 	vm_config.h value.hu alloc.hu symbol.hu vmalloc.hu
+vmalloc.o: vmalloc.cu 	vm_config.h guru.hu value.hu alloc.hu symbol.hu vmalloc.hu
 
-static.o: static.c vm_config.h static.h vm.h value.h global.h class.h \
-  symbol.h
+global.o: global.cu	    vm_config.h guru.hu value.hu vmalloc.hu global.h
 
-global.o: global.c vm_config.h value.h static.h vm.h global.h mrubyc.h \
-  errorcode.h alloc.h symbol.h class.h c_array.h c_hash.h \
-  c_numeric.h c_range.h c_string.h load.h console.h
+static.o: static.cu	    vm_config.h guru.hu global.hu static.hu
 
-class.o: class.c vm_config.h value.h vm.h class.h alloc.h static.h \
+class.o: class.cu	    vm_config.h guru.hu value.h vm.h class.h alloc.h static.h \
   global.h symbol.h console.h c_array.h c_hash.h c_numeric.h \
   c_string.h c_range.h
 
