@@ -1,0 +1,63 @@
+/*! @file
+  @brief
+  Guru Key(Symbol) - Value store.
+
+  <pre>
+  Copyright (C) 2015-2018 Kyushu Institute of Technology.
+  Copyright (C) 2015-2018 Shimane IT Open-Innovation Center.
+
+  This file is distributed under BSD 3-Clause License.
+
+  </pre>
+*/
+
+#ifndef MRBC_SRC_C_KEYVALUE_H_
+#define MRBC_SRC_C_KEYVALUE_H_
+#include "guru.hu"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+//================================================================
+/*! Define Key-Value data.
+*/
+typedef struct RKeyValue {
+  mrbc_sym sym_id;	//!< symbol ID as key.
+  mrbc_value value;	//!< stored value.
+} mrbc_kv;
+
+
+//================================================================
+/*! Define Key-Value handle.
+*/
+typedef struct RKeyValueHandle {
+  uint16_t data_size;	//!< data buffer size.
+  uint16_t n_stored;	//!< # of stored.
+  mrbc_kv *data;		//!< pointer to allocated memory.
+} mrbc_kv_handle;
+
+__GURU__ mrbc_kv_handle *mrbc_kv_new(int size);
+__GURU__ void mrbc_kv_delete(mrbc_kv_handle *kvh);
+__GURU__ int mrbc_kv_resize(mrbc_kv_handle *kvh, int size);
+__GURU__ int mrbc_kv_set(mrbc_kv_handle *kvh, mrbc_sym sym_id, mrbc_value *set_val);
+__GURU__ mrbc_value *mrbc_kv_get(mrbc_kv_handle *kvh, mrbc_sym sym_id);
+__GURU__ int mrbc_kv_append(mrbc_kv_handle *kvh, mrbc_sym sym_id, mrbc_value *set_val);
+__GURU__ int mrbc_kv_remove(mrbc_kv_handle *kvh, mrbc_sym sym_id);
+__GURU__ void mrbc_kv_clear(mrbc_kv_handle *kvh);
+
+//================================================================
+/*! get size
+*/
+__GURU__ __forceinline__
+int mrbc_kv_size(const mrbc_kv_handle *kvh)
+{
+  return kvh->n_stored;
+}
+
+extern __GURU__ void mrbc_dec_ref_counter(mrbc_value *v);
+
+#ifdef __cplusplus
+}
+#endif
+#endif
