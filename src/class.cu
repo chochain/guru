@@ -18,15 +18,16 @@
 #include "guru.hu"
 #include "value.hu"
 #include "alloc.hu"
-#include "vmalloc.hu"
+#include "global.hu"
 #include "symbol.hu"
+#include "vmalloc.hu"
 #include "static.hu"
 #include "console.hu"
 #include "class.hu"
+#include "opcode.hu"
 
 #if 0
-#include "vm.h"
-#include "opcode.h"
+#include "vm.hu"
 #include "load.h"
 #endif
 
@@ -69,8 +70,8 @@ int mrbc_print_sub(mrbc_value *v)
     case MRBC_TT_CLASS:
         console_print(symid_to_str(v->cls->sym_id));    break;
     case MRBC_TT_OBJECT:
-        console_printf("#<%s:%08x>",
-                        symid_to_str(find_class_by_object(0,v)->sym_id), v->instance);
+        console_printf("#<%s:", symid_to_str(find_class_by_object(0,v)->sym_id));
+        console_printf("%08x>", v->instance);
         break;
 
     case MRBC_TT_PROC:
