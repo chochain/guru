@@ -29,7 +29,7 @@ int guru_strlen(const char *str) {
     return i;
 }
 
-__GURU__ __forceinline__
+__GURU__
 void guru_write(int fd, const char *buf, int nbytes)
 {
     int  i;
@@ -46,7 +46,7 @@ void guru_write(int fd, const char *buf, int nbytes)
 
   @param  c	character
 */
-__GURU__ __forceinline__
+__GURU__
 void console_putchar(char c)
 {
     guru_write(1, &c, 1);
@@ -57,7 +57,7 @@ void console_putchar(char c)
 
   @param str	str
 */
-__GURU__ __forceinline__
+__GURU__
 void console_print(const char *str)
 {
     guru_write(1, str, guru_strlen(str));
@@ -69,7 +69,7 @@ void console_print(const char *str)
   @param str	str
   @param size	byte length.
 */
-__GURU__ __forceinline__
+__GURU__
 void console_nprint(const char *str, int size)
 {
     guru_write(1, str, size);

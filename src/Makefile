@@ -23,10 +23,6 @@ $(TARGET): $(OBJS)
 
 cuda.o: cuda.cu
 
-vm.o: vm.c vm_config.h vm.h value.h alloc.h static.h global.h opcode.h \
-  class.h symbol.h console.h c_string.h c_range.h c_array.h \
-  c_hash.h
-
 alloc.o: alloc.cu       vm_config.h guru.hu alloc.hu
 
 value.o: value.cu       vm_config.h guru.hu value.hu
@@ -41,10 +37,13 @@ global.o: global.cu	    vm_config.h guru.hu value.hu vmalloc.hu global.h
 
 static.o: static.cu	    vm_config.h guru.hu global.hu static.hu
 
-console.o: console.c vm_config.h console.h
+console.o: console.c 	vm_config.h guru.hu value.hu console.hu
 
+vm.o: vm.cu             vm_config.h guru.hu value.hu alloc.hu global.hu symbol.hu \
+                        static.hu console.hu class.hu opcode.hu vm.hu
 
-class.o: class.cu	    vm_config.h guru.hu value.h vm.h class.h alloc.h static.h \
+class.o: class.cu	    vm_config.h guru.hu value.hu alloc.hu symbol.hu vmalloc.hu \
+                        static.hu cosole.hu class.huvm.h class.h alloc.h static.h \
   global.h symbol.h console.h c_array.h c_hash.h c_numeric.h \
   c_string.h c_range.h
 

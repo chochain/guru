@@ -21,11 +21,11 @@
 #include "vmalloc.hu"
 #include "symbol.hu"
 #include "static.hu"
+#include "console.hu"
+#include "class.hu"
 
 #if 0
 #include "vm.h"
-#include "class.h"
-#include "console.h"
 #include "opcode.h"
 #include "load.h"
 #endif
@@ -157,8 +157,8 @@ int mrbc_p_sub(mrbc_value *v)
         break;
 
     case MRBC_TT_SYMBOL:{
-        const char *s = mrbc_symbol_cstr(v);
-        char *fmt = strchr(s, ':') ? "\":%s\"" : ":%s";
+        const char *s   = mrbc_symbol_cstr(v);
+        const char *fmt = strchr(s, ':') ? "\":%s\"" : ":%s";
         console_printf(fmt, s);
     } break;
 
@@ -277,7 +277,7 @@ mrbc_class * mrbc_define_class(const char *name, mrbc_class *super)
 
     // create a new class?
     if (obj.tt == MRBC_TT_NIL) {
-        mrbc_class *cls = (mrbc_class *)mrbc_alloc(0, sizeof(mrbc_class));
+        mrbc_class *cls = (mrbc_class *)mrbc_alloc(sizeof(mrbc_class));
         if (!cls) return cls;	// ENOMEM
 
         cls->sym_id = sym_id;
@@ -523,7 +523,7 @@ void c_object_compare(mrbc_value v[], int argc)
 /*! (operator) ===
  */
 __GURU__
-void c_object_equal3(mrbc_value v[], int argc)
+void c_object_equal3(struct VM *vm, mrbc_value v[], int argc)
 {
     if (v[0].tt == MRBC_TT_CLASS) {
         mrbc_value result = mrbc_send(vm, v, argc, &v[1], "kind_of?", 1, &v[0]);
@@ -542,7 +542,7 @@ __GURU__
 void c_object_class(mrbc_value v[], int argc)
 {
     mrbc_value value = {.tt = MRBC_TT_CLASS};
-    value.cls = find_class_by_object(vm, v);
+    value.cls = find_class_by_object(v);
     SET_RETURN(value);
 }
 
