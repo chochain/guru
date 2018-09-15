@@ -11,24 +11,150 @@
   </pre>
 */
 
+#include <cstdio>          // printf
+
 #include "vm_config.h"
-#include <stdint.h>
-#include <stdarg.h>
-#include <string.h>
-#if MRBC_USE_FLOAT
-#include <stdio.h>
-#endif
 #include "guru.hu"
 #include "value.hu"
 #include "console.hu"
+
+#define MAX_BUFFER_SIZE 1024
+
+__GURU__ char guru_output_buffer[MAX_BUFFER_SIZE];
+
+__GURU__
+int guru_strlen(const char *str) {
+    int i=0;
+    while (str[++i]!='\0');
+    return i;
+}
+
+__GURU__ __forceinline__
+void guru_write(int fd, const char *buf, int nbytes)
+{
+    int  i;
+    for (i=0; i<nbytes && i<MAX_BUFFER_SIZE-1; i++) {
+        guru_output_buffer[i] = buf[i];
+    }
+    guru_output_buffer[i] = '\0';
+    
+    printf("%s", guru_output_buffer);
+}
+
+//================================================================
+/*! output a character
+
+  @param  c	character
+*/
+__GURU__ __forceinline__
+void console_putchar(char c)
+{
+    guru_write(1, &c, 1);
+}
+
+//================================================================
+/*! output string
+
+  @param str	str
+*/
+__GURU__ __forceinline__
+void console_print(const char *str)
+{
+    guru_write(1, str, guru_strlen(str));
+}
+
+//================================================================
+/*! output string with length parameter.
+
+  @param str	str
+  @param size	byte length.
+*/
+__GURU__ __forceinline__
+void console_nprint(const char *str, int size)
+{
+    guru_write(1, str, size);
+}
+
+//================================================================
+/*! initialize data container.
+
+  @param  pf	pointer to mrbc_printf
+  @param  buf	pointer to output buffer.
+  @param  size	buffer size.
+  @param  fstr	format string.
+*/
+__GURU__ __forceinline__
+void mrbc_printf_init(mrbc_printf *pf, char *buf, int size, const char *fstr)
+{
+    pf->p = pf->buf = buf;
+    pf->buf_end = buf + size - 1;
+    pf->fstr = fstr;
+    pf->fmt = (struct RPrintfFormat){0};
+}
+
+//================================================================
+/*! clear output buffer in container.
+
+  @param  pf	pointer to mrbc_printf
+*/
+__GURU__ __forceinline__
+void mrbc_printf_clear(mrbc_printf *pf)
+{
+    pf->p = pf->buf;
+}
+
+
+//================================================================
+/*! terminate ('\0') output buffer.
+
+  @param  pf	pointer to mrbc_printf
+*/
+__GURU__ __forceinline__
+void mrbc_printf_end(mrbc_printf *pf)
+{
+    *pf->p = '\0';
+}
+
+
+//================================================================
+/*! return string length in buffer
+
+  @param  pf	pointer to mrbc_printf
+  @return	length
+*/
+__GURU__ __forceinline__
+int mrbc_printf_len(mrbc_printf *pf)
+{
+    return pf->p - pf->buf;
+}
+
+
+//================================================================
+/*! sprintf subcontract function for char '%s'
+
+  @param  pf	pointer to mrbc_printf.
+  @param  str	output string.
+  @param  pad	padding character.
+  @retval 0	done.
+  @retval -1	buffer full.
+  @note		not terminate ('\0') buffer tail.
+*/
+__GURU__ __forceinline__
+int mrbc_printf_str(mrbc_printf *pf, const char *str, int pad)
+{
+    return mrbc_printf_bstr(pf, str, guru_strlen(str), pad);
+}
 
 //================================================================
 /*! output formatted string
 
   @param  fstr		format string.
 */
+__GURU__
 void console_printf(const char *fstr, ...)
 {
+    if (threadIdx.x!=0) return;
+    
     va_list ap;
     va_start(ap, fstr);
 
@@ -40,7 +166,7 @@ void console_printf(const char *fstr, ...)
     while (1) {
         ret = mrbc_printf_main(&pf);
         if (mrbc_printf_len(&pf)) {
-            hal_write(1, buf, mrbc_printf_len(&pf));
+            guru_write(1, buf, mrbc_printf_len(&pf));
             mrbc_printf_clear(&pf);
         }
         if (ret == 0) break;
@@ -85,15 +211,12 @@ void console_printf(const char *fstr, ...)
                 break;
             }
 
-            hal_write(1, buf, mrbc_printf_len(&pf));
+            guru_write(1, buf, mrbc_printf_len(&pf));
             mrbc_printf_clear(&pf);
         }
     }
-
     va_end(ap);
 }
-
-
 
 //================================================================
 /*! sprintf subcontract function
@@ -104,6 +227,7 @@ void console_printf(const char *fstr, ...)
   @retval -1	buffer full.
   @note		not terminate ('\0') buffer tail.
 */
+__GURU__
 int mrbc_printf_main(mrbc_printf *pf)
 {
     int ch = -1;
@@ -154,8 +278,6 @@ PARSE_WIDTH:
     return 1;
 }
 
-
-
 //================================================================
 /*! sprintf subcontract function for char '%c'
 
@@ -165,6 +287,7 @@ PARSE_WIDTH:
   @retval -1	buffer full.
   @note		not terminate ('\0') buffer tail.
 */
+__GURU__
 int mrbc_printf_char(mrbc_printf *pf, int ch)
 {
     if (pf->fmt.flag_minus) {
@@ -177,15 +300,12 @@ int mrbc_printf_char(mrbc_printf *pf, int ch)
         if (pf->p == pf->buf_end) return -1;
         *pf->p++ = ' ';
     }
-
     if (!pf->fmt.flag_minus) {
         if (pf->p == pf->buf_end) return -1;
         *pf->p++ = ch;
     }
-
     return 0;
 }
-
 
 //================================================================
 /*! sprintf subcontract function for byte array.
@@ -198,6 +318,7 @@ int mrbc_printf_char(mrbc_printf *pf, int ch)
   @retval -1	buffer full.
   @note		not terminate ('\0') buffer tail.
 */
+__GURU__
 int mrbc_printf_bstr(mrbc_printf *pf, const char *str, int len, int pad)
 {
     int ret = 0;
@@ -220,25 +341,16 @@ int mrbc_printf_bstr(mrbc_printf *pf, const char *str, int len, int pad)
         tw = remain;
         ret = -1;
     }
-
     int n_pad = tw - len;
 
     if (!pf->fmt.flag_minus) {
-        while (n_pad-- > 0) {
-            *pf->p++ = pad;
-        }
+        while (n_pad-- > 0) *pf->p++ = pad;
     }
-    while (len-- > 0) {
-        *pf->p++ = *str++;
-    }
-    while (n_pad-- > 0) {
-        *pf->p++ = pad;
-    }
+    while (len-- > 0)   *pf->p++ = *str++;
+    while (n_pad-- > 0) *pf->p++ = pad;
 
     return ret;
 }
-
-
 
 //================================================================
 /*! sprintf subcontract function for integer '%d' '%x' '%b'
@@ -250,6 +362,7 @@ int mrbc_printf_bstr(mrbc_printf *pf, const char *str, int len, int pad)
   @retval -1	buffer full.
   @note		not terminate ('\0') buffer tail.
 */
+__GURU__
 int mrbc_printf_int(mrbc_printf *pf, mrbc_int value, int base)
 {
     int sign = 0;
@@ -299,8 +412,6 @@ int mrbc_printf_int(mrbc_printf *pf, mrbc_int value, int base)
     return mrbc_printf_str(pf, p, pad);
 }
 
-
-
 #if MRBC_USE_FLOAT
 //================================================================
 /*! sprintf subcontract function for float(double) '%f'
@@ -310,6 +421,7 @@ int mrbc_printf_int(mrbc_printf *pf, mrbc_int value, int base)
   @retval 0	done.
   @retval -1	buffer full.
 */
+__GURU__
 int mrbc_printf_float(mrbc_printf *pf, double value)
 {
     char fstr[16];
@@ -329,8 +441,6 @@ int mrbc_printf_float(mrbc_printf *pf, double value)
 }
 #endif
 
-
-
 //================================================================
 /*! replace output buffer
 
@@ -338,6 +448,7 @@ int mrbc_printf_float(mrbc_printf *pf, double value)
   @param  buf	pointer to output buffer.
   @param  size	buffer size.
 */
+__GURU__
 void mrbc_printf_replace_buffer(mrbc_printf *pf, char *buf, int size)
 {
     int p_ofs = pf->p - pf->buf;
