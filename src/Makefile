@@ -41,13 +41,14 @@ global.o: global.cu	    vm_config.h guru.hu value.hu vmalloc.hu global.h
 
 static.o: static.cu	    vm_config.h guru.hu global.hu static.hu
 
+console.o: console.c vm_config.h console.h
+
+
 class.o: class.cu	    vm_config.h guru.hu value.h vm.h class.h alloc.h static.h \
   global.h symbol.h console.h c_array.h c_hash.h c_numeric.h \
   c_string.h c_range.h
 
 load.o: load.c vm_config.h vm.h value.h load.h errorcode.h alloc.h
-
-console.o: console.c vm_config.h console.h
 
 c_array.o: c_array.c vm_config.h value.h vm.h alloc.h static.h global.h \
   class.h c_array.h console.h

@@ -186,16 +186,16 @@ typedef struct RProc mrb_proc;
 #define GET_TT_ARG(n)		(v[(n)].tt)
 #define GET_INT_ARG(n)		(v[(n)].i)
 #define GET_ARY_ARG(n)		(v[(n)])
-#define GET_ARG(n)		(v[(n)])
+#define GET_ARG(n)		    (v[(n)])
 #define GET_FLOAT_ARG(n)	(v[(n)].d)
 #define GET_STRING_ARG(n)	(v[(n)].string->data)
 
 #define mrbc_fixnum_value(n)	((mrbc_value){.tt = MRBC_TT_FIXNUM, .i=(n)})
-#define mrbc_float_value(n)	((mrbc_value){.tt = MRBC_TT_FLOAT, .d=(n)})
-#define mrbc_nil_value()	((mrbc_value){.tt = MRBC_TT_NIL})
-#define mrbc_true_value()	((mrbc_value){.tt = MRBC_TT_TRUE})
-#define mrbc_false_value()	((mrbc_value){.tt = MRBC_TT_FALSE})
-#define mrbc_bool_value(n)	((mrbc_value){.tt = (n)?MRBC_TT_TRUE:MRBC_TT_FALSE})
+#define mrbc_float_value(n)	    ((mrbc_value){.tt = MRBC_TT_FLOAT, .d=(n)})
+#define mrbc_nil_value()	    ((mrbc_value){.tt = MRBC_TT_NIL})
+#define mrbc_true_value()	    ((mrbc_value){.tt = MRBC_TT_TRUE})
+#define mrbc_false_value()	    ((mrbc_value){.tt = MRBC_TT_FALSE})
+#define mrbc_bool_value(n)	    ((mrbc_value){.tt = (n)?MRBC_TT_TRUE:MRBC_TT_FALSE})
 
 // CUDA on-device specific implementation, to be optimized later
 #ifdef GURU_USE_CUDA
