@@ -197,12 +197,12 @@ typedef struct RProc mrb_proc;
 #define mrbc_bool_value(n)	    ((mrbc_value){.tt = (n)?MRBC_TT_TRUE:MRBC_TT_FALSE})
 
 // CUDA on-device specific implementation, to be optimized later
-#ifdef __GURU__
-#define MEMCPY(d, s, sz)  (cudaMemcpy(d, s, sz, cudaMemcpyDeviceToDevice)
-#define MEMSET(d, v, sz)  (cudaMemcpy(d, v, sz)
+#ifdef __GURU_CUDA__
+#define MEMCPY(d, s, sz)  cudaMemcpy(d, s, sz, cudaMemcpyDeviceToDevice)
+#define MEMSET(d, v, sz)  cudaMemcpy(d, v, sz)
 #else
-#define MEMCPY(d, s, sz)  (memcpy(d, s, sz)
-#define MEMSET(d, v, sz)  (memset(d, v, sz)
+#define MEMCPY(d, s, sz)  memcpy(d, s, sz)
+#define MEMSET(d, v, sz)  memset(d, v, sz)
 #endif
 
 #ifdef __cplusplus

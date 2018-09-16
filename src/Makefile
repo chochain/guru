@@ -10,7 +10,7 @@ CFLAGS = -Wall -Wpointer-arith -g -DMRBC_DEBUG  # -std=c99 -pedantic -pedantic-e
 COMMON_SRCS = 
 RUBY_LIB_SRCS =
 CUDA_SRCS = alloc.cu value.cu keyvalue.cu symbol.cu symbol.cu vmalloc.cu \
-	 		global.cu static.cu console.cu vm.cu class.cu
+	 		global.cu static.cu console.cu vm.cu class.cu load.cu
 
 TARGET = libguru.a
 OBJS = $(COMMON_SRCS:.c=.o) $(RUBY_LIB_SRCS:.c=.o) $(CUDA_SRCS:.cu=.o)
@@ -45,7 +45,7 @@ vm.o: vm.cu             vm_config.h guru.hu value.hu alloc.hu global.hu symbol.h
 class.o: class.cu	    vm_config.h guru.hu value.hu alloc.hu symbol.hu vmalloc.hu \
                         global.hu static.hu cosole.hu opcode.hu vm.hu class.hu 
 
-load.o: load.c          vm_config.h vm.h value.h load.h errorcode.h alloc.h
+load.o: load.cu         vm_config.h guru.hu alloc.hu vmalloc.hu vm.hu errorcode.h load.hu
 
 c_array.o: c_array.c vm_config.h value.h vm.h alloc.h static.h global.h \
   class.h c_array.h console.h
