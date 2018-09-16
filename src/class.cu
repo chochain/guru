@@ -12,24 +12,19 @@
   </pre>
 */
 #include "vm_config.h"
-//#include <string.h>
 #include <assert.h>
 
 #include "guru.hu"
 #include "value.hu"
 #include "alloc.hu"
-#include "global.hu"
 #include "symbol.hu"
 #include "vmalloc.hu"
+#include "global.hu"
 #include "static.hu"
 #include "console.hu"
-#include "class.hu"
 #include "opcode.hu"
-
-#if 0
 #include "vm.hu"
-#include "load.h"
-#endif
+#include "class.hu"
 
 #if MRBC_USE_STRING
 #include "c_string.h"
@@ -70,7 +65,7 @@ int mrbc_print_sub(mrbc_value *v)
     case MRBC_TT_CLASS:
         console_print(symid_to_str(v->cls->sym_id));    break;
     case MRBC_TT_OBJECT:
-        console_printf("#<%s:", symid_to_str(find_class_by_object(0,v)->sym_id));
+        console_printf("#<%s:", symid_to_str(find_class_by_object(v)->sym_id));
         console_printf("%08x>", v->instance);
         break;
 
@@ -159,7 +154,7 @@ int mrbc_p_sub(mrbc_value *v)
 
     case MRBC_TT_SYMBOL:{
         const char *s   = mrbc_symbol_cstr(v);
-        const char *fmt = strchr(s, ':') ? "\":%s\"" : ":%s";
+        const char *fmt = guru_strchr(s, ':') ? "\":%s\"" : ":%s";
         console_printf(fmt, s);
     } break;
 
@@ -302,8 +297,7 @@ mrbc_class * mrbc_define_class(const char *name, mrbc_class *super)
     }
 
     // error.
-    // raise TypeError.
-    assert(!"TypeError");
+    assert(1==0);   // raise TypeError
     return NULL;
 }
 
@@ -363,7 +357,7 @@ void mrbc_funcall(struct VM *vm, const char *name, mrbc_value *v, int argc)
 
     if (m==0) return;   // no method
 
-    mrbc_callinfo *callinfo = mrbc_alloc(sizeof(mrbc_callinfo));
+    mrbc_callinfo *callinfo = (mrbc_callinfo *)mrbc_alloc(sizeof(mrbc_callinfo));
     callinfo->current_regs = vm->current_regs;
     callinfo->pc_irep = vm->pc_irep;
     callinfo->pc = vm->pc;
@@ -406,18 +400,18 @@ mrbc_value mrbc_send(mrbc_value *v, int reg_ofs,
 {
     mrbc_sym sym_id = str_to_symid(method);
     mrbc_proc *m = find_method(*recv, sym_id);
+    mrbc_value *regs = v + reg_ofs + 2;
 
     if (m == 0) {
         console_printf("No method. vtype=%d method='%s'\n", recv->tt, method);
-        goto ERROR;
+        return mrbc_nil_value();
     }
     if (!m->c_func) {
         console_printf("Method %s is not C function\n", method);
-        goto ERROR;
+        return mrbc_nil_value();
     }
 
     // create call stack.
-    mrbc_value *regs = v + reg_ofs + 2;
     mrbc_release(&regs[0]);
     regs[0] = *recv;
     mrbc_dup(recv);
@@ -441,9 +435,6 @@ mrbc_value mrbc_send(mrbc_value *v, int reg_ofs,
         regs[i].tt = MRBC_TT_EMPTY;
     }
     return ret;
-
-ERROR:
-    return mrbc_nil_value();
 }
 
 //================================================================
@@ -527,7 +518,7 @@ __GURU__
 void c_object_equal3(struct VM *vm, mrbc_value v[], int argc)
 {
     if (v[0].tt == MRBC_TT_CLASS) {
-        mrbc_value result = mrbc_send(vm, v, argc, &v[1], "kind_of?", 1, &v[0]);
+        mrbc_value result = mrbc_send(v, argc, &v[1], "kind_of?", 1, &v[0]);
         SET_RETURN(result);
 
     } else {
@@ -597,9 +588,9 @@ void c_object_new(struct VM *vm, mrbc_value v[], int argc)
 /*! (method) instance variable getter
  */
 __GURU__
-void c_object_getiv(mrbc_value v[], int argc)
+void c_object_getiv(struct VM *vm, mrbc_value v[], int argc)
 {
-    const char *name = mrbc_get_callee_name();
+    const char *name = mrbc_get_callee_name(vm);
     mrbc_sym sym_id = str_to_symid(name);
     mrbc_value ret = mrbc_instance_getiv(&v[0], sym_id);
 
@@ -610,14 +601,15 @@ void c_object_getiv(mrbc_value v[], int argc)
 /*! (method) instance variable setter
  */
 __GURU__
-void c_object_setiv(mrbc_value v[], int argc)
+void c_object_setiv(struct VM *vm, mrbc_value v[], int argc)
 {
     const char *name = mrbc_get_callee_name(vm);
 
-    char *namebuf = mrbc_alloc(strlen(name));
+    char *namebuf = (char *)mrbc_alloc(guru_strlen(name));
+    
     if (!namebuf) return;
-    strcpy(namebuf, name);
-    namebuf[strlen(name)-1] = '\0';	// delete '='
+    guru_strcpy(namebuf, name);
+    namebuf[guru_strlen(name)-1] = '\0';	// delete '='
     mrbc_sym sym_id = str_to_symid(namebuf);
 
     mrbc_instance_setiv(&v[0], sym_id, &v[1]);
@@ -636,7 +628,7 @@ void c_object_attr_reader(mrbc_value v[], int argc)
 
         // define reader method
         const char *name = mrbc_symbol_cstr(&v[i]);
-        mrbc_define_method(v[0].cls, name, c_object_getiv);
+        mrbc_define_method(v[0].cls, name, (mrbc_func_t)c_object_getiv);
     }
 }
 
@@ -652,15 +644,16 @@ void c_object_attr_accessor(mrbc_value v[], int argc)
 
         // define reader method
         char *name = (char *)mrbc_symbol_cstr(&v[i]);
-        mrbc_define_method(v[0].cls, name, c_object_getiv);
+        mrbc_define_method(v[0].cls, name, (mrbc_func_t)c_object_getiv);
 
         // make string "....=" and define writer method.
-        char *namebuf = (char *)mrbc_alloc(strlen(name)+2);
+        char *namebuf = (char *)mrbc_alloc(guru_strlen(name)+2);
         if (!namebuf) return;
-        strcpy(namebuf, name);
-        strcat(namebuf, "=");
+        
+        guru_strcpy(namebuf, name);
+        guru_strcat(namebuf, "=");
         mrbc_symbol_new(namebuf);
-        mrbc_define_method(v[0].cls, namebuf, c_object_setiv);
+        mrbc_define_method(v[0].cls, namebuf, (mrbc_func_t)c_object_setiv);
         mrbc_raw_free(namebuf);
     }
 }
@@ -672,8 +665,10 @@ __GURU__
 void c_object_kind_of(mrbc_value v[], int argc)
 {
     int result = 0;
-    if (v[1].tt != MRBC_TT_CLASS) goto DONE;
-
+    if (v[1].tt != MRBC_TT_CLASS) {
+        SET_BOOL_RETURN(result);
+        return;
+    }
     const mrbc_class *cls = find_class_by_object(&v[0]);
 
     do {
@@ -682,9 +677,6 @@ void c_object_kind_of(mrbc_value v[], int argc)
 
         cls = cls->super;
     } while(cls != NULL);
-
-DONE:
-    SET_BOOL_RETURN(result);
 }
 
 #if MRBC_USE_STRING
@@ -759,25 +751,25 @@ __GURU__
 void mrbc_init_class_object(struct VM *vm)
 {
     // Class
-    mrbc_class_object = mrbc_define_class("Object", 0);
+    mrbc_class_object = mrbc_define_class("Object",        0);
     // Methods
-    mrbc_define_method(mrbc_class_object, "initialize", c_ineffect);
-    mrbc_define_method(mrbc_class_object, "puts", c_puts);
-    mrbc_define_method(mrbc_class_object, "print", c_print);
-    mrbc_define_method(mrbc_class_object, "!", c_object_not);
-    mrbc_define_method(mrbc_class_object, "!=", c_object_neq);
-    mrbc_define_method(mrbc_class_object, "<=>", c_object_compare);
-    mrbc_define_method(mrbc_class_object, "===", c_object_equal3);
-    mrbc_define_method(mrbc_class_object, "class", c_object_class);
-    mrbc_define_method(mrbc_class_object, "new", c_object_new);
-    mrbc_define_method(mrbc_class_object, "attr_reader", c_object_attr_reader);
+    mrbc_define_method(mrbc_class_object, "initialize",    c_ineffect);
+    mrbc_define_method(mrbc_class_object, "puts",          c_puts);
+    mrbc_define_method(mrbc_class_object, "print",         c_print);
+    mrbc_define_method(mrbc_class_object, "!",             c_object_not);
+    mrbc_define_method(mrbc_class_object, "!=",            c_object_neq);
+    mrbc_define_method(mrbc_class_object, "<=>",           c_object_compare);
+    mrbc_define_method(mrbc_class_object, "===",           (mrbc_func_t)c_object_equal3);
+    mrbc_define_method(mrbc_class_object, "class",         c_object_class);
+    mrbc_define_method(mrbc_class_object, "new",           (mrbc_func_t)c_object_new);
+    mrbc_define_method(mrbc_class_object, "attr_reader",   c_object_attr_reader);
     mrbc_define_method(mrbc_class_object, "attr_accessor", c_object_attr_accessor);
-    mrbc_define_method(mrbc_class_object, "is_a?", c_object_kind_of);
-    mrbc_define_method(mrbc_class_object, "kind_of?", c_object_kind_of);
+    mrbc_define_method(mrbc_class_object, "is_a?",         c_object_kind_of);
+    mrbc_define_method(mrbc_class_object, "kind_of?",      c_object_kind_of);
 
 #if MRBC_USE_STRING
-    mrbc_define_method(mrbc_class_object, "inspect", c_object_to_s);
-    mrbc_define_method(mrbc_class_object, "to_s", c_object_to_s);
+    mrbc_define_method(mrbc_class_object, "inspect",       c_object_to_s);
+    mrbc_define_method(mrbc_class_object, "to_s",          c_object_to_s);
 #endif
 
 #ifdef MRBC_DEBUG
@@ -791,7 +783,7 @@ __GURU__
 void c_proc_call(struct VM *vm, mrbc_value v[], int argc)
 {
     // push callinfo, but not release regs
-    mrbc_push_callinfo(argc);
+    mrbc_push_callinfo(vm, argc);
 
     // target irep
     vm->pc = 0;
@@ -957,20 +949,23 @@ void mrbc_init_class(void)
     mrbc_init_class_false();
     mrbc_init_class_true();
 
-    mrbc_init_class_fixnum();
     mrbc_init_class_symbol();
 #if MRBC_USE_FLOAT
+    mrbc_init_class_fixnum();
     mrbc_init_class_float();
 #if MRBC_USE_MATH
     mrbc_init_class_math();
 #endif
 #endif
+    
 #if MRBC_USE_STRING
     mrbc_init_class_string(0);
 #endif
+#if MRBC_USE_ARRAY
     mrbc_init_class_array(0);
     mrbc_init_class_range(0);
     mrbc_init_class_hash(0);
+#endif
 }
 
 //================================================================

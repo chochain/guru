@@ -9,7 +9,6 @@
   This file is distributed under BSD 3-Clause License.
   </pre>
 */
-
 #ifndef MRBC_SRC_SYMBOL_H_
 #define MRBC_SRC_SYMBOL_H_
 
@@ -24,8 +23,12 @@ __GURU__ uint16_t   calc_hash(const char *str);
 __GURU__ mrbc_sym   str_to_symid(const char *str);
 __GURU__ const char *symid_to_str(mrbc_sym sym_id);
 
-extern __GURU__ int guru_strcmp(const char *str1, const char *str2);
-extern __GURU__ int guru_strlen(const char *str);
+extern __GURU__ size_t  guru_strcmp(const char *str1, const char *str2);
+extern __GURU__ size_t  guru_strlen(const char *str);
+    
+extern __GURU__ char   *guru_strcpy(char *d, const char *s);
+extern __GURU__ char   *guru_strcat(char *d, const char *s);
+extern __GURU__ char   *guru_strchr(const char *str, const char c);
 
 //================================================================
 /*! get c-language string (char *)

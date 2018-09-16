@@ -18,8 +18,8 @@
 extern "C" {
 #endif
 
-__GURU__ int mrbc_compare(const mrbc_value *v1, const mrbc_value *v2);
-__GURU__ void mrbc_dup(mrbc_value *v);
+__GURU__ int      mrbc_compare(const mrbc_value *v1, const mrbc_value *v2);
+__GURU__ void     mrbc_dup(mrbc_value *v);
 __GURU__ mrbc_int mrbc_atoi(const char *s, int base);
 
 //================================================================
