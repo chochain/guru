@@ -198,11 +198,19 @@ typedef struct RProc mrb_proc;
 
 // CUDA on-device specific implementation, to be optimized later
 #ifdef __GURU_CUDA__
-#define MEMCPY(d, s, sz)  cudaMemcpy(d, s, sz, cudaMemcpyDeviceToDevice)
-#define MEMSET(d, v, sz)  cudaMemcpy(d, v, sz)
+__GURU__ int guru_memcpy(uint8_t *d, const uint8_t *s, size_t sz);
+__GURU__ int guru_memset(uint8_t *d, const uint8_t v,  size_t sz);
+__GURU__ int guru_memcmp(const uint8_t *d, const uint8_t *s, size_t sz);
+__GURU__ long guru_atol(const char *s);
+    
+#define MEMCPY(d, s, sz)  guru_memcpy(d, s, sz)
+#define MEMSET(d, v, sz)  guru_memset(d, v, sz)
+#define MEMCMP(d, s, sz)  guru_memcmp(d, s, sz)
+#define ATOL(s)           guru_atol(s)
 #else
 #define MEMCPY(d, s, sz)  memcpy(d, s, sz)
 #define MEMSET(d, v, sz)  memset(d, v, sz)
+#define MEMCMP(d, s, sz)  memcmp(d, s, sz)
 #endif
 
 #ifdef __cplusplus

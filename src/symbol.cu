@@ -132,7 +132,7 @@ __GURU__ mrbc_value mrbc_symbol_new(struct VM *vm, const char *str)
     char *buf = (char *)mrbc_raw_alloc(size);
     if (buf==NULL) return ret;		// ENOMEM raise?
 
-    MEMCPY(buf, str, size);
+    MEMCPY((uint8_t *)buf, (const uint8_t *)str, size);
     ret.i = add_index(h, buf);
 
     return ret;

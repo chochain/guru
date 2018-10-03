@@ -143,7 +143,7 @@ void add_free_block(FREE_BLOCK *target)
 
 #ifdef MRBC_DEBUG
     target->vm_id = UINT8_MAX;
-    MEMSET((uint8_t *)target + sizeof(FREE_BLOCK), 0xff, target->size - sizeof(FREE_BLOCK));
+    MEMSET((uint8_t *)(target + sizeof(FREE_BLOCK)), 0xff, target->size - sizeof(FREE_BLOCK));
 #endif
 }
 
@@ -432,7 +432,7 @@ void * mrbc_raw_realloc(void *ptr, unsigned int size)
     uint8_t *new_ptr = (uint8_t *)mrbc_raw_alloc(size);
     if (new_ptr==NULL) return NULL;  // ENOMEM
 
-    MEMCPY(new_ptr, ptr, target->size - sizeof(USED_BLOCK));
+    MEMCPY(new_ptr, (uint8_t *)ptr, target->size - sizeof(USED_BLOCK));
     mrbc_raw_free(ptr);
 
     return new_ptr;

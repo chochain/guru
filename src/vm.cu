@@ -1704,7 +1704,7 @@ mrbc_vm *mrbc_vm_open(struct VM *vm_arg)
     }
 
     // initialize attributes.
-    MEMSET(vm, 0, sizeof(mrbc_vm));	// caution: assume NULL is zero.
+    MEMSET((uint8_t *)vm, 0, sizeof(mrbc_vm));	// caution: assume NULL is zero.
     if (vm_arg==NULL) vm->flag_need_memfree = 1;
     vm->vm_id = vm_id;
 
@@ -1743,7 +1743,7 @@ void mrbc_vm_begin(struct VM *vm)
     vm->pc_irep = vm->irep;
     vm->pc = 0;
     vm->current_regs = vm->regs;
-    MEMSET(vm->regs, 0, sizeof(vm->regs));	// clean up registers
+    MEMSET((uint8_t *)vm->regs, 0, sizeof(vm->regs));	// clean up registers
 
     // set self to reg[0]
     vm->regs[0].tt = MRBC_TT_CLASS;
@@ -1869,7 +1869,7 @@ __GURU__
 mrbc_irep *mrbc_irep_alloc(struct VM *vm)  // from value.cu to remove dependency
 {
     mrbc_irep *p = (mrbc_irep *)mrbc_alloc(sizeof(mrbc_irep));
-    if (p) MEMSET(p, 0, sizeof(mrbc_irep));	// caution: assume NULL is zero.
+    if (p) MEMSET((uint8_t *)p, 0, sizeof(mrbc_irep));	// caution: assume NULL is zero.
     return p;
 }
 

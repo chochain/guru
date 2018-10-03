@@ -42,7 +42,6 @@ typedef struct IREP {
     mrbc_object **pools;    //!< array of POOL objects pointer.
     uint8_t     *ptr_to_sym;
     struct IREP **reps;		//!< array of child IREP's pointer.
-
 } mrbc_irep;
 typedef struct IREP mrb_irep;
 

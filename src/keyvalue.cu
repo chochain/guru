@@ -140,7 +140,7 @@ INSERT_VALUE:
     // need move data?
     if (idx < kvh->n_stored) {
         int size = sizeof(mrbc_kv) * (kvh->n_stored - idx);
-        MEMCPY(&kvh->data[idx+1], &kvh->data[idx], size);
+        MEMCPY((uint8_t *)&kvh->data[idx+1], (const uint8_t *)&kvh->data[idx], size);
     }
 
     kvh->data[idx].sym_id = sym_id;
@@ -213,7 +213,7 @@ int mrbc_kv_remove(mrbc_kv_handle *kvh, mrbc_sym sym_id)
 
     mrbc_dec_ref_counter(&kvh->data[idx].value);
     kvh->n_stored--;
-    MEMCPY(kvh->data + idx, kvh->data + idx + 1, sizeof(mrbc_kv) * (kvh->n_stored - idx));
+    MEMCPY((uint8_t *)(kvh->data + idx), (const uint8_t *)(kvh->data + idx + 1), sizeof(mrbc_kv) * (kvh->n_stored - idx));
 
     return 0;
 }

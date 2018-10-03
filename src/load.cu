@@ -11,10 +11,12 @@
   </pre>
 */
 #include "vm_config.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
+
 #include "guru.hu"
 #include "alloc.hu"
 #include "vmalloc.hu"
@@ -44,7 +46,7 @@ __GURU__ int load_header(struct VM *vm, const uint8_t **pos)
 {
     const uint8_t *p = *pos;
 
-    if (memcmp(p, "RITE0004", 8) != 0) {
+    if (MEMCMP(p, "RITE0004", 8) != 0) {
         vm->error_code = LOAD_FILE_HEADER_ERROR_VERSION;
         return -1;
     }
@@ -52,11 +54,11 @@ __GURU__ int load_header(struct VM *vm, const uint8_t **pos)
     /* Ignore CRC */
     /* Ignore size */
 
-    if (memcmp(p + 14, "MATZ", 4) != 0) {
+    if (MEMCMP(p + 14, "MATZ", 4) != 0) {
         vm->error_code = LOAD_FILE_HEADER_ERROR_MATZ;
         return -1;
     }
-    if (memcmp(p + 18, "0000", 4) != 0) {
+    if (MEMCMP(p + 18, "0000", 4) != 0) {
         vm->error_code = LOAD_FILE_HEADER_ERROR_VERSION;
         return -1;
     }
@@ -130,17 +132,19 @@ __GURU__ mrbc_irep * load_irep_1(struct VM *vm, const uint8_t **pos)
     // POOL BLOCK
     irep->plen = bin_to_uint32(p);	p += 4;
     if (irep->plen) {
-        irep->pools = (mrbc_object**)mrbc_alloc(sizeof(void*) * irep->plen);
+        irep->pools = (mrbc_object**)mrbc_alloc(sizeof(void*) *irep->plen);
         if (irep->pools==NULL) {
             vm->error_code = LOAD_FILE_IREP_ERROR_ALLOCATION;
             return NULL;
         }
     }
 
-    int i;
-    for (i = 0; i < irep->plen; i++) {
-        int tt = *p++;
-        int obj_size = bin_to_uint16(p);	p += 2;
+#define MAX_OBJ_SIZE 100
+
+    for (int i = 0; i < irep->plen; i++) {
+        int  tt = *p++;
+        int  obj_size = bin_to_uint16(p);	p += 2;
+        char buf[MAX_OBJ_SIZE];
         mrbc_object *obj = mrbc_obj_alloc(MRBC_TT_EMPTY);
         if (obj==NULL) {
             vm->error_code = LOAD_FILE_IREP_ERROR_ALLOCATION;
@@ -154,17 +158,15 @@ __GURU__ mrbc_irep * load_irep_1(struct VM *vm, const uint8_t **pos)
         } break;
 #endif
         case 1: { // IREP_TT_FIXNUM
-            char buf[obj_size+1];
-            memcpy(buf, p, obj_size);
+            MEMCPY((uint8_t *)buf, p, obj_size);
             buf[obj_size] = '\0';
             
             obj->tt = MRBC_TT_FIXNUM;
-            obj->i = atol(buf);
+            obj->i = ATOL(buf);
         } break;
 #if MRBC_USE_FLOAT
         case 2: { // IREP_TT_FLOAT
-            char buf[obj_size+1];
-            buf, p, obj_size);
+            MEMCPY((uint8_t *)buf, p, obj_size);
             buf[obj_size] = '\0';
             obj->tt = MRBC_TT_FLOAT;
             obj->d = atof(buf);
@@ -179,7 +181,7 @@ __GURU__ mrbc_irep * load_irep_1(struct VM *vm, const uint8_t **pos)
     // SYMS BLOCK
     irep->ptr_to_sym = (uint8_t*)p;
     int slen = bin_to_uint32(p);		p += 4;
-    while(--slen >= 0) {
+    while (--slen >= 0) {
         int s = bin_to_uint16(p);		p += 2;
         p += s+1;
     }
@@ -227,7 +229,7 @@ __GURU__ int load_irep(struct VM *vm, const uint8_t **pos)
     const uint8_t *p = *pos + 4;			// 4 = skip "RITE"
     int section_size = bin_to_uint32(p);
     p += 4;
-    if (memcmp(p, "0000", 4) != 0) {		// rite version
+    if (MEMCMP(p, "0000", 4) != 0) {		// rite version
         vm->error_code = LOAD_FILE_IREP_ERROR_VERSION;
         return -1;
     }
@@ -305,14 +307,14 @@ __global__ void mrbc_upload_bytecode(struct VM *vm, const uint8_t *ptr)
     vm->mrb = ptr;
 
     ret = load_header(vm, &ptr);
-    while(ret==0) {
-        if (memcmp(ptr, "IREP", 4)==0) {
+    while (ret==0) {
+        if (MEMCMP(ptr, "IREP", 4)==0) {
             ret = load_irep(vm, &ptr);
         }
-        else if (memcmp(ptr, "LVAR", 4)==0) {
+        else if (MEMCMP(ptr, "LVAR", 4)==0) {
             ret = load_lvar(vm, &ptr);
         }
-        else if (memcmp(ptr, "END\0", 4)==0) {
+        else if (MEMCMP(ptr, "END\0", 4)==0) {
             break;
         }
     }
