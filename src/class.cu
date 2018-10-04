@@ -37,9 +37,6 @@
 #include "c_range.h"
 #endif
 
-__GURU__ int mrbc_puts_sub(mrbc_value *v);
-__GURU__ int mrbc_p_sub(mrbc_value *v);
-
 //================================================================
 /*! print - sub function
   @param  v	pointer to target value.
@@ -124,10 +121,10 @@ int mrbc_print_sub(mrbc_value *v)
   @retval 0	normal return.
   @retval 1	already output LF.
 */
-#if MRBC_USE_ARRAY
 __GURU__
 int mrbc_puts_sub(mrbc_value *v)
 {
+#if MRBC_USE_ARRAY
     if (v->tt == MRBC_TT_ARRAY) {
         int i;
         for(i = 0; i < mrbc_array_size(v); i++) {
@@ -138,8 +135,10 @@ int mrbc_puts_sub(mrbc_value *v)
         return 0;
     }
     return mrbc_print_sub(v);
-}
+#else
+    return 0;
 #endif
+}
 
 //================================================================
 /*! p - sub function
@@ -817,7 +816,7 @@ void mrbc_init_class_proc(struct VM *vm)
     // Class
     mrbc_class_proc= mrbc_define_class("Proc", mrbc_class_object);
     // Methods
-    mrbc_define_method(mrbc_class_proc, "call", c_proc_call);
+    mrbc_define_method(mrbc_class_proc, "call", (mrbc_func_t)c_proc_call);
 #if MRBC_USE_STRING
     mrbc_define_method(mrbc_class_proc, "inspect", c_proc_to_s);
     mrbc_define_method(mrbc_class_proc, "to_s", c_proc_to_s);

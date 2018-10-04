@@ -681,7 +681,6 @@ int op_send(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     if (m->c_func) {
         m->func(regs + ra, rc);
 
-//       extern void c_proc_call(mrbc_vm *vm, mrbc_value v[], int argc);
         if ((void (*))m->func==(void (*))c_proc_call) return 0;
 
         int release_reg = ra+1;

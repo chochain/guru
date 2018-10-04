@@ -32,7 +32,7 @@ __GURU__ void       mrbc_define_method(mrbc_class *cls, const char *name, mrbc_f
 __GURU__ void       mrbc_funcall(const char *name, mrbc_value *v, int argc);
 __GURU__ mrbc_value mrbc_send(mrbc_value *v, int reg_ofs, mrbc_value *recv, const char *method, int argc, ...);
 
-__GURU__ void       c_proc_call(mrbc_value v[], int argc);
+__GURU__ void       c_proc_call(struct VM *vm, mrbc_value v[], int argc);
 __GURU__ void       c_ineffect(mrbc_value v[], int argc);
     
 __GURU__ void       mrbc_init_class(void);

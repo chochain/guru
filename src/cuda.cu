@@ -220,3 +220,11 @@ int do_cuda(void) {
 
   return 0;
 }
+
+int main(int argc, char **argv)
+{
+    do_cuda();
+    return 0;
+}
+
+

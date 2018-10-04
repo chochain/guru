@@ -16,15 +16,14 @@
 #ifndef MRBC_SRC_C_EXT_H_
 #define MRBC_SRC_C_EXT_H_
 
-#include "vm.h"
+#include "vm_config.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-
-void mrbc_init_class_extension(mrb_vm *vm);
-int do_cuda(void);
+extern char *guru_init(size_t sz);
+extern int   do_cuda(void);
 
 #ifdef __cplusplus
 }

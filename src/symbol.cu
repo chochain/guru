@@ -116,7 +116,7 @@ __GURU__ int add_index(uint16_t hash, const char *str)
   @param  str	String
   @return 	symbol object
 */
-__GURU__ mrbc_value mrbc_symbol_new(struct VM *vm, const char *str)
+__GURU__ mrbc_value mrbc_symbol_new(const char *str)
 {
     mrbc_value ret = {.tt = MRBC_TT_SYMBOL};
     uint16_t h = calc_hash(str);

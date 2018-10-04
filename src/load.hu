@@ -22,8 +22,7 @@ extern "C" {
 #endif
 
 struct VM;
-__host__   uint8_t* load_mrb_file(const char *filename);
-__global__ void     mrbc_upload_bytecode(struct VM *vm, const uint8_t *ptr);
+__global__ void  mrbc_upload_bytecode(struct VM *vm, const uint8_t *ptr);
 
 #ifdef __cplusplus
 }

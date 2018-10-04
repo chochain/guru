@@ -21,14 +21,6 @@
 #define MAX_BUFFER_SIZE 1024
 
 __GURU__ char guru_output_buffer[MAX_BUFFER_SIZE];
-
-__GURU__
-int guru_strlen(const char *str) {
-    int i=0;
-    while (str[++i]!='\0');
-    return i;
-}
-
 __GURU__
 void guru_write(int fd, const char *buf, int nbytes)
 {
