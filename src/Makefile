@@ -10,7 +10,7 @@ LIBS= -lopenblas -lpthread -lcudart -lcublas
 LIBDIRS=-L/usr/local/cuda/lib64
 INCDIRS=-I/usr/local/cuda/include
 
-SRC = 	alloc.cu value.cu keyvalue.cu symbol.cu vmalloc.cu \
+SRC = 	guru.cu alloc.cu value.cu keyvalue.cu symbol.cu vmalloc.cu \
 	 	global.cu static.cu console.cu vm.cu class.cu load.cu
 LIB = 
 CUDA = cuda.cu
@@ -29,6 +29,8 @@ $(TARGET): $(OBJS)
 	$(AR) $(ARFLAGS) $@ $?
 
 cuda.o: cuda.cu
+
+guru.o: guru.cu         vm_config.h guru.hu
 
 alloc.o: alloc.cu       vm_config.h guru.hu alloc.hu
 

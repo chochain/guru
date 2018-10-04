@@ -267,7 +267,6 @@ void * mrbc_raw_alloc(unsigned int size)
 {
     // TODO: maximum alloc size
     //  (1 << (FLI_BIT_WIDTH + SLI_BIT_WIDTH + IGNORE_LSBS)) - alpha
-
     unsigned int alloc_size = size + sizeof(FREE_BLOCK);
 
     // align 4 byte

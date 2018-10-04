@@ -1,5 +1,4 @@
 #include <stdio.h>
-#include "c_ext.h"
 
 #define SZ 512
 
