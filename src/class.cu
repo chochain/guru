@@ -549,8 +549,8 @@ void c_object_new(struct VM *vm, mrbc_value v[], int argc)
     uint16_to_bin(10,(uint8_t*)&syms[4]);
 
     uint32_t code[2] = {
-        MKOPCODE(OP_SEND) | MKARG_A(0) | MKARG_B(0) | MKARG_C(argc),
-        MKOPCODE(OP_ABORT)
+        (uint32_t)(MKOPCODE(OP_SEND) | MKARG_A(0) | MKARG_B(0) | MKARG_C(argc)),
+        (uint32_t)MKOPCODE(OP_ABORT)
     };
     mrbc_irep irep = {
         0,     // nlocals

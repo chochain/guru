@@ -1,19 +1,26 @@
 #
 # guru  src/Makefile
 #
-CFLAGS = -Wall -Wpointer-arith -g -DMRBC_DEBUG  # -std=c99 -pedantic -pedantic-errors
+CC=cc
+CFLAGS= -Wall -Wpointer-arith -g -DMRBC_DEBUG
+NVCC=nvcc
+CUDAFLAGS= -dc -std=c++11 -arch=sm_61
 
-#COMMON_SRCS = alloc.c class.c console.c global.c keyvalue.c load.c static.c symbol.c value.c vm.c
-#RUBY_LIB_SRCS = c_array.c c_hash.c c_numeric.c c_range.c c_string.c mrblib.c
-#CUDA_SRC = cuda.cu
+LIBS= -lopenblas -lpthread -lcudart -lcublas
+LIBDIRS=-L/usr/local/cuda/lib64
+INCDIRS=-I/usr/local/cuda/include
 
-COMMON_SRCS = 
-RUBY_LIB_SRCS =
-CUDA_SRCS = alloc.cu value.cu keyvalue.cu symbol.cu vmalloc.cu \
-	 		global.cu static.cu console.cu vm.cu class.cu load.cu
+SRC = 	alloc.cu value.cu keyvalue.cu symbol.cu vmalloc.cu \
+	 	global.cu static.cu console.cu vm.cu class.cu load.cu
+LIB = 
+CUDA = cuda.cu
 
 TARGET = libguru.a
-OBJS = $(COMMON_SRCS:.c=.o) $(RUBY_LIB_SRCS:.c=.o) $(CUDA_SRCS:.cu=.o)
+
+OBJS = $(SRC:.cu=.o) $(LIB:.c=.o) $(CUDA:.cu=.o)
+
+# default to .cu instead of .c
+%.o:%.cu;	$(NVCC) $(CUDAFLAGS) $<
 
 all:
 	$(MAKE) $(TARGET)
@@ -29,23 +36,23 @@ value.o: value.cu       vm_config.h guru.hu value.hu
 
 keyvalue.o: keyvalue.cu vm_config.h guru.hu alloc.hu keyvalue.hu
 
-symbol.o: symbol.cu 	vm_config.h guru.hu alloc.h symbol.hu
+symbol.o: symbol.cu 	vm_config.h guru.hu alloc.hu symbol.hu
 
 vmalloc.o: vmalloc.cu 	vm_config.h guru.hu value.hu alloc.hu symbol.hu vmalloc.hu
 
-global.o: global.cu	    vm_config.h guru.hu value.hu vmalloc.hu global.h
+global.o: global.cu	    vm_config.h guru.hu value.hu vmalloc.hu global.hu
 
 static.o: static.cu	    vm_config.h guru.hu global.hu static.hu
 
 console.o: console.cu 	vm_config.h guru.hu value.hu console.hu
 
 vm.o: vm.cu             vm_config.h guru.hu value.hu alloc.hu global.hu symbol.hu \
-                        static.hu console.hu class.hu opcode.hu vm.hu
+						static.hu console.hu class.hu opcode.hu vm.hu
 
 class.o: class.cu	    vm_config.h guru.hu value.hu alloc.hu symbol.hu vmalloc.hu \
-                        global.hu static.hu cosole.hu opcode.hu vm.hu class.hu 
+						global.hu static.hu opcode.hu vm.hu class.hu 
 
-load.o: load.cu         vm_config.h guru.hu alloc.hu vmalloc.hu vm.hu errorcode.h load.hu
+load.o: load.cu         vm_config.h guru.hu alloc.hu vmalloc.hu vm.hu errorcode.hu load.hu
 
 c_array.o: c_array.c vm_config.h value.h vm.h alloc.h static.h global.h \
   class.h c_array.h console.h
@@ -62,6 +69,5 @@ c_range.o: c_range.c vm_config.h value.h alloc.h vm.h static.h global.h \
 c_hash.o: c_hash.c vm_config.h value.h vm.h alloc.h static.h global.h \
   class.h c_array.h c_hash.h
 
-
-clean:
-	@rm -Rf $(TARGET) $(OBJS) *~
+clean: 
+	$(RM) -R $(TARGET) $(OBJS) *~

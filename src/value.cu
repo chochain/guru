@@ -13,7 +13,6 @@
 #include "vm_config.h"
 
 #include <stdint.h>
-#include <string.h>
 #include <assert.h>
 
 #include "value.hu"
@@ -22,10 +21,10 @@
 #include "static.h"
 #include "symbol.h"
 */
-#ifdef MRBC_USE_STRING
+#if MRBC_USE_STRING
 #include "c_string.h"
 #endif
-#ifdef MRGC_USE_ARRAY
+#if MRGC_USE_ARRAY
 #include "c_range.h"
 #include "c_array.h"
 #include "c_hash.h"

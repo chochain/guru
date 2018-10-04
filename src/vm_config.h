@@ -64,6 +64,7 @@
 #define MRBC_USE_STRING 0
 #define MRBC_USE_FLOAT  0
 #define MRBC_USE_MATH   0
+#define MRBC_USE_ARRAY  0
 
 /* Hardware dependent flags */
 
