@@ -13,9 +13,9 @@
 #include "vm_config.h"
 #include <assert.h>
 
-#include "guru.hu"
-#include "alloc.hu"
-#include "symbol.hu"
+#include "guru.h"
+#include "alloc.h"
+#include "symbol.h"
 
 #if !defined(MRBC_SYMBOL_SEARCH_LINER) && !defined(MRBC_SYMBOL_SEARCH_BTREE)
 #define MRBC_SYMBOL_SEARCH_BTREE
@@ -224,4 +224,12 @@ static void c_to_s(struct VM *vm, mrbc_value v[], int argc)
     v[0] = mrbc_string_new_cstr(vm, symid_to_str(v[0].i));
 }
 #endif
+
+//================================================================
+/*! get c-language string (char *)
+*/
+__GURU__ const char * mrbc_symbol_cstr(const mrbc_value *v)
+{
+  return symid_to_str(v->i);
+}
 

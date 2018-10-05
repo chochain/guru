@@ -13,34 +13,35 @@
 #ifndef MRBC_SRC_STATIC_H_
 #define MRBC_SRC_STATIC_H_
 
-#include "vm.h"
-#include "global.h"
-#include "value.h"
+#include "guru.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-
 /* Class Tree */
-extern mrbc_class *mrbc_class_object;
+extern __GURU__ mrbc_class *mrbc_class_object;
 
-extern mrbc_class *mrbc_class_proc;
-extern mrbc_class *mrbc_class_false;
-extern mrbc_class *mrbc_class_true;
-extern mrbc_class *mrbc_class_nil;
-extern mrbc_class *mrbc_class_array;
-extern mrbc_class *mrbc_class_fixnum;
-extern mrbc_class *mrbc_class_float;
-extern mrbc_class *mrbc_class_math;
-extern mrbc_class *mrbc_class_string;
-extern mrbc_class *mrbc_class_symbol;
-extern mrbc_class *mrbc_class_range;
-extern mrbc_class *mrbc_class_hash;
+extern __GURU__ mrbc_class *mrbc_class_false;
+extern __GURU__ mrbc_class *mrbc_class_true;
+extern __GURU__ mrbc_class *mrbc_class_nil;
+extern __GURU__ mrbc_class *mrbc_class_fixnum;
+#if MRBC_USE_FLOAT
+extern __GURU__ mrbc_class *mrbc_class_float;
+extern __GURU__ mrbc_class *mrbc_class_math;
+#endif
+extern __GURU__ mrbc_class *mrbc_class_symbol;
 
+extern __GURU__ mrbc_class *mrbc_class_proc;
 
-void init_static(void);
-
+#if MRBC_USE_STRING
+extern __GURU__ mrbc_class *mrbc_class_string;
+#endif
+#if MRBC_USE_ARRAY
+extern __GURU__ mrbc_class *mrbc_class_array;
+extern __GURU__ mrbc_class *mrbc_class_range;
+extern __GURU__ mrbc_class *mrbc_class_hash;
+#endif
 
 #ifdef __cplusplus
 }

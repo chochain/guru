@@ -17,12 +17,12 @@
 #include <stdint.h>
 #include <string.h>
 
-#include "guru.hu"
-#include "alloc.hu"
-#include "vmalloc.hu"
-#include "vm.hu"
-#include "errorcode.hu"
-#include "load.hu"
+#include "guru.h"
+#include "alloc.h"
+#include "vmalloc.h"
+#include "vm.h"
+#include "errorcode.h"
+#include "load.h"
 
 //================================================================
 /*!@brief

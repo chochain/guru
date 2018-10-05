@@ -13,9 +13,9 @@
 //#include <stdlib.h>
 #include <string.h>
 
-#include "guru.hu"
-#include "alloc.hu"
-#include "keyvalue.hu"
+#include "guru.h"
+#include "alloc.h"
+#include "keyvalue.h"
 
 //================================================================
 /*! binary search
@@ -234,5 +234,15 @@ void mrbc_kv_clear(mrbc_kv_handle *kvh)
     }
     kvh->n_stored = 0;
 }
+
+//================================================================
+/*! get size
+*/
+__GURU__ __forceinline__
+int mrbc_kv_size(const mrbc_kv_handle *kvh)
+{
+  return kvh->n_stored;
+}
+
 
 

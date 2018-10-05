@@ -14,8 +14,8 @@
 */
 #include "vm_config.h"
 #include <assert.h>
-#include "guru.hu"
-#include "alloc.hu"
+#include "guru.h"
+#include "alloc.h"
 
 // Layer 1st(f) and 2nd(s) model
 // last 4bit is ignored

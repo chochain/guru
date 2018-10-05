@@ -14,11 +14,11 @@
 */
 #include "vm_config.h"
 #include <assert.h>
-#include "value.hu"
-#include "alloc.hu"
-#include "keyvalue.hu"
-#include "symbol.hu"
-#include "vmalloc.hu"
+#include "value.h"
+#include "alloc.h"
+#include "keyvalue.h"
+#include "symbol.h"
+#include "vmalloc.h"
 
 // memory pool
 extern __GURU__ uint8_t *memory_pool;

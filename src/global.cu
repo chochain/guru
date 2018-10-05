@@ -1,10 +1,10 @@
 
 #include "vm_config.h"
 #include <assert.h>
-#include "guru.hu"
-#include "value.hu"
-#include "vmalloc.hu"
-#include "global.hu"
+#include "guru.h"
+#include "value.h"
+#include "vmalloc.h"
+#include "global.h"
 
 /*
 

@@ -14,9 +14,9 @@
 #include <cstdio>          // printf
 
 #include "vm_config.h"
-#include "guru.hu"
-#include "value.hu"
-#include "console.hu"
+#include "guru.h"
+#include "value.h"
+#include "console.h"
 
 #define MAX_BUFFER_SIZE 1024
 

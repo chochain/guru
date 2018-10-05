@@ -7,7 +7,7 @@
   </pre>
 */
 #include "vm_config.h"
-#include "guru.hu"
+#include "guru.h"
 
 __GURU__ void guru_memcpy(uint8_t *d, const uint8_t *s, size_t sz)
 {

@@ -1,7 +1,6 @@
 /*! @file
   @brief
 
-
   <pre>
   Copyright (C) 2015 Kyushu Institute of Technology.
   Copyright (C) 2015 Shimane IT Open-Innovation Center.
@@ -11,7 +10,6 @@
 
   </pre>
 */
-
 #ifndef MRBC_SRC_ERRORCODE_H_
 #define MRBC_SRC_ERRORCODE_H_
 
@@ -47,7 +45,6 @@ extern "C" {
 #define VM_EXEC_STATIC_OVWEFLOW_VM (VM_EXEC_ERROR | 0x0001)
 #define VM_EXEC_STATIC_OVWEFLOW_IREP (VM_EXEC_ERROR | 0x0002)
 #define VM_EXEC_STATIC_OVWEFLOW_CALLINFO (VM_EXEC_ERROR | 0x0003)
-
 
 #ifdef __cplusplus
 }

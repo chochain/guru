@@ -14,17 +14,17 @@
 #include "vm_config.h"
 #include <assert.h>
 
-#include "guru.hu"
-#include "value.hu"
-#include "alloc.hu"
-#include "symbol.hu"
-#include "vmalloc.hu"
-#include "global.hu"
-#include "static.hu"
-#include "console.hu"
-#include "opcode.hu"
-#include "vm.hu"
-#include "class.hu"
+#include "guru.h"
+#include "value.h"
+#include "alloc.h"
+#include "symbol.h"
+#include "vmalloc.h"
+#include "global.h"
+#include "static.h"
+#include "console.h"
+#include "opcode.h"
+#include "vm.h"
+#include "class.h"
 
 #if MRBC_USE_STRING
 #include "c_string.h"

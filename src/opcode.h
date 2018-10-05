@@ -1,13 +1,11 @@
 /*! @file
   @brief
 
-
   <pre>
   Copyright (C) 2015 Kyushu Institute of Technology.
   Copyright (C) 2015 Shimane IT Open-Innovation Center.
 
   This file is distributed under BSD 3-Clause License.
-
 
   </pre>
 */
@@ -41,7 +39,6 @@ extern "C" {
 #define GETARG_Bx(code)             (((code) >>  7) & 0xffff)
 #define GETARG_sBx(code)            (GETARG_Bx(code)-MAXARG_sBx)
 #define GETARG_C(code)              (((code) >>  7) & 0x7f)
-
 
 //================================================================
 /*!@brief
@@ -92,23 +89,23 @@ enum OPCODE {
   OP_LE        = 0x34,
   OP_GT        = 0x35,
   OP_GE        = 0x36,
+
   OP_ARRAY     = 0x37,
 
   OP_STRING    = 0x3d,
   OP_STRCAT    = 0x3e,
+  
   OP_HASH      = 0x3f,
   OP_LAMBDA    = 0x40,
   OP_RANGE     = 0x41,
 
   OP_CLASS     = 0x43,
-
   OP_EXEC      = 0x45,
   OP_METHOD    = 0x46,
 
   OP_TCLASS    = 0x48,
 
   OP_STOP      = 0x4a,
-
   OP_ABORT     = 0x50,  // using OP_ABORT inside mruby/c only
 };
 

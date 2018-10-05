@@ -1,6 +1,6 @@
 /*! @file
   @brief
-  mruby bytecode loader.
+  Guru bytecode loader.
 
   <pre>
   Copyright (C) 2015 Kyushu Institute of Technology.
@@ -15,14 +15,14 @@
 #define MRBC_SRC_LOAD_H_
 
 #include <stdint.h>
+#include "guru.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 struct VM;
-uint8_t* load_mrb_file(const char *filename);
-int mrbc_upload_bytecode(struct VM *vm, const uint8_t *ptr);
+__global__ void  mrbc_upload_bytecode(struct VM *vm, const uint8_t *ptr);
 
 #ifdef __cplusplus
 }
