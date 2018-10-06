@@ -213,10 +213,20 @@ __GURU__ char   *guru_strcat(char *d, const char *s);
 #define MEMSET(d, v, sz)  guru_memset(d, v, sz)
 #define MEMCMP(d, s, sz)  guru_memcmp(d, s, sz)
 #define ATOL(s)           guru_atol(s)
+#define STRLEN(s)		  guru_strlen(s)
+#define STRCPY(s1, s2)	  guru_strcpy(s1, s2)
+#define STRCMP(s1, s2)    guru_strcmp(s1, s2)
+#define STRCHR(s, c)      guru_strchr(s, c)
+#define STRCAT(d, s)      guru_strcat(d, s)
 #else
 #define MEMCPY(d, s, sz)  memcpy(d, s, sz)
 #define MEMSET(d, v, sz)  memset(d, v, sz)
 #define MEMCMP(d, s, sz)  memcmp(d, s, sz)
+#define STRLEN(s)		  strlen(s)
+#define STRCPY(s1, s2)	  strcpy(s1, s2)
+#define STRCMP(s1, s2)    strcmp(s1, s2)
+#define STRCHR(s, c)      strchr(s, c)
+#define STRCAT(d, s)      strcat(d, s)
 #endif
 
 #ifdef __cplusplus

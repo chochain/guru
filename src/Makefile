@@ -4,11 +4,11 @@
 CC=cc
 CFLAGS= -Wall -Wpointer-arith -g -c -DMRBC_DEBUG
 NVCC=nvcc
-CUDAFLAGS= -dc -std=c++11 -arch=sm_61
+CUDAFLAGS= -dc
 
 LIBS= -lopenblas -lpthread -lcudart -lcublas
 LIBDIRS=-L/usr/local/cuda/lib64
-INCDIRS=-I/usr/local/cuda/include
+INCDIRS=-I/usr/local/cuda/include -I./src
 
 SRC =   main.c
 GURU= 	guru.cu alloc.cu value.cu keyvalue.cu symbol.cu vmalloc.cu \

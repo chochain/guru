@@ -153,7 +153,7 @@ int mrbc_p_sub(mrbc_value *v)
 
     case MRBC_TT_SYMBOL:{
         const char *s   = mrbc_symbol_cstr(v);
-        const char *fmt = guru_strchr(s, ':') ? "\":%s\"" : ":%s";
+        const char *fmt = STRCHR(s, ':') ? "\":%s\"" : ":%s";
         console_printf(fmt, s);
     } break;
 
@@ -604,11 +604,11 @@ void c_object_setiv(struct VM *vm, mrbc_value v[], int argc)
 {
     const char *name = mrbc_get_callee_name(vm);
 
-    char *namebuf = (char *)mrbc_alloc(guru_strlen(name));
+    char *namebuf = (char *)mrbc_alloc(STRLEN(name));
     
     if (!namebuf) return;
-    guru_strcpy(namebuf, name);
-    namebuf[guru_strlen(name)-1] = '\0';	// delete '='
+    STRCPY(namebuf, name);
+    namebuf[STRLEN(name)-1] = '\0';	// delete '='
     mrbc_sym sym_id = str_to_symid(namebuf);
 
     mrbc_instance_setiv(&v[0], sym_id, &v[1]);
@@ -646,11 +646,11 @@ void c_object_attr_accessor(mrbc_value v[], int argc)
         mrbc_define_method(v[0].cls, name, (mrbc_func_t)c_object_getiv);
 
         // make string "....=" and define writer method.
-        char *namebuf = (char *)mrbc_alloc(guru_strlen(name)+2);
+        char *namebuf = (char *)mrbc_alloc(STRLEN(name)+2);
         if (!namebuf) return;
         
-        guru_strcpy(namebuf, name);
-        guru_strcat(namebuf, "=");
+        STRCPY(namebuf, name);
+        STRCAT(namebuf, "=");
         mrbc_symbol_new(namebuf);
         mrbc_define_method(v[0].cls, namebuf, (mrbc_func_t)c_object_setiv);
         mrbc_raw_free(namebuf);

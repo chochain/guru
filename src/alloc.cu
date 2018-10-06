@@ -409,7 +409,7 @@ void * mrbc_raw_realloc(void *ptr, unsigned int size)
     }
     // same size?
     if (alloc_size==target->size) {
-        return (uint8_t *)ptr;
+        return ptr;
     }
 
     // shrink?
@@ -424,17 +424,17 @@ void * mrbc_raw_realloc(void *ptr, unsigned int size)
             }
             add_free_block(release);
         }
-        return (uint8_t *)ptr;
+        return ptr;
     }
     // expand part2.
     // new alloc and copy
     uint8_t *new_ptr = (uint8_t *)mrbc_raw_alloc(size);
     if (new_ptr==NULL) return NULL;  // ENOMEM
 
-    MEMCPY(new_ptr, (uint8_t *)ptr, target->size - sizeof(USED_BLOCK));
+    MEMCPY(new_ptr, (uint8_t *)ptr, (size_t)(target->size - sizeof(USED_BLOCK)));
     mrbc_raw_free(ptr);
 
-    return new_ptr;
+    return (void *)new_ptr;
 }
 
 //================================================================
