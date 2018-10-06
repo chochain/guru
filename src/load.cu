@@ -288,42 +288,6 @@ __global__ void mrbc_upload_bytecode(struct VM *vm, const uint8_t *ptr)
     }
 }
 
-char *guru_init(size_t sz)
-{
-    char *p;
-    
-    cudaMallocManaged(&p, sz);
-    
-    return p;
-}
-
-char* load_mrb_file(const char *filename)
-{
-  FILE *fp = fopen(filename, "rb");
-
-  if (fp==NULL) {
-    fprintf(stderr, "File not found\n");
-    return NULL;
-  }
-
-  // get filesize
-  fseek(fp, 0, SEEK_END);
-  size_t sz = ftell(fp);
-  fseek(fp, 0, SEEK_SET);
-
-  // allocate from host memory
-  char *p = guru_init(sz);
-  
-  if (p != NULL) {
-    fread(p, sizeof(char), sz, fp);
-  } else {
-    fprintf(stderr, "Memory allocate error.\n");
-  }
-  fclose(fp);
-
-  return p;
-}
-
 
 
 

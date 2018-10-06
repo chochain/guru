@@ -161,7 +161,7 @@ void bmark_fast(int N, float msec, float *d_y) {
 	cudaFree(o_y);							// release, async
 }
 
-int do_cuda(void) {
+extern "C" int do_cuda(void) {
   int N = (1<<24);							// max digit of float precision
 
   float *x, *y, *d_x, *d_y, *m_x, *m_y;
@@ -221,10 +221,5 @@ int do_cuda(void) {
   return 0;
 }
 
-int main(int argc, char **argv)
-{
-    do_cuda();
-    return 0;
-}
 
 

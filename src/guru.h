@@ -16,7 +16,7 @@
 #include <stdint.h>
 
 #ifdef __cplusplus
-//extern "C" {
+extern "C" {
 #endif
 
 // mrbc types
@@ -197,6 +197,8 @@ typedef struct RProc mrb_proc;
 #define mrbc_bool_value(n)	    ((mrbc_value){.tt = (n)?MRBC_TT_TRUE:MRBC_TT_FALSE})
 
 // CUDA on-device specific implementation, to be optimized later
+char* guru_alloc(size_t sz);
+
 #ifdef __GURU_CUDA__
 __GURU__ void    guru_memcpy(uint8_t *d, const uint8_t *s, size_t sz);
 __GURU__ void    guru_memset(uint8_t *d, const uint8_t v,  size_t sz);
@@ -230,6 +232,6 @@ __GURU__ char   *guru_strcat(char *d, const char *s);
 #endif
 
 #ifdef __cplusplus
-//}
+}
 #endif
 #endif

@@ -9,6 +9,15 @@
 #include "vm_config.h"
 #include "guru.h"
 
+char *guru_alloc(size_t sz)
+{
+    char *p;
+
+    cudaMallocManaged(&p, sz);
+
+    return p;
+}
+
 __GURU__ void guru_memcpy(uint8_t *d, const uint8_t *s, size_t sz)
 {
     for (int i=0; i<sz; i++, *d++ = *s++);
