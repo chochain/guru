@@ -14,6 +14,7 @@
 #include "value.h"
 #include "alloc.h"
 #include "keyvalue.h"
+#include "errorcode.h"
 
 extern __GURU__ void mrbc_dec_ref_counter(mrbc_value *v);  // from vmalloc.h
 

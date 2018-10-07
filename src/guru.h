@@ -26,6 +26,7 @@ extern "C" {
 #endif
 
 #define MAX_BUFFER_SIZE 1024
+
 typedef struct guru_ses_ {
 	char *req;
 	char *res;
@@ -42,11 +43,11 @@ typedef int16_t mrbc_sym;
 #define MRB_ASPEC_REQ(a)          (((a) >> 18) & 0x1f)
 #define MRB_ASPEC_OPT(a)          (((a) >> 13) & 0x1f)
 #define MRB_ASPEC_REST(a)         (((a) >> 12) & 0x1)
-#define MRB_ASPEC_POST(a)         (((a) >> 7) & 0x1f)
+#define MRB_ASPEC_POST(a)         (((a) >> 7)  & 0x1f)
 
 #define MRBC_OBJECT_HEADER                          \
-    uint16_t ref_count;                             \
-    mrbc_vtype tt : 8  // TODO: for debug use only.
+    uint16_t 	ref_count;                          \
+    mrbc_vtype 	tt : 8  			// TODO: for debug use only.
 
 /* forward declaration */
 struct IREP;
@@ -83,52 +84,30 @@ typedef enum {
 
 //================================================================
 /*!@brief
-  define the error code. (BETA TEST)
-*/
-typedef enum {
-    E_NOMEMORY_ERROR = 1,
-    E_RUNTIME_ERROR,
-    E_TYPE_ERROR,
-    E_ARGUMENT_ERROR,
-    E_INDEX_ERROR,
-    E_RANGE_ERROR,
-    E_NAME_ERROR,
-    E_NOMETHOD_ERROR,
-    E_SCRIPT_ERROR,
-    E_SYNTAX_ERROR,
-    E_LOCALJUMP_ERROR,
-    E_REGEXP_ERROR,
-    E_NOTIMP_ERROR,
-    E_FLOATDOMAIN_ERROR,
-    E_KEY_ERROR,
-} mrbc_error_code;
-
-
-
-//================================================================
-/*!@brief
   Guru value object.
 */
 struct RObject {
-    mrbc_vtype tt : 8;
+    mrbc_vtype            tt:8;
     union {
-        mrbc_int i;			// MRBC_TT_FIXNUM, SYMBOL
+        mrbc_int          i;		// MRBC_TT_FIXNUM, SYMBOL
 #if MRBC_USE_FLOAT
-        mrbc_float d;		// MRBC_TT_FLOAT
+        mrbc_float        d;		// MRBC_TT_FLOAT
 #endif
-        struct RClass *cls;		// MRBC_TT_CLASS
-        struct RObject *handle;	// handle to objects
+        struct RClass    *cls;		// MRBC_TT_CLASS
+        struct RObject   *handle;	// handle to objects
         struct RInstance *instance;	// MRBC_TT_OBJECT
-        struct RProc *proc;		// MRBC_TT_PROC
-        struct RArray *array;	// MRBC_TT_ARRAY
-        struct RString *string;	// MRBC_TT_STRING
-        const char *str;		// C-string (only loader use.)
-        struct RRange *range;	// MRBC_TT_RANGE
-        struct RHash *hash;		// MRBC_TT_HASH
+        struct RProc     *proc;		// MRBC_TT_PROC
+#if MRBC_USE_ARRAY
+        struct RArray    *array;	// MRBC_TT_ARRAY
+        struct RRange    *range;	// MRBC_TT_RANGE
+        struct RHash     *hash;		// MRBC_TT_HASH
+#endif
+#if MRBC_USE_STRING
+        struct RString   *string;	// MRBC_TT_STRING
+#endif
+        const char       *str;		// C-string (only loader use.)
     };
 };
-typedef struct RObject mrb_object;	// not recommended.
-typedef struct RObject mrb_value;	// not recommended.
 typedef struct RObject mrbc_object;
 typedef struct RObject mrbc_value;
 
@@ -137,12 +116,12 @@ typedef struct RObject mrbc_value;
   Guru class object.
 */
 typedef struct RClass {
-    mrbc_sym sym_id;	// class name
+    mrbc_sym       sym_id;	// class name
 #ifdef MRBC_DEBUG
-    const char *names;	// for debug. delete soon.
+    const char    *names;	// for debug. delete soon.
 #endif
     struct RClass *super;	// mrbc_class[super]
-    struct RProc *procs;	// mrbc_proc[rprocs], linked list
+    struct RProc  *procs;	// mrbc_proc[rprocs], linked list
 } mrbc_class;
 typedef struct RClass mrb_class;
 
@@ -153,9 +132,9 @@ typedef struct RClass mrb_class;
 typedef struct RInstance {
     MRBC_OBJECT_HEADER;
 
-    struct RClass *cls;
+    struct RClass          *cls;
     struct RKeyValueHandle *ivar;
-    uint8_t data[];
+    uint8_t 				data[];
 } mrbc_instance;
 typedef struct RInstance mrb_instance;
 

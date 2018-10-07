@@ -719,32 +719,6 @@ void c_object_to_s(mrbc_value v[], int argc)
 }
 #endif
 
-
-#ifdef MRBC_DEBUG
-__GURU__
-void c_object_instance_methods(mrbc_value v[], int argc)
-{
-    // TODO: check argument.
-
-    // temporary code for operation check.
-    console_printf("[");
-    int flag_first = 1;
-
-    mrbc_class *cls = find_class_by_object(vm, v);
-    mrbc_proc *proc = cls->procs;
-    while(proc) {
-        console_printf("%s:%s", (flag_first ? "" : ", "),
-                        symid_to_str(proc->sym_id));
-        flag_first = 0;
-        proc = proc->next;
-    }
-
-    console_printf("]");
-
-    SET_NIL_RETURN();
-}
-#endif
-
 __GURU__
 void mrbc_init_class_object(struct VM *vm)
 {
@@ -771,7 +745,6 @@ void mrbc_init_class_object(struct VM *vm)
 #endif
 
 #ifdef MRBC_DEBUG
-    mrbc_define_method(mrbc_class_object, "instance_methods", c_object_instance_methods);
     mrbc_define_method(mrbc_class_object, "p", c_p);
 #endif
 }

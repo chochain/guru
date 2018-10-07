@@ -141,7 +141,6 @@ void add_free_block(FREE_BLOCK *target)
     free_blocks[index] = target;
 
 #ifdef MRBC_DEBUG
-    target->vm_id = UINT8_MAX;
     MEMSET((uint8_t *)(target + sizeof(FREE_BLOCK)), 0xff, target->size - sizeof(FREE_BLOCK));
 #endif
 }

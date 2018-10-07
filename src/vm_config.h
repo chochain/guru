@@ -74,6 +74,7 @@
 #define MRBC_REQUIRE_32BIT_ALIGNMENT 0
 
 #define __GURU_CUDA__
+#define MRBC_DEBUG
 
 #endif
 

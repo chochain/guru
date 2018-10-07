@@ -17,6 +17,28 @@
 extern "C" {
 #endif
 
+//================================================================
+/*!@brief
+  define the error code. (BETA TEST)
+*/
+typedef enum {
+    E_NOMEMORY_ERROR = 1,
+    E_RUNTIME_ERROR,
+    E_TYPE_ERROR,
+    E_ARGUMENT_ERROR,
+    E_INDEX_ERROR,
+    E_RANGE_ERROR,
+    E_NAME_ERROR,
+    E_NOMETHOD_ERROR,
+    E_SCRIPT_ERROR,
+    E_SYNTAX_ERROR,
+    E_LOCALJUMP_ERROR,
+    E_REGEXP_ERROR,
+    E_NOTIMP_ERROR,
+    E_FLOATDOMAIN_ERROR,
+    E_KEY_ERROR,
+} mrbc_error_code;
+
 
 /* no error */
 #define NO_ERROR 0

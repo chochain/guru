@@ -16,9 +16,8 @@
 #include "value.h"
 #include "console.h"
 
-#define MAX_BUFFER_SIZE 1024
+extern __GURU__ char *guru_output_buffer;
 
-__GURU__ char guru_output_buffer[MAX_BUFFER_SIZE];
 __GURU__
 void guru_write(int fd, const char *buf, int nbytes)
 {
