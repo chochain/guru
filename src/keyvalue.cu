@@ -11,6 +11,7 @@
 */
 #include <string.h>
 
+#include "value.h"
 #include "alloc.h"
 #include "keyvalue.h"
 

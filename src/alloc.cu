@@ -13,6 +13,7 @@
   </pre>
 */
 #include <assert.h>
+#include "value.h"
 #include "alloc.h"
 
 // Layer 1st(f) and 2nd(s) model

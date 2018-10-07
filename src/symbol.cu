@@ -12,6 +12,7 @@
 */
 #include <assert.h>
 
+#include "value.h"
 #include "alloc.h"
 #include "symbol.h"
 
