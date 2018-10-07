@@ -10,11 +10,7 @@
   </pre>
 */
 
-#include "vm_config.h"
-
-#include <stdint.h>
 #include <assert.h>
-
 #include "value.h"
 
 #if MRBC_USE_STRING
@@ -191,92 +187,4 @@ REDO:
 
     return ret;
 }
-
-//================================================================
-/*!@brief
-  Returns a fixnum in Guru.
-
-  @param  n	int value
-  @return	mrbc_value of type fixnum.
-*/
-__GURU__ __forceinline__
-mrbc_value mrb_fixnum_value(mrbc_int n)
-{
-  mrbc_value value = {.tt = MRBC_TT_FIXNUM};
-  value.i = n;
-  return value;
-}
-
-#if MRBC_USE_FLOAT
-//================================================================
-/*!@brief
-  Returns a float in Guru.
-
-  @param  n	dluble value
-  @return	mrbc_value of type float.
-*/
-__GURU__ __forceinline__
-mrbc_value mrb_float_value(mrbc_float n)
-{
-  mrbc_value value = {.tt = MRBC_TT_FLOAT};
-  value.d = n;
-  return value;
-}
-#endif
-
-//================================================================
-/*!@brief
-  Returns a nil in Guru.
-
-  @return	mrbc_value of type nil.
-*/
-__GURU__ __forceinline__
-mrbc_value mrb_nil_value(void)
-{
-  mrbc_value value = {.tt = MRBC_TT_NIL};
-  return value;
-}
-
-
-//================================================================
-/*!@brief
-  Returns a true in Guru.
-
-  @return	mrbc_value of type true.
-*/
-__GURU__ __forceinline__
-mrbc_value mrb_true_value(void)
-{
-  mrbc_value value = {.tt = MRBC_TT_TRUE};
-  return value;
-}
-
-
-//================================================================
-/*!@brief
-  Returns a false in Guru.
-
-  @return	mrbc_value of type false.
-*/
-__GURU__ __forceinline__
-mrbc_value mrb_false_value(void)
-{
-  mrbc_value value = {.tt = MRBC_TT_FALSE};
-  return value;
-}
-
-
-//================================================================
-/*!@brief
-  Returns a true or false in Guru.
-
-  @return	mrbc_value of type false.
-*/
-__GURU__ __forceinline__
-mrbc_value mrb_bool_value(int n)
-{
-  mrbc_value value = {.tt = n ? MRBC_TT_TRUE : MRBC_TT_FALSE};
-  return value;
-}
-
 
