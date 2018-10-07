@@ -8,16 +8,12 @@
 */
 #include "guru.h"
 
-char *guru_alloc(size_t sz)
+int guru_init(guru_ses *ses, size_t req_sz, size_t res_sz)
 {
-    char *p;
+    cudaMallocManaged(&(ses->req), req_sz);
+    cudaMallocManaged(&(ses->res), res_sz);
 
-    cudaMallocManaged(&p, sz);
-
-    return p;
+    return (cudaSuccess==cudaGetLastError()) ? 0 : 1;
 }
-
-
-
 
     

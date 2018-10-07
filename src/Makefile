@@ -41,22 +41,22 @@ guru.o: guru.cu         vm_config.h guru.h
 
 static.o: static.cu	    vm_config.h guru.h
 
-alloc.o: alloc.cu       vm_config.h guru.h alloc.h
-
 value.o: value.cu       vm_config.h guru.h value.h
-
-keyvalue.o: keyvalue.cu vm_config.h guru.h alloc.h keyvalue.h
-
-symbol.o: symbol.cu 	vm_config.h guru.h alloc.h symbol.h
-
-vmalloc.o: vmalloc.cu 	vm_config.h guru.h alloc.h value.h keyvalue.h symbol.h vmalloc.h
-
-global.o: global.cu	    vm_config.h guru.h value.h vmalloc.h global.h
 
 console.o: console.cu 	vm_config.h guru.h value.h console.h
 
-vm.o: vm.cu             vm_config.h guru.h value.h keyvalue.h alloc.h vmalloc.h global.h symbol.h \
-						static.h console.h class.h opcode.h vm.h
+alloc.o: alloc.cu       vm_config.h guru.h value.h alloc.h
+
+keyvalue.o: keyvalue.cu vm_config.h guru.h value.h alloc.h keyvalue.h
+
+symbol.o: symbol.cu 	vm_config.h guru.h value.h alloc.h symbol.h
+
+vmalloc.o: vmalloc.cu 	vm_config.h guru.h value.h alloc.h keyvalue.h symbol.h vmalloc.h
+
+global.o: global.cu	    vm_config.h guru.h value.h vmalloc.h global.h
+
+vm.o: vm.cu             vm_config.h guru.h value.h alloc.h keyvalue.h symbol.h vmalloc.h \
+						global.h static.h console.h class.h opcode.h vm.h
 
 class.o: class.cu	    vm_config.h guru.h value.h alloc.h symbol.h vmalloc.h \
 						global.h static.h opcode.h vm.h class.h

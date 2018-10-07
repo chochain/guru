@@ -1,10 +1,12 @@
 #include <stdio.h>
+#include "guru.h"
 
 extern int do_cuda(void);
-extern char *guru_alloc(size_t sz);
 
-char* load_mrb_file(const char *filename)
+guru_ses* load_mrb_file(const char *filename)
 {
+  guru_ses *ses;
+
   FILE *fp = fopen(filename, "rb");
 
   if (fp==NULL) {
@@ -17,23 +19,23 @@ char* load_mrb_file(const char *filename)
   size_t sz = ftell(fp);
   fseek(fp, 0, SEEK_SET);
 
-  // allocate from host memory
-  char *p = guru_alloc(sz);
+  int err = guru_init(ses, sz, MAX_BUFFER_SIZE);
 
-  if (p != NULL) {
-    fread(p, sizeof(char), sz, fp);
-  } else {
-    fprintf(stderr, "Memory allocate error.\n");
+  if (err!=0) {
+	  fprintf(stderr, "Memory allocate error.\n");
+  }
+  else {
+	  fread(ses->req, sizeof(char), sz, fp);
   }
   fclose(fp);
 
-  return p;
+  return ses;
 }
 
 int main(int argc, char **argv)
 {
     //do_cuda();
-	char *p = load_mrb_file(argv[1]);
+	guru_ses *p = load_mrb_file(argv[1]);
 
     return 0;
 }

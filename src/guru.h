@@ -25,7 +25,13 @@ extern "C" {
 #define __GURU__
 #endif
 
-char* guru_alloc(size_t sz);
+#define MAX_BUFFER_SIZE 1024
+typedef struct guru_ses_ {
+	char *req;
+	char *res;
+} guru_ses;
+
+int guru_init(guru_ses *ses, size_t req_sz, size_t res_sz);
 
 // mrbc types
 typedef int32_t mrbc_int;
