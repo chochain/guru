@@ -91,8 +91,7 @@ __GURU__ int      mrbc_vm_run(mrbc_vm *vm);
 __GURU__ void     mrbc_vm_teardown(mrbc_vm *vm);
 
 //<< from value.hu
-__GURU__ struct IREP *mrbc_irep_alloc(mrbc_vm *vm);
-__GURU__ void mrbc_irep_free(struct IREP *irep);
+__GURU__ void mrbc_free_ireplist(mrbc_irep *irep);
 
 //<< from static.hu
 __GURU__ void init_static(void);

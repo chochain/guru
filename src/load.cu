@@ -97,20 +97,20 @@ __GURU__ int load_header(mrbc_vm *vm, const uint8_t **pos)
 */
 __GURU__ mrbc_irep * load_irep_1(mrbc_vm *vm, const uint8_t **pos)
 {
-    const uint8_t *p = *pos + 4;			// skip record size
+    const uint8_t *p = *pos + 4;			// skip "IREP"
 
     // new irep
-    mrbc_irep *irep = mrbc_irep_alloc(0);
+    mrbc_irep *irep = (mrbc_irep *)mrbc_alloc(sizeof(mrbc_irep));
     if (irep==NULL) {
         vm->error_code = LOAD_FILE_IREP_ERROR_ALLOCATION;
         return NULL;
     }
 
     // nlocals,nregs,rlen
-    irep->nlocals = bin_to_uint16(p);	p += 2;
-    irep->nregs   = bin_to_uint16(p);	p += 2;
-    irep->rlen    = bin_to_uint16(p);	p += 2;
-    irep->ilen    = bin_to_uint32(p);	p += 4;
+    irep->nlocals = bin_to_uint16(p);	p += sizeof(uint16_t);
+    irep->nregs   = bin_to_uint16(p);	p += sizeof(uint16_t);
+    irep->rlen    = bin_to_uint16(p);	p += sizeof(uint16_t);
+    irep->ilen    = bin_to_uint32(p);	p += sizeof(uint32_t);
 
     // padding
     p += (vm->mrb - p) & 0x03;
@@ -226,8 +226,9 @@ __GURU__ mrbc_irep * load_irep_0(mrbc_vm *vm, const uint8_t **pos)
 __GURU__ int load_irep(mrbc_vm *vm, const uint8_t **pos)
 {
     const uint8_t *p = *pos + 4;			// 4 = skip "RITE"
-    int section_size = bin_to_uint32(p);
-    p += 4;
+    int   section_size = bin_to_uint32(p);
+
+    p += sizeof(uint32_t);
     if (MEMCMP(p, "0000", 4) != 0) {		// rite version
         vm->error_code = LOAD_FILE_IREP_ERROR_VERSION;
         return -1;
@@ -276,6 +277,8 @@ __global__ void mrbc_upload_bytecode(mrbc_vm *vm, const uint8_t *ptr)
     vm->mrb = ptr;
 
     ret = load_header(vm, &ptr);
+    return;
+
     while (ret==0) {
         if (MEMCMP(ptr, "IREP", 4)==0) {
             ret = load_irep(vm, &ptr);

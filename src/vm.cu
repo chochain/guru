@@ -32,8 +32,6 @@
 #include "c_hash.h"
 #endif
 
-#define Num(n) (sizeof(n)/sizeof((n)[0]))
-
 //================================================================
 /*! get sym[n] from symbol table in irep
 
@@ -1701,11 +1699,10 @@ int mrbc_vm_run(mrbc_vm *vm)
         // regs
         mrbc_value *regs = vm->current_regs;
 
-        // Dispatch
+        // Dispatcher
         int opcode = GET_OPCODE(code);
         switch(opcode) {
-        case OP_NOP:        ret = op_nop       (vm, code, regs); break;
-        case OP_MOVE:       ret = op_move      (vm, code, regs); break;
+        // LOAD,STORE
         case OP_LOADL:      ret = op_loadl     (vm, code, regs); break;
         case OP_LOADI:      ret = op_loadi     (vm, code, regs); break;
         case OP_LOADSYM:    ret = op_loadsym   (vm, code, regs); break;
@@ -1721,6 +1718,7 @@ int mrbc_vm_run(mrbc_vm *vm)
         case OP_SETCONST:   ret = op_setconst  (vm, code, regs); break;
         case OP_GETUPVAR:   ret = op_getupvar  (vm, code, regs); break;
         case OP_SETUPVAR:   ret = op_setupvar  (vm, code, regs); break;
+        // BRANCH
         case OP_JMP:        ret = op_jmp       (vm, code, regs); break;
         case OP_JMPIF:      ret = op_jmpif     (vm, code, regs); break;
         case OP_JMPNOT:     ret = op_jmpnot    (vm, code, regs); break;
@@ -1730,6 +1728,8 @@ int mrbc_vm_run(mrbc_vm *vm)
         case OP_ENTER:      ret = op_enter     (vm, code, regs); break;
         case OP_RETURN:     ret = op_return    (vm, code, regs); break;
         case OP_BLKPUSH:    ret = op_blkpush   (vm, code, regs); break;
+        // ALU
+        case OP_MOVE:       ret = op_move      (vm, code, regs); break;
         case OP_ADD:        ret = op_add       (vm, code, regs); break;
         case OP_ADDI:       ret = op_addi      (vm, code, regs); break;
         case OP_SUB:        ret = op_sub       (vm, code, regs); break;
@@ -1750,13 +1750,16 @@ int mrbc_vm_run(mrbc_vm *vm)
         case OP_HASH:       ret = op_hash      (vm, code, regs); break;
         case OP_RANGE:      ret = op_range     (vm, code, regs); break;
 #endif
+        // BRANCH
         case OP_LAMBDA:     ret = op_lambda    (vm, code, regs); break;
         case OP_CLASS:      ret = op_class     (vm, code, regs); break;
         case OP_EXEC:       ret = op_exec      (vm, code, regs); break;
         case OP_METHOD:     ret = op_method    (vm, code, regs); break;
         case OP_TCLASS:     ret = op_tclass    (vm, code, regs); break;
+        // EXEC
         case OP_STOP:       ret = op_stop      (vm, code, regs); break;
         case OP_ABORT:      ret = op_stop      (vm, code, regs); break;  // reuse
+        case OP_NOP:        ret = op_nop       (vm, code, regs); break;
         default:
             console_printf("Skip OP=%02x\n", GET_OPCODE(code));
             break;
@@ -1770,25 +1773,10 @@ int mrbc_vm_run(mrbc_vm *vm)
 
 //================================================================
 /*!@brief
-  mrbc_irep allocator
-
-  @param  vm	Pointer of VM.
-  @return	Pointer of allocated mrbc_irep
-*/
-__GURU__
-mrbc_irep *mrbc_irep_alloc(mrbc_vm *vm)  // from value.cu to remove dependency
-{
-    mrbc_irep *p = (mrbc_irep *)mrbc_alloc(sizeof(mrbc_irep));
-    if (p) MEMSET((uint8_t *)p, 0, sizeof(mrbc_irep));	// caution: assume NULL is zero.
-    return p;
-}
-
-//================================================================
-/*!@brief
   release mrbc_irep holds memory
 */
 __GURU__
-void mrbc_irep_free(mrbc_irep *irep)  // from value.cu to remove dependency
+void mrbc_free_ireplist(mrbc_irep *irep)
 {
     int i;
 
@@ -1800,7 +1788,7 @@ void mrbc_irep_free(mrbc_irep *irep)  // from value.cu to remove dependency
 
     // release child ireps.
     for(i = 0; i < irep->rlen; i++) {
-        mrbc_irep_free(irep->reps[i]);
+        mrbc_free_ireplist(irep->reps[i]);
     }
     if (irep->rlen) mrbc_raw_free(irep->reps);
 
