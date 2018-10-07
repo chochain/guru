@@ -8,6 +8,7 @@
 */
 #include <stdio.h>
 #include "guru.h"
+#include "load.h"
 
 __GURU__
 char *guru_output_buffer;		// global output buffer for now, per session later
@@ -32,7 +33,7 @@ int _guru_alloc(guru_ses *ses, size_t req_sz, size_t res_sz)
 }
 
 __host__
-int init_session(guru_ses *ses, const char *rite_fname)
+int _load_bytecode(guru_ses *ses, const char *rite_fname)
 {
   FILE *fp = fopen(rite_fname, "rb");
 
@@ -60,5 +61,12 @@ int init_session(guru_ses *ses, const char *rite_fname)
   return 0;
 }
 
+int init_session(guru_ses *ses, const char *rite_fname)
+{
+	int rst = _load_bytecode(ses, rite_fname);
 
+	if (rst != 0) return rst;
+
+    return 0;
+}
     

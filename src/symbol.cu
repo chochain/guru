@@ -207,7 +207,7 @@ __GURU__ void c_all_symbols(mrbc_value v[], int argc)
 //================================================================
 /*! (method) inspect
  */
-static void c_inspect(struct VM *vm, mrbc_value v[], int argc)
+static void c_inspect(mrbc_vm *vm, mrbc_value v[], int argc)
 {
     const char *s = symid_to_str(v[0].i);
     v[0] = mrbc_string_new_cstr(vm, ":");
@@ -218,7 +218,7 @@ static void c_inspect(struct VM *vm, mrbc_value v[], int argc)
 //================================================================
 /*! (method) to_s
  */
-static void c_to_s(struct VM *vm, mrbc_value v[], int argc)
+static void c_to_s(mrbc_vm *vm, mrbc_value v[], int argc)
 {
     v[0] = mrbc_string_new_cstr(vm, symid_to_str(v[0].i));
 }

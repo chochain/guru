@@ -16,13 +16,13 @@
 
 #include <stdint.h>
 #include "guru.h"
+#include "vm.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-struct VM;
-__global__ void  mrbc_upload_bytecode(struct VM *vm, const uint8_t *ptr);
+__global__ void  mrbc_upload_bytecode(mrbc_vm *vm, const uint8_t *ptr);
 
 #ifdef __cplusplus
 }

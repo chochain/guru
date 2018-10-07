@@ -20,7 +20,6 @@
 #include "guru.h"
 #include "alloc.h"
 #include "vmalloc.h"
-#include "vm.h"
 #include "errorcode.h"
 #include "load.h"
 
@@ -42,7 +41,7 @@
   "0000"	compiler version
   </pre>
 */
-__GURU__ int load_header(struct VM *vm, const uint8_t **pos)
+__GURU__ int load_header(mrbc_vm *vm, const uint8_t **pos)
 {
     const uint8_t *p = *pos;
 
@@ -96,7 +95,7 @@ __GURU__ int load_header(struct VM *vm, const uint8_t **pos)
   ...	symbol data
   </pre>
 */
-__GURU__ mrbc_irep * load_irep_1(struct VM *vm, const uint8_t **pos)
+__GURU__ mrbc_irep * load_irep_1(mrbc_vm *vm, const uint8_t **pos)
 {
     const uint8_t *p = *pos + 4;			// skip record size
 
@@ -197,7 +196,7 @@ __GURU__ mrbc_irep * load_irep_1(struct VM *vm, const uint8_t **pos)
   @param  pos	A pointer of pointer of IREP section.
   @return       Pointer of allocated mrbc_irep or NULL
 */
-__GURU__ mrbc_irep * load_irep_0(struct VM *vm, const uint8_t **pos)
+__GURU__ mrbc_irep * load_irep_0(mrbc_vm *vm, const uint8_t **pos)
 {
     mrbc_irep *irep = load_irep_1(vm, pos);
     if (!irep) return NULL;
@@ -224,7 +223,7 @@ __GURU__ mrbc_irep * load_irep_0(struct VM *vm, const uint8_t **pos)
   "0000"	rite version
   </pre>
 */
-__GURU__ int load_irep(struct VM *vm, const uint8_t **pos)
+__GURU__ int load_irep(mrbc_vm *vm, const uint8_t **pos)
 {
     const uint8_t *p = *pos + 4;			// 4 = skip "RITE"
     int section_size = bin_to_uint32(p);
@@ -251,7 +250,7 @@ __GURU__ int load_irep(struct VM *vm, const uint8_t **pos)
   @param  pos	A pointer of pointer of LVAR section.
   @return int	zero if no error.
 */
-__GURU__ int load_lvar(struct VM *vm, const uint8_t **pos)
+__GURU__ int load_lvar(mrbc_vm *vm, const uint8_t **pos)
 {
     const uint8_t *p = *pos;
 
@@ -269,8 +268,10 @@ __GURU__ int load_lvar(struct VM *vm, const uint8_t **pos)
   @param  ptr	Pointer to bytecode.
 
 */
-__global__ void mrbc_upload_bytecode(struct VM *vm, const uint8_t *ptr)
+__global__ void mrbc_upload_bytecode(mrbc_vm *vm, const uint8_t *ptr)
 {
+	if (threadIdx.x !=0 || blockIdx.x !=0) return;
+
     int ret = -1;
     vm->mrb = ptr;
 

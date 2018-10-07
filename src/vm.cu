@@ -84,7 +84,7 @@ const char * mrbc_get_irep_symbol(const uint8_t *p, int n)
   @return	string
 */
 __GURU__
-const char *mrbc_get_callee_name(struct VM *vm)
+const char *mrbc_get_callee_name(mrbc_vm *vm)
 {
     uint32_t code = bin_to_uint32(vm->pc_irep->code + (vm->pc - 1) * 4);
     
@@ -108,7 +108,7 @@ void not_supported(void)
 
 */
 __GURU__
-void mrbc_push_callinfo(struct VM *vm, int n_args)
+void mrbc_push_callinfo(mrbc_vm *vm, int n_args)
 {
     mrbc_callinfo *callinfo = (mrbc_callinfo *)mrbc_alloc(sizeof(mrbc_callinfo));
     callinfo->current_regs = vm->current_regs;
@@ -126,7 +126,7 @@ void mrbc_push_callinfo(struct VM *vm, int n_args)
 
 */
 __GURU__
-void mrbc_pop_callinfo(struct VM *vm)
+void mrbc_pop_callinfo(mrbc_vm *vm)
 {
     mrbc_callinfo *callinfo = vm->callinfo_tail;
     
@@ -1673,7 +1673,7 @@ int op_stop(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
   @retval NULL	error.
 */
 __GURU__
-mrbc_vm *mrbc_vm_open(struct VM *vm_arg)
+mrbc_vm *mrbc_vm_open(mrbc_vm *vm_arg)
 {
     mrbc_vm *vm;
     if ((vm = vm_arg)==NULL) {
@@ -1713,7 +1713,7 @@ mrbc_vm *mrbc_vm_open(struct VM *vm_arg)
   @param  vm  Pointer to VM
 */
 __GURU__
-void mrbc_vm_close(struct VM *vm)
+void mrbc_vm_close(mrbc_vm *vm)
 {
     // free vm id.
     int i = (vm->vm_id-1) / FREE_BITMAP_WIDTH;
@@ -1733,7 +1733,7 @@ void mrbc_vm_close(struct VM *vm)
   @param  vm  Pointer to VM
 */
 __GURU__
-void mrbc_vm_begin(struct VM *vm)
+void mrbc_vm_begin(mrbc_vm *vm)
 {
     vm->pc_irep = vm->irep;
     vm->pc = 0;
@@ -1760,7 +1760,7 @@ void mrbc_vm_begin(struct VM *vm)
   @param  vm  Pointer to VM
 */
 __GURU__
-void mrbc_vm_end(struct VM *vm)
+void mrbc_vm_end(mrbc_vm *vm)
 {
     mrbc_free_all();
 }
@@ -1773,7 +1773,7 @@ void mrbc_vm_end(struct VM *vm)
   @retval 0  No error.
 */
 __GURU__
-int mrbc_vm_run(struct VM *vm)
+int mrbc_vm_run(mrbc_vm *vm)
 {
     int ret = 0;
 
@@ -1860,7 +1860,7 @@ int mrbc_vm_run(struct VM *vm)
   @return	Pointer of allocated mrbc_irep
 */
 __GURU__
-mrbc_irep *mrbc_irep_alloc(struct VM *vm)  // from value.cu to remove dependency
+mrbc_irep *mrbc_irep_alloc(mrbc_vm *vm)  // from value.cu to remove dependency
 {
     mrbc_irep *p = (mrbc_irep *)mrbc_alloc(sizeof(mrbc_irep));
     if (p) MEMSET((uint8_t *)p, 0, sizeof(mrbc_irep));	// caution: assume NULL is zero.

@@ -22,7 +22,6 @@
 #include "static.h"
 #include "console.h"
 #include "opcode.h"
-#include "vm.h"
 #include "class.h"
 
 #if MRBC_USE_STRING
@@ -348,7 +347,7 @@ void mrbc_define_method(mrbc_class *cls, const char *name, mrbc_func_t cfunc)
   @param  argc		num of params
 */
 __GURU__
-void mrbc_funcall(struct VM *vm, const char *name, mrbc_value *v, int argc)
+void mrbc_funcall(mrbc_vm *vm, const char *name, mrbc_value *v, int argc)
 {
     mrbc_sym sym_id = str_to_symid(name);
     mrbc_proc *m = find_method(v[0], sym_id);
@@ -513,7 +512,7 @@ void c_object_compare(mrbc_value v[], int argc)
 /*! (operator) ===
  */
 __GURU__
-void c_object_equal3(struct VM *vm, mrbc_value v[], int argc)
+void c_object_equal3(mrbc_vm *vm, mrbc_value v[], int argc)
 {
     if (v[0].tt == MRBC_TT_CLASS) {
         mrbc_value result = mrbc_send(v, argc, &v[1], "kind_of?", 1, &v[0]);
@@ -538,7 +537,7 @@ void c_object_class(mrbc_value v[], int argc)
 
 // Object.new
 __GURU__
-void c_object_new(struct VM *vm, mrbc_value v[], int argc)
+void c_object_new(mrbc_vm *vm, mrbc_value v[], int argc)
 {
     mrbc_value new_obj = mrbc_instance_new(v->cls, 0);
 
@@ -586,7 +585,7 @@ void c_object_new(struct VM *vm, mrbc_value v[], int argc)
 /*! (method) instance variable getter
  */
 __GURU__
-void c_object_getiv(struct VM *vm, mrbc_value v[], int argc)
+void c_object_getiv(mrbc_vm *vm, mrbc_value v[], int argc)
 {
     const char *name = mrbc_get_callee_name(vm);
     mrbc_sym sym_id = str_to_symid(name);
@@ -599,7 +598,7 @@ void c_object_getiv(struct VM *vm, mrbc_value v[], int argc)
 /*! (method) instance variable setter
  */
 __GURU__
-void c_object_setiv(struct VM *vm, mrbc_value v[], int argc)
+void c_object_setiv(mrbc_vm *vm, mrbc_value v[], int argc)
 {
     const char *name = mrbc_get_callee_name(vm);
 
@@ -720,7 +719,7 @@ void c_object_to_s(mrbc_value v[], int argc)
 #endif
 
 __GURU__
-void mrbc_init_class_object(struct VM *vm)
+void mrbc_init_class_object(mrbc_vm *vm)
 {
     // Class
     mrbc_class_object = mrbc_define_class("Object",        0);
@@ -751,7 +750,7 @@ void mrbc_init_class_object(struct VM *vm)
 
 // =============== ProcClass
 __GURU__
-void c_proc_call(struct VM *vm, mrbc_value v[], int argc)
+void c_proc_call(mrbc_vm *vm, mrbc_value v[], int argc)
 {
     // push callinfo, but not release regs
     mrbc_push_callinfo(vm, argc);
@@ -783,7 +782,7 @@ void c_proc_to_s(mrbc_value v[], int argc)
 #endif
 
 __GURU__
-void mrbc_init_class_proc(struct VM *vm)
+void mrbc_init_class_proc(mrbc_vm *vm)
 {
     // Class
     mrbc_class_proc= mrbc_define_class("Proc", mrbc_class_object);
@@ -831,7 +830,7 @@ void c_nil_to_s(mrbc_value v[], int argc)
 /*! Nil class
  */
 __GURU__
-void mrbc_init_class_nil(struct VM *vm)
+void mrbc_init_class_nil(mrbc_vm *vm)
 {
     // Class
     mrbc_class_nil = mrbc_define_class("NilClass", mrbc_class_object);

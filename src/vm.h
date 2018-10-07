@@ -82,22 +82,21 @@ typedef struct VM {
     volatile int8_t flag_preemption;
     int8_t         flag_need_memfree;
 } mrbc_vm;
-typedef struct VM mrb_vm;
 
 __GURU__ const char *mrbc_get_irep_symbol(const uint8_t *p, int n);
-__GURU__ const char *mrbc_get_callee_name(struct VM *vm);
+__GURU__ const char *mrbc_get_callee_name(mrbc_vm *vm);
 
-__GURU__ void mrbc_push_callinfo(struct VM *vm, int n_args);
-__GURU__ void mrbc_pop_callinfo(struct VM *vm);
+__GURU__ void mrbc_push_callinfo(mrbc_vm *vm, int n_args);
+__GURU__ void mrbc_pop_callinfo(mrbc_vm *vm);
 
-__GURU__ mrbc_vm *mrbc_vm_open(struct VM *vm_arg);
-__GURU__ void     mrbc_vm_close(struct VM *vm);
-__GURU__ void     mrbc_vm_begin(struct VM *vm);
-__GURU__ void     mrbc_vm_end(struct VM *vm);
-__GURU__ int      mrbc_vm_run(struct VM *vm);
+__GURU__ mrbc_vm *mrbc_vm_open(mrbc_vm *vm_arg);
+__GURU__ void     mrbc_vm_close(mrbc_vm *vm);
+__GURU__ void     mrbc_vm_begin(mrbc_vm *vm);
+__GURU__ void     mrbc_vm_end(mrbc_vm *vm);
+__GURU__ int      mrbc_vm_run(mrbc_vm *vm);
 
 //<< from value.hu
-__GURU__ struct IREP *mrbc_irep_alloc(struct VM *vm);
+__GURU__ struct IREP *mrbc_irep_alloc(mrbc_vm *vm);
 __GURU__ void mrbc_irep_free(struct IREP *irep);
 
 //<< from static.hu
