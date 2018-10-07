@@ -37,21 +37,6 @@ typedef int32_t mrbc_int;
 typedef float 	mrbc_float;
 typedef int16_t mrbc_sym;
 
-/* aspec access ? */
-#define MRB_ASPEC_REQ(a)          (((a) >> 18) & 0x1f)
-#define MRB_ASPEC_OPT(a)          (((a) >> 13) & 0x1f)
-#define MRB_ASPEC_REST(a)         (((a) >> 12) & 0x1)
-#define MRB_ASPEC_POST(a)         (((a) >> 7)  & 0x1f)
-
-#define MRBC_OBJECT_HEADER                          \
-    uint16_t 	ref_count;                          \
-    mrbc_vtype 	tt : 8  			// TODO: for debug use only.
-
-/* forward declaration */
-struct IREP;
-struct RObject;
-typedef void (*mrbc_func_t)(struct RObject *v, int argc);
-    
 //================================================================
 /*!@brief
   define the value type.
@@ -84,7 +69,7 @@ typedef enum {
 /*!@brief
   Guru value object.
 */
-struct RObject {
+typedef struct RObject {
     mrbc_vtype            tt:8;
     union {
         mrbc_int          i;		// MRBC_TT_FIXNUM, SYMBOL
@@ -105,9 +90,7 @@ struct RObject {
 #endif
         const char       *str;		// C-string (only loader use.)
     };
-};
-typedef struct RObject mrbc_object;
-typedef struct RObject mrbc_value;
+} mrbc_object, mrbc_value;
 
 //================================================================
 /*!@brief
@@ -121,7 +104,10 @@ typedef struct RClass {
     struct RClass *super;	// mrbc_class[super]
     struct RProc  *procs;	// mrbc_proc[rprocs], linked list
 } mrbc_class;
-typedef struct RClass mrb_class;
+
+#define MRBC_OBJECT_HEADER                          \
+    uint16_t 	ref_count;                          \
+    mrbc_vtype 	tt : 8  	// TODO: for debug use only.
 
 //================================================================
 /*!@brief
@@ -134,13 +120,15 @@ typedef struct RInstance {
     struct RKeyValueHandle *ivar;
     uint8_t 				data[];
 } mrbc_instance;
-typedef struct RInstance mrb_instance;
-
 
 //================================================================
 /*!@brief
   Guru proc object.
 */
+/* forward declaration */
+struct IREP;
+typedef void (*mrbc_func_t)(mrbc_object *v, int argc);
+
 typedef struct RProc {
     MRBC_OBJECT_HEADER;
 
@@ -155,7 +143,6 @@ typedef struct RProc {
         mrbc_func_t func;
     };
 } mrbc_proc;
-typedef struct RProc mrb_proc;
 
 int init_session(guru_ses *ses, const char *rite_fname);
 

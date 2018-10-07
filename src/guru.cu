@@ -33,7 +33,7 @@ int _guru_alloc(guru_ses *ses, size_t req_sz, size_t res_sz)
 }
 
 __host__
-int _load_bytecode(guru_ses *ses, const char *rite_fname)
+int _input_bytecode(guru_ses *ses, const char *rite_fname)
 {
   FILE *fp = fopen(rite_fname, "rb");
 
@@ -63,9 +63,13 @@ int _load_bytecode(guru_ses *ses, const char *rite_fname)
 
 int init_session(guru_ses *ses, const char *rite_fname)
 {
-	int rst = _load_bytecode(ses, rite_fname);
+	int rst = _input_bytecode(ses, rite_fname);
 
 	if (rst != 0) return rst;
+
+	mrbc_vm vm;
+
+	//mrbc_upload_bytecode<<1,1>>(&vm, ses->req);
 
     return 0;
 }
