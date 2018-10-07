@@ -24,7 +24,6 @@
 extern "C" {
 #endif
 
-
 //================================================================
 /*!@brief
   IREP Internal REPresentation
@@ -41,7 +40,6 @@ typedef struct IREP {
     uint8_t     *ptr_to_sym;
     struct IREP **reps;		//!< array of child IREP's pointer.
 } mrbc_irep;
-typedef struct IREP mrb_irep;
 
 //================================================================
 /*!@brief
@@ -55,7 +53,6 @@ typedef struct CALLINFO {
     mrbc_class      *target_class;
     uint8_t         n_args;     // num of args
 } mrbc_callinfo;
-typedef struct CALLINFO mrb_callinfo;
 
 //================================================================
 /*!@brief
@@ -64,13 +61,13 @@ typedef struct CALLINFO mrb_callinfo;
 typedef struct VM {
     mrbc_irep      *irep;
 
-    uint8_t        vm_id; // vm_id : 1..n
-    const uint8_t  *mrb;   // bytecode
+    uint8_t        vm_id; 		// vm_id: (1..vm_config.MAX_VM_COUNT)
+    const uint8_t  *mrb;   		// bytecode
 
     mrbc_irep      *pc_irep;    // PC
-    uint16_t       pc;         // PC
+    uint16_t       pc;         	// PC
 
-    //  uint16_t     reg_top;
+    //  uint16_t   reg_top;
     mrbc_value     regs[MAX_REGS_SIZE];
     mrbc_value     *current_regs;
     mrbc_callinfo  *callinfo_tail;
@@ -80,7 +77,7 @@ typedef struct VM {
     int32_t        error_code;
 
     volatile int8_t flag_preemption;
-    int8_t         flag_need_memfree;
+    volatile int8_t flag_need_memfree;
 } mrbc_vm;
 
 __GURU__ const char *mrbc_get_irep_symbol(const uint8_t *p, int n);
@@ -89,11 +86,9 @@ __GURU__ const char *mrbc_get_callee_name(mrbc_vm *vm);
 __GURU__ void mrbc_push_callinfo(mrbc_vm *vm, int n_args);
 __GURU__ void mrbc_pop_callinfo(mrbc_vm *vm);
 
-__GURU__ mrbc_vm *mrbc_vm_open(mrbc_vm *vm_arg);
-__GURU__ void     mrbc_vm_close(mrbc_vm *vm);
-__GURU__ void     mrbc_vm_begin(mrbc_vm *vm);
-__GURU__ void     mrbc_vm_end(mrbc_vm *vm);
+__GURU__ void     mrbc_vm_setup(mrbc_vm *vm);
 __GURU__ int      mrbc_vm_run(mrbc_vm *vm);
+__GURU__ void     mrbc_vm_teardown(mrbc_vm *vm);
 
 //<< from value.hu
 __GURU__ struct IREP *mrbc_irep_alloc(mrbc_vm *vm);

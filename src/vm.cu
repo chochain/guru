@@ -32,29 +32,7 @@
 #include "c_hash.h"
 #endif
 
-#define FREE_BITMAP_WIDTH 32
 #define Num(n) (sizeof(n)/sizeof((n)[0]))
-
-__GURU__ uint32_t free_vm_bitmap[MAX_VM_COUNT / FREE_BITMAP_WIDTH + 1];
-
-//================================================================
-/*! Number of leading zeros.
-
-  @param	x	target (32bit unsined)
-  @retval	int	nlz value
-*/
-__GURU__ __forceinline__
-int nlz32(uint32_t x)
-{
-    if (x==0) return 32;
-
-    int n = 1;
-    if ((x >> 16)==0) { n += 16; x <<= 16; }
-    if ((x >> 24)==0) { n +=  8; x <<=  8; }
-    if ((x >> 28)==0) { n +=  4; x <<=  4; }
-    if ((x >> 30)==0) { n +=  2; x <<=  2; }
-    return n - (x >> 31);
-}
 
 //================================================================
 /*! get sym[n] from symbol table in irep
@@ -1662,68 +1640,6 @@ int op_stop(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     vm->flag_preemption = 1;
 
     return -1;
-}
-
-//================================================================
-/*!@brief
-  Open the VM.
-
-  @param vm     Pointer to mrbc_vm or NULL.
-  @return	Pointer to mrbc_vm.
-  @retval NULL	error.
-*/
-__GURU__
-mrbc_vm *mrbc_vm_open(mrbc_vm *vm_arg)
-{
-    mrbc_vm *vm;
-    if ((vm = vm_arg)==NULL) {
-        // allocate memory.
-        vm = (mrbc_vm *)mrbc_raw_alloc(sizeof(mrbc_vm));
-        if (vm==NULL) return NULL;
-    }
-
-    // allocate vm id.
-    int vm_id = 0;
-    int i;
-    for(i = 0; i < Num(free_vm_bitmap); i++) {
-        int n = nlz32(~free_vm_bitmap[i]);
-        if (n < FREE_BITMAP_WIDTH) {
-            free_vm_bitmap[i] |= (1 << (FREE_BITMAP_WIDTH - n - 1));
-            vm_id = i * FREE_BITMAP_WIDTH + n + 1;
-            break;
-        }
-    }
-    if (vm_id==0) {
-        if (vm_arg==NULL) mrbc_raw_free(vm);
-        return NULL;
-    }
-
-    // initialize attributes.
-    MEMSET((uint8_t *)vm, 0, sizeof(mrbc_vm));	// caution: assume NULL is zero.
-    if (vm_arg==NULL) vm->flag_need_memfree = 1;
-    vm->vm_id = vm_id;
-
-    return vm;
-}
-
-//================================================================
-/*!@brief
-  Close the VM.
-
-  @param  vm  Pointer to VM
-*/
-__GURU__
-void mrbc_vm_close(mrbc_vm *vm)
-{
-    // free vm id.
-    int i = (vm->vm_id-1) / FREE_BITMAP_WIDTH;
-    int n = (vm->vm_id-1) % FREE_BITMAP_WIDTH;
-    assert(i < Num(free_vm_bitmap));
-    free_vm_bitmap[i] &= ~(1 << (FREE_BITMAP_WIDTH - n - 1));
-
-    // free irep and vm
-    mrbc_irep_free(vm->irep);
-    if (vm->flag_need_memfree) mrbc_raw_free(vm);
 }
 
 //================================================================
