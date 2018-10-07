@@ -9,13 +9,12 @@
   This file is distributed under BSD 3-Clause License.
   </pre>
 */
-#include "vm_config.h"
-//#include <stdlib.h>
 #include <string.h>
 
-#include "guru.h"
 #include "alloc.h"
 #include "keyvalue.h"
+
+extern __GURU__ void mrbc_dec_ref_counter(mrbc_value *v);  // from vmalloc.h
 
 //================================================================
 /*! binary search

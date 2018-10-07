@@ -38,20 +38,15 @@ typedef struct RKeyValueHandle {
 } mrbc_kv_handle;
 
 __GURU__ mrbc_kv_handle *mrbc_kv_new(int size);
+__GURU__ mrbc_value     *mrbc_kv_get(mrbc_kv_handle *kvh, mrbc_sym sym_id);
+
 __GURU__ void mrbc_kv_delete(mrbc_kv_handle *kvh);
-__GURU__ int mrbc_kv_resize(mrbc_kv_handle *kvh, int size);
-__GURU__ int mrbc_kv_set(mrbc_kv_handle *kvh, mrbc_sym sym_id, mrbc_value *set_val);
-__GURU__ mrbc_value *mrbc_kv_get(mrbc_kv_handle *kvh, mrbc_sym sym_id);
-__GURU__ int mrbc_kv_append(mrbc_kv_handle *kvh, mrbc_sym sym_id, mrbc_value *set_val);
-__GURU__ int mrbc_kv_remove(mrbc_kv_handle *kvh, mrbc_sym sym_id);
+__GURU__ int  mrbc_kv_size(const mrbc_kv_handle *kvh);
+__GURU__ int  mrbc_kv_resize(mrbc_kv_handle *kvh, int size);
+__GURU__ int  mrbc_kv_set(mrbc_kv_handle *kvh, mrbc_sym sym_id, mrbc_value *set_val);
+__GURU__ int  mrbc_kv_append(mrbc_kv_handle *kvh, mrbc_sym sym_id, mrbc_value *set_val);
+__GURU__ int  mrbc_kv_remove(mrbc_kv_handle *kvh, mrbc_sym sym_id);
 __GURU__ void mrbc_kv_clear(mrbc_kv_handle *kvh);
-
-//================================================================
-/*! get size
-*/
-__GURU__ int mrbc_kv_size(const mrbc_kv_handle *kvh);
-
-extern __GURU__ void mrbc_dec_ref_counter(mrbc_value *v);
 
 #ifdef __cplusplus
 }

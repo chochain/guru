@@ -1,7 +1,7 @@
 #include <stdio.h>
-#include "guru.h"
 
-int   do_cuda(void);
+extern int do_cuda(void);
+extern char *guru_alloc(size_t sz);
 
 char* load_mrb_file(const char *filename)
 {

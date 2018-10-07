@@ -11,7 +11,7 @@
 */
 #ifndef MRBC_SRC_GURU_H_
 #define MRBC_SRC_GURU_H_
-#define __GURU__                  __device__
+#include "vm_config.h"
 
 #include <stdint.h>
 
@@ -200,6 +200,7 @@ typedef struct RProc mrb_proc;
 char* guru_alloc(size_t sz);
 
 #ifdef __GURU_CUDA__
+#define __GURU__ __device__
 __GURU__ void    guru_memcpy(uint8_t *d, const uint8_t *s, size_t sz);
 __GURU__ void    guru_memset(uint8_t *d, const uint8_t v,  size_t sz);
 __GURU__ size_t  guru_memcmp(const uint8_t *d, const uint8_t *s, size_t sz);
@@ -221,6 +222,7 @@ __GURU__ char   *guru_strcat(char *d, const char *s);
 #define STRCHR(s, c)      guru_strchr(s, c)
 #define STRCAT(d, s)      guru_strcat(d, s)
 #else
+#define __GURU__
 #define MEMCPY(d, s, sz)  memcpy(d, s, sz)
 #define MEMSET(d, v, sz)  memset(d, v, sz)
 #define MEMCMP(d, s, sz)  memcmp(d, s, sz)

@@ -10,10 +10,8 @@
 
   </pre>
 */
-#include "vm_config.h"
 #include <assert.h>
 
-#include "guru.h"
 #include "alloc.h"
 #include "symbol.h"
 

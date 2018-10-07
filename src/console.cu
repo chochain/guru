@@ -13,8 +13,6 @@
 
 #include <cstdio>          // printf
 
-#include "vm_config.h"
-#include "guru.h"
 #include "value.h"
 #include "console.h"
 

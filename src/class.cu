@@ -11,7 +11,6 @@
 
   </pre>
 */
-#include "vm_config.h"
 #include <assert.h>
 
 #include "guru.h"

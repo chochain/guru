@@ -12,7 +12,6 @@
 
 #include "vm_config.h"
 #include "guru.h"
-#include "global.h"
 
 /* Class Tree */
 __GURU__ mrbc_class *mrbc_class_object;

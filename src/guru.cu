@@ -6,7 +6,6 @@
   Copyright (C) 2018- Greenii
   </pre>
 */
-#include "vm_config.h"
 #include "guru.h"
 
 char *guru_alloc(size_t sz)

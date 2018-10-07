@@ -14,7 +14,6 @@
 #ifndef MRBC_SRC_CLASS_H_
 #define MRBC_SRC_CLASS_H_
 
-#include <stdint.h>
 #include "guru.h"
 
 #ifdef __cplusplus
