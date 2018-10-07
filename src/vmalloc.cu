@@ -12,13 +12,13 @@
 
   </pre>
 */
-#include "vm_config.h"
-#include <assert.h>
-#include "value.h"
 #include "alloc.h"
+#include "value.h"
 #include "keyvalue.h"
 #include "symbol.h"
 #include "vmalloc.h"
+
+#include <assert.h>
 
 // memory pool
 extern __GURU__ uint8_t *memory_pool;
@@ -47,19 +47,6 @@ mrbc_proc *mrbc_rproc_alloc(const char *name)
         ptr->next = 0;
     }
     return ptr;
-}
-
-//================================================================
-/*!@brief
-  Release object related memory
-
-  @param   v     Pointer to target mrbc_value
-*/
-__GURU__
-void mrbc_release(mrbc_value *v)
-{
-    mrbc_dec_ref_counter(v);
-    v->tt = MRBC_TT_EMPTY;
 }
 
 //================================================================
@@ -166,68 +153,40 @@ void mrbc_dec_ref_counter(mrbc_value *v)
 
     switch(v->tt) {
     case MRBC_TT_OBJECT:	mrbc_instance_delete(v);	break;
-    case MRBC_TT_PROC:	mrbc_raw_free(v->handle);	break;
+    case MRBC_TT_PROC:	    mrbc_raw_free(v->handle);	break;
 #if MRBC_USE_STRING
     case MRBC_TT_STRING:	mrbc_string_delete(v);		break;
 #endif
 #if MRBC_USE_ARRAY
-    case MRBC_TT_ARRAY:	mrbc_array_delete(v);		break;
-    case MRBC_TT_RANGE:	mrbc_range_delete(v);		break;
-    case MRBC_TT_HASH:	mrbc_hash_delete(v);		break;
+    case MRBC_TT_ARRAY:	    mrbc_array_delete(v);		break;
+    case MRBC_TT_RANGE:	    mrbc_range_delete(v);		break;
+    case MRBC_TT_HASH:	    mrbc_hash_delete(v);		break;
 #endif
     default:
         // Nothing
         break;
     }
-}
-
-//================================================================
-/*! set vm id
-
-  @param  ptr	Return value of mrbc_alloc()
-  @param  vm_id	vm id
-*/
-__GURU__
-void mrbc_set_vm_id(void *ptr, int vm_id)
-{
-    SET_VM_ID(ptr, vm_id);
-}
-
-//================================================================
-/*! get vm id
-
-  @param  ptr	Return value of mrbc_alloc()
-  @return int	vm id
-*/
-__GURU__
-int mrbc_get_vm_id(void *ptr)
-{
-    return GET_VM_ID(ptr);
 }
 
 //================================================================
 /*!@brief
-  clear vm id
+  Release object related memory
 
   @param   v     Pointer to target mrbc_value
 */
 __GURU__
-void mrbc_clear_vm_id(mrbc_value *v)
+void mrbc_release(mrbc_value *v)
 {
-    switch(v->tt) {
-#if MRBC_USE_STRING
-    case MRBC_TT_STRING: mrbc_string_clear_vm_id(v);	break;
-#endif
-#if MRBC_USE_ARRAY
-    case MRBC_TT_ARRAY:	mrbc_array_clear_vm_id(v);	break;
-    case MRBC_TT_RANGE:	mrbc_range_clear_vm_id(v);	break;
-    case MRBC_TT_HASH:	mrbc_hash_clear_vm_id(v);	break;
-#endif
-    default:
-        // Nothing
-        break;
-    }
+    mrbc_dec_ref_counter(v);
+    v->tt = MRBC_TT_EMPTY;
 }
+
+
+
+
+
+
+
 
 
 

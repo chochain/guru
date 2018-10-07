@@ -16,8 +16,6 @@
 #ifndef MRBC_SRC_VM_H_
 #define MRBC_SRC_VM_H_
 
-#include <stdint.h>
-#include "vm_config.h"
 #include "guru.h"
 #include "value.h"
 #include "keyvalue.h"
@@ -102,9 +100,6 @@ __GURU__ int      mrbc_vm_run(struct VM *vm);
 __GURU__ struct IREP *mrbc_irep_alloc(struct VM *vm);
 __GURU__ void mrbc_irep_free(struct IREP *irep);
 
-//<< from keyvalue.hu to remove dependency
-__GURU__ void mrbc_kv_clear_vm_id(mrbc_kv_handle *kvh);
-
 //<< from static.hu
 __GURU__ void init_static(void);
 
@@ -133,7 +128,6 @@ uint32_t bin_to_uint32( const void *s )
     return (x << 24) | ((x & 0xff00) << 8) | ((x >> 8) & 0xff00) | (x >> 24);
 #endif
 }
-
 
 //================================================================
 /*!@brief

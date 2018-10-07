@@ -12,9 +12,7 @@
 
   </pre>
 */
-#include "vm_config.h"
 #include <assert.h>
-#include "guru.h"
 #include "alloc.h"
 
 // Layer 1st(f) and 2nd(s) model
@@ -338,7 +336,6 @@ void * mrbc_raw_alloc(unsigned int size)
 #ifdef MRBC_DEBUG
     MEMSET((uint8_t *)target + sizeof(USED_BLOCK), 0xaa, target->size - sizeof(USED_BLOCK));
 #endif
-    target->vm_id = 0;
 
     return (uint8_t *)target + sizeof(USED_BLOCK);
 }
@@ -489,7 +486,7 @@ void mrbc_free(void *ptr)
   @param  vm	pointer to VM.
 */
 __GURU__
-void mrbc_free_all(int vm_id)
+void mrbc_free_all()
 {
     USED_BLOCK *ptr = (USED_BLOCK *)memory_pool;
     void *free_target = NULL;
@@ -497,7 +494,7 @@ void mrbc_free_all(int vm_id)
 
     while (flag_loop) {
         if (ptr->t==FLAG_TAIL_BLOCK) flag_loop = 0;
-        if (ptr->f==FLAG_USED_BLOCK && ptr->vm_id==vm_id) {
+        if (ptr->f==FLAG_USED_BLOCK) {
             if (free_target) {
                 mrbc_raw_free(free_target);
             }
@@ -553,13 +550,13 @@ void mrbc_alloc_statistics(int *total, int *used, int *free, int *fragmentation)
   @return int		total used memory size
 */
 __GURU__
-int mrbc_alloc_vm_used(int vm_id)
+int mrbc_alloc_used()
 {
     USED_BLOCK *ptr = (USED_BLOCK *)memory_pool;
     int total = 0;
 
     while (1) {
-        if (ptr->vm_id==vm_id && !ptr->f) {
+        if (!ptr->f) {
             total += ptr->size;
         }
         if (ptr->t==FLAG_TAIL_BLOCK) break;

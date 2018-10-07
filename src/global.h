@@ -28,8 +28,6 @@ __GURU__ mrbc_value  global_object_get(mrbc_sym sym_id);
 __GURU__ void        const_object_add(mrbc_sym sym_id, mrbc_object *obj);
 __GURU__ mrbc_object const_object_get(mrbc_sym sym_id);
     
-__GURU__ void        mrbc_global_clear_vm_id(void);
-
 #ifdef __cplusplus
 }
 #endif

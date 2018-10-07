@@ -12,10 +12,7 @@
 
   </pre>
 */
-#include "vm_config.h"
 #include <assert.h>
-#include "guru.h"
-#include "value.h"
 #include "alloc.h"
 #include "vmalloc.h"
 #include "global.h"
@@ -35,10 +32,10 @@
 #include "c_hash.h"
 #endif
 
-__GURU__ uint32_t free_vm_bitmap[MAX_VM_COUNT / 32 + 1];
-
 #define FREE_BITMAP_WIDTH 32
 #define Num(n) (sizeof(n)/sizeof((n)[0]))
+
+__GURU__ uint32_t free_vm_bitmap[MAX_VM_COUNT / FREE_BITMAP_WIDTH + 1];
 
 //================================================================
 /*! Number of leading zeros.
@@ -1612,7 +1609,6 @@ int op_method(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
         proc->next = cls->procs;
         cls->procs = proc;
 
-        mrbc_set_vm_id(proc, 0);
         regs[ra+1].tt = MRBC_TT_EMPTY;
     }
 
@@ -1766,7 +1762,6 @@ void mrbc_vm_begin(struct VM *vm)
 __GURU__
 void mrbc_vm_end(struct VM *vm)
 {
-    mrbc_global_clear_vm_id();
     mrbc_free_all();
 }
 
@@ -1894,24 +1889,6 @@ void mrbc_irep_free(mrbc_irep *irep)  // from value.cu to remove dependency
     if (irep->rlen) mrbc_raw_free(irep->reps);
 
     mrbc_raw_free(irep);
-}
-
-//================================================================
-/*! clear vm_id
-
-  @param  kvh	pointer to key-value handle.
-*/
-__GURU__    
-void mrbc_kv_clear_vm_id(mrbc_kv_handle *kvh)  // << from keyvalue.cu
-{
-    mrbc_set_vm_id(kvh, 0);
-
-    mrbc_kv *p1 = kvh->data;
-    const mrbc_kv *p2 = p1 + kvh->n_stored;
-    while (p1 < p2) {
-        mrbc_clear_vm_id(&p1->value);
-        p1++;
-    }
 }
 
 __GURU__

@@ -1,7 +1,4 @@
-
-#include "vm_config.h"
 #include <assert.h>
-#include "guru.h"
 #include "value.h"
 #include "vmalloc.h"
 #include "global.h"
@@ -112,12 +109,4 @@ __GURU__ mrbc_object const_object_get(mrbc_sym sym_id)
 }
 
 
-/* clear vm_id in global object for process terminated. */
-__GURU__ void mrbc_global_clear_vm_id(void)
-{
-    int i;
-    for (i = 0; i < global_end; i++) {
-        mrbc_clear_vm_id(&mrbc_global[i].obj);
-    }
-}
-     
+
