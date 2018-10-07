@@ -32,8 +32,6 @@ typedef struct guru_ses_ {
 	char *res;
 } guru_ses;
 
-int guru_init(guru_ses *ses, size_t req_sz, size_t res_sz);
-
 // mrbc types
 typedef int32_t mrbc_int;
 typedef float 	mrbc_float;
@@ -158,6 +156,8 @@ typedef struct RProc {
     };
 } mrbc_proc;
 typedef struct RProc mrb_proc;
+
+int init_session(guru_ses *ses, const char *rite_fname);
 
 #ifdef __cplusplus
 }

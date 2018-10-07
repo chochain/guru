@@ -6,27 +6,59 @@
   Copyright (C) 2018- Greenii
   </pre>
 */
+#include <stdio.h>
 #include "guru.h"
 
 __GURU__
 char *guru_output_buffer;		// global output buffer for now, per session later
 
 __global__
-void guru_console_set_buf(char *buf)
+void _guru_set_console_buf(char *buf)
 {
 	if (threadIdx.x!=0 || blockIdx.x !=0) return;
 
 	guru_output_buffer = buf;
 }
 
-int guru_init(guru_ses *ses, size_t req_sz, size_t res_sz)
+__host__
+int _guru_alloc(guru_ses *ses, size_t req_sz, size_t res_sz)
 {
-    cudaMallocManaged(&(ses->req), req_sz);
-    cudaMallocManaged(&(ses->res), res_sz);
+    cudaMallocManaged(&(ses->req), req_sz);			// allocate bytecode storage
+    cudaMallocManaged(&(ses->res), res_sz);			// allocate output buffer
 
-    guru_console_set_buf<<<1,1>>>(ses->res);
+    _guru_set_console_buf<<<1,1>>>(ses->res);
 
     return (cudaSuccess==cudaGetLastError()) ? 0 : 1;
 }
+
+__host__
+int init_session(guru_ses *ses, const char *rite_fname)
+{
+  FILE *fp = fopen(rite_fname, "rb");
+
+  if (fp==NULL) {
+    fprintf(stderr, "File not found\n");
+    return -1;
+  }
+
+  // get filesize
+  fseek(fp, 0, SEEK_END);
+  size_t sz = ftell(fp);
+  fseek(fp, 0, SEEK_SET);
+
+  int err = _guru_alloc(ses, sz, MAX_BUFFER_SIZE);
+
+  if (err != 0) {
+	  fprintf(stderr, "CUDA memory allocate error: %d.\n", err);
+	  return err;
+  }
+  else {
+	  fread(ses->req, sizeof(char), sz, fp);
+  }
+  fclose(fp);
+
+  return 0;
+}
+
 
     
