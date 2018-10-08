@@ -29,11 +29,11 @@ extern "C" {
   IREP Internal REPresentation
 */
 typedef struct IREP {
-    uint16_t nlocals;   //!< # of local variables
-    uint16_t nregs;		//!< # of register variables
-    uint16_t rlen;		//!< # of child IREP blocks
-    uint16_t ilen;		//!< # of irep
-    uint16_t plen;		//!< # of pool
+    uint16_t 	nlocals;   	//!< # of local variables
+    uint16_t 	nregs;		//!< # of register variables
+    uint16_t 	rlen;		//!< # of child IREP blocks
+    uint16_t 	ilen;		//!< # of irep
+    uint16_t 	plen;		//!< # of pool
 
     uint8_t     *code;		//!< ISEQ (code) BLOCK
     mrbc_object **pools;    //!< array of POOL objects pointer.
@@ -104,7 +104,7 @@ __GURU__ void init_static(void);
   @return	32bit unsigned value.
 */
 __GURU__ __forceinline__
-uint32_t bin_to_uint32( const void *s )
+uint32_t bin_to_uint32(const void *s)
 {
 #if MRBC_REQUIRE_32BIT_ALIGNMENT
     uint8_t *p = (uint8_t *)s;
@@ -130,7 +130,7 @@ uint32_t bin_to_uint32( const void *s )
   @return	16bit unsigned value.
 */
 __GURU__ __forceinline__
-uint16_t bin_to_uint16( const void *s )
+uint16_t bin_to_uint16(const void *s)
 {
 #if MRBC_REQUIRE_32BIT_ALIGNMENT
     uint8_t *p = (uint8_t *)s;

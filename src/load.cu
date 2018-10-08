@@ -126,10 +126,10 @@ __GURU__ mrbc_irep * load_irep_1(mrbc_vm *vm, const uint8_t **pos)
 
     // ISEQ (code) BLOCK
     irep->code = (uint8_t *)p;
-    p += irep->ilen * 4;
+    p += irep->ilen * sizeof(uint32_t);
 
     // POOL BLOCK
-    irep->plen = bin_to_uint32(p);	p += 4;
+    irep->plen = bin_to_uint32(p);	p += sizeof(uint32_t);
     if (irep->plen) {
         irep->pools = (mrbc_object**)mrbc_alloc(sizeof(void*) *irep->plen);
         if (irep->pools==NULL) {
@@ -142,7 +142,7 @@ __GURU__ mrbc_irep * load_irep_1(mrbc_vm *vm, const uint8_t **pos)
 
     for (int i = 0; i < irep->plen; i++) {
         int  tt = *p++;
-        int  obj_size = bin_to_uint16(p);	p += 2;
+        int  obj_size = bin_to_uint16(p);	p += sizeof(uint16_t);
         char buf[MAX_OBJ_SIZE];
         mrbc_object *obj = mrbc_obj_alloc(MRBC_TT_EMPTY);
         if (obj==NULL) {
@@ -179,9 +179,9 @@ __GURU__ mrbc_irep * load_irep_1(mrbc_vm *vm, const uint8_t **pos)
     }
     // SYMS BLOCK
     irep->ptr_to_sym = (uint8_t*)p;
-    int slen = bin_to_uint32(p);		p += 4;
+    int slen = bin_to_uint32(p);		p += sizeof(uint32_t);
     while (--slen >= 0) {
-        int s = bin_to_uint16(p);		p += 2;
+        int s = bin_to_uint16(p);		p += sizeof(uint16_t);
         p += s+1;
     }
     *pos = p;
@@ -225,15 +225,15 @@ __GURU__ mrbc_irep * load_irep_0(mrbc_vm *vm, const uint8_t **pos)
 */
 __GURU__ int load_irep(mrbc_vm *vm, const uint8_t **pos)
 {
-    const uint8_t *p = *pos + 4;			// 4 = skip "RITE"
+    const uint8_t *p = *pos + 4;						// 4 = skip "IREP"
     int   section_size = bin_to_uint32(p);
 
     p += sizeof(uint32_t);
-    if (MEMCMP(p, "0000", 4) != 0) {		// rite version
+    if (MEMCMP(p, "0000", 4) != 0) {					// rite version
         vm->error_code = LOAD_FILE_IREP_ERROR_VERSION;
         return -1;
     }
-    p += 4;
+    p += 4;												// 4 = skip "0000"
     vm->irep = load_irep_0(vm, &p);
     if (vm->irep==NULL) {
         return -1;
@@ -256,7 +256,7 @@ __GURU__ int load_lvar(mrbc_vm *vm, const uint8_t **pos)
     const uint8_t *p = *pos;
 
     /* size */
-    *pos += bin_to_uint32(p+4);
+    *pos += bin_to_uint32(p+sizeof(uint32_t));
 
     return 0;
 }
@@ -269,7 +269,7 @@ __GURU__ int load_lvar(mrbc_vm *vm, const uint8_t **pos)
   @param  ptr	Pointer to bytecode.
 
 */
-__global__ void mrbc_upload_bytecode(mrbc_vm *vm, const uint8_t *ptr)
+__global__ void mrbc_parse_bytecode(mrbc_vm *vm, const uint8_t *ptr)
 {
 	if (threadIdx.x !=0 || blockIdx.x !=0) return;
 
@@ -277,7 +277,6 @@ __global__ void mrbc_upload_bytecode(mrbc_vm *vm, const uint8_t *ptr)
     vm->mrb = ptr;
 
     ret = load_header(vm, &ptr);
-    return;
 
     while (ret==0) {
         if (MEMCMP(ptr, "IREP", 4)==0) {

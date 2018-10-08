@@ -11,10 +11,10 @@
 #include "load.h"
 
 __GURU__
-char *guru_output_buffer;		// global output buffer for now, per session later
+uint8_t *guru_output_buffer;		// global output buffer for now, per session later
 
 __global__
-void _guru_set_console_buf(char *buf)
+void _guru_set_console_buf(uint8_t *buf)
 {
 	if (threadIdx.x!=0 || blockIdx.x !=0) return;
 
@@ -69,7 +69,7 @@ int init_session(guru_ses *ses, const char *rite_fname)
 
 	mrbc_vm vm;
 
-	//mrbc_upload_bytecode<<1,1>>(&vm, ses->req);
+//	mrbc_upload_bytecode<<<1,1>>>(&vm, (const uint8_t *)(ses->req));
 
     return 0;
 }

@@ -28,8 +28,8 @@ extern "C" {
 #define MAX_BUFFER_SIZE 1024
 
 typedef struct guru_ses_ {
-	char *req;
-	char *res;
+	uint8_t *req;
+	uint8_t *res;
 } guru_ses;
 
 // mrbc types

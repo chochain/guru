@@ -54,18 +54,19 @@ __GURU__ mrbc_int   mrbc_atoi(const char *s, int base);
 #ifdef __GURU_CUDA__
 __GURU__ void    guru_memcpy(uint8_t *d, const uint8_t *s, size_t sz);
 __GURU__ void    guru_memset(uint8_t *d, const uint8_t v,  size_t sz);
-__GURU__ size_t  guru_memcmp(const uint8_t *d, const uint8_t *s, size_t sz);
-__GURU__ long    guru_atol(const char *s);
+__GURU__ int     guru_memcmp(const uint8_t *d, const uint8_t *s, size_t sz);
 
+__GURU__ long    guru_atol(const char *s);
 __GURU__ size_t  guru_strlen(const char *s);
 __GURU__ void    guru_strcpy(const char *s1, const char *s2);
-__GURU__ size_t  guru_strcmp(const char *s1, const char *s2);
+__GURU__ int     guru_strcmp(const char *s1, const char *s2);
 __GURU__ char   *guru_strchr(const char *s, const char c);
 __GURU__ char   *guru_strcat(char *d, const char *s);
 
 #define MEMCPY(d, s, sz)  guru_memcpy(d, s, sz)
 #define MEMSET(d, v, sz)  guru_memset(d, v, sz)
 #define MEMCMP(d, s, sz)  guru_memcmp(d, s, sz)
+
 #define ATOL(s)           guru_atol(s)
 #define STRLEN(s)		  guru_strlen(s)
 #define STRCPY(s1, s2)	  guru_strcpy(s1, s2)
@@ -76,6 +77,8 @@ __GURU__ char   *guru_strcat(char *d, const char *s);
 #define MEMCPY(d, s, sz)  memcpy(d, s, sz)
 #define MEMSET(d, v, sz)  memset(d, v, sz)
 #define MEMCMP(d, s, sz)  memcmp(d, s, sz)
+
+#define ATOL(s)			  atol(s)
 #define STRLEN(s)		  strlen(s)
 #define STRCPY(s1, s2)	  strcpy(s1, s2)
 #define STRCMP(s1, s2)    strcmp(s1, s2)
