@@ -69,7 +69,7 @@ int init_session(guru_ses *ses, const char *rite_fname)
 
 	mrbc_vm vm;
 
-//	mrbc_upload_bytecode<<<1,1>>>(&vm, (const uint8_t *)(ses->req));
+//	mrbc_parse_bytecode<<<1,1>>>(&vm, ses->req);
 
     return 0;
 }

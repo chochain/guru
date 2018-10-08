@@ -62,6 +62,7 @@ __GURU__ int load_header(mrbc_vm *vm, const uint8_t **pos)
         return -1;
     }
     *pos += 22;
+
     return 0;
 }
 
@@ -112,8 +113,10 @@ __GURU__ mrbc_irep * load_irep_1(mrbc_vm *vm, const uint8_t **pos)
     irep->rlen    = bin_to_uint16(p);	p += sizeof(uint16_t);
     irep->ilen    = bin_to_uint32(p);	p += sizeof(uint32_t);
 
-    // padding
-    p += (vm->mrb - p) & 0x03;
+    p += (vm->mrb - p) & 0x03;			// padding for alignment?
+
+    irep->code = (uint8_t *)p;			p += irep->ilen * sizeof(uint32_t);		// ISEQ (code) block
+    irep->plen = bin_to_uint32(p);		p += sizeof(uint32_t);					// POOL block
 
     // allocate memory for child irep's pointers
     if (irep->rlen) {
@@ -123,13 +126,6 @@ __GURU__ mrbc_irep * load_irep_1(mrbc_vm *vm, const uint8_t **pos)
             return NULL;
         }
     }
-
-    // ISEQ (code) BLOCK
-    irep->code = (uint8_t *)p;
-    p += irep->ilen * sizeof(uint32_t);
-
-    // POOL BLOCK
-    irep->plen = bin_to_uint32(p);	p += sizeof(uint32_t);
     if (irep->plen) {
         irep->pools = (mrbc_object**)mrbc_alloc(sizeof(void*) *irep->plen);
         if (irep->pools==NULL) {
@@ -144,11 +140,13 @@ __GURU__ mrbc_irep * load_irep_1(mrbc_vm *vm, const uint8_t **pos)
         int  tt = *p++;
         int  obj_size = bin_to_uint16(p);	p += sizeof(uint16_t);
         char buf[MAX_OBJ_SIZE];
+
         mrbc_object *obj = mrbc_obj_alloc(MRBC_TT_EMPTY);
         if (obj==NULL) {
             vm->error_code = LOAD_FILE_IREP_ERROR_ALLOCATION;
             return NULL;
         }
+
         switch (tt) {
 #if MRBC_USE_STRING
         case 0: { // IREP_TT_STRING
@@ -179,10 +177,9 @@ __GURU__ mrbc_irep * load_irep_1(mrbc_vm *vm, const uint8_t **pos)
     }
     // SYMS BLOCK
     irep->ptr_to_sym = (uint8_t*)p;
-    int slen = bin_to_uint32(p);		p += sizeof(uint32_t);
-    while (--slen >= 0) {
-        int s = bin_to_uint16(p);		p += sizeof(uint16_t);
-        p += s+1;
+    int sym_cnt = bin_to_uint32(p);		p += sizeof(uint32_t);
+    while (--sym_cnt >= 0) {
+        int len = bin_to_uint16(p);		p += sizeof(uint16_t) + len + 1;    // symbol_len+'\0'
     }
     *pos = p;
     return irep;
@@ -226,20 +223,21 @@ __GURU__ mrbc_irep * load_irep_0(mrbc_vm *vm, const uint8_t **pos)
 __GURU__ int load_irep(mrbc_vm *vm, const uint8_t **pos)
 {
     const uint8_t *p = *pos + 4;						// 4 = skip "IREP"
-    int   section_size = bin_to_uint32(p);
+    int   sec_size = bin_to_uint32(p);
 
     p += sizeof(uint32_t);
-    if (MEMCMP(p, "0000", 4) != 0) {					// rite version
+    if (MEMCMP(p, "0000", 4) != 0) {					// IREP version
         vm->error_code = LOAD_FILE_IREP_ERROR_VERSION;
         return -1;
     }
     p += 4;												// 4 = skip "0000"
+
     vm->irep = load_irep_0(vm, &p);
     if (vm->irep==NULL) {
         return -1;
     }
 
-    *pos += section_size;
+    *pos += sec_size;
     return 0;
 }
 
