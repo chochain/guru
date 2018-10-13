@@ -194,7 +194,8 @@ int main(int argc, char **argv)
 	guru_ses ses;
 	int rst = init_session(&ses, argv[1]);
 
-	upload_bytecode((uint8_t *)ses.req);
+//	upload_bytecode((uint8_t *)ses.req);
+
 
     return 0;
 }

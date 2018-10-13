@@ -899,6 +899,24 @@ void mrbc_init_class_true()
 }
 
 //================================================================
+/*! initialize
+ */
+__GURU__ void mrbc_init_class_symbol()  // << from symbol.cu
+{
+    mrbc_class_symbol = mrbc_define_class("Symbol", mrbc_class_object);
+
+#if MRBC_USE_ARRAY
+    mrbc_define_method(mrbc_class_symbol, "all_symbols", c_all_symbols);
+#endif
+#if MRBC_USE_STRING
+    mrbc_define_method(mrbc_class_symbol, "inspect", c_inspect);
+    mrbc_define_method(mrbc_class_symbol, "to_s", c_to_s);
+    mrbc_define_method(mrbc_class_symbol, "id2name", c_to_s);
+#endif
+    mrbc_define_method(mrbc_class_symbol, "to_sym", c_ineffect);
+}
+
+//================================================================
 /*! Ineffect operator / method
  */
 __GURU__
@@ -936,24 +954,6 @@ void mrbc_init_class(void)
     mrbc_init_class_range(0);
     mrbc_init_class_hash(0);
 #endif
-}
-
-//================================================================
-/*! initialize
- */
-__GURU__ void mrbc_init_class_symbol()  // << from symbol.cu
-{
-    mrbc_class_symbol = mrbc_define_class("Symbol", mrbc_class_object);
-
-#if MRBC_USE_ARRAY
-    mrbc_define_method(mrbc_class_symbol, "all_symbols", c_all_symbols);
-#endif
-#if MRBC_USE_STRING
-    mrbc_define_method(mrbc_class_symbol, "inspect", c_inspect);
-    mrbc_define_method(mrbc_class_symbol, "to_s", c_to_s);
-    mrbc_define_method(mrbc_class_symbol, "id2name", c_to_s);
-#endif
-    mrbc_define_method(mrbc_class_symbol, "to_sym", c_ineffect);
 }
 
 

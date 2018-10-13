@@ -35,9 +35,6 @@ __GURU__ void       c_ineffect(mrbc_value v[], int argc);
     
 __GURU__ void       mrbc_init_class(void);
 
-// << from symbol.hu
-__GURU__ void       mrbc_init_class_symbol();
-
 #ifdef __cplusplus
 }
 #endif

@@ -67,9 +67,14 @@ int init_session(guru_ses *ses, const char *rite_fname)
 
 	if (rst != 0) return rst;
 
-	mrbc_vm vm;
+	mrbc_vm *vm;
+    cudaMallocManaged(&vm, sizeof(mrbc_vm));			// allocate bytecode storage
+    int err = cudaGetLastError();
+    if (err != 0) {
+    	printf("allocation error %d", err);
+    }
 
-//	mrbc_parse_bytecode<<<1,1>>>(&vm, ses->req);
+	mrbc_parse_bytecode<<<1,1>>>(vm, ses->req);
 
     return 0;
 }
