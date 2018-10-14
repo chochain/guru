@@ -56,14 +56,9 @@ typedef struct IREP {
     struct IREP **reps;		//!< array of child IREP's pointer.
 } mrbc_irep;
 
-mrbc_irep *load_irep_1(const uint8_t **pos)
+int load_irep_1(mrbc_irep *irep, const uint8_t **pos)
 {
     const uint8_t *p = *pos + 4;			// skip "IREP"
-
-    // new irep
-    mrbc_irep *irep = (mrbc_irep *)malloc(sizeof(mrbc_irep));
-
-    if (irep==NULL) return NULL;
 
     // nlocals,nregs,rlen
     irep->nlocals = bin_to_uint16(p);	p += sizeof(uint16_t);
@@ -76,18 +71,18 @@ mrbc_irep *load_irep_1(const uint8_t **pos)
     // allocate memory for child irep's pointers
     if (irep->rlen) {
         irep->reps = (mrbc_irep **)malloc(sizeof(mrbc_irep *) * irep->rlen);
-        if (irep->reps==NULL) return NULL;
+        if (irep->reps==NULL) return -1;
     }
     if (irep->plen) {
         irep->pools = (mrbc_object**)malloc(sizeof(void*) *irep->plen);
-        if (irep->pools==NULL) return NULL;
+        if (irep->pools==NULL) return -1;
     }
 
 #define MAX_OBJ_SIZE 100
 #if false
     for (int i = 0; i < irep->plen; i++) {
         int  tt = *p++;
-        int  obj_size = bin_to_uint16(p);	p += sizeof(uint16_t);
+        int  obj_size = _bin_to_uint16(p);	p += sizeof(uint16_t);
         char buf[MAX_OBJ_SIZE];
         mrbc_object *obj = mrbc_obj_alloc(MRBC_TT_EMPTY);
         if (obj==NULL) return NULL;
@@ -111,10 +106,12 @@ mrbc_irep *load_irep_1(const uint8_t **pos)
     irep->ptr_to_sym = (uint8_t*)p;
     int sym_cnt = bin_to_uint32(p);		p += sizeof(uint32_t);
     while (--sym_cnt >= 0) {
-        int len = bin_to_uint16(p);		p += sizeof(uint16_t)+len+1;	// symbol length+'\0'
+        int len = bin_to_uint16(p);
+        p += sizeof(uint16_t)+len+1;	// symbol length+'\0'
     }
     *pos = p;
-    return irep;
+
+    return 0;
 }
 
 //================================================================
@@ -125,10 +122,15 @@ mrbc_irep *load_irep_1(const uint8_t **pos)
   @param  pos	A pointer of pointer of IREP section.
   @return       Pointer of allocated mrbc_irep or NULL
 */
-mrbc_irep * load_irep_0(const uint8_t **pos)
+mrbc_irep *load_irep_0(const uint8_t **pos)
 {
-    mrbc_irep *irep = load_irep_1(pos);
-    if (!irep) return NULL;
+    // new irep
+    mrbc_irep *irep = (mrbc_irep *)malloc(sizeof(mrbc_irep));
+
+    if (irep==NULL) return NULL;
+
+    int ret = load_irep_1(irep, pos);
+    if (ret!=0) return NULL;
 
     int i;
     for (i = 0; i < irep->rlen; i++) {
@@ -138,10 +140,10 @@ mrbc_irep * load_irep_0(const uint8_t **pos)
 }
 
 
-int load_irep(const uint8_t **pos)
+int load_irep(mrbc_irep **pirep, const uint8_t **pos)
 {
     const uint8_t *p = *pos + 4;			// 4 = skip "IREP"
-    int   section_size = bin_to_uint32(p);
+    int   sec_size = bin_to_uint32(p);
 
     p += sizeof(uint32_t);
     if (_memcmp(p, "0000", 4) != 0) {		// rite version
@@ -149,12 +151,12 @@ int load_irep(const uint8_t **pos)
     }
     p += 4;
 
-    mrbc_irep *irep = load_irep_0(&p);
-    if (irep==NULL) {
+    *pirep = load_irep_0(&p);
+    if (*pirep==NULL) {
         return -1;
     }
 
-    *pos += section_size;
+    *pos += sec_size;
     return 0;
 }
 
@@ -168,14 +170,14 @@ int load_lvar(const uint8_t **pos)
     return 0;
 }
 
-void upload_bytecode(const uint8_t *ptr)
+void upload_bytecode(mrbc_irep **pirep, const uint8_t *ptr)
 {
     int ret;
 
     ret = load_header(&ptr);
     while (ret==0) {
         if (_memcmp(ptr, "IREP", 4)==0) {
-            ret = load_irep(&ptr);
+            ret = load_irep(pirep, &ptr);
         }
         else if (_memcmp(ptr, "LVAR", 4)==0) {
             ret = load_lvar(&ptr);
@@ -187,15 +189,51 @@ void upload_bytecode(const uint8_t *ptr)
     return;
 }
 
+int input_bytecode(guru_ses *ses, const char *rite_fname)
+{
+  FILE *fp = fopen(rite_fname, "rb");
+
+  if (fp==NULL) {
+    fprintf(stderr, "File not found\n");
+    return -1;
+  }
+
+  // get filesize
+  fseek(fp, 0, SEEK_END);
+  size_t sz = ftell(fp);
+  fseek(fp, 0, SEEK_SET);
+
+  ses->req = (uint8_t *)malloc(sz);
+
+  if (ses->req==NULL) {
+	  fprintf(stderr, "memory allocate error\n");
+	  return -1;
+  }
+  else {
+	  fread(ses->req, sizeof(uint8_t), sz, fp);
+  }
+  fclose(fp);
+
+  return 0;
+}
+
+extern void dump_irep(mrbc_irep *irep);
+extern void dump_vm(uint8_t *vm);
+
 int main(int argc, char **argv)
 {
     //do_cuda();
 
+	guru_ses ses0;
+
+	int rst = input_bytecode(&ses0, argv[1]);
+	mrbc_irep *irep;
+	upload_bytecode(&irep, ses0.req);
+	dump_irep(irep);
+
 	guru_ses ses;
-	int rst = init_session(&ses, argv[1]);
-
-//	upload_bytecode((uint8_t *)ses.req);
-
+	uint8_t *vm_rst = init_session(&ses, argv[1]);
+	dump_vm(vm_rst);
 
     return 0;
 }

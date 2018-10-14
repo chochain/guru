@@ -32,8 +32,8 @@ __GURU__ mrbc_value mrbc_send(mrbc_value *v, int reg_ofs, mrbc_value *recv, cons
 
 __GURU__ void       c_proc_call(mrbc_vm *vm, mrbc_value v[], int argc);
 __GURU__ void       c_ineffect(mrbc_value v[], int argc);
-    
-__GURU__ void       mrbc_init_class(void);
+
+__GURU__ void 		mrbc_init_class(void);
 
 #ifdef __cplusplus
 }

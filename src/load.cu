@@ -98,15 +98,15 @@ __GURU__ int _load_irep_1(mrbc_irep *irep, const uint8_t **pos)
     const uint8_t *p = *pos + 4;			// skip "IREP"
 
     // nlocals,nregs,rlen
-    irep->nlocals = bin_to_uint16(p);	p += sizeof(uint16_t);
-    irep->nregs   = bin_to_uint16(p);	p += sizeof(uint16_t);
-    irep->rlen    = bin_to_uint16(p);	p += sizeof(uint16_t);
-    irep->ilen    = bin_to_uint32(p);	p += sizeof(uint32_t);
+    irep->nlocals = _bin_to_uint16(p);	p += sizeof(uint16_t);
+    irep->nregs   = _bin_to_uint16(p);	p += sizeof(uint16_t);
+    irep->rlen    = _bin_to_uint16(p);	p += sizeof(uint16_t);
+    irep->ilen    = _bin_to_uint32(p);	p += sizeof(uint32_t);
 
 //    p += (vm->mrb - p) & 0x03;			// padding for alignment?
 
     irep->code = (uint8_t *)p;			p += irep->ilen * sizeof(uint32_t);		// ISEQ (code) block
-    irep->plen = bin_to_uint32(p);		p += sizeof(uint32_t);					// POOL block
+    irep->plen = _bin_to_uint32(p);		p += sizeof(uint32_t);					// POOL block
 
     // allocate memory for child irep's pointers
     if (irep->rlen) {
@@ -163,9 +163,9 @@ __GURU__ int _load_irep_1(mrbc_irep *irep, const uint8_t **pos)
 #endif
     // SYMS BLOCK
     irep->ptr_to_sym = (uint8_t*)p;
-    int sym_cnt = bin_to_uint32(p);		p += sizeof(uint32_t);
+    int sym_cnt = _bin_to_uint32(p);		p += sizeof(uint32_t);
     while (--sym_cnt >= 0) {
-        int len = bin_to_uint16(p);		p += sizeof(uint16_t)+len+1;    // symbol_len+'\0'
+        int len = _bin_to_uint16(p);		p += sizeof(uint16_t)+len+1;    // symbol_len+'\0'
     }
     *pos = p;
 
@@ -192,7 +192,7 @@ __GURU__ mrbc_irep *_load_irep_0(const uint8_t **pos)
     	mrbc_free(irep);
     	return NULL;
     }
-
+    // recursively create the irep linked-list
     for (int i=0; i<irep->rlen; i++) {
         irep->reps[i] = _load_irep_0(pos);
     }
@@ -217,9 +217,8 @@ __GURU__ mrbc_irep *_load_irep_0(const uint8_t **pos)
 __GURU__ int _load_irep(mrbc_vm *vm, const uint8_t **pos)
 {
     const uint8_t *p = *pos + 4;						// 4 = skip "IREP"
-    int   sec_size = bin_to_uint32(p);
+    int   sec_size = _bin_to_uint32(p); p += sizeof(uint32_t);
 
-    p += sizeof(uint32_t);
     if (MEMCMP(p, "0000", 4) != 0) {					// IREP version
 		return LOAD_FILE_IREP_ERROR_VERSION;
     }
@@ -247,7 +246,7 @@ __GURU__ int _load_lvar(mrbc_vm *vm, const uint8_t **pos)
     const uint8_t *p = *pos;
 
     /* size */
-    *pos += bin_to_uint32(p+sizeof(uint32_t));
+    *pos += _bin_to_uint32(p+sizeof(uint32_t));
 
     return NO_ERROR;
 }
@@ -262,16 +261,13 @@ __GURU__ int _load_lvar(mrbc_vm *vm, const uint8_t **pos)
 */
 __global__ void mrbc_parse_bytecode(mrbc_vm *vm, const uint8_t *ptr)
 {
-//	if (threadIdx.x !=0 || blockIdx.x !=0) return;
+	if (threadIdx.x !=0 || blockIdx.x !=0) return;
 
-    int ret = -1;
-    vm->mrb = ptr;
-
-    ret = _load_header(&ptr);
+    int ret = _load_header(&ptr);
 
     while (ret==NO_ERROR) {
         if (MEMCMP(ptr, "IREP", 4)==0) {
-            ret = _load_irep(vm, &ptr);
+        	ret = _load_irep(vm, &ptr);
         }
         else if (MEMCMP(ptr, "LVAR", 4)==0) {
             ret = _load_lvar(vm, &ptr);

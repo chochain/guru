@@ -542,8 +542,8 @@ void c_object_new(mrbc_vm *vm, mrbc_value v[], int argc)
     mrbc_value new_obj = mrbc_instance_new(v->cls, 0);
 
     char syms[]="______initialize";
-    uint32_to_bin(1,(uint8_t*)&syms[0]);
-    uint16_to_bin(10,(uint8_t*)&syms[4]);
+    _uint32_to_bin(1,(uint8_t*)&syms[0]);
+    _uint16_to_bin(10,(uint8_t*)&syms[4]);
 
     uint32_t code[2] = {
         (uint32_t)(MKOPCODE(OP_SEND) | MKARG_A(0) | MKARG_B(0) | MKARG_C(argc)),
@@ -955,5 +955,3 @@ void mrbc_init_class(void)
     mrbc_init_class_hash(0);
 #endif
 }
-
-

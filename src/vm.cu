@@ -12,6 +12,7 @@
 
   </pre>
 */
+#include <stdio.h>
 #include <assert.h>
 #include "alloc.h"
 #include "vmalloc.h"
@@ -42,11 +43,11 @@
 __GURU__
 const char * mrbc_get_irep_symbol(const uint8_t *p, int n)
 {
-    int cnt = bin_to_uint32(p);
+    int cnt = _bin_to_uint32(p);
     if (n >= cnt) return 0;
     p += 4;
     while(n > 0) {
-        uint16_t s = bin_to_uint16(p);
+        uint16_t s = _bin_to_uint16(p);
         p += 2+s+1;   // size(2 bytes) + symbol len + '\0'
         n--;
     }
@@ -62,7 +63,7 @@ const char * mrbc_get_irep_symbol(const uint8_t *p, int n)
 __GURU__
 const char *mrbc_get_callee_name(mrbc_vm *vm)
 {
-    uint32_t code = bin_to_uint32(vm->pc_irep->code + (vm->pc - 1) * 4);
+    uint32_t code = _bin_to_uint32(vm->pc_irep->code + (vm->pc - 1) * 4);
     
     int rb = GETARG_B(code);  // index of method sym
     return mrbc_get_irep_symbol(vm->pc_irep->ptr_to_sym, rb);
@@ -1693,7 +1694,7 @@ int mrbc_vm_run(mrbc_vm *vm)
 
     do {
         // get one bytecode
-        uint32_t code = bin_to_uint32(vm->pc_irep->code + vm->pc * 4);
+        uint32_t code = _bin_to_uint32(vm->pc_irep->code + vm->pc * 4);
         vm->pc++;
 
         // regs
@@ -1795,10 +1796,27 @@ void mrbc_free_ireplist(mrbc_irep *irep)
     mrbc_raw_free(irep);
 }
 
-__GURU__
-void init_static(void)  // << from static.cu
+__global__
+void guru_init_static(void)  // << from static.cu
 {
-    mrbc_init_global();
+	if (threadIdx.x!=0 || blockIdx.x!=0) return;
 
-    mrbc_init_class();
+	mrbc_init_global();
+	mrbc_init_class();
+}
+
+void dump_irep(mrbc_irep *irep)
+{
+	printf("nlocals=%d, nregs=%d, rlen=%d, ilen=%d, plen=%d\n",
+			irep->nlocals,
+			irep->nregs,
+			irep->rlen,
+			irep->ilen,
+			irep->plen);
+}
+
+void dump_vm(uint8_t *vm_ui8)
+{
+	mrbc_vm   *vm = (mrbc_vm *)vm_ui8;
+	dump_irep(vm->irep);
 }

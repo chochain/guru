@@ -16,7 +16,7 @@
 #include "keyvalue.h"
 #include "errorcode.h"
 
-extern __GURU__ void mrbc_dec_ref_counter(mrbc_value *v);  // from vmalloc.h
+extern "C" __GURU__ void mrbc_dec_ref_counter(mrbc_value *v);  // from vmalloc.h
 
 //================================================================
 /*! binary search

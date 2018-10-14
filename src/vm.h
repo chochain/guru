@@ -94,7 +94,7 @@ __GURU__ void     mrbc_vm_teardown(mrbc_vm *vm);
 __GURU__ void mrbc_free_ireplist(mrbc_irep *irep);
 
 //<< from static.hu
-__GURU__ void init_static(void);
+__global__ void guru_init_static(void);
 
 //================================================================
 /*!@brief
@@ -104,7 +104,7 @@ __GURU__ void init_static(void);
   @return	32bit unsigned value.
 */
 __GURU__ __forceinline__
-uint32_t bin_to_uint32(const void *s)
+uint32_t _bin_to_uint32(const void *s)
 {
 #if MRBC_REQUIRE_32BIT_ALIGNMENT
     uint8_t *p = (uint8_t *)s;
@@ -130,7 +130,7 @@ uint32_t bin_to_uint32(const void *s)
   @return	16bit unsigned value.
 */
 __GURU__ __forceinline__
-uint16_t bin_to_uint16(const void *s)
+uint16_t _bin_to_uint16(const void *s)
 {
 #if MRBC_REQUIRE_32BIT_ALIGNMENT
     uint8_t *p = (uint8_t *)s;
@@ -151,7 +151,7 @@ uint16_t bin_to_uint16(const void *s)
   @return sizeof(uint16_t).
 */
 __GURU__ __forceinline__
-void uint16_to_bin(uint16_t s, uint8_t *bin)
+void _uint16_to_bin(uint16_t s, uint8_t *bin)
 {
     *bin++ = (s >> 8) & 0xff;
     *bin   = s & 0xff;
@@ -165,13 +165,16 @@ void uint16_to_bin(uint16_t s, uint8_t *bin)
   @return sizeof(uint32_t).
 */
 __GURU__ __forceinline__
-void uint32_to_bin(uint32_t l, uint8_t *bin)
+void _uint32_to_bin(uint32_t l, uint8_t *bin)
 {
     *bin++ = (l >> 24) & 0xff;
     *bin++ = (l >> 16) & 0xff;
     *bin++ = (l >> 8) & 0xff;
     *bin   = l & 0xff;
 }
+
+void dump_irep(mrbc_irep *irep);
+void dump_vm(uint8_t *vm_ui8);
 
 #ifdef __cplusplus
 }

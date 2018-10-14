@@ -144,7 +144,7 @@ typedef struct RProc {
     };
 } mrbc_proc;
 
-int init_session(guru_ses *ses, const char *rite_fname);
+uint8_t *init_session(guru_ses *ses, const char *rite_fname);
 
 #ifdef __cplusplus
 }

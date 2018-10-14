@@ -54,7 +54,8 @@ __GURU__ int search_index(uint16_t hash, const char *str)
 #ifdef MRBC_SYMBOL_SEARCH_BTREE
     int i = 0;
     do {
-        if (sym_index[i].hash==hash && guru_strcmp(str, sym_index[i].cstr)==0) {
+        if (sym_index[i].hash==hash &&
+        		guru_strcmp(str, sym_index[i].cstr)==0) {
             return i;
         }
         if (hash < sym_index[i].hash) {

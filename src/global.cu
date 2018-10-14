@@ -29,7 +29,7 @@ __GURU__ mrbc_globalobject mrbc_global[MAX_GLOBAL_OBJECT_SIZE];
 //
 __GURU__ void  mrbc_init_global(void)
 {
-    global_end = 0;
+	global_end = 0;
 }
 
 /* search */

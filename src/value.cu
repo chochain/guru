@@ -224,7 +224,7 @@ __GURU__ void  guru_strcpy(const char *s1, const char *s2)
     guru_memcpy((uint8_t *)s1, (uint8_t *)s2, guru_strlen(s1));
 }
 
-__GURU__ size_t  guru_strcmy(const char *s1, const char *s2)
+__GURU__ int  guru_strcmp(const char *s1, const char *s2)
 {
     return guru_memcmp((uint8_t *)s1, (uint8_t *)s2, guru_strlen(s1));
 }

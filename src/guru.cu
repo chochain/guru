@@ -32,7 +32,6 @@ int _guru_alloc(guru_ses *ses, size_t req_sz, size_t res_sz)
     return (cudaSuccess==cudaGetLastError()) ? 0 : 1;
 }
 
-__host__
 int _input_bytecode(guru_ses *ses, const char *rite_fname)
 {
   FILE *fp = fopen(rite_fname, "rb");
@@ -61,11 +60,15 @@ int _input_bytecode(guru_ses *ses, const char *rite_fname)
   return 0;
 }
 
-int init_session(guru_ses *ses, const char *rite_fname)
+extern __global__ void guru_init_static(void);
+
+uint8_t *init_session(guru_ses *ses, const char *rite_fname)
 {
 	int rst = _input_bytecode(ses, rite_fname);
 
-	if (rst != 0) return rst;
+	if (rst != 0) return NULL;
+
+	//guru_init_static<<<1,1>>>();
 
 	mrbc_vm *vm;
     cudaMallocManaged(&vm, sizeof(mrbc_vm));			// allocate bytecode storage
@@ -76,6 +79,13 @@ int init_session(guru_ses *ses, const char *rite_fname)
 
 	mrbc_parse_bytecode<<<1,1>>>(vm, ses->req);
 
-    return 0;
+	uint8_t *vm_rst = (uint8_t *)malloc(sizeof(mrbc_vm));
+	if (vm_rst==0) {
+    	printf("allocation error: vm_rst");
+    	return NULL;
+	}
+	memcpy(vm, &vm_rst, sizeof(mrbc_vm));
+
+    return vm_rst;
 }
     
