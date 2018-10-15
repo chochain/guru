@@ -31,15 +31,16 @@
 // 9 : 8000-ffff
 
 #ifndef FLI_BITS		// 0000 0000 0000 0000
-#define FLI_BITS 9		// ~~~~~~~~~~~
-#define FLI_MASK ((1<<FLI_BITS)-1)
+#define FLI_BITS 	9	// ~~~~~~~~~~~
+#define FLI_MASK 	((1<<FLI_BITS)-1)
 #endif
 #ifndef SLI_BITS		// 0000 0000 0000 0000
-#define SLI_BITS 3		//            ~~~
-#define SLI_MASK ((1<<SLI_BITS)-1)
+#define SLI_BITS 	3	//            ~~~
+#define SLI_MASK 	((1<<SLI_BITS)-1)
 #endif
 #ifndef LSB_BITS		// 0000 0000 0000 0000
-#define LSB_BITS 4		//                ~~~~
+#define LSB_BITS 	4	//                ~~~~
+#define LSB_BLOCK	(1 << LSB_BITS)
 #endif
 
 #define FLI(i) 			(((i) >> SLI_BITS) & FLI_MASK)
@@ -56,15 +57,20 @@
 #define OFF(p1,p2) 		((uint8_t *)(p2) - (uint8_t *)(p1))
 
 // memory pool
-__GURU__ unsigned int memory_pool_size;
-__GURU__ uint8_t     *memory_pool;
+__GURU__ unsigned int 	memory_pool_size;
+__GURU__ uint8_t     	*memory_pool;
 
-__GURU__ free_block *free_list[SIZE_FREE_BLOCKS + 1];
+__GURU__ free_block 	*free_list[SIZE_FREE_BLOCKS + 1];
 
 // free memory bitmap
-__GURU__ uint16_t fli_bitmap;
-__GURU__ uint16_t sli_bitmap[FLI_BITS + 2]; // + sentinel
+__GURU__ uint16_t 		fli_bitmap;
+__GURU__ uint16_t 		sli_bitmap[FLI_BITS + 2]; // + sentinel
 
+#define FLI_USED(i)		(fli_bitmap & (FLI_MAP(i) - 1))
+#define SLI_USED(i)		(sli_bitmap[FLI(i)] & (SLI_MAP(i) - 1))
+#define MARK_FREE(i)	{ int fli = FLI(i); \
+							sli_bitmap[fli] &= ~SLI_MAP(i); \
+							if (sli_bitmap[fli]==0) { fli_bitmap &= ~FLI_MAP(i); } }
 //================================================================
 /*! Number of leading zeros.
 
@@ -145,23 +151,17 @@ void _add_free_block(free_block *target)
 __GURU__
 void _remove_index(free_block *target)
 {
-    // top of linked list?
-    if (target->prev==NULL) {
+    if (target->prev==NULL) {	// head of linked list?
         int index = _get_index(target->size) - 1;
 
         if ((free_list[index]=target->next)==NULL) {
-            int fli = FLI(index);	// debug
-            int sli = SLI(index);	// debug
-
-            sli_bitmap[fli] &= ~SLI_MAP(index);
-            if (sli_bitmap[fli]==0) fli_bitmap &= ~FLI_MAP(index);
+            MARK_FREE(index);
         }
     }
-    else {
+    else {	// link previous to next
         target->prev->next = target->next;
     }
-
-    if (target->next != NULL) {
+    if (target->next != NULL) {	// reverse link
         target->next->prev = target->prev;
     }
 }
@@ -177,7 +177,7 @@ void _remove_index(free_block *target)
 __GURU__
 free_block *_split_block(free_block *target, unsigned int size)
 {
-    if (target->size < (size + sizeof(free_block) + (1 << LSB_BITS))) {
+    if (target->size < (size + sizeof(free_block) + LSB_BLOCK)) {
     	return NULL;
     }
 
@@ -224,25 +224,85 @@ void _merge_block(free_block *ptr1, free_block *ptr2)
 __GURU__
 void _merge_with_next(free_block *target)
 {
-	// check next block, merge?
+	if (target->t!=FLAG_NOT_TAIL_BLOCK) return;
+
 	free_block *next = (free_block *)NEXT(target);
 
-	if ((target->t==FLAG_NOT_TAIL_BLOCK) && (next->f==FLAG_FREE_BLOCK)) {
-		_remove_index(next);
-		_merge_block(target, next);
-	}
+	if (next->f!=FLAG_FREE_BLOCK) return;
+
+	_remove_index(next);
+	_merge_block(target, next);
 }
 
 __GURU__
 free_block *_merge_with_prev(free_block *target)
 {
     free_block *prev = (free_block *)PREV(target);
-    if ((prev != NULL) && (prev->f==FLAG_FREE_BLOCK)) {
-        _remove_index(prev);
-        _merge_block(prev, target);
-        return prev;
+
+    if (prev==NULL || prev->f!=FLAG_FREE_BLOCK) return target; 	// no change
+
+    _remove_index(prev);
+    _merge_block(prev, target);
+
+    return prev;
+}
+
+__GURU__
+int _get_free_index(unsigned int alloc_size)
+{
+    int index = _get_index(alloc_size);	// find free memory block
+
+    if (free_list[index] != NULL) {
+    	return index;					// allocated before, keep using the same block
     }
-    return target;	// no change
+
+    // no previous block exist, create a new one
+    int fli = FLI(index);
+    int sli = SLI(index);
+
+    uint16_t used = SLI_USED(index);
+    if (used != 0) {					// check any 2nd level available
+    	sli = _nlz16(used);
+    }
+    else {								// go up to 1st level
+    	used = FLI_USED(index);
+        if (used == 0) {				// out of memory
+        	return -1;
+        }
+        else {							// allocate new 1st & 2nd level indices
+        	fli = _nlz16(used);
+            sli = _nlz16(sli_bitmap[fli]);
+        }
+    }
+    assert(fli >= 0);
+    assert(fli <= FLI_BITS);
+    assert(sli >= 0);
+    assert(sli <= (1 << SLI_BITS) - 1);
+
+    return (fli << SLI_BITS) + sli;		// new index
+}
+
+/*
+ * TODO: refactor into _remove_index()
+ */
+__GURU__
+free_block *_mark_used(int index)
+{
+    free_block *target = free_list[index];
+
+    assert(target!=NULL);
+
+    // remove free_blocks index
+    target->f        = FLAG_USED_BLOCK;
+    free_list[index] = target->next;
+
+    if (target->next==NULL) {			// end of linked list?
+        MARK_FREE(index);
+    }
+    else {
+        target->next->prev = NULL;		// is this right?
+    }
+    return target;
 }
 
 //================================================================
@@ -260,7 +320,7 @@ void mrbc_init_alloc(void *ptr, unsigned int size)
     memory_pool      = (uint8_t *)ptr;
     memory_pool_size = size;
 
-    // initialize memory pool
+    // initialize entire memory pool as the first block
     free_block *block  = (free_block *)memory_pool;
     block->t      = FLAG_TAIL_BLOCK;
     block->f      = FLAG_FREE_BLOCK;
@@ -289,65 +349,19 @@ void *mrbc_alloc(unsigned int size)
 
     // check minimum alloc size. if need.
 #if 0
-    if (alloc_size < (1 << LSB_BITS)) {
-        alloc_size = (1 << LSB_BITS);
+    if (alloc_size < LSB_BLOCK) {
+        alloc_size = LSB_BLOCK;
     }
 #else
-    assert(alloc_size >= (1 << LSB_BITS));
+    assert(alloc_size >= LSB_BLOCK);
 #endif
 
-    // find free memory block.
-    int index = _get_index(alloc_size);
-    int fli   = FLI(index);
-    int sli   = SLI(index);
+	int index = _get_free_index(alloc_size);
+    free_block *target = _mark_used(index);
 
-    free_block *target = free_list[index];
-
-    if (target==NULL) {
-        // uses fli/sli_bitmap table.
-        uint16_t masked = sli_bitmap[fli] & (SLI_MAP(index) - 1);
-        if (masked != 0) {
-            sli = _nlz16(masked);
-        }
-        else {
-            masked = fli_bitmap & (FLI_MAP(index) - 1);
-            if (masked != 0) {
-                fli = _nlz16(masked);
-                sli = _nlz16(sli_bitmap[fli]);
-            }
-            else {
-                // out of memory
-                //printf("Fatal error: Out of memory.\n");
-                return NULL;  // ENOMEM
-            }
-        }
-        assert(fli >= 0);
-        assert(fli <= FLI_BITS);
-        assert(sli >= 0);
-        assert(sli <= (1 << SLI_BITS) - 1);
-
-        index = (fli << SLI_BITS) + sli;
-        target = free_list[index];
-
-        assert(target != NULL);
-    }
     assert(target->size >= alloc_size);
 
-    // remove free_blocks index
-    target->f        = FLAG_USED_BLOCK;
-    free_list[index] = target->next;
-
-    if (target->next==NULL) {
-        sli_bitmap[fli] &= ~SLI_MAP(index);
-        if (sli_bitmap[fli]==0) {
-        	fli_bitmap &= ~FLI_MAP(index);
-        }
-    }
-    else {
-        target->next->prev = NULL;
-    }
-
-    // split a block
+    // split the allocated block
     free_block *release = _split_block(target, alloc_size);
     if (release != NULL) {
         _add_free_block(release);

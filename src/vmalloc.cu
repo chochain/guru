@@ -20,15 +20,12 @@
 
 #include <assert.h>
 
-// memory pool
-extern __GURU__ uint8_t *memory_pool;
-
 // << from value.cu
 __GURU__
 mrbc_object *mrbc_obj_alloc(mrbc_vtype tt)
 {
     mrbc_object *ptr = (mrbc_object *)mrbc_alloc(sizeof(mrbc_object));
-    if (ptr){
+    if (ptr) {
         ptr->tt = tt;
     }
     return ptr;
