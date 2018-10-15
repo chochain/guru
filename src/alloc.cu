@@ -16,8 +16,8 @@
 #include "value.h"
 #include "alloc.h"
 
-// Layer 1st(f) and 2nd(s) model
-// last 4bit is ignored
+// TLSF: Two-Level Segregated Fit allocator with O(1) time complexity.
+// Layer 1st(f), 2nd(s) model, and ignored last 4bit (i.e. smallest block is 16-bytes)
 // f : size
 // 0 : 0000-007f
 // 1 : 0080-00ff
@@ -30,38 +30,39 @@
 // 8 : 4000-7fff
 // 9 : 8000-ffff
 
-#ifndef MRBC_ALLOC_FLI_BIT_WIDTH	// 0000 0000 0000 0000
-# define MRBC_ALLOC_FLI_BIT_WIDTH 9	// ~~~~~~~~~~~
+#ifndef FLI_BITS		// 0000 0000 0000 0000
+#define FLI_BITS 9		// ~~~~~~~~~~~
+#define FLI_MASK ((1<<FLI_BITS)-1)
 #endif
-#ifndef MRBC_ALLOC_SLI_BIT_WIDTH	// 0000 0000 0000 0000
-# define MRBC_ALLOC_SLI_BIT_WIDTH 3	//            ~~~
+#ifndef SLI_BITS		// 0000 0000 0000 0000
+#define SLI_BITS 3		//            ~~~
+#define SLI_MASK ((1<<SLI_BITS)-1)
 #endif
-#ifndef MRBC_ALLOC_IGNORE_LSBS		// 0000 0000 0000 0000
-# define MRBC_ALLOC_IGNORE_LSBS	  4	//                ~~~~
+#ifndef LSB_BITS		// 0000 0000 0000 0000
+#define LSB_BITS 4		//                ~~~~
 #endif
 
-#define FLI(x) (((x) >> MRBC_ALLOC_SLI_BIT_WIDTH) & ((1 << MRBC_ALLOC_FLI_BIT_WIDTH) - 1))
-#define SLI(x) ((x) & ((1 << MRBC_ALLOC_SLI_BIT_WIDTH) - 1))
+#define FLI(i) (((i) >> SLI_BITS) & FLI_MASK)
+#define SLI(i) ((i) & SLI_MASK)
 
 // free memory block index
-#define SIZE_FREE_BLOCKS \
-  ((MRBC_ALLOC_FLI_BIT_WIDTH + 1) * (1 << MRBC_ALLOC_SLI_BIT_WIDTH))
+#define SIZE_FREE_BLOCKS ((FLI_BITS + 1) * (1 << SLI_BITS))
 
-#define PHYS_NEXT(p) ((uint8_t *)(p) + (p)->size)
-#define PHYS_PREV(p) ((uint8_t *)(p) - (p)->prev_offset)
-#define SET_PHYS_PREV(p1,p2)                                \
-    ((p2)->prev_offset = (uint8_t *)(p2)-(uint8_t *)(p1))
+#define NEXT(p) 		((uint8_t *)(p) + (p)->size)
+#define PREV(p) 		((uint8_t *)(p) - (p)->prev_offset)
+#define SET_PREV(p1,p2) ((p2)->prev_offset = (uint8_t *)(p2)-(uint8_t *)(p1))
+
+#define MSB_BIT1 0x8000
 
 // memory pool
 __GURU__ unsigned int memory_pool_size;
 __GURU__ uint8_t     *memory_pool;
 
-__GURU__ FREE_BLOCK *free_blocks[SIZE_FREE_BLOCKS + 1];
+__GURU__ free_block *free_list[SIZE_FREE_BLOCKS + 1];
 
 // free memory bitmap
-#define MSB_BIT1 0x8000
 __GURU__ uint16_t free_fli_bitmap;
-__GURU__ uint16_t free_sli_bitmap[MRBC_ALLOC_FLI_BIT_WIDTH + 2]; // + sentinel
+__GURU__ uint16_t free_sli_bitmap[FLI_BITS + 2]; // + sentinel
 
 //================================================================
 /*! Number of leading zeros.
@@ -91,27 +92,23 @@ __GURU__
 int calc_index(unsigned int alloc_size)
 {
     // check overflow
-    if ((alloc_size >> (MRBC_ALLOC_FLI_BIT_WIDTH
-                        + MRBC_ALLOC_SLI_BIT_WIDTH
-                        + MRBC_ALLOC_IGNORE_LSBS)) != 0) {
+    if ((alloc_size >> (FLI_BITS+SLI_BITS+LSB_BITS)) != 0) {
         return SIZE_FREE_BLOCKS;
     }
 
     // calculate First Level Index.
-    int fli = 16 -
-        nlz16(alloc_size >> (MRBC_ALLOC_SLI_BIT_WIDTH + MRBC_ALLOC_IGNORE_LSBS));
+    int fli = 16 - nlz16(alloc_size >> (SLI_BITS + LSB_BITS));
 
     // calculate Second Level Index.
-    int shift = (fli==0) ? (fli + MRBC_ALLOC_IGNORE_LSBS) :
-        (fli + MRBC_ALLOC_IGNORE_LSBS - 1);
+    int shift =	fli + LSB_BITS - ((fli==0) ? 0 : 1);
 
-    int sli   = (alloc_size >> shift) & ((1 << MRBC_ALLOC_SLI_BIT_WIDTH) - 1);
-    int index = (fli << MRBC_ALLOC_SLI_BIT_WIDTH) + sli;
+    int sli   = (alloc_size >> shift) & SLI_MASK;
+    int index = (fli << SLI_BITS) + sli;
 
     assert(fli >= 0);
-    assert(fli <= MRBC_ALLOC_FLI_BIT_WIDTH);
+    assert(fli <= FLI_BITS);
     assert(sli >= 0);
-    assert(sli <= (1 << MRBC_ALLOC_SLI_BIT_WIDTH) - 1);
+    assert(sli <= SLI_MASK);
 
     return index;
 }
@@ -122,7 +119,7 @@ int calc_index(unsigned int alloc_size)
   @param  target	Pointer to target block.
 */
 __GURU__
-void add_free_block(FREE_BLOCK *target)
+void add_free_block(free_block *target)
 {
     target->f = FLAG_FREE_BLOCK;
 
@@ -134,14 +131,14 @@ void add_free_block(FREE_BLOCK *target)
     free_sli_bitmap[fli] |= (MSB_BIT1 >> sli);
 
     target->prev_free = NULL;
-    target->next_free = free_blocks[index];
+    target->next_free = free_list[index];
     if (target->next_free != NULL) {
         target->next_free->prev_free = target;
     }
-    free_blocks[index] = target;
+    free_list[index] = target;
 
 #ifdef MRBC_DEBUG
-    MEMSET((uint8_t *)(target + sizeof(FREE_BLOCK)), 0xff, target->size - sizeof(FREE_BLOCK));
+    MEMSET((uint8_t *)(target + sizeof(free_block)), 0xff, target->size - sizeof(free_block));
 #endif
 }
 
@@ -151,14 +148,14 @@ void add_free_block(FREE_BLOCK *target)
   @param  target	pointer to target block.
 */
 __GURU__
-void remove_index(FREE_BLOCK *target)
+void remove_index(free_block *target)
 {
     // top of linked list?
     if (target->prev_free==NULL) {
         int index = calc_index(target->size) - 1;
-        free_blocks[index] = target->next_free;
+        free_list[index] = target->next_free;
 
-        if (free_blocks[index]==NULL) {
+        if (free_list[index]==NULL) {
             int fli = FLI(index);
             int sli = SLI(index);
             free_sli_bitmap[fli] &= ~(MSB_BIT1 >> sli);
@@ -182,23 +179,24 @@ void remove_index(FREE_BLOCK *target)
   @retval NULL	no split.
   @retval FREE_BLOCK *	pointer to splitted free block.
 */
-__GURU__ __forceinline__
-FREE_BLOCK* split_block(FREE_BLOCK *target, unsigned int size)
+__GURU__
+free_block *split_block(free_block *target, unsigned int size)
 {
-    if (target->size < (size + sizeof(FREE_BLOCK)
-                        + (1 << MRBC_ALLOC_IGNORE_LSBS))) return NULL;
+    if (target->size < (size + sizeof(free_block) + (1 << LSB_BITS))) {
+    	return NULL;
+    }
 
     // split block, free
-    FREE_BLOCK *split = (FREE_BLOCK *)((uint8_t *)target + size);
-    FREE_BLOCK *next  = (FREE_BLOCK *)PHYS_NEXT(target);
+    free_block *split = (free_block *)((uint8_t *)target + size);
+    free_block *next  = (free_block *)NEXT(target);
 
     split->size  = target->size - size;
-    SET_PHYS_PREV(target, split);
+    SET_PREV(target, split);
     split->t     = target->t;
     target->size = size;
     target->t    = FLAG_NOT_TAIL_BLOCK;
     if (split->t==FLAG_NOT_TAIL_BLOCK) {
-        SET_PHYS_PREV(split, next);
+        SET_PREV(split, next);
     }
     return split;
 }
@@ -211,7 +209,7 @@ FREE_BLOCK* split_block(FREE_BLOCK *target, unsigned int size)
   @param  ptr2	pointer to free block 2
 */
 __GURU__
-void merge_block(FREE_BLOCK *ptr1, FREE_BLOCK *ptr2)
+void merge_block(free_block *ptr1, free_block *ptr2)
 {
     assert(ptr1 < ptr2);
 
@@ -221,29 +219,28 @@ void merge_block(FREE_BLOCK *ptr1, FREE_BLOCK *ptr2)
 
     // update block info
     if (ptr1->t==FLAG_NOT_TAIL_BLOCK) {
-        FREE_BLOCK *next = (FREE_BLOCK *)PHYS_NEXT(ptr1);
-        SET_PHYS_PREV(ptr1, next);
+        free_block *next = (free_block *)NEXT(ptr1);
+        SET_PREV(ptr1, next);
     }
 }
-
 
 //================================================================
 /*! initialize
 
   @param  ptr	pointer to free memory block.
-  @param  size	size. (max 64KB. see MRBC_ALLOC_MEMSIZE_T)
+  @param  size	size. (max 64KB. see mrbc_memsize_t)
 */
 __GURU__
 void mrbc_init_alloc(void *ptr, unsigned int size)
 {
     assert(size != 0);
-    assert(size <= (MRBC_ALLOC_MEMSIZE_T)(~0));
+    assert(size <= (mrbc_memsize_t)(~0));
 
     memory_pool      = (uint8_t *)ptr;
     memory_pool_size = size;
 
     // initialize memory pool
-    FREE_BLOCK *block = (FREE_BLOCK *)memory_pool;
+    free_block *block  = (free_block *)memory_pool;
     block->t           = FLAG_TAIL_BLOCK;
     block->f           = FLAG_FREE_BLOCK;
     block->size        = memory_pool_size;
@@ -251,7 +248,6 @@ void mrbc_init_alloc(void *ptr, unsigned int size)
 
     add_free_block(block);
 }
-
 
 //================================================================
 /*! allocate memory
@@ -265,18 +261,18 @@ void * mrbc_raw_alloc(unsigned int size)
 {
     // TODO: maximum alloc size
     //  (1 << (FLI_BIT_WIDTH + SLI_BIT_WIDTH + IGNORE_LSBS)) - alpha
-    unsigned int alloc_size = size + sizeof(FREE_BLOCK);
+    unsigned int alloc_size = size + sizeof(free_block);
 
     // align 4 byte
     alloc_size += ((4 - alloc_size) & 3);
 
     // check minimum alloc size. if need.
 #if 0
-    if (alloc_size < (1 << MRBC_ALLOC_IGNORE_LSBS)) {
-        alloc_size = (1 << MRBC_ALLOC_IGNORE_LSBS);
+    if (alloc_size < (1 << LSB_BITS)) {
+        alloc_size = (1 << LSB_BITS);
     }
 #else
-    assert(alloc_size >= (1 << MRBC_ALLOC_IGNORE_LSBS));
+    assert(alloc_size >= (1 << LSB_BITS));
 #endif
 
     // find free memory block.
@@ -284,7 +280,7 @@ void * mrbc_raw_alloc(unsigned int size)
     int fli   = FLI(index);
     int sli   = SLI(index);
 
-    FREE_BLOCK *target = free_blocks[index];
+    free_block *target = free_list[index];
 
     if (target==NULL) {
         // uses free_fli/sli_bitmap table.
@@ -305,41 +301,42 @@ void * mrbc_raw_alloc(unsigned int size)
             }
         }
         assert(fli >= 0);
-        assert(fli <= MRBC_ALLOC_FLI_BIT_WIDTH);
+        assert(fli <= FLI_BITS);
         assert(sli >= 0);
-        assert(sli <= (1 << MRBC_ALLOC_SLI_BIT_WIDTH) - 1);
+        assert(sli <= (1 << SLI_BITS) - 1);
 
-        index = (fli << MRBC_ALLOC_SLI_BIT_WIDTH) + sli;
-        target = free_blocks[index];
+        index = (fli << SLI_BITS) + sli;
+        target = free_list[index];
         assert(target != NULL);
     }
     assert(target->size >= alloc_size);
 
     // remove free_blocks index
-    target->f          = FLAG_USED_BLOCK;
-    free_blocks[index] = target->next_free;
+    target->f        = FLAG_USED_BLOCK;
+    free_list[index] = target->next_free;
 
     if (target->next_free==NULL) {
         free_sli_bitmap[fli] &= ~(MSB_BIT1 >> sli);
-        if (free_sli_bitmap[fli]==0) free_fli_bitmap &= ~(MSB_BIT1 >> fli);
+        if (free_sli_bitmap[fli]==0) {
+        	free_fli_bitmap &= ~(MSB_BIT1 >> fli);
+        }
     }
     else {
         target->next_free->prev_free = NULL;
     }
 
     // split a block
-    FREE_BLOCK *release = split_block(target, alloc_size);
+    free_block *release = split_block(target, alloc_size);
     if (release != NULL) {
         add_free_block(release);
     }
 
 #ifdef MRBC_DEBUG
-    MEMSET((uint8_t *)target + sizeof(USED_BLOCK), 0xaa, target->size - sizeof(USED_BLOCK));
+    MEMSET((uint8_t *)target + sizeof(used_block), 0xaa, target->size - sizeof(used_block));
 #endif
 
-    return (uint8_t *)target + sizeof(USED_BLOCK);
+    return (uint8_t *)target + sizeof(used_block);
 }
-
 
 //================================================================
 /*! release memory
@@ -350,10 +347,10 @@ __GURU__
 void mrbc_raw_free(void *ptr)
 {
     // get target block
-    FREE_BLOCK *target = (FREE_BLOCK *)((uint8_t *)ptr - sizeof(USED_BLOCK));
+    free_block *target = (free_block *)((uint8_t *)ptr - sizeof(used_block));
 
     // check next block, merge?
-    FREE_BLOCK *next = (FREE_BLOCK *)PHYS_NEXT(target);
+    free_block *next = (free_block *)NEXT(target);
 
     if ((target->t==FLAG_NOT_TAIL_BLOCK) && (next->f==FLAG_FREE_BLOCK)) {
         remove_index(next);
@@ -361,7 +358,7 @@ void mrbc_raw_free(void *ptr)
     }
 
     // check previous block, merge?
-    FREE_BLOCK *prev = (FREE_BLOCK *)PHYS_PREV(target);
+    free_block *prev = (free_block *)PREV(target);
 
     if ((prev != NULL) && (prev->f==FLAG_FREE_BLOCK)) {
         remove_index(prev);
@@ -372,7 +369,6 @@ void mrbc_raw_free(void *ptr)
     // target, add to index
     add_free_block(target);
 }
-
 
 //================================================================
 /*! re-allocate memory
@@ -385,8 +381,8 @@ void mrbc_raw_free(void *ptr)
 __GURU__
 void * mrbc_raw_realloc(void *ptr, unsigned int size)
 {
-    USED_BLOCK  *target     = (USED_BLOCK *)((uint8_t *)ptr - sizeof(USED_BLOCK));
-    unsigned int alloc_size = size + sizeof(FREE_BLOCK);
+    used_block *target      = (used_block *)((uint8_t *)ptr - sizeof(used_block));
+    unsigned int alloc_size = size + sizeof(free_block);
 
     // align 4 byte
     alloc_size += ((4 - alloc_size) & 3);
@@ -394,12 +390,12 @@ void * mrbc_raw_realloc(void *ptr, unsigned int size)
     // expand? part1.
     // next phys block is free and enough size?
     if (alloc_size > target->size) {
-        FREE_BLOCK *next = (FREE_BLOCK *)PHYS_NEXT(target);
+        free_block *next = (free_block *)NEXT(target);
         if ((target->t==FLAG_NOT_TAIL_BLOCK) &&
             (next->f==FLAG_FREE_BLOCK) &&
             ((target->size + next->size) >= alloc_size)) {
             remove_index(next);
-            merge_block((FREE_BLOCK *)target, next);
+            merge_block((free_block *)target, next);
 
             // and fall through.
         }
@@ -411,10 +407,10 @@ void * mrbc_raw_realloc(void *ptr, unsigned int size)
 
     // shrink?
     if (alloc_size < target->size) {
-        FREE_BLOCK *release = split_block((FREE_BLOCK *)target, alloc_size);
+        free_block *release = split_block((free_block *)target, alloc_size);
         if (release != NULL) {
             // check next block, merge?
-            FREE_BLOCK *next = (FREE_BLOCK *)PHYS_NEXT(release);
+            free_block *next = (free_block *)NEXT(release);
             if ((release->t==FLAG_NOT_TAIL_BLOCK) && (next->f==FLAG_FREE_BLOCK)) {
                 remove_index(next);
                 merge_block(release, next);
@@ -428,7 +424,7 @@ void * mrbc_raw_realloc(void *ptr, unsigned int size)
     uint8_t *new_ptr = (uint8_t *)mrbc_raw_alloc(size);
     if (new_ptr==NULL) return NULL;  // ENOMEM
 
-    MEMCPY(new_ptr, (uint8_t *)ptr, (size_t)(target->size - sizeof(USED_BLOCK)));
+    MEMCPY(new_ptr, (uint8_t *)ptr, (size_t)(target->size - sizeof(used_block)));
     mrbc_raw_free(ptr);
 
     return (void *)new_ptr;
@@ -450,7 +446,6 @@ void * mrbc_alloc(unsigned int size)
 
     return ptr;
 }
-
 
 //================================================================
 /*! re-allocate memory
@@ -488,7 +483,7 @@ void mrbc_free(void *ptr)
 __GURU__
 void mrbc_free_all()
 {
-    USED_BLOCK *ptr = (USED_BLOCK *)memory_pool;
+    used_block *ptr = (used_block *)memory_pool;
     void *free_target = NULL;
     int flag_loop = 1;
 
@@ -498,9 +493,9 @@ void mrbc_free_all()
             if (free_target) {
                 mrbc_raw_free(free_target);
             }
-            free_target = (char *)ptr + sizeof(USED_BLOCK);
+            free_target = (char *)ptr + sizeof(used_block);
         }
-        ptr = (USED_BLOCK *)PHYS_NEXT(ptr);
+        ptr = (used_block *)NEXT(ptr);
     }
     if (free_target) {
         mrbc_raw_free(free_target);
@@ -524,7 +519,7 @@ void mrbc_alloc_statistics(int *total, int *used, int *free, int *fragmentation)
     *free = 0;
     *fragmentation = 0;
 
-    USED_BLOCK *ptr = (USED_BLOCK *)memory_pool;
+    used_block *ptr = (used_block *)memory_pool;
     int flag_used_free = ptr->f;
     while (1) {
         if (ptr->f) {
@@ -539,7 +534,7 @@ void mrbc_alloc_statistics(int *total, int *used, int *free, int *fragmentation)
 
         if (ptr->t==FLAG_TAIL_BLOCK) break;
 
-        ptr = (USED_BLOCK *)PHYS_NEXT(ptr);
+        ptr = (used_block *)NEXT(ptr);
     }
 }
 
@@ -552,7 +547,7 @@ void mrbc_alloc_statistics(int *total, int *used, int *free, int *fragmentation)
 __GURU__
 int mrbc_alloc_used()
 {
-    USED_BLOCK *ptr = (USED_BLOCK *)memory_pool;
+    used_block *ptr = (used_block *)memory_pool;
     int total = 0;
 
     while (1) {
@@ -561,15 +556,25 @@ int mrbc_alloc_used()
         }
         if (ptr->t==FLAG_TAIL_BLOCK) break;
 
-        ptr = (USED_BLOCK *)PHYS_NEXT(ptr);
+        ptr = (used_block *)NEXT(ptr);
     }
     return total;
 }
 
+__global__ void guru_init_alloc(void *ptr, unsigned int sz)
+{
+	if (threadIdx.x!=0 || blockIdx.x!=0) return;
+
+	mrbc_init_alloc(ptr, sz);
+}
+
+void *guru_malloc(size_t sz)
+{
+	void *mem;
+
+    cudaMallocManaged(&mem, sz);			// allocate managed memory
+    if (cudaSuccess != cudaGetLastError()) return NULL;
+
+    return mem;
+}
 #endif
-
-
-
-
-
-

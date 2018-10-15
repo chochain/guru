@@ -76,6 +76,8 @@
 #define __GURU_CUDA__
 #define MRBC_DEBUG
 
+#define BLOCK_MEMORY_SIZE 			(32*1024)
+
 #endif
 
 

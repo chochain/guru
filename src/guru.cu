@@ -21,11 +21,16 @@ void _guru_set_console_buf(uint8_t *buf)
 	guru_output_buffer = buf;
 }
 
-__host__
-int _guru_alloc(guru_ses *ses, size_t req_sz, size_t res_sz)
+extern "C" void *guru_malloc(size_t sz);
+extern "C" __global__ void guru_init_alloc(void *ptr, unsigned int sz);
+extern "C" __global__ void guru_init_static(void);
+
+int _alloc_session(guru_ses *ses, size_t req_sz, size_t res_sz)
 {
-    cudaMallocManaged(&(ses->req), req_sz);			// allocate bytecode storage
-    cudaMallocManaged(&(ses->res), res_sz);			// allocate output buffer
+	ses->req = (uint8_t *)guru_malloc(req_sz);	// allocate bytecode storage
+	ses->res = (uint8_t *)guru_malloc(res_sz);	// allocate output buffer
+
+	if (!ses->req || !ses->res) return 1;
 
     _guru_set_console_buf<<<1,1>>>(ses->res);
 
@@ -46,10 +51,10 @@ int _input_bytecode(guru_ses *ses, const char *rite_fname)
   size_t sz = ftell(fp);
   fseek(fp, 0, SEEK_SET);
 
-  int err = _guru_alloc(ses, sz, MAX_BUFFER_SIZE);
+  int err = _alloc_session(ses, sz, MAX_BUFFER_SIZE);
 
   if (err != 0) {
-	  fprintf(stderr, "CUDA memory allocate error: %d.\n", err);
+	  fprintf(stderr, "session buffer allocation error: %d.\n", err);
 	  return err;
   }
   else {
@@ -60,24 +65,22 @@ int _input_bytecode(guru_ses *ses, const char *rite_fname)
   return 0;
 }
 
-extern __global__ void guru_init_static(void);
-
 uint8_t *init_session(guru_ses *ses, const char *rite_fname)
 {
 	int rst = _input_bytecode(ses, rite_fname);
 
 	if (rst != 0) return NULL;
 
-	//guru_init_static<<<1,1>>>();
+	void *mem = guru_malloc(BLOCK_MEMORY_SIZE);
+    if (!mem) return NULL;
 
-	mrbc_vm *vm;
-    cudaMallocManaged(&vm, sizeof(mrbc_vm));			// allocate bytecode storage
-    int err = cudaGetLastError();
-    if (err != 0) {
-    	printf("allocation error %d", err);
-    }
+    guru_init_alloc<<<1,1>>>(mem, BLOCK_MEMORY_SIZE);
+	guru_init_static<<<1,1>>>();
 
-	mrbc_parse_bytecode<<<1,1>>>(vm, ses->req);
+	mrbc_vm *vm = (mrbc_vm *)guru_malloc(sizeof(mrbc_vm));			// allocate bytecode storage
+    if (!vm) return NULL;
+
+	guru_parse_bytecode<<<1,1>>>(vm, ses->req);
 
 	uint8_t *vm_rst = (uint8_t *)malloc(sizeof(mrbc_vm));
 	if (vm_rst==0) {

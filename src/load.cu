@@ -259,7 +259,7 @@ __GURU__ int _load_lvar(mrbc_vm *vm, const uint8_t **pos)
   @param  ptr	Pointer to bytecode.
 
 */
-__global__ void mrbc_parse_bytecode(mrbc_vm *vm, const uint8_t *ptr)
+__global__ void guru_parse_bytecode(mrbc_vm *vm, const uint8_t *ptr)
 {
 	if (threadIdx.x !=0 || blockIdx.x !=0) return;
 

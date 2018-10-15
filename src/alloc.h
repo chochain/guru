@@ -21,8 +21,8 @@
 extern "C" {
 #endif
 
-#ifndef MRBC_ALLOC_MEMSIZE_T
-#define MRBC_ALLOC_MEMSIZE_T     uint16_t
+#ifndef mrbc_memsize_t
+#define mrbc_memsize_t     	uint16_t
 #endif
 
 // define flags
@@ -32,26 +32,26 @@ extern "C" {
 #define FLAG_USED_BLOCK     0
 
 // memory block header
-typedef struct USED_BLOCK {
+typedef struct used_block {
   unsigned int 			t : 1;       //!< FLAG_TAIL_BLOCK or FLAG_NOT_TAIL_BLOCK
   unsigned int 			f : 1;       //!< FLAG_FREE_BLOCK or BLOCK_IS_NOT_FREE
   uint8_t			   	u;
 
-  MRBC_ALLOC_MEMSIZE_T 	size;        //!< block size, header included
-  MRBC_ALLOC_MEMSIZE_T 	prev_offset; //!< offset of previous physical block
-} USED_BLOCK;
+  mrbc_memsize_t 		size;        //!< block size, header included
+  mrbc_memsize_t 		prev_offset; //!< offset of previous physical block
+} used_block;
 
-typedef struct FREE_BLOCK {
+typedef struct free_block {
   unsigned int         	t : 1;       //!< FLAG_TAIL_BLOCK or FLAG_NOT_TAIL_BLOCK
   unsigned int         	f : 1;       //!< FLAG_FREE_BLOCK or BLOCK_IS_NOT_FREE
   uint8_t				u;
 
-  MRBC_ALLOC_MEMSIZE_T size;        //!< block size, header included
-  MRBC_ALLOC_MEMSIZE_T prev_offset; //!< offset of previous physical block
+  mrbc_memsize_t 		size;        //!< block size, header included
+  mrbc_memsize_t 		prev_offset; //!< offset of previous physical block
 
-  struct FREE_BLOCK *next_free;
-  struct FREE_BLOCK *prev_free;
-} FREE_BLOCK;
+  struct free_block 	*next_free;
+  struct free_block 	*prev_free;
+} free_block;
 
 __GURU__ void  mrbc_init_alloc(void *ptr, unsigned int size);
 __GURU__ void  mrbc_raw_free(void *ptr);
@@ -66,6 +66,10 @@ __GURU__ void  mrbc_free_all();
 // for statistics or debug. (need #define MRBC_DEBUG)
 __GURU__ void  mrbc_alloc_statistics(int *total, int *used, int *free, int *fragmentation);
 __GURU__ int   mrbc_alloc_used();
+
+__global__ void guru_init_alloc(void *ptr, unsigned int sz);
+
+void *guru_malloc(size_t sz);
 
 #ifdef __cplusplus
 }
