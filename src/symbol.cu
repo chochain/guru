@@ -129,7 +129,7 @@ __GURU__ mrbc_value mrbc_symbol_new(const char *str)
 
     // create symbol object dynamically.
     int size = guru_strlen(str) + 1;
-    char *buf = (char *)mrbc_raw_alloc(size);
+    char *buf = (char *)mrbc_alloc(size);
     if (buf==NULL) return ret;		// ENOMEM raise?
 
     MEMCPY((uint8_t *)buf, (const uint8_t *)str, size);

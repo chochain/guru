@@ -66,7 +66,7 @@ mrbc_value mrbc_instance_new(mrbc_class *cls, int size)
 
     v.instance->ivar = mrbc_kv_new(0);
     if (v.instance->ivar == NULL) {	// ENOMEM
-        mrbc_raw_free(v.instance);
+        mrbc_free(v.instance);
         v.instance = NULL;
         return v;
     }
@@ -87,7 +87,7 @@ __GURU__
 void mrbc_instance_delete(mrbc_value *v)
 {
     mrbc_kv_delete(v->instance->ivar);
-    mrbc_raw_free(v->instance);
+    mrbc_free(v->instance);
 }
 
 
@@ -153,7 +153,7 @@ void mrbc_dec_ref_counter(mrbc_value *v)
 
     switch(v->tt) {
     case MRBC_TT_OBJECT:	mrbc_instance_delete(v);	break;
-    case MRBC_TT_PROC:	    mrbc_raw_free(v->handle);	break;
+    case MRBC_TT_PROC:	    mrbc_free(v->handle);		break;
 #if MRBC_USE_STRING
     case MRBC_TT_STRING:	mrbc_string_delete(v);		break;
 #endif

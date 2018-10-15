@@ -60,7 +60,7 @@ mrbc_kv_handle * mrbc_kv_new(int size)
 
     kvh->data = (mrbc_kv *)mrbc_alloc(sizeof(mrbc_kv) * size);
     if (!kvh->data) {		// ENOMEM
-        mrbc_raw_free(kvh);
+        mrbc_free(kvh);
         return NULL;
     }
 
@@ -80,8 +80,8 @@ void mrbc_kv_delete(mrbc_kv_handle *kvh)
 {
     mrbc_kv_clear(kvh);
 
-    mrbc_raw_free(kvh->data);
-    mrbc_raw_free(kvh);
+    mrbc_free(kvh->data);
+    mrbc_free(kvh);
 }
 
 //================================================================
@@ -94,7 +94,7 @@ void mrbc_kv_delete(mrbc_kv_handle *kvh)
 __GURU__
 int mrbc_kv_resize(mrbc_kv_handle *kvh, int size)
 {
-    mrbc_kv *data2 = (mrbc_kv *) mrbc_raw_realloc(kvh->data, sizeof(mrbc_kv) * size);
+    mrbc_kv *data2 = (mrbc_kv *) mrbc_realloc(kvh->data, sizeof(mrbc_kv) * size);
     if (!data2) return E_NOMEMORY_ERROR;		// ENOMEM
 
     kvh->data = data2;

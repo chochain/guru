@@ -49,15 +49,11 @@ typedef struct free_block {
   mrbc_memsize_t 		size;        //!< block size, header included
   mrbc_memsize_t 		prev_offset; //!< offset of previous physical block
 
-  struct free_block 	*next_free;
-  struct free_block 	*prev_free;
+  struct free_block 	*next;
+  struct free_block 	*prev;
 } free_block;
 
 __GURU__ void  mrbc_init_alloc(void *ptr, unsigned int size);
-__GURU__ void  mrbc_raw_free(void *ptr);
-__GURU__ void *mrbc_raw_alloc(unsigned int size);
-__GURU__ void *mrbc_raw_realloc(void *ptr, unsigned int size);
-
 __GURU__ void *mrbc_alloc(unsigned int size);
 __GURU__ void *mrbc_realloc(void *ptr, unsigned int size);
 __GURU__ void  mrbc_free(void *ptr);

@@ -610,7 +610,7 @@ void c_object_setiv(mrbc_vm *vm, mrbc_value v[], int argc)
     mrbc_sym sym_id = str_to_symid(namebuf);
 
     mrbc_instance_setiv(&v[0], sym_id, &v[1]);
-    mrbc_raw_free(namebuf);
+    mrbc_free(namebuf);
 }
 
 //================================================================
@@ -651,7 +651,7 @@ void c_object_attr_accessor(mrbc_value v[], int argc)
         STRCAT(namebuf, "=");
         mrbc_symbol_new(namebuf);
         mrbc_define_method(v[0].cls, namebuf, (mrbc_func_t)c_object_setiv);
-        mrbc_raw_free(namebuf);
+        mrbc_free(namebuf);
     }
 }
 

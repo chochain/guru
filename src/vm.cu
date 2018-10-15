@@ -1783,17 +1783,17 @@ void mrbc_free_ireplist(mrbc_irep *irep)
 
     // release pools.
     for(i = 0; i < irep->plen; i++) {
-        mrbc_raw_free(irep->pools[i]);
+        mrbc_free(irep->pools[i]);
     }
-    if (irep->plen) mrbc_raw_free(irep->pools);
+    if (irep->plen) mrbc_free(irep->pools);
 
     // release child ireps.
     for(i = 0; i < irep->rlen; i++) {
         mrbc_free_ireplist(irep->reps[i]);
     }
-    if (irep->rlen) mrbc_raw_free(irep->reps);
+    if (irep->rlen) mrbc_free(irep->reps);
 
-    mrbc_raw_free(irep);
+    mrbc_free(irep);
 }
 
 __global__
