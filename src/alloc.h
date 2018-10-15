@@ -33,21 +33,21 @@ extern "C" {
 
 // memory block header
 typedef struct used_block {
-  unsigned int 			t : 1;       //!< FLAG_TAIL_BLOCK or FLAG_NOT_TAIL_BLOCK
-  unsigned int 			f : 1;       //!< FLAG_FREE_BLOCK or BLOCK_IS_NOT_FREE
+  unsigned int 			t : 1;      //!< FLAG_TAIL_BLOCK or FLAG_NOT_TAIL_BLOCK
+  unsigned int 			f : 1;      //!< FLAG_FREE_BLOCK or BLOCK_IS_NOT_FREE
   uint8_t			   	u;
 
-  mrbc_memsize_t 		size;        //!< block size, header included
-  mrbc_memsize_t 		prev_offset; //!< offset of previous physical block
+  mrbc_memsize_t 		size;       //!< block size, header included
+  mrbc_memsize_t 		offset; 	//!< offset of previous physical block
 } used_block;
 
 typedef struct free_block {
-  unsigned int         	t : 1;       //!< FLAG_TAIL_BLOCK or FLAG_NOT_TAIL_BLOCK
-  unsigned int         	f : 1;       //!< FLAG_FREE_BLOCK or BLOCK_IS_NOT_FREE
+  unsigned int         	t : 1;      //!< FLAG_TAIL_BLOCK or FLAG_NOT_TAIL_BLOCK
+  unsigned int         	f : 1;      //!< FLAG_FREE_BLOCK or BLOCK_IS_NOT_FREE
   uint8_t				u;
 
-  mrbc_memsize_t 		size;        //!< block size, header included
-  mrbc_memsize_t 		prev_offset; //!< offset of previous physical block
+  mrbc_memsize_t 		size;       //!< block size, header included
+  mrbc_memsize_t 		offset; 	//!< offset of previous physical block
 
   struct free_block 	*next;
   struct free_block 	*prev;
