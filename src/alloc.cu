@@ -77,7 +77,7 @@ __GURU__ uint16_t 		sli_bitmap[FLI_BITS + 2]; // + sentinel
   @param  x	target (16bit unsined)
   @retval int	nlz value
 */
-__GURU__ __forceinline__
+__GURU__
 int _nlz16(uint16_t x)
 {
     if (x==0) return 16;
@@ -125,8 +125,8 @@ void _add_free_block(free_block *target)
     target->f = FLAG_FREE_BLOCK;
 
     int index = _get_index(target->size) - 1;
-    int fli   = FLI(index);  // debug: (index>>3) & ((1<<9)-1)
-    int sli   = SLI(index);  // debug: (index & ((1<<3)-1)
+    int fli   = FLI(index);  // debug: (index>>3) & 0xff
+    int sli   = SLI(index);  // debug: index & 0x7
 
     fli_bitmap      |= FLI_MAP(index);
     sli_bitmap[fli] |= SLI_MAP(index);
@@ -139,7 +139,9 @@ void _add_free_block(free_block *target)
     free_list[index] = target;
 
 #ifdef MRBC_DEBUG
-    MEMSET((uint8_t *)(target + sizeof(free_block)), 0xff, target->size - sizeof(free_block));
+//    uint8_t *addr = (uint8_t *)target + sizeof(free_block);
+//    uint16_t sz   = target->size - sizeof(free_block);
+//    MEMSET((uint8_t *)(target + sizeof(free_block)), 0xff, target->size - sizeof(free_block));
 #endif
 }
 
@@ -312,7 +314,7 @@ free_block *_mark_used(int index)
   @param  size	size. (max 64KB. see mrbc_memsize_t)
 */
 __GURU__
-void mrbc_init_alloc(void *ptr, unsigned int size)
+void _mrbc_init_alloc(void *ptr, unsigned int size)
 {
     assert(size != 0);
     assert(size <= (mrbc_memsize_t)(~0));
@@ -470,70 +472,55 @@ void mrbc_free_all()
   @param  *free		returns free memory.
   @param  *fragment	returns memory fragmentation
 */
-__GURU__
-void mrbc_alloc_statistics(int *total, int *used, int *free, int *fragmentation)
+__global__
+void guru_alloc_stat(int v[])
 {
-    *total = memory_pool_size;
-    *used = 0;
-    *free = 0;
-    *fragmentation = 0;
+	if (threadIdx.x!=0 || blockIdx.x!=0) return;
 
-    used_block *ptr = (used_block *)memory_pool;
-    int flag_used_free = ptr->f;
-    while (1) {
-        if (ptr->f) {
-            *free += ptr->size;
-        } else {
-            *used += ptr->size;
-        }
-        if (flag_used_free != ptr->f) {
-            (*fragmentation)++;
-            flag_used_free = ptr->f;
-        }
-
-        if (ptr->t==FLAG_TAIL_BLOCK) break;
-
-        ptr = (used_block *)NEXT(ptr);
-    }
-}
-
-//================================================================
-/*! statistics
-
-  @param  vm_id		vm_id
-  @return int		total used memory size
-*/
-__GURU__
-int mrbc_alloc_used()
-{
-    used_block *ptr = (used_block *)memory_pool;
     int total = 0;
+    int used  = 0;
+    int free  = 0;
+    int nfrag = 0;
 
-    while (1) {
-        if (!ptr->f) {
-            total += ptr->size;
+    used_block *ptr = (used_block *)memory_pool;
+    
+    int flag = ptr->f;
+    while (ptr->t != FLAG_TAIL_BLOOK) {
+        if (flag != ptr->f) {       // supposed to be merged
+            nfrag++;
+            flag = ptr->f;
         }
-        if (ptr->t==FLAG_TAIL_BLOCK) break;
+
+        total += ptr->size;
+        if (ptr->f==FLAG_FREE_BLOCK) free += ptr->size;
+        if (ptr->f==FLAG_USED_BLOCK) used += ptr->size;
 
         ptr = (used_block *)NEXT(ptr);
     }
-    return total;
+    v[0] = total;
+    v[1] = free;
+    v[2] = used;
+    v[3] = nfrag;
 }
 
 __global__ void guru_init_alloc(void *ptr, unsigned int sz)
 {
 	if (threadIdx.x!=0 || blockIdx.x!=0) return;
 
-	mrbc_init_alloc(ptr, sz);
+	_mrbc_init_alloc(ptr, sz);
 }
 
-void *guru_malloc(size_t sz)
+void *guru_malloc(size_t sz, int type)
 {
 	void *mem;
 
-    cudaMallocManaged(&mem, sz);			// allocate managed memory
+	switch (type) {
+	case 0: 	cudaMalloc(&mem, sz); break;			// allocate device memory
+	default: 	cudaMallocManaged(&mem, sz);			// managed (i.e. paged) memory
+	}
     if (cudaSuccess != cudaGetLastError()) return NULL;
 
     return mem;
 }
+
 #endif

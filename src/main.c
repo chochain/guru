@@ -217,19 +217,23 @@ int input_bytecode(guru_ses *ses, const char *rite_fname)
   return 0;
 }
 
+void load_on_host(char *fname)
+{
+	guru_ses ses;
+
+	int rst = input_bytecode(&ses, fname);
+	mrbc_irep *irep;
+	upload_bytecode(&irep, ses.req);
+	dump_irep(irep);
+}
+
 extern void dump_irep(mrbc_irep *irep);
 extern void dump_vm(uint8_t *vm);
 
 int main(int argc, char **argv)
 {
     //do_cuda();
-
-	guru_ses ses0;
-
-	int rst = input_bytecode(&ses0, argv[1]);
-	mrbc_irep *irep;
-	upload_bytecode(&irep, ses0.req);
-	dump_irep(irep);
+	load_on_host(argv[1]);
 
 	guru_ses ses;
 	uint8_t *vm_rst = init_session(&ses, argv[1]);

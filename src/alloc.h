@@ -53,19 +53,16 @@ typedef struct free_block {
   struct free_block 	*prev;
 } free_block;
 
-__GURU__ void  mrbc_init_alloc(void *ptr, unsigned int size);
 __GURU__ void *mrbc_alloc(unsigned int size);
 __GURU__ void *mrbc_realloc(void *ptr, unsigned int size);
 __GURU__ void  mrbc_free(void *ptr);
 __GURU__ void  mrbc_free_all();
 
 // for statistics or debug. (need #define MRBC_DEBUG)
-__GURU__ void  mrbc_alloc_statistics(int *total, int *used, int *free, int *fragmentation);
-__GURU__ int   mrbc_alloc_used();
-
 __global__ void guru_init_alloc(void *ptr, unsigned int sz);
+__global__ void guru_alloc_stat(int *v);
 
-void *guru_malloc(size_t sz);
+void *guru_malloc(size_t sz, int mem_type);		// mem_type: 0=>managed, 1=>device
 
 #ifdef __cplusplus
 }

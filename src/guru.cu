@@ -21,14 +21,15 @@ void _guru_set_console_buf(uint8_t *buf)
 	guru_output_buffer = buf;
 }
 
-extern "C" void *guru_malloc(size_t sz);
+extern "C" void *guru_malloc(size_t sz, int mem_type);
 extern "C" __global__ void guru_init_alloc(void *ptr, unsigned int sz);
 extern "C" __global__ void guru_init_static(void);
+extern "C" __global__ void guru_alloc_stat(int *v);
 
 int _alloc_session(guru_ses *ses, size_t req_sz, size_t res_sz)
 {
-	ses->req = (uint8_t *)guru_malloc(req_sz);	// allocate bytecode storage
-	ses->res = (uint8_t *)guru_malloc(res_sz);	// allocate output buffer
+	ses->req = (uint8_t *)guru_malloc(req_sz, 1);	// allocate bytecode storage
+	ses->res = (uint8_t *)guru_malloc(res_sz, 1);	// allocate output buffer
 
 	if (!ses->req || !ses->res) return 1;
 
@@ -71,13 +72,20 @@ uint8_t *init_session(guru_ses *ses, const char *rite_fname)
 
 	if (rst != 0) return NULL;
 
-	void *mem = guru_malloc(BLOCK_MEMORY_SIZE);
-    if (!mem) return NULL;
+	void *mem = guru_malloc(BLOCK_MEMORY_SIZE, 0);
+	int  *v   = (int *)guru_malloc(4*sizeof(int), 1);
 
     guru_init_alloc<<<1,1>>>(mem, BLOCK_MEMORY_SIZE);
-	guru_init_static<<<1,1>>>();
+	guru_alloc_stat<<<1,1>>>(v);
+	printf("total memory allocated = %d (%x), free=%d, used=%d, nfrag=%d\n", v[0], v[0], v[1], v[2], v[3]);
 
-	mrbc_vm *vm = (mrbc_vm *)guru_malloc(sizeof(mrbc_vm));			// allocate bytecode storage
+	guru_init_static<<<1,1>>>();
+	guru_alloc_stat<<<1,1>>>(v);
+	printf("total memory allocated = %d (%x), free=%d, used=%d, nfrag=%d\n", v[0], v[0], v[1], v[2], v[3]);
+
+	return NULL;
+
+	mrbc_vm *vm = (mrbc_vm *)guru_malloc(sizeof(mrbc_vm), 0);			// allocate bytecode storage
     if (!vm) return NULL;
 
 	guru_parse_bytecode<<<1,1>>>(vm, ses->req);
