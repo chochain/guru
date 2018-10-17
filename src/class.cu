@@ -325,11 +325,13 @@ void mrbc_define_method(mrbc_class *cls, const char *name, mrbc_func_t cfunc)
 {
     if (cls==NULL) cls = mrbc_class_object;	// set default to Object.
 
-    mrbc_proc *rproc = mrbc_rproc_alloc(name);
-    rproc->c_func 	= 1;  // c-func
-    rproc->next 	= cls->procs;
-    cls->procs 		= rproc;
-    rproc->func 	= cfunc;
+    mrbc_proc *proc = mrbc_proc_alloc(name);
+
+    proc->c_func= 1;  			// c-func
+    proc->func 	= cfunc;
+    proc->next 	= cls->procs;
+
+    cls->procs 	= proc;
 }
 
 // Call a method
@@ -414,7 +416,8 @@ mrbc_value mrbc_send(mrbc_value *v, int reg_ofs,
     va_list ap;
     va_start(ap, argc);
 
-    for (int i = 1; i <= argc; i++) {
+    int i;
+    for (i = 1; i <= argc; i++) {
         mrbc_release(&regs[i]);
         regs[i] = *va_arg(ap, mrbc_value *);
     }
@@ -908,9 +911,6 @@ __GURU__
 void mrbc_init_class(void)
 {
     mrbc_init_class_object();
-
-    return;
-
     mrbc_init_class_nil();
     mrbc_init_class_proc();
     mrbc_init_class_false();

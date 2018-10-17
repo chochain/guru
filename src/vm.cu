@@ -1452,11 +1452,11 @@ __GURU__ __forceinline__
 int op_lambda(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 {
     int ra = GETARG_A(code);
-    int rb = GETARG_Bz(code);      // sequence position in irep list
-    // int c = GETARG_C(code);    // TODO: Add flags support for OP_LAMBDA
-    mrbc_proc *proc = (mrbc_proc *)mrbc_rproc_alloc("(lambda)");
+    int rb = GETARG_Bz(code);      	// sequence position in irep list
+    // int c = GETARG_C(code);    	// TODO: Add flags support for OP_LAMBDA
+    mrbc_proc *proc = (mrbc_proc *)mrbc_proc_alloc("(lambda)");
 
-    proc->c_func = 0;
+    proc->c_func = 0;				// IREP
     proc->irep = vm->pc_irep->reps[rb];
 
     mrbc_release(&regs[ra]);

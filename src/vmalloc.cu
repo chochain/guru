@@ -24,26 +24,26 @@
 __GURU__
 mrbc_object *mrbc_obj_alloc(mrbc_vtype tt)
 {
-    mrbc_object *ptr = (mrbc_object *)mrbc_alloc(sizeof(mrbc_object));
-    if (ptr) {
-        ptr->tt = tt;
+    mrbc_object *obj = (mrbc_object *)mrbc_alloc(sizeof(mrbc_object));
+    if (obj) {
+        obj->tt = tt;
     }
-    return ptr;
+    return obj;
 }
 
 __GURU__
-mrbc_proc *mrbc_rproc_alloc(const char *name)
+mrbc_proc *mrbc_proc_alloc(const char *name)
 {
-    mrbc_proc *ptr = (mrbc_proc *)mrbc_alloc(sizeof(mrbc_proc));
-    if (ptr) {
-        ptr->ref_count = 1;
-        ptr->sym_id = str_to_symid(name);
+    mrbc_proc *proc = (mrbc_proc *)mrbc_alloc(sizeof(mrbc_proc));
+    if (proc) {
+        proc->ref_count = 1;
+        proc->sym_id = str_to_symid(name);
 #ifdef MRBC_DEBUG
-        ptr->names = name;	// for debug; delete soon.
+        proc->names = name;	// for debug; delete soon.
 #endif
-        ptr->next = 0;
+        proc->next = 0;
     }
-    return ptr;
+    return proc;
 }
 
 //================================================================

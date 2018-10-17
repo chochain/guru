@@ -135,7 +135,7 @@ typedef struct RProc {
     unsigned int c_func : 1;	// 0:IREP, 1:C Func
     mrbc_sym sym_id;
 #ifdef MRBC_DEBUG
-    const char *names;		// for debug; delete soon
+    const char *names;			// for debug; delete soon
 #endif
     struct RProc *next;
     union {
@@ -144,7 +144,7 @@ typedef struct RProc {
     };
 } mrbc_proc;
 
-uint8_t *init_session(guru_ses *ses, const char *rite_fname);
+int init_session(guru_ses *ses, const char *rite_fname);
 
 #ifdef __cplusplus
 }

@@ -67,30 +67,27 @@ int _input_bytecode(guru_ses *ses, const char *rite_fname)
   return 0;
 }
 
-uint8_t *init_session(guru_ses *ses, const char *rite_fname)
+extern "C" void dump_irep(mrbc_irep *irep);
+
+int init_session(guru_ses *ses, const char *rite_fname)
 {
 	int rst = _input_bytecode(ses, rite_fname);
 
-	if (rst != 0) return NULL;
+	if (rst != 0) return -1;
 
-	void *mem = guru_malloc(BLOCK_MEMORY_SIZE, 0);
+	void *mem = guru_malloc(BLOCK_MEMORY_SIZE, 1);
 
     guru_init_alloc<<<1,1>>>(mem, BLOCK_MEMORY_SIZE);
 	guru_init_static<<<1,1>>>();
 	dump_alloc_stat();
 
 	mrbc_vm *vm = (mrbc_vm *)guru_malloc(sizeof(mrbc_vm), 1);			// allocate bytecode storage
-    if (!vm) return NULL;
 
 	guru_parse_bytecode<<<1,1>>>(vm, ses->req);
+	dump_alloc_stat();
 
-	uint8_t *vm_rst = (uint8_t *)malloc(sizeof(mrbc_vm));
-	if (vm_rst==0) {
-    	printf("allocation error: vm_rst");
-    	return NULL;
-	}
-	memcpy(vm, &vm_rst, sizeof(mrbc_vm));
+	dump_irep(vm->irep);
 
-    return vm_rst;
+    return 0;
 }
     

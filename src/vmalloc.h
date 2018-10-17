@@ -23,7 +23,7 @@ extern "C" {
 
 // << from value.hu
 __GURU__ mrbc_object *mrbc_obj_alloc(mrbc_vtype tt);
-__GURU__ mrbc_proc *mrbc_rproc_alloc(const char *name);
+__GURU__ mrbc_proc *mrbc_proc_alloc(const char *name);
 
 __GURU__ mrbc_value mrbc_instance_new(mrbc_class *cls, int size);
 __GURU__ void       mrbc_instance_delete(mrbc_value *v);

@@ -217,6 +217,8 @@ int input_bytecode(guru_ses *ses, const char *rite_fname)
   return 0;
 }
 
+void dump_irep(mrbc_irep *irep);
+
 void load_on_host(char *fname)
 {
 	guru_ses ses;
@@ -227,17 +229,13 @@ void load_on_host(char *fname)
 	dump_irep(irep);
 }
 
-extern void dump_irep(mrbc_irep *irep);
-extern void dump_vm(uint8_t *vm);
-
 int main(int argc, char **argv)
 {
     //do_cuda();
 	load_on_host(argv[1]);
 
 	guru_ses ses;
-	uint8_t *vm_rst = init_session(&ses, argv[1]);
-	dump_vm(vm_rst);
+	int ret = init_session(&ses, argv[1]);
 
-    return 0;
+	return ret;
 }
