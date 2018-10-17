@@ -33,18 +33,18 @@ extern "C" {
 
 // memory block header
 typedef struct used_block {
-  unsigned int 			t : 1;      //!< FLAG_TAIL_BLOCK or FLAG_NOT_TAIL_BLOCK
-  unsigned int 			f : 1;      //!< FLAG_FREE_BLOCK or BLOCK_IS_NOT_FREE
-  uint8_t			   	u;
+  uint8_t 				t;      	//!< FLAG_TAIL_BLOCK or FLAG_NOT_TAIL_BLOCK
+  uint8_t 				f;      	//!< FLAG_FREE_BLOCK or BLOCK_IS_NOT_FREE
+  uint16_t				u;			// align 32
 
   mrbc_memsize_t 		size;       //!< block size, header included
   mrbc_memsize_t 		offset; 	//!< offset of previous physical block
 } used_block;
 
 typedef struct free_block {
-  unsigned int         	t : 1;      //!< FLAG_TAIL_BLOCK or FLAG_NOT_TAIL_BLOCK
-  unsigned int         	f : 1;      //!< FLAG_FREE_BLOCK or BLOCK_IS_NOT_FREE
-  uint8_t				u;
+  uint8_t 				t;      	//!< FLAG_TAIL_BLOCK or FLAG_NOT_TAIL_BLOCK
+  uint8_t 				f;      	//!< FLAG_FREE_BLOCK or BLOCK_IS_NOT_FREE
+  uint16_t				u;
 
   mrbc_memsize_t 		size;       //!< block size, header included
   mrbc_memsize_t 		offset; 	//!< offset of previous physical block
@@ -60,9 +60,9 @@ __GURU__ void  mrbc_free_all();
 
 // for statistics or debug. (need #define MRBC_DEBUG)
 __global__ void guru_init_alloc(void *ptr, unsigned int sz);
-__global__ void guru_alloc_stat(int *v);
 
 void *guru_malloc(size_t sz, int mem_type);		// mem_type: 0=>managed, 1=>device
+void dump_alloc_stat(void);
 
 #ifdef __cplusplus
 }
