@@ -77,8 +77,7 @@ int mrbc_print_sub(mrbc_value *v)
 #if MRBC_USE_ARRAY
     case MRBC_TT_ARRAY:{
         console_putchar('[');
-        int i;
-        for(i = 0; i < mrbc_array_size(v); i++) {
+        for (int i = 0; i < mrbc_array_size(v); i++) {
             if (i != 0) console_print(", ");
             mrbc_value v1 = mrbc_array_get(v, i);
             mrbc_p_sub(&v1);
@@ -124,8 +123,7 @@ int mrbc_puts_sub(mrbc_value *v)
 {
 #if MRBC_USE_ARRAY
     if (v->tt == MRBC_TT_ARRAY) {
-        int i;
-        for(i = 0; i < mrbc_array_size(v); i++) {
+        for (int i = 0; i < mrbc_array_size(v); i++) {
             if (i != 0) console_putchar('\n');
             mrbc_value v1 = mrbc_array_get(v, i);
             mrbc_puts_sub(&v1);
@@ -159,8 +157,8 @@ int mrbc_p_sub(mrbc_value *v)
     case MRBC_TT_STRING:{
         console_putchar('"');
         const char *s = mrbc_string_cstr(v);
-        int i;
-        for(i = 0; i < mrbc_string_size(v); i++) {
+
+        for (int i = 0; i < mrbc_string_size(v); i++) {
             if (s[i] < ' ' || 0x7f <= s[i]) {	// tiny isprint()
                 console_printf("\\x%02x", s[i]);
             } else {
@@ -271,17 +269,17 @@ mrbc_class * mrbc_define_class(const char *name, mrbc_class *super)
     // create a new class?
     if (obj.tt == MRBC_TT_NIL) {
         mrbc_class *cls = (mrbc_class *)mrbc_alloc(sizeof(mrbc_class));
-        if (!cls) return cls;	// ENOMEM
+        if (!cls) return cls;		// ENOMEM
 
         cls->sym_id = sym_id;
 #ifdef MRBC_DEBUG
-        cls->names = name;	// for debug; delete soon.
+        cls->names = name;			// for debug; delete soon.
 #endif
         cls->super = super;
         cls->procs = 0;
 
         // register to global constant.
-        mrbc_value v = {.tt = MRBC_TT_CLASS};
+        mrbc_value v = { .tt = MRBC_TT_CLASS };
         v.cls = cls;
         const_object_add(sym_id, &v);
 
@@ -325,13 +323,13 @@ mrbc_class * mrbc_get_class_by_name(const char *name)
 __GURU__
 void mrbc_define_method(mrbc_class *cls, const char *name, mrbc_func_t cfunc)
 {
-    if (cls == NULL) cls = mrbc_class_object;	// set default to Object.
+    if (cls==NULL) cls = mrbc_class_object;	// set default to Object.
 
     mrbc_proc *rproc = mrbc_rproc_alloc(name);
-    rproc->c_func = 1;  // c-func
-    rproc->next = cls->procs;
-    cls->procs = rproc;
-    rproc->func = cfunc;
+    rproc->c_func 	= 1;  // c-func
+    rproc->next 	= cls->procs;
+    cls->procs 		= rproc;
+    rproc->func 	= cfunc;
 }
 
 // Call a method
@@ -415,8 +413,8 @@ mrbc_value mrbc_send(mrbc_value *v, int reg_ofs,
 
     va_list ap;
     va_start(ap, argc);
-    int i;
-    for(i = 1; i <= argc; i++) {
+
+    for (int i = 1; i <= argc; i++) {
         mrbc_release(&regs[i]);
         regs[i] = *va_arg(ap, mrbc_value *);
     }
@@ -428,7 +426,7 @@ mrbc_value mrbc_send(mrbc_value *v, int reg_ofs,
     m->func(regs, argc);
     mrbc_value ret = regs[0];
 
-    for(; i >= 0; i--) {
+    for (; i >= 0; i--) {
         regs[i].tt = MRBC_TT_EMPTY;
     }
     return ret;
@@ -436,6 +434,14 @@ mrbc_value mrbc_send(mrbc_value *v, int reg_ofs,
 
 //================================================================
 // Object class
+//================================================================
+/*! Nop operator / method
+ */
+__GURU__
+void c_nop(mrbc_value v[], int argc)
+{
+    // nothing to do.
+}
 
 #ifdef MRBC_DEBUG
 //================================================================
@@ -444,8 +450,7 @@ mrbc_value mrbc_send(mrbc_value *v, int reg_ofs,
 __GURU__
 void c_p(mrbc_value v[], int argc)
 {
-    int i;
-    for(i = 1; i <= argc; i++) {
+    for (int i=1; i<=argc; i++) {
         mrbc_p_sub(&v[i]);
         console_putchar('\n');
     }
@@ -458,13 +463,13 @@ void c_p(mrbc_value v[], int argc)
 __GURU__
 void c_puts(mrbc_value v[], int argc)
 {
-    int i;
-    if (argc){
-        for(i = 1; i <= argc; i++) {
-            if (mrbc_puts_sub(&v[i]) == 0) console_putchar('\n');
-        }
-    } else {
-        console_putchar('\n');
+    if (argc) {
+    	for (int i = 1; i <= argc; i++) {
+    		if (mrbc_puts_sub(&v[i]) == 0) console_putchar('\n');
+    	}
+    }
+    else {
+    	console_putchar('\n');
     }
 }
 
@@ -474,8 +479,7 @@ void c_puts(mrbc_value v[], int argc)
 __GURU__
 void c_print(mrbc_value v[], int argc)
 {
-    int i;
-    for(i = 1; i <= argc; i++) {
+    for (int i = 1; i <= argc; i++) {
         mrbc_print_sub(&v[i]);
     }
 }
@@ -607,8 +611,7 @@ void c_object_setiv(mrbc_value v[], int argc)
 __GURU__
 void c_object_attr_reader(mrbc_value v[], int argc)
 {
-    int i;
-    for(i = 1; i <= argc; i++) {
+    for (int i = 1; i <= argc; i++) {
         if (v[i].tt != MRBC_TT_SYMBOL) continue;	// TypeError raise?
 
         // define reader method
@@ -623,8 +626,7 @@ void c_object_attr_reader(mrbc_value v[], int argc)
 __GURU__
 void c_object_attr_accessor(mrbc_value v[], int argc)
 {
-    int i;
-    for(i = 1; i <= argc; i++) {
+    for (int i = 1; i <= argc; i++) {
         if (v[i].tt != MRBC_TT_SYMBOL) continue;	// TypeError raise?
 
         // define reader method
@@ -714,8 +716,6 @@ void mrbc_init_class_object()
 
     // Methods
     mrbc_define_method(o, "initialize",    c_nop);
-    return;
-
     mrbc_define_method(o, "puts",          c_puts);
     mrbc_define_method(o, "print",         c_print);
     mrbc_define_method(o, "!",             c_object_not);
@@ -899,15 +899,6 @@ __GURU__ void mrbc_init_class_symbol()  // << from symbol.cu
     mrbc_define_method(o, "id2name", 		c_to_s);
 #endif
     mrbc_define_method(o, "to_sym", 		c_nop);
-}
-
-//================================================================
-/*! Nop operator / method
- */
-__GURU__
-void c_nop(mrbc_value v[], int argc)
-{
-    // nothing to do.
 }
 
 //================================================================

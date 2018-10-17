@@ -12,6 +12,7 @@
 
   </pre>
 */
+#include <stdio.h>
 #include <assert.h>
 #include "value.h"
 #include "alloc.h"
@@ -473,7 +474,7 @@ void mrbc_free_all()
   @param  *fragment	returns memory fragmentation
 */
 __global__
-void guru_alloc_stat(int v[])
+void _guru_alloc_stat(int v[])
 {
 	if (threadIdx.x!=0 || blockIdx.x!=0) return;
 
@@ -485,7 +486,7 @@ void guru_alloc_stat(int v[])
     used_block *ptr = (used_block *)memory_pool;
     
     int flag = ptr->f;
-    while (ptr->t != FLAG_TAIL_BLOOK) {
+    while (1) {
         if (flag != ptr->f) {       // supposed to be merged
             nfrag++;
             flag = ptr->f;
@@ -494,6 +495,8 @@ void guru_alloc_stat(int v[])
         total += ptr->size;
         if (ptr->f==FLAG_FREE_BLOCK) free += ptr->size;
         if (ptr->f==FLAG_USED_BLOCK) used += ptr->size;
+
+        if (ptr->t==FLAG_TAIL_BLOCK) break;
 
         ptr = (used_block *)NEXT(ptr);
     }
@@ -523,4 +526,15 @@ void *guru_malloc(size_t sz, int type)
     return mem;
 }
 
+void dump_alloc_stat()
+{
+	int *v;
+	cudaMallocManaged(&v, 4*sizeof(int));
+
+	_guru_alloc_stat<<<1,1>>>(v);
+
+	printf("total memory allocated = %d(0x%x), free=%d, used=%d, nfrag=%d\n", v[0], v[0], v[1], v[2], v[3]);
+
+	cudaFree(v);
+}
 #endif
