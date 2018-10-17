@@ -479,8 +479,11 @@ void _guru_alloc_stat(int v[])
 	if (threadIdx.x!=0 || blockIdx.x!=0) return;
 
     int total = 0;
-    int used  = 0;
+    int nfree = 0;
     int free  = 0;
+    int nused = 0;
+    int used  = 0;
+    int nblk  = 0;
     int nfrag = 0;
 
     used_block *ptr = (used_block *)memory_pool;
@@ -493,17 +496,25 @@ void _guru_alloc_stat(int v[])
         }
 
         total += ptr->size;
-        if (ptr->f==FLAG_FREE_BLOCK) free += ptr->size;
-        if (ptr->f==FLAG_USED_BLOCK) used += ptr->size;
+        nblk  += 1;
+        if (ptr->f==FLAG_FREE_BLOCK) {
+        	nfree += 1;
+        	free  += ptr->size;
+        }
+        if (ptr->f==FLAG_USED_BLOCK) {
+        	nused += 1;
+        	used  += ptr->size;
+        }
 
         if (ptr->t==FLAG_TAIL_BLOCK) break;
 
         ptr = (used_block *)NEXT(ptr);
     }
     v[0] = total;
-    v[1] = free;
-    v[2] = used;
-    v[3] = nfrag;
+    v[1] = nfree;
+    v[2] = free;
+    v[3] = nused;
+    v[4] = used;
 }
 
 __global__ void guru_init_alloc(void *ptr, unsigned int sz)
@@ -529,11 +540,13 @@ void *guru_malloc(size_t sz, int type)
 void dump_alloc_stat()
 {
 	int *v;
-	cudaMallocManaged(&v, 4*sizeof(int));
+	cudaMallocManaged(&v, 8*sizeof(int));
 
 	_guru_alloc_stat<<<1,1>>>(v);
+	cudaDeviceSynchronize();
 
-	printf("total memory allocated = %d(0x%x), free=%d, used=%d, nfrag=%d\n", v[0], v[0], v[1], v[2], v[3]);
+	printf("total %d(0x%x)> free=%d(%d), used=%d(%d), %d%% allocated\n",
+				v[0], v[0], v[1], v[2], v[3], v[4], (int)(100*(v[4]+1)/v[0]));
 
 	cudaFree(v);
 }
