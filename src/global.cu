@@ -37,8 +37,7 @@ __GURU__ void  mrbc_init_global(void)
 /* TODO: Use binary search */
 __GURU__ int search_global_object(mrbc_sym sym_id, mrbc_globaltype gtype)
 {
-    int i;
-    for (i=0 ; i<global_end ; i++) {
+    for (int i=0 ; i<global_end ; i++) {
         mrbc_globalobject *obj = &mrbc_global[i];
         if (obj->sym_id == sym_id && obj->gtype == gtype) return i;
     }

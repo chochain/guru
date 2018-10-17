@@ -42,8 +42,7 @@ __GURU__ int sym_index_pos;	// point to the last(free) sym_index array.
 __GURU__ int search_index(uint16_t hash, const char *str)
 {
 #ifdef MRBC_SYMBOL_SEARCH_LINER
-    int i;
-    for(i = 0; i < sym_index_pos; i++) {
+    for(int i = 0; i < sym_index_pos; i++) {
         if (sym_index[i].hash==hash && strcmp(str, sym_index[i].cstr)==0) {
             return i;
         }
@@ -194,8 +193,7 @@ __GURU__ void c_all_symbols(mrbc_value v[], int argc)
 {
     mrbc_value ret = mrbc_array_new(sym_index_pos);
 
-    int i;
-    for(i = 0; i < sym_index_pos; i++) {
+    for(int i = 0; i < sym_index_pos; i++) {
         mrbc_value sym1 = {.tt = MRBC_TT_SYMBOL};
         sym1.i = i;
         mrbc_array_push(&ret, &sym1);

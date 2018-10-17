@@ -200,9 +200,7 @@ __GURU__ void guru_memset(uint8_t *d, const uint8_t v,  size_t sz)
 
 __GURU__ int guru_memcmp(const uint8_t *d, const uint8_t *s, size_t sz)
 {
-    int i;
-
-    for (i=0; i<sz && *d++==*s++; i++);
+    for (int i=0; i<sz && *d++==*s++; i++);
 
     return i<sz;
 }

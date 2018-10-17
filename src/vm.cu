@@ -758,8 +758,7 @@ int op_return(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     vm->target_class = callinfo->target_class;
 
     // clear stacked arguments
-    int i;
-    for(i = 1; i <= callinfo->n_args; i++) {
+    for (int i = 1; i <= callinfo->n_args; i++) {
         mrbc_release(&regs[i]);
     }
 
@@ -1779,16 +1778,14 @@ int mrbc_vm_run(mrbc_vm *vm)
 __GURU__
 void mrbc_free_ireplist(mrbc_irep *irep)
 {
-    int i;
-
     // release pools.
-    for(i = 0; i < irep->plen; i++) {
+    for(int i = 0; i < irep->plen; i++) {
         mrbc_free(irep->pools[i]);
     }
     if (irep->plen) mrbc_free(irep->pools);
 
     // release child ireps.
-    for(i = 0; i < irep->rlen; i++) {
+    for(int i = 0; i < irep->rlen; i++) {
         mrbc_free_ireplist(irep->reps[i]);
     }
     if (irep->rlen) mrbc_free(irep->reps);
