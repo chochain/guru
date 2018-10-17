@@ -5,6 +5,7 @@
 
 int  do_cuda(void);
 void dump_vm(mrbc_vm *vm);
+void run_vm(mrbc_vm *vm);
 
 int main(int argc, char **argv)
 {
@@ -17,10 +18,7 @@ int main(int argc, char **argv)
 	mrbc_vm *vmd = (mrbc_vm *)init_session(&ses, argv[1]);
 	dump_vm(vmd);
 
-//	mrbc_vm_begin(vm);
-//	mrbc_vm_run(vm);
-//	mrbc_vm_end(vm);
-//	mrbc_vm_close(vm);
+	run_vm(vmd);
 
     return 0;
 }

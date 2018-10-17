@@ -46,12 +46,12 @@ typedef struct IREP {
   Call information
 */
 typedef struct CALLINFO {
-    struct CALLINFO *prev;
-    mrbc_irep       *pc_irep;
     uint16_t        pc;
-    mrbc_value      *current_regs;
-    mrbc_class      *target_class;
-    uint8_t         n_args;     // num of args
+    uint16_t        argc;     // num of args
+    mrbc_class      *klass;
+    mrbc_value      *reg;
+    mrbc_irep       *pc_irep;
+    struct CALLINFO *prev;
 } mrbc_callinfo;
 
 //================================================================
@@ -60,24 +60,18 @@ typedef struct CALLINFO {
 */
 typedef struct VM {
     mrbc_irep      *irep;
+    mrbc_callinfo  *calltop;
+    mrbc_value     regfile[MAX_REGS_SIZE];
 
-    uint8_t        vm_id; 		// vm_id: (1..vm_config.MAX_VM_COUNT)
-    const uint8_t  *mrb;   		// bytecode
+    // callinfo
+    uint16_t       	pc;         // program counter
+    uint16_t		argc;		// dummy, ready for callinfo replacement
+    mrbc_class     	*klass;
+    mrbc_value     	*reg;		// register top pointer
+    mrbc_irep      	*pc_irep;   // PC
+    struct CALLINFO *prev;
 
-    mrbc_irep      *pc_irep;    // PC
-    uint16_t       pc;         	// PC
-
-    //  uint16_t   reg_top;
-    mrbc_value     regs[MAX_REGS_SIZE];
-    mrbc_value     *current_regs;
-    mrbc_callinfo  *callinfo_tail;
-
-    mrbc_class     *target_class;
-
-    int32_t        error_code;
-
-    volatile int8_t flag_preemption;
-    volatile int8_t flag_need_memfree;
+    volatile int8_t run;
 } mrbc_vm;
 
 __GURU__ const char *mrbc_get_irep_symbol(const uint8_t *p, int n);
@@ -175,6 +169,7 @@ void _uint32_to_bin(uint32_t l, uint8_t *bin)
 
 void dump_irep(mrbc_irep *irep);
 void dump_vm(mrbc_vm *vm);
+void run_vm(mrbc_vm *vm);
 
 #ifdef __cplusplus
 }

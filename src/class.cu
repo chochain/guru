@@ -354,21 +354,21 @@ void mrbc_funcall(mrbc_vm *vm, const char *name, mrbc_value *v, int argc)
 
     if (m==0) return;   // no method
 
-    mrbc_callinfo *callinfo = (mrbc_callinfo *)mrbc_alloc(sizeof(mrbc_callinfo));
-    callinfo->current_regs = vm->current_regs;
-    callinfo->pc_irep = vm->pc_irep;
-    callinfo->pc = vm->pc;
-    callinfo->n_args = 0;
-    callinfo->target_class = vm->target_class;
-    callinfo->prev = vm->callinfo_tail;
-    vm->callinfo_tail = callinfo;
+    mrbc_callinfo *ci = (mrbc_callinfo *)mrbc_alloc(sizeof(mrbc_callinfo));
 
-    // target irep
-    vm->pc = 0;
-    vm->pc_irep = m->irep;
+    ci->reg		= vm->reg;
+    ci->pc_irep = vm->pc_irep;
+    ci->pc   	= vm->pc;
+    ci->argc 	= 0;
+    ci->klass	= vm->klass;
 
+    ci->prev = vm->calltop;	// push call stack
+    vm->calltop = ci;
+
+    vm->pc_irep = m->irep;	// target irep
+    vm->pc 		= 0;
     // new regs
-    vm->current_regs += 2;   // recv and symbol
+    vm->reg 	+= 2;   	// recv and symbol
 }
 
 //================================================================

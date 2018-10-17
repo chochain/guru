@@ -85,16 +85,19 @@ void not_supported(void)
 
 */
 __GURU__
-void mrbc_push_callinfo(mrbc_vm *vm, int n_args)
+void mrbc_push_callinfo(mrbc_vm *vm, int argc)
 {
-    mrbc_callinfo *callinfo = (mrbc_callinfo *)mrbc_alloc(sizeof(mrbc_callinfo));
-    callinfo->current_regs = vm->current_regs;
-    callinfo->pc_irep = vm->pc_irep;
-    callinfo->pc = vm->pc;
-    callinfo->n_args = n_args;
-    callinfo->target_class = vm->target_class;
-    callinfo->prev = vm->callinfo_tail;
-    vm->callinfo_tail = callinfo;
+    mrbc_callinfo *ci = (mrbc_callinfo *)mrbc_alloc(sizeof(mrbc_callinfo));
+
+    ci->reg 	= vm->reg;
+    ci->pc_irep = vm->pc_irep;
+    ci->pc 		= vm->pc;
+    ci->argc 	= argc;
+    ci->klass 	= vm->klass;
+
+    // push call stack
+    ci->prev 	= vm->calltop;
+    vm->calltop = ci;
 }
 
 //================================================================
@@ -105,16 +108,16 @@ void mrbc_push_callinfo(mrbc_vm *vm, int n_args)
 __GURU__
 void mrbc_pop_callinfo(mrbc_vm *vm)
 {
-    mrbc_callinfo *callinfo = vm->callinfo_tail;
+    mrbc_callinfo *ci = vm->calltop;
     
-    vm->callinfo_tail = callinfo->prev;
-    vm->current_regs  = callinfo->current_regs;
-    vm->pc_irep       = callinfo->pc_irep;
-    vm->pc            = callinfo->pc;
-    vm->target_class  = callinfo->target_class;
+    vm->calltop = ci->prev;
+    vm->reg  	= ci->reg;
+    vm->pc_irep = ci->pc_irep;
+    vm->pc      = ci->pc;
+    vm->klass  	= ci->klass;
     
     // free callinfo
-    mrbc_free(callinfo);
+    mrbc_free(ci);
 }
 
 //================================================================
@@ -488,16 +491,16 @@ int op_getupvar(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     int ra = GETARG_A(code);
     int rb = GETARG_B(code);
     int rc = GETARG_C(code);   // UP
-    mrbc_callinfo *callinfo = vm->callinfo_tail;
+    mrbc_callinfo *ci = vm->calltop;
 
     // find callinfo
     int n = rc * 2 + 1;
     while(n > 0){
-        callinfo = callinfo->prev;
+        ci = ci->prev;
         n--;
     }
 
-    mrbc_value *up_regs = callinfo->current_regs;
+    mrbc_value *up_regs = ci->reg;
 
     mrbc_release(&regs[ra]);
     mrbc_dup(&up_regs[rb]);
@@ -523,16 +526,16 @@ int op_setupvar(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     int ra = GETARG_A(code);
     int rb = GETARG_B(code);
     int rc = GETARG_C(code);   // UP
-    mrbc_callinfo *callinfo = vm->callinfo_tail;
+    mrbc_callinfo *ci = vm->calltop;
 
     // find callinfo
     int n = rc * 2 + 1;
     while(n > 0){
-        callinfo = callinfo->prev;
+        ci = ci->prev;
         n--;
     }
 
-    mrbc_value *up_regs = callinfo->current_regs;
+    mrbc_value *up_regs = ci->reg;
 
     mrbc_release(&up_regs[rb]);
     mrbc_dup(&regs[ra]);
@@ -674,7 +677,7 @@ int op_send(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     vm->pc_irep = m->irep;
 
     // new regs
-    vm->current_regs += ra;
+    vm->reg += ra;
 
     return 0;
 }
@@ -718,12 +721,12 @@ int op_call(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 __GURU__ __forceinline__
 int op_enter(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 {
-    mrbc_callinfo *callinfo = vm->callinfo_tail;
+    mrbc_callinfo *callinfo = vm->calltop;
     uint32_t enter_param = GETARG_Ax(code);
     int def_args = (enter_param >> 13) & 0x1f;  // default args
-    int args = (enter_param >> 18) & 0x1f;      // given args
+    int argc = (enter_param >> 18) & 0x1f;      // given args
     if (def_args > 0){
-        vm->pc += callinfo->n_args - args;
+        vm->pc += callinfo->argc - argc;
     }
     return 0;
 }
@@ -750,20 +753,21 @@ int op_return(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     regs[ra].tt = MRBC_TT_EMPTY;
 
     // restore irep,pc,regs
-    mrbc_callinfo *callinfo = vm->callinfo_tail;
-    vm->callinfo_tail = callinfo->prev;
-    vm->current_regs = callinfo->current_regs;
-    vm->pc_irep = callinfo->pc_irep;
-    vm->pc = callinfo->pc;
-    vm->target_class = callinfo->target_class;
+    mrbc_callinfo *ci = vm->calltop;
+
+    vm->calltop	= ci->prev;
+    vm->reg 	= ci->reg;
+    vm->pc_irep = ci->pc_irep;
+    vm->pc 		= ci->pc;
+    vm->klass 	= ci->klass;
 
     // clear stacked arguments
-    for (int i = 1; i <= callinfo->n_args; i++) {
+    for (int i = 1; i <= ci->argc; i++) {
         mrbc_release(&regs[i]);
     }
 
     // release callinfo
-    mrbc_free(callinfo);
+    mrbc_free(ci);
 
     return 0;
 }
@@ -1526,8 +1530,8 @@ int op_exec(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     vm->pc_irep = vm->irep->reps[rb];
 
     // new regs
-    vm->current_regs += ra;
-    vm->target_class = find_class_by_object(&recv);
+    vm->reg += ra;
+    vm->klass = find_class_by_object(&recv);
 
     return 0;
 }
@@ -1609,7 +1613,7 @@ int op_tclass(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 
     mrbc_release(&regs[ra]);
     regs[ra].tt = MRBC_TT_CLASS;
-    regs[ra].cls = vm->target_class;
+    regs[ra].cls = vm->klass;
 
     return 0;
 }
@@ -1632,10 +1636,10 @@ int op_stop(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     if (GET_OPCODE(code)==OP_STOP) {
         int i;
         for(i = 0; i < MAX_REGS_SIZE; i++) {
-            mrbc_release(&vm->regs[i]);
+            mrbc_release(&vm->regfile[i]);
         }
     }
-    vm->flag_preemption = 1;
+    vm->run = 0;
 
     return -1;
 }
@@ -1650,21 +1654,19 @@ __GURU__
 void mrbc_vm_begin(mrbc_vm *vm)
 {
     vm->pc_irep = vm->irep;
-    vm->pc = 0;
-    vm->current_regs = vm->regs;
-    MEMSET((uint8_t *)vm->regs, 0, sizeof(vm->regs));	// clean up registers
+    vm->pc 		= 0;
+    vm->reg 	= vm->regfile;
+
+    MEMSET((uint8_t *)vm->regfile, 0, sizeof(vm->regfile));	// clean up registers
 
     // set self to reg[0]
-    vm->regs[0].tt = MRBC_TT_CLASS;
-    vm->regs[0].cls = mrbc_class_object;
-
-    vm->callinfo_tail = NULL;
+    vm->regfile[0].tt  	= MRBC_TT_CLASS;
+    vm->regfile[0].cls 	= mrbc_class_object;
+    vm->calltop  		= NULL;
 
     // target_class
-    vm->target_class = mrbc_class_object;
-
-    vm->error_code = 0;
-    vm->flag_preemption = 0;
+    vm->klass = mrbc_class_object;
+    vm->run   = 1;
 }
 
 //================================================================
@@ -1690,14 +1692,13 @@ __GURU__
 int mrbc_vm_run(mrbc_vm *vm)
 {
     int ret = 0;
-
     do {
         // get one bytecode
         uint32_t code = _bin_to_uint32(vm->pc_irep->code + vm->pc * 4);
         vm->pc++;
 
         // regs
-        mrbc_value *regs = vm->current_regs;
+        mrbc_value *regs = vm->reg;
 
         // Dispatcher
         int opcode = GET_OPCODE(code);
@@ -1764,9 +1765,7 @@ int mrbc_vm_run(mrbc_vm *vm)
             console_printf("Skip OP=%02x\n", GET_OPCODE(code));
             break;
         }
-    } while(!vm->flag_preemption);
-
-    vm->flag_preemption = 0;
+    } while (vm->run);
 
     return ret;
 }
@@ -1802,6 +1801,16 @@ void guru_init_static(void)  // << from static.cu
 	mrbc_init_class();
 }
 
+__global__
+void guru_run_vm(mrbc_vm *vm)
+{
+	if (threadIdx.x!=0 || blockIdx.x!=0) return;
+
+	mrbc_vm_begin(vm);
+	mrbc_vm_run(vm);
+	mrbc_vm_end(vm);
+}
+
 void dump_irep(mrbc_irep *irep)
 {
 	printf("nlocals=%d, nregs=%d, rlen=%d, ilen=%d, plen=%d\n",
@@ -1815,4 +1824,10 @@ void dump_irep(mrbc_irep *irep)
 void dump_vm(mrbc_vm *vm)
 {
 	dump_irep(vm->irep);
+}
+
+void run_vm(mrbc_vm *vm)
+{
+	guru_run_vm<<<1,1>>>(vm);
+	dump_alloc_stat();
 }

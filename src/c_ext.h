@@ -40,30 +40,23 @@ typedef struct CALLINFO {
     mrbc_irep       *pc_irep;
     uint16_t        pc;
     mrbc_value      *current_regs;
-    mrbc_class      *target_class;
-    uint8_t         n_args;     // num of args
+    mrbc_class      *klass;
+    uint8_t         argc;     	// num of args
 } mrbc_callinfo;
 
 typedef struct VM {
     mrbc_irep      *irep;
-
-    uint8_t        vm_id; 		// vm_id: (1..vm_config.MAX_VM_COUNT)
-    const uint8_t  *mrb;   		// bytecode
-
+    mrbc_callinfo  *callinfo_tail;
+    mrbc_value     regfile[MAX_REGS_SIZE];
+    // callinfo
     mrbc_irep      *pc_irep;    // PC
     uint16_t       pc;         	// PC
 
     //  uint16_t   reg_top;
-    mrbc_value     regs[MAX_REGS_SIZE];
     mrbc_value     *current_regs;
-    mrbc_callinfo  *callinfo_tail;
+    mrbc_class     *klass;
 
-    mrbc_class     *target_class;
-
-    int32_t        error_code;
-
-    volatile int8_t flag_preemption;
-    volatile int8_t flag_need_memfree;
+    volatile int8_t run;
 } mrbc_vm;
 
 void guru_init_ext(mrbc_vm *vm, char *fname);
