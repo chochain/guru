@@ -1812,8 +1812,7 @@ void dump_irep(mrbc_irep *irep)
 			irep->plen);
 }
 
-void dump_vm(uint8_t *vm_ui8)
+void dump_vm(mrbc_vm *vm)
 {
-	mrbc_vm   *vm = (mrbc_vm *)vm_ui8;
 	dump_irep(vm->irep);
 }

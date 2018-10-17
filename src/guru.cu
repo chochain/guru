@@ -67,13 +67,11 @@ int _input_bytecode(guru_ses *ses, const char *rite_fname)
   return 0;
 }
 
-extern "C" void dump_irep(mrbc_irep *irep);
-
-int init_session(guru_ses *ses, const char *rite_fname)
+uint8_t *init_session(guru_ses *ses, const char *rite_fname)
 {
 	int rst = _input_bytecode(ses, rite_fname);
 
-	if (rst != 0) return -1;
+	if (rst != 0) return NULL;
 
 	void *mem = guru_malloc(BLOCK_MEMORY_SIZE, 1);
 
@@ -86,8 +84,6 @@ int init_session(guru_ses *ses, const char *rite_fname)
 	guru_parse_bytecode<<<1,1>>>(vm, ses->req);
 	dump_alloc_stat();
 
-	dump_irep(vm->irep);
-
-    return 0;
+	return (uint8_t *)vm;
 }
     

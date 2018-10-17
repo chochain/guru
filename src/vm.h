@@ -174,7 +174,7 @@ void _uint32_to_bin(uint32_t l, uint8_t *bin)
 }
 
 void dump_irep(mrbc_irep *irep);
-void dump_vm(uint8_t *vm_ui8);
+void dump_vm(mrbc_vm *vm);
 
 #ifdef __cplusplus
 }
