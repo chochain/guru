@@ -28,30 +28,31 @@ extern "C" {
 /*!@brief
   IREP Internal REPresentation
 */
-typedef struct IREP {
-    uint16_t 	nlocals;   	//!< # of local variables
-    uint16_t 	nregs;		//!< # of register variables
-    uint16_t 	rlen;		//!< # of child IREP blocks
-    uint16_t 	ilen;		//!< # of irep
-    uint16_t 	plen;		//!< # of pool
+typedef struct Irep {
+    uint16_t 	nlocals;   		//!< # of local variables
+    uint16_t 	nregs;			//!< # of register variables
+    uint16_t 	rlen;			//!< # of child IREP blocks
+    uint16_t 	ilen;			//!< # of irep
+    uint16_t 	plen;			//!< # of pool
 
-    uint8_t     *code;		//!< ISEQ (code) BLOCK
-    mrbc_object **pools;    //!< array of POOL objects pointer.
-    uint8_t     *ptr_to_sym;
-    struct IREP **reps;		//!< array of child IREP's pointer.
+    uint8_t     *code;			//!< ISEQ (code) BLOCK
+    uint8_t     *sym;
+
+    mrbc_object **pools;    	//!< array of POOL objects pointer.
+    struct Irep **reps;	//!< array of child IREP's pointer.
 } mrbc_irep;
 
 //================================================================
 /*!@brief
   Call information
 */
-typedef struct CALLINFO {
+typedef struct Callinfo {
     uint16_t        pc;
     uint16_t        argc;     // num of args
     mrbc_class      *klass;
     mrbc_value      *reg;
     mrbc_irep       *pc_irep;
-    struct CALLINFO *prev;
+    struct Callinfo *prev;
 } mrbc_callinfo;
 
 //================================================================
@@ -69,23 +70,24 @@ typedef struct VM {
     mrbc_class     	*klass;
     mrbc_value     	*reg;		// register top pointer
     mrbc_irep      	*pc_irep;   // PC
-    struct CALLINFO *prev;
+    struct Callinfo *prev;
 
     volatile int8_t run;
 } mrbc_vm;
 
-__GURU__ const char *mrbc_get_irep_symbol(const uint8_t *p, int n);
+__GURU__ const char *mrbc_get_symbol(const uint8_t *p, int n);
 __GURU__ const char *mrbc_get_callee_name(mrbc_vm *vm);
+__GURU__ mrbc_sym 	mrbc_get_symid(const uint8_t *p, int n);
 
-__GURU__ void mrbc_push_callinfo(mrbc_vm *vm, int n_args);
-__GURU__ void mrbc_pop_callinfo(mrbc_vm *vm);
+__GURU__ void 		mrbc_push_callinfo(mrbc_vm *vm, int n_args);
+__GURU__ void 		mrbc_pop_callinfo(mrbc_vm *vm);
 
-__GURU__ void     mrbc_vm_setup(mrbc_vm *vm);
-__GURU__ int      mrbc_vm_run(mrbc_vm *vm);
-__GURU__ void     mrbc_vm_teardown(mrbc_vm *vm);
+__GURU__ void     	mrbc_vm_setup(mrbc_vm *vm);
+__GURU__ int      	mrbc_vm_run(mrbc_vm *vm);
+__GURU__ void     	mrbc_vm_teardown(mrbc_vm *vm);
 
 //<< from value.hu
-__GURU__ void mrbc_free_ireplist(mrbc_irep *irep);
+__GURU__ void 		mrbc_free_ireplist(mrbc_irep *irep);
 
 //<< from static.hu
 __global__ void guru_init_static(void);

@@ -103,7 +103,7 @@ int load_irep_1(mrbc_irep *irep, const uint8_t **pos)
     }
 #endif
     // SYMS BLOCK
-    irep->ptr_to_sym = (uint8_t*)p;
+    irep->sym = (uint8_t*)p;
     int sym_cnt = bin_to_uint32(p);		p += sizeof(uint32_t);
     while (--sym_cnt >= 0) {
         int len = bin_to_uint16(p);

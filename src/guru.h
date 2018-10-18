@@ -33,9 +33,9 @@ typedef struct guru_ses_ {
 } guru_ses;
 
 // mrbc types
-typedef int32_t mrbc_int;
-typedef float 	mrbc_float;
-typedef int16_t mrbc_sym;
+typedef int32_t 	mrbc_int;
+typedef float 		mrbc_float;
+typedef int16_t 	mrbc_sym;
 
 //================================================================
 /*!@brief
@@ -126,7 +126,7 @@ typedef struct RInstance {
   Guru proc object.
 */
 /* forward declaration */
-struct IREP;
+struct Irep;
 typedef void (*mrbc_func_t)(mrbc_object *v, int argc);
 
 typedef struct RProc {
@@ -136,7 +136,7 @@ typedef struct RProc {
     mrbc_sym sym_id;
     struct RProc *next;
     union {
-        struct IREP *irep;
+        struct Irep *irep;
         mrbc_func_t func;
     };
 #ifdef MRBC_DEBUG
