@@ -53,7 +53,7 @@ int mrbc_print_sub(mrbc_value *v)
     case MRBC_TT_TRUE:	    console_print("true");		break;
     case MRBC_TT_FIXNUM:	console_printf("%d", v->i);	break;
 #if MRBC_USE_FLOAT
-    case MRBC_TT_FLOAT:    console_printf("%g", v->d);	break;
+    case MRBC_TT_FLOAT:    console_printf("%g", v->f);	break;
 #endif
     case MRBC_TT_SYMBOL:
         console_print(mrbc_symbol_cstr(v));             break;
@@ -121,19 +121,17 @@ int mrbc_print_sub(mrbc_value *v)
 __GURU__
 int mrbc_puts_sub(mrbc_value *v)
 {
-#if MRBC_USE_ARRAY
     if (v->tt == MRBC_TT_ARRAY) {
+#if MRBC_USE_ARRAY
         for (int i = 0; i < mrbc_array_size(v); i++) {
             if (i != 0) console_putchar('\n');
             mrbc_value v1 = mrbc_array_get(v, i);
             mrbc_puts_sub(&v1);
         }
+#endif
         return 0;
     }
     return mrbc_print_sub(v);
-#else
-    return 0;
-#endif
 }
 
 //================================================================
@@ -562,9 +560,9 @@ void c_object_new(mrbc_value v[], int argc)
         0,     // rlen
         2,     // ilen
         0,     // plen
-        (uint8_t *)code,   // iseq
+        (uint8_t *)code,   	// iseq
+        (uint8_t *)syms,  	// ptr_to_sym
         NULL,  // pools
-        (uint8_t *)syms,  // ptr_to_sym
         NULL,  // reps
     };
 

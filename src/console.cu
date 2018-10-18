@@ -16,18 +16,17 @@
 #include "value.h"
 #include "console.h"
 
-extern __GURU__ char *guru_output_buffer;
+extern __GURU__ char *guru_output;
+extern __GURU__ char *guru_output_ptr;
 
 __GURU__
 void guru_write(int fd, const char *buf, int nbytes)
 {
-    int  i;
-    for (i=0; i<nbytes && i<MAX_BUFFER_SIZE-1; i++) {
-        guru_output_buffer[i] = buf[i];
-    }
-    guru_output_buffer[i] = '\0';
-    
-    printf("%s", guru_output_buffer);
+    MEMCPY((uint8_t *)guru_output_ptr, (uint8_t *)buf, nbytes);
+
+    guru_output_ptr += nbytes;
+    *guru_output_ptr = '\0';
+    guru_output_ptr++;
 }
 
 //================================================================
@@ -72,13 +71,13 @@ void console_nprint(const char *str, int size)
   @param  size	buffer size.
   @param  fstr	format string.
 */
-__GURU__ __forceinline__
+__GURU__
 void mrbc_printf_init(mrbc_printf *pf, char *buf, int size, const char *fstr)
 {
     pf->p = pf->buf = buf;
     pf->buf_end = buf + size - 1;
-    pf->fstr = fstr;
-    pf->fmt = (struct RPrintfFormat){0};
+    pf->fstr 	= fstr;
+    pf->fmt 	= (struct RPrintfFormat){0};
 }
 
 //================================================================
@@ -86,7 +85,7 @@ void mrbc_printf_init(mrbc_printf *pf, char *buf, int size, const char *fstr)
 
   @param  pf	pointer to mrbc_printf
 */
-__GURU__ __forceinline__
+__GURU__
 void mrbc_printf_clear(mrbc_printf *pf)
 {
     pf->p = pf->buf;
@@ -98,7 +97,7 @@ void mrbc_printf_clear(mrbc_printf *pf)
 
   @param  pf	pointer to mrbc_printf
 */
-__GURU__ __forceinline__
+__GURU__
 void mrbc_printf_end(mrbc_printf *pf)
 {
     *pf->p = '\0';
@@ -111,7 +110,7 @@ void mrbc_printf_end(mrbc_printf *pf)
   @param  pf	pointer to mrbc_printf
   @return	length
 */
-__GURU__ __forceinline__
+__GURU__
 int mrbc_printf_len(mrbc_printf *pf)
 {
     return pf->p - pf->buf;
@@ -128,7 +127,7 @@ int mrbc_printf_len(mrbc_printf *pf)
   @retval -1	buffer full.
   @note		not terminate ('\0') buffer tail.
 */
-__GURU__ __forceinline__
+__GURU__
 int mrbc_printf_str(mrbc_printf *pf, const char *str, int pad)
 {
     return mrbc_printf_bstr(pf, str, guru_strlen(str), pad);
@@ -199,7 +198,6 @@ void console_printf(const char *fstr, ...)
             default:
                 break;
             }
-
             guru_write(1, buf, mrbc_printf_len(&pf));
             mrbc_printf_clear(&pf);
         }
@@ -234,7 +232,6 @@ int mrbc_printf_main(mrbc_printf *pf)
         *pf->p++ = ch;
     }
     return -(ch != '\0');
-
 
 PARSE_FLAG:
     // parse format - '%' [flag] [width] [.precision] type
@@ -441,7 +438,7 @@ __GURU__
 void mrbc_printf_replace_buffer(mrbc_printf *pf, char *buf, int size)
 {
     int p_ofs = pf->p - pf->buf;
-    pf->buf = buf;
+    pf->buf 	= buf;
     pf->buf_end = buf + size - 1;
-    pf->p = pf->buf + p_ofs;
+    pf->p 		= pf->buf + p_ofs;
 }

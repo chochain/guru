@@ -11,14 +11,14 @@
 #include "load.h"
 
 __GURU__
-uint8_t *guru_output_buffer;		// global output buffer for now, per session later
+uint8_t *guru_output, *guru_output_ptr;	// global output buffer for now, per session later
 
 __global__
 void _guru_set_console_buf(uint8_t *buf)
 {
 	if (threadIdx.x!=0 || blockIdx.x !=0) return;
 
-	guru_output_buffer = buf;
+	guru_output = guru_output_ptr = buf;
 }
 
 extern "C" void *guru_malloc(size_t sz, int mem_type);

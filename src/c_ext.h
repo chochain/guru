@@ -30,8 +30,8 @@ typedef struct IREP {
     uint16_t 	plen;		//!< # of pool
 
     uint8_t     *code;		//!< ISEQ (code) BLOCK
+    uint8_t     *sym;
     mrbc_object **pools;    //!< array of POOL objects pointer.
-    uint8_t     *ptr_to_sym;
     struct IREP **reps;		//!< array of child IREP's pointer.
 } mrbc_irep;
 
