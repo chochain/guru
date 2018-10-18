@@ -138,12 +138,6 @@ void _add_free_block(free_block *target)
         target->next->prev = target;
     }
     free_list[index] = target;
-
-#ifdef MRBC_DEBUG
-//    uint8_t *addr = (uint8_t *)target + sizeof(free_block);
-//    uint16_t sz   = target->size - sizeof(free_block);
-//    MEMSET((uint8_t *)(target + sizeof(free_block)), 0xff, target->size - sizeof(free_block));
-#endif
 }
 
 //================================================================

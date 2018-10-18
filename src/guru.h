@@ -70,11 +70,11 @@ typedef enum {
   Guru value object.
 */
 typedef struct RObject {
-    mrbc_vtype            tt:8;
+    mrbc_vtype           tt:32;
     union {
-        mrbc_int          i;		// MRBC_TT_FIXNUM, SYMBOL
+        mrbc_int         i;			// MRBC_TT_FIXNUM, SYMBOL
 #if MRBC_USE_FLOAT
-        mrbc_float        d;		// MRBC_TT_FLOAT
+        mrbc_float       f;			// MRBC_TT_FLOAT
 #endif
         struct RClass    *cls;		// MRBC_TT_CLASS
         struct RObject   *handle;	// handle to objects
@@ -98,16 +98,16 @@ typedef struct RObject {
 */
 typedef struct RClass {
     mrbc_sym       sym_id;	// class name
+    struct RClass *super;	// mrbc_class[super]
+    struct RProc  *procs;	// mrbc_proc[rprocs], linked list
 #ifdef MRBC_DEBUG
     const char    *names;	// for debug. delete soon.
 #endif
-    struct RClass *super;	// mrbc_class[super]
-    struct RProc  *procs;	// mrbc_proc[rprocs], linked list
 } mrbc_class;
 
 #define MRBC_OBJECT_HEADER                          \
-    uint16_t 	ref_count;                          \
-    mrbc_vtype 	tt : 8  	// TODO: for debug use only.
+    mrbc_vtype  tt : 16; 							\
+	uint16_t 	ref_count
 
 //================================================================
 /*!@brief
@@ -134,14 +134,14 @@ typedef struct RProc {
 
     unsigned int c_func : 1;	// 0:IREP, 1:C Func
     mrbc_sym sym_id;
-#ifdef MRBC_DEBUG
-    const char *names;			// for debug; delete soon
-#endif
     struct RProc *next;
     union {
         struct IREP *irep;
         mrbc_func_t func;
     };
+#ifdef MRBC_DEBUG
+    const char *names;			// for debug; delete soon
+#endif
 } mrbc_proc;
 
 uint8_t *init_session(guru_ses *ses, const char *rite_fname);

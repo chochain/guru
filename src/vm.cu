@@ -155,6 +155,7 @@ int op_move(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     int rb = GETARG_B(code);
 
     mrbc_release(&regs[ra]);
+
     mrbc_dup(&regs[rb]);
     regs[ra] = regs[rb];
 
@@ -204,7 +205,6 @@ int op_loadi(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 {
     int ra = GETARG_A(code);
 
-    mrbc_release(&regs[ra]);
     regs[ra].tt = MRBC_TT_FIXNUM;
     regs[ra].i = GETARG_sBx(code);
 
@@ -227,10 +227,10 @@ int op_loadsym(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 {
     int ra = GETARG_A(code);
     int rb = GETARG_Bx(code);
+
     const char *sym_name = mrbc_get_irep_symbol(vm->pc_irep->ptr_to_sym, rb);
     mrbc_sym sym_id = str_to_symid(sym_name);
 
-    mrbc_release(&regs[ra]);
     regs[ra].tt = MRBC_TT_SYMBOL;
     regs[ra].i = sym_id;
 
@@ -253,7 +253,6 @@ int op_loadnil(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 {
     int ra = GETARG_A(code);
 
-    mrbc_release(&regs[ra]);
     regs[ra].tt = MRBC_TT_NIL;
 
     return 0;
@@ -298,7 +297,6 @@ int op_loadt(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 {
     int ra = GETARG_A(code);
 
-    mrbc_release(&regs[ra]);
     regs[ra].tt = MRBC_TT_TRUE;
 
     return 0;
@@ -320,7 +318,6 @@ int op_loadf(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 {
     int ra = GETARG_A(code);
 
-    mrbc_release(&regs[ra]);
     regs[ra].tt = MRBC_TT_FALSE;
 
     return 0;
@@ -899,19 +896,19 @@ int op_sub(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
             return 0;
         }
 #if MRBC_USE_FLOAT
-        if (regs[ra+1].tt==MRBC_TT_FLOAT) {	// in case of Fixnum, Float
+        if (regs[ra+1].tt==MRBC_TT_FLOAT) {		// in case of Fixnum, Float
             regs[ra].tt = MRBC_TT_FLOAT;
-            regs[ra].d = regs[ra].i - regs[ra+1].d;
+            regs[ra].f = regs[ra].i - regs[ra+1].f;
             return 0;
         }
     }
     if (regs[ra].tt==MRBC_TT_FLOAT) {
         if (regs[ra+1].tt==MRBC_TT_FIXNUM) {	// in case of Float, Fixnum
-            regs[ra].d -= regs[ra+1].i;
+            regs[ra].f -= regs[ra+1].i;
             return 0;
         }
-        if (regs[ra+1].tt==MRBC_TT_FLOAT) {	// in case of Float, Float
-            regs[ra].d -= regs[ra+1].d;
+        if (regs[ra+1].tt==MRBC_TT_FLOAT) {		// in case of Float, Float
+            regs[ra].f -= regs[ra+1].f;
             return 0;
         }
 #endif
@@ -946,7 +943,7 @@ int op_subi(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 
 #if MRBC_USE_FLOAT
     if (regs[ra].tt==MRBC_TT_FLOAT) {
-        regs[ra].d -= GETARG_C(code);
+        regs[ra].f -= GETARG_C(code);
         return 0;
     }
 #endif
@@ -979,17 +976,17 @@ int op_mul(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 #if MRBC_USE_FLOAT
         if (regs[ra+1].tt==MRBC_TT_FLOAT) {	// in case of Fixnum, Float
             regs[ra].tt = MRBC_TT_FLOAT;
-            regs[ra].d = regs[ra].i * regs[ra+1].d;
+            regs[ra].f = regs[ra].i * regs[ra+1].f;
             return 0;
         }
     }
     if (regs[ra].tt==MRBC_TT_FLOAT) {
         if (regs[ra+1].tt==MRBC_TT_FIXNUM) {	// in case of Float, Fixnum
-            regs[ra].d *= regs[ra+1].i;
+            regs[ra].f *= regs[ra+1].i;
             return 0;
         }
         if (regs[ra+1].tt==MRBC_TT_FLOAT) {	// in case of Float, Float
-            regs[ra].d *= regs[ra+1].d;
+            regs[ra].f *= regs[ra+1].f;
             return 0;
         }
 #endif
@@ -1023,19 +1020,19 @@ int op_div(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
             return 0;
         }
 #if MRBC_USE_FLOAT
-        if (regs[ra+1].tt==MRBC_TT_FLOAT) {	// in case of Fixnum, Float
+        if (regs[ra+1].tt==MRBC_TT_FLOAT) {		// in case of Fixnum, Float
             regs[ra].tt = MRBC_TT_FLOAT;
-            regs[ra].d = regs[ra].i / regs[ra+1].d;
+            regs[ra].f = regs[ra].i / regs[ra+1].f;
             return 0;
         }
     }
     if (regs[ra].tt==MRBC_TT_FLOAT) {
         if (regs[ra+1].tt==MRBC_TT_FIXNUM) {	// in case of Float, Fixnum
-            regs[ra].d /= regs[ra+1].i;
+            regs[ra].f /= regs[ra+1].i;
             return 0;
         }
-        if (regs[ra+1].tt==MRBC_TT_FLOAT) {	// in case of Float, Float
-            regs[ra].d /= regs[ra+1].d;
+        if (regs[ra+1].tt==MRBC_TT_FLOAT) {		// in case of Float, Float
+            regs[ra].f /= regs[ra+1].f;
             return 0;
         }
 #endif
@@ -1835,7 +1832,7 @@ void run_vm(mrbc_vm *vm)
 	cudaDeviceGetLimit((size_t *)&sz, cudaLimitStackSize);
 	printf("defaultStackSize %d\n", sz);
 
-	cudaDeviceSetLimit(cudaLimitStackSize, (size_t)sz*2);
+	cudaDeviceSetLimit(cudaLimitStackSize, (size_t)sz*4);
 	guru_run_vm<<<1,1>>>(vm);
 	dump_alloc_stat();
 }

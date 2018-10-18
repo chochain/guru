@@ -22,12 +22,12 @@
 
 /* maximum size of registers */
 #ifndef MAX_REGS_SIZE
-#define MAX_REGS_SIZE 64
+#define MAX_REGS_SIZE 16
 #endif
 
 /* maximum size of callinfo (callstack) */
-#ifndef MAX_CALLINFO_SIZE
-#define MAX_CALLINFO_SIZE 100
+#ifndef MAX_CALL_STACK
+#define MAX_CALL_STACK 100
 #endif
 
 /* maximum number of objects */
