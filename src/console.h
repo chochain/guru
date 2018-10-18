@@ -17,7 +17,6 @@
 #include <stdint.h>
 #include <stdarg.h>
 #include <string.h>
-#include "guru.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -47,15 +46,11 @@ typedef struct RPrintf {
 
 __GURU__ void console_printf(const char *fstr, ...);
 __GURU__ void console_print(const char *str);
+__GURU__ void console_nprint(const char *str, int size);
 __GURU__ void console_putchar(char c);
-    
-__GURU__ int  mrbc_printf_main(mrbc_printf *pf);
-__GURU__ int  mrbc_printf_char(mrbc_printf *pf, int ch);
-__GURU__ int  mrbc_printf_bstr(mrbc_printf *pf, const char *str, int len, int pad);
-__GURU__ int  mrbc_printf_int(mrbc_printf *pf, mrbc_int value, int base);
-__GURU__ int  mrbc_printf_float(mrbc_printf *pf, double value);
-__GURU__ void mrbc_printf_replace_buffer(mrbc_printf *pf, char *buf, int size);
 
+__global__ void guru_init_console_buf(uint8_t *buf, size_t sz);
+    
 #ifdef __cplusplus
 }
 #endif

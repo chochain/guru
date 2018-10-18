@@ -8,24 +8,14 @@
 */
 #include <stdio.h>
 #include "guru.h"
+#include "console.h"
 #include "load.h"
-
-__GURU__
-uint8_t *guru_output, *guru_output_ptr;	// global output buffer for now, per session later
-
-__global__
-void _guru_set_console_buf(uint8_t *buf)
-{
-	if (threadIdx.x!=0 || blockIdx.x !=0) return;
-
-	guru_output = guru_output_ptr = buf;
-}
 
 extern "C" void *guru_malloc(size_t sz, int mem_type);
 extern "C" void dump_alloc_stat(void);
 
-extern "C" __global__ void guru_init_alloc(void *ptr, unsigned int sz);
-extern "C" __global__ void guru_init_static(void);
+extern "C" __global__ void guru_init_alloc(void *ptr, unsigned int sz);	// in alloc.cu
+extern "C" __global__ void guru_init_static(void);						// in vm.cu
 
 int _alloc_session(guru_ses *ses, size_t req_sz, size_t res_sz)
 {
@@ -34,7 +24,7 @@ int _alloc_session(guru_ses *ses, size_t req_sz, size_t res_sz)
 
 	if (!ses->req || !ses->res) return 1;
 
-    _guru_set_console_buf<<<1,1>>>(ses->res);
+    guru_init_console_buf<<<1,1>>>(ses->res, res_sz);
 
     return (cudaSuccess==cudaGetLastError()) ? 0 : 1;
 }

@@ -47,26 +47,21 @@ int mrbc_print_sub(mrbc_value *v)
     int ret = 0;
 
     switch (v->tt){
-    case MRBC_TT_EMPTY:	    console_print("(empty)");	break;
-    case MRBC_TT_NIL:					                break;
-    case MRBC_TT_FALSE:	    console_print("false");		break;
-    case MRBC_TT_TRUE:	    console_print("true");		break;
-    case MRBC_TT_FIXNUM:	console_printf("%d", v->i);	break;
+    case MRBC_TT_EMPTY:	    console_print("(empty)");						break;
+    case MRBC_TT_NIL:					                					break;
+    case MRBC_TT_FALSE:	    console_print("false");							break;
+    case MRBC_TT_TRUE:	    console_print("true");							break;
+    case MRBC_TT_FIXNUM:	console_printf("%d", v->i);						break;
 #if MRBC_USE_FLOAT
-    case MRBC_TT_FLOAT:    console_printf("%g", v->f);	break;
+    case MRBC_TT_FLOAT:     console_printf("%g", v->f);						break;
 #endif
-    case MRBC_TT_SYMBOL:
-        console_print(mrbc_symbol_cstr(v));             break;
-    case MRBC_TT_CLASS:
-        console_print(symid_to_str(v->cls->sym_id));    break;
+    case MRBC_TT_SYMBOL:    console_print(mrbc_symbol_cstr(v)); 			break;
+    case MRBC_TT_CLASS:     console_print(symid_to_str(v->cls->sym_id));    break;
     case MRBC_TT_OBJECT:
         console_printf("#<%s:", symid_to_str(find_class_by_object(v)->sym_id));
         console_printf("%08x>", v->instance);
         break;
-
-    case MRBC_TT_PROC:
-        console_printf("#<Proc:%08x>", v->proc);      break;
-
+    case MRBC_TT_PROC:      console_printf("#<Proc:%08x>", v->proc);      	break;
 #if MRBC_USE_STRING
     case MRBC_TT_STRING:
         console_nprint(mrbc_string_cstr(v), mrbc_string_size(v));
@@ -75,7 +70,7 @@ int mrbc_print_sub(mrbc_value *v)
         break;
 #endif
 #if MRBC_USE_ARRAY
-    case MRBC_TT_ARRAY:{
+    case MRBC_TT_ARRAY: {
         console_putchar('[');
         for (int i = 0; i < mrbc_array_size(v); i++) {
             if (i != 0) console_print(", ");
@@ -94,7 +89,7 @@ int mrbc_print_sub(mrbc_value *v)
     case MRBC_TT_HASH:{
         console_putchar('{');
         mrbc_hash_iterator ite = mrbc_hash_iterator_new(v);
-        while(mrbc_hash_i_has_next(&ite)) {
+        while (mrbc_hash_i_has_next(&ite)) {
             mrbc_value *vk = mrbc_hash_i_next(&ite);
             mrbc_p_sub(vk);
             console_print("=>");
@@ -104,9 +99,7 @@ int mrbc_print_sub(mrbc_value *v)
         console_putchar('}');
     } break;
 #endif
-    default:
-        console_printf("Not support MRBC_TT_XX(%d)", v->tt);
-        break;
+    default:	console_printf("Not support MRBC_TT_XX(%d)", v->tt);	break;
     }
     return ret;
 }
@@ -157,7 +150,7 @@ int mrbc_p_sub(mrbc_value *v)
         const char *s = mrbc_string_cstr(v);
 
         for (int i = 0; i < mrbc_string_size(v); i++) {
-            if (s[i] < ' ' || 0x7f <= s[i]) {	// tiny isprint()
+            if (s[i] < ' ' || 0x7f <= s[i]) {		// tiny isprint()
                 console_printf("\\x%02x", s[i]);
             } else {
                 console_putchar(s[i]);
@@ -235,9 +228,9 @@ mrbc_proc *find_method(mrbc_value recv, mrbc_sym sym_id)
 {
     mrbc_class *cls = find_class_by_object(&recv);
 
-    while(cls != 0) {
+    while (cls != 0) {
         mrbc_proc *proc = cls->procs;
-        while(proc != 0) {
+        while (proc != 0) {
             if (proc->sym_id == sym_id) {
                 return proc;
             }
@@ -261,37 +254,28 @@ mrbc_class * mrbc_define_class(const char *name, mrbc_class *super)
 {
     if (super == NULL) super = mrbc_class_object;  // set default to Object.
 
-    mrbc_sym sym_id = str_to_symid(name);
-    mrbc_object obj = const_object_get(sym_id);
+    mrbc_class *cls = mrbc_get_class_by_name(name);
+    if (cls) return cls;
 
     // create a new class?
-    if (obj.tt == MRBC_TT_NIL) {
-        mrbc_class *cls = (mrbc_class *)mrbc_alloc(sizeof(mrbc_class));
-        if (!cls) return cls;		// ENOMEM
+    cls = (mrbc_class *)mrbc_alloc(sizeof(mrbc_class));
+    if (!cls) return NULL;			// ENOMEM
 
-        cls->sym_id = sym_id;
+    mrbc_sym sym_id = str_to_symid(name);
+
+    cls->sym_id = sym_id;
+    cls->super 	= super;
+    cls->procs 	= 0;
 #ifdef MRBC_DEBUG
-        cls->names = name;			// for debug; delete soon.
+    cls->names 	= name;			// for debug; delete soon.
 #endif
-        cls->super = super;
-        cls->procs = 0;
 
-        // register to global constant.
-        mrbc_value v = { .tt = MRBC_TT_CLASS };
-        v.cls = cls;
-        const_object_add(sym_id, &v);
+    // register to global constant.
+    mrbc_value v = { .tt = MRBC_TT_CLASS };
+    v.cls = cls;
+    const_object_add(sym_id, &v);
 
-        return cls;
-    }
-
-    // already?
-    if (obj.tt == MRBC_TT_CLASS) {
-        return obj.cls;
-    }
-
-    // error.
-    assert(1==0);   // raise TypeError
-    return NULL;
+    return cls;
 }
 
 //================================================================
@@ -325,11 +309,11 @@ void mrbc_define_method(mrbc_class *cls, const char *name, mrbc_func_t cfunc)
 
     mrbc_proc *proc = mrbc_proc_alloc(name);
 
-    proc->c_func= 1;  			// c-func
-    proc->func 	= cfunc;
-    proc->next 	= cls->procs;
+    proc->c_func	= 1;  			// c-func
+    proc->func 		= cfunc;
+    proc->next 		= cls->procs;
 
-    cls->procs 	= proc;
+    cls->procs 		= proc;
 }
 
 // Call a method
@@ -347,8 +331,8 @@ void mrbc_define_method(mrbc_class *cls, const char *name, mrbc_func_t cfunc)
 __GURU__
 void mrbc_funcall(mrbc_vm *vm, const char *name, mrbc_value *v, int argc)
 {
-    mrbc_sym sym_id = str_to_symid(name);
-    mrbc_proc *m = find_method(v[0], sym_id);
+    mrbc_sym  sym_id = str_to_symid(name);
+    mrbc_proc *m     = find_method(v[0], sym_id);
 
     if (m==0) return;   // no method
 
@@ -393,8 +377,8 @@ __GURU__
 mrbc_value mrbc_send(mrbc_value *v, int reg_ofs,
                       mrbc_value *recv, const char *method, int argc, ...)
 {
-    mrbc_sym sym_id = str_to_symid(method);
-    mrbc_proc *m = find_method(*recv, sym_id);
+    mrbc_sym  sym_id = str_to_symid(method);
+    mrbc_proc *m     = find_method(*recv, sym_id);
     mrbc_value *regs = v + reg_ofs + 2;
 
     if (m == 0) {
@@ -451,7 +435,7 @@ void c_nop(mrbc_value v[], int argc)
 __GURU__
 void c_p(mrbc_value v[], int argc)
 {
-    for (int i=1; i<=argc; i++) {
+    for (int i = 1; i <= argc; i++) {
         mrbc_p_sub(&v[i]);
         console_putchar('\n');
     }
@@ -664,7 +648,7 @@ void c_object_kind_of(mrbc_value v[], int argc)
         if (result) break;
 
         cls = cls->super;
-    } while(cls != NULL);
+    } while (cls != NULL);
 }
 
 #if MRBC_USE_STRING
@@ -678,16 +662,13 @@ void c_object_to_s(mrbc_value v[], int argc)
     const char *s = buf;
 
     switch (v->tt) {
-    case MRBC_TT_CLASS:
-        s = symid_to_str(v->cls->sym_id);
-        break;
-
-    case MRBC_TT_OBJECT:{
+    case MRBC_TT_CLASS: s = symid_to_str(v->cls->sym_id);	break;
+    case MRBC_TT_OBJECT: {
         // (NOTE) address part assumes 32bit. but enough for this.
         mrbc_printf pf;
 
         mrbc_printf_init(&pf, buf, sizeof(buf), "#<%s:%08x>");
-        while(mrbc_printf_main(&pf) > 0) {
+        while (mrbc_printf_parse(&pf) > 0) {
             switch (pf.fmt.type) {
             case 's':
                 mrbc_printf_str(&pf, symid_to_str(v->instance->cls->sym_id), ' ');
@@ -700,9 +681,7 @@ void c_object_to_s(mrbc_value v[], int argc)
         mrbc_printf_end(&pf);
     } break;
 
-    default:
-        s = "";
-        break;
+    default: s = "";	break;
     }
 
     SET_RETURN(mrbc_string_new_cstr(vm, s));
@@ -713,30 +692,28 @@ __GURU__
 void mrbc_init_class_object()
 {
     // Class
-    mrbc_class *o = mrbc_class_object = mrbc_define_class("Object", NULL);
+    mrbc_class *c = mrbc_class_object = mrbc_define_class("Object", NULL);
 
     // Methods
-    mrbc_define_method(o, "initialize",    c_nop);
-    mrbc_define_method(o, "puts",          c_puts);
-    mrbc_define_method(o, "print",         c_print);
-    mrbc_define_method(o, "!",             c_object_not);
-    mrbc_define_method(o, "!=",            c_object_neq);
-    mrbc_define_method(o, "<=>",           c_object_compare);
-    mrbc_define_method(o, "===",           (mrbc_func_t)c_object_equal3);
-    mrbc_define_method(o, "class",         c_object_class);
-    mrbc_define_method(o, "new",           (mrbc_func_t)c_object_new);
-    mrbc_define_method(o, "attr_reader",   c_object_attr_reader);
-    mrbc_define_method(o, "attr_accessor", c_object_attr_accessor);
-    mrbc_define_method(o, "is_a?",         c_object_kind_of);
-    mrbc_define_method(o, "kind_of?",      c_object_kind_of);
-
+    mrbc_define_method(c, "initialize",    	c_nop);
+    mrbc_define_method(c, "puts",          	c_puts);
+    mrbc_define_method(c, "print",         	c_print);
+    mrbc_define_method(c, "!",             	c_object_not);
+    mrbc_define_method(c, "!=",            	c_object_neq);
+    mrbc_define_method(c, "<=>",           	c_object_compare);
+    mrbc_define_method(c, "===",           	(mrbc_func_t)c_object_equal3);
+    mrbc_define_method(c, "class",         	c_object_class);
+    mrbc_define_method(c, "new",           	(mrbc_func_t)c_object_new);
+    mrbc_define_method(c, "attr_reader",   	c_object_attr_reader);
+    mrbc_define_method(c, "attr_accessor", 	c_object_attr_accessor);
+    mrbc_define_method(c, "is_a?",         	c_object_kind_of);
+    mrbc_define_method(c, "kind_of?",      	c_object_kind_of);
 #if MRBC_USE_STRING
-    mrbc_define_method(mrbc_class_object, "inspect",       c_object_to_s);
-    mrbc_define_method(mrbc_class_object, "to_s",          c_object_to_s);
+    mrbc_define_method(c, "inspect",       	c_object_to_s);
+    mrbc_define_method(c, "to_s",          	c_object_to_s);
 #endif
-
 #ifdef MRBC_DEBUG
-    mrbc_define_method(mrbc_class_object, "p", c_p);
+    mrbc_define_method(c, "p", 				c_p);
 #endif
 }
 
@@ -758,7 +735,7 @@ void c_proc_to_s(mrbc_value v[], int argc)
     mrbc_printf pf;
 
     mrbc_printf_init(&pf, buf, sizeof(buf), "<#Proc:%08x>");
-    while(mrbc_printf_main(&pf) > 0) {
+    while (mrbc_printf_parse(&pf) > 0) {
         mrbc_printf_int(&pf, (uintptr_t)v->proc, 16);
     }
     mrbc_printf_end(&pf);
@@ -771,12 +748,12 @@ __GURU__
 void mrbc_init_class_proc()
 {
     // Class
-    mrbc_class_proc= mrbc_define_class("Proc", mrbc_class_object);
+    mrbc_class *c = mrbc_class_proc = mrbc_define_class("Proc", mrbc_class_object);
     // Methods
-    mrbc_define_method(mrbc_class_proc, "call", (mrbc_func_t)c_proc_call);
+    mrbc_define_method(c, "call", (mrbc_func_t)c_proc_call);
 #if MRBC_USE_STRING
-    mrbc_define_method(mrbc_class_proc, "inspect", c_proc_to_s);
-    mrbc_define_method(mrbc_class_proc, "to_s", c_proc_to_s);
+    mrbc_define_method(c, "inspect", 	c_proc_to_s);
+    mrbc_define_method(c, "to_s", 		c_proc_to_s);
 #endif
 }
 
@@ -819,12 +796,12 @@ __GURU__
 void mrbc_init_class_nil()
 {
     // Class
-    mrbc_class_nil = mrbc_define_class("NilClass", mrbc_class_object);
+    mrbc_class *c = mrbc_class_nil = mrbc_define_class("NilClass", mrbc_class_object);
     // Methods
-    mrbc_define_method(mrbc_class_nil, "!", c_nil_false_not);
+    mrbc_define_method(c, "!", 			c_nil_false_not);
 #if MRBC_USE_STRING
-    mrbc_define_method(mrbc_class_nil, "inspect", c_nil_inspect);
-    mrbc_define_method(mrbc_class_nil, "to_s", c_nil_to_s);
+    mrbc_define_method(c, "inspect", 	c_nil_inspect);
+    mrbc_define_method(c, "to_s", 		c_nil_to_s);
 #endif
 }
 
