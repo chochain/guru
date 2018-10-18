@@ -162,7 +162,7 @@ REDO:
     }
 
     int ch;
-    while((ch = *s++) != '\0') {
+    while ((ch = *s++) != '\0') {
         int n;
 
         if ('a' <= ch) {

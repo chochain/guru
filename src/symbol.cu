@@ -62,7 +62,7 @@ __GURU__ int search_index(uint16_t hash, const char *str)
         } else {
             i = sym_index[i].right;
         }
-    } while(i != 0);
+    } while (i != 0);
     return -1;
 #endif
 }
@@ -87,7 +87,7 @@ __GURU__ int add_index(uint16_t hash, const char *str)
 #ifdef MRBC_SYMBOL_SEARCH_BTREE
     int i = 0;
 
-    while(1) {
+    while (1) {
         if (hash < sym_index[i].hash) {
             // left side
             if (sym_index[i].left==0) {	// left is empty?
@@ -147,7 +147,7 @@ __GURU__ uint16_t calc_hash(const char *str)
 {
     uint16_t h = 0;
 
-    while(*str != '\0') {
+    while (*str != '\0') {
         h = h * 37 + *str;
         str++;
     }
@@ -179,10 +179,9 @@ __GURU__ mrbc_sym str_to_symid(const char *str)
 */
 __GURU__ const char * symid_to_str(mrbc_sym sym_id)
 {
-    if (sym_id < 0) return NULL;
-    if (sym_id >= sym_index_pos) return NULL;
-
-    return sym_index[sym_id].cstr;
+    return (sym_id < 0 || sym_id >= sym_index_pos)
+    		? NULL
+    		: sym_index[sym_id].cstr;
 }
 
 #if MRBC_USE_ARRAY

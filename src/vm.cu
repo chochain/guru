@@ -46,7 +46,7 @@ const char * mrbc_get_symbol(const uint8_t *p, int n)
     int cnt = _bin_to_uint32(p);
     if (n >= cnt) return 0;
     p += 4;
-    while(n > 0) {
+    while (n > 0) {
         uint16_t s = _bin_to_uint16(p);
         p += 2+s+1;   // size(2 bytes) + symbol len + '\0'
         n--;
@@ -84,7 +84,7 @@ const char *mrbc_get_callee_name(mrbc_vm *vm)
 __GURU__
 void not_supported(void)
 {
-    console_printf("Not supported!\n");
+    console_print("Not supported!\n");
 }
 
 //================================================================
@@ -494,7 +494,7 @@ int op_getupvar(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 
     // find callinfo
     int n = rc * 2 + 1;
-    while(n > 0){
+    while (n > 0){
         ci = ci->prev;
         n--;
     }
@@ -529,7 +529,7 @@ int op_setupvar(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 
     // find callinfo
     int n = rc * 2 + 1;
-    while(n > 0){
+    while (n > 0){
         ci = ci->prev;
         n--;
     }
@@ -656,7 +656,7 @@ int op_send(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
         if ((void (*))m->func==(void (*))c_proc_call) return 0;
 
         int release_reg = ra+1;
-        while(release_reg <= bidx) {
+        while (release_reg <= bidx) {
             mrbc_release(&regs[release_reg]);
             release_reg++;
         }
@@ -1559,7 +1559,7 @@ int op_method(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
         // check same name method
         mrbc_proc *p = cls->procs;
         void *pp = &cls->procs;
-        while(p != NULL) {
+        while (p != NULL) {
             if (p->sym_id==sym_id) break;
             pp = &p->next;
             p = p->next;
