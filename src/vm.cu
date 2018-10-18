@@ -1691,18 +1691,19 @@ void mrbc_vm_end(mrbc_vm *vm)
 __GURU__
 int mrbc_vm_run(mrbc_vm *vm)
 {
-    int ret = 0;
+    int ret       = 0;
+    int opcode    = 0;
+    uint32_t code = 0;
+    mrbc_value *regs;
+
     do {
-        // get one bytecode
-        uint32_t code = _bin_to_uint32(vm->pc_irep->code + vm->pc * 4);
+        code   = _bin_to_uint32(vm->pc_irep->code + vm->pc * 4);	// get next bytecode
+        opcode = GET_OPCODE(code);
+
         vm->pc++;
+        regs = vm->reg;
 
-        // regs
-        mrbc_value *regs = vm->reg;
-
-        // Dispatcher
-        int opcode = GET_OPCODE(code);
-        switch(opcode) {
+        switch (opcode) {
         // LOAD,STORE
         case OP_LOADL:      ret = op_loadl     (vm, code, regs); break;
         case OP_LOADI:      ret = op_loadi     (vm, code, regs); break;
@@ -1762,7 +1763,7 @@ int mrbc_vm_run(mrbc_vm *vm)
         case OP_ABORT:      ret = op_stop      (vm, code, regs); break;  // reuse
         case OP_NOP:        ret = op_nop       (vm, code, regs); break;
         default:
-            console_printf("Skip OP=%02x\n", GET_OPCODE(code));
+//            console_printf("Skip OP=%02x\n", GET_OPCODE(code));
             break;
         }
     } while (vm->run);
@@ -1807,7 +1808,9 @@ void guru_run_vm(mrbc_vm *vm)
 	if (threadIdx.x!=0 || blockIdx.x!=0) return;
 
 	mrbc_vm_begin(vm);
-	mrbc_vm_run(vm);
+
+	int ret = mrbc_vm_run(vm);
+
 	mrbc_vm_end(vm);
 }
 
@@ -1828,6 +1831,11 @@ void dump_vm(mrbc_vm *vm)
 
 void run_vm(mrbc_vm *vm)
 {
+	int sz;
+	cudaDeviceGetLimit((size_t *)&sz, cudaLimitStackSize);
+	printf("defaultStackSize %d\n", sz);
+
+	cudaDeviceSetLimit(cudaLimitStackSize, (size_t)sz*2);
 	guru_run_vm<<<1,1>>>(vm);
 	dump_alloc_stat();
 }
