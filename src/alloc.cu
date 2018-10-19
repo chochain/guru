@@ -14,7 +14,6 @@
 */
 #include <stdio.h>
 #include <assert.h>
-#include "value.h"
 #include "alloc.h"
 
 // TLSF: Two-Level Segregated Fit allocator with O(1) time complexity.
@@ -309,12 +308,12 @@ free_block *_mark_used(int index)
   @param  size	size. (max 64KB. see mrbc_memsize_t)
 */
 __GURU__
-void _mrbc_init_alloc(void *ptr, unsigned int size)
+void _mrbc_init_mmu(void *mem, unsigned int size)
 {
     assert(size != 0);
     assert(size <= (mrbc_memsize_t)(~0));
 
-    memory_pool      = (uint8_t *)ptr;
+    memory_pool      = (uint8_t *)mem;
     memory_pool_size = size;
 
     // initialize entire memory pool as the first block
@@ -365,9 +364,9 @@ void *mrbc_alloc(unsigned int size)
     }
 
 #ifdef MRBC_DEBUG
-    MEMSET((uint8_t *)target + sizeof(used_block), 0xaa, target->size - sizeof(used_block));
+    uint8_t *p = (uint8_t *)target + sizeof(used_block);
+    for (int i=0; i<target->size-sizeof(used_block); i++) *p++ = 0xaa;
 #endif
-
     return (uint8_t *)target + sizeof(used_block);
 }
 
@@ -405,15 +404,16 @@ void * mrbc_realloc(void *ptr, unsigned int size)
         return ptr;
     }
 
-    // expand part2.
-    // new alloc and deep copy
-    uint8_t *new_ptr = (uint8_t *)mrbc_alloc(size);
-    if (new_ptr==NULL) return NULL;  // ENOMEM
+    // expand part2. new alloc and deep copy
+    void *new_ptr = mrbc_alloc(size);
+    if (!new_ptr) return NULL;  // ENOMEM
 
-    MEMCPY(new_ptr, (uint8_t *)ptr, (size_t)(target->size - sizeof(used_block)));
+    uint8_t *d = (uint8_t *)new_ptr, *s = (uint8_t *)ptr;
+    for (int i=0; i < (target->size-sizeof(used_block)); i++, *d++=*s++);
+
     mrbc_free(ptr);
 
-    return (void *)new_ptr;
+    return new_ptr;
 }
 
 //================================================================
@@ -511,11 +511,11 @@ void _guru_alloc_stat(int v[])
     v[4] = used;
 }
 
-__global__ void guru_init_alloc(void *ptr, unsigned int sz)
+__global__ void guru_memory_init(void *ptr, unsigned int sz)
 {
 	if (threadIdx.x!=0 || blockIdx.x!=0) return;
 
-	_mrbc_init_alloc(ptr, sz);
+	_mrbc_init_mmu(ptr, sz);
 }
 
 void *guru_malloc(size_t sz, int type)

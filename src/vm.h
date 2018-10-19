@@ -89,9 +89,6 @@ __GURU__ void     	mrbc_vm_teardown(mrbc_vm *vm);
 //<< from value.hu
 __GURU__ void 		mrbc_free_ireplist(mrbc_irep *irep);
 
-//<< from static.hu
-__global__ void guru_init_static(void);
-
 //================================================================
 /*!@brief
   Get 32bit value from memory big endian.
@@ -169,9 +166,12 @@ void _uint32_to_bin(uint32_t l, uint8_t *bin)
     *bin   = l & 0xff;
 }
 
+int guru_vm_init(guru_ses *ses);
+int guru_vm_run(guru_ses *ses);
+
+#ifdef MRBC_DEBUG
 void dump_irep(mrbc_irep *irep);
-void dump_vm(mrbc_vm *vm);
-void run_vm(guru_ses *ses, mrbc_vm *vm);
+#endif
 
 #ifdef __cplusplus
 }

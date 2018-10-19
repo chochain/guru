@@ -39,7 +39,7 @@ __GURU__ void console_hex(mrbc_int i);
 __GURU__ void console_str(const char *str);
 __GURU__ void console_strf(const char *str, const char *fstr);
 
-__global__ void guru_init_console_buf(uint8_t *buf, size_t sz);
+__global__ void guru_console_init(uint8_t *buf, size_t sz);
 
 __host__ void guru_print(uint8_t *output_buf);
     

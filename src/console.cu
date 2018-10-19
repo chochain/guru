@@ -14,6 +14,7 @@
 #include "value.h"
 #include "console.h"
 
+__GURU__ size_t  guru_output_size;
 __GURU__ uint8_t *guru_output;
 __GURU__ uint8_t *guru_output_ptr;	// global output buffer for now, per session later
 
@@ -83,11 +84,12 @@ void console_strf(const char *str, const char *fmt)
 }
 
 __global__
-void guru_init_console_buf(uint8_t *buf, size_t sz)
+void guru_console_init(uint8_t *buf, size_t sz)
 {
 	if (threadIdx.x!=0 || blockIdx.x !=0) return;
 
 	guru_output = guru_output_ptr = buf;
+	guru_output_size = sz;
 }
 
 __host__

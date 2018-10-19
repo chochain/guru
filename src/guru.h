@@ -30,6 +30,7 @@ extern "C" {
 typedef struct guru_ses_ {
 	uint8_t *req;
 	uint8_t *res;
+	uint8_t *vm;
 } guru_ses;
 
 // mrbc types
@@ -144,7 +145,8 @@ typedef struct RProc {
 #endif
 } mrbc_proc;
 
-uint8_t *init_session(guru_ses *ses, const char *rite_fname);
+int session_init(guru_ses *ses, const char *rite_fname);
+int session_start(guru_ses *ses);
 
 #ifdef __cplusplus
 }

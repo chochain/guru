@@ -7,35 +7,32 @@
   </pre>
 */
 #include <stdio.h>
-#include "guru.h"
 #include "console.h"
-#include "load.h"
+#include "guru.h"
+#include "alloc.h"
 
-extern "C" void *guru_malloc(size_t sz, int mem_type);
-extern "C" void dump_alloc_stat(void);
+extern "C" __GURU__ void mrbc_init_global();		// global.cu
+extern "C" __GURU__ void mrbc_init_class();			// class.cu
 
-extern "C" __global__ void guru_init_alloc(void *ptr, unsigned int sz);	// in alloc.cu
-extern "C" __global__ void guru_init_static(void);						// in vm.cu
+extern "C" int guru_vm_init(guru_ses *ses);			// vm.cu
+extern "C" int guru_vm_run(guru_ses *ses);			// vm.cu
 
-int _alloc_session(guru_ses *ses, size_t req_sz, size_t res_sz)
+__global__
+void guru_static_init(void)
 {
-	ses->req = (uint8_t *)guru_malloc(req_sz, 1);	// allocate bytecode storage
-	ses->res = (uint8_t *)guru_malloc(res_sz, 1);	// allocate output buffer
+	if (threadIdx.x!=0 || blockIdx.x!=0) return;
 
-	if (!ses->req || !ses->res) return 1;
-
-    guru_init_console_buf<<<1,1>>>(ses->res, res_sz);
-
-    return (cudaSuccess==cudaGetLastError()) ? 0 : 1;
+	mrbc_init_global();
+	mrbc_init_class();
 }
 
-int _input_bytecode(guru_ses *ses, const char *rite_fname)
+uint8_t *_load_bytecode(const char *rite_fname)
 {
   FILE *fp = fopen(rite_fname, "rb");
 
-  if (fp==NULL) {
+  if (!fp) {
     fprintf(stderr, "File not found\n");
-    return -1;
+    return NULL;
   }
 
   // get filesize
@@ -43,37 +40,55 @@ int _input_bytecode(guru_ses *ses, const char *rite_fname)
   size_t sz = ftell(fp);
   fseek(fp, 0, SEEK_SET);
 
-  int err = _alloc_session(ses, sz, MAX_BUFFER_SIZE);
+  uint8_t *req = (uint8_t *)guru_malloc(sz, 1);	// allocate bytecode storage
 
-  if (err != 0) {
-	  fprintf(stderr, "session buffer allocation error: %d.\n", err);
-	  return err;
-  }
-  else {
-	  fread(ses->req, sizeof(char), sz, fp);
+  if (req) {
+	  fread(req, sizeof(char), sz, fp);
   }
   fclose(fp);
 
-  return 0;
+  return req;
 }
 
-uint8_t *init_session(guru_ses *ses, const char *rite_fname)
+int session_init(guru_ses *ses, const char *rite_fname)
 {
-	int rst = _input_bytecode(ses, rite_fname);
-
-	if (rst != 0) return NULL;
-
 	void *mem = guru_malloc(BLOCK_MEMORY_SIZE, 1);
+	if (!mem) {
+		fprintf(stderr, "ERROR: failed to allocate device main memory block!\n");
+		return -1;
+	}
+	uint8_t *req = ses->req = _load_bytecode(rite_fname);
+	if (!req) {
+		fprintf(stderr, "ERROR: bytecode request allocation error!\n");
+		return -2;
+	}
+	uint8_t *res = ses->res = (uint8_t *)guru_malloc(MAX_BUFFER_SIZE, 1);	// allocate output buffer
+	if (!res) {
+		fprintf(stderr, "ERROR: output buffer allocation error!\n");
+		return -3;
+	}
 
-    guru_init_alloc<<<1,1>>>(mem, BLOCK_MEMORY_SIZE);
-	guru_init_static<<<1,1>>>();
+    guru_console_init<<<1,1>>>(res, MAX_BUFFER_SIZE);			// initialize output buffer
+    guru_memory_init<<<1,1>>>(mem, BLOCK_MEMORY_SIZE);			// setup memory management
+	guru_static_init<<<1,1>>>();								// setup static objects
 	dump_alloc_stat();
 
-	mrbc_vm *vm = (mrbc_vm *)guru_malloc(sizeof(mrbc_vm), 1);			// allocate bytecode storage
-
-	guru_parse_bytecode<<<1,1>>>(vm, ses->req);
-	dump_alloc_stat();
-
-	return (uint8_t *)vm;
+	return 0;
 }
+
+int session_start(guru_ses *ses)
+{
+	int ret = guru_vm_init(ses);
+	if (ret!=0) {
+		fprintf(stderr, "ERROR: virtual memory block allocation error!\n");
+		return ret;
+	}
+	dump_alloc_stat();
+	guru_vm_run(ses);
+
+	guru_print(ses->res);
+
+	return 0;
+}
+
     

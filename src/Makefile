@@ -11,7 +11,7 @@ LIBDIRS=-L/usr/local/cuda/lib64
 INCDIRS=-I/usr/local/cuda/include -I./src
 
 SRC =   main.c c_ext.c
-GURU= 	console.cu guru.cu static.cu alloc.cu value.cu keyvalue.cu symbol.cu vmalloc.cu \
+GURU= 	console.cu guru.cu alloc.cu static.cu value.cu keyvalue.cu symbol.cu vmalloc.cu \
 	 	global.cu vm.cu class.cu load.cu
 CUDA=   cuda.cu
 
@@ -42,13 +42,13 @@ cuda.o: cuda.cu
 
 console.o: console.cu 	vm_config.h console.h
 
-guru.o: guru.cu         vm_config.h console.h guru.h
+alloc.o: alloc.cu       vm_config.h guru.h alloc.h
+
+guru.o: guru.cu         vm_config.h console.h guru.h alloc.h
 
 static.o: static.cu	    vm_config.h guru.h
 
 value.o: value.cu       vm_config.h guru.h value.h
-
-alloc.o: alloc.cu       vm_config.h guru.h value.h alloc.h
 
 keyvalue.o: keyvalue.cu vm_config.h guru.h value.h alloc.h keyvalue.h
 
@@ -59,7 +59,7 @@ vmalloc.o: vmalloc.cu 	vm_config.h guru.h value.h alloc.h keyvalue.h symbol.h vm
 global.o: global.cu	    vm_config.h guru.h value.h vmalloc.h global.h
 
 vm.o: vm.cu             vm_config.h guru.h value.h alloc.h keyvalue.h symbol.h vmalloc.h \
-						global.h static.h console.h class.h opcode.h vm.h
+						global.h static.h console.h class.h opcode.h vm.h load.h
 
 class.o: class.cu	    vm_config.h guru.h value.h alloc.h symbol.h vmalloc.h \
 						global.h static.h opcode.h vm.h class.h

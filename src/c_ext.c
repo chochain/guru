@@ -230,5 +230,5 @@ void dump_vm(mrbc_vm *vm);
 void guru_init_ext(mrbc_vm *vm, char *fname)
 {
 	load_on_host(vm, fname);
-	dump_vm(vm);
+	dump_irep(vm->irep);
 }

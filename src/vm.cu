@@ -23,6 +23,7 @@
 #include "class.h"
 #include "opcode.h"
 #include "vm.h"
+#include "load.h"
 
 #if MRBC_USE_STRING
 #include "c_string.h"
@@ -1645,7 +1646,7 @@ int op_stop(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
   @param  vm  Pointer to VM
 */
 __GURU__
-void mrbc_vm_begin(mrbc_vm *vm)
+void _mrbc_vm_begin(mrbc_vm *vm)
 {
     vm->pc_irep = vm->irep;
     vm->pc 		= 0;
@@ -1670,7 +1671,7 @@ void mrbc_vm_begin(mrbc_vm *vm)
   @param  vm  Pointer to VM
 */
 __GURU__
-void mrbc_vm_end(mrbc_vm *vm)
+void _mrbc_vm_end(mrbc_vm *vm)
 {
     mrbc_free_all();
 }
@@ -1683,7 +1684,7 @@ void mrbc_vm_end(mrbc_vm *vm)
   @retval 0  No error.
 */
 __GURU__
-int mrbc_vm_run(mrbc_vm *vm)
+int _mrbc_vm_exec(mrbc_vm *vm)
 {
     int ret       = 0;
     int opcode    = 0;
@@ -1772,7 +1773,7 @@ int mrbc_vm_run(mrbc_vm *vm)
   release mrbc_irep holds memory
 */
 __GURU__
-void mrbc_free_ireplist(mrbc_irep *irep)
+void _mrbc_free_ireplist(mrbc_irep *irep)
 {
     // release pools.
     for(int i = 0; i < irep->plen; i++) {
@@ -1782,7 +1783,7 @@ void mrbc_free_ireplist(mrbc_irep *irep)
 
     // release child ireps.
     for(int i = 0; i < irep->rlen; i++) {
-        mrbc_free_ireplist(irep->reps[i]);
+        _mrbc_free_ireplist(irep->reps[i]);
     }
     if (irep->rlen) mrbc_free(irep->reps);
 
@@ -1790,28 +1791,47 @@ void mrbc_free_ireplist(mrbc_irep *irep)
 }
 
 __global__
-void guru_init_static(void)  // << from static.cu
+void _run_vm(mrbc_vm *vm)
 {
 	if (threadIdx.x!=0 || blockIdx.x!=0) return;
 
-	mrbc_init_global();
-	mrbc_init_class();
+	_mrbc_vm_begin(vm);
+
+	int ret = _mrbc_vm_exec(vm);
+
+	_mrbc_vm_end(vm);
 }
 
-__global__
-void guru_run_vm(mrbc_vm *vm)
+int guru_vm_init(guru_ses *ses)
 {
-	if (threadIdx.x!=0 || blockIdx.x!=0) return;
+	mrbc_vm *vm = (mrbc_vm *)guru_malloc(sizeof(mrbc_vm), 1);
+	if (!vm) return -4;
 
-	mrbc_vm_begin(vm);
-
-	int ret = mrbc_vm_run(vm);
-
-	mrbc_vm_end(vm);
+	guru_parse_bytecode<<<1,1>>>(vm, ses->req);		// can also be done on host?
+	cudaDeviceSynchronize();
+#ifdef MRBC_DEBUG
+	dump_irep(vm->irep);
+#endif
+	ses->vm = (uint8_t *)vm;
+	return 0;
 }
 
+int guru_vm_run(guru_ses *ses)
+{
+	int sz;
+	cudaDeviceGetLimit((size_t *)&sz, cudaLimitStackSize);
+	printf("defaultStackSize %d\n", sz);
+
+	cudaDeviceSetLimit(cudaLimitStackSize, (size_t)sz*4);
+	_run_vm<<<1,1>>>((mrbc_vm *)ses->vm);
+
+	return 0;
+}
+
+#ifdef MRBC_DEBUG
 void dump_irep(mrbc_irep *irep)
 {
+	cudaDeviceSynchronize();
 	printf("nlocals=%d, nregs=%d, rlen=%d, ilen=%d, plen=%d\n",
 			irep->nlocals,
 			irep->nregs,
@@ -1819,21 +1839,5 @@ void dump_irep(mrbc_irep *irep)
 			irep->ilen,
 			irep->plen);
 }
+#endif
 
-void dump_vm(mrbc_vm *vm)
-{
-	dump_irep(vm->irep);
-}
-
-void run_vm(guru_ses *ses, mrbc_vm *vm)
-{
-	int sz;
-	cudaDeviceGetLimit((size_t *)&sz, cudaLimitStackSize);
-	printf("defaultStackSize %d\n", sz);
-
-	cudaDeviceSetLimit(cudaLimitStackSize, (size_t)sz*4);
-	guru_run_vm<<<1,1>>>(vm);
-	dump_alloc_stat();
-
-	guru_print(ses->res);
-}

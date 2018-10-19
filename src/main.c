@@ -3,9 +3,7 @@
 #include "guru.h"
 #include "c_ext.h"
 
-int  do_cuda(void);
-void dump_vm(mrbc_vm *vm);
-void run_vm(guru_ses *ses, mrbc_vm *vm);
+int do_cuda(void);
 
 int main(int argc, char **argv)
 {
@@ -15,10 +13,10 @@ int main(int argc, char **argv)
 	free(vmh);
 
 	guru_ses ses;
-	mrbc_vm *vmd = (mrbc_vm *)init_session(&ses, argv[1]);
-	dump_vm(vmd);
 
-	run_vm(((guru_ses *)&ses)->res, vmd);
+	if (!session_init(&ses, argv[1])) return -1;
+
+	session_start(&ses);
 
     return 0;
 }

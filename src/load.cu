@@ -261,7 +261,7 @@ __GURU__ int _load_lvar(mrbc_vm *vm, const uint8_t **pos)
 */
 __global__ void guru_parse_bytecode(mrbc_vm *vm, const uint8_t *ptr)
 {
-	if (threadIdx.x !=0 || blockIdx.x !=0) return;
+	if (threadIdx.x!=0 || blockIdx.x!=0) return;
 
     int ret = _load_header(&ptr);
 
