@@ -16,306 +16,28 @@
 #include "value.h"
 #include "console.h"
 
-//================================================================
-/*! initialize data container.
-
-  @param  pf	pointer to mrbc_printf
-  @param  buf	pointer to output buffer.
-  @param  size	buffer size.
-  @param  fstr	format string.
-*/
-__GURU__
-void _mrbc_printf_init(mrbc_printf *pf, char *buf, int size, const char *fstr)
-{
-    pf->p = pf->buf = buf;
-    pf->buf_end = buf + size - 1;
-    pf->fstr 	= fstr;
-    pf->fmt 	= (mrbc_print_fmt){0};
-}
-
-//================================================================
-/*! sprintf subcontract function
-
-  @param  pf	pointer to mrbc_printf
-  @retval 0	(format string) done.
-  @retval 1	found a format identifier.
-  @retval -1	buffer full.
-  @note		not terminate ('\0') buffer tail.
-*/
-__GURU__
-int _mrbc_printf_parse(mrbc_printf *pf)
-{
-    int ch  = -1;
-    pf->fmt = (mrbc_print_fmt){0};
-
-    while (pf->p < pf->buf_end && (ch = *pf->fstr) != '\0') {
-        pf->fstr++;
-        if (ch == '%') {
-            if (*pf->fstr == '%') {	// is "%%"
-                pf->fstr++;
-            } else {
-                goto PARSE_FLAG;
-            }
-        }
-        *pf->p++ = ch;
-    }
-    return -(ch != '\0');
-
-PARSE_FLAG:
-    // parse format - '%' [flag] [width] [.precision] type
-    //   e.g. "%05d"
-    while ((ch = *pf->fstr)) {
-        switch(ch) {
-        case '+': pf->fmt.flag_plus  = 1; break;
-        case ' ': pf->fmt.flag_space = 1; break;
-        case '-': pf->fmt.flag_minus = 1; break;
-        case '0': pf->fmt.flag_zero  = 1; break;
-        default : goto PARSE_WIDTH;
-        }
-        pf->fstr++;
-    }
-
-PARSE_WIDTH:
-    while ((ch = *pf->fstr - '0'), (0 <= ch && ch <= 9)) {	// isdigit()
-        pf->fmt.width = pf->fmt.width * 10 + ch;
-        pf->fstr++;
-    }
-    if (*pf->fstr == '.') {
-        pf->fstr++;
-        while ((ch = *pf->fstr - '0'), (0 <= ch && ch <= 9)) {
-            pf->fmt.precision = pf->fmt.precision * 10 + ch;
-            pf->fstr++;
-        }
-    }
-    if (*pf->fstr) pf->fmt.type = *pf->fstr++;
-
-    return 1;
-}
-
-//================================================================
-/*! clear output buffer in container.
-
-  @param  pf	pointer to mrbc_printf
-*/
-__GURU__
-void _mrbc_printf_clear(mrbc_printf *pf)
-{
-    pf->p = pf->buf;
-}
-
-//================================================================
-/*! terminate ('\0') output buffer.
-
-  @param  pf	pointer to mrbc_printf
-*/
-__GURU__
-void _mrbc_printf_end(mrbc_printf *pf)
-{
-    *pf->p = '\0';
-}
-
-//================================================================
-/*! return string length in buffer
-
-  @param  pf	pointer to mrbc_printf
-  @return	length
-*/
-__GURU__
-int _mrbc_printf_len(mrbc_printf *pf)
-{
-    return pf->p - pf->buf;
-}
-
-//================================================================
-/*! sprintf subcontract function for char '%c'
-
-  @param  pf	pointer to mrbc_printf
-  @param  ch	output character (ASCII)
-  @retval 0	done.
-  @retval -1	buffer full.
-  @note		not terminate ('\0') buffer tail.
-*/
-__GURU__
-int _mrbc_printf_char(mrbc_printf *pf, int ch)
-{
-    if (pf->fmt.flag_minus) {
-        if (pf->p == pf->buf_end) return -1;
-        *pf->p++ = ch;
-    }
-
-    int width = pf->fmt.width;
-    while (--width > 0) {
-        if (pf->p == pf->buf_end) return -1;
-        *pf->p++ = ' ';
-    }
-    if (!pf->fmt.flag_minus) {
-        if (pf->p == pf->buf_end) return -1;
-        *pf->p++ = ch;
-    }
-    return 0;
-}
-
-//================================================================
-/*! sprintf subcontract function for byte array.
-
-  @param  pf	pointer to mrbc_printf.
-  @param  str	pointer to byte array.
-  @param  len	byte length.
-  @param  pad	padding character.
-  @retval 0	done.
-  @retval -1	buffer full.
-  @note		not terminate ('\0') buffer tail.
-*/
-__GURU__
-int _mrbc_printf_bstr(mrbc_printf *pf, const char *str, int len, int pad)
-{
-    int ret = 0;
-
-    if (str == NULL) {
-        str = "(null)";
-        len = 6;
-    }
-    if (pf->fmt.precision && len > pf->fmt.precision) len = pf->fmt.precision;
-
-    int tw = len;
-    if (pf->fmt.width > len) tw = pf->fmt.width;
-
-    int remain = pf->buf_end - pf->p;
-    if (len > remain) {
-        len = remain;
-        ret = -1;
-    }
-    if (tw > remain) {
-        tw = remain;
-        ret = -1;
-    }
-    int n_pad = tw - len;
-
-    if (!pf->fmt.flag_minus) {
-        while (n_pad-- > 0) *pf->p++ = pad;
-    }
-    while (len-- > 0)   *pf->p++ = *str++;
-    while (n_pad-- > 0) *pf->p++ = pad;
-
-    return ret;
-}
-
-//================================================================
-/*! sprintf subcontract function for char '%s'
-
-  @param  pf	pointer to mrbc_printf.
-  @param  str	output string.
-  @param  pad	padding character.
-  @retval 0	done.
-  @retval -1	buffer full.
-  @note		not terminate ('\0') buffer tail.
-*/
-__GURU__
-int _mrbc_printf_str(mrbc_printf *pf, const char *str, int pad)
-{
-    return _mrbc_printf_bstr(pf, str, guru_strlen(str), pad);
-}
-
-//================================================================
-/*! sprintf subcontract function for integer '%d' '%x' '%b'
-
-  @param  pf	pointer to mrbc_printf.
-  @param  value	output value.
-  @param  base	n base.
-  @retval 0	done.
-  @retval -1	buffer full.
-  @note		not terminate ('\0') buffer tail.
-*/
-__GURU__
-int _mrbc_printf_int(mrbc_printf *pf, mrbc_int value, int base)
-{
-    int sign = 0;
-    uint32_t v = value;	// (note) Change this when supporting 64 bit.
-
-    if (pf->fmt.type == 'd' || pf->fmt.type == 'i') {	// signed.
-        if (value < 0) {
-            sign = '-';
-            v = -value;
-        }
-        else if (pf->fmt.flag_plus) {
-            sign = '+';
-        }
-        else if (pf->fmt.flag_space) {
-            sign = ' ';
-        }
-    }
-
-    if (pf->fmt.flag_minus || pf->fmt.width == 0) {
-        pf->fmt.flag_zero = 0; // disable zero padding if left align or width zero.
-    }
-    pf->fmt.precision = 0;
-
-    int bias_a = (pf->fmt.type == 'X') ? 'A' - 10 : 'a' - 10;
-
-    // create string to local buffer
-    char buf[32+2];	// int32 + terminate + 1
-    char *p = buf + sizeof(buf) - 1;
-    *p = '\0';
-    do {
-        int i = v % base;
-        *--p = (i < 10)? i + '0' : i + bias_a;
-        v /= base;
-    } while (v != 0);
-
-    // decide pad character and output sign character
-    int pad;
-    if (pf->fmt.flag_zero) {
-        pad = '0';
-        if (sign) {
-            *pf->p++ = sign;
-            if (pf->p >= pf->buf_end) return -1;
-            pf->fmt.width--;
-        }
-    }
-    else {
-        pad = ' ';
-        if (sign) *--p = sign;
-    }
-    return _mrbc_printf_str(pf, p, pad);
-}
-
-#if MRBC_USE_FLOAT
-//================================================================
-/*! sprintf subcontract function for float(double) '%f'
-
-  @param  pf	pointer to mrbc_printf.
-  @param  value	output value.
-  @retval 0	done.
-  @retval -1	buffer full.
-*/
-__GURU__
-int _mrbc_printf_float(mrbc_printf *pf, double value)
-{
-    char fstr[16];
-    const char *p1 = pf->fstr;
-    char *p2 = fstr + sizeof(fstr) - 1;
-
-    *p2 = '\0';
-    while ((*--p2 = *--p1) != '%');
-
-    snprintf(pf->p, (pf->buf_end - pf->p + 1), p2, value);
-
-    while (*pf->p != '\0')
-        pf->p++;
-
-    return -(pf->p == pf->buf_end);
-}
-#endif
-
 __GURU__ uint8_t *guru_output;
 __GURU__ uint8_t *guru_output_ptr;	// global output buffer for now, per session later
 
-__GURU__
-void guru_write(int fd, const char *buf, int nbytes)
-{
-    MEMCPY((uint8_t *)guru_output_ptr, (uint8_t *)buf, nbytes);
+#define GURU_WRITE(tt, fmt, v) {\
+	guru_print_node *n = (guru_print_node *)guru_output_ptr; 	\
+	n->tt = (tt); n->fmt = (fmt); n->str = (v);					\
+	guru_output_ptr += sizeof(guru_print_node);					\
+	*((mrbc_tt *)guru_output_ptr) = MRBC_TT_NIL }
 
-    guru_output_ptr += nbytes;
+__GURU__
+void guru_write(mrbc_vtype tt, size_t sz, const char *fmt, uint8_t *buf)
+{
+	guru_print_node *n = (guru_print_node *)guru_output_ptr;
+
+	n->tt   = tt;
+	n->size = sz;
+	n->fmt  = fmt;
+
+	MEMCPY(guru_output_ptr, buf, sz);
+	guru_output_ptr += sizeof(n->tt) + sizeof(n->size) + sizeof(n->fmt) + sz;
+
+	*((mrbc_int *)guru_output_ptr) = (mrbc_int)MRBC_TT_NIL;
 }
 
 //================================================================
@@ -324,10 +46,31 @@ void guru_write(int fd, const char *buf, int nbytes)
   @param  c	character
 */
 __GURU__
-void console_putchar(char c)
+void console_char(char c)
 {
-    guru_write(1, &c, 1);
+	char buf[2] = { c, '\0' };
+	guru_write(MRBC_TT_STRING, 2, "%s", (uint8_t *)buf);
 }
+
+__GURU__
+void console_int(mrbc_int i)
+{
+	guru_write(MRBC_TT_FIXNUM, sizeof(mrbc_int), "%d", (uint8_t *)&i);
+}
+
+__GURU__
+void console_hex(mrbc_int i)
+{
+	guru_write(MRBC_TT_FIXNUM, sizeof(mrbc_int), "0x%x", (uint8_t *)&i);
+}
+
+#if MRBC_USE_FLOAT
+__GURU__
+void console_float(mrbc_float f);
+{
+	guru_write(MRBC_TT_FIXNUM, sizeof(mrbc_float), "%f", (uint8_t *)&f);
+}
+#endif
 
 //================================================================
 /*! output string
@@ -335,65 +78,15 @@ void console_putchar(char c)
   @param str	str
 */
 __GURU__
-void console_print(const char *str)
+void console_str(const char *str)
 {
-    guru_write(1, str, guru_strlen(str));
+	guru_write(MRBC_TT_STRING, guru_strlen(str), "%s", (uint8_t *)str);
 }
 
-//================================================================
-/*! output string with length parameter.
-
-  @param str	str
-  @param size	byte length.
-*/
 __GURU__
-void console_nprint(const char *str, int size)
+void console_strf(const char *str, const char *fmt)
 {
-    guru_write(1, str, size);
-}
-
-//================================================================
-/*! output formatted string
-
-  @param  fstr		format string.
-*/
-__GURU__
-void console_printf(const char *fstr, ...)
-{
-    va_list ap;
-    va_start(ap, fstr);
-
-    int ret = 0;
-    char buf[82*20];		// max 20 parameters
-    mrbc_printf pf;
-
-    _mrbc_printf_init(&pf, buf, sizeof(buf), fstr);
-    while (_mrbc_printf_parse(&pf)>=0) {
-    	switch(pf.fmt.type) {
-    	case 'c': ret = _mrbc_printf_char(&pf, va_arg(ap, int));			break;
-    	case 's': ret = _mrbc_printf_str(&pf, va_arg(ap, char *), ' ');		break;
-    	case 'd':
-    	case 'i':
-    	case 'u': ret = _mrbc_printf_int(&pf, va_arg(ap, unsigned int), 10);	break;
-    	case 'b':
-    	case 'B': ret = _mrbc_printf_int(&pf, va_arg(ap, unsigned int), 2);	break;
-    	case 'x':
-    	case 'X': ret = _mrbc_printf_int(&pf, va_arg(ap, unsigned int), 16);	break;
-#if MRBC_USE_FLOAT
-    	case 'f':
-    	case 'e':
-    	case 'E':
-    	case 'g':
-    	case 'G': ret = _mrbc_printf_float(&pf, va_arg(ap, double));			break;
-#endif
-    	default: break;
-    	}
-    	if (ret!=0) break;
-    }
-    _mrbc_printf_end(&pf);
-    guru_write(1, buf, _mrbc_printf_len(&pf));
-
-    va_end(ap);
+	guru_write(MRBC_TT_STRING, guru_strlen(str), fmt, (uint8_t *)str);
 }
 
 __global__
@@ -404,4 +97,28 @@ void guru_init_console_buf(uint8_t *buf, size_t sz)
 	guru_output = guru_output_ptr = buf;
 }
 
+__host__
+void guru_print(uint8_t *output_buf)
+{
+	guru_print_node *node = (guru_print_node *)output_buf;
+	uint8_t *buf[80];		// check buffer overflow
+
+	while (node->tt != MRBC_TT_NIL) {
+		switch (node->tt) {
+		case MRBC_TT_FIXNUM:
+			printf(node->fmt, *((mrbc_int *)node->data));
+			break;
+		case MRBC_TT_FLOAT:
+			printf(node->fmt, *((mrbc_float *)node->data));
+			break;
+		case MRBC_TT_STRING:
+			memcpy(buf, (uint8_t *)node->data, node->size);
+			buf[node->size] = '\0';
+			printf(node->fmt, buf);
+			break;
+		default: printf("not supported: %d", node->tt); break;
+		}
+		node = (guru_print_node *)(node->data+node->size);
+	}
+}
 

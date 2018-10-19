@@ -47,59 +47,68 @@ int mrbc_print_sub(mrbc_value *v)
     int ret = 0;
 
     switch (v->tt){
-    case MRBC_TT_EMPTY:	    console_print("(empty)");						break;
-    case MRBC_TT_NIL:					                					break;
-    case MRBC_TT_FALSE:	    console_print("false");							break;
-    case MRBC_TT_TRUE:	    console_print("true");							break;
-    case MRBC_TT_FIXNUM:	console_printf("%d", v->i);						break;
+    case MRBC_TT_EMPTY:	    console_str("(empty)");						break;
+    case MRBC_TT_NIL:					                				break;
+    case MRBC_TT_FALSE:	    console_str("false");						break;
+    case MRBC_TT_TRUE:	    console_str("true");						break;
+    case MRBC_TT_FIXNUM:	console_int(v->i);							break;
 #if MRBC_USE_FLOAT
-    case MRBC_TT_FLOAT:     console_printf("%g", v->f);						break;
+    case MRBC_TT_FLOAT:     console_float(v->f);						break;
 #endif
-    case MRBC_TT_SYMBOL:    console_print(mrbc_symbol_cstr(v)); 			break;
-    case MRBC_TT_CLASS:     console_print(symid_to_str(v->cls->sym_id));    break;
+    case MRBC_TT_SYMBOL:    console_str(mrbc_symbol_cstr(v)); 			break;
+    case MRBC_TT_CLASS:     console_str(symid_to_str(v->cls->sym_id));  break;
     case MRBC_TT_OBJECT:
-        console_printf("#<%s:", symid_to_str(find_class_by_object(v)->sym_id));
-        console_printf("%08x>", v->instance);
+    	console_str("#<");
+        console_str(symid_to_str(find_class_by_object(v)->sym_id));
+        console_hex((mrbc_int)v->instance);
+        console_str(">");
         break;
-    case MRBC_TT_PROC:      console_printf("#<Proc:%08x>", v->proc);      	break;
+    case MRBC_TT_PROC:
+    	console_str("#<Proc:");
+    	console_hex((mrbc_int)v->proc);
+    	console_str(">");
+    	break;
 #if MRBC_USE_STRING
     case MRBC_TT_STRING:
-        console_nprint(mrbc_string_cstr(v), mrbc_string_size(v));
+        console_str(mrbc_string_cstr(v));
         if (mrbc_string_size(v) != 0 &&
             mrbc_string_cstr(v)[ mrbc_string_size(v) - 1 ] == '\n') ret = 1;
         break;
 #endif
 #if MRBC_USE_ARRAY
     case MRBC_TT_ARRAY: {
-        console_putchar('[');
+        console_char('[');
         for (int i = 0; i < mrbc_array_size(v); i++) {
-            if (i != 0) console_print(", ");
+            if (i != 0) console_str(", ");
             mrbc_value v1 = mrbc_array_get(v, i);
             mrbc_p_sub(&v1);
         }
-        console_putchar(']');
+        console_char(']');
     } break;
     case MRBC_TT_RANGE:{
         mrbc_value v1 = mrbc_range_first(v);
         mrbc_print_sub(&v1);
-        console_print(mrbc_range_exclude_end(v) ? "..." : "..");
+        console_str(mrbc_range_exclude_end(v) ? "..." : "..");
         v1 = mrbc_range_last(v);
         mrbc_print_sub(&v1);
     } break;
     case MRBC_TT_HASH:{
-        console_putchar('{');
+        console_char('{');
         mrbc_hash_iterator ite = mrbc_hash_iterator_new(v);
         while (mrbc_hash_i_has_next(&ite)) {
             mrbc_value *vk = mrbc_hash_i_next(&ite);
             mrbc_p_sub(vk);
-            console_print("=>");
+            console_str("=>");
             mrbc_p_sub(vk+1);
-            if (mrbc_hash_i_has_next(&ite)) console_print(", ");
+            if (mrbc_hash_i_has_next(&ite)) console_str(", ");
         }
-        console_putchar('}');
+        console_char('}');
     } break;
 #endif
-    default:	console_printf("Not support MRBC_TT_XX(%d)", v->tt);	break;
+    default:
+    	console_str("Not support MRBC_TT_XX: ");
+    	console_int((mrbc_int)v->tt);
+    	break;
     }
     return ret;
 }
@@ -117,7 +126,7 @@ int mrbc_puts_sub(mrbc_value *v)
     if (v->tt == MRBC_TT_ARRAY) {
 #if MRBC_USE_ARRAY
         for (int i = 0; i < mrbc_array_size(v); i++) {
-            if (i != 0) console_putchar('\n');
+            if (i != 0) console_char('\n');
             mrbc_value v1 = mrbc_array_get(v, i);
             mrbc_puts_sub(&v1);
         }
@@ -134,36 +143,33 @@ __GURU__
 int mrbc_p_sub(mrbc_value *v)
 {
     switch (v->tt){
-    case MRBC_TT_NIL:
-        console_print("nil");
-        break;
-
+    case MRBC_TT_NIL: console_str("nil");		break;
     case MRBC_TT_SYMBOL:{
         const char *s   = mrbc_symbol_cstr(v);
         const char *fmt = STRCHR(s, ':') ? "\":%s\"" : ":%s";
-        console_printf(fmt, s);
+        console_strf(s, fmt);
     } break;
 
 #if MRBC_USE_STRING
     case MRBC_TT_STRING:{
-        console_putchar('"');
+        console_char('"');
         const char *s = mrbc_string_cstr(v);
 
         for (int i = 0; i < mrbc_string_size(v); i++) {
             if (s[i] < ' ' || 0x7f <= s[i]) {		// tiny isprint()
-                console_printf("\\x%02x", s[i]);
+                console_hex(s[i]);
             } else {
-                console_putchar(s[i]);
+                console_char(s[i]);
             }
         }
-        console_putchar('"');
+        console_char('"');
     } break;
 #endif
 #if MRBC_USE_ARRAY
     case MRBC_TT_RANGE:{
         mrbc_value v1 = mrbc_range_first(v);
         mrbc_p_sub(&v1);
-        console_print(mrbc_range_exclude_end(v) ? "..." : "..");
+        console_str(mrbc_range_exclude_end(v) ? "..." : "..");
         v1 = mrbc_range_last(v);
         mrbc_p_sub(&v1);
     } break;
@@ -334,7 +340,7 @@ void mrbc_funcall(mrbc_vm *vm, const char *name, mrbc_value *v, int argc)
     mrbc_sym  sym_id = str_to_symid(name);
     mrbc_proc *m     = find_method(v[0], sym_id);
 
-    if (m==0) return;   // no method
+    if (m==0) return;   	// no method
 
     mrbc_callinfo *ci = (mrbc_callinfo *)mrbc_alloc(sizeof(mrbc_callinfo));
 
@@ -382,11 +388,17 @@ mrbc_value mrbc_send(mrbc_value *v, int reg_ofs,
     mrbc_value *regs = v + reg_ofs + 2;
 
     if (m == 0) {
-        console_printf("No method. vtype=%d method='%s'\n", recv->tt, method);
+        console_str("No method. vtype=");
+        console_int(recv->tt);
+        console_str(" method='");
+        console_str(method);
+        console_str("'\n");
         return mrbc_nil_value();
     }
     if (!m->c_func) {
-        console_printf("Method %s is not C function\n", method);
+        console_str("Method is not C function: ");
+        console_str(method);
+        console_str("\n");
         return mrbc_nil_value();
     }
 
@@ -437,7 +449,7 @@ void c_p(mrbc_value v[], int argc)
 {
     for (int i = 1; i <= argc; i++) {
         mrbc_p_sub(&v[i]);
-        console_putchar('\n');
+        console_char('\n');
     }
 }
 #endif
@@ -450,11 +462,11 @@ void c_puts(mrbc_value v[], int argc)
 {
     if (argc) {
     	for (int i = 1; i <= argc; i++) {
-    		if (mrbc_puts_sub(&v[i]) == 0) console_putchar('\n');
+    		if (mrbc_puts_sub(&v[i]) == 0) console_char('\n');
     	}
     }
     else {
-    	console_putchar('\n');
+    	console_char('\n');
     }
 }
 

@@ -84,7 +84,7 @@ const char *mrbc_get_callee_name(mrbc_vm *vm)
 __GURU__
 void not_supported(void)
 {
-    console_print("Not supported!\n");
+    console_str("Not supported!\n");
 }
 
 //================================================================
@@ -1757,7 +1757,9 @@ int mrbc_vm_run(mrbc_vm *vm)
         case OP_ABORT:      ret = op_stop      (vm, code, regs); break;  // reuse
         case OP_NOP:        ret = op_nop       (vm, code, regs); break;
         default:
-//            console_printf("Skip OP=%02x\n", GET_OPCODE(code));
+            console_str("Skip OP=");
+            console_hex(GET_OPCODE(code));
+            console_str("\n");
             break;
         }
     } while (vm->run);
