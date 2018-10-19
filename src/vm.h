@@ -171,7 +171,7 @@ void _uint32_to_bin(uint32_t l, uint8_t *bin)
 
 void dump_irep(mrbc_irep *irep);
 void dump_vm(mrbc_vm *vm);
-void run_vm(mrbc_vm *vm);
+void run_vm(guru_ses *ses, mrbc_vm *vm);
 
 #ifdef __cplusplus
 }

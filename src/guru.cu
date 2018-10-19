@@ -17,8 +17,6 @@ extern "C" void dump_alloc_stat(void);
 extern "C" __global__ void guru_init_alloc(void *ptr, unsigned int sz);	// in alloc.cu
 extern "C" __global__ void guru_init_static(void);						// in vm.cu
 
-extern "C" __host__   void guru_print(uint8_t *output_buf);				// console.cu
-
 int _alloc_session(guru_ses *ses, size_t req_sz, size_t res_sz)
 {
 	ses->req = (uint8_t *)guru_malloc(req_sz, 1);	// allocate bytecode storage
@@ -75,8 +73,6 @@ uint8_t *init_session(guru_ses *ses, const char *rite_fname)
 
 	guru_parse_bytecode<<<1,1>>>(vm, ses->req);
 	dump_alloc_stat();
-
-	guru_print(ses->res);
 
 	return (uint8_t *)vm;
 }

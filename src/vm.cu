@@ -14,12 +14,12 @@
 */
 #include <stdio.h>
 #include <assert.h>
+#include "console.h"
 #include "alloc.h"
 #include "vmalloc.h"
 #include "global.h"
 #include "symbol.h"
 #include "static.h"
-#include "console.h"
 #include "class.h"
 #include "opcode.h"
 #include "vm.h"
@@ -1825,7 +1825,7 @@ void dump_vm(mrbc_vm *vm)
 	dump_irep(vm->irep);
 }
 
-void run_vm(mrbc_vm *vm)
+void run_vm(guru_ses *ses, mrbc_vm *vm)
 {
 	int sz;
 	cudaDeviceGetLimit((size_t *)&sz, cudaLimitStackSize);
@@ -1834,4 +1834,6 @@ void run_vm(mrbc_vm *vm)
 	cudaDeviceSetLimit(cudaLimitStackSize, (size_t)sz*4);
 	guru_run_vm<<<1,1>>>(vm);
 	dump_alloc_stat();
+
+	guru_print(ses->res);
 }

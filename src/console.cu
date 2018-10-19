@@ -10,34 +10,27 @@
 
   </pre>
 */
-
-#include <cstdio>          // printf
-
+#include <stdio.h>
 #include "value.h"
 #include "console.h"
 
 __GURU__ uint8_t *guru_output;
 __GURU__ uint8_t *guru_output_ptr;	// global output buffer for now, per session later
 
-#define GURU_WRITE(tt, fmt, v) {\
-	guru_print_node *n = (guru_print_node *)guru_output_ptr; 	\
-	n->tt = (tt); n->fmt = (fmt); n->str = (v);					\
-	guru_output_ptr += sizeof(guru_print_node);					\
-	*((mrbc_tt *)guru_output_ptr) = MRBC_TT_NIL }
-
 __GURU__
 void guru_write(mrbc_vtype tt, size_t sz, const char *fmt, uint8_t *buf)
 {
 	guru_print_node *n = (guru_print_node *)guru_output_ptr;
 
+	MEMCPY((uint8_t *)n->data, buf, sz);
+
 	n->tt   = tt;
-	n->size = sz;
+	n->size = (sz + 7) & ~0x7;		// 16
 	n->fmt  = fmt;
 
-	MEMCPY(guru_output_ptr, buf, sz);
-	guru_output_ptr += sizeof(n->tt) + sizeof(n->size) + sizeof(n->fmt) + sz;
+	guru_output_ptr += sizeof(n->tt) + sizeof(n->size) + sizeof(n->fmt) + n->size;
 
-	*((mrbc_int *)guru_output_ptr) = (mrbc_int)MRBC_TT_NIL;
+	*((mrbc_int *)guru_output_ptr) = (mrbc_int)MRBC_TT_EMPTY;		// 0
 }
 
 //================================================================
@@ -103,7 +96,7 @@ void guru_print(uint8_t *output_buf)
 	guru_print_node *node = (guru_print_node *)output_buf;
 	uint8_t *buf[80];		// check buffer overflow
 
-	while (node->tt != MRBC_TT_NIL) {
+	while (node->tt != MRBC_TT_EMPTY) {		// 0
 		switch (node->tt) {
 		case MRBC_TT_FIXNUM:
 			printf(node->fmt, *((mrbc_int *)node->data));

@@ -17,6 +17,7 @@
 #include <stdint.h>
 #include <stdarg.h>
 #include <string.h>
+#include "guru.h"
 
 #ifdef __cplusplus
 extern "C" {
