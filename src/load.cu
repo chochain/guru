@@ -123,10 +123,9 @@ __GURU__ int _load_irep_1(mrbc_irep *irep, const uint8_t **pos)
     }
 
 #define MAX_OBJ_SIZE 100
-#if false
     for (int i = 0; i < irep->plen; i++) {
         int  tt = *p++;
-        int  obj_size = bin_to_uint16(p);	p += sizeof(uint16_t);
+        int  obj_size = _bin_to_uint16(p);	p += sizeof(uint16_t);
         char buf[MAX_OBJ_SIZE];
 
         mrbc_object *obj = mrbc_obj_alloc(MRBC_TT_EMPTY);
@@ -134,13 +133,11 @@ __GURU__ int _load_irep_1(mrbc_irep *irep, const uint8_t **pos)
             return LOAD_FILE_IREP_ERROR_ALLOCATION;
         }
         switch (tt) {
-#if MRBC_USE_STRING
-        case 0: { // IREP_TT_STRING
-            obj->tt = MRBC_TT_STRING;
+        case 0: { 	// IREP_TT_STRING
+            obj->tt  = MRBC_TT_STRING;
             obj->str = (char*)p;
         } break;
-#endif
-        case 1: { // IREP_TT_FIXNUM
+        case 1: { 	// IREP_TT_FIXNUM
             MEMCPY((uint8_t *)buf, p, obj_size);
             buf[obj_size] = '\0';
             
@@ -148,7 +145,7 @@ __GURU__ int _load_irep_1(mrbc_irep *irep, const uint8_t **pos)
             obj->i = ATOL(buf);
         } break;
 #if MRBC_USE_FLOAT
-        case 2: { // IREP_TT_FLOAT
+        case 2: { 	// IREP_TT_FLOAT
             MEMCPY((uint8_t *)buf, p, obj_size);
             buf[obj_size] = '\0';
             obj->tt = MRBC_TT_FLOAT;
@@ -160,7 +157,6 @@ __GURU__ int _load_irep_1(mrbc_irep *irep, const uint8_t **pos)
         irep->pools[i] = obj;
         p += obj_size;
     }
-#endif
     // SYMS BLOCK
     irep->sym = (uint8_t*)p;
     int sym_cnt = _bin_to_uint32(p);		p += sizeof(uint32_t);

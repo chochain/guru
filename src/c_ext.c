@@ -29,6 +29,11 @@ uint16_t bin_to_uint16(const void *s)
     return (x << 8) | (x >> 8);
 }
 
+void _memcpy(const uint8_t *d, const uint8_t *s, size_t sz)
+{
+    for (int i=0; i<sz; i++, *d++==*s++);
+}
+
 int _memcmp(const uint8_t *d, const uint8_t *s, size_t sz)
 {
     int i;
@@ -79,29 +84,32 @@ int load_irep_1(mrbc_irep *irep, const uint8_t **pos)
     }
 
 #define MAX_OBJ_SIZE 100
-#if false
+
     for (int i = 0; i < irep->plen; i++) {
         int  tt = *p++;
-        int  obj_size = _bin_to_uint16(p);	p += sizeof(uint16_t);
+        int  obj_size = bin_to_uint16(p);	p += sizeof(uint16_t);
+
         char buf[MAX_OBJ_SIZE];
-        mrbc_object *obj = mrbc_obj_alloc(MRBC_TT_EMPTY);
-        if (obj==NULL) return NULL;
+
+        mrbc_object *obj = (mrbc_object *)malloc(sizeof(mrbc_object));
+        if (obj==NULL) return -1;
 
         switch (tt) {
-        case 1: { // IREP_TT_FIXNUM
-            MEMCPY((uint8_t *)buf, p, obj_size);
+        case 1: { 			// IREP_TT_FIXNUM
+            _memcpy((uint8_t *)buf, p, obj_size);
             buf[obj_size] = '\0';
 
             obj->tt = MRBC_TT_FIXNUM;
-            obj->i = ATOL(buf);
+            obj->i  = atol(buf);
         } break;
-        default: break;
+        default:
+        	obj->tt = MRBC_TT_EMPTY;
+        	break;
         }
 
         irep->pools[i] = obj;
         p += obj_size;
     }
-#endif
     // SYMS BLOCK
     irep->sym = (uint8_t*)p;
     int sym_cnt = bin_to_uint32(p);		p += sizeof(uint32_t);
@@ -225,7 +233,7 @@ void load_on_host(mrbc_vm *vm, char *fname)
 	upload_bytecode(&(vm->irep), ses.req);
 }
 
-void dump_vm(mrbc_vm *vm);
+void dump_irep(mrbc_irep *irep);
 
 void guru_init_ext(mrbc_vm *vm, char *fname)
 {

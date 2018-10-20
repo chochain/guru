@@ -1759,7 +1759,7 @@ int _mrbc_vm_exec(mrbc_vm *vm)
         case OP_NOP:        ret = op_nop       (vm, code, regs); break;
         default:
             console_str("Skip OP=");
-            console_hex(GET_OPCODE(code));
+            console_int(opcode);
             console_str("\n");
             break;
         }
@@ -1812,7 +1812,7 @@ int guru_vm_init(guru_ses *ses)
 	guru_parse_bytecode<<<1,1>>>(vm, ses->req);		// can also be done on host?
 	cudaDeviceSynchronize();
 
-	#ifdef MRBC_DEBUG
+#ifdef MRBC_DEBUG
 	dump_irep(vm->irep);
 #endif
 	ses->vm = (uint8_t *)vm;
