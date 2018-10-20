@@ -539,7 +539,7 @@ void dump_alloc_stat()
 	_guru_alloc_stat<<<1,1>>>(v);
 	cudaDeviceSynchronize();
 
-	printf("total %d(0x%x)> free=%d(%d), used=%d(%d), %d%% allocated\n",
+	printf("\ttotal %d(0x%x)> free=%d(%d), used=%d(%d), %d%% allocated\n",
 				v[0], v[0], v[1], v[2], v[3], v[4], (int)(100*(v[4]+1)/v[0]));
 
 	cudaFree(v);

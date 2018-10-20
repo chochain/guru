@@ -238,5 +238,6 @@ void dump_irep(mrbc_irep *irep);
 void guru_init_ext(mrbc_vm *vm, char *fname)
 {
 	load_on_host(vm, fname);
+	printf("host loader:\n");
 	dump_irep(vm->irep);
 }

@@ -645,13 +645,20 @@ int op_send(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
         break;
     }
 
-    mrbc_sym  sym_id = mrbc_get_symid(vm->pc_irep->sym, rb);
+	mrbc_sym  sym_id = mrbc_get_symid(vm->pc_irep->sym, rb);
     mrbc_proc *m 	 = (mrbc_proc *)find_method(recv, sym_id);
+#ifdef MRBC_DEBUG
+	const char *sym_name = mrbc_get_symbol(vm->pc_irep->sym, rb);
+#endif
 
-    if (m==0) return 0;		// method not found
+    if (m==0) {
+    	console_str("func?:");
+    	console_str(sym_name);
+    	console_str("\n");
+    	return 0;		// method not found
+    }
 
-    // m is C func
-    if (m->c_func) {
+    if (m->c_func) {				// m is a C function
         m->func(regs + ra, rc);
 
         if ((void (*))m->func==(void (*))c_proc_call) return 0;
@@ -661,20 +668,14 @@ int op_send(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
             mrbc_release(&regs[release_reg]);
             release_reg++;
         }
-        return 0;
     }
+    else {							// m is a Ruby function
+    	mrbc_push_callinfo(vm, rc);	// append callinfo list
 
-    // m is Ruby method.
-    // callinfo
-    mrbc_push_callinfo(vm, rc);
-
-    // target irep
-    vm->pc = 0;
-    vm->pc_irep = m->irep;
-
-    // new regs
-    vm->reg += ra;
-
+    	vm->pc_irep = m->irep;		// call into target context
+    	vm->pc = 0;					// call into target context
+    	vm->reg += ra;				// add call stack (new register)
+    }
     return 0;
 }
 
@@ -1813,6 +1814,7 @@ int guru_vm_init(guru_ses *ses)
 	cudaDeviceSynchronize();
 
 #ifdef MRBC_DEBUG
+	printf("guru loader:\n");
 	dump_irep(vm->irep);
 #endif
 	ses->vm = (uint8_t *)vm;
@@ -1823,7 +1825,7 @@ int guru_vm_run(guru_ses *ses)
 {
 	int sz;
 	cudaDeviceGetLimit((size_t *)&sz, cudaLimitStackSize);
-	printf("defaultStackSize %d\n", sz);
+	printf("defaultStackSize %d => %d\n", sz, sz*4);
 
 	cudaDeviceSetLimit(cudaLimitStackSize, (size_t)sz*4);
 	_run_vm<<<1,1>>>((mrbc_vm *)ses->vm);
@@ -1835,7 +1837,7 @@ int guru_vm_run(guru_ses *ses)
 #ifdef MRBC_DEBUG
 void dump_irep(mrbc_irep *irep)
 {
-	printf("nlocals=%d, nregs=%d, rlen=%d, ilen=%d, plen=%d\n",
+	printf("\tnlocals=%d, nregs=%d, rlen=%d, ilen=%d, plen=%d\n",
 			irep->nlocals,
 			irep->nregs,
 			irep->rlen,
