@@ -24,6 +24,8 @@
 #include "opcode.h"
 #include "class.h"
 
+#include "c_fixnum.h"
+
 #if MRBC_USE_STRING
 #include "c_string.h"
 #endif
@@ -31,7 +33,6 @@
 #if MRBC_USE_ARRAY
 #include "c_array.h"
 #include "c_hash.h"
-#include "c_numeric.h"
 #include "c_range.h"
 #endif
 
@@ -904,8 +905,8 @@ void mrbc_init_class(void)
     mrbc_init_class_true();
 
     mrbc_init_class_symbol();
-#if MRBC_USE_FLOAT
     mrbc_init_class_fixnum();
+#if MRBC_USE_FLOAT
     mrbc_init_class_float();
 #if MRBC_USE_MATH
     mrbc_init_class_math();
