@@ -15,9 +15,6 @@
 #include "class.h"
 #include "c_fixnum.h"
 
-#if MRBC_USE_FLOAT
-#include <math.h>
-#endif
 #if MRBC_USE_STRING
 #include "string.h"
 #endif
@@ -66,7 +63,7 @@ void c_fixnum_power(mrbc_value v[], int argc)
 
 #if MRBC_USE_FLOAT && MRBC_USE_MATH
     else if (v[1].tt == MRBC_TT_FLOAT) {
-        SET_FLOAT_RETURN(pow(v[0].i, v[1].d));
+        SET_FLOAT_RETURN(pow(v[0].i, v[1].f));
     }
 #endif
 }
@@ -224,24 +221,22 @@ __GURU__
 void mrbc_init_class_fixnum(void)
 {
     // Fixnum
-    mrbc_class_fixnum = mrbc_define_class("Fixnum", mrbc_class_object);
+    mrbc_class *c = mrbc_class_fixnum = mrbc_define_class("Fixnum", mrbc_class_object);
 
-    mrbc_class *o = mrbc_class_fixnum;
-
-    mrbc_define_method(o, "[]", 	c_fixnum_bitref);
-    mrbc_define_method(o, "-@", 	c_fixnum_negative);
-    mrbc_define_method(o, "**", 	c_fixnum_power);
-    mrbc_define_method(o, "%", 		c_fixnum_mod);
-    mrbc_define_method(o, "&", 		c_fixnum_and);
-    mrbc_define_method(o, "|", 		c_fixnum_or);
-    mrbc_define_method(o, "^", 		c_fixnum_xor);
-    mrbc_define_method(o, "~", 		c_fixnum_not);
-    mrbc_define_method(o, "<<", 	c_fixnum_lshift);
-    mrbc_define_method(o, ">>", 	c_fixnum_rshift);
-    mrbc_define_method(o, "abs",	c_fixnum_abs);
-    mrbc_define_method(o, "to_i", 	c_nop);
+    mrbc_define_method(c, "[]", 	c_fixnum_bitref);
+    mrbc_define_method(c, "-@", 	c_fixnum_negative);
+    mrbc_define_method(c, "**", 	c_fixnum_power);
+    mrbc_define_method(c, "%", 		c_fixnum_mod);
+    mrbc_define_method(c, "&", 		c_fixnum_and);
+    mrbc_define_method(c, "|", 		c_fixnum_or);
+    mrbc_define_method(c, "^", 		c_fixnum_xor);
+    mrbc_define_method(c, "~", 		c_fixnum_not);
+    mrbc_define_method(c, "<<", 	c_fixnum_lshift);
+    mrbc_define_method(c, ">>", 	c_fixnum_rshift);
+    mrbc_define_method(c, "abs",	c_fixnum_abs);
+    mrbc_define_method(c, "to_i", 	c_nop);
 #if MRBC_USE_FLOAT
-    mrbc_define_method(o, "to_f", 	c_fixnum_to_f);
+    mrbc_define_method(c, "to_f", 	c_fixnum_to_f);
 #endif
 #if MRBC_USE_STRING
     mrbc_define_method(o, "chr", 	c_fixnum_chr);
@@ -287,8 +282,8 @@ void c_float_power(mrbc_value v[], int argc)
 __GURU__
 void c_float_abs(mrbc_value v[], int argc)
 {
-    if (v[0].d < 0) {
-        v[0].d = -v[0].d;
+    if (v[0].f < 0) {
+        v[0].f = -v[0].f;
     }
 }
 
@@ -324,18 +319,18 @@ __GURU__
 void mrbc_init_class_float(void)
 {
     // Float
-    mrbc_class_float = mrbc_define_class("Float", mrbc_class_object);
+    mrbc_class *c = mrbc_class_float = mrbc_define_class("Float", mrbc_class_object);
 
-    mrbc_define_method(mrbc_class_float, "-@", c_float_negative);
+    mrbc_define_method(c, "-@", 		c_float_negative);
 #if MRBC_USE_MATH
-    mrbc_define_method(mrbc_class_float, "**", c_float_power);
+    mrbc_define_method(c, "**", 		c_float_power);
 #endif
-    mrbc_define_method(mrbc_class_float, "abs", c_float_abs);
-    mrbc_define_method(mrbc_class_float, "to_i", c_float_to_i);
-    mrbc_define_method(mrbc_class_float, "to_f", c_ineffect);
+    mrbc_define_method(c, "abs", 		c_float_abs);
+    mrbc_define_method(c, "to_i", 		c_float_to_i);
+    mrbc_define_method(c, "to_f", 		c_nop);
 #if MRBC_USE_STRING
-    mrbc_define_method(mrbc_class_float, "inspect", c_float_to_s);
-    mrbc_define_method(mrbc_class_float, "to_s", c_float_to_s);
+    mrbc_define_method(c, "inspect", 	c_float_to_s);
+    mrbc_define_method(c, "to_s", 		c_float_to_s);
 #endif
 }
 

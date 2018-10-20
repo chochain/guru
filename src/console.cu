@@ -60,7 +60,7 @@ void console_hex(mrbc_int i)
 
 #if MRBC_USE_FLOAT
 __GURU__
-void console_float(mrbc_float f);
+void console_float(mrbc_float f)
 {
 	guru_write(MRBC_TT_FLOAT, MRBC_TT_EMPTY, sizeof(mrbc_float), (uint8_t *)&f);
 }

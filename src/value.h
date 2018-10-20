@@ -35,17 +35,17 @@ __GURU__ mrbc_int   mrbc_atoi(const char *s, int base);
 #define SET_INT_RETURN(n)	do { mrbc_int nnn = (n);                    \
         mrbc_dec_ref_counter(v); v[0].tt = MRBC_TT_FIXNUM; v[0].i = nnn; } while (0)
 #define SET_FLOAT_RETURN(n)	do { mrbc_float nnn = (n);                  \
-        mrbc_dec_ref_counter(v); v[0].tt = MRBC_TT_FLOAT; v[0].d = nnn; } while (0)
+        mrbc_dec_ref_counter(v); v[0].tt = MRBC_TT_FLOAT; v[0].f = nnn; } while (0)
 
-#define GET_TT_ARG(n)		(v[(n)].tt)
-#define GET_INT_ARG(n)		(v[(n)].i)
-#define GET_ARY_ARG(n)		(v[(n)])
-#define GET_ARG(n)		    (v[(n)])
-#define GET_FLOAT_ARG(n)	(v[(n)].d)
-#define GET_STRING_ARG(n)	(v[(n)].string->data)
+#define GET_TT_ARG(n)			(v[(n)].tt)
+#define GET_INT_ARG(n)			(v[(n)].i)
+#define GET_ARY_ARG(n)			(v[(n)])
+#define GET_ARG(n)		    	(v[(n)])
+#define GET_FLOAT_ARG(n)		(v[(n)].f)
+#define GET_STRING_ARG(n)		(v[(n)].string->data)
 
 #define mrbc_fixnum_value(n)	((mrbc_value){.tt = MRBC_TT_FIXNUM, .i=(n)})
-#define mrbc_float_value(n)	    ((mrbc_value){.tt = MRBC_TT_FLOAT, .d=(n)})
+#define mrbc_float_value(n)	    ((mrbc_value){.tt = MRBC_TT_FLOAT,  .f=(n)})
 #define mrbc_nil_value()	    ((mrbc_value){.tt = MRBC_TT_NIL})
 #define mrbc_true_value()	    ((mrbc_value){.tt = MRBC_TT_TRUE})
 #define mrbc_false_value()	    ((mrbc_value){.tt = MRBC_TT_FALSE})
@@ -57,6 +57,7 @@ __GURU__ void    guru_memset(uint8_t *d, const uint8_t v,  size_t sz);
 __GURU__ int     guru_memcmp(const uint8_t *d, const uint8_t *s, size_t sz);
 
 __GURU__ long    guru_atol(const char *s);
+__GURU__ float   guru_atof(const char *s);
 __GURU__ size_t  guru_strlen(const char *s);
 __GURU__ void    guru_strcpy(const char *s1, const char *s2);
 __GURU__ int     guru_strcmp(const char *s1, const char *s2);
@@ -68,6 +69,7 @@ __GURU__ char   *guru_strcat(char *d, const char *s);
 #define MEMCMP(d, s, sz)  guru_memcmp(d, s, sz)
 
 #define ATOL(s)           guru_atol(s)
+#define ATOF(s)			  guru_atof(s)
 #define STRLEN(s)		  guru_strlen(s)
 #define STRCPY(s1, s2)	  guru_strcpy(s1, s2)
 #define STRCMP(s1, s2)    guru_strcmp(s1, s2)
@@ -79,6 +81,7 @@ __GURU__ char   *guru_strcat(char *d, const char *s);
 #define MEMCMP(d, s, sz)  memcmp(d, s, sz)
 
 #define ATOL(s)			  atol(s)
+#define ATOF(s)			  atof(s)
 #define STRLEN(s)		  strlen(s)
 #define STRCPY(s1, s2)	  strcpy(s1, s2)
 #define STRCMP(s1, s2)    strcmp(s1, s2)

@@ -34,19 +34,19 @@
 __GURU__
 int mrbc_compare(const mrbc_value *v1, const mrbc_value *v2)
 {
-    // if TT_XXX is different
-    if (v1->tt != v2->tt) {
+	mrbc_float d1, d2;
+
+    if (v1->tt != v2->tt) { 						// mrbc_vtype different
 #if MRBC_USE_FLOAT
-        // but Numeric?
         if (v1->tt == MRBC_TT_FIXNUM && v2->tt == MRBC_TT_FLOAT) {
             d1 = v1->i;
-            d2 = v2->d;
-            goto CMP_FLOAT;
+            d2 = v2->f;
+            return -1 + (d1 == d2) + (d1 > d2)*2;	// caution: NaN == NaN is false
         }
         if (v1->tt == MRBC_TT_FLOAT && v2->tt == MRBC_TT_FIXNUM) {
-            d1 = v1->d;
+            d1 = v1->f;
             d2 = v2->i;
-            goto CMP_FLOAT;
+            return -1 + (d1 == d2) + (d1 > d2)*2;	// caution: NaN == NaN is false
         }
 #endif
         // leak Empty?
@@ -61,27 +61,24 @@ int mrbc_compare(const mrbc_value *v1, const mrbc_value *v2)
     switch(v1->tt) {
     case MRBC_TT_NIL:
     case MRBC_TT_FALSE:
-    case MRBC_TT_TRUE:
-        return 0;
-
+    case MRBC_TT_TRUE:      return 0;
     case MRBC_TT_FIXNUM:
-    case MRBC_TT_SYMBOL:
-        return v1->i - v2->i;
+    case MRBC_TT_SYMBOL:	return v1->i - v2->i;
 
     case MRBC_TT_CLASS:
     case MRBC_TT_OBJECT:
     case MRBC_TT_PROC:
         return -1 + (v1->handle == v2->handle) + (v1->handle > v2->handle)*2;
-    
+
+#if MRBC_USE_FLOAT
+    case MRBC_TT_FLOAT:
+        d1 = v1->f;
+        d2 = v2->f;
+        return -1 + (d1 == d2) + (d1 > d2)*2;	// caution: NaN == NaN is false
+#endif
 #if MRBC_USE_STRING
     case MRBC_TT_STRING:
         return mrbc_string_compare(v1, v2);
-#endif
-#if MRBC_USE_FLOAT
-    case MRBC_TT_FLOAT:
-        d1 = v1->d;
-        d2 = v2->d;
-        goto CMP_FLOAT;
 #endif
 #if MRBC_USE_ARRAY
     case MRBC_TT_ARRAY:
@@ -96,13 +93,6 @@ int mrbc_compare(const mrbc_value *v1, const mrbc_value *v2)
     default:
         return 1;
     }
-
-#if MRBC_USE_FLOAT
-    mrbc_float d1, d2;
-
-CMP_FLOAT:
-    return -1 + (d1 == d2) + (d1 > d2)*2;	// caution: NaN == NaN is false
-#endif
 }
 
 //================================================================
@@ -209,6 +199,11 @@ __GURU__ int guru_memcmp(const uint8_t *d, const uint8_t *s, size_t sz)
 __GURU__ long guru_atol(const char *s)
 {
     return 0L;
+}
+
+__GURU__ mrbc_float guru_atof(const char *s)
+{
+    return 0.0;
 }
 
 __GURU__ size_t guru_strlen(const char *str)

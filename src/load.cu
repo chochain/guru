@@ -149,7 +149,7 @@ __GURU__ int _load_irep_1(mrbc_irep *irep, const uint8_t **pos)
             MEMCPY((uint8_t *)buf, p, obj_size);
             buf[obj_size] = '\0';
             obj->tt = MRBC_TT_FLOAT;
-            obj->d = atof(buf);
+            obj->f  = ATOF(buf);
         } break;
 #endif
         default: break;
