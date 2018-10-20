@@ -1800,6 +1800,8 @@ void _run_vm(mrbc_vm *vm)
 	int ret = _mrbc_vm_exec(vm);
 
 	_mrbc_vm_end(vm);
+
+	__syncthreads();
 }
 
 int guru_vm_init(guru_ses *ses)
@@ -1809,7 +1811,8 @@ int guru_vm_init(guru_ses *ses)
 
 	guru_parse_bytecode<<<1,1>>>(vm, ses->req);		// can also be done on host?
 	cudaDeviceSynchronize();
-#ifdef MRBC_DEBUG
+
+	#ifdef MRBC_DEBUG
 	dump_irep(vm->irep);
 #endif
 	ses->vm = (uint8_t *)vm;
@@ -1824,6 +1827,7 @@ int guru_vm_run(guru_ses *ses)
 
 	cudaDeviceSetLimit(cudaLimitStackSize, (size_t)sz*4);
 	_run_vm<<<1,1>>>((mrbc_vm *)ses->vm);
+	cudaDeviceSynchronize();
 
 	return 0;
 }
@@ -1831,7 +1835,6 @@ int guru_vm_run(guru_ses *ses)
 #ifdef MRBC_DEBUG
 void dump_irep(mrbc_irep *irep)
 {
-	cudaDeviceSynchronize();
 	printf("nlocals=%d, nregs=%d, rlen=%d, ilen=%d, plen=%d\n",
 			irep->nlocals,
 			irep->nregs,

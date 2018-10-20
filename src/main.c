@@ -14,7 +14,7 @@ int main(int argc, char **argv)
 
 	guru_ses ses;
 
-	if (!session_init(&ses, argv[1])) return -1;
+	if (session_init(&ses, argv[1])!=0) return -1;
 
 	session_start(&ses);
 
