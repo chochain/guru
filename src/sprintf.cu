@@ -1,0 +1,484 @@
+/*! @file
+  @brief
+  console output module. (not yet input)
+
+  <pre>
+  Copyright (C) 2015-2018 Kyushu Institute of Technology.
+  Copyright (C) 2015-2018 Shimane IT Open-Innovation Center.
+
+  This file is distributed under BSD 3-Clause License.
+
+  </pre>
+*/
+
+#include "vm_config.h"
+#include "alloc.h"
+#include "value.h"
+#include "console.h"
+#include "symbol.h"
+#include "sprintf.h"
+#include "c_string.h"
+
+//================================================================
+/*! initialize data container.
+
+  @param  pf	pointer to mrbc_printf
+  @param  buf	pointer to output buffer.
+  @param  size	buffer size.
+  @param  fstr	format string.
+*/
+__GURU__
+void mrbc_printf_init(mrbc_printf *pf, char *buf, int size, const char *fstr)
+{
+    pf->buf  = pf->p = buf;
+    pf->buf_end = buf + size - 1;
+    pf->fstr = fstr;
+    pf->fmt  = (mrbc_print_fmt){0};
+}
+
+//================================================================
+/*! clear output buffer in container.
+
+  @param  pf	pointer to mrbc_printf
+*/
+__GURU__ __forceinline__
+void mrbc_printf_clear(mrbc_printf *pf)
+{
+    pf->p = pf->buf;		// back to head
+}
+
+//================================================================
+/*! terminate ('\0') output buffer.
+
+  @param  pf	pointer to mrbc_printf
+*/
+__GURU__ __forceinline__
+void mrbc_printf_end(mrbc_printf *pf)
+{
+    *pf->p = '\0';
+}
+
+//================================================================
+/*! return string length in buffer
+
+  @param  pf	pointer to mrbc_printf
+  @return	length
+*/
+__GURU__ __forceinline__
+int mrbc_printf_len(mrbc_printf *pf)
+{
+    return pf->p - pf->buf;
+}
+
+//================================================================
+/*! sprintf subcontract function for char '%c'
+
+  @param  pf	pointer to mrbc_printf
+  @param  ch	output character (ASCII)
+  @retval 0	done.
+  @retval -1	buffer full.
+  @note		not terminate ('\0') buffer tail.
+*/
+__GURU__
+int mrbc_printf_char(mrbc_printf *pf, int ch)
+{
+    if (pf->fmt.flag_minus) {
+        if (pf->p == pf->buf_end) return -1;
+        *pf->p++ = ch;
+    }
+
+    int width = pf->fmt.width;
+    while (--width > 0) {
+        if (pf->p == pf->buf_end) return -1;
+        *pf->p++ = ' ';
+    }
+
+    if (!pf->fmt.flag_minus) {
+        if (pf->p == pf->buf_end) return -1;
+        *pf->p++ = ch;
+    }
+
+    return 0;
+}
+
+//================================================================
+/*! sprintf subcontract function for byte array.
+
+  @param  pf	pointer to mrbc_printf.
+  @param  str	pointer to byte array.
+  @param  len	byte length.
+  @param  pad	padding character.
+  @retval 0	done.
+  @retval -1	buffer full.
+  @note		not terminate ('\0') buffer tail.
+*/
+__GURU__
+int mrbc_printf_bstr(mrbc_printf *pf, const char *str, int len, int pad)
+{
+    int ret = 0;
+
+    if (str == NULL) {
+        str = "(null)";
+        len = 6;
+    }
+    if (pf->fmt.precision && len > pf->fmt.precision) len = pf->fmt.precision;
+
+    int tw = len;
+    if (pf->fmt.width > len) tw = pf->fmt.width;
+
+    int remain = pf->buf_end - pf->p;
+    if (len > remain) {
+        len = remain;
+        ret = -1;
+    }
+    if (tw > remain) {
+        tw = remain;
+        ret = -1;
+    }
+
+    int n_pad = tw - len;
+
+    if (!pf->fmt.flag_minus) {
+        while (n_pad-- > 0) {
+            *pf->p++ = pad;
+        }
+    }
+    while (len-- > 0) {
+        *pf->p++ = *str++;
+    }
+    while (n_pad-- > 0) {
+        *pf->p++ = pad;
+    }
+    return ret;
+}
+
+#if MRBC_USE_FLOAT
+//================================================================
+/*! sprintf subcontract function for float(double) '%f'
+
+  @param  pf	pointer to mrbc_printf.
+  @param  value	output value.
+  @retval 0	done.
+  @retval -1	buffer full.
+*/
+__GURU__
+int mrbc_printf_float(mrbc_printf *pf, double value)
+{
+    char fstr[16];
+    const char *p1 = pf->fstr;
+    char *p2 = fstr + sizeof(fstr) - 1;
+
+    *p2 = '\0';
+    while ((*--p2 = *--p1) != '%');
+
+    //snprintf(pf->p, (pf->buf_end - pf->p + 1), p2, value);
+
+    while (*pf->p != '\0')
+        pf->p++;
+
+    return -(pf->p == pf->buf_end);
+}
+#endif
+
+//================================================================
+/*! sprintf subcontract function for char '%s'
+
+  @param  pf	pointer to mrbc_printf.
+  @param  str	output string.
+  @param  pad	padding character.
+  @retval 0	done.
+  @retval -1	buffer full.
+  @note		not terminate ('\0') buffer tail.
+*/
+__GURU__
+int mrbc_printf_str(mrbc_printf *pf, const char *str, int pad)
+{
+    return mrbc_printf_bstr(pf, str, STRLEN(str), pad);
+}
+
+//================================================================
+/*! sprintf subcontract function for integer '%d' '%x' '%b'
+
+  @param  pf	pointer to mrbc_printf.
+  @param  value	output value.
+  @param  base	n base.
+  @retval 0	done.
+  @retval -1	buffer full.
+  @note		not terminate ('\0') buffer tail.
+*/
+__GURU__
+int mrbc_printf_int(mrbc_printf *pf, mrbc_int value, int base)
+{
+    int sign = 0;
+    uint32_t v = value;	// (note) Change this when supporting 64 bit.
+
+    if (pf->fmt.type == 'd' || pf->fmt.type == 'i') {	// signed.
+        if (value < 0) {
+            sign = '-';
+            v = -value;
+        } else if (pf->fmt.flag_plus) {
+            sign = '+';
+        } else if (pf->fmt.flag_space) {
+            sign = ' ';
+        }
+    }
+    if (pf->fmt.flag_minus || pf->fmt.width == 0) {
+        pf->fmt.flag_zero = 0; // disable zero padding if left align or width zero.
+    }
+    pf->fmt.precision = 0;
+
+    int bias_a = (pf->fmt.type == 'X') ? 'A' - 10 : 'a' - 10;
+
+    // create string to local buffer
+    char buf[32+2];	// int32 + terminate + 1
+    char *p = buf + sizeof(buf) - 1;
+    *p = '\0';
+    do {
+        int i = v % base;
+        *--p = (i < 10)? i + '0' : i + bias_a;
+        v /= base;
+    } while (v != 0);
+
+    // decide pad character and output sign character
+    int pad;
+    if (pf->fmt.flag_zero) {
+        pad = '0';
+        if (sign) {
+            *pf->p++ = sign;
+            if (pf->p >= pf->buf_end) return -1;
+            pf->fmt.width--;
+        }
+    } else {
+        pad = ' ';
+        if (sign) *--p = sign;
+    }
+    return mrbc_printf_str(pf, p, pad);
+}
+
+//================================================================
+/*! sprintf subcontract function
+
+  @param  pf	pointer to mrbc_printf
+  @retval 0	(format string) done.
+  @retval 1	found a format identifier.
+  @retval -1	buffer full.
+  @note		not terminate ('\0') buffer tail.
+*/
+__GURU__
+int mrbc_printf_parse(mrbc_printf *pf)
+{
+    int ch = -1;
+    pf->fmt = (mrbc_print_fmt){0};
+
+    while (pf->p < pf->buf_end && (ch = *pf->fstr) != '\0') {
+        pf->fstr++;
+        if (ch == '%') {
+            if (*pf->fstr == '%') {	// is "%%"
+                pf->fstr++;
+            } else {
+                goto PARSE_FLAG;
+            }
+        }
+        *pf->p++ = ch;
+    }
+    return -(ch != '\0');
+
+PARSE_FLAG:
+    // parse format - '%' [flag] [width] [.precision] type
+    //   e.g. "%05d"
+    while ((ch = *pf->fstr)) {
+        switch(ch) {
+        case '+': pf->fmt.flag_plus = 1; break;
+        case ' ': pf->fmt.flag_space = 1; break;
+        case '-': pf->fmt.flag_minus = 1; break;
+        case '0': pf->fmt.flag_zero = 1; break;
+        default : goto PARSE_WIDTH;
+        }
+        pf->fstr++;
+    }
+
+PARSE_WIDTH:
+    while ((ch = *pf->fstr - '0'), (0 <= ch && ch <= 9)) {	// isdigit()
+        pf->fmt.width = pf->fmt.width * 10 + ch;
+        pf->fstr++;
+    }
+    if (*pf->fstr == '.') {
+        pf->fstr++;
+        while ((ch = *pf->fstr - '0'), (0 <= ch && ch <= 9)) {
+            pf->fmt.precision = pf->fmt.precision * 10 + ch;
+            pf->fstr++;
+        }
+    }
+    if (*pf->fstr) pf->fmt.type = *pf->fstr++;
+
+    return 1;
+}
+
+//================================================================
+/*! replace output buffer
+
+  @param  pf	pointer to mrbc_printf
+  @param  buf	pointer to output buffer.
+  @param  size	buffer size.
+*/
+__GURU__
+void mrbc_printf_replace_buffer(mrbc_printf *pf, char *buf, int size)
+{
+    int p_ofs = pf->p - pf->buf;
+    pf->buf = buf;
+    pf->buf_end = buf + size - 1;
+    pf->p = pf->buf + p_ofs;
+}
+
+__GURU__
+char *guru_printf(const char *fstr, mrbc_value v[], int argc)		// << from c_string.cu
+{
+    static const int BUF_INC_STEP = 32;	// bytes.
+
+    int   sz  = BUF_INC_STEP;
+    char *buf = (char *)mrbc_alloc(sz);
+    if (!buf) { return NULL; }			// ENOMEM raise?
+
+    mrbc_printf pf;
+    mrbc_printf_init(&pf, buf, sz, fstr);
+
+    int i = 2;
+    int ret;
+    while (1) {
+        mrbc_printf pf_bak = pf;
+        ret = mrbc_printf_parse(&pf);
+        if (ret==0) break;	// normal break loop.
+        if (ret < 0) goto INCREASE_BUFFER;
+
+        if (i > argc) {console_str("ArgumentError\n"); break;}	// raise?
+
+        // maybe ret==1
+        switch(pf.fmt.type) {
+        case 'c':
+            if (v[i].tt==MRBC_TT_FIXNUM) {
+                ret = mrbc_printf_char(&pf, v[i].i);
+            }
+            break;
+        case 's':
+            if (v[i].tt==MRBC_TT_STRING) {
+                ret = mrbc_printf_bstr(&pf, mrbc_string_cstr(&v[i]), mrbc_string_size(&v[i]), ' ');
+            }
+            else if (v[i].tt==MRBC_TT_SYMBOL) {
+                ret = mrbc_printf_str(&pf, mrbc_symbol_cstr(&v[i]), ' ');
+            }
+            break;
+        case 'd':
+        case 'i':
+        case 'u':
+            if (v[i].tt==MRBC_TT_FIXNUM) {
+                ret = mrbc_printf_int(&pf, v[i].i, 10);
+#if MRBC_USE_FLOAT
+            } else if (v[i].tt==MRBC_TT_FLOAT) {
+                ret = mrbc_printf_int(&pf, (mrbc_int)v[i].f, 10);
+#endif
+            } else if (v[i].tt==MRBC_TT_STRING) {
+                mrbc_int ival = ATOL(mrbc_string_cstr(&v[i]));
+                ret = mrbc_printf_int(&pf, ival, 10);
+            }
+            break;
+        case 'b':
+        case 'B':
+            if (v[i].tt==MRBC_TT_FIXNUM) {
+                ret = mrbc_printf_int(&pf, v[i].i, 2);
+            }
+            break;
+        case 'x':
+        case 'X':
+            if (v[i].tt==MRBC_TT_FIXNUM) {
+                ret = mrbc_printf_int(&pf, v[i].i, 16);
+            }
+            break;
+#if MRBC_USE_FLOAT
+        case 'f':
+        case 'e':
+        case 'E':
+        case 'g':
+        case 'G':
+            if (v[i].tt==MRBC_TT_FLOAT) {
+                ret = mrbc_printf_float(&pf, v[i].f);
+            }
+            else if (v[i].tt==MRBC_TT_FIXNUM) {
+            	ret = mrbc_printf_float(&pf, v[i].i);
+            }
+            break;
+#endif
+        default:
+            break;
+        }
+        if (ret >= 0) {
+            i++;
+            continue;		// normal next loop.
+        }
+
+        // maybe buffer full. (ret==-1)
+        if (pf.fmt.width > BUF_INC_STEP) sz += pf.fmt.width;
+        pf = pf_bak;
+
+    INCREASE_BUFFER:
+        sz += BUF_INC_STEP;
+        buf = (char *)mrbc_realloc(pf.buf, sz);
+        if (!buf) { return NULL; }				// ENOMEM raise? TODO: leak memory.
+        mrbc_printf_replace_buffer(&pf, buf, sz);
+    }
+    mrbc_printf_end(&pf);
+
+    return buf;
+}
+
+//================================================================
+/*! output formatted string
+
+  @param  fstr		format string.
+*/
+__GURU__
+char *guru_sprintf(const char *fstr, ...)
+{
+    va_list ap;
+    va_start(ap, fstr);
+
+    char buf[82];
+    int  ret;
+    mrbc_printf pf;
+
+    mrbc_printf_init(&pf, buf, sizeof(buf), fstr);
+    while ((ret=mrbc_printf_parse(&pf))!=0) {
+    	if (ret < 0) {
+    		// increase buffer
+    	}
+    	switch(pf.fmt.type) {
+        case 'c': ret = mrbc_printf_char(&pf, va_arg(ap, int));        		break;
+        case 's': ret = mrbc_printf_str(&pf, va_arg(ap, char *), ' '); 		break;
+        case 'd':
+        case 'i':
+        case 'u': ret = mrbc_printf_int(&pf, va_arg(ap, unsigned int), 10); break;
+        case 'b':
+        case 'B': ret = mrbc_printf_int(&pf, va_arg(ap, unsigned int), 2); 	break;
+        case 'x':
+        case 'X': ret = mrbc_printf_int(&pf, va_arg(ap, unsigned int), 16); break;
+#if MRBC_USE_FLOAT
+        case 'f':
+        case 'e':
+        case 'E':
+        case 'g':
+        case 'G': ret = mrbc_printf_float(&pf, va_arg(ap, double)); 		break;
+#endif
+        default: break;
+        }
+    }
+    va_end(ap);
+
+    int len   = mrbc_printf_len(&pf);
+    char *str = (char *)mrbc_alloc(len);
+    if (!str) return NULL;
+
+    MEMCPY((uint8_t *)str, (uint8_t *)buf, len);
+    mrbc_printf_clear(&pf);
+
+    return str;
+}
+

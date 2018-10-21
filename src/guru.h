@@ -77,6 +77,9 @@ typedef struct RObject {
 #if MRBC_USE_FLOAT
         mrbc_float       f;			// MRBC_TT_FLOAT
 #endif
+#if MRBC_USE_STRING
+        struct RString   *str;		// MRBC_TT_STRING
+#endif
         struct RClass    *cls;		// MRBC_TT_CLASS
         struct RObject   *handle;	// handle to objects
         struct RInstance *instance;	// MRBC_TT_OBJECT
@@ -86,10 +89,7 @@ typedef struct RObject {
         struct RRange    *range;	// MRBC_TT_RANGE
         struct RHash     *hash;		// MRBC_TT_HASH
 #endif
-#if MRBC_USE_STRING
-        struct RString   *string;	// MRBC_TT_STRING
-#endif
-        const char       *str;		// C-string (only loader use.)
+        const char       *sym;		// C-string (only loader use.)
     };
 } mrbc_object, mrbc_value;
 
@@ -109,6 +109,14 @@ typedef struct RClass {
 #define MRBC_OBJECT_HEADER                          \
     mrbc_vtype  tt : 16; 							\
 	uint16_t 	ref_count
+
+typedef struct RString {
+	MRBC_OBJECT_HEADER;
+
+	uint16_t size;	//!< string length.
+	uint8_t  *data;	//!< pointer to allocated buffer.
+
+} mrbc_string;
 
 //================================================================
 /*!@brief
