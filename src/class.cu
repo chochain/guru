@@ -27,6 +27,7 @@
 #include "c_fixnum.h"
 
 #if MRBC_USE_STRING
+#include "sprintf.h"
 #include "c_string.h"
 #endif
 
@@ -56,7 +57,7 @@ int mrbc_print_sub(mrbc_value *v)
 #if MRBC_USE_FLOAT
     case MRBC_TT_FLOAT:     console_float(v->f);						break;
 #endif
-    case MRBC_TT_SYMBOL:    console_str(mrbc_symbol_cstr(v)); 			break;
+    case MRBC_TT_SYMBOL:    console_str(VSYM(v)); 						break;
     case MRBC_TT_CLASS:     console_str(symid_to_str(v->cls->sym_id));  break;
     case MRBC_TT_OBJECT:
     	console_str("#<");
@@ -71,9 +72,10 @@ int mrbc_print_sub(mrbc_value *v)
     	break;
 #if MRBC_USE_STRING
     case MRBC_TT_STRING:
-        console_str(mrbc_string_cstr(v));
-        if (mrbc_string_size(v) != 0 &&
-            mrbc_string_cstr(v)[ mrbc_string_size(v) - 1 ] == '\n') ret = 1;
+        console_str(VSTR(v));
+        if (VSTRLEN(v) != 0 && VSTR(v)[VSTRLEN(v) - 1]=='\n') {
+        	ret = 1;
+        }
         break;
 #endif
 #if MRBC_USE_ARRAY
@@ -146,7 +148,7 @@ int mrbc_p_sub(mrbc_value *v)
     switch (v->tt){
     case MRBC_TT_NIL: console_str("nil");		break;
     case MRBC_TT_SYMBOL:{
-        const char *s   = mrbc_symbol_cstr(v);
+        const char *s   = VSYM(v);
         const char *fmt = STRCHR(s, ':') ? "\":%s\"" : ":%s";
         console_strf(s, fmt);
     } break;
@@ -154,9 +156,9 @@ int mrbc_p_sub(mrbc_value *v)
 #if MRBC_USE_STRING
     case MRBC_TT_STRING:{
         console_char('"');
-        const char *s = mrbc_string_cstr(v);
+        const char *s = VSTR(v);
 
-        for (int i = 0; i < mrbc_string_size(v); i++) {
+        for (int i = 0; i < VSTRLEN(v); i++) {
             if (s[i] < ' ' || 0x7f <= s[i]) {		// tiny isprint()
                 console_hex(s[i]);
             } else {
@@ -543,22 +545,22 @@ void c_object_new(mrbc_value v[], int argc)
 {
     mrbc_value new_obj = mrbc_instance_new(v->cls, 0);
 
-    char syms[]="______initialize";
-    _uint32_to_bin(1,(uint8_t*)&syms[0]);
-    _uint16_to_bin(10,(uint8_t*)&syms[4]);
+    char sym[]="______initialize";
+    _uint32_to_bin(1, (uint8_t*)&sym[0]);
+    _uint16_to_bin(10,(uint8_t*)&sym[4]);
 
     uint32_t code[2] = {
         (uint32_t)(MKOPCODE(OP_SEND) | MKARG_A(0) | MKARG_B(0) | MKARG_C(argc)),
-        (uint32_t)MKOPCODE(OP_ABORT)
+        (uint32_t)(MKOPCODE(OP_ABORT))
     };
-    mrbc_irep irep = {
+    mrbc_irep irep = {		// where does this go?
         0,     // nlocals
         0,     // nregs
         0,     // rlen
         2,     // ilen
         0,     // plen
         (uint8_t *)code,   	// iseq
-        (uint8_t *)syms,  	// ptr_to_sym
+        (uint8_t *)sym,  	// ptr_to_sym
         NULL,  // pools
         NULL,  // reps
     };
@@ -613,7 +615,7 @@ void c_object_attr_reader(mrbc_value v[], int argc)
         if (v[i].tt != MRBC_TT_SYMBOL) continue;	// TypeError raise?
 
         // define reader method
-        const char *name = mrbc_symbol_cstr(&v[i]);
+        const char *name = VSYM(&v[i]);
         mrbc_define_method(v[0].cls, name, (mrbc_func_t)c_object_getiv);
     }
 }
@@ -628,7 +630,7 @@ void c_object_attr_accessor(mrbc_value v[], int argc)
         if (v[i].tt != MRBC_TT_SYMBOL) continue;	// TypeError raise?
 
         // define reader method
-        char *name = (char *)mrbc_symbol_cstr(&v[i]);
+        char *name = VSYM(&v[i]);
         mrbc_define_method(v[0].cls, name, (mrbc_func_t)c_object_getiv);
 
         // make string "....=" and define writer method.
@@ -671,33 +673,14 @@ void c_object_kind_of(mrbc_value v[], int argc)
 __GURU__
 void c_object_to_s(mrbc_value v[], int argc)
 {
-    char buf[32];
-    const char *s = buf;
+    const char *s;
 
     switch (v->tt) {
-    case MRBC_TT_CLASS: s = symid_to_str(v->cls->sym_id);	break;
-    case MRBC_TT_OBJECT: {
-        // (NOTE) address part assumes 32bit. but enough for this.
-        mrbc_printf pf;
-
-        mrbc_printf_init(&pf, buf, sizeof(buf), "#<%s:%08x>");
-        while (mrbc_printf_parse(&pf) > 0) {
-            switch (pf.fmt.type) {
-            case 's':
-                mrbc_printf_str(&pf, symid_to_str(v->instance->cls->sym_id), ' ');
-                break;
-            case 'x':
-                mrbc_printf_int(&pf, (uintptr_t)v->instance, 16);
-                break;
-            }
-        }
-        mrbc_printf_end(&pf);
-    } break;
-
+    case MRBC_TT_CLASS:  s = symid_to_str(v->cls->sym_id);	break;
+    case MRBC_TT_OBJECT: s = guru_vprintf("#<%s:%08x>",v, (uintptr_t)v->instance); break;
     default: s = "";	break;
     }
-
-    SET_RETURN(mrbc_string_new_cstr(vm, s));
+    SET_RETURN(mrbc_string_new_cstr(s));
 }
 #endif
 
@@ -743,17 +726,9 @@ void c_proc_call(mrbc_value v[], int argc)
 __GURU__
 void c_proc_to_s(mrbc_value v[], int argc)
 {
-    // (NOTE) address part assumes 32bit. but enough for this.
-    char buf[32];
-    mrbc_printf pf;
+    const char *buf = guru_vprintf("<#Proc:%08x>", v, (uintptr_t)v->proc);
 
-    mrbc_printf_init(&pf, buf, sizeof(buf), "<#Proc:%08x>");
-    while (mrbc_printf_parse(&pf) > 0) {
-        mrbc_printf_int(&pf, (uintptr_t)v->proc, 16);
-    }
-    mrbc_printf_end(&pf);
-
-    SET_RETURN(mrbc_string_new_cstr(vm, buf));
+    SET_RETURN(mrbc_string_new_cstr(buf));
 }
 #endif
 
@@ -869,8 +844,8 @@ void mrbc_init_class_true()
     mrbc_class_true = mrbc_define_class("TrueClass", mrbc_class_object);
     // Methods
 #if MRBC_USE_STRING
-    mrbc_define_method(mrbc_class_true, "inspect", c_true_to_s);
-    mrbc_define_method(mrbc_class_true, "to_s", c_true_to_s);
+    mrbc_define_method(mrbc_class_true, "inspect", 	c_true_to_s);
+    mrbc_define_method(mrbc_class_true, "to_s", 	c_true_to_s);
 #endif
 }
 
@@ -879,17 +854,17 @@ void mrbc_init_class_true()
  */
 __GURU__ void mrbc_init_class_symbol()  // << from symbol.cu
 {
-    mrbc_class *o = mrbc_class_symbol = mrbc_define_class("Symbol", mrbc_class_object);
+    mrbc_class *c = mrbc_class_symbol = mrbc_define_class("Symbol", mrbc_class_object);
 
 #if MRBC_USE_ARRAY
     mrbc_define_method(o, "all_symbols", 	c_all_symbols);
 #endif
 #if MRBC_USE_STRING
-    mrbc_define_method(o, "inspect", 		c_inspect);
-    mrbc_define_method(o, "to_s", 			c_to_s);
-    mrbc_define_method(o, "id2name", 		c_to_s);
+    mrbc_define_method(c, "inspect", 		c_inspect);
+    mrbc_define_method(c, "to_s", 			c_to_s);
+    mrbc_define_method(c, "id2name", 		c_to_s);
 #endif
-    mrbc_define_method(o, "to_sym", 		c_nop);
+    mrbc_define_method(c, "to_sym", 		c_nop);
 }
 
 //================================================================
@@ -914,7 +889,7 @@ void mrbc_init_class(void)
 #endif
     
 #if MRBC_USE_STRING
-    mrbc_init_class_string(0);
+    mrbc_init_class_string();
 #endif
 #if MRBC_USE_ARRAY
     mrbc_init_class_array(0);

@@ -24,7 +24,7 @@
 #define MRBC_SYMBOL_TABLE_INDEX_TYPE	uint16_t
 #endif
 
-struct SYM_INDEX {
+struct SYM_LIST {
     uint16_t hash;	//!< hash value, returned by calc_hash().
 #ifdef MRBC_SYMBOL_SEARCH_BTREE
     MRBC_SYMBOL_TABLE_INDEX_TYPE left;
@@ -33,8 +33,8 @@ struct SYM_INDEX {
     const char *cstr;	//!< point to the symbol string.
 };
 
-__GURU__ struct SYM_INDEX sym_index[MAX_SYMBOLS_COUNT];
-__GURU__ int sym_index_pos;	// point to the last(free) sym_index array.
+__GURU__ struct SYM_LIST sym_list[MAX_SYMBOLS_COUNT];
+__GURU__ int sym_idx;	// point to the last(free) sym_list array.
 
 //================================================================
 /*! search index table
@@ -42,8 +42,8 @@ __GURU__ int sym_index_pos;	// point to the last(free) sym_index array.
 __GURU__ int search_index(uint16_t hash, const char *str)
 {
 #ifdef MRBC_SYMBOL_SEARCH_LINER
-    for(int i = 0; i < sym_index_pos; i++) {
-        if (sym_index[i].hash==hash && strcmp(str, sym_index[i].cstr)==0) {
+    for(int i = 0; i < sym_idx; i++) {
+        if (sym_list[i].hash==hash && strcmp(str, sym_list[i].cstr)==0) {
             return i;
         }
     }
@@ -53,14 +53,14 @@ __GURU__ int search_index(uint16_t hash, const char *str)
 #ifdef MRBC_SYMBOL_SEARCH_BTREE
     int i = 0;
     do {
-        if (sym_index[i].hash==hash &&
-        		guru_strcmp(str, sym_index[i].cstr)==0) {
+        if (sym_list[i].hash==hash &&
+        		guru_strcmp(str, sym_list[i].cstr)==0) {
             return i;
         }
-        if (hash < sym_index[i].hash) {
-            i = sym_index[i].left;
+        if (hash < sym_list[i].hash) {
+            i = sym_list[i].left;
         } else {
-            i = sym_index[i].right;
+            i = sym_list[i].right;
         }
     } while (i != 0);
     return -1;
@@ -73,35 +73,35 @@ __GURU__ int search_index(uint16_t hash, const char *str)
 __GURU__ int add_index(uint16_t hash, const char *str)
 {
     // check overflow.
-    if (sym_index_pos >= MAX_SYMBOLS_COUNT) {
+    if (sym_idx >= MAX_SYMBOLS_COUNT) {
 //        printf("Overflow %s for '%s'\n", "MAX_SYMBOLS_COUNT", str);
         assert(1==0);
         return -1;
     }
-    int sym_id = sym_index_pos++;
+    int sym_id = sym_idx++;
 
     // append table.
-    sym_index[sym_id].hash = hash;
-    sym_index[sym_id].cstr = str;
+    sym_list[sym_id].hash = hash;
+    sym_list[sym_id].cstr = str;
 
 #ifdef MRBC_SYMBOL_SEARCH_BTREE
     int i = 0;
 
     while (1) {
-        if (hash < sym_index[i].hash) {
+        if (hash < sym_list[i].hash) {
             // left side
-            if (sym_index[i].left==0) {	// left is empty?
-                sym_index[i].left = sym_id;
+            if (sym_list[i].left==0) {	// left is empty?
+                sym_list[i].left = sym_id;
                 break;
             }
-            i = sym_index[i].left;
+            i = sym_list[i].left;
         } else {
             // right side
-            if (sym_index[i].right==0) {	// right is empty?
-                sym_index[i].right = sym_id;
+            if (sym_list[i].right==0) {	// right is empty?
+                sym_list[i].right = sym_id;
                 break;
             }
-            i = sym_index[i].right;
+            i = sym_list[i].right;
         }
     }
 #endif
@@ -179,10 +179,37 @@ __GURU__ mrbc_sym str_to_symid(const char *str)
 */
 __GURU__ const char * symid_to_str(mrbc_sym sym_id)
 {
-    return (sym_id < 0 || sym_id >= sym_index_pos)
+    return (sym_id < 0 || sym_id >= sym_idx)
     		? NULL
-    		: sym_index[sym_id].cstr;
+    		: sym_list[sym_id].cstr;
 }
+
+#if MRBC_USE_STRING
+// from c_string.cu
+extern "C" __GURU__ mrbc_value mrbc_string_new_cstr(const char *src);
+extern "C" __GURU__ int        mrbc_string_append_cstr(mrbc_value *s1, const char *s2);
+
+//================================================================
+/*! (method) inspect
+ */
+__GURU__
+void c_inspect(mrbc_value v[], int argc)
+{
+    const char *s = symid_to_str(v[0].i);
+    v[0] = mrbc_string_new_cstr(":");
+    mrbc_string_append_cstr(&v[0], s);
+}
+
+
+//================================================================
+/*! (method) to_s
+ */
+__GURU__
+void c_to_s(mrbc_value v[], int argc)
+{
+    v[0] = mrbc_string_new_cstr(symid_to_str(v[0].i));
+}
+#endif
 
 #if MRBC_USE_ARRAY
 //================================================================
@@ -190,9 +217,9 @@ __GURU__ const char * symid_to_str(mrbc_sym sym_id)
  */
 __GURU__ void c_all_symbols(mrbc_value v[], int argc)
 {
-    mrbc_value ret = mrbc_array_new(sym_index_pos);
+    mrbc_value ret = mrbc_array_new(sym_idx);
 
-    for(int i = 0; i < sym_index_pos; i++) {
+    for(int i = 0; i < sym_idx; i++) {
         mrbc_value sym1 = {.tt = MRBC_TT_SYMBOL};
         sym1.i = i;
         mrbc_array_push(&ret, &sym1);
@@ -201,32 +228,4 @@ __GURU__ void c_all_symbols(mrbc_value v[], int argc)
 }
 #endif
 
-#if MRBC_USE_STRING
-//================================================================
-/*! (method) inspect
- */
-static void c_inspect(mrbc_vm *vm, mrbc_value v[], int argc)
-{
-    const char *s = symid_to_str(v[0].i);
-    v[0] = mrbc_string_new_cstr(vm, ":");
-    mrbc_string_append_cstr(&v[0], s);
-}
-
-
-//================================================================
-/*! (method) to_s
- */
-static void c_to_s(mrbc_vm *vm, mrbc_value v[], int argc)
-{
-    v[0] = mrbc_string_new_cstr(vm, symid_to_str(v[0].i));
-}
-#endif
-
-//================================================================
-/*! get c-language string (char *)
-*/
-__GURU__ const char * mrbc_symbol_cstr(const mrbc_value *v)
-{
-  return symid_to_str(v->i);
-}
 

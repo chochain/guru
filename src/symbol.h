@@ -23,10 +23,10 @@ __GURU__ uint16_t   calc_hash(const char *str);
 __GURU__ mrbc_sym   str_to_symid(const char *str);
 __GURU__ const char *symid_to_str(mrbc_sym sym_id);
 
-//================================================================
-/*! get c-language string (char *)
-*/
-__GURU__ const char * mrbc_symbol_cstr(const mrbc_value *v);
+// extern to class.cu
+__GURU__ void c_inspect(mrbc_value v[], int argc);
+__GURU__ void c_to_s(mrbc_value v[], int argc);
+
 
 #ifdef __cplusplus
 }

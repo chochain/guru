@@ -16,7 +16,6 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-
 __GURU__ int        mrbc_compare(const mrbc_value *v1, const mrbc_value *v2);
 __GURU__ void       mrbc_dup(mrbc_value *v);
 __GURU__ mrbc_int   mrbc_atoi(const char *s, int base);
@@ -88,6 +87,12 @@ __GURU__ char   *guru_strcat(char *d, const char *s);
 #define STRCHR(s, c)      strchr(s, c)
 #define STRCAT(d, s)      strcat(d, s)
 #endif
+
+// basic C string functions for mrbc_value
+#define VSTRLEN(v)		((v)->str->size)
+#define VSTR(v)			((char *)(v)->str->data)
+#define VSTRCMP(v1, v2) (STRCMP((v1)->str->data, (v2)->str->data))
+#define VSYM(v)			((char *)symid_to_str((v)->i))
 
 #ifdef __cplusplus
 }

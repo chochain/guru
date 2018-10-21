@@ -135,7 +135,7 @@ __GURU__ int _load_irep_1(mrbc_irep *irep, const uint8_t **pos)
         switch (tt) {
         case 0: { 	// IREP_TT_STRING
             obj->tt  = MRBC_TT_STRING;
-            obj->str = (char*)p;
+            obj->sym = (char*)p;
         } break;
         case 1: { 	// IREP_TT_FIXNUM
             MEMCPY((uint8_t *)buf, p, obj_size);

@@ -11,20 +11,20 @@
   </pre>
 */
 #include "value.h"
-#include "errorcode.h"
 #include "alloc.h"
 #include "static.h"
-#include "class.h"
 #include "symbol.h"
+#include "errorcode.h"
 #include "console.h"
+#include "class.h"
 #include "sprintf.h"
-#include "vm.h"
+#include "c_string.h"
+
 #if MRBC_USE_ARRAY
 //#include "c_array.h"
 #endif
-#include "c_string.h"
 
-extern "C" __GURU__ void mrbc_dec_ref_counter(mrbc_value *v);  // from vmalloc.h
+extern "C" __GURU__ void mrbc_dec_ref_counter(mrbc_value *v);  						// vmalloc.cu
 
 #if MRBC_USE_STRING
 //================================================================
@@ -248,13 +248,13 @@ int mrbc_string_append_cstr(mrbc_value *v1, const char *v2)
 __GURU__
 int mrbc_string_index(const mrbc_value *v, const mrbc_value *pattern, int offset)
 {
-    char *p1 = mrbc_string_cstr(v) + offset;
-    char *p2 = mrbc_string_cstr(pattern);
-    int try_cnt = mrbc_string_size(v) - mrbc_string_size(pattern) - offset;
+    char *p1 = VSTR(v) + offset;
+    char *p2 = VSTR(pattern);
+    int try_cnt = VSTRLEN(v) - VSTRLEN(pattern) - offset;
 
     while (try_cnt >= 0) {
-        if (MEMCMP((uint8_t *)p1, (uint8_t *)p2, mrbc_string_size(pattern))==0) {
-            return p1 - mrbc_string_cstr(v);	// matched.
+        if (MEMCMP((uint8_t *)p1, (uint8_t *)p2, VSTRLEN(pattern))==0) {
+            return p1 - VSTR(v);	// matched.
         }
         try_cnt--;
         p1++;
@@ -272,8 +272,8 @@ int mrbc_string_index(const mrbc_value *v, const mrbc_value *pattern, int offset
 __GURU__
 int mrbc_string_strip(mrbc_value *v, int mode)
 {
-    char *p1 = mrbc_string_cstr(v);
-    char *p2 = p1 + mrbc_string_size(v) - 1;
+    char *p1 = VSTR(v);
+    char *p2 = p1 + VSTRLEN(v) - 1;
 
     // left-side
     if (mode & 0x01) {
@@ -291,9 +291,9 @@ int mrbc_string_strip(mrbc_value *v, int mode)
         }
     }
     int new_size = p2 - p1 + 1;
-    if (mrbc_string_size(v)==new_size) return 0;
+    if (VSTRLEN(v)==new_size) return 0;
 
-    char *buf = mrbc_string_cstr(v);
+    char *buf = VSTR(v);
     if (p1 != buf) MEMCPY((uint8_t *)buf, (uint8_t *)p1, new_size);
     buf[new_size] = '\0';
     mrbc_realloc(buf, new_size+1);	// shrink suitable size.
@@ -311,16 +311,16 @@ int mrbc_string_strip(mrbc_value *v, int mode)
 __GURU__
 int mrbc_string_chomp(mrbc_value *v)
 {
-    char *p1 = mrbc_string_cstr(v);
-    char *p2 = p1 + mrbc_string_size(v) - 1;
+    char *p1 = VSTR(v);
+    char *p2 = p1 + VSTRLEN(v) - 1;
 
     if (*p2=='\n') p2--;
     if (*p2=='\r') p2--;
 
     int new_size = p2 - p1 + 1;
-    if (mrbc_string_size(v)==new_size) return 0;
+    if (VSTRLEN(v)==new_size) return 0;
 
-    char *buf = mrbc_string_cstr(v);
+    char *buf = VSTR(v);
     buf[new_size] = '\0';
     v->str->size = new_size;
 
@@ -337,7 +337,6 @@ void c_string_add(mrbc_value v[], int argc)
         console_str("Not support STRING + Other\n");
         return;
     }
-
     mrbc_value value = mrbc_string_add(&v[0], &v[1]);
     SET_RETURN(value);
 }
@@ -352,14 +351,13 @@ void c_string_mul(mrbc_value v[], int argc)
         console_str("TypeError\n");	// raise?
         return;
     }
-
-    mrbc_value value = mrbc_string_new(NULL, mrbc_string_size(&v[0]) * v[1].i);
+    mrbc_value value = mrbc_string_new(NULL, VSTRLEN(&v[0]) * v[1].i);
     if (value.str==NULL) return;		// ENOMEM
 
     uint8_t *p = value.str->data;
     for (int i = 0; i < v[1].i; i++) {
-        MEMCPY(p, (uint8_t *)mrbc_string_cstr(&v[0]), mrbc_string_size(&v[0]));
-        p += mrbc_string_size(&v[0]);
+        MEMCPY(p, (uint8_t *)VSTR(&v[0]), VSTRLEN(&v[0]));
+        p += VSTRLEN(&v[0]);
     }
     *p = 0;
 
@@ -372,7 +370,7 @@ void c_string_mul(mrbc_value v[], int argc)
 __GURU__
 void c_string_size(mrbc_value v[], int argc)
 {
-    mrbc_int size = mrbc_string_size(&v[0]);
+    mrbc_int size = VSTRLEN(&v[0]);
 
     SET_INT_RETURN(size);
 }
@@ -390,7 +388,7 @@ void c_string_to_i(mrbc_value v[], int argc)
             return;	// raise ? ArgumentError
         }
     }
-    mrbc_int i = mrbc_atoi(mrbc_string_cstr(v), base);
+    mrbc_int i = mrbc_atoi(VSTR(v), base);
 
     SET_INT_RETURN(i);
 }
@@ -402,7 +400,7 @@ void c_string_to_i(mrbc_value v[], int argc)
 __GURU__
 void c_string_to_f(mrbc_value v[], int argc)
 {
-    mrbc_float d = ATOF(mrbc_string_cstr(v));
+    mrbc_float d = ATOF(VSTR(v));
 
     SET_FLOAT_RETURN(d);
 }
@@ -535,11 +533,11 @@ void c_string_insert(mrbc_value v[], int argc)
         return;
     }
 
-    uint8_t *str = (uint8_t *)mrbc_realloc(mrbc_string_cstr(v), len1 + len2 - len + 1);
+    uint8_t *str = (uint8_t *)mrbc_realloc(VSTR(v), len1 + len2 - len + 1);
     if (!str) return;
 
     MEMCPY(str + nth + len2, str + nth + len, len1 - nth - len + 1);
-    MEMCPY(str + nth, (uint8_t *)mrbc_string_cstr(val), len2);
+    MEMCPY(str + nth, (uint8_t *)VSTR(val), len2);
     v->str->size = len1 + len2 - len;
 
     v->str->data = str;
@@ -594,7 +592,7 @@ void c_string_index(mrbc_value v[], int argc)
 
     } else if (argc==2 && v[2].tt==MRBC_TT_FIXNUM) {
         offset = v[2].i;
-        if (offset < 0) offset += mrbc_string_size(&v[0]);
+        if (offset < 0) offset += VSTRLEN(&v[0]);
         if (offset < 0) goto NIL_RETURN;
 
     } else {
@@ -619,9 +617,9 @@ void c_string_inspect(mrbc_value v[], int argc)
 {
     char buf[10] = "\\x";
     mrbc_value ret = mrbc_string_new_cstr("\"");
-    const unsigned char *s = (const unsigned char *)mrbc_string_cstr(v);
+    const unsigned char *s = (const unsigned char *)VSTR(v);
   
-    for (int i = 0; i < mrbc_string_size(v); i++) {
+    for (int i = 0; i < VSTRLEN(v); i++) {
         if (s[i] < ' ' || 0x7f <= s[i]) {	// tiny isprint()
             buf[2] = "0123456789ABCDEF"[s[i] >> 4];
             buf[3] = "0123456789ABCDEF"[s[i] & 0x0f];
@@ -642,7 +640,7 @@ void c_string_inspect(mrbc_value v[], int argc)
 __GURU__
 void c_string_ord(mrbc_value v[], int argc)
 {
-    int i = mrbc_string_cstr(v)[0];
+    int i = VSTR(v)[0];
 
     SET_INT_RETURN(i);
 }
@@ -770,7 +768,7 @@ DONE:
 __GURU__
 void c_object_sprintf(mrbc_value v[], int argc)
 {
-	char *buf = guru_sprintf("<#%s:%08x>", v, argc);
+	char *buf = guru_vprintf("<#%s:%08x>", v, argc);
 
     mrbc_value value = mrbc_string_new_cstr(buf);
 
@@ -784,7 +782,7 @@ __GURU__
 void c_object_printf(mrbc_value v[], int argc)
 {
     c_object_sprintf(v, argc);
-    console_str(mrbc_string_cstr(v));
+    console_str(VSTR(v));
     SET_NIL_RETURN();
 }
 
@@ -866,7 +864,7 @@ void c_string_strip_self(mrbc_value v[], int argc)
 __GURU__
 void c_string_to_sym(mrbc_value v[], int argc)
 {
-    mrbc_value ret = mrbc_symbol_new(mrbc_string_cstr(&v[0]));
+    mrbc_value ret = mrbc_symbol_new(VSTR(&v[0]));
 
     SET_RETURN(ret);
 }
@@ -903,7 +901,6 @@ void mrbc_init_class_string()
     mrbc_define_method(c, "strip!",	c_string_strip_self);
     mrbc_define_method(c, "to_sym",	c_string_to_sym);
     mrbc_define_method(c, "intern",	c_string_to_sym);
-
 #if MRBC_USE_FLOAT
     mrbc_define_method(c, "to_f",	c_string_to_f);
 #endif

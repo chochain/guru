@@ -17,6 +17,7 @@
 #include "keyvalue.h"
 #include "symbol.h"
 #include "vmalloc.h"
+#include "c_string.h"
 
 #include <assert.h>
 

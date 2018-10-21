@@ -17,7 +17,6 @@
 #include "console.h"
 #include "symbol.h"
 #include "sprintf.h"
-#include "c_string.h"
 
 //================================================================
 /*! initialize data container.
@@ -28,7 +27,7 @@
   @param  fstr	format string.
 */
 __GURU__
-void mrbc_printf_init(mrbc_printf *pf, char *buf, int size, const char *fstr)
+void _mrbc_printf_init(mrbc_printf *pf, char *buf, int size, const char *fstr)
 {
     pf->buf  = pf->p = buf;
     pf->buf_end = buf + size - 1;
@@ -42,7 +41,7 @@ void mrbc_printf_init(mrbc_printf *pf, char *buf, int size, const char *fstr)
   @param  pf	pointer to mrbc_printf
 */
 __GURU__ __forceinline__
-void mrbc_printf_clear(mrbc_printf *pf)
+void _mrbc_printf_clear(mrbc_printf *pf)
 {
     pf->p = pf->buf;		// back to head
 }
@@ -53,7 +52,7 @@ void mrbc_printf_clear(mrbc_printf *pf)
   @param  pf	pointer to mrbc_printf
 */
 __GURU__ __forceinline__
-void mrbc_printf_end(mrbc_printf *pf)
+void _mrbc_printf_end(mrbc_printf *pf)
 {
     *pf->p = '\0';
 }
@@ -65,7 +64,7 @@ void mrbc_printf_end(mrbc_printf *pf)
   @return	length
 */
 __GURU__ __forceinline__
-int mrbc_printf_len(mrbc_printf *pf)
+int _mrbc_printf_len(mrbc_printf *pf)
 {
     return pf->p - pf->buf;
 }
@@ -80,7 +79,7 @@ int mrbc_printf_len(mrbc_printf *pf)
   @note		not terminate ('\0') buffer tail.
 */
 __GURU__
-int mrbc_printf_char(mrbc_printf *pf, int ch)
+int _mrbc_printf_char(mrbc_printf *pf, int ch)
 {
     if (pf->fmt.flag_minus) {
         if (pf->p == pf->buf_end) return -1;
@@ -113,7 +112,7 @@ int mrbc_printf_char(mrbc_printf *pf, int ch)
   @note		not terminate ('\0') buffer tail.
 */
 __GURU__
-int mrbc_printf_bstr(mrbc_printf *pf, const char *str, int len, int pad)
+int _mrbc_printf_bstr(mrbc_printf *pf, const char *str, int len, int pad)
 {
     int ret = 0;
 
@@ -162,7 +161,7 @@ int mrbc_printf_bstr(mrbc_printf *pf, const char *str, int len, int pad)
   @retval -1	buffer full.
 */
 __GURU__
-int mrbc_printf_float(mrbc_printf *pf, double value)
+int _mrbc_printf_float(mrbc_printf *pf, double value)
 {
     char fstr[16];
     const char *p1 = pf->fstr;
@@ -191,9 +190,9 @@ int mrbc_printf_float(mrbc_printf *pf, double value)
   @note		not terminate ('\0') buffer tail.
 */
 __GURU__
-int mrbc_printf_str(mrbc_printf *pf, const char *str, int pad)
+int _mrbc_printf_str(mrbc_printf *pf, const char *str, int pad)
 {
-    return mrbc_printf_bstr(pf, str, STRLEN(str), pad);
+    return _mrbc_printf_bstr(pf, str, STRLEN(str), pad);
 }
 
 //================================================================
@@ -207,7 +206,7 @@ int mrbc_printf_str(mrbc_printf *pf, const char *str, int pad)
   @note		not terminate ('\0') buffer tail.
 */
 __GURU__
-int mrbc_printf_int(mrbc_printf *pf, mrbc_int value, int base)
+int _mrbc_printf_int(mrbc_printf *pf, mrbc_int value, int base)
 {
     int sign = 0;
     uint32_t v = value;	// (note) Change this when supporting 64 bit.
@@ -252,7 +251,7 @@ int mrbc_printf_int(mrbc_printf *pf, mrbc_int value, int base)
         pad = ' ';
         if (sign) *--p = sign;
     }
-    return mrbc_printf_str(pf, p, pad);
+    return _mrbc_printf_str(pf, p, pad);
 }
 
 //================================================================
@@ -265,7 +264,7 @@ int mrbc_printf_int(mrbc_printf *pf, mrbc_int value, int base)
   @note		not terminate ('\0') buffer tail.
 */
 __GURU__
-int mrbc_printf_parse(mrbc_printf *pf)
+int _mrbc_printf_parse(mrbc_printf *pf)
 {
     int ch = -1;
     pf->fmt = (mrbc_print_fmt){0};
@@ -322,7 +321,7 @@ PARSE_WIDTH:
   @param  size	buffer size.
 */
 __GURU__
-void mrbc_printf_replace_buffer(mrbc_printf *pf, char *buf, int size)
+void _mrbc_printf_replace_buffer(mrbc_printf *pf, char *buf, int size)
 {
     int p_ofs = pf->p - pf->buf;
     pf->buf = buf;
@@ -331,7 +330,7 @@ void mrbc_printf_replace_buffer(mrbc_printf *pf, char *buf, int size)
 }
 
 __GURU__
-char *guru_printf(const char *fstr, mrbc_value v[], int argc)		// << from c_string.cu
+char *guru_vprintf(const char *fstr, mrbc_value v[], int argc)		// << from c_string.cu
 {
     static const int BUF_INC_STEP = 32;	// bytes.
 
@@ -340,13 +339,13 @@ char *guru_printf(const char *fstr, mrbc_value v[], int argc)		// << from c_stri
     if (!buf) { return NULL; }			// ENOMEM raise?
 
     mrbc_printf pf;
-    mrbc_printf_init(&pf, buf, sz, fstr);
+    _mrbc_printf_init(&pf, buf, sz, fstr);
 
     int i = 2;
     int ret;
     while (1) {
         mrbc_printf pf_bak = pf;
-        ret = mrbc_printf_parse(&pf);
+        ret = _mrbc_printf_parse(&pf);
         if (ret==0) break;	// normal break loop.
         if (ret < 0) goto INCREASE_BUFFER;
 
@@ -356,41 +355,41 @@ char *guru_printf(const char *fstr, mrbc_value v[], int argc)		// << from c_stri
         switch(pf.fmt.type) {
         case 'c':
             if (v[i].tt==MRBC_TT_FIXNUM) {
-                ret = mrbc_printf_char(&pf, v[i].i);
+                ret = _mrbc_printf_char(&pf, v[i].i);
             }
             break;
         case 's':
             if (v[i].tt==MRBC_TT_STRING) {
-                ret = mrbc_printf_bstr(&pf, mrbc_string_cstr(&v[i]), mrbc_string_size(&v[i]), ' ');
+                ret = _mrbc_printf_bstr(&pf, VSTR(&v[i]), VSTRLEN(&v[i]), ' ');
             }
             else if (v[i].tt==MRBC_TT_SYMBOL) {
-                ret = mrbc_printf_str(&pf, mrbc_symbol_cstr(&v[i]), ' ');
+                ret = _mrbc_printf_str(&pf, VSYM(&v[i]), ' ');
             }
             break;
         case 'd':
         case 'i':
         case 'u':
             if (v[i].tt==MRBC_TT_FIXNUM) {
-                ret = mrbc_printf_int(&pf, v[i].i, 10);
+                ret = _mrbc_printf_int(&pf, v[i].i, 10);
 #if MRBC_USE_FLOAT
             } else if (v[i].tt==MRBC_TT_FLOAT) {
-                ret = mrbc_printf_int(&pf, (mrbc_int)v[i].f, 10);
+                ret = _mrbc_printf_int(&pf, (mrbc_int)v[i].f, 10);
 #endif
             } else if (v[i].tt==MRBC_TT_STRING) {
-                mrbc_int ival = ATOL(mrbc_string_cstr(&v[i]));
-                ret = mrbc_printf_int(&pf, ival, 10);
+                mrbc_int ival = ATOL(VSTR(&v[i]));
+                ret = _mrbc_printf_int(&pf, ival, 10);
             }
             break;
         case 'b':
         case 'B':
             if (v[i].tt==MRBC_TT_FIXNUM) {
-                ret = mrbc_printf_int(&pf, v[i].i, 2);
+                ret = _mrbc_printf_int(&pf, v[i].i, 2);
             }
             break;
         case 'x':
         case 'X':
             if (v[i].tt==MRBC_TT_FIXNUM) {
-                ret = mrbc_printf_int(&pf, v[i].i, 16);
+                ret = _mrbc_printf_int(&pf, v[i].i, 16);
             }
             break;
 #if MRBC_USE_FLOAT
@@ -400,10 +399,10 @@ char *guru_printf(const char *fstr, mrbc_value v[], int argc)		// << from c_stri
         case 'g':
         case 'G':
             if (v[i].tt==MRBC_TT_FLOAT) {
-                ret = mrbc_printf_float(&pf, v[i].f);
+                ret = _mrbc_printf_float(&pf, v[i].f);
             }
             else if (v[i].tt==MRBC_TT_FIXNUM) {
-            	ret = mrbc_printf_float(&pf, v[i].i);
+            	ret = _mrbc_printf_float(&pf, v[i].i);
             }
             break;
 #endif
@@ -423,9 +422,9 @@ char *guru_printf(const char *fstr, mrbc_value v[], int argc)		// << from c_stri
         sz += BUF_INC_STEP;
         buf = (char *)mrbc_realloc(pf.buf, sz);
         if (!buf) { return NULL; }				// ENOMEM raise? TODO: leak memory.
-        mrbc_printf_replace_buffer(&pf, buf, sz);
+        _mrbc_printf_replace_buffer(&pf, buf, sz);
     }
-    mrbc_printf_end(&pf);
+    _mrbc_printf_end(&pf);
 
     return buf;
 }
@@ -445,39 +444,39 @@ char *guru_sprintf(const char *fstr, ...)
     int  ret;
     mrbc_printf pf;
 
-    mrbc_printf_init(&pf, buf, sizeof(buf), fstr);
-    while ((ret=mrbc_printf_parse(&pf))!=0) {
+    _mrbc_printf_init(&pf, buf, sizeof(buf), fstr);
+    while ((ret=_mrbc_printf_parse(&pf))!=0) {
     	if (ret < 0) {
     		// increase buffer
     	}
     	switch(pf.fmt.type) {
-        case 'c': ret = mrbc_printf_char(&pf, va_arg(ap, int));        		break;
-        case 's': ret = mrbc_printf_str(&pf, va_arg(ap, char *), ' '); 		break;
+        case 'c': ret = _mrbc_printf_char(&pf, va_arg(ap, int));        		break;
+        case 's': ret = _mrbc_printf_str(&pf, va_arg(ap, char *), ' '); 		break;
         case 'd':
         case 'i':
-        case 'u': ret = mrbc_printf_int(&pf, va_arg(ap, unsigned int), 10); break;
+        case 'u': ret = _mrbc_printf_int(&pf, va_arg(ap, unsigned int), 10); break;
         case 'b':
-        case 'B': ret = mrbc_printf_int(&pf, va_arg(ap, unsigned int), 2); 	break;
+        case 'B': ret = _mrbc_printf_int(&pf, va_arg(ap, unsigned int), 2); 	break;
         case 'x':
-        case 'X': ret = mrbc_printf_int(&pf, va_arg(ap, unsigned int), 16); break;
+        case 'X': ret = _mrbc_printf_int(&pf, va_arg(ap, unsigned int), 16); break;
 #if MRBC_USE_FLOAT
         case 'f':
         case 'e':
         case 'E':
         case 'g':
-        case 'G': ret = mrbc_printf_float(&pf, va_arg(ap, double)); 		break;
+        case 'G': ret = _mrbc_printf_float(&pf, va_arg(ap, double)); 		break;
 #endif
         default: break;
         }
     }
     va_end(ap);
 
-    int len   = mrbc_printf_len(&pf);
+    int len   = _mrbc_printf_len(&pf);
     char *str = (char *)mrbc_alloc(len);
     if (!str) return NULL;
 
     MEMCPY((uint8_t *)str, (uint8_t *)buf, len);
-    mrbc_printf_clear(&pf);
+    _mrbc_printf_clear(&pf);
 
     return str;
 }

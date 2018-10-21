@@ -13,14 +13,40 @@
 #include <assert.h>
 #include "value.h"
 
-#if MRBC_USE_STRING
-#include "c_string.h"
-#endif
 #if MRGC_USE_ARRAY
 #include "c_range.h"
 #include "c_array.h"
 #include "c_hash.h"
 #endif
+
+//================================================================
+/*! get size
+ */
+__GURU__
+int mrbc_string_size(const mrbc_value *v)
+{
+    return v->str->size;
+}
+
+//================================================================
+/*! get c-language string (char *)
+ */
+__GURU__
+char * mrbc_string_cstr(const mrbc_value *v)
+{
+    return (char*)v->str->data;
+}
+
+//================================================================
+/*! compare
+ */
+__GURU__
+int mrbc_string_compare(const mrbc_value *v1, const mrbc_value *v2)
+{
+	if (v1->str->size != v2->str->size) return -1;
+
+	return STRCMP((const char *)v1->str->data, (const char *)v2->str->data);
+}
 
 //================================================================
 /*! compare two mrbc_values
@@ -76,10 +102,8 @@ int mrbc_compare(const mrbc_value *v1, const mrbc_value *v2)
         d2 = v2->f;
         return -1 + (d1 == d2) + (d1 > d2)*2;	// caution: NaN == NaN is false
 #endif
-#if MRBC_USE_STRING
     case MRBC_TT_STRING:
         return mrbc_string_compare(v1, v2);
-#endif
 #if MRBC_USE_ARRAY
     case MRBC_TT_ARRAY:
         return mrbc_array_compare(v1, v2);

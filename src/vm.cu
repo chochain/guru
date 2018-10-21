@@ -1288,10 +1288,10 @@ int op_string(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     int rb = GETARG_Bx(code);
     mrbc_object *pool_obj = vm->pc_irep->pools[rb];
 
-    /* CAUTION: pool_obj->str - 2. see IREP POOL structure. */
-    int len = bin_to_uint16(pool_obj->str - 2);
-    mrbc_value value = mrbc_string_new(vm, pool_obj->str, len);
-    if (value.string==NULL) return -1;		// ENOMEM
+    /* CAUTION: pool_obj->sym - 2. see IREP POOL structure. */
+    int len = _bin_to_uint16(pool_obj->sym - 2);
+    mrbc_value value = mrbc_string_new(pool_obj->sym, len);
+    if (value.str==NULL) return -1;		// ENOMEM
 
     mrbc_release(&regs[ra]);
     regs[ra] = value;
@@ -1323,16 +1323,16 @@ int op_strcat(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     // call "to_s"
     mrbc_sym sym_id = str_to_symid("to_s");
     mrbc_proc *m;
-    m = find_method(vm, regs[ra], sym_id);
+    m = find_method(regs[ra], sym_id);
     if (m && m->c_func){
-        m->func(vm, regs+ra, 0);
+        m->func(regs+ra, 0);
     }
-    m = find_method(vm, regs[rb], sym_id);
+    m = find_method(regs[rb], sym_id);
     if (m && m->c_func){
-        m->func(vm, regs+rb, 0);
+        m->func(regs+rb, 0);
     }
 
-    mrbc_value v = mrbc_string_add(vm, &regs[ra], &regs[rb]);
+    mrbc_value v = mrbc_string_add(&regs[ra], &regs[rb]);
     mrbc_release(&regs[ra]);
     regs[ra] = v;
 

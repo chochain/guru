@@ -77,13 +77,11 @@ typedef struct RObject {
 #if MRBC_USE_FLOAT
         mrbc_float       f;			// MRBC_TT_FLOAT
 #endif
-#if MRBC_USE_STRING
-        struct RString   *str;		// MRBC_TT_STRING
-#endif
         struct RClass    *cls;		// MRBC_TT_CLASS
         struct RObject   *handle;	// handle to objects
         struct RInstance *instance;	// MRBC_TT_OBJECT
         struct RProc     *proc;		// MRBC_TT_PROC
+        struct RString   *str;		// MRBC_TT_STRING
 #if MRBC_USE_ARRAY
         struct RArray    *array;	// MRBC_TT_ARRAY
         struct RRange    *range;	// MRBC_TT_RANGE
@@ -115,7 +113,6 @@ typedef struct RString {
 
 	uint16_t size;	//!< string length.
 	uint8_t  *data;	//!< pointer to allocated buffer.
-
 } mrbc_string;
 
 //================================================================
@@ -142,14 +139,14 @@ typedef struct RProc {
     MRBC_OBJECT_HEADER;
 
     unsigned int c_func : 1;	// 0:IREP, 1:C Func
-    mrbc_sym sym_id;
+    mrbc_sym 	 sym_id;
     struct RProc *next;
     union {
         struct Irep *irep;
         mrbc_func_t func;
     };
 #ifdef MRBC_DEBUG
-    const char *names;			// for debug; delete soon
+    const char 	 *names;		// for debug; delete soon
 #endif
 } mrbc_proc;
 

@@ -16,7 +16,8 @@
 #include "c_fixnum.h"
 
 #if MRBC_USE_STRING
-#include "string.h"
+#include "sprintf.h"
+#include "c_string.h"
 #endif
 
 extern "C" __GURU__ void mrbc_dec_ref_counter(mrbc_value *v);  // from vmalloc.h
@@ -187,7 +188,7 @@ void c_fixnum_chr(mrbc_value v[], int argc)
 {
     char buf[2] = { GET_INT_ARG(0) };
 
-    mrbc_value value = mrbc_string_new(vm, buf, 1);
+    mrbc_value value = mrbc_string_new(buf, 1);
     SET_RETURN(value);
 }
 
@@ -205,14 +206,8 @@ void c_fixnum_to_s(mrbc_value v[], int argc)
         }
     }
 
-    mrbc_printf pf;
-    char buf[16];
-    mrbc_printf_init(&pf, buf, sizeof(buf), NULL);
-    pf.fmt.type = 'd';
-    mrbc_printf_int(&pf, v->i, base);
-    mrbc_printf_end(&pf);
-
-    mrbc_value value = mrbc_string_new_cstr(vm, buf);
+    char *buf = guru_vprintf("%d", v, 1);
+    mrbc_value value = mrbc_string_new_cstr(buf);
     SET_RETURN(value);
 }
 #endif
@@ -239,9 +234,9 @@ void mrbc_init_class_fixnum(void)
     mrbc_define_method(c, "to_f", 	c_fixnum_to_f);
 #endif
 #if MRBC_USE_STRING
-    mrbc_define_method(o, "chr", 	c_fixnum_chr);
-    mrbc_define_method(o, "inspect",c_fixnum_to_s);
-    mrbc_define_method(o, "to_s", 	c_fixnum_to_s);
+    mrbc_define_method(c, "chr", 	c_fixnum_chr);
+    mrbc_define_method(c, "inspect",c_fixnum_to_s);
+    mrbc_define_method(c, "to_s", 	c_fixnum_to_s);
 #endif
 }
 
@@ -304,10 +299,9 @@ void c_float_to_i(mrbc_value v[], int argc)
 __GURU__
 void c_float_to_s(mrbc_value v[], int argc)
 {
-    char buf[16];
-
-    snprintf(buf, sizeof(buf), "%g", v->d);
+    char *buf = guru_vprintf("%g", v, 1);
     mrbc_value value = mrbc_string_new_cstr(buf);
+    
     SET_RETURN(value);
 }
 #endif
