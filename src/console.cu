@@ -27,7 +27,7 @@ void guru_write(mrbc_vtype tt, mrbc_vtype fmt, size_t sz, uint8_t *buf)
 
 	n->tt   = tt;
 	n->fmt  = fmt;
-	n->size = (sz + 7) & ~0x7;		// 16
+	n->size = sz + (-sz & 0x7);		// 8-byte alignment
 
 	guru_output_ptr = (uint8_t *)n->data + n->size;		// advance pointer to next print block
 
@@ -74,14 +74,14 @@ void console_float(mrbc_float f)
 __GURU__
 void console_str(const char *str)
 {
-	guru_write(MRBC_TT_STRING, MRBC_TT_EMPTY, guru_strlen(str), (uint8_t *)str);
+	guru_write(MRBC_TT_STRING, MRBC_TT_EMPTY, guru_strlen(str)+1, (uint8_t *)str);
 }
 
 __GURU__
 void console_strf(const char *str, const char *fmt)
 {
-	guru_write(MRBC_TT_STRING, MRBC_TT_STRING, guru_strlen(fmt), (uint8_t *)fmt);
-	guru_write(MRBC_TT_STRING, MRBC_TT_EMPTY,  guru_strlen(str), (uint8_t *)str);
+	guru_write(MRBC_TT_STRING, MRBC_TT_STRING, guru_strlen(fmt)+1, (uint8_t *)fmt);
+	guru_write(MRBC_TT_STRING, MRBC_TT_EMPTY,  guru_strlen(str)+1, (uint8_t *)str);
 }
 
 __global__

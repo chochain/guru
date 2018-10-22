@@ -95,7 +95,7 @@ __GURU__ int _load_header(const uint8_t **pos)
 */
 __GURU__ int _load_irep_1(mrbc_irep *irep, const uint8_t **pos)
 {
-    const uint8_t *p = *pos + 4;			// skip "IREP"
+    const uint8_t *p = *pos + 4;		// skip "IREP"
 
     // nlocals,nregs,rlen
     irep->nlocals = _bin_to_uint16(p);	p += sizeof(uint16_t);
@@ -103,7 +103,7 @@ __GURU__ int _load_irep_1(mrbc_irep *irep, const uint8_t **pos)
     irep->rlen    = _bin_to_uint16(p);	p += sizeof(uint16_t);
     irep->ilen    = _bin_to_uint32(p);	p += sizeof(uint32_t);
 
-//    p += (vm->mrb - p) & 0x03;			// padding for alignment?
+    p += ((uint8_t *)irep - p) & 0x03;	// 32-bit align code pointer
 
     irep->code = (uint8_t *)p;			p += irep->ilen * sizeof(uint32_t);		// ISEQ (code) block
     irep->plen = _bin_to_uint32(p);		p += sizeof(uint32_t);					// POOL block

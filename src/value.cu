@@ -60,19 +60,19 @@ int mrbc_string_compare(const mrbc_value *v1, const mrbc_value *v2)
 __GURU__
 int mrbc_compare(const mrbc_value *v1, const mrbc_value *v2)
 {
-	mrbc_float d1, d2;
-
     if (v1->tt != v2->tt) { 						// mrbc_vtype different
 #if MRBC_USE_FLOAT
+    	mrbc_float f1, f2;
+
         if (v1->tt == MRBC_TT_FIXNUM && v2->tt == MRBC_TT_FLOAT) {
-            d1 = v1->i;
-            d2 = v2->f;
-            return -1 + (d1 == d2) + (d1 > d2)*2;	// caution: NaN == NaN is false
+            f1 = v1->i;
+            f2 = v2->f;
+            return -1 + (f1 == f2) + (f1 > f2)*2;	// caution: NaN == NaN is false
         }
         if (v1->tt == MRBC_TT_FLOAT && v2->tt == MRBC_TT_FIXNUM) {
-            d1 = v1->f;
-            d2 = v2->i;
-            return -1 + (d1 == d2) + (d1 > d2)*2;	// caution: NaN == NaN is false
+            f1 = v1->f;
+            f2 = v2->i;
+            return -1 + (f1 == f2) + (f1 > f2)*2;	// caution: NaN == NaN is false
         }
 #endif
         // leak Empty?
@@ -98,9 +98,7 @@ int mrbc_compare(const mrbc_value *v1, const mrbc_value *v2)
 
 #if MRBC_USE_FLOAT
     case MRBC_TT_FLOAT:
-        d1 = v1->f;
-        d2 = v2->f;
-        return -1 + (d1 == d2) + (d1 > d2)*2;	// caution: NaN == NaN is false
+        return -1 + (v1->f==v2->f) + (v1->f > v2->f)*2;	// caution: NaN == NaN is false
 #endif
     case MRBC_TT_STRING:
         return mrbc_string_compare(v1, v2);

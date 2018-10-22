@@ -1838,11 +1838,10 @@ int guru_vm_run(guru_ses *ses)
 void dump_irep(mrbc_irep *irep)
 {
 	printf("\tnlocals=%d, nregs=%d, rlen=%d, ilen=%d, plen=%d\n",
-			irep->nlocals,
-			irep->nregs,
-			irep->rlen,
-			irep->ilen,
-			irep->plen);
+			irep->nlocals,	irep->nregs, irep->rlen, irep->ilen, irep->plen);
+	for (int i=0; i<irep->rlen; i++) {
+		dump_irep(irep->reps[i]);
+	}
 }
 #endif
 

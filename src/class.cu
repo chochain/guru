@@ -60,12 +60,16 @@ int mrbc_print_sub(mrbc_value *v)
     case MRBC_TT_SYMBOL: console_str(VSYM(v)); 						break;
     case MRBC_TT_CLASS:  console_str(symid_to_str(v->cls->sym_id)); break;
     case MRBC_TT_OBJECT:
-        console_str(
-            guru_vprintf("#<%s:0x%x>",
-            symid_to_str(find_class_by_object(v)->sym_id),
-                         (mrbc_int)v->instance));
+    	console_str("#<");
+    	console_str(symid_to_str(find_class_by_object(v)->sym_id));
+        console_str(":0x");
+        console_hex((mrbc_int)v->instance);
+        console_str(">");
         break;
-    case MRBC_TT_PROC:   console_str("#<Proc:0x%x>", (mrbc_int)v->proc)); break;
+    case MRBC_TT_PROC:
+    	console_str("#<Proc:0x");
+    	console_hex((mrbc_int)v->proc);
+    	break;
 #if MRBC_USE_STRING
     case MRBC_TT_STRING:
         console_str(VSTR(v));

@@ -8,10 +8,11 @@ char *host_sprintf(const char *fstr, ...);
 
 int main(int argc, char **argv)
 {
+#if 0
 	char *str = host_sprintf("%s:%d(0x%x)\n", "test", 10, 10);
 	printf("%s", str);
 	return 0;
-
+#endif
 #ifdef MRBC_DEBUG
 	//do_cuda();
 	mrbc_vm *vmh = (mrbc_vm *)malloc(sizeof(mrbc_vm));
