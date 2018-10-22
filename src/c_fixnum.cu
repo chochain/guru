@@ -205,10 +205,8 @@ void c_fixnum_to_s(mrbc_value v[], int argc)
             return;	// raise ? ArgumentError
         }
     }
-
-    char *buf = guru_vprintf("%d", v, 1);
-    mrbc_value value = mrbc_string_new_cstr(buf);
-    SET_RETURN(value);
+    char *str = guru_vprintf("%d", v, argc);
+    SET_RETURN(mrbc_string_new_cstr(str));
 }
 #endif
 
@@ -299,10 +297,9 @@ void c_float_to_i(mrbc_value v[], int argc)
 __GURU__
 void c_float_to_s(mrbc_value v[], int argc)
 {
-    char *buf = guru_vprintf("%g", v, 1);
-    mrbc_value value = mrbc_string_new_cstr(buf);
+    char *str = guru_vprintf("%g", v, argc);
     
-    SET_RETURN(value);
+    SET_RETURN(mrbc_string_new_cstr(str));
 }
 #endif
 

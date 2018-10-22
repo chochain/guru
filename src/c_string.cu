@@ -768,11 +768,9 @@ DONE:
 __GURU__
 void c_object_sprintf(mrbc_value v[], int argc)
 {
-	char *buf = guru_vprintf("<#%s:%08x>", v, argc);
+	char *str = guru_vprintf("<#%s:%08x>", v, argc);
 
-    mrbc_value value = mrbc_string_new_cstr(buf);
-
-    SET_RETURN(value);
+    SET_RETURN(mrbc_string_new_cstr(str));
 }
 
 //================================================================

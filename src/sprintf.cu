@@ -10,13 +10,14 @@
 
   </pre>
 */
-
 #include "vm_config.h"
 #include "alloc.h"
 #include "value.h"
 #include "console.h"
 #include "symbol.h"
 #include "sprintf.h"
+
+#define BUF_STEP_SIZE 80
 
 //================================================================
 /*! initialize data container.
@@ -27,10 +28,10 @@
   @param  fstr	format string.
 */
 __GURU__
-void _mrbc_printf_init(mrbc_printf *pf, char *buf, int size, const char *fstr)
+void _mrbc_printf_init(mrbc_printf *pf, char *buf, int sz, const char *fstr)
 {
-    pf->buf = pf->p = buf;
-    pf->end = buf + size - 1;
+    pf->buf = pf->p = buf;    
+    pf->end = buf + sz - 1;
     pf->fstr= fstr;
     pf->fmt = (mrbc_print_fmt){0};
 }
@@ -70,6 +71,36 @@ int _mrbc_printf_len(mrbc_printf *pf)
 }
 
 //================================================================
+/*! replace output buffer
+
+  @param  pf	pointer to mrbc_printf
+  @param  buf	pointer to output buffer.
+  @param  size	buffer size.
+*/
+__GURU__
+int _mrbc_printf_resize(mrbc_printf *pf)
+{
+    int sz  = pf->end - pf->p;
+	if (sz > 0) return 1;
+
+    int off = pf->p - pf->buf;					        // current offset
+    int inc = BUF_STEP_SIZE;
+	while ((sz + inc) < pf->fmt.width) {
+		inc += BUF_STEP_SIZE;
+	}
+
+	int nsz = (pf->end - pf->buf + 1) + inc;	        // new size
+	char *nbuf = (char *)mrbc_realloc(pf->buf, nsz);	// deep copy
+	if (!nbuf) return 0;
+
+    pf->buf = nbuf;
+    pf->end = nbuf + nsz - 1;                           // last byte for '\0'
+    pf->p   = pf->buf + off;				            // reset pointer
+
+    return 1;
+}
+
+//================================================================
 /*! sprintf subcontract function for char '%c'
 
   @param  pf	pointer to mrbc_printf
@@ -81,7 +112,7 @@ int _mrbc_printf_len(mrbc_printf *pf)
 __GURU__
 int _mrbc_printf_char(mrbc_printf *pf, int ch)
 {
-    if (pf->fmt.flag_minus) {
+    if (pf->fmt.minus) {
         if (pf->p == pf->end) return -1;
         *pf->p++ = ch;
     }
@@ -91,7 +122,7 @@ int _mrbc_printf_char(mrbc_printf *pf, int ch)
         if (pf->p == pf->end) return -1;
         *pf->p++ = ' ';
     }
-    if (!pf->fmt.flag_minus) {
+    if (!pf->fmt.minus) {
         if (pf->p == pf->end) return -1;
         *pf->p++ = ch;
     }
@@ -119,7 +150,7 @@ int _mrbc_printf_bstr(mrbc_printf *pf, const char *str, int len, int pad)
         str = "(null)";
         len = 6;
     }
-    if (pf->fmt.precision && len > pf->fmt.precision) len = pf->fmt.precision;
+    if (pf->fmt.prec && len > pf->fmt.prec) len = pf->fmt.prec;
 
     int tw = len;
     if (pf->fmt.width > len) tw = pf->fmt.width;
@@ -136,7 +167,7 @@ int _mrbc_printf_bstr(mrbc_printf *pf, const char *str, int len, int pad)
 
     int n_pad = tw - len;
 
-    if (!pf->fmt.flag_minus) {
+    if (!pf->fmt.minus) {
         while (n_pad-- > 0) {
             *pf->p++ = pad;
         }
@@ -214,21 +245,21 @@ int _mrbc_printf_int(mrbc_printf *pf, mrbc_int value, int base)
         if (value < 0) {
             sign = '-';
             v = -value;
-        } else if (pf->fmt.flag_plus) {
+        } else if (pf->fmt.plus) {
             sign = '+';
-        } else if (pf->fmt.flag_space) {
+        } else if (pf->fmt.space) {
             sign = ' ';
         }
     }
-    if (pf->fmt.flag_minus || pf->fmt.width == 0) {
-        pf->fmt.flag_zero = 0; 	// disable zero padding if left align or width zero.
+    if (pf->fmt.minus || pf->fmt.width == 0) {
+        pf->fmt.zero = 0; 	// disable zero padding if left align or width zero.
     }
-    pf->fmt.precision = 0;
+    pf->fmt.prec = 0;
 
     int bias_a = (pf->fmt.type == 'X') ? 'A' - 10 : 'a' - 10;
 
     // create string to local buffer
-    char buf[32+2];				// int32 + terminate + 1
+    char buf[64+2];				// int64 + terminate + 1
     char *p = buf + sizeof(buf) - 1;
     *p = '\0';
     do {
@@ -239,7 +270,7 @@ int _mrbc_printf_int(mrbc_printf *pf, mrbc_int value, int base)
 
     // decide pad character and output sign character
     int pad;
-    if (pf->fmt.flag_zero) {
+    if (pf->fmt.zero) {
         pad = '0';
         if (sign) {
             *pf->p++ = sign;
@@ -263,7 +294,7 @@ int _mrbc_printf_int(mrbc_printf *pf, mrbc_int value, int base)
   @note		not terminate ('\0') buffer tail.
 */
 __GURU__
-int _mrbc_printf_parse(mrbc_printf *pf)
+int _mrbc_printf_next(mrbc_printf *pf)
 {
     int ch = -1;
     pf->fmt = (mrbc_print_fmt){0};
@@ -278,18 +309,23 @@ int _mrbc_printf_parse(mrbc_printf *pf)
             }
         }
         *pf->p++ = ch;
+#if 0		// no auto buffer resize, to prevent memory leak
+        if (pf->p >= pf->end) {
+            _mrbc_printf_resize(pf);
+        }
+#endif
     }
-    return -(ch != '\0');
+    return -(pf->p < pf->end && ch != '\0');
 
 PARSE_FLAG:
-    // parse format - '%' [flag] [width] [.precision] type
+    // parse format - '%' [flag] [width] [.prec] type
     //   e.g. "%05d"
     while ((ch = *pf->fstr)) {
         switch(ch) {
-        case '+': pf->fmt.flag_plus  = 1; break;
-        case ' ': pf->fmt.flag_space = 1; break;
-        case '-': pf->fmt.flag_minus = 1; break;
-        case '0': pf->fmt.flag_zero  = 1; break;
+        case '+': pf->fmt.plus  = 1; break;
+        case ' ': pf->fmt.space = 1; break;
+        case '-': pf->fmt.minus = 1; break;
+        case '0': pf->fmt.zero  = 1; break;
         default : goto PARSE_WIDTH;
         }
         pf->fstr++;
@@ -303,7 +339,7 @@ PARSE_WIDTH:
     if (*pf->fstr == '.') {
         pf->fstr++;
         while ((ch = *pf->fstr - '0'), (0 <= ch && ch <= 9)) {
-            pf->fmt.precision = pf->fmt.precision * 10 + ch;
+            pf->fmt.prec = pf->fmt.prec * 10 + ch;
             pf->fstr++;
         }
     }
@@ -313,50 +349,67 @@ PARSE_WIDTH:
 }
 
 //================================================================
-/*! replace output buffer
+/*! output formatted string
 
-  @param  pf	pointer to mrbc_printf
-  @param  buf	pointer to output buffer.
-  @param  size	buffer size.
+  @param  fstr		format string.
 */
 __GURU__
-int _mrbc_printf_resize(mrbc_printf *pf, int step_size)
+char *guru_sprintf(const char *fstr, ...)
 {
-	int sz = step_size;
+    va_list ap;
+    va_start(ap, fstr);
 
-	while (pf->fmt.width > sz) sz += step_size;
+    char buf[BUF_STEP_SIZE];
+    int ret = 0;
+    mrbc_printf pf;
 
-    char *buf = (char *)mrbc_realloc(pf->buf, sz);
-	if (!buf) return -1;					// ENOMEM raise? TODO: leak memory.
+    _mrbc_printf_init(&pf, buf, BUF_STEP_SIZE, fstr);;
+    
+    while (ret==0 && _mrbc_printf_next(&pf)) {
+    	switch(pf.fmt.type) {
+        case 'c': ret = _mrbc_printf_char(&pf, va_arg(ap, int));        	 break;
+        case 's': ret = _mrbc_printf_str(&pf, va_arg(ap, char *), ' '); 	 break;
+        case 'd':
+        case 'i':
+        case 'u': ret = _mrbc_printf_int(&pf, va_arg(ap, unsigned int), 10); break;
+        case 'b':
+        case 'B': ret = _mrbc_printf_int(&pf, va_arg(ap, unsigned int), 2);  break;
+        case 'x':
+        case 'X': ret = _mrbc_printf_int(&pf, va_arg(ap, unsigned int), 16); break;
+#if MRBC_USE_FLOAT
+        case 'f':
+        case 'e':
+        case 'E':
+        case 'g':
+        case 'G': ret = _mrbc_printf_float(&pf, va_arg(ap, double)); 		 break;
+#endif
+        default:
+            console_str("?format: ");
+            console_char(pf.fmt.type);
+            console_str("\n");
+            break;
+        }
+    }
+    va_end(ap);
+    _mrbc_printf_end(&pf);
 
-    int off = pf->p - pf->buf;				// current offset
-    pf->buf = buf;
-    pf->end = buf + sz - 1;
-    pf->p   = pf->buf + off;				// reset pointer
-
-    return 0;
+    return pf.buf;
 }
 
 __GURU__
 char *guru_vprintf(const char *fstr, mrbc_value v[], int argc)		// << from c_string.cu
 {
-    static const int BUF_INC_STEP = 32;		// bytes.
-
-    int   sz  = BUF_INC_STEP;
-    char *buf = (char *)mrbc_alloc(sz);
-    if (!buf) { return NULL; }				// ENOMEM raise?
-
-    mrbc_printf pf;
-    _mrbc_printf_init(&pf, buf, sz, fstr);
-
     int i   = 1;
     int ret = 1;
-    while (ret>0) {
-    	ret = _mrbc_printf_parse(&pf);
-        if (ret < 0 && _mrbc_printf_resize(&pf, sz)!=0) return NULL;
+    mrbc_printf pf;
+	char buf[BUF_STEP_SIZE];
+
+    _mrbc_printf_init(&pf, buf, BUF_STEP_SIZE, fstr);
+
+    while (ret==0 && _mrbc_printf_next(&pf)) {
         if (++i > argc) {						// starting from argc=2
         	console_str("ArgumentError\n");
-        	break;
+        	return NULL;
         }
 
         switch(pf.fmt.type) {
@@ -418,58 +471,7 @@ char *guru_vprintf(const char *fstr, mrbc_value v[], int argc)		// << from c_str
     }
     _mrbc_printf_end(&pf);
 
-    return buf;
+    return pf.buf;		// local variable, deep copy only
 }
 
-//================================================================
-/*! output formatted string
-
-  @param  fstr		format string.
-*/
-__GURU__
-char *guru_sprintf(const char *fstr, ...)
-{
-    va_list ap;
-    va_start(ap, fstr);
-
-    char buf[82];
-    int  ret;
-    mrbc_printf pf;
-
-    _mrbc_printf_init(&pf, buf, sizeof(buf), fstr);
-    while ((ret=_mrbc_printf_parse(&pf))!=0) {
-    	if (ret < 0) {
-    		// increase buffer
-    	}
-    	switch(pf.fmt.type) {
-        case 'c': ret = _mrbc_printf_char(&pf, va_arg(ap, int));        		break;
-        case 's': ret = _mrbc_printf_str(&pf, va_arg(ap, char *), ' '); 		break;
-        case 'd':
-        case 'i':
-        case 'u': ret = _mrbc_printf_int(&pf, va_arg(ap, unsigned int), 10); break;
-        case 'b':
-        case 'B': ret = _mrbc_printf_int(&pf, va_arg(ap, unsigned int), 2); 	break;
-        case 'x':
-        case 'X': ret = _mrbc_printf_int(&pf, va_arg(ap, unsigned int), 16); break;
-#if MRBC_USE_FLOAT
-        case 'f':
-        case 'e':
-        case 'E':
-        case 'g':
-        case 'G': ret = _mrbc_printf_float(&pf, va_arg(ap, double)); 		break;
-#endif
-        default: break;
-        }
-    }
-    va_end(ap);
-
-    int len   = _mrbc_printf_len(&pf);
-    char *str = (char *)mrbc_alloc(len);
-    if (!str) return NULL;
-
-    MEMCPY((uint8_t *)str, (uint8_t *)buf, len);
-    _mrbc_printf_clear(&pf);
-
-    return str;
-}
 

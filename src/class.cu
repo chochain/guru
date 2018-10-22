@@ -49,27 +49,23 @@ int mrbc_print_sub(mrbc_value *v)
     int ret = 0;
 
     switch (v->tt){
-    case MRBC_TT_EMPTY:	    console_str("(empty)");						break;
-    case MRBC_TT_NIL:					                				break;
-    case MRBC_TT_FALSE:	    console_str("false");						break;
-    case MRBC_TT_TRUE:	    console_str("true");						break;
-    case MRBC_TT_FIXNUM:	console_int(v->i);							break;
+    case MRBC_TT_EMPTY:	 console_str("(empty)");					break;
+    case MRBC_TT_NIL:					                			break;
+    case MRBC_TT_FALSE:	 console_str("false");						break;
+    case MRBC_TT_TRUE:	 console_str("true");						break;
+    case MRBC_TT_FIXNUM: console_int(v->i);							break;
 #if MRBC_USE_FLOAT
-    case MRBC_TT_FLOAT:     console_float(v->f);						break;
+    case MRBC_TT_FLOAT:  console_float(v->f);						break;
 #endif
-    case MRBC_TT_SYMBOL:    console_str(VSYM(v)); 						break;
-    case MRBC_TT_CLASS:     console_str(symid_to_str(v->cls->sym_id));  break;
+    case MRBC_TT_SYMBOL: console_str(VSYM(v)); 						break;
+    case MRBC_TT_CLASS:  console_str(symid_to_str(v->cls->sym_id)); break;
     case MRBC_TT_OBJECT:
-    	console_str("#<");
-        console_str(symid_to_str(find_class_by_object(v)->sym_id));
-        console_hex((mrbc_int)v->instance);
-        console_str(">");
+        console_str(
+            guru_vprintf("#<%s:0x%x>",
+            symid_to_str(find_class_by_object(v)->sym_id),
+                         (mrbc_int)v->instance));
         break;
-    case MRBC_TT_PROC:
-    	console_str("#<Proc:");
-    	console_hex((mrbc_int)v->proc);
-    	console_str(">");
-    	break;
+    case MRBC_TT_PROC:   console_str("#<Proc:0x%x>", (mrbc_int)v->proc)); break;
 #if MRBC_USE_STRING
     case MRBC_TT_STRING:
         console_str(VSTR(v));
@@ -673,14 +669,14 @@ void c_object_kind_of(mrbc_value v[], int argc)
 __GURU__
 void c_object_to_s(mrbc_value v[], int argc)
 {
-    const char *s;
+	const char *str;
 
     switch (v->tt) {
-    case MRBC_TT_CLASS:  s = symid_to_str(v->cls->sym_id);	break;
-    case MRBC_TT_OBJECT: s = guru_vprintf("#<%s:%08x>",v, (uintptr_t)v->instance); break;
-    default: s = "";	break;
+    case MRBC_TT_CLASS:  str = symid_to_str(v->cls->sym_id);						 break;
+    case MRBC_TT_OBJECT: str = guru_vprintf("#<%s:%08x>",v, (uintptr_t)v->instance); break;
+    default: str = ""; break;
     }
-    SET_RETURN(mrbc_string_new_cstr(s));
+    SET_RETURN(mrbc_string_new_cstr(str));
 }
 #endif
 
@@ -726,9 +722,9 @@ void c_proc_call(mrbc_value v[], int argc)
 __GURU__
 void c_proc_to_s(mrbc_value v[], int argc)
 {
-    const char *buf = guru_vprintf("<#Proc:%08x>", v, (uintptr_t)v->proc);
+    char *str = guru_sprintf("<#Proc:%08x>", (uintptr_t)v->proc);
 
-    SET_RETURN(mrbc_string_new_cstr(buf));
+    SET_RETURN(mrbc_string_new_cstr(str));
 }
 #endif
 
