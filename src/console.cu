@@ -27,7 +27,7 @@ void guru_write(mrbc_vtype tt, mrbc_vtype fmt, size_t sz, uint8_t *buf)
 
 	n->tt   = tt;
 	n->fmt  = fmt;
-	n->size = sz + (-sz & 0x7);		// 8-byte alignment
+	n->size = sz + (-sz & 0x3);		// 32-bit alignment
 
 	guru_output_ptr = (uint8_t *)n->data + n->size;		// advance pointer to next print block
 
@@ -62,7 +62,7 @@ void console_hex(mrbc_int i)
 __GURU__
 void console_float(mrbc_float f)
 {
-	guru_write(MRBC_TT_FLOAT, MRBC_TT_EMPTY, sizeof(mrbc_float), (uint8_t *)&f);
+	guru_write(MRBC_TT_FLOAT, (uint8_t)0, sizeof(mrbc_float), (uint8_t *)&f);
 }
 #endif
 
@@ -78,10 +78,81 @@ void console_str(const char *str)
 }
 
 __GURU__
-void console_strf(const char *str, const char *fmt)
+char *_printf_next(char *p)
 {
-	guru_write(MRBC_TT_STRING, MRBC_TT_STRING, guru_strlen(fmt)+1, (uint8_t *)fmt);
-	guru_write(MRBC_TT_STRING, MRBC_TT_EMPTY,  guru_strlen(str)+1, (uint8_t *)str);
+    int ch;
+    while ((ch = *p) != '\0') {
+        p++;
+        if (ch == '%') {
+            if (*p == '%') p++;	// is "%%"
+            else 	       goto PARSE_FLAG;
+        }
+    }
+    if (ch == '\0') return NULL;
+
+PARSE_FLAG:
+    // parse format - '%' [flag] [width] [.precision] type
+    //   e.g. "%05d"
+    while ((ch = *p)) {
+        switch(ch) {
+        case '+': case ' ': case '-': case '0': break;
+        default : goto PARSE_WIDTH;
+        }
+        p++;
+    }
+
+PARSE_WIDTH:
+    while ((ch = *p - '0'), (0 <= ch && ch <= 9)) p++;
+    if (*p == '.') {
+        p++;
+        while ((ch = *p - '0'), (0 <= ch && ch <= 9)) p++;
+    }
+    if (*p) ch = *p++;
+
+    return p;
+}
+
+__GURU__
+void console_strf(const char *fstr, ...)
+{
+    va_list ap;
+    va_start(ap, fstr);
+
+	guru_print_node *n = (guru_print_node *)guru_output_ptr;
+
+	guru_write(MRBC_TT_SYMBOL, MRBC_TT_EMPTY, guru_strlen(fstr)+1, (uint8_t *)fstr);
+
+	char *p = (char *)fstr;
+	int   i = 0;
+    while ((p = _printf_next(p))) {
+    	i++;
+     	switch(*(p-1)) {
+        case 'c': console_char(va_arg(ap, int));         break;
+        case 's': console_str(va_arg(ap, char *)); 		 break;
+        case 'd':
+        case 'i':
+        case 'u':
+        case 'b':
+        case 'B':
+        case 'x':
+        case 'X': console_int(va_arg(ap, unsigned int)); break;
+#if MRBC_USE_FLOAT
+        case 'f':
+        case 'e':
+        case 'E':
+        case 'g':
+        case 'G': console_float(va_arg(ap, mrbc_float)); break;
+#endif
+        default:
+        	console_str("?format:");
+        	console_char(*(p-1));
+        	console_str("\n");
+        	break;
+        }
+    }
+    va_end(ap);
+
+	n->fmt = (mrbc_vtype)i;
 }
 
 __global__
@@ -100,6 +171,7 @@ void guru_print(uint8_t *output_buf)
 {
 	guru_print_node *node = (guru_print_node *)output_buf;
 	uint8_t *fmt[80], *buf[80];		// check buffer overflow
+	int argc;
 
 	while (node->tt != MRBC_TT_EMPTY) {		// 0
 		switch (node->tt) {
@@ -110,16 +182,18 @@ void guru_print(uint8_t *output_buf)
 			printf("%f", *((mrbc_float *)node->data));
 			break;
 		case MRBC_TT_STRING:
-			if (node->fmt==MRBC_TT_STRING) {
-				memcpy(fmt, (uint8_t *)node->data, node->size);
-				node = NEXTNODE(node);
-			}
-			else {
-				memcpy(fmt, "%s", sizeof("%s"));
-			}
 			memcpy(buf, (uint8_t *)node->data, node->size);
-			buf[node->size] = '\0';
-			printf((const char *)fmt, buf);
+			printf("%s", (char *)buf);
+			break;
+		case MRBC_TT_SYMBOL:
+			argc = (int)node->fmt;
+			memcpy(fmt, (uint8_t *)node->data, node->size);
+			printf("%s", (char *)fmt);
+			for (int i=0; i < argc; i++) {
+				node = NEXTNODE(node);
+				memcpy(buf, (uint8_t *)node->data, node->size);
+				printf("%s", (char *)buf);
+			}
 			break;
 		default: printf("not supported: %d", node->tt); break;
 		}

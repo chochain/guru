@@ -1692,12 +1692,13 @@ int _mrbc_vm_exec(mrbc_vm *vm)
     uint32_t code = 0;
     mrbc_value *regs;
 
+    console_str("vm*start...\n");
     do {
         code   = _bin_to_uint32(vm->pc_irep->code + vm->pc * 4);	// get next bytecode
         opcode = GET_OPCODE(code);
+        regs   = vm->reg;
 
         vm->pc++;
-        regs = vm->reg;
 
         switch (opcode) {
         // LOAD,STORE
@@ -1759,13 +1760,15 @@ int _mrbc_vm_exec(mrbc_vm *vm)
         case OP_ABORT:      ret = op_stop      (vm, code, regs); break;  // reuse
         case OP_NOP:        ret = op_nop       (vm, code, regs); break;
         default:
-            console_str("Skip OP=");
-            console_int(opcode);
-            console_str("\n");
+//            console_str("Skip OP=");
+//            console_int(opcode);
+//            console_str("\n");
+        	console_strf("Skip OP=%d(0x%x)\n", opcode, opcode);
             break;
         }
     } while (vm->run);
 
+    console_str("vm*done!\n");
     return ret;
 }
 
