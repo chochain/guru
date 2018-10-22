@@ -37,7 +37,7 @@ typedef struct RPrintf {
     mrbc_print_fmt 	fmt;
     char       		*buf;		    //!< output buffer.
     char       		*p;		        //!< output buffer write point.
-    const char 		*buf_end;	    //!< output buffer end point.
+    const char 		*end;	    	//!< output buffer end point.
     const char 		*fstr;	        //!< format string. (e.g. "%d %03x")
 } mrbc_printf;
 

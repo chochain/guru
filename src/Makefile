@@ -10,7 +10,7 @@ LIBS= -lopenblas -lpthread -lcudart -lcublas
 LIBDIRS=-L/usr/local/cuda/lib64
 INCDIRS=-I/usr/local/cuda/include -I./src
 
-SRC =   main.c c_ext.c
+SRC =   main.c c_ext.c c_ext_sprintf.c
 GURU= 	console.cu alloc.cu guru.cu static.cu value.cu keyvalue.cu symbol.cu \
 		sprintf.cu vmalloc.cu global.cu vm.cu class.cu load.cu \
 	 	c_fixnum.cu c_string.cu
@@ -34,6 +34,9 @@ $(LIB): $(OBJS)
 	$(AR) $(ARFLAGS) $@ $?
 
 c_ext.o: c_ext.c 		c_ext.h
+	$(CC) $(CCFLAGS) $<
+	
+c_ext_sprintf.o: c_ext_sprintf.c	
 	$(CC) $(CCFLAGS) $<
 
 main.o: main.c

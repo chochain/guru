@@ -25,7 +25,7 @@ extern "C" {
 #define __GURU__
 #endif
 
-#define MAX_BUFFER_SIZE 1024
+#define MAX_BUFFER_SIZE 4096		// 4K
 
 typedef struct guru_ses_ {
 	uint8_t *req;
