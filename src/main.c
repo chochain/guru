@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "guru.h"
-#include "c_ext.h"
 
 int  do_cuda(void);
 char *host_sprintf(const char *fstr, ...);
@@ -12,8 +11,6 @@ int main(int argc, char **argv)
 	char *str = host_sprintf("%s:%d(0x%x)\n", "test", 10, 10);
 	printf("%s", str);
 	return 0;
-#endif
-#ifdef MRBC_DEBUG
 	//do_cuda();
 	mrbc_vm *vmh = (mrbc_vm *)malloc(sizeof(mrbc_vm));
 	guru_init_ext(vmh, argv[1]);

@@ -59,7 +59,7 @@ __GURU__
 mrbc_sym mrbc_get_symid(const uint8_t *p, int n)
 {
 	const char *sym_name = mrbc_get_symbol(p, n);
-    return str_to_symid(sym_name);
+    return name2symid(sym_name);
 }
 
 //================================================================
@@ -395,7 +395,7 @@ int op_getiv(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     int rb = GETARG_Bx(code);
 
     const char *sym_name = mrbc_get_symbol(vm->pc_irep->sym, rb);
-    mrbc_sym sym_id = str_to_symid(sym_name+1);	// skip '@'
+    mrbc_sym sym_id = name2symid(sym_name+1);	// skip '@'
 
     mrbc_value val = mrbc_instance_getiv(&regs[0], sym_id);
 
@@ -423,7 +423,7 @@ int op_setiv(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     int rb = GETARG_Bx(code);
 
     const char *sym_name = mrbc_get_symbol(vm->pc_irep->sym, rb);
-    mrbc_sym sym_id = str_to_symid(sym_name+1);	// skip '@'
+    mrbc_sym sym_id = name2symid(sym_name+1);	// skip '@'
 
     mrbc_instance_setiv(&regs[0], sym_id, &regs[ra]);
 
@@ -1321,7 +1321,7 @@ int op_strcat(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     int rb = GETARG_B(code);
 
     // call "to_s"
-    mrbc_sym sym_id = str_to_symid("to_s");
+    mrbc_sym sym_id = name2symid("to_s");
     mrbc_proc *m;
     m = find_method(regs[ra], sym_id);
     if (m && m->c_func){
@@ -1760,10 +1760,9 @@ int _mrbc_vm_exec(mrbc_vm *vm)
         case OP_ABORT:      ret = op_stop      (vm, code, regs); break;  // reuse
         case OP_NOP:        ret = op_nop       (vm, code, regs); break;
         default:
-//            console_str("Skip OP=");
-//            console_int(opcode);
-//            console_str("\n");
-        	console_strf("Skip OP=%d(0x%x)\n", opcode, opcode);
+            console_str("Skip OP=");
+            console_int(opcode);
+            console_str("\n");
             break;
         }
     } while (vm->run);

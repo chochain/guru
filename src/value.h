@@ -89,7 +89,7 @@ __GURU__ char   *guru_strcat(char *d, const char *s);
 #define VSTRLEN(v)		((v)->str->size)
 #define VSTR(v)			((char *)(v)->str->data)
 #define VSTRCMP(v1, v2) (STRCMP((v1)->str->data, (v2)->str->data))
-#define VSYM(v)			((char *)symid_to_str((v)->i))
+#define VSYM(v)			((char *)symid2name((v)->i))
 
 #ifdef __cplusplus
 }

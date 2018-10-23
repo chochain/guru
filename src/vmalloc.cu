@@ -38,7 +38,7 @@ mrbc_proc *mrbc_proc_alloc(const char *name)
     mrbc_proc *proc = (mrbc_proc *)mrbc_alloc(sizeof(mrbc_proc));
     if (proc) {
         proc->ref_count = 1;
-        proc->sym_id = str_to_symid(name);
+        proc->sym_id = name2symid(name);
 #ifdef MRBC_DEBUG
         proc->names = name;	// for debug; delete soon.
 #endif

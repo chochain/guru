@@ -160,7 +160,7 @@ __GURU__ uint16_t calc_hash(const char *str)
   @param  str		Target string.
   @return mrbc_sym	Symbol value.
 */
-__GURU__ mrbc_sym str_to_symid(const char *str)
+__GURU__ mrbc_sym name2symid(const char *str)
 {
     uint16_t h = calc_hash(str);
     mrbc_sym sym_id = search_index(h, str);
@@ -177,7 +177,7 @@ __GURU__ mrbc_sym str_to_symid(const char *str)
   @return const char*	String.
   @retval NULL		Invalid sym_id was given.
 */
-__GURU__ const char * symid_to_str(mrbc_sym sym_id)
+__GURU__ const char * symid2name(mrbc_sym sym_id)
 {
     return (sym_id < 0 || sym_id >= sym_idx)
     		? NULL

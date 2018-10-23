@@ -20,8 +20,8 @@ extern "C" {
 
 __GURU__ mrbc_value mrbc_symbol_new(const char *str);
 __GURU__ uint16_t   calc_hash(const char *str);
-__GURU__ mrbc_sym   str_to_symid(const char *str);
-__GURU__ const char *symid_to_str(mrbc_sym sym_id);
+__GURU__ mrbc_sym   name2symid(const char *str);
+__GURU__ const char *symid2name(mrbc_sym sym_id);
 
 // extern to class.cu
 __GURU__ void c_inspect(mrbc_value v[], int argc);
