@@ -57,11 +57,11 @@ int mrbc_print_sub(mrbc_value *v)
 #if MRBC_USE_FLOAT
     case MRBC_TT_FLOAT:  console_float(v->f);						break;
 #endif
-    case MRBC_TT_SYMBOL: console_str(VSYM(v)); 						break;
-    case MRBC_TT_CLASS:  console_str(symid_to_str(v->cls->sym_id)); break;
+    case MRBC_TT_SYMBOL: console_str(VSYM(v)); 					break;
+    case MRBC_TT_CLASS:  console_str(symid2name(v->cls->sym_id));   break;
     case MRBC_TT_OBJECT:
     	console_str("#<");
-    	console_str(symid_to_str(find_class_by_object(v)->sym_id));
+    	console_str(symid2name(find_class_by_object(v)->sym_id));
         console_str(":0x");
         console_hex((mrbc_int)v->instance);
         console_str(">");
@@ -150,7 +150,7 @@ int mrbc_p_sub(mrbc_value *v)
     case MRBC_TT_SYMBOL:{
         const char *s   = VSYM(v);
         const char *fmt = STRCHR(s, ':') ? "\":%s\"" : ":%s";
-        console_strf(s, fmt);
+        console_printf(s, fmt);
     } break;
 
 #if MRBC_USE_STRING
@@ -270,7 +270,7 @@ mrbc_class * mrbc_define_class(const char *name, mrbc_class *super)
     cls = (mrbc_class *)mrbc_alloc(sizeof(mrbc_class));
     if (!cls) return NULL;			// ENOMEM
 
-    mrbc_sym sym_id = str_to_symid(name);
+    mrbc_sym sym_id = name2symid(name);
 
     cls->sym_id = sym_id;
     cls->super 	= super;
@@ -296,7 +296,7 @@ mrbc_class * mrbc_define_class(const char *name, mrbc_class *super)
 __GURU__
 mrbc_class * mrbc_get_class_by_name(const char *name)
 {
-    mrbc_sym sym_id = str_to_symid(name);
+    mrbc_sym sym_id = name2symid(name);
     mrbc_object obj = const_object_get(sym_id);
 
     return (obj.tt == MRBC_TT_CLASS) ? obj.cls : NULL;
@@ -340,7 +340,7 @@ void mrbc_define_method(mrbc_class *cls, const char *name, mrbc_func_t cfunc)
 __GURU__
 void mrbc_funcall(mrbc_vm *vm, const char *name, mrbc_value *v, int argc)
 {
-    mrbc_sym  sym_id = str_to_symid(name);
+    mrbc_sym  sym_id = name2symid(name);
     mrbc_proc *m     = find_method(v[0], sym_id);
 
     if (m==0) return;   	// no method
@@ -386,7 +386,7 @@ __GURU__
 mrbc_value mrbc_send(mrbc_value *v, int reg_ofs,
                       mrbc_value *recv, const char *method, int argc, ...)
 {
-    mrbc_sym  sym_id = str_to_symid(method);
+    mrbc_sym  sym_id = name2symid(method);
     mrbc_proc *m     = find_method(*recv, sym_id);
     mrbc_value *regs = v + reg_ofs + 2;
 
@@ -580,7 +580,7 @@ void c_object_getiv(mrbc_value v[], int argc)
 {
     const char *name = mrbc_get_callee_name(NULL);
 
-    mrbc_sym sym_id = str_to_symid(name);
+    mrbc_sym sym_id = name2symid(name);
     mrbc_value ret = mrbc_instance_getiv(&v[0], sym_id);
 
     SET_RETURN(ret);
@@ -599,7 +599,7 @@ void c_object_setiv(mrbc_value v[], int argc)
     if (!namebuf) return;
     STRCPY(namebuf, name);
     namebuf[STRLEN(name)-1] = '\0';	// delete '='
-    mrbc_sym sym_id = str_to_symid(namebuf);
+    mrbc_sym sym_id = name2symid(namebuf);
 
     mrbc_instance_setiv(&v[0], sym_id, &v[1]);
     mrbc_free(namebuf);
