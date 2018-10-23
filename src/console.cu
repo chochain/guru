@@ -49,20 +49,20 @@ void console_char(char c)
 __GURU__
 void console_int(mrbc_int i)
 {
-	guru_write(MRBC_TT_FIXNUM, MRBC_TT_EMPTY, sizeof(mrbc_int), (uint8_t *)&i);
+	guru_write(MRBC_TT_FIXNUM, MRBC_TT_FIXNUM, sizeof(mrbc_int), (uint8_t *)&i);
 }
 
 __GURU__
 void console_hex(mrbc_int i)
 {
-	guru_write(MRBC_TT_FIXNUM, MRBC_TT_FIXNUM, sizeof(mrbc_int), (uint8_t *)&i);
+	guru_write(MRBC_TT_FIXNUM, MRBC_TT_EMPTY, sizeof(mrbc_int), (uint8_t *)&i);
 }
 
 #if MRBC_USE_FLOAT
 __GURU__
 void console_float(mrbc_float f)
 {
-	guru_write(MRBC_TT_FLOAT, (uint8_t)0, sizeof(mrbc_float), (uint8_t *)&f);
+	guru_write(MRBC_TT_FLOAT, MRBC_TT_EMPTY, sizeof(mrbc_float), (uint8_t *)&f);
 }
 #endif
 
@@ -78,7 +78,7 @@ void console_str(const char *str)
 }
 
 __GURU__
-char *_printf_next(char *p)
+char *_console_va_arg(char *p)
 {
     int ch;
     while ((ch = *p) != '\0') {
@@ -113,18 +113,18 @@ PARSE_WIDTH:
 }
 
 __GURU__
-void console_strf(const char *fstr, ...)
+void console_printf(const char *fstr, ...)
 {
     va_list ap;
     va_start(ap, fstr);
 
 	guru_print_node *n = (guru_print_node *)guru_output_ptr;
 
-	guru_write(MRBC_TT_SYMBOL, MRBC_TT_EMPTY, guru_strlen(fstr)+1, (uint8_t *)fstr);
+	guru_write(MRBC_TT_RANGE, (mrbc_vtype)0, guru_strlen(fstr)+1, (uint8_t *)fstr);
 
 	char *p = (char *)fstr;
 	int   i = 0;
-    while ((p = _printf_next(p))) {
+    while ((p = _console_va_arg(p))) {
     	i++;
      	switch(*(p-1)) {
         case 'c': console_char(va_arg(ap, int));         break;
@@ -164,39 +164,45 @@ void guru_console_init(uint8_t *buf, size_t sz)
 	guru_output_size = sz;
 }
 
-#define NEXTNODE(n)	((guru_print_node *)(node->data+node->size))
+#define NEXTNODE(n)	((guru_print_node *)(node->data + node->size))
+
+__host__
+guru_print_node *_guru_print_core(guru_print_node *node)
+{
+	uint8_t *fmt[80], *buf[80];		// check buffer overflow
+	int 	argc;
+	switch (node->tt) {
+	case MRBC_TT_FIXNUM:
+		printf((node->fmt==MRBC_TT_FIXNUM ? "%d" : "%04x"), *((mrbc_int *)node->data));
+		break;
+	case MRBC_TT_FLOAT:
+		printf("%f", *((mrbc_float *)node->data));
+		break;
+	case MRBC_TT_STRING:
+		memcpy(buf, (uint8_t *)node->data, node->size);
+		printf("%s", (char *)buf);
+		break;
+	case MRBC_TT_RANGE:							// TODO: va_list needed here
+		argc = (int)node->fmt;
+		memcpy(fmt, (uint8_t *)node->data, node->size);
+		printf("%s", (char *)fmt);
+		for (int i=0; i<argc; i++) {
+			node = NEXTNODE(node);				// point to next parameter
+			node = _guru_print_core(node);		// recursive call
+		}
+		break;
+	default: printf("not supported: %d", node->tt); break;
+	}
+	return node;
+}
 
 __host__
 void guru_print(uint8_t *output_buf)
 {
 	guru_print_node *node = (guru_print_node *)output_buf;
-	uint8_t *fmt[80], *buf[80];		// check buffer overflow
-	int argc;
 
 	while (node->tt != MRBC_TT_EMPTY) {		// 0
-		switch (node->tt) {
-		case MRBC_TT_FIXNUM:
-			printf("%d", *((mrbc_int *)node->data));
-			break;
-		case MRBC_TT_FLOAT:
-			printf("%f", *((mrbc_float *)node->data));
-			break;
-		case MRBC_TT_STRING:
-			memcpy(buf, (uint8_t *)node->data, node->size);
-			printf("%s", (char *)buf);
-			break;
-		case MRBC_TT_SYMBOL:
-			argc = (int)node->fmt;
-			memcpy(fmt, (uint8_t *)node->data, node->size);
-			printf("%s", (char *)fmt);
-			for (int i=0; i < argc; i++) {
-				node = NEXTNODE(node);
-				memcpy(buf, (uint8_t *)node->data, node->size);
-				printf("%s", (char *)buf);
-			}
-			break;
-		default: printf("not supported: %d", node->tt); break;
-		}
+		node = _guru_print_core(node);
 		node = NEXTNODE(node);
 	}
 }

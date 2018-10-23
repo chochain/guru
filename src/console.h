@@ -14,16 +14,12 @@
 #ifndef MRBC_SRC_CONSOLE_H_
 #define MRBC_SRC_CONSOLE_H_
 
-#include <stdint.h>
 #include <stdarg.h>
-#include <string.h>
 #include "guru.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-#include <stdarg.h>
 
 //================================================================
 /*! printf tiny (mruby/c) version data container.
@@ -31,7 +27,7 @@ extern "C" {
 typedef struct print_node {
     mrbc_vtype  tt :8;
     mrbc_vtype	fmt:8;
-    mrbc_int	size;
+    uint16_t	size;
 	uint8_t		data[];
 } guru_print_node;
 
@@ -39,8 +35,8 @@ __GURU__ void console_char(char c);
 __GURU__ void console_int(mrbc_int i);
 __GURU__ void console_hex(mrbc_int i);
 __GURU__ void console_str(const char *str);
-__GURU__ void console_strf(const char *fstr, ...);
 __GURU__ void console_float(mrbc_float f);
+__GURU__ void console_printf(const char *fstr, ...);
 
 __global__ void guru_console_init(uint8_t *buf, size_t sz);
 
