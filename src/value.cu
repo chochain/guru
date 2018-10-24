@@ -13,11 +13,17 @@
 #include <assert.h>
 #include "value.h"
 
-#if MRGC_USE_ARRAY
+#if MRBC_USE_STRING
+#include "c_string.h"
+#endif
+#if MRBC_USE_ARRAY
 #include "c_range.h"
 #include "c_array.h"
 #include "c_hash.h"
 #endif
+
+extern "C" __GURU__ void mrbc_instance_delete(mrbc_value *v);		// instance.cu
+extern "C" __GURU__ void mrbc_free(void *ptr);						// alloc.cu
 
 //================================================================
 /*! get size
@@ -94,7 +100,7 @@ int mrbc_compare(const mrbc_value *v1, const mrbc_value *v2)
     case MRBC_TT_CLASS:
     case MRBC_TT_OBJECT:
     case MRBC_TT_PROC:
-        return -1 + (v1->handle == v2->handle) + (v1->handle > v2->handle)*2;
+        return -1 + (v1->self == v2->self) + (v1->self > v2->self)*2;
 
 #if MRBC_USE_FLOAT
     case MRBC_TT_FLOAT:
@@ -133,9 +139,9 @@ void mrbc_dup(mrbc_value *v)
     case MRBC_TT_STRING:
     case MRBC_TT_RANGE:
     case MRBC_TT_HASH:
-        assert(v->instance->ref_count > 0);
-        assert(v->instance->ref_count != 0xff);	// check max value.
-        v->instance->ref_count++;
+        assert(v->self->ref_count > 0);
+        assert(v->self->ref_count != 0xff);	// check max value.
+        v->self->ref_count++;
         break;
 
     default:
@@ -154,50 +160,36 @@ void mrbc_dup(mrbc_value *v)
   @return	result.
 */
 __GURU__
-mrbc_int mrbc_atoi(const char *s, int base)
+mrbc_int guru_atoi(const char *s, int base)
 {
     int ret = 0;
     int sign = 0;
 
 REDO:
     switch(*s) {
-    case '-':
-        sign = 1;
-        // fall through.
-    case '+':
-        s++;
-        break;
-
-    case ' ':
-        s++;
-        goto REDO;
+    case '-': sign = 1;		// fall through.
+    case '+': s++;	        break;
+    case ' ': s++;          goto REDO;
     }
 
-    int ch;
+    int ch, n;
     while ((ch = *s++) != '\0') {
-        int n;
+        if      ('a' <= ch) 			 n = ch - 'a' + 10;
+        else if ('A' <= ch) 			 n = ch - 'A' + 10;
+        else if ('0' <= ch && ch <= '9') n = ch - '0';
+        else break;
 
-        if ('a' <= ch) {
-            n = ch - 'a' + 10;
-        }
-        else {
-            if ('A' <= ch) {
-                n = ch - 'A' + 10;
-            }
-            else {
-                if ('0' <= ch && ch <= '9') {
-                    n = ch - '0';
-                }
-                else break;
-            }
-        }
         if (n >= base) break;
 
         ret = ret * base + n;
     }
-    if (sign) ret = -ret;
+    return (sign) ? ret : -ret;
+}
 
-    return ret;
+__GURU__ mrbc_float guru_atof(const char *s)
+{
+// not implemented yet
+    return 0.0;
 }
 
 __GURU__ void guru_memcpy(uint8_t *d, const uint8_t *s, size_t sz)
@@ -216,16 +208,6 @@ __GURU__ int guru_memcmp(const uint8_t *d, const uint8_t *s, size_t sz)
     for (i=0; i<sz && *d++==*s++; i++);
 
     return i<sz;
-}
-
-__GURU__ long guru_atol(const char *s)
-{
-    return 0L;
-}
-
-__GURU__ mrbc_float guru_atof(const char *s)
-{
-    return 0.0;
 }
 
 __GURU__ size_t guru_strlen(const char *str)
@@ -256,5 +238,66 @@ __GURU__ char   *guru_strcat(char *d, const char *s)
 {
     return d;
 }
+
+//================================================================
+/*!@brief
+  Decrement reference counter
+
+  @param   v     Pointer to target mrbc_value
+*/
+__GURU__
+void mrbc_dec_ref_counter(mrbc_value *v)
+{
+    switch(v->tt){
+    case MRBC_TT_OBJECT:
+    case MRBC_TT_PROC:
+    case MRBC_TT_ARRAY:
+    case MRBC_TT_STRING:
+    case MRBC_TT_RANGE:
+    case MRBC_TT_HASH:
+        assert(v->self->ref_count != 0);
+        v->self->ref_count--;
+        break;
+
+    default:
+        // Nothing
+        return;
+    }
+
+    // release memory?
+    if (v->self->ref_count != 0) return;
+
+    switch(v->tt) {
+    case MRBC_TT_OBJECT:	mrbc_instance_delete(v);	break;
+    case MRBC_TT_PROC:	    mrbc_free(v->proc);			break;
+#if MRBC_USE_STRING
+    case MRBC_TT_STRING:	mrbc_string_delete(v);		break;
+#endif
+#if MRBC_USE_ARRAY
+    case MRBC_TT_ARRAY:	    mrbc_array_delete(v);		break;
+    case MRBC_TT_RANGE:	    mrbc_range_delete(v);		break;
+    case MRBC_TT_HASH:	    mrbc_hash_delete(v);		break;
+#endif
+    default:
+        // Nothing
+        break;
+    }
+}
+
+//================================================================
+/*!@brief
+  Release object related memory
+
+  @param   v     Pointer to target mrbc_value
+*/
+__GURU__
+void mrbc_release(mrbc_value *v)
+{
+    DECREF(v);
+    v->tt = MRBC_TT_EMPTY;
+}
+
+
+
 
 
