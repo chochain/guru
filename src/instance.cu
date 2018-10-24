@@ -39,9 +39,9 @@ mrbc_value mrbc_instance_new(mrbc_class *cls, int size)
         return v;
     }
 
-    v.self->ref_count 	= 1;
-    v.self->tt        	= MRBC_TT_OBJECT;	// for debug only.
-    v.self->cls 		= cls;
+    v.self->refc = 1;
+    v.self->tt   = MRBC_TT_OBJECT;	// for debug only.
+    v.self->cls  = cls;
 
     return v;
 }

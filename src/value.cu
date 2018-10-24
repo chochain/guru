@@ -139,9 +139,9 @@ void mrbc_dup(mrbc_value *v)
     case MRBC_TT_STRING:
     case MRBC_TT_RANGE:
     case MRBC_TT_HASH:
-        assert(v->self->ref_count > 0);
-        assert(v->self->ref_count != 0xff);	// check max value.
-        v->self->ref_count++;
+        assert(v->self->refc > 0);
+        assert(v->self->refc != 0xffff);	// check max value.
+        v->self->refc++;
         break;
 
     default:
@@ -213,7 +213,7 @@ __GURU__ int guru_memcmp(const uint8_t *d, const uint8_t *s, size_t sz)
 __GURU__ size_t guru_strlen(const char *str)
 {
     int i=0;
-    while (str[++i]!='\0');
+    while (str[i++] != '\0');
     return (size_t)i;
 }
 
@@ -255,8 +255,8 @@ void mrbc_dec_ref_counter(mrbc_value *v)
     case MRBC_TT_STRING:
     case MRBC_TT_RANGE:
     case MRBC_TT_HASH:
-        assert(v->self->ref_count != 0);
-        v->self->ref_count--;
+        assert(v->self->refc != 0);
+        v->self->refc--;
         break;
 
     default:
@@ -265,7 +265,7 @@ void mrbc_dec_ref_counter(mrbc_value *v)
     }
 
     // release memory?
-    if (v->self->ref_count != 0) return;
+    if (v->self->refc != 0) return;
 
     switch(v->tt) {
     case MRBC_TT_OBJECT:	mrbc_instance_delete(v);	break;

@@ -71,7 +71,9 @@ typedef enum {
   Guru value object.
 */
 typedef struct RObject {
-    mrbc_vtype           tt:32;
+    mrbc_vtype           tt:8;
+    unsigned int		 flag:8;	// reserved
+    unsigned int	 	 size:16;	// reserved, 32-bit aligned
     union {
         mrbc_int         i;			// MRBC_TT_FIXNUM, SYMBOL
 #if MRBC_USE_FLOAT
@@ -95,23 +97,27 @@ typedef struct RObject {
   Guru class object.
 */
 typedef struct RClass {
-    mrbc_sym       sym_id;	// class name
-    struct RClass *super;	// mrbc_class[super]
-    struct RProc  *procs;	// mrbc_proc[rprocs], linked list
+    mrbc_sym       	sym_id;		// class name
+    struct RClass 	*super;		// mrbc_class[super]
+    struct RProc  	*procs;		// mrbc_proc[rprocs], linked list
 #ifdef MRBC_DEBUG
-    const char    *names;	// for debug. delete soon.
+    const char    	*names;		// for debug. TODO: remove
 #endif
 } mrbc_class;
 
-#define MRBC_OBJECT_HEADER                          \
-    mrbc_vtype  tt : 16; 							\
-	uint16_t 	ref_count
+#define GURU_PROC_C_FUNC 	1
+#define IS_C_FUNC(m)		((m)->flag & GURU_PROC_C_FUNC)
+
+#define MRBC_OBJECT_HEADER      \
+	mrbc_vtype  	tt:8; 		\
+	unsigned int	flag:8;		\
+	unsigned int	refc:16
 
 typedef struct RString {
 	MRBC_OBJECT_HEADER;
 
-	uint16_t size;	//!< string length.
-	uint8_t  *data;	//!< pointer to allocated buffer.
+	uint16_t 		size;		//!< string length.
+	uint8_t  		*data;		//!< pointer to allocated buffer.
 } mrbc_string;
 
 //================================================================
@@ -137,7 +143,6 @@ typedef void (*mrbc_func_t)(mrbc_object *v, int argc);
 typedef struct RProc {
     MRBC_OBJECT_HEADER;
 
-    unsigned int c_func : 1;	// 0:IREP, 1:C Func
     mrbc_sym 	 sym_id;
     struct RProc *next;
     union {

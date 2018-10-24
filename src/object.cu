@@ -41,6 +41,7 @@
 #include "c_range.h"
 #endif
 
+
 //================================================================
 /*! (BETA) Call any method of the object, but written by C.
 
@@ -77,7 +78,7 @@ mrbc_value _mrbc_send(mrbc_value *v, int reg_ofs,
         console_str("'\n");
         return mrbc_nil_value();
     }
-    if (!m->c_func) {
+    if (!IS_C_FUNC(m)) {
         console_str("Method is not C function: ");
         console_str(method);
         console_str("\n");
@@ -222,15 +223,15 @@ void c_object_new(mrbc_value v[], int argc)
         (uint32_t)(MKOPCODE(OP_ABORT))
     };
     mrbc_irep irep = {		// where does this go?
-        0,     // nlocals
-        0,     // nregs
-        0,     // rlen
-        2,     // ilen
-        0,     // plen
+        0,     				// nlv
+        0,     				// nregs
+        0,     				// rlen
+        2,     				// ilen
+        0,     				// plen
         (uint8_t *)code,   	// iseq
         (uint8_t *)sym,  	// ptr_to_sym
-        NULL,  // pools
-        NULL,  // reps
+        NULL,  				// object pool
+        NULL,  				// irep_list
     };
 
     mrbc_release(&v[0]);

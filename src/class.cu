@@ -147,7 +147,7 @@ mrbc_proc *mrbc_proc_alloc(const char *name)
 {
     mrbc_proc *proc = (mrbc_proc *)mrbc_alloc(sizeof(mrbc_proc));
     if (proc) {
-        proc->ref_count = 1;
+        proc->refc   = 1;
         proc->sym_id = name2symid(name);
 #ifdef MRBC_DEBUG
         proc->names = name;	// for debug; delete soon.
@@ -173,11 +173,11 @@ void mrbc_define_method(mrbc_class *cls, const char *name, mrbc_func_t cfunc)
 
     mrbc_proc *proc = mrbc_proc_alloc(name);
 
-    proc->c_func	= 1;  			// c-func
-    proc->func 		= cfunc;
-    proc->next 		= cls->procs;
+    proc->flag  |= GURU_PROC_C_FUNC;  			// c-func
+    proc->func 	= cfunc;
+    proc->next 	= cls->procs;
 
-    cls->procs 		= proc;
+    cls->procs 	= proc;
 }
 
 // =============== ProcClass

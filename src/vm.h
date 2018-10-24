@@ -29,17 +29,17 @@ extern "C" {
   IREP Internal REPresentation
 */
 typedef struct Irep {
-    uint16_t 	nlocals;   		//!< # of local variables
-    uint16_t 	nregs;			//!< # of register variables
+    uint16_t 	nlv;   			//!< # of local variables
+    uint16_t 	nreg;			//!< # of register variables
     uint16_t 	rlen;			//!< # of child IREP blocks
     uint16_t 	ilen;			//!< # of irep
-    uint16_t 	plen;			//!< # of pool
+    uint16_t 	plen;			//!< # of objects in pool
 
-    uint8_t     *code;			//!< ISEQ (code) BLOCK
-    uint8_t     *sym;
+    uint8_t     *iseq;			//!< ISEQ (code) BLOCK
+    uint8_t     *sym;			//!< SYMBOL list
 
-    mrbc_object **pools;    	//!< array of POOL objects pointer.
-    struct Irep **reps;	//!< array of child IREP's pointer.
+    mrbc_object **pool;    		//!< array of POOL objects pointer.
+    struct Irep **irep_list;	//!< array of child IREP's pointer.
 } mrbc_irep;
 
 //================================================================
@@ -60,13 +60,13 @@ typedef struct Callinfo {
   Virtual Machine
 */
 typedef struct VM {
-    mrbc_irep      *irep;
+    mrbc_irep      *irep;		// pointer to IREP tree
     mrbc_callinfo  *calltop;
     mrbc_value     regfile[MAX_REGS_SIZE];
 
-    // callinfo
+    // callinfo					// TODO: refactor into calltop linked list
     uint16_t       	pc;         // program counter
-    uint16_t		argc;		// dummy, ready for callinfo replacement
+    uint16_t		argc;		// dummy for callinfo struct replacement
     mrbc_class     	*klass;
     mrbc_value     	*reg;		// register top pointer
     mrbc_irep      	*pc_irep;   // PC
@@ -80,8 +80,8 @@ __GURU__ const char *mrbc_get_callee_name(mrbc_vm *vm);
 __GURU__ mrbc_sym 	mrbc_get_symid(const uint8_t *p, int n);
 
 __GURU__ void       mrbc_funcall(mrbc_vm *vm, const char *name, mrbc_value *v, int argc);
-__GURU__ void 		mrbc_push_callinfo(mrbc_vm *vm, int n_args);
-__GURU__ void 		mrbc_pop_callinfo(mrbc_vm *vm);
+__GURU__ void 		mrbc_push_callinfo(mrbc_vm *vm, int argc);
+__GURU__ void 		mrbc_pop_callinfo(mrbc_vm *vm, mrbc_value *regs);
 
 int  guru_vm_init(guru_ses *ses);
 int  guru_vm_run(guru_ses *ses);

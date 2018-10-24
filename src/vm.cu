@@ -73,9 +73,9 @@ mrbc_sym mrbc_get_symid(const uint8_t *p, int n)
 __GURU__
 const char *mrbc_get_callee_name(mrbc_vm *vm)
 {
-    uint32_t code = _bin_to_uint32(vm->pc_irep->code + (vm->pc - 1) * 4);
+    uint32_t iseq = _bin_to_uint32(vm->pc_irep->iseq + (vm->pc - 1) * 4);
     
-    int rb = GETARG_B(code);  // index of method sym
+    int rb = GETARG_B(iseq);  // index of method sym
 
     return mrbc_get_symbol(vm->pc_irep->sym, rb);
 }
@@ -154,7 +154,7 @@ void mrbc_push_callinfo(mrbc_vm *vm, int argc)
 
 */
 __GURU__
-void mrbc_pop_callinfo(mrbc_vm *vm)
+void mrbc_pop_callinfo(mrbc_vm *vm, mrbc_value *regs)
 {
     mrbc_callinfo *ci = vm->calltop;
     
@@ -164,7 +164,10 @@ void mrbc_pop_callinfo(mrbc_vm *vm)
     vm->pc      = ci->pc;
     vm->klass  	= ci->klass;
     
-    // free callinfo
+    // clear stacked arguments
+    for (int i = 1; i <= ci->argc; i++) {
+        mrbc_release(&regs[i]);
+    }
     mrbc_free(ci);
 }
 
@@ -229,9 +232,9 @@ int op_loadl(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 
     mrbc_release(&regs[ra]);
 
-    // regs[ra] = vm->pc_irep->pools[rb];
+    // regs[ra] = vm->pc_irep->pool[rb];
 
-    mrbc_object *pool_obj = vm->pc_irep->pools[rb];
+    mrbc_object *pool_obj = vm->pc_irep->pool[rb];
     regs[ra] = *pool_obj;
 
     return 0;
@@ -697,7 +700,7 @@ int op_send(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     	return 0;		// method not found
     }
 
-    if (m->c_func) {				// m is a C function
+    if (m->flag & GURU_PROC_C_FUNC) {				// m is a C function
         m->func(regs + ra, rc);
 
         if ((void (*))m->func==(void (*))c_proc_call) return 0;
@@ -712,8 +715,8 @@ int op_send(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     	mrbc_push_callinfo(vm, rc);	// append callinfo list
 
     	vm->pc_irep = m->irep;		// call into target context
-    	vm->pc = 0;					// call into target context
-    	vm->reg += ra;				// add call stack (new register)
+    	vm->pc 		= 0;			// call into target context
+    	vm->reg 	+= ra;			// add call stack (new register)
     }
     return 0;
 }
@@ -735,7 +738,7 @@ int op_call(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     mrbc_push_callinfo(vm, 0);
 
     // jump to proc
-    vm->pc = 0;
+    vm->pc 		= 0;
     vm->pc_irep = regs[0].proc->irep;
 
     return 0;
@@ -758,9 +761,12 @@ __GURU__
 int op_enter(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 {
     mrbc_callinfo *callinfo = vm->calltop;
+
     uint32_t enter_param = GETARG_Ax(code);
+
     int def_args = (enter_param >> 13) & 0x1f;  // default args
-    int argc = (enter_param >> 18) & 0x1f;      // given args
+    int argc     = (enter_param >> 18) & 0x1f;  // given args
+
     if (def_args > 0){
         vm->pc += callinfo->argc - argc;
     }
@@ -783,27 +789,11 @@ int op_return(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 {
     // return value
     int ra = GETARG_A(code);
+    mrbc_value value = regs[ra];
 
-    mrbc_release(&regs[0]);
-    regs[0] = regs[ra];
-    regs[ra].tt = MRBC_TT_EMPTY;
+    mrbc_pop_callinfo(vm, regs);
 
-    // restore irep,pc,regs
-    mrbc_callinfo *ci = vm->calltop;
-
-    vm->calltop	= ci->prev;
-    vm->reg 	= ci->reg;
-    vm->pc_irep = ci->pc_irep;
-    vm->pc 		= ci->pc;
-    vm->klass 	= ci->klass;
-
-    // clear stacked arguments
-    for (int i = 1; i <= ci->argc; i++) {
-        mrbc_release(&regs[i]);
-    }
-
-    // release callinfo
-    mrbc_free(ci);
+    regs[0] = value;
 
     return 0;
 }
@@ -1296,7 +1286,6 @@ int op_ge(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
         }
 #endif
     }
-
     // other case
     op_send(vm, code, regs);
     mrbc_release(&regs[ra+1]);
@@ -1325,7 +1314,7 @@ int op_string(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 #if MRBC_USE_STRING
     int ra = GETARG_A(code);
     int rb = GETARG_Bx(code);
-    mrbc_object *pool_obj = vm->pc_irep->pools[rb];
+    mrbc_object *pool_obj = vm->pc_irep->pool[rb];
 
     /* CAUTION: pool_obj->sym - 2. see IREP POOL structure. */
     int len = _bin_to_uint16(pool_obj->sym - 2);
@@ -1361,13 +1350,12 @@ int op_strcat(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 
     // call "to_s"
     mrbc_sym sym_id = name2symid("to_s");
-    mrbc_proc *m;
-    m = mrbc_get_class_method(regs[ra], sym_id);
-    if (m && m->c_func){
+    mrbc_proc *m    = mrbc_get_class_method(regs[ra], sym_id);
+    if (m && IS_C_FUNC(m)){
         m->func(regs+ra, 0);
     }
     m = mrbc_get_class_method(regs[rb], sym_id);
-    if (m && m->c_func){
+    if (m && IS_C_FUNC(m)){
         m->func(regs+rb, 0);
     }
 
@@ -1492,12 +1480,12 @@ __GURU__
 int op_lambda(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 {
     int ra = GETARG_A(code);
-    int rb = GETARG_b(code);      	// sequence position in irep list
-    // int c = GETARG_C(code);    	// TODO: Add flags support for OP_LAMBDA
+    int rb = GETARG_b(code);      		// sequence position in irep list
+    // int c = GETARG_C(code);    		// TODO: Add flags support for OP_LAMBDA
     mrbc_proc *proc = (mrbc_proc *)mrbc_proc_alloc("(lambda)");
 
-    proc->c_func = 0;				// IREP
-    proc->irep = vm->pc_irep->reps[rb];
+    proc->flag &= ~GURU_PROC_C_FUNC;	// IREP
+    proc->irep = vm->pc_irep->irep_list[rb];
 
     mrbc_release(&regs[ra]);
     regs[ra].tt = MRBC_TT_PROC;
@@ -1562,12 +1550,12 @@ int op_exec(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     mrbc_push_callinfo(vm, 0);
 
     // target irep
-    vm->pc = 0;
-    vm->pc_irep = vm->irep->reps[rb];
+    vm->pc 		= 0;
+    vm->pc_irep = vm->irep->irep_list[rb];
 
     // new regs
-    vm->reg += ra;
-    vm->klass = mrbc_get_class_by_object(&recv);
+    vm->reg 	+= ra;
+    vm->klass 	= mrbc_get_class_by_object(&recv);
 
     return 0;
 }
@@ -1608,7 +1596,7 @@ int op_method(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
         if (p) {
             // found it.
             *((mrbc_proc**)pp) = p->next;
-            if (!p->c_func) {
+            if (!IS_C_FUNC(p)) {
                 mrbc_value v = {.tt = MRBC_TT_PROC};
                 v.proc = p;
                 mrbc_release(&v);
@@ -1616,7 +1604,7 @@ int op_method(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
         }
 
         // add proc to class
-        proc->c_func = 0;
+        proc->flag &= ~GURU_PROC_C_FUNC;
         proc->sym_id = sym_id;
 #ifdef MRBC_DEBUG
         proc->names = mrbc_get_symbol(cur_irep->sym, rb);
@@ -1688,20 +1676,20 @@ int op_stop(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 __GURU__
 void _mrbc_vm_begin(mrbc_vm *vm)
 {
-    vm->pc_irep = vm->irep;
-    vm->pc 		= 0;
-    vm->reg 	= vm->regfile;
 
     MEMSET((uint8_t *)vm->regfile, 0, sizeof(vm->regfile));	// clean up registers
 
     // set self to reg[0]
     vm->regfile[0].tt  	= MRBC_TT_CLASS;
     vm->regfile[0].cls 	= mrbc_class_object;
-    vm->calltop  		= NULL;
 
-    // target_class
-    vm->klass = mrbc_class_object;
-    vm->run   = 1;
+    vm->calltop = NULL;					// no call
+
+    vm->pc 		= 0;					// starting IP
+    vm->klass 	= mrbc_class_object;	// target class
+    vm->reg 	= vm->regfile;			// pointer to reg[0]
+    vm->pc_irep = vm->irep;				// root of irep tree
+    vm->run   	= 1;
 }
 
 //================================================================
@@ -1733,7 +1721,7 @@ int _mrbc_vm_exec(mrbc_vm *vm)
 
     console_str("vm*start...\n");
     do {
-        code   = _bin_to_uint32(vm->pc_irep->code + vm->pc * 4);	// get next bytecode
+        code   = _bin_to_uint32(vm->pc_irep->iseq + vm->pc * 4);	// get next bytecode
         opcode = GET_OPCODE(code);
         regs   = vm->reg;
 
@@ -1815,19 +1803,19 @@ int _mrbc_vm_exec(mrbc_vm *vm)
   release mrbc_irep holds memory
 */
 __GURU__
-void _mrbc_free_ireplist(mrbc_irep *irep)
+void _mrbc_free_irep(mrbc_irep *irep)
 {
-    // release pools.
+    // release pool.
     for(int i = 0; i < irep->plen; i++) {
-        mrbc_free(irep->pools[i]);
+        mrbc_free(irep->pool[i]);
     }
-    if (irep->plen) mrbc_free(irep->pools);
+    if (irep->plen) mrbc_free(irep->pool);
 
-    // release child ireps.
+    // release all child ireps.
     for(int i = 0; i < irep->rlen; i++) {
-        _mrbc_free_ireplist(irep->reps[i]);
+        _mrbc_free_irep(irep->irep_list[i]);
     }
-    if (irep->rlen) mrbc_free(irep->reps);
+    if (irep->rlen) mrbc_free(irep->irep_list);
 
     mrbc_free(irep);
 }
@@ -1878,10 +1866,11 @@ int guru_vm_run(guru_ses *ses)
 #ifdef MRBC_DEBUG
 void dump_irep(mrbc_irep *irep)
 {
-	printf("\tnlocals=%d, nregs=%d, rlen=%d, ilen=%d, plen=%d\n",
-			irep->nlocals,	irep->nregs, irep->rlen, irep->ilen, irep->plen);
+	printf("\tnlv=%d, nreg=%d, rlen=%d, ilen=%d, plen=%d\n",
+			irep->nlv, irep->nreg, irep->rlen, irep->ilen, irep->plen);
+	// dump all children ireps
 	for (int i=0; i<irep->rlen; i++) {
-		dump_irep(irep->reps[i]);
+		dump_irep(irep->irep_list[i]);
 	}
 }
 #endif

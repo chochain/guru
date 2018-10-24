@@ -23,16 +23,6 @@
 #include "errorcode.h"
 #include "load.h"
 
-__GURU__
-mrbc_object *_mrbc_obj_alloc(mrbc_vtype tt)
-{
-    mrbc_object *obj = (mrbc_object *)mrbc_alloc(sizeof(mrbc_object));
-    if (obj) {
-        obj->tt = tt;
-    }
-    return obj;
-}
-
 //================================================================
 /*!@brief
   Parse header section.
@@ -108,37 +98,36 @@ __GURU__ int _load_irep_1(mrbc_irep *irep, const uint8_t **pos)
     const uint8_t *p = *pos + 4;		// skip "IREP"
 
     // nlocals,nregs,rlen
-    irep->nlocals = _bin_to_uint16(p);	p += sizeof(uint16_t);
-    irep->nregs   = _bin_to_uint16(p);	p += sizeof(uint16_t);
-    irep->rlen    = _bin_to_uint16(p);	p += sizeof(uint16_t);
-    irep->ilen    = _bin_to_uint32(p);	p += sizeof(uint32_t);
+    irep->nlv  = _bin_to_uint16(p);	p += sizeof(uint16_t);
+    irep->nreg = _bin_to_uint16(p);	p += sizeof(uint16_t);
+    irep->rlen = _bin_to_uint16(p);	p += sizeof(uint16_t);
+    irep->ilen = _bin_to_uint32(p);	p += sizeof(uint32_t);
 
     p += ((uint8_t *)irep - p) & 0x03;	// 32-bit align code pointer
 
-    irep->code = (uint8_t *)p;			p += irep->ilen * sizeof(uint32_t);		// ISEQ (code) block
+    irep->iseq = (uint8_t *)p;			p += irep->ilen * sizeof(uint32_t);		// ISEQ (code) block
     irep->plen = _bin_to_uint32(p);		p += sizeof(uint32_t);					// POOL block
 
     // allocate memory for child irep's pointers
     if (irep->rlen) {
-        irep->reps = (mrbc_irep **)mrbc_alloc(sizeof(mrbc_irep *) * irep->rlen);
-        if (irep->reps==NULL) {
+        irep->irep_list = (mrbc_irep **)mrbc_alloc(sizeof(mrbc_irep *) * irep->rlen);
+        if (irep->irep_list==NULL) {
             return LOAD_FILE_IREP_ERROR_ALLOCATION;
         }
     }
     if (irep->plen) {
-        irep->pools = (mrbc_object**)mrbc_alloc(sizeof(void*) *irep->plen);
-        if (irep->pools==NULL) {
+        irep->pool = (mrbc_object**)mrbc_alloc(sizeof(void*) *irep->plen);
+        if (irep->pool==NULL) {
             return LOAD_FILE_IREP_ERROR_ALLOCATION;
         }
     }
 
-#define MAX_OBJ_SIZE 100
     for (int i = 0; i < irep->plen; i++) {
         int  tt = *p++;
         int  obj_size = _bin_to_uint16(p);	p += sizeof(uint16_t);
-        char buf[MAX_OBJ_SIZE];
+        char buf[64+2];
 
-        mrbc_object *obj = _mrbc_obj_alloc(MRBC_TT_EMPTY);
+        mrbc_object *obj = (mrbc_object *)mrbc_alloc(sizeof(mrbc_object));
         if (obj==NULL) {
             return LOAD_FILE_IREP_ERROR_ALLOCATION;
         }
@@ -162,9 +151,11 @@ __GURU__ int _load_irep_1(mrbc_irep *irep, const uint8_t **pos)
             obj->f  = ATOF(buf);
         } break;
 #endif
-        default: break;
+        default:
+        	obj->tt = MRBC_TT_EMPTY;
+        	break;
         }
-        irep->pools[i] = obj;
+        irep->pool[i] = obj;
         p += obj_size;
     }
     // SYMS BLOCK
@@ -200,7 +191,7 @@ __GURU__ mrbc_irep *_load_irep_0(const uint8_t **pos)
     }
     // recursively create the irep linked-list
     for (int i=0; i<irep->rlen; i++) {
-        irep->reps[i] = _load_irep_0(pos);
+        irep->irep_list[i] = _load_irep_0(pos);
     }
     return irep;
 }
@@ -230,7 +221,7 @@ __GURU__ int _load_irep(mrbc_vm *vm, const uint8_t **pos)
     }
     p += 4;												// 4 = skip "0000"
 
-    vm->irep = _load_irep_0(&p);
+    vm->irep = _load_irep_0(&p);						// recursively load irep tree
     if (vm->irep==NULL) {
         return LOAD_FILE_IREP_ERROR_ALLOCATION;
     }

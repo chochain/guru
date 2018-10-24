@@ -340,8 +340,7 @@ void *mrbc_alloc(unsigned int size)
     //  (1 << (FLI_BITS + SLI_BITS + LSB_BITS)) - alpha
     unsigned int alloc_size = size + sizeof(free_block);
 
-    // align 4 byte
-    alloc_size += ((4 - alloc_size) & 3);
+    alloc_size += ((8 - alloc_size) & 7);	// 8-byte align
 
     // check minimum alloc size. if need.
 #if 0
