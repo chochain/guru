@@ -78,8 +78,7 @@ typedef struct RObject {
         mrbc_float       f;			// MRBC_TT_FLOAT
 #endif
         struct RClass    *cls;		// MRBC_TT_CLASS
-        struct RObject   *handle;	// handle to objects
-        struct RInstance *instance;	// MRBC_TT_OBJECT
+        struct RInstance *self;		// MRBC_TT_OBJECT
         struct RProc     *proc;		// MRBC_TT_PROC
         struct RString   *str;		// MRBC_TT_STRING
 #if MRBC_USE_ARRAY

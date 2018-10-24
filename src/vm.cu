@@ -13,17 +13,19 @@
   </pre>
 */
 #include <stdio.h>
-#include <assert.h>
-#include "console.h"
+
 #include "alloc.h"
-#include "vmalloc.h"
-#include "global.h"
-#include "symbol.h"
+#include "instance.h"
 #include "static.h"
-#include "class.h"
+#include "symbol.h"
+#include "global.h"
+
+#include "console.h"
+
 #include "opcode.h"
-#include "vm.h"
 #include "load.h"
+#include "vm.h"
+#include "class.h"
 
 #if MRBC_USE_STRING
 #include "c_string.h"
@@ -86,6 +88,43 @@ __GURU__
 void not_supported(void)
 {
     console_str("Not supported!\n");
+}
+
+// Call a method
+// v[0]: receiver
+// v[1..]: params
+//================================================================
+/*!@brief
+  call a method with params
+
+  @param  vm		pointer to vm
+  @param  name		method name
+  @param  v		receiver and params
+  @param  argc		num of params
+*/
+__GURU__
+void mrbc_funcall(mrbc_vm *vm, const char *name, mrbc_value *v, int argc)
+{
+    mrbc_sym  sym_id = name2symid(name);
+    mrbc_proc *m     = mrbc_get_class_method(v[0], sym_id);
+
+    if (m==0) return;   	// no method
+
+    mrbc_callinfo *ci = (mrbc_callinfo *)mrbc_alloc(sizeof(mrbc_callinfo));
+
+    ci->reg		= vm->reg;
+    ci->pc_irep = vm->pc_irep;
+    ci->pc   	= vm->pc;
+    ci->argc 	= 0;
+    ci->klass	= vm->klass;
+
+    ci->prev = vm->calltop;	// push call stack
+    vm->calltop = ci;
+
+    vm->pc_irep = m->irep;	// target irep
+    vm->pc 		= 0;
+    // new regs
+    vm->reg 	+= 2;   	// recv and symbol
 }
 
 //================================================================
@@ -646,7 +685,7 @@ int op_send(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     }
 
 	mrbc_sym  sym_id = mrbc_get_symid(vm->pc_irep->sym, rb);
-    mrbc_proc *m 	 = (mrbc_proc *)find_method(recv, sym_id);
+    mrbc_proc *m 	 = (mrbc_proc *)mrbc_get_class_method(recv, sym_id);
 #ifdef MRBC_DEBUG
 	const char *sym_name = mrbc_get_symbol(vm->pc_irep->sym, rb);
 #endif
@@ -1323,11 +1362,11 @@ int op_strcat(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     // call "to_s"
     mrbc_sym sym_id = name2symid("to_s");
     mrbc_proc *m;
-    m = find_method(regs[ra], sym_id);
+    m = mrbc_get_class_method(regs[ra], sym_id);
     if (m && m->c_func){
         m->func(regs+ra, 0);
     }
-    m = find_method(regs[rb], sym_id);
+    m = mrbc_get_class_method(regs[rb], sym_id);
     if (m && m->c_func){
         m->func(regs+rb, 0);
     }
@@ -1453,7 +1492,7 @@ __GURU__
 int op_lambda(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 {
     int ra = GETARG_A(code);
-    int rb = GETARG_Bz(code);      	// sequence position in irep list
+    int rb = GETARG_b(code);      	// sequence position in irep list
     // int c = GETARG_C(code);    	// TODO: Add flags support for OP_LAMBDA
     mrbc_proc *proc = (mrbc_proc *)mrbc_proc_alloc("(lambda)");
 
@@ -1528,7 +1567,7 @@ int op_exec(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 
     // new regs
     vm->reg += ra;
-    vm->klass = find_class_by_object(&recv);
+    vm->klass = mrbc_get_class_by_object(&recv);
 
     return 0;
 }

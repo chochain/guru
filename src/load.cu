@@ -18,10 +18,20 @@
 #include <string.h>
 
 #include "guru.h"
+#include "value.h"
 #include "alloc.h"
-#include "vmalloc.h"
 #include "errorcode.h"
 #include "load.h"
+
+__GURU__
+mrbc_object *_mrbc_obj_alloc(mrbc_vtype tt)
+{
+    mrbc_object *obj = (mrbc_object *)mrbc_alloc(sizeof(mrbc_object));
+    if (obj) {
+        obj->tt = tt;
+    }
+    return obj;
+}
 
 //================================================================
 /*!@brief
@@ -128,7 +138,7 @@ __GURU__ int _load_irep_1(mrbc_irep *irep, const uint8_t **pos)
         int  obj_size = _bin_to_uint16(p);	p += sizeof(uint16_t);
         char buf[MAX_OBJ_SIZE];
 
-        mrbc_object *obj = mrbc_obj_alloc(MRBC_TT_EMPTY);
+        mrbc_object *obj = _mrbc_obj_alloc(MRBC_TT_EMPTY);
         if (obj==NULL) {
             return LOAD_FILE_IREP_ERROR_ALLOCATION;
         }
@@ -142,7 +152,7 @@ __GURU__ int _load_irep_1(mrbc_irep *irep, const uint8_t **pos)
             buf[obj_size] = '\0';
             
             obj->tt = MRBC_TT_FIXNUM;
-            obj->i = ATOL(buf);
+            obj->i = (int)ATOI(buf);
         } break;
 #if MRBC_USE_FLOAT
         case 2: { 	// IREP_TT_FLOAT

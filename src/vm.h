@@ -79,15 +79,13 @@ __GURU__ const char *mrbc_get_symbol(const uint8_t *p, int n);
 __GURU__ const char *mrbc_get_callee_name(mrbc_vm *vm);
 __GURU__ mrbc_sym 	mrbc_get_symid(const uint8_t *p, int n);
 
+__GURU__ void       mrbc_funcall(mrbc_vm *vm, const char *name, mrbc_value *v, int argc);
 __GURU__ void 		mrbc_push_callinfo(mrbc_vm *vm, int n_args);
 __GURU__ void 		mrbc_pop_callinfo(mrbc_vm *vm);
 
-__GURU__ void     	mrbc_vm_setup(mrbc_vm *vm);
-__GURU__ int      	mrbc_vm_run(mrbc_vm *vm);
-__GURU__ void     	mrbc_vm_teardown(mrbc_vm *vm);
-
-//<< from value.hu
-__GURU__ void 		mrbc_free_ireplist(mrbc_irep *irep);
+int  guru_vm_init(guru_ses *ses);
+int  guru_vm_run(guru_ses *ses);
+void dump_irep(mrbc_irep *irep);
 
 //================================================================
 /*!@brief
