@@ -10,11 +10,10 @@
 
   </pre>
 */
-#include "vm_config.h"
 #include "alloc.h"
 #include "value.h"
-#include "console.h"
 #include "symbol.h"
+#include "console.h"
 #include "sprintf.h"
 
 #define BUF_STEP_SIZE 80
@@ -436,7 +435,7 @@ char *guru_vprintf(const char *fstr, mrbc_value v[], int argc)		// << from c_str
                 ret = _mrbc_printf_int(&pf, (mrbc_int)v[i].f, 10);
 #endif
             } else if (v[i].tt==MRBC_TT_STRING) {
-                mrbc_int ival = ATOL(VSTR(&v[i]));
+                mrbc_int ival = ATOI(VSTR(&v[i]));
                 ret = _mrbc_printf_int(&pf, ival, 10);
             }
             break;
