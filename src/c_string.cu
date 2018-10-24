@@ -24,8 +24,6 @@
 //#include "c_array.h"
 #endif
 
-extern "C" __GURU__ void mrbc_dec_ref_counter(mrbc_value *v);  						// vmalloc.cu
-
 #if MRBC_USE_STRING
 //================================================================
 /*! white space character test
@@ -388,7 +386,7 @@ void c_string_to_i(mrbc_value v[], int argc)
             return;	// raise ? ArgumentError
         }
     }
-    mrbc_int i = mrbc_atoi(VSTR(v), base);
+    mrbc_int i = guru_atoi(VSTR(v), base);
 
     SET_INT_RETURN(i);
 }

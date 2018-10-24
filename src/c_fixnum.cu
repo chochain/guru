@@ -20,8 +20,6 @@
 #include "c_string.h"
 #endif
 
-extern "C" __GURU__ void mrbc_dec_ref_counter(mrbc_value *v);  // from vmalloc.h
-
 //================================================================
 /*! (operator) [] bit reference
  */

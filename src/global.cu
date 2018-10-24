@@ -1,6 +1,5 @@
 #include <assert.h>
 #include "value.h"
-#include "vmalloc.h"
 #include "global.h"
 
 /*
