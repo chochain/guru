@@ -158,9 +158,11 @@ __GURU__ int _load_irep_1(mrbc_irep *irep, const uint8_t **pos)
         irep->pool[i] = obj;
         p += obj_size;
     }
+
     // SYMS BLOCK
     irep->sym = (uint8_t*)p;
-    int sym_cnt = _bin_to_uint32(p);		p += sizeof(uint32_t);
+    int sym_cnt =
+    		irep->slen = _bin_to_uint32(p);	p += sizeof(uint32_t);
     while (--sym_cnt >= 0) {
         int len = _bin_to_uint16(p);		p += sizeof(uint16_t)+len+1;    // symbol_len+'\0'
     }

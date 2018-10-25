@@ -152,7 +152,7 @@ typedef struct RProc {
         mrbc_func_t func;
     };
 #ifdef MRBC_DEBUG
-    const char 	 *names;		// for debug; delete soon
+    const char 	 *name;		// for debug; delete soon
 #endif
 } mrbc_proc;
 

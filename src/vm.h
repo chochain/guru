@@ -34,6 +34,7 @@ typedef struct Irep {
     uint16_t 	rlen;			//!< # of child IREP blocks
     uint16_t 	ilen;			//!< # of irep
     uint16_t 	plen;			//!< # of objects in pool
+    uint16_t	slen;			//!< # of symbols
 
     uint8_t     *iseq;			//!< ISEQ (code) BLOCK
     uint8_t     *sym;			//!< SYMBOL list

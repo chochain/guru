@@ -46,13 +46,11 @@
 __GURU__
 const char * mrbc_get_symbol(const uint8_t *p, int n)
 {
-    int cnt = _bin_to_uint32(p);
-    if (n >= cnt) return 0;
-    p += 4;
-    while (n > 0) {
-        uint16_t s = _bin_to_uint16(p);
-        p += 2+s+1;   // size(2 bytes) + symbol len + '\0'
-        n--;
+    int cnt = _bin_to_uint32(p);			p += sizeof(uint32_t);
+    if (n >= cnt) return NULL;
+
+    for (; n>0; n--) {	// advance to n'th symbol
+        uint16_t s = _bin_to_uint16(p);		p += sizeof(uint16_t)+s+1;	// symbol len + '\0'
     }
     return (char *)p+2;  // skip size(2 bytes)
 }
@@ -1483,6 +1481,7 @@ int op_lambda(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     int ra = GETARG_A(code);
     int rb = GETARG_b(code);      		// sequence position in irep list
     // int c = GETARG_C(code);    		// TODO: Add flags support for OP_LAMBDA
+
     mrbc_proc *proc = (mrbc_proc *)mrbc_proc_alloc("(lambda)");
 
     proc->flag &= ~GURU_PROC_C_FUNC;	// IREP
@@ -1577,44 +1576,44 @@ int op_method(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 {
     int ra = GETARG_A(code);
     int rb = GETARG_B(code);
-    mrbc_proc *proc = regs[ra+1].proc;
 
-    if (regs[ra].tt==MRBC_TT_CLASS) {
-        mrbc_class *cls = regs[ra].cls;
-
-        // sym_id : method name
-        mrbc_irep *cur_irep = vm->pc_irep;
-        mrbc_sym sym_id = mrbc_get_symid(cur_irep->sym, rb);
-
-        // check same name method
-        mrbc_proc *p = cls->procs;
-        void *pp = &cls->procs;
-        while (p != NULL) {
-            if (p->sym_id==sym_id) break;
-            pp = &p->next;
-            p = p->next;
-        }
-        if (p) {
-            // found it.
-            *((mrbc_proc**)pp) = p->next;
-            if (!IS_C_FUNC(p)) {
-                mrbc_value v = {.tt = MRBC_TT_PROC};
-                v.proc = p;
-                mrbc_release(&v);
-            }
-        }
-
-        // add proc to class
-        proc->flag &= ~GURU_PROC_C_FUNC;
-        proc->sym_id = sym_id;
-#ifdef MRBC_DEBUG
-        proc->names = mrbc_get_symbol(cur_irep->sym, rb);
-#endif
-        proc->next = cls->procs;
-        cls->procs = proc;
-
-        regs[ra+1].tt = MRBC_TT_EMPTY;
+    if (regs[ra].tt != MRBC_TT_CLASS) {
+    	console_str("?op_method");
+    	return 0;
     }
+
+    mrbc_class 	*cls 	= regs[ra].cls;
+    mrbc_proc 	*proc   = regs[ra+1].proc;
+    mrbc_irep  	*irep 	= vm->pc_irep;
+    mrbc_sym   	sym_id  = mrbc_get_symid(irep->sym, rb);
+
+    // check same name method
+    mrbc_proc 	*p  = cls->procs;
+    void 		*pp = &cls->procs;
+    while (p != NULL) {
+    	if (p->sym_id==sym_id) break;
+    	pp = &p->next;
+    	p  = p->next;
+    }
+    if (p) {	// found?
+    	*((mrbc_proc**)pp) = p->next;
+    	if (!IS_C_FUNC(p)) {
+    		mrbc_value v = {.tt = MRBC_TT_PROC};
+    		v.proc = p;
+    		mrbc_release(&v);
+        }
+    }
+
+    // add proc to class
+    proc->flag   &= ~GURU_PROC_C_FUNC;
+    proc->sym_id = sym_id;
+#ifdef MRBC_DEBUG
+    proc->name  = mrbc_get_symbol(irep->sym, rb);
+#endif
+    proc->next   = cls->procs;
+    cls->procs   = proc;
+
+    regs[ra+1].tt = MRBC_TT_EMPTY;
 
     return 0;
 }
@@ -1870,8 +1869,8 @@ int guru_vm_run(guru_ses *ses)
 #ifdef MRBC_DEBUG
 void dump_irep(mrbc_irep *irep)
 {
-	printf("\tnlv=%d, nreg=%d, rlen=%d, ilen=%d, plen=%d\n",
-			irep->nlv, irep->nreg, irep->rlen, irep->ilen, irep->plen);
+	printf("\tnregs=%d, nlocals=%d, pools=%d, syms=%d, reps=%d, ilen=%d\n",
+			irep->nreg, irep->nlv, irep->plen, irep->slen, irep->rlen, irep->ilen);
 	// dump all children ireps
 	for (int i=0; i<irep->rlen; i++) {
 		dump_irep(irep->irep_list[i]);

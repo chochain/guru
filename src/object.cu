@@ -223,11 +223,12 @@ void c_object_new(mrbc_value v[], int argc)
         (uint32_t)(MKOPCODE(OP_ABORT))
     };
     mrbc_irep irep = {		// where does this go?
+        0,     				// nreg
         0,     				// nlv
-        0,     				// nregs
-        0,     				// rlen
-        2,     				// ilen
         0,     				// plen
+        0,     				// rlen
+        0,					// slen
+        2,     				// ilen
         (uint8_t *)code,   	// iseq
         (uint8_t *)sym,  	// ptr_to_sym
         NULL,  				// object pool

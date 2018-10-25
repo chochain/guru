@@ -149,10 +149,10 @@ mrbc_proc *mrbc_proc_alloc(const char *name)
     if (proc) {
         proc->refc   = 1;
         proc->sym_id = name2symid(name);
+        proc->next   = 0;
 #ifdef MRBC_DEBUG
-        proc->names = name;	// for debug; delete soon.
+        proc->name   = name;	// for debug; delete soon.
 #endif
-        proc->next = 0;
     }
     return proc;
 }
