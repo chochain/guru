@@ -37,10 +37,31 @@ __GURU__ struct SYM_LIST sym_list[MAX_SYMBOLS_COUNT];
 __GURU__ int sym_idx;	// point to the last(free) sym_list array.
 
 //================================================================
+/*! Calculate hash value.
+
+  @param  str		Target string.
+  @return uint16_t	Hash value.
+*/
+__GURU__ __INLINE__
+uint16_t _calc_hash(const char *str)
+{
+    uint16_t h = 0;
+
+    while (*str != '\0') {
+        h = h * 37 + *str;
+        str++;
+    }
+    return h;
+}
+
+//================================================================
 /*! search index table
  */
-__GURU__ int search_index(uint16_t hash, const char *str)
+__GURU__
+int _search_index(const char *str)
 {
+    uint16_t   hash = _calc_hash(str);
+
 #ifdef MRBC_SYMBOL_SEARCH_LINER
     for(int i = 0; i < sym_idx; i++) {
         if (sym_list[i].hash==hash && strcmp(str, sym_list[i].cstr)==0) {
@@ -57,11 +78,9 @@ __GURU__ int search_index(uint16_t hash, const char *str)
         		guru_strcmp(str, sym_list[i].cstr)==0) {
             return i;
         }
-        if (hash < sym_list[i].hash) {
-            i = sym_list[i].left;
-        } else {
-            i = sym_list[i].right;
-        }
+        i = (hash < sym_list[i].hash)
+        		? sym_list[i].left
+            	: sym_list[i].right;
     } while (i != 0);
     return -1;
 #endif
@@ -70,14 +89,17 @@ __GURU__ int search_index(uint16_t hash, const char *str)
 //================================================================
 /*! add to index table
  */
-__GURU__ int add_index(uint16_t hash, const char *str)
+__GURU__
+int _add_index(const char *str)
 {
+    uint16_t hash = _calc_hash(str);
+
     // check overflow.
     if (sym_idx >= MAX_SYMBOLS_COUNT) {
-//        printf("Overflow %s for '%s'\n", "MAX_SYMBOLS_COUNT", str);
-        assert(1==0);
-        return -1;
+    	assert(1==0);
+    	return -1;
     }
+
     int sym_id = sym_idx++;
 
     // append table.
@@ -95,7 +117,8 @@ __GURU__ int add_index(uint16_t hash, const char *str)
                 break;
             }
             i = sym_list[i].left;
-        } else {
+        }
+        else {
             // right side
             if (sym_list[i].right==0) {	// right is empty?
                 sym_list[i].right = sym_id;
@@ -115,43 +138,26 @@ __GURU__ int add_index(uint16_t hash, const char *str)
   @param  str	String
   @return 	symbol object
 */
-__GURU__ mrbc_value mrbc_symbol_new(const char *str)
+__GURU__
+mrbc_value mrbc_symbol_new(const char *str)
 {
-    mrbc_value ret = {.tt = MRBC_TT_SYMBOL};
-    uint16_t h = calc_hash(str);
-    mrbc_sym sym_id = search_index(h, str);
+    mrbc_value v      = {.tt = MRBC_TT_SYMBOL};
+    mrbc_sym   sym_id = _search_index(str);
 
     if (sym_id >= 0) {
-        ret.i = sym_id;
-        return ret;		// already exist.
+        v.i = sym_id;
+        return v;		// already exist.
     }
 
     // create symbol object dynamically.
-    int size = guru_strlen(str) + 1;
-    char *buf = (char *)mrbc_alloc(size);
-    if (buf==NULL) return ret;		// ENOMEM raise?
+    int           size = guru_strlen(str) + 1;
+    volatile char *buf = (volatile char *)mrbc_alloc(size);
+    if (buf==NULL) return v;		// ENOMEM raise?
 
-    MEMCPY((uint8_t *)buf, (const uint8_t *)str, size);
-    ret.i = add_index(h, buf);
+    MEMCPY((uint8_t *)buf, (uint8_t *)str, size);
+    v.i = _add_index((const char *)buf);
 
-    return ret;
-}
-
-//================================================================
-/*! Calculate hash value.
-
-  @param  str		Target string.
-  @return uint16_t	Hash value.
-*/
-__GURU__ uint16_t calc_hash(const char *str)
-{
-    uint16_t h = 0;
-
-    while (*str != '\0') {
-        h = h * 37 + *str;
-        str++;
-    }
-    return h;
+    return v;
 }
 
 //================================================================
@@ -162,13 +168,11 @@ __GURU__ uint16_t calc_hash(const char *str)
 */
 __GURU__ mrbc_sym name2symid(const char *str)
 {
-    uint16_t h = calc_hash(str);
-    mrbc_sym sym_id = search_index(h, str);
+    mrbc_sym sym_id = _search_index(str);
     if (sym_id >= 0) return sym_id;
 
-    return add_index(h, str);
+    return _add_index(str);
 }
-
 
 //================================================================
 /*! Convert symbol value to string.
@@ -177,7 +181,8 @@ __GURU__ mrbc_sym name2symid(const char *str)
   @return const char*	String.
   @retval NULL		Invalid sym_id was given.
 */
-__GURU__ const char * symid2name(mrbc_sym sym_id)
+__GURU__
+const char * symid2name(mrbc_sym sym_id)
 {
     return (sym_id < 0 || sym_id >= sym_idx)
     		? NULL
@@ -197,6 +202,7 @@ void c_inspect(mrbc_value v[], int argc)
 {
     const char *s = symid2name(v[0].i);
     v[0] = mrbc_string_new(":");
+
     mrbc_string_append_cstr(&v[0], s);
 }
 

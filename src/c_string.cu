@@ -163,18 +163,18 @@ int mrbc_string_append(mrbc_value *v1, const mrbc_value *v2)
     int len1 = v1->str->size;
     int len2 = (v2->tt==MRBC_TT_STRING) ? v2->str->size : 1;
 
-    uint8_t *str = (uint8_t *)mrbc_realloc(v1->str->data, len1+len2+1);
+    volatile uint8_t *str = (volatile uint8_t *)mrbc_realloc(v1->str->data, len1+len2+1);
     if (!str) return E_NOMEMORY_ERROR;
 
     if (v2->tt==MRBC_TT_STRING) {
-        MEMCPY(str + len1, v2->str->data, len2 + 1);
+        MEMCPY((uint8_t *)str + len1, v2->str->data, len2 + 1);
     }
     else if (v2->tt==MRBC_TT_FIXNUM) {
         str[len1]   = v2->i;
         str[len1+1] = '\0';
     }
     v1->str->size = len1 + len2;
-    v1->str->data = str;
+    v1->str->data = (uint8_t *)str;
 
     return 0;
 }
@@ -192,13 +192,13 @@ int mrbc_string_append_cstr(mrbc_value *v1, const char *v2)
     int len1 = v1->str->size;
     int len2 = STRLEN(v2);
 
-    uint8_t *str = (uint8_t *)mrbc_realloc(v1->str->data, len1+len2+1);
+    volatile uint8_t *str = (volatile uint8_t *)mrbc_realloc(v1->str->data, len1+len2+1);
     if (!str) return E_NOMEMORY_ERROR;
 
-    MEMCPY(str + len1, (uint8_t *)v2, len2 + 1);
+    MEMCPY((uint8_t *)str + len1, (uint8_t *)v2, len2 + 1);
 
     v1->str->size = len1 + len2;
-    v1->str->data = str;
+    v1->str->data = (uint8_t *)str;
 
     return 0;
 }
@@ -259,10 +259,11 @@ int mrbc_string_strip(mrbc_value *v, int mode)
     int new_size = p2 - p1 + 1;
     if (VSTRLEN(v)==new_size) return 0;
 
-    char *buf = VSTR(v);
+    volatile char *buf = (volatile char *)VSTR(v);
     if (p1 != buf) MEMCPY((uint8_t *)buf, (uint8_t *)p1, new_size);
     buf[new_size] = '\0';
-    mrbc_realloc(buf, new_size+1);	// shrink suitable size.
+
+    mrbc_realloc((uint8_t *)buf, new_size+1);	// shrink suitable size.
     v->str->size = new_size;
 
     return 1;
@@ -320,9 +321,9 @@ void c_string_mul(mrbc_value v[], int argc)
     mrbc_value value = _mrbc_string_new(NULL, VSTRLEN(&v[0]) * v[1].i);
     if (value.str==NULL) return;		// ENOMEM
 
-    uint8_t *p = value.str->data;
+    volatile uint8_t *p = (volatile uint8_t *)value.str->data;
     for (int i = 0; i < v[1].i; i++) {
-        MEMCPY(p, (uint8_t *)VSTR(&v[0]), VSTRLEN(&v[0]));
+        MEMCPY((uint8_t *)p, (uint8_t *)VSTR(&v[0]), VSTRLEN(&v[0]));
         p += VSTRLEN(&v[0]);
     }
     *p = 0;
@@ -497,14 +498,14 @@ void c_string_insert(mrbc_value v[], int argc)
         return;
     }
 
-    uint8_t *str = (uint8_t *)mrbc_realloc(VSTR(v), len1 + len2 - len + 1);
+    volatile uint8_t *str = (volatile uint8_t *)mrbc_realloc(VSTR(v), len1 + len2 - len + 1);
     if (!str) return;
 
-    MEMCPY(str + nth + len2, str + nth + len, len1 - nth - len + 1);
-    MEMCPY(str + nth, (uint8_t *)VSTR(val), len2);
+    MEMCPY((uint8_t *)str + nth + len2, (uint8_t *)str + nth + len, len1 - nth - len + 1);
+    MEMCPY((uint8_t *)str + nth, (uint8_t *)VSTR(val), len2);
     v->str->size = len1 + len2 - len;
 
-    v->str->data = str;
+    v->str->data = (uint8_t *)str;
 }
 
 //================================================================

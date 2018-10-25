@@ -199,6 +199,7 @@ int _mrbc_printf_float(mrbc_printf *pf, double value)
     *p2 = '\0';
     while ((*--p2 = *--p1) != '%');
 
+    // TODO: 20181025 format print float
     //snprintf(pf->p, (pf->buf_end - pf->p + 1), p2, value);
 
     while (*pf->p != '\0')
@@ -259,7 +260,7 @@ int _mrbc_printf_int(mrbc_printf *pf, mrbc_int value, int base)
 
     // create string to local buffer
     char buf[64+2];				// int64 + terminate + 1
-    char *p = buf + sizeof(buf) - 1;
+    volatile char *p = buf + sizeof(buf) - 1;
     *p = '\0';
     do {
         int i = v % base;
@@ -280,7 +281,7 @@ int _mrbc_printf_int(mrbc_printf *pf, mrbc_int value, int base)
         pad = ' ';
         if (sign) *--p = sign;
     }
-    return _mrbc_printf_str(pf, p, pad);
+    return _mrbc_printf_str(pf, (const char *)p, pad);
 }
 
 //================================================================
