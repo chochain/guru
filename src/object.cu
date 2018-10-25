@@ -350,7 +350,7 @@ void c_object_to_s(mrbc_value v[], int argc)
     	str = guru_sprintf("#<%s:%08x>", symid2name(v->cls->sym_id), (uintptr_t)v->self); break;
     default: str = ""; break;
     }
-    SET_RETURN(mrbc_string_new_cstr(str));
+    SET_RETURN(mrbc_string_new(str));
 }
 #endif
 
@@ -389,7 +389,7 @@ void c_proc_to_s(mrbc_value v[], int argc)
 {
     char *str = guru_sprintf("<#Proc:%08x>", (uintptr_t)v->proc);
 
-    SET_RETURN(mrbc_string_new_cstr(str));
+    SET_RETURN(mrbc_string_new(str));
 }
 #endif
 
@@ -425,7 +425,7 @@ void c_nil_false_not(mrbc_value v[], int argc)
 __GURU__
 void c_nil_inspect(mrbc_value v[], int argc)
 {
-    v[0] = mrbc_string_new_cstr("nil");
+    v[0] = mrbc_string_new("nil");
 }
 
 //================================================================
@@ -434,7 +434,7 @@ void c_nil_inspect(mrbc_value v[], int argc)
 __GURU__
 void c_nil_to_s(mrbc_value v[], int argc)
 {
-    v[0] = mrbc_string_new(NULL, 0);
+    v[0] = mrbc_string_new(NULL);
 }
 #endif
 
@@ -464,7 +464,7 @@ void mrbc_init_class_nil()
 __GURU__
 void c_false_to_s(mrbc_value v[], int argc)
 {
-    v[0] = mrbc_string_new_cstr("false");
+    v[0] = mrbc_string_new("false");
 }
 #endif
 
@@ -494,7 +494,7 @@ void mrbc_init_class_false()
 __GURU__
 void c_true_to_s(mrbc_value v[], int argc)
 {
-    v[0] = mrbc_string_new_cstr("true");
+    v[0] = mrbc_string_new("true");
 }
 #endif
 

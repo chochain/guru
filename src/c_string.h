@@ -24,9 +24,7 @@ extern "C" {
 /*!@brief
   Define String handle.
 */
-__GURU__ mrbc_value mrbc_string_new(const void *src, int len);
-__GURU__ mrbc_value mrbc_string_new_cstr(const char *src);
-__GURU__ mrbc_value mrbc_string_new_alloc(void *buf, int len);
+__GURU__ mrbc_value mrbc_string_new(const char *src);
 __GURU__ void       mrbc_string_delete(mrbc_value *str);
 __GURU__ void       mrbc_string_clear_vm_id(mrbc_value *str);
 __GURU__ mrbc_value mrbc_string_dup(mrbc_value *s1);

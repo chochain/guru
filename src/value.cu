@@ -194,27 +194,27 @@ __GURU__ mrbc_float guru_atof(const char *s)
 
 __GURU__ void guru_memcpy(uint8_t *d, const uint8_t *s, size_t sz)
 {
-    for (int i=0; i<sz; i++, *d++ = *s++);
+    for (int i=0; s && d && i<sz; i++, *d++ = *s++);
 }
 
 __GURU__ void guru_memset(uint8_t *d, const uint8_t v,  size_t sz)
 {
-    for (int i=0; i<sz; i++, *d++ = v);
+    for (int i=0; d && i<sz; i++, *d++ = v);
 }
 
 __GURU__ int guru_memcmp(const uint8_t *d, const uint8_t *s, size_t sz)
 {
-	int i;
-    for (i=0; i<sz && *d++==*s++; i++);
+	int i = 0;
+    for (; s && d && i<sz && *d++==*s++; i++);
 
     return i<sz;
 }
 
 __GURU__ size_t guru_strlen(const char *str)
 {
-    int i=0;
-    while (str[i++] != '\0');
-    return (size_t)i;
+	int i = 0;
+	for (i=0; str && str[i]!='\0'; i++);
+    return i;
 }
 
 __GURU__ void  guru_strcpy(const char *s1, const char *s2)
@@ -229,7 +229,7 @@ __GURU__ int  guru_strcmp(const char *s1, const char *s2)
 
 __GURU__ char   *guru_strchr(const char *s, const char c)
 {
-    while (*s!='\0' && *s!=c) s++;
+    while (s && *s!='\0' && *s!=c) s++;
 
     return (char *)((*s==c) ? &s : NULL);
 }

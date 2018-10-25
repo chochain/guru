@@ -398,15 +398,15 @@ char *guru_sprintf(const char *fstr, ...)
 __GURU__
 char *guru_vprintf(const char *fstr, mrbc_value v[], int argc)		// << from c_string.cu
 {
-    int i   = 1;
-    int ret = 1;
+    int i   = 0;
+    int ret = 0;
     mrbc_printf pf;
 	char buf[BUF_STEP_SIZE];
 
     _mrbc_printf_init(&pf, buf, BUF_STEP_SIZE, fstr);
 
     while (ret==0 && _mrbc_printf_next(&pf)) {
-        if (++i > argc) {						// starting from argc=2
+        if (i > argc) {
         	console_str("ArgumentError\n");
         	return NULL;
         }
@@ -467,6 +467,7 @@ char *guru_vprintf(const char *fstr, mrbc_value v[], int argc)		// << from c_str
 #endif
         default: break;
         }
+        i++;
     }
     _mrbc_printf_end(&pf);
 

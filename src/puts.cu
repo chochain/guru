@@ -20,7 +20,7 @@
 #include "class.h"
 
 #include "console.h"
-#include "opcode.h"
+#include "puts.h"
 
 //================================================================
 /*! print - sub function

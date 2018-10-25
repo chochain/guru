@@ -20,9 +20,11 @@ extern "C" {
 #endif
 
 #ifdef __GURU_CUDA__
-#define __GURU__ __device__
+#define __GURU__ 	__device__
+#define __INLINE__	__forceinline__
 #else
 #define __GURU__
+#define __INLINE__ 	inline
 #endif
 
 #define MAX_BUFFER_SIZE 4096		// 4K

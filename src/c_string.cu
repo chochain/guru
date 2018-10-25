@@ -51,38 +51,32 @@ int _is_space(int ch)
   @return 	string object
 */
 __GURU__
-mrbc_value mrbc_string_new(const void *src, int len)
+mrbc_value _mrbc_string_new(const char *src, int len)
 {
     mrbc_value value = {.tt = MRBC_TT_STRING};
     /*
       Allocate handle and string buffer.
     */
-    mrbc_string *h;
-    h = (mrbc_string *)mrbc_alloc(sizeof(mrbc_string));
+    mrbc_string *h = (mrbc_string *)mrbc_alloc(sizeof(mrbc_string));
     if (!h) return value;		// ENOMEM
 
-    uint8_t *str = (uint8_t *)mrbc_alloc(len+1);
-    if (!str) {				// ENOMEM
+    volatile uint8_t *str = (volatile uint8_t *)mrbc_alloc(len);
+    if (!str) {					// ENOMEM
         mrbc_free(h);
         return value;
     }
 
-    h->ref_count = 1;
-    h->tt = MRBC_TT_STRING;	// TODO: for DEBUG
+    h->refc = 1;
+    h->tt   = MRBC_TT_STRING;	// TODO: for DEBUG
     h->size = len;
-    h->data = str;
+    h->data = (uint8_t *)str;
 
-    /*
-      Copy a source string.
-    */
-    if (src==NULL) {
-        str[0] = '\0';
-    } else {
-        MEMCPY(str, (uint8_t *)src, len);
-        str[len] = '\0';
-    }
+    // deep copy source string
+    if (src==NULL) 	str[0] = '\0';
+    else 			MEMCPY((uint8_t *)str, (uint8_t *)src, len+1);		// plus '\0'
 
     value.str = h;
+
     return value;
 }
 
@@ -94,37 +88,9 @@ mrbc_value mrbc_string_new(const void *src, int len)
   @return 	string object
 */
 __GURU__
-mrbc_value mrbc_string_new_cstr(const char *src)
+mrbc_value mrbc_string_new(const char *src)
 {
-    return mrbc_string_new(src, (src ? STRLEN(src) : 0));
-}
-
-//================================================================
-/*! constructor by allocated buffer
-
-  @param  vm	pointer to VM.
-  @param  buf	pointer to allocated buffer
-  @param  len	length
-  @return 	string object
-*/
-__GURU__
-mrbc_value mrbc_string_new_alloc(void *buf, int len)
-{
-    mrbc_value value = {.tt = MRBC_TT_STRING};
-    /*
-      Allocate handle
-    */
-    mrbc_string *h;
-    h = (mrbc_string *)mrbc_alloc(sizeof(mrbc_string));
-    if (!h) return value;		// ENOMEM
-
-    h->ref_count = 1;
-    h->tt     = MRBC_TT_STRING;	// TODO: for DEBUG
-    h->size   = len;
-    h->data   = (uint8_t *)buf;
-    value.str = h;
-
-    return value;
+    return _mrbc_string_new(src, STRLEN(src));
 }
 
 //================================================================
@@ -150,12 +116,12 @@ void mrbc_string_delete(mrbc_value *v)
 __GURU__
 mrbc_value mrbc_string_dup(mrbc_value *v0)
 {
-    mrbc_string *h1 = v0->str;
+    mrbc_string *h0 = v0->str;
 
-    mrbc_value v1 = mrbc_string_new(NULL, h1->size);
+    mrbc_value v1 = _mrbc_string_new(NULL, h0->size);
     if (v1.str==NULL) return v1;		// ENOMEM
 
-    MEMCPY(v1.str->data, h1->data, h1->size + 1);
+    MEMCPY(v1.str->data, h0->data, h0->size + 1);
 
     return v1;
 }
@@ -174,11 +140,12 @@ mrbc_value mrbc_string_add(const mrbc_value *v1, const mrbc_value *v2)
     mrbc_string *h1 = v1->str;
     mrbc_string *h2 = v2->str;
 
-    mrbc_value v = mrbc_string_new(NULL, h1->size + h2->size);
-    if (v.str==NULL) return v;		// ENOMEM
+    mrbc_value  v  = _mrbc_string_new(NULL, h1->size + h2->size);
+    mrbc_string *s = v.str;
+    if (s==NULL) return v;		// ENOMEM
 
-    MEMCPY(v.str->data,            h1->data, h1->size);
-    MEMCPY(v.str->data + h1->size, h2->data, h2->size + 1);
+    MEMCPY(s->data,            h1->data, h1->size);
+    MEMCPY(s->data + h1->size, h2->data, h2->size + 1);	// include the '\0'
 
     return v;
 }
@@ -201,7 +168,8 @@ int mrbc_string_append(mrbc_value *v1, const mrbc_value *v2)
 
     if (v2->tt==MRBC_TT_STRING) {
         MEMCPY(str + len1, v2->str->data, len2 + 1);
-    } else if (v2->tt==MRBC_TT_FIXNUM) {
+    }
+    else if (v2->tt==MRBC_TT_FIXNUM) {
         str[len1]   = v2->i;
         str[len1+1] = '\0';
     }
@@ -349,7 +317,7 @@ void c_string_mul(mrbc_value v[], int argc)
         console_str("TypeError\n");	// raise?
         return;
     }
-    mrbc_value value = mrbc_string_new(NULL, VSTRLEN(&v[0]) * v[1].i);
+    mrbc_value value = _mrbc_string_new(NULL, VSTRLEN(&v[0]) * v[1].i);
     if (value.str==NULL) return;		// ENOMEM
 
     uint8_t *p = value.str->data;
@@ -382,9 +350,7 @@ void c_string_to_i(mrbc_value v[], int argc)
     int base = 10;
     if (argc) {
         base = v[1].i;
-        if (base < 2 || base > 36) {
-            return;	// raise ? ArgumentError
-        }
+        if (base < 2 || base > 36) return;	// raise ? ArgumentError
     }
     mrbc_int i = guru_atoi(VSTR(v), base);
 
@@ -443,7 +409,7 @@ void c_string_slice(mrbc_value v[], int argc)
         }
         if (ch < 0) goto RETURN_NIL;
 
-        mrbc_value value = mrbc_string_new(NULL, 1);
+        mrbc_value value = _mrbc_string_new(NULL, 1);
         if (!value.str) goto RETURN_NIL;		// ENOMEM
 
         value.str->data[0] = ch;
@@ -466,7 +432,7 @@ void c_string_slice(mrbc_value v[], int argc)
         // min(v2->i, (len-idx))
         if (rlen < 0) goto RETURN_NIL;
 
-        mrbc_value value = mrbc_string_new(v->str->data + idx, rlen);
+        mrbc_value value = _mrbc_string_new((const char *)v->str->data + idx, rlen);
         if (!value.str) goto RETURN_NIL;		// ENOMEM
 
         SET_RETURN(value);
@@ -614,7 +580,7 @@ __GURU__
 void c_string_inspect(mrbc_value v[], int argc)
 {
     char buf[10] = "\\x";
-    mrbc_value ret = mrbc_string_new_cstr("\"");
+    mrbc_value ret = mrbc_string_new("\"");
     const unsigned char *s = (const unsigned char *)VSTR(v);
   
     for (int i = 0; i < VSTRLEN(v); i++) {
@@ -669,10 +635,10 @@ void c_string_split(mrbc_value v[], int argc)
     }
 
     // check separator parameter.
-    mrb_value sep = (argc==0) ? mrbc_string_new_cstr(" ") : v[1];
+    mrb_value sep = (argc==0) ? mrbc_string_new(" ") : v[1];
     switch(sep.tt) {
     case MRBC_TT_NIL:
-        sep = mrbc_string_new_cstr(" ");
+        sep = mrbc_string_new(" ");
         break;
 
     case MRBC_TT_STRING:
@@ -729,7 +695,7 @@ void c_string_split(mrbc_value v[], int argc)
     SPLIT_ITEM:
         if (pos < 0) len = mrbc_string_size(&v[0]) - offset;
 
-        mrb_value v1 = mrbc_string_new(mrbc_string_cstr(&v[0]) + offset, len);
+        mrb_value v1 = _mrbc_string_new(mrbc_string_cstr(&v[0]) + offset, len);
         mrbc_array_push(&ret, &v1);
 
         if (pos < 0) break;
@@ -755,7 +721,7 @@ void c_string_split(mrbc_value v[], int argc)
     }
 DONE:
 #else
-    mrbc_value ret = mrbc_string_new_cstr("not supported");
+    mrbc_value ret = mrbc_string_new("not supported");
 #endif
     SET_RETURN(ret);
 }
@@ -768,7 +734,7 @@ void c_object_sprintf(mrbc_value v[], int argc)
 {
 	char *str = guru_vprintf("<#%s:%08x>", v, argc);
 
-    SET_RETURN(mrbc_string_new_cstr(str));
+    SET_RETURN(mrbc_string_new(str));
 }
 
 //================================================================

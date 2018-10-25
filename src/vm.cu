@@ -182,7 +182,7 @@ void mrbc_pop_callinfo(mrbc_vm *vm, mrbc_value *regs)
   @param  regs  vm->regs + vm->reg_top
   @retval 0  No error.
 */
-__GURU__
+__GURU__ __INLINE__
 int op_nop(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 {
     return 0;
@@ -1317,8 +1317,9 @@ int op_string(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     mrbc_object *pool_obj = vm->pc_irep->pool[rb];
 
     /* CAUTION: pool_obj->sym - 2. see IREP POOL structure. */
-    int len = _bin_to_uint16(pool_obj->sym - 2);
-    mrbc_value value = mrbc_string_new(pool_obj->sym, len);
+    int  len = _bin_to_uint16(pool_obj->sym - 2);
+    char *str= (char *)pool_obj->sym;	// 20181025
+    mrbc_value value = mrbc_string_new(str);
     if (value.str==NULL) return -1;		// ENOMEM
 
     mrbc_release(&regs[ra]);
@@ -1854,9 +1855,12 @@ int guru_vm_run(guru_ses *ses)
 {
 	int sz;
 	cudaDeviceGetLimit((size_t *)&sz, cudaLimitStackSize);
-	printf("defaultStackSize %d => %d\n", sz, sz*4);
+	printf("defaultStackSize %d =>", sz);
 
 	cudaDeviceSetLimit(cudaLimitStackSize, (size_t)sz*4);
+	cudaDeviceGetLimit((size_t *)&sz, cudaLimitStackSize);
+	printf("%d\n", sz);
+
 	_run_vm<<<1,1>>>((mrbc_vm *)ses->vm);
 	cudaDeviceSynchronize();
 

@@ -186,7 +186,7 @@ __GURU__ const char * symid2name(mrbc_sym sym_id)
 
 #if MRBC_USE_STRING
 // from c_string.cu
-extern "C" __GURU__ mrbc_value mrbc_string_new_cstr(const char *src);
+extern "C" __GURU__ mrbc_value mrbc_string_new(const char *src);
 extern "C" __GURU__ int        mrbc_string_append_cstr(mrbc_value *s1, const char *s2);
 
 //================================================================
@@ -196,7 +196,7 @@ __GURU__
 void c_inspect(mrbc_value v[], int argc)
 {
     const char *s = symid2name(v[0].i);
-    v[0] = mrbc_string_new_cstr(":");
+    v[0] = mrbc_string_new(":");
     mrbc_string_append_cstr(&v[0], s);
 }
 
@@ -207,7 +207,7 @@ void c_inspect(mrbc_value v[], int argc)
 __GURU__
 void c_to_s(mrbc_value v[], int argc)
 {
-    v[0] = mrbc_string_new_cstr(symid2name(v[0].i));
+    v[0] = mrbc_string_new(symid2name(v[0].i));
 }
 #endif
 
