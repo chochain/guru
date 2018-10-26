@@ -20,9 +20,9 @@
 #define MAX_VM_COUNT 1
 #endif
 
-/* maximum size of registers */
+/* maximum size of registers, which determine how deep call stack can go */
 #ifndef MAX_REGS_SIZE
-#define MAX_REGS_SIZE 16
+#define MAX_REGS_SIZE 100
 #endif
 
 /* maximum size of callinfo (callstack) */

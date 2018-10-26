@@ -71,8 +71,11 @@ int session_init(guru_ses *ses, const char *rite_fname)
     guru_console_init<<<1,1>>>(res, MAX_BUFFER_SIZE);			// initialize output buffer
     guru_memory_init<<<1,1>>>(mem, BLOCK_MEMORY_SIZE);			// setup memory management
 	guru_static_init<<<1,1>>>();								// setup static objects
-	dump_alloc_stat();
 
+#ifdef MRBC_DEBUG
+	printf("guru session initialized...\n");
+	dump_alloc_stat();
+#endif
 	return 0;
 }
 
@@ -86,7 +89,12 @@ int session_start(guru_ses *ses)
 	dump_alloc_stat();
 	guru_vm_run(ses);
 
-	guru_print(ses->res);
+	guru_print(ses->res);		// dump output buffer
+
+#ifdef MRBC_DEBUG
+	printf("guru_session completed\n");
+	dump_alloc_stat();
+#endif
 
 	return 0;
 }

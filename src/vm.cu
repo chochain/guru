@@ -1312,12 +1312,14 @@ int op_string(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 #if MRBC_USE_STRING
     int ra = GETARG_A(code);
     int rb = GETARG_Bx(code);
-    mrbc_object *pool_obj = vm->pc_irep->pool[rb];
+
+    mrbc_object *obj = vm->pc_irep->pool[rb];
 
     /* CAUTION: pool_obj->sym - 2. see IREP POOL structure. */
-    int  len = _bin_to_uint16(pool_obj->sym - 2);
-    char *str= (char *)pool_obj->sym;	// 20181025
+    int         len = _bin_to_uint16(obj->sym - 2);
+    const char *str = (const char *)obj->sym;			// 20181025
     mrbc_value value = mrbc_string_new(str);
+
     if (value.str==NULL) return -1;		// ENOMEM
 
     mrbc_release(&regs[ra]);
@@ -1701,7 +1703,9 @@ void _mrbc_vm_begin(mrbc_vm *vm)
 __GURU__
 void _mrbc_vm_end(mrbc_vm *vm)
 {
+#ifndef MRBC_DEBUG
     mrbc_free_all();
+#endif
 }
 
 //================================================================
@@ -1719,7 +1723,7 @@ int _mrbc_vm_exec(mrbc_vm *vm)
     uint32_t code = 0;
     mrbc_value *regs;
 
-    console_str("vm*start...\n");
+    console_str("entering vm...\n");
     do {
         code   = _bin_to_uint32(vm->pc_irep->iseq + vm->pc * 4);	// get next bytecode
         opcode = GET_OPCODE(code);
@@ -1794,7 +1798,7 @@ int _mrbc_vm_exec(mrbc_vm *vm)
         }
     } while (vm->run);
 
-    console_str("vm*done!\n");
+    console_str("exiting vm...\n");
     return ret;
 }
 
@@ -1843,7 +1847,7 @@ int guru_vm_init(guru_ses *ses)
 	cudaDeviceSynchronize();
 
 #ifdef MRBC_DEBUG
-	printf("guru loader:\n");
+	printf("guru bytecode loaded:\n");
 	dump_irep(vm->irep);
 #endif
 	ses->vm = (uint8_t *)vm;
