@@ -232,7 +232,7 @@ void mrbc_dec_ref_counter(mrbc_value *v)
 {
     switch(v->tt){
     case MRBC_TT_OBJECT:
-    case MRBC_TT_PROC:
+//    case MRBC_TT_PROC:		// 20181026: need to double check the ref count
     case MRBC_TT_ARRAY:
     case MRBC_TT_STRING:
     case MRBC_TT_RANGE:
