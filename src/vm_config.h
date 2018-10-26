@@ -61,7 +61,7 @@
 /* 1: USE */
 
 /* USE String. Support String class */
-#define MRBC_USE_FLOAT  1
+#define MRBC_USE_FLOAT  0
 #define MRBC_USE_STRING 1
 #define MRBC_USE_MATH   0
 #define MRBC_USE_ARRAY  0

@@ -42,7 +42,7 @@ int mrbc_print_sub(mrbc_value *v)
 #if MRBC_USE_FLOAT
     case MRBC_TT_FLOAT:  console_float(v->f);						break;
 #endif
-    case MRBC_TT_SYMBOL: console_str(VSYM(v)); 					break;
+    case MRBC_TT_SYMBOL: console_str(VSYM(v)); 						break;
     case MRBC_TT_CLASS:  console_str(symid2name(v->cls->sym_id));   break;
     case MRBC_TT_OBJECT:
     	console_str("#<");
@@ -138,7 +138,6 @@ int mrbc_p_sub(mrbc_value *v)
         console_printf(s, fmt);
     } break;
 
-#if MRBC_USE_STRING
     case MRBC_TT_STRING:{
         console_char('"');
         const char *s = VSTR(v);
@@ -152,7 +151,6 @@ int mrbc_p_sub(mrbc_value *v)
         }
         console_char('"');
     } break;
-#endif
 #if MRBC_USE_ARRAY
     case MRBC_TT_RANGE:{
         mrbc_value v1 = mrbc_range_first(v);

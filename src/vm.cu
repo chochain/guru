@@ -37,6 +37,17 @@
 #endif
 
 //================================================================
+/*!@brief
+
+ */
+__GURU__
+void _no_support(const char *msg)
+{
+	console_str(msg);
+    console_str(" not supported!\n");
+}
+
+//================================================================
 /*! get sym[n] from symbol table in irep
 
   @param  p	Pointer to IREP SYMS section.
@@ -44,7 +55,7 @@
   @return	symbol name string
 */
 __GURU__
-const char * mrbc_get_symbol(const uint8_t *p, int n)
+const char *_get_symbol(const uint8_t *p, int n)
 {
     int cnt = _bin_to_uint32(p);			p += sizeof(uint32_t);
     if (n >= cnt) return NULL;
@@ -56,10 +67,10 @@ const char * mrbc_get_symbol(const uint8_t *p, int n)
 }
 
 __GURU__
-mrbc_sym mrbc_get_symid(const uint8_t *p, int n)
+mrbc_sym _get_symid(const uint8_t *p, int n)
 {
-	const char *sym_name = mrbc_get_symbol(p, n);
-    return name2symid(sym_name);
+	const char *name = _get_symbol(p, n);
+    return name2symid(name);
 }
 
 //================================================================
@@ -69,23 +80,13 @@ mrbc_sym mrbc_get_symid(const uint8_t *p, int n)
   @return	string
 */
 __GURU__
-const char *mrbc_get_callee_name(mrbc_vm *vm)
+const char *mrbc_get_callee(mrbc_vm *vm)
 {
     uint32_t iseq = _bin_to_uint32(vm->pc_irep->iseq + (vm->pc - 1) * 4);
     
     int rb = GETARG_B(iseq);  // index of method sym
 
-    return mrbc_get_symbol(vm->pc_irep->sym, rb);
-}
-
-//================================================================
-/*!@brief
-
- */
-__GURU__
-void not_supported(void)
-{
-    console_str("Not supported!\n");
+    return _get_symbol(vm->pc_irep->sym, rb);
 }
 
 // Call a method
@@ -278,7 +279,7 @@ int op_loadsym(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     int rb = GETARG_Bx(code);
 
     regs[ra].tt = MRBC_TT_SYMBOL;
-    regs[ra].i = mrbc_get_symid(vm->pc_irep->sym, rb);
+    regs[ra].i = _get_symid(vm->pc_irep->sym, rb);
 
     return 0;
 }
@@ -388,7 +389,7 @@ int op_getglobal(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 
     mrbc_release(&regs[ra]);
 
-    regs[ra] = global_object_get(mrbc_get_symid(vm->pc_irep->sym, rb));
+    regs[ra] = global_object_get(_get_symid(vm->pc_irep->sym, rb));
 
     return 0;
 }
@@ -410,7 +411,7 @@ int op_setglobal(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     int ra = GETARG_A(code);
     int rb = GETARG_Bx(code);
 
-    mrbc_sym sym_id = mrbc_get_symid(vm->pc_irep->sym, rb);
+    mrbc_sym sym_id = _get_symid(vm->pc_irep->sym, rb);
 
     global_object_add(sym_id, regs[ra]);
 
@@ -434,8 +435,8 @@ int op_getiv(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     int ra = GETARG_A(code);
     int rb = GETARG_Bx(code);
 
-    const char *sym_name = mrbc_get_symbol(vm->pc_irep->sym, rb);
-    mrbc_sym sym_id = name2symid(sym_name+1);	// skip '@'
+    const char *name  = _get_symbol(vm->pc_irep->sym, rb);
+    mrbc_sym   sym_id = name2symid(name+1);	// skip '@'
 
     mrbc_value val = mrbc_instance_getiv(&regs[0], sym_id);
 
@@ -462,8 +463,8 @@ int op_setiv(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     int ra = GETARG_A(code);
     int rb = GETARG_Bx(code);
 
-    const char *sym_name = mrbc_get_symbol(vm->pc_irep->sym, rb);
-    mrbc_sym sym_id = name2symid(sym_name+1);	// skip '@'
+    const char *name  = _get_symbol(vm->pc_irep->sym, rb);
+    mrbc_sym   sym_id = name2symid(name+1);	// skip '@'
 
     mrbc_instance_setiv(&regs[0], sym_id, &regs[ra]);
 
@@ -488,7 +489,7 @@ int op_getconst(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     int rb = GETARG_Bx(code);
 
     mrbc_release(&regs[ra]);
-    regs[ra] = const_object_get(mrbc_get_symid(vm->pc_irep->sym, rb));
+    regs[ra] = const_object_get(_get_symid(vm->pc_irep->sym, rb));
 
     return 0;
 }
@@ -509,7 +510,7 @@ int op_setconst(mrbc_vm *vm, uint32_t code, mrbc_value *regs) {
     int ra = GETARG_A(code);
     int rb = GETARG_Bx(code);
 
-    const_object_add(mrbc_get_symid(vm->pc_irep->sym, rb), &regs[ra]);
+    const_object_add(_get_symid(vm->pc_irep->sym, rb), &regs[ra]);
 
     return 0;
 }
@@ -685,15 +686,15 @@ int op_send(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
         break;
     }
 
-	mrbc_sym  sym_id = mrbc_get_symid(vm->pc_irep->sym, rb);
+	mrbc_sym  sym_id = _get_symid(vm->pc_irep->sym, rb);
     mrbc_proc *m 	 = (mrbc_proc *)mrbc_get_class_method(recv, sym_id);
 #ifdef MRBC_DEBUG
-	const char *sym_name = mrbc_get_symbol(vm->pc_irep->sym, rb);
+	const char *name = _get_symbol(vm->pc_irep->sym, rb);
 #endif
 
     if (m==0) {
     	console_str("func?:");
-    	console_str(sym_name);
+    	console_str(name);
     	console_str("\n");
     	return 0;		// method not found
     }
@@ -895,9 +896,9 @@ int op_addi(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
         regs[ra].f += GETARG_C(code);
         return 0;
     }
+#else
+    _no_support("float");
 #endif
-
-    not_supported();
     return 0;
 }
 
@@ -973,9 +974,10 @@ int op_subi(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
         regs[ra].f -= GETARG_C(code);
         return 0;
     }
+#else
+    _no_support("float");
 #endif
 
-    not_supported();
     return 0;
 }
 
@@ -1294,7 +1296,6 @@ DONE:
     return 0;
 }
 
-#if MRBC_USE_STRING
 //================================================================
 /*!@brief
   Create string object
@@ -1310,7 +1311,7 @@ __GURU__
 int op_string(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 {
 #if MRBC_USE_STRING
-    int ra = GETARG_A(code);
+	int ra = GETARG_A(code);
     int rb = GETARG_Bx(code);
 
     mrbc_object *obj = vm->pc_irep->pool[rb];
@@ -1326,7 +1327,7 @@ int op_string(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     regs[ra] = value;
 
 #else
-    not_supported();
+    _not_support("string");
 #endif
     return 0;
 }
@@ -1363,13 +1364,11 @@ int op_strcat(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     mrbc_value v = mrbc_string_add(&regs[ra], &regs[rb]);
     mrbc_release(&regs[ra]);
     regs[ra] = v;
-
 #else
-    not_supported();
+    _not_support("string");
 #endif
     return 0;
 }
-#endif
 
 //================================================================
 /*!@brief
@@ -1382,10 +1381,10 @@ int op_strcat(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
   @param  regs  vm->regs + vm->reg_top
   @retval 0  No error.
 */
-#if MRBC_USE_ARRAY
 __GURU__
 int op_array(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 {
+#if MRBC_USE_ARRAY
     int ra = GETARG_A(code);
     int rb = GETARG_B(code);
     int rc = GETARG_C(code);
@@ -1400,6 +1399,9 @@ int op_array(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     mrbc_release(&regs[ra]);
     regs[ra] = value;
 
+#else
+    console_str("array not supported");
+#endif
     return 0;
 }
 
@@ -1417,6 +1419,7 @@ int op_array(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 __GURU__
 int op_hash(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 {
+#if MRBC_USE_ARRAY
     int ra = GETARG_A(code);
     int rb = GETARG_B(code);
     int rc = GETARG_C(code);
@@ -1431,7 +1434,9 @@ int op_hash(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 
     mrbc_release(&regs[ra]);
     regs[ra] = value;
-
+#else
+    console_str("hash not supported");
+#endif
     return 0;
 }
 
@@ -1449,6 +1454,7 @@ int op_hash(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 __GURU__
 int op_range(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 {
+#if MRBC_USE_ARRAY
     int ra = GETARG_A(code);
     int rb = GETARG_B(code);
     int rc = GETARG_C(code);
@@ -1461,10 +1467,11 @@ int op_range(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 
     mrbc_release(&regs[ra]);
     regs[ra] = value;
-
+#else
+    console_str("range not supported");
+#endif
     return 0;
 }
-#endif
 
 //================================================================
 /*!@brief
@@ -1517,9 +1524,9 @@ int op_class(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 
     mrbc_class *super = (regs[ra+1].tt==MRBC_TT_CLASS) ? regs[ra+1].cls : mrbc_class_object;
 
-    mrbc_irep *cur_irep  = vm->pc_irep;
-    const char *sym_name = mrbc_get_symbol(cur_irep->sym, rb);
-    mrbc_class *cls 	 = (mrbc_class *)mrbc_define_class(sym_name, super);
+    mrbc_irep  *cur_irep = vm->pc_irep;
+    const char *name     = _get_symbol(cur_irep->sym, rb);
+    mrbc_class *cls 	 = (mrbc_class *)mrbc_define_class(name, super);
 
     mrbc_value ret = {.tt = MRBC_TT_CLASS};
     ret.cls = cls;
@@ -1587,7 +1594,7 @@ int op_method(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     mrbc_class 	*cls 	= regs[ra].cls;
     mrbc_proc 	*proc   = regs[ra+1].proc;
     mrbc_irep  	*irep 	= vm->pc_irep;
-    mrbc_sym   	sym_id  = mrbc_get_symid(irep->sym, rb);
+    mrbc_sym   	sym_id  = _get_symid(irep->sym, rb);
 
     // check same name method
     mrbc_proc 	*p  = cls->procs;
@@ -1610,7 +1617,7 @@ int op_method(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     proc->flag   &= ~GURU_PROC_C_FUNC;
     proc->sym_id = sym_id;
 #ifdef MRBC_DEBUG
-    proc->name  = mrbc_get_symbol(irep->sym, rb);
+    proc->name  = _get_symbol(irep->sym, rb);
 #endif
     proc->next   = cls->procs;
     cls->procs   = proc;
@@ -1771,11 +1778,11 @@ int _mrbc_vm_exec(mrbc_vm *vm)
         case OP_LE:         ret = op_le        (vm, code, regs); break;
         case OP_GT:         ret = op_gt        (vm, code, regs); break;
         case OP_GE:         ret = op_ge        (vm, code, regs); break;
-#if MRBC_USE_STRING
+
         case OP_STRING:     ret = op_string    (vm, code, regs); break;
         case OP_STRCAT:     ret = op_strcat    (vm, code, regs); break;
-#endif
-#if MRBC_USE_ARRAY      
+
+#if MRBC_USE_ARRAY
         case OP_ARRAY:      ret = op_array     (vm, code, regs); break;
         case OP_HASH:       ret = op_hash      (vm, code, regs); break;
         case OP_RANGE:      ret = op_range     (vm, code, regs); break;

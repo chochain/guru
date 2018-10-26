@@ -248,7 +248,7 @@ void c_object_new(mrbc_value v[], int argc)
 __GURU__
 void c_object_getiv(mrbc_value v[], int argc)
 {
-    const char *name = mrbc_get_callee_name(NULL);
+    const char *name = mrbc_get_callee(NULL);
 
     mrbc_sym sym_id = name2symid(name);
     mrbc_value ret = mrbc_instance_getiv(&v[0], sym_id);
@@ -262,7 +262,7 @@ void c_object_getiv(mrbc_value v[], int argc)
 __GURU__
 void c_object_setiv(mrbc_value v[], int argc)
 {
-    const char *name = mrbc_get_callee_name(NULL);
+    const char *name = mrbc_get_callee(NULL);
 
     char *namebuf = (char *)mrbc_alloc(STRLEN(name));
     

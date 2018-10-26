@@ -76,10 +76,7 @@ typedef struct VM {
     volatile int8_t run;
 } mrbc_vm;
 
-__GURU__ const char *mrbc_get_symbol(const uint8_t *p, int n);
-__GURU__ const char *mrbc_get_callee_name(mrbc_vm *vm);
-__GURU__ mrbc_sym 	mrbc_get_symid(const uint8_t *p, int n);
-
+__GURU__ const char *mrbc_get_callee(mrbc_vm *vm);
 __GURU__ void       mrbc_funcall(mrbc_vm *vm, const char *name, mrbc_value *v, int argc);
 __GURU__ void 		mrbc_push_callinfo(mrbc_vm *vm, int argc);
 __GURU__ void 		mrbc_pop_callinfo(mrbc_vm *vm, mrbc_value *regs);
