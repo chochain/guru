@@ -233,8 +233,8 @@ int op_loadl(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 
     // regs[ra] = vm->pc_irep->pool[rb];
 
-    mrbc_object *pool_obj = vm->pc_irep->pool[rb];
-    regs[ra] = *pool_obj;
+    mrbc_object *obj = vm->pc_irep->pool[rb];
+    regs[ra] = *obj;
 
     return 0;
 }
@@ -567,6 +567,7 @@ int op_setupvar(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     int ra = GETARG_A(code);
     int rb = GETARG_B(code);
     int rc = GETARG_C(code);   // UP
+
     mrbc_callinfo *ci = vm->calltop;
 
     // find callinfo
@@ -580,7 +581,8 @@ int op_setupvar(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 
     mrbc_release(&up_regs[rb]);
     mrbc_dup(&regs[ra]);
-    up_regs[rb] = regs[ra];
+
+    up_regs[rb] = regs[ra];    // update outer-scope vars
 
     return 0;
 }
@@ -1737,7 +1739,7 @@ int _mrbc_vm_exec(mrbc_vm *vm)
 
     console_str("entering vm...\n");
     do {
-        code   = _bin_to_uint32(vm->pc_irep->iseq + vm->pc * 4);	// get next bytecode
+        code   = _bin_to_uint32(vm->pc_irep->iseq + vm->pc * 4);	// next bytecode (see opcode.h)
         opcode = GET_OPCODE(code);
         regs   = vm->reg;
 
@@ -1783,10 +1785,10 @@ int _mrbc_vm_exec(mrbc_vm *vm)
         case OP_LE:         ret = op_le        (vm, code, regs); break;
         case OP_GT:         ret = op_gt        (vm, code, regs); break;
         case OP_GE:         ret = op_ge        (vm, code, regs); break;
-
+#if MRBC_USE_STRING
         case OP_STRING:     ret = op_string    (vm, code, regs); break;
         case OP_STRCAT:     ret = op_strcat    (vm, code, regs); break;
-
+#endif
 #if MRBC_USE_ARRAY
         case OP_ARRAY:      ret = op_array     (vm, code, regs); break;
         case OP_HASH:       ret = op_hash      (vm, code, regs); break;

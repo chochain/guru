@@ -25,16 +25,11 @@ typedef struct GLOBAL_OBJECT {
 __GURU__ int               global_end;
 __GURU__ mrbc_globalobject mrbc_global[MAX_GLOBAL_OBJECT_SIZE];
 
-//
-__GURU__ void  mrbc_init_global(void)
-{
-	global_end = 0;
-}
-
 /* search */
 /* linear search is not efficient! */
 /* TODO: Use binary search */
-__GURU__ int search_global_object(mrbc_sym sym_id, mrbc_globaltype gtype)
+__GURU__
+int _get_idx(mrbc_sym sym_id, mrbc_globaltype gtype)
 {
     for (int i=0 ; i<global_end ; i++) {
         mrbc_globalobject *obj = &mrbc_global[i];
@@ -43,67 +38,82 @@ __GURU__ int search_global_object(mrbc_sym sym_id, mrbc_globaltype gtype)
     return -1;
 }
 
+__GURU__
+mrbc_value _get_obj(mrbc_sym sym_id, mrbc_globaltype gtype)
+{
+    int index = _get_idx(sym_id, gtype);
+    if (index < 0) mrbc_nil_value();
+    
+    mrbc_dup(&mrbc_global[index].obj);
+    return mrbc_global[index].obj;
+}
+
+//
+__GURU__
+void  mrbc_init_global(void)
+{
+	global_end = 0;
+}
+
 /* add */
 /* TODO: Check reference count */
-__GURU__ void global_object_add(mrbc_sym sym_id, mrbc_value v)
+__GURU__
+void global_object_add(mrbc_sym sym_id, mrbc_value v)
 {
-    int index = search_global_object(sym_id, MRBC_GLOBAL_OBJECT);
+    int index = _get_idx(sym_id, MRBC_GLOBAL_OBJECT);
+
     if (index == -1) {
         index = global_end++;
         assert(index < MAX_GLOBAL_OBJECT_SIZE);	// maybe raise ex
-    } else {
+    }
+    else {
         mrbc_release(&(mrbc_global[index].obj));
     }
-
-    mrbc_global[index].gtype = MRBC_GLOBAL_OBJECT;
+    mrbc_global[index].gtype  = MRBC_GLOBAL_OBJECT;
     mrbc_global[index].sym_id = sym_id;
-    mrbc_global[index].obj = v;
+    mrbc_global[index].obj    = v;
+    
     mrbc_dup(&v);
 }
 
-/* get */
-__GURU__ mrbc_value global_object_get(mrbc_sym sym_id)
+__GURU__
+void const_object_add(mrbc_sym sym_id, mrbc_object *obj)
 {
-    int index = search_global_object(sym_id, MRBC_GLOBAL_OBJECT);
-    if (index >= 0) {
-        mrbc_dup(&mrbc_global[index].obj);
-        return mrbc_global[index].obj;
-    } else {
-        return mrbc_nil_value();
+    int index = _get_idx(sym_id, MRBC_CONST_OBJECT);
+
+    if (index == -1) {
+        index = global_end;
+        global_end++;
+        assert(index < MAX_GLOBAL_OBJECT_SIZE);	// maybe raise ex
     }
+    else {
+        // warning: already initialized constant.
+        mrbc_release(&(mrbc_global[index].obj));
+    }
+    mrbc_global[index].gtype  = MRBC_CONST_OBJECT;
+    mrbc_global[index].sym_id = sym_id;
+    mrbc_global[index].obj    = *obj;
+
+    mrbc_dup(obj);
+}
+
+/* get */
+__GURU__
+mrbc_value global_object_get(mrbc_sym sym_id)
+{
+    return _get_obj(sym_id, MRBC_GLOBAL_OBJECT);
 }
 
 /* add const */
 /* TODO: Check reference count */
 /* TODO: Integrate with global_add */
-__GURU__ void const_object_add(mrbc_sym sym_id, mrbc_object *obj)
-{
-    int index = search_global_object(sym_id, MRBC_CONST_OBJECT);
-    if (index == -1) {
-        index = global_end;
-        global_end++;
-        assert(index < MAX_GLOBAL_OBJECT_SIZE);	// maybe raise ex
-    } else {
-        // warning: already initialized constant.
-        mrbc_release(&(mrbc_global[index].obj));
-    }
-    mrbc_global[index].gtype = MRBC_CONST_OBJECT;
-    mrbc_global[index].sym_id = sym_id;
-    mrbc_global[index].obj = *obj;
-    mrbc_dup(obj);
-}
-
+__GURU__
 /* get const */
 /* TODO: Integrate with get_global_object */
-__GURU__ mrbc_object const_object_get(mrbc_sym sym_id)
+__GURU__
+mrbc_object const_object_get(mrbc_sym sym_id)
 {
-    int index = search_global_object(sym_id, MRBC_CONST_OBJECT);
-    if (index >= 0) {
-        mrbc_dup(&mrbc_global[index].obj);
-        return mrbc_global[index].obj;
-    } else {
-        return mrbc_nil_value();
-    }
+    return _get_obj(sym_id, MRBC_CONST_OBJECT);
 }
 
 

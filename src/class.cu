@@ -72,10 +72,10 @@ mrbc_class *mrbc_get_class_by_object(mrbc_object *obj)
 __GURU__
 mrbc_class *mrbc_get_class_by_name(const char *name)
 {
-    mrbc_sym sym_id = name2symid(name);
-    mrbc_object obj = const_object_get(sym_id);
+    mrbc_sym   sym_id = name2symid(name);
+    mrbc_value v      = const_object_get(sym_id);
 
-    return (obj.tt == MRBC_TT_CLASS) ? obj.cls : NULL;
+    return (v.tt == MRBC_TT_CLASS) ? v.cls : NULL;
 }
 
 //================================================================
