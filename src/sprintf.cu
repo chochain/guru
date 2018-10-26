@@ -260,7 +260,7 @@ int _mrbc_printf_int(mrbc_printf *pf, mrbc_int value, int base)
 
     // create string to local buffer
     char buf[64+2];				// int64 + terminate + 1
-    volatile char *p = buf + sizeof(buf) - 1;
+    char *p = buf + sizeof(buf) - 1;
     *p = '\0';
     do {
         int i = v % base;
@@ -354,12 +354,11 @@ PARSE_WIDTH:
   @param  fstr		format string.
 */
 __GURU__
-char *guru_sprintf(const char *fstr, ...)
+const char *guru_sprintf(char *buf, const char *fstr, ...)
 {
     va_list ap;
     va_start(ap, fstr);
 
-    char buf[BUF_STEP_SIZE];
     int ret = 0;
     mrbc_printf pf;
 
@@ -397,12 +396,11 @@ char *guru_sprintf(const char *fstr, ...)
 }
 
 __GURU__
-char *guru_vprintf(const char *fstr, mrbc_value v[], int argc)		// << from c_string.cu
+const char *guru_vprintf(char *buf, const char *fstr, mrbc_value v[], int argc)		// << from c_string.cu
 {
     int i   = 0;
     int ret = 0;
     mrbc_printf pf;
-	char buf[BUF_STEP_SIZE];
 
     _mrbc_printf_init(&pf, buf, BUF_STEP_SIZE, fstr);
 

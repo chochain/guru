@@ -186,8 +186,7 @@ void c_fixnum_chr(mrbc_value v[], int argc)
 {
     const char buf[2] = { GET_INT_ARG(0), '\0' };
 
-    mrbc_value value = mrbc_string_new(buf);
-    SET_RETURN(value);
+    SET_RETURN(mrbc_string_new(buf));
 }
 
 //================================================================
@@ -201,8 +200,9 @@ void c_fixnum_to_s(mrbc_value v[], int argc)
         base = GET_INT_ARG(1);
         if (base < 2 || base > 36) return;	// raise ? ArgumentError
     }
-    char *str = guru_vprintf("%d", v, 1);
-    SET_RETURN(mrbc_string_new(str));
+    char buf[64+2];
+    guru_vprintf(buf, "%d", v, 1);
+    SET_RETURN(mrbc_string_new(buf));
 }
 #endif
 
@@ -293,9 +293,10 @@ void c_float_to_i(mrbc_value v[], int argc)
 __GURU__
 void c_float_to_s(mrbc_value v[], int argc)
 {
-    char *str = guru_vprintf("%g", v, argc);
+	char buf[64+2];
+    guru_vprintf(buf, "%g", v, argc);
     
-    SET_RETURN(mrbc_string_new(str));
+    SET_RETURN(mrbc_string_new(buf));
 }
 #endif
 

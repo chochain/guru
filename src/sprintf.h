@@ -41,8 +41,8 @@ typedef struct RPrintf {
     const char 		*fstr;	        //!< format string. (e.g. "%d %03x")
 } mrbc_printf;
 
-__GURU__ char *guru_sprintf(const char *fstr, ...);
-__GURU__ char *guru_vprintf(const char *fstr, mrbc_value v[], int argc);
+__GURU__ const char *guru_sprintf(char *buf, const char *fstr, ...);
+__GURU__ const char *guru_vprintf(char *buf, const char *fstr, mrbc_value v[], int argc);
 
 #ifdef __cplusplus
 }

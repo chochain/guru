@@ -530,7 +530,7 @@ void *guru_malloc(size_t sz, int type)
     return mem;
 }
 
-void dump_alloc_stat()
+void dump_alloc_stat(void)
 {
 	int *v;
 	cudaMallocManaged(&v, 8*sizeof(int));
