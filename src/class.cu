@@ -11,7 +11,7 @@
 
   </pre>
 */
-
+#include <assert.h>
 #include <stdarg.h>
 
 #include "guru.h"
@@ -184,8 +184,8 @@ void mrbc_define_method(mrbc_class *cls, const char *name, mrbc_func_t cfunc)
 __GURU__
 void c_proc_call(mrbc_value v[], int argc)
 {
-    // push callinfo, but not release regs
-    mrbc_push_callinfo(NULL, argc);
+	// not suppose to come here
+	assert(1==0);		// taken care by vm#op_send
 }
 
 //================================================================

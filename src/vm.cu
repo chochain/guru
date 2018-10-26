@@ -700,9 +700,14 @@ int op_send(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     }
 
     if (m->flag & GURU_PROC_C_FUNC) {				// m is a C function
-        m->func(regs + ra, rc);
-
-        if ((void (*))m->func==(void (*))c_proc_call) return 0;
+        if ((mrbc_func_t)m->func==(mrbc_func_t)c_proc_call) {
+        	mrbc_push_callinfo(vm, rc);
+        	vm->pc      = 0;
+        	vm->pc_irep = regs[ra].proc->irep;		// switch into callee context
+        	vm->reg     = regs + ra;
+        	return 0;
+        }
+        else m->func(regs + ra, rc);
 
         int release_reg = ra+1;
         while (release_reg <= bidx) {
