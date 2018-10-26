@@ -26,24 +26,6 @@ extern "C" __GURU__ void mrbc_instance_delete(mrbc_value *v);		// instance.cu
 extern "C" __GURU__ void mrbc_free(void *ptr);						// alloc.cu
 
 //================================================================
-/*! get size
- */
-__GURU__
-int mrbc_string_size(const mrbc_value *v)
-{
-    return v->str->size;
-}
-
-//================================================================
-/*! get c-language string (char *)
- */
-__GURU__
-char * mrbc_string_cstr(const mrbc_value *v)
-{
-    return (char*)v->str->data;
-}
-
-//================================================================
 /*! compare
  */
 __GURU__
