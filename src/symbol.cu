@@ -150,11 +150,11 @@ mrbc_value mrbc_symbol_new(const char *str)
     }
 
     // create symbol object dynamically.
-    int           size = guru_strlen(str) + 1;
-    volatile char *buf = (volatile char *)mrbc_alloc(size);
+    int     size = guru_strlen(str) + 1;
+    uint8_t *buf = (uint8_t *)mrbc_alloc(size);
     if (buf==NULL) return v;		// ENOMEM raise?
 
-    MEMCPY((uint8_t *)buf, (uint8_t *)str, size);
+    MEMCPY(buf, (uint8_t *)str, size);
     v.i = _add_index((const char *)buf);
 
     return v;
