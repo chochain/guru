@@ -13,6 +13,9 @@
 #ifndef MRBC_SRC_OPCODE_H_
 #define MRBC_SRC_OPCODE_H_
 
+#include "guru.h"
+#include "vm.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -160,6 +163,8 @@ enum OPCODE {
     OP_RSVD4,     /*         reserved instruction #4                         */
     OP_ABORT     = 0x50,  // using OP_ABORT inside mruby/c only
 };
+
+__GURU__ int mrbc_op(mrbc_vm *vm);
 
 #ifdef __cplusplus
 }

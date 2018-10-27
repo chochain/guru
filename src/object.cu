@@ -212,34 +212,27 @@ void c_object_class(mrbc_value v[], int argc)
 __GURU__
 void c_object_new(mrbc_value v[], int argc)
 {
-    mrbc_value new_obj = mrbc_instance_new(v->cls, 0);
+	assert(1==0);			// taken cared in vm
+}
 
-    char sym[]="______initialize";
-    _uint32_to_bin(1, (uint8_t*)&sym[0]);
-    _uint16_to_bin(10,(uint8_t*)&sym[4]);
+//================================================================
+/*! get callee name
 
-    uint32_t code[2] = {
-        (uint32_t)(MKOPCODE(OP_SEND) | MKARG_A(0) | MKARG_B(0) | MKARG_C(argc)),
-        (uint32_t)(MKOPCODE(OP_ABORT))
-    };
-    mrbc_irep irep = {		// where does this go?
-        0,     				// nreg
-        0,     				// nlv
-        0,     				// plen
-        0,     				// rlen
-        0,					// slen
-        2,     				// ilen
-        (uint8_t *)code,   	// iseq
-        (uint8_t *)sym,  	// ptr_to_sym
-        NULL,  				// object pool
-        NULL,  				// irep_list
-    };
+  @param  vm	Pointer to VM
+  @return	string
+*/
+__GURU__
+const char *_get_callee(mrbc_vm *vm)
+{
+#if 0
+    uint32_t iseq = _bin_to_uint32(vm->pc_irep->iseq + (vm->pc - 1) * 4);
 
-    mrbc_release(&v[0]);
-    v[0] = new_obj;
-    mrbc_dup(&new_obj);
+    int rb = GETARG_B(iseq);  // index of method sym
 
-    SET_RETURN(new_obj);
+    return _get_symbol(vm->pc_irep->sym, rb);
+#else
+    return "no support";
+#endif
 }
 
 //================================================================
@@ -248,7 +241,7 @@ void c_object_new(mrbc_value v[], int argc)
 __GURU__
 void c_object_getiv(mrbc_value v[], int argc)
 {
-    const char *name = mrbc_get_callee(NULL);
+    const char *name = _get_callee(NULL);		// TODO:
 
     mrbc_sym sym_id = name2symid(name);
     mrbc_value ret = mrbc_instance_getiv(&v[0], sym_id);
@@ -262,7 +255,7 @@ void c_object_getiv(mrbc_value v[], int argc)
 __GURU__
 void c_object_setiv(mrbc_value v[], int argc)
 {
-    const char *name = mrbc_get_callee(NULL);
+    const char *name = _get_callee(NULL);		// TODO:
 
     char *namebuf = (char *)mrbc_alloc(STRLEN(name));
     

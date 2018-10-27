@@ -12,10 +12,10 @@ INCDIRS=-I/usr/local/cuda/include -I./src
 
 SRC =   main.c 
 GURU= 	alloc.cu guru.cu static.cu value.cu global.cu \
-		keyvalue.cu instance.cu symbol.cu \
-		console.cu sprintf.cu puts.cu \
-		load.cu vm.cu class.cu object.cu \
-	 	object.cu c_fixnum.cu c_string.cu
+		keyvalue.cu instance.cu symbol.cu class.cu\
+		console.cu sprintf.cu puts.cu load.cu \
+		vm.cu opcode.cu object.cu \
+	 	c_fixnum.cu c_string.cu
 CUDA=   cuda.cu
 
 LIB = 	libguru.a
@@ -56,6 +56,8 @@ instance.o: instance.cu vm_config.h guru.h alloc.h value.h keyvalue.h instance.h
 
 symbol.o: symbol.cu 	vm_config.h guru.h alloc.h value.h symbol.h
 
+class.o: class.cu	    vm_config.h guru.h value.h alloc.h static.h symbol.h global.h
+
 console.o: console.cu 	vm_config.h console.h
 
 sprintf.o: sprintf.cu   vm_config.h guru.h alloc.h value.h symbol.h console.h sprintf.h
@@ -66,11 +68,12 @@ puts.o: puts.cu			vm_config.h guru.h alloc.h value.h symbol.h static.h global.h 
 load.o: load.cu         vm_config.h guru.h alloc.h instance.h vm.h errorcode.h load.h \
 						vm.h
 
-vm.o: vm.cu             vm_config.h guru.h alloc.h value.h static.h keyvalue.h symbol.h \
-						instance.h global.h console.h class.h opcode.h vm.h load.h
+opcode.o: opcode.cu     vm_config.h guru.h alloc.h value.h static.h keyvalue.h \
+						symbol.h instance.h global.h class.h console.h \
+						opcode.h vm.h
 
-class.o: class.cu	    vm_config.h guru.h value.h alloc.h static.h symbol.h global.h \
-						vm.h
+vm.o: vm.cu             vm_config.h guru.h alloc.h value.h static.h keyvalue.h \
+						opcode.h vm.h load.h
 
 object.o: object.cu	    vm_config.h guru.h value.h alloc.h static.h symbol.h instance.h \
 						global.h opcode.h vm.h class.h object.h \
