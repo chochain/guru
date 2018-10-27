@@ -20,6 +20,9 @@
 extern "C" {
 #endif
 
+__GURU__ mrbc_value mrbc_send(mrbc_value *v, int reg_ofs,
+                              mrbc_value *recv, const char *method, int argc, ...);
+
 __GURU__ void mrbc_init_class(void);
 
 #ifdef __cplusplus

@@ -63,7 +63,7 @@
   }
 */
 __GURU__
-mrbc_value _mrbc_send(mrbc_value *v, int reg_ofs,
+mrbc_value mrbc_send(mrbc_value *v, int reg_ofs,
                       mrbc_value *recv, const char *method, int argc, ...)
 {
     mrbc_sym  sym_id = name2symid(method);
@@ -188,7 +188,7 @@ __GURU__
 void c_object_equal3(mrbc_value v[], int argc)
 {
     if (v[0].tt == MRBC_TT_CLASS) {
-        mrbc_value result = _mrbc_send(v, argc, &v[1], "kind_of?", 1, &v[0]);
+        mrbc_value result = mrbc_send(v, argc, &v[1], "kind_of?", 1, &v[0]);
         SET_RETURN(result);
     }
     else {
@@ -506,6 +506,7 @@ void mrbc_init_class_true()
 #endif
 }
 
+__GURU__ void c_all_symbols(mrbc_value v[], int argc);		// from symbols
 //================================================================
 /*! initialize
  */
@@ -514,7 +515,7 @@ __GURU__ void mrbc_init_class_symbol()  // << from symbol.cu
     mrbc_class *c = mrbc_class_symbol = mrbc_define_class("Symbol", mrbc_class_object);
 
 #if MRBC_USE_ARRAY
-    mrbc_define_method(o, "all_symbols", 	c_all_symbols);
+    mrbc_define_method(c, "all_symbols", 	c_all_symbols);
 #endif
 #if MRBC_USE_STRING
     mrbc_define_method(c, "inspect", 		c_inspect);
@@ -549,8 +550,8 @@ void mrbc_init_class(void)
     mrbc_init_class_string();
 #endif
 #if MRBC_USE_ARRAY
-    mrbc_init_class_array(0);
-    mrbc_init_class_range(0);
-    mrbc_init_class_hash(0);
+    mrbc_init_class_array();
+    mrbc_init_class_range();
+    mrbc_init_class_hash();
 #endif
 }

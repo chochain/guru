@@ -22,6 +22,12 @@
 #include "console.h"
 #include "puts.h"
 
+#if MRBC_USE_ARRAY
+#include "c_array.h"
+#include "c_range.h"
+#include "c_hash.h"
+#endif
+
 //================================================================
 /*! print - sub function
   @param  v	pointer to target value.
@@ -116,7 +122,7 @@ int mrbc_puts_sub(mrbc_value *v)
         for (int i = 0; i < mrbc_array_size(v); i++) {
             if (i != 0) console_char('\n');
             mrbc_value v1 = mrbc_array_get(v, i);
-            _mrbc_puts_sub(&v1);
+            mrbc_puts_sub(&v1);
         }
 #endif
         return 0;

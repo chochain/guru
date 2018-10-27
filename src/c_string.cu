@@ -21,7 +21,7 @@
 #include "c_string.h"
 
 #if MRBC_USE_ARRAY
-//#include "c_array.h"
+#include "c_array.h"
 #endif
 
 #if MRBC_USE_STRING
@@ -636,8 +636,10 @@ void c_string_split(mrbc_value v[], int argc)
 {
 #if MRBC_USE_ARRAY
     mrbc_value ret = mrbc_array_new(0);
-    if (mrbc_string_size(&v[0])==0) goto DONE;
-
+    if (_string_size(&v[0])==0) {
+    	SET_RETURN(ret);
+    	return;
+    }
     // check limit parameter.
     int limit = 0;
     if (argc >= 2) {
@@ -649,28 +651,23 @@ void c_string_split(mrbc_value v[], int argc)
         if (limit==1) {
             mrbc_array_push(&ret, &v[0]);
             mrbc_dup(&v[0]);
-            goto DONE;
+            SET_RETURN(ret);
+            return;
         }
     }
 
     // check separator parameter.
-    mrb_value sep = (argc==0) ? mrbc_string_new(" ") : v[1];
+    mrbc_value sep = (argc==0) ? mrbc_string_new(" ") : v[1];
     switch(sep.tt) {
-    case MRBC_TT_NIL:
-        sep = mrbc_string_new(" ");
-        break;
-
-    case MRBC_TT_STRING:
-        break;
-
+    case MRBC_TT_NIL:    sep = mrbc_string_new(" "); 	break;
+    case MRBC_TT_STRING:								break;
     default:
         console_str("TypeError\n");     // raise?
         return;
     }
 
-    int flag_strip = (mrbc_string_cstr(&sep)[0]==' ') &&
-        (_string_size(&sep)==1);
-    int offset = 0;
+    int flag_strip = (sep.str->data)[0]==' ' && (_string_size(&sep)==1);
+    int offset  = 0;
     int sep_len = _string_size(&sep);
     if (sep_len==0) sep_len++;
 
@@ -714,7 +711,7 @@ void c_string_split(mrbc_value v[], int argc)
     SPLIT_ITEM:
         if (pos < 0) len = _string_size(&v[0]) - offset;
 
-        mrb_value v1 = _mrbc_string_new(_string_cstr(&v[0]) + offset, len);
+        mrbc_value v1 = _mrbc_string_new(_string_cstr(&v[0]) + offset, len);
         mrbc_array_push(&ret, &v1);
 
         if (pos < 0) break;
@@ -727,7 +724,7 @@ void c_string_split(mrbc_value v[], int argc)
             int idx = mrbc_array_size(&ret) - 1;
             if (idx < 0) break;
 
-            mrb_value v1 = mrbc_array_get(&ret, idx);
+            mrbc_value v1 = mrbc_array_get(&ret, idx);
             if (_string_size(&v1) != 0) break;
 
             mrbc_array_remove(&ret, idx);
@@ -738,7 +735,6 @@ void c_string_split(mrbc_value v[], int argc)
     if (argc==0 || v[1].tt==MRBC_TT_NIL) {
         mrbc_string_delete(&sep);
     }
-DONE:
 #else
     mrbc_value ret = mrbc_string_new("not supported");
 #endif

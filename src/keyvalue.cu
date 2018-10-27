@@ -23,7 +23,8 @@
   @param  sym_id	symbol ID.
   @return		result. It's not necessarily found.
 */
-__GURU__ int binary_search(mrbc_kv_handle *kvh, mrbc_sym sym_id)
+__GURU__
+int _binary_search(mrbc_kv_handle *kvh, mrbc_sym sym_id)
 {
     int left = 0;
     int right = kvh->n_stored - 1;
@@ -112,7 +113,7 @@ int mrbc_kv_resize(mrbc_kv_handle *kvh, int size)
 __GURU__
 int mrbc_kv_set(mrbc_kv_handle *kvh, mrbc_sym sym_id, mrbc_value *set_val)
 {
-    int idx = binary_search(kvh, sym_id);
+    int idx = _binary_search(kvh, sym_id);
     if (idx < 0) {
         idx = 0;
         goto INSERT_VALUE;
@@ -159,7 +160,7 @@ INSERT_VALUE:
 __GURU__
 mrbc_value * mrbc_kv_get(mrbc_kv_handle *kvh, mrbc_sym sym_id)
 {
-    int idx = binary_search(kvh, sym_id);
+    int idx = _binary_search(kvh, sym_id);
     if (idx < 0) return NULL;
     if (kvh->data[idx].sym_id != sym_id) return NULL;
 
@@ -206,7 +207,7 @@ int compare_key(const void *kv1, const void *kv2)
 __GURU__
 int mrbc_kv_remove(mrbc_kv_handle *kvh, mrbc_sym sym_id)
 {
-    int idx = binary_search(kvh, sym_id);
+    int idx = _binary_search(kvh, sym_id);
     if (idx < 0) return 0;
     if (kvh->data[idx].sym_id != sym_id) return 0;
 

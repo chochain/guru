@@ -42,7 +42,7 @@ void _mrbc_vm_begin(mrbc_vm *vm)
     vm->klass 	= mrbc_class_object;			// target class
     vm->reg 	= vm->regfile;					// pointer to reg[0]
     vm->pc_irep = vm->irep;						// root of irep tree
-    vm->run   	= 1;
+    vm->run   	= 1;							// TODO: updated by scheduler
 }
 
 //================================================================

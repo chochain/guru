@@ -16,6 +16,10 @@
 #include "alloc.h"
 #include "symbol.h"
 
+#if MRBC_USE_ARRAY
+#include "c_array.h"
+#endif
+
 #if !defined(MRBC_SYMBOL_SEARCH_LINER) && !defined(MRBC_SYMBOL_SEARCH_BTREE)
 #define MRBC_SYMBOL_SEARCH_BTREE
 #endif

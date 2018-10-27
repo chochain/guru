@@ -1409,11 +1409,11 @@ int op_array(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     int rb = GETARG_B(code);
     int rc = GETARG_C(code);
 
-    mrbc_value value = mrbc_array_new(vm, rc);
+    mrbc_value value = (mrbc_value)mrbc_array_new(rc);
     if (value.array==NULL) return -1;	// ENOMEM
 
-    MEMCPY(value.array->data, &regs[rb], sizeof(mrbc_value) * rc);
-    MEMSET(&regs[rb], 0, sizeof(mrbc_value) * rc);
+    MEMCPY((uint8_t *)value.array->data, (uint8_t *)&regs[rb], sizeof(mrbc_value) * rc);
+    MEMSET((uint8_t *)&regs[rb], 0, sizeof(mrbc_value) * rc);
     value.array->n_stored = rc;
 
     mrbc_release(&regs[ra]);
@@ -1444,12 +1444,12 @@ int op_hash(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     int rb = GETARG_B(code);
     int rc = GETARG_C(code);
 
-    mrbc_value value = mrbc_hash_new(vm, rc);
+    mrbc_value value = mrbc_hash_new(rc);
     if (value.hash==NULL) return -1;	// ENOMEM
 
     rc *= 2;
-    MEMCPY(value.hash->data, &regs[rb], sizeof(mrbc_value) * rc);
-    MEMSET(&regs[rb], 0, sizeof(mrbc_value) * rc);
+    MEMCPY((uint8_t *)value.hash->data, (uint8_t *)&regs[rb], sizeof(mrbc_value) * rc);
+    MEMSET((uint8_t *)&regs[rb], 0, sizeof(mrbc_value) * rc);
     value.hash->n_stored = rc;
 
     mrbc_release(&regs[ra]);
@@ -1482,7 +1482,7 @@ int op_range(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     mrbc_dup(&regs[rb]);
     mrbc_dup(&regs[rb+1]);
 
-    mrbc_value value = mrbc_range_new(vm, &regs[rb], &regs[rb+1], rc);
+    mrbc_value value = mrbc_range_new(&regs[rb], &regs[rb+1], rc);
     if (value.range==NULL) return -1;		// ENOMEM
 
     mrbc_release(&regs[ra]);
