@@ -650,7 +650,7 @@ void c_string_split(mrbc_value v[], int argc)
         limit = v[2].i;
         if (limit==1) {
             mrbc_array_push(&ret, &v[0]);
-            mrbc_dup(&v[0]);
+            mrbc_inc_refc(&v[0]);
             SET_RETURN(ret);
             return;
         }

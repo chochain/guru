@@ -26,13 +26,13 @@
 __GURU__
 int _binary_search(mrbc_kv_handle *kvh, mrbc_sym sym_id)
 {
-    int left = 0;
+    int left  = 0;
     int right = kvh->n_stored - 1;
-    if( right < 0 ) return -1;
+    if (right < 0) return -1;
 
-    while ( left < right ) {
+    while (left < right) {
         int mid = (left + right) / 2;
-        if( kvh->data[mid].sym_id < sym_id ) {
+        if (kvh->data[mid].sym_id < sym_id) {
             left = mid + 1;
         } else {
             right = mid;
@@ -121,7 +121,7 @@ int mrbc_kv_set(mrbc_kv_handle *kvh, mrbc_sym sym_id, mrbc_value *set_val)
 
     // replace value ?
     if (kvh->data[idx].sym_id == sym_id) {
-        DECREF(&kvh->data[idx].value);
+        mrbc_dec_refc(&kvh->data[idx].value);
         kvh->data[idx].value = *set_val;
         return 0;
     }
@@ -211,7 +211,7 @@ int mrbc_kv_remove(mrbc_kv_handle *kvh, mrbc_sym sym_id)
     if (idx < 0) return 0;
     if (kvh->data[idx].sym_id != sym_id) return 0;
 
-    DECREF(&kvh->data[idx].value);
+    mrbc_dec_refc(&kvh->data[idx].value);
     kvh->n_stored--;
     MEMCPY((uint8_t *)(kvh->data + idx), (const uint8_t *)(kvh->data + idx + 1), sizeof(mrbc_kv) * (kvh->n_stored - idx));
 
@@ -229,7 +229,7 @@ void mrbc_kv_clear(mrbc_kv_handle *kvh)
     mrbc_kv *p1 = kvh->data;
     const mrbc_kv *p2 = p1 + kvh->n_stored;
     while (p1 < p2) {
-        DECREF(&p1->value);
+        mrbc_dec_refc(&p1->value);
         p1++;
     }
     kvh->n_stored = 0;

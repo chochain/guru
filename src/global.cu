@@ -44,7 +44,7 @@ mrbc_value _get_obj(mrbc_sym sym_id, mrbc_globaltype gtype)
     int index = _get_idx(sym_id, gtype);
     if (index < 0) mrbc_nil_value();
     
-    mrbc_dup(&mrbc_global[index].obj);
+    mrbc_inc_refc(&mrbc_global[index].obj);
     return mrbc_global[index].obj;
 }
 
@@ -73,7 +73,7 @@ void global_object_add(mrbc_sym sym_id, mrbc_value v)
     mrbc_global[index].sym_id = sym_id;
     mrbc_global[index].obj    = v;
     
-    mrbc_dup(&v);
+    mrbc_inc_refc(&v);
 }
 
 __GURU__
@@ -94,7 +94,7 @@ void const_object_add(mrbc_sym sym_id, mrbc_object *obj)
     mrbc_global[index].sym_id = sym_id;
     mrbc_global[index].obj    = *obj;
 
-    mrbc_dup(obj);
+    mrbc_inc_refc(obj);
 }
 
 /* get */

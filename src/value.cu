@@ -12,6 +12,7 @@
 
 #include <assert.h>
 #include "value.h"
+#include "alloc.h"
 
 #if MRBC_USE_STRING
 #include "c_string.h"
@@ -23,13 +24,12 @@
 #endif
 
 extern "C" __GURU__ void mrbc_instance_delete(mrbc_value *v);		// instance.cu
-extern "C" __GURU__ void mrbc_free(void *ptr);						// alloc.cu
 
 //================================================================
 /*! compare
  */
 __GURU__
-int mrbc_string_compare(const mrbc_value *v1, const mrbc_value *v2)
+int _string_compare(const mrbc_value *v1, const mrbc_value *v2)
 {
 	if (v1->str->size != v2->str->size) return -1;
 
@@ -82,11 +82,11 @@ int mrbc_compare(const mrbc_value *v1, const mrbc_value *v2)
     case MRBC_TT_CLASS:
     case MRBC_TT_OBJECT:
     case MRBC_TT_PROC:   return -1 + (v1->self == v2->self) + (v1->self > v2->self)*2;
+    case MRBC_TT_STRING: return _string_compare(v1, v2);
 
 #if MRBC_USE_FLOAT
     case MRBC_TT_FLOAT:  return -1 + (v1->f==v2->f) + (v1->f > v2->f)*2;	// caution: NaN == NaN is false
 #endif
-    case MRBC_TT_STRING: return mrbc_string_compare(v1, v2);
 #if MRBC_USE_ARRAY
     case MRBC_TT_ARRAY:  return mrbc_array_compare(v1, v2);
     case MRBC_TT_RANGE:  return mrbc_range_compare(v1, v2);
@@ -94,33 +94,6 @@ int mrbc_compare(const mrbc_value *v1, const mrbc_value *v2)
 #endif
     default:
         return 1;
-    }
-}
-
-//================================================================
-/*!@brief
-  Duplicate mrbc_value
-
-  @param   v     Pointer to mrbc_value
-*/
-__GURU__
-void mrbc_dup(mrbc_value *v)
-{
-    switch(v->tt){
-    case MRBC_TT_OBJECT:
-    case MRBC_TT_PROC:
-    case MRBC_TT_ARRAY:
-    case MRBC_TT_STRING:
-    case MRBC_TT_RANGE:
-    case MRBC_TT_HASH:
-        assert(v->self->refc > 0);
-        assert(v->self->refc != 0xffff);	// check max value.
-        v->self->refc++;
-        break;
-
-    default:
-        // Nothing
-        break;
     }
 }
 
@@ -220,11 +193,11 @@ __GURU__ char   *guru_strcat(char *d, const char *s)
   @param   v     Pointer to target mrbc_value
 */
 __GURU__
-void mrbc_dec_ref_counter(mrbc_value *v)
+void mrbc_dec_refc(mrbc_value *v)
 {
     switch(v->tt){
     case MRBC_TT_OBJECT:
-//    case MRBC_TT_PROC:		// 20181026: need to double check the ref count
+    case MRBC_TT_PROC:
     case MRBC_TT_ARRAY:
     case MRBC_TT_STRING:
     case MRBC_TT_RANGE:
@@ -238,8 +211,7 @@ void mrbc_dec_ref_counter(mrbc_value *v)
         return;
     }
 
-    // release memory?
-    if (v->self->refc != 0) return;
+    if (v->self->refc != 0) return;		// still used, keep going
 
     switch(v->tt) {
     case MRBC_TT_OBJECT:	mrbc_instance_delete(v);	break;
@@ -260,6 +232,33 @@ void mrbc_dec_ref_counter(mrbc_value *v)
 
 //================================================================
 /*!@brief
+  Duplicate mrbc_value
+
+  @param   v     Pointer to mrbc_value
+*/
+__GURU__
+void mrbc_inc_refc(mrbc_value *v)
+{
+    switch(v->tt){
+    case MRBC_TT_OBJECT:
+    case MRBC_TT_PROC:
+    case MRBC_TT_ARRAY:
+    case MRBC_TT_STRING:
+    case MRBC_TT_RANGE:
+    case MRBC_TT_HASH:
+        assert(v->self->refc > 0);
+        assert(v->self->refc != 0xffff);	// check max value.
+        v->self->refc++;
+        break;
+
+    default:
+        // Nothing
+        break;
+    }
+}
+
+//================================================================
+/*!@brief
   Release object related memory
 
   @param   v     Pointer to target mrbc_value
@@ -267,7 +266,7 @@ void mrbc_dec_ref_counter(mrbc_value *v)
 __GURU__
 void mrbc_release(mrbc_value *v)
 {
-    DECREF(v);
+    mrbc_dec_refc(v);
     v->tt = MRBC_TT_EMPTY;
 }
 

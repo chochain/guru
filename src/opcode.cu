@@ -154,7 +154,7 @@ void _vm_object_new(mrbc_vm *vm, mrbc_value v[], int argc)
     };
     mrbc_release(&v[0]);
     v[0] = obj;
-    mrbc_dup(&obj);
+    mrbc_inc_refc(&obj);
 
     // context switch, which is not multi-thread ready
     // TODO: create a vm context object with separate regfile
@@ -214,7 +214,7 @@ int op_move(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 
     mrbc_release(&regs[ra]);
 
-    mrbc_dup(&regs[rb]);
+    mrbc_inc_refc(&regs[rb]);
     regs[ra] = regs[rb];
 
     return 0;
@@ -330,7 +330,7 @@ int op_loadself(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     int ra = GETARG_A(code);
 
     mrbc_release(&regs[ra]);
-    mrbc_dup(&regs[0]);       // TODO: Need?
+    mrbc_inc_refc(&regs[0]);       // TODO: Need?
     regs[ra] = regs[0];
 
     return 0;
@@ -552,7 +552,7 @@ int op_getupvar(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     mrbc_value *up_regs = ci->reg;
 
     mrbc_release(&regs[ra]);
-    mrbc_dup(&up_regs[rb]);
+    mrbc_inc_refc(&up_regs[rb]);
     regs[ra] = up_regs[rb];
 
     return 0;
@@ -588,7 +588,7 @@ int op_setupvar(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     mrbc_value *up_regs = ci->reg;
 
     mrbc_release(&up_regs[rb]);
-    mrbc_dup(&regs[ra]);
+    mrbc_inc_refc(&regs[ra]);
 
     up_regs[rb] = regs[ra];    // update outer-scope vars
 
@@ -680,7 +680,7 @@ int op_send(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     int ra = GETARG_A(code);
     int rb = GETARG_B(code);  // index of method sym
     int rc = GETARG_C(code);  // number of params
-    mrbc_value recv = regs[ra];
+    mrbc_value rcv = regs[ra];
 
     // Block param
     int bidx = ra + rc + 1;
@@ -706,7 +706,7 @@ int op_send(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     }
 
 	mrbc_sym  sym_id = _get_symid(vm->pc_irep->sym, rb);
-    mrbc_proc *m 	 = (mrbc_proc *)mrbc_get_class_method(recv, sym_id);
+    mrbc_proc *m 	 = (mrbc_proc *)mrbc_get_class_method(rcv, sym_id);
 #ifdef MRBC_DEBUG
 	const char *name = _get_symbol(vm->pc_irep->sym, rb);
 #endif
@@ -840,7 +840,7 @@ int op_blkpush(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     }
 
     mrbc_release(&regs[ra]);
-    mrbc_dup(stack);
+    mrbc_inc_refc(stack);
     regs[ra] = stack[0];
 
     return 0;
@@ -1479,8 +1479,8 @@ int op_range(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     int rb = GETARG_B(code);
     int rc = GETARG_C(code);
 
-    mrbc_dup(&regs[rb]);
-    mrbc_dup(&regs[rb+1]);
+    mrbc_inc_refc(&regs[rb]);
+    mrbc_inc_refc(&regs[rb+1]);
 
     mrbc_value value = mrbc_range_new(&regs[rb], &regs[rb+1], rc);
     if (value.range==NULL) return -1;		// ENOMEM
@@ -1573,14 +1573,14 @@ int op_exec(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     int ra = GETARG_A(code);
     int rb = GETARG_Bx(code);
 
-    mrbc_value recv = regs[ra];					// receiver
+    mrbc_value rcv = regs[ra];					// receiver
 
     _push_callinfo(vm, 0);						// push call stack
 
     vm->pc 		= 0;							// switch context to callee
     vm->pc_irep = vm->irep->irep_list[rb];
     vm->reg 	+= ra;
-    vm->klass 	= mrbc_get_class_by_object(&recv);
+    vm->klass 	= mrbc_get_class_by_object(&rcv);
 
     return 0;
 }
