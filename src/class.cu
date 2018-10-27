@@ -20,6 +20,7 @@
 #include "symbol.h"
 #include "global.h"
 #include "static.h"
+
 #include "console.h"
 #include "class.h"
 
@@ -87,9 +88,9 @@ mrbc_class *mrbc_get_class_by_name(const char *name)
   @return
 */
 __GURU__
-mrbc_proc *mrbc_get_class_method(mrbc_value recv, mrbc_sym sym_id)
+mrbc_proc *mrbc_get_class_method(mrbc_value rcv, mrbc_sym sym_id)
 {
-    mrbc_class *cls = mrbc_get_class_by_object(&recv);
+    mrbc_class *cls = mrbc_get_class_by_object(&rcv);
 
     while (cls != 0) {
         mrbc_proc *proc = cls->procs;

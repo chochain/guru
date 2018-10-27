@@ -197,7 +197,7 @@ guru_print_node *_guru_print_core(guru_print_node *node)
 }
 
 __host__
-void guru_print(uint8_t *output_buf)
+void guru_console_flush(uint8_t *output_buf)
 {
 	guru_print_node *node = (guru_print_node *)output_buf;
 

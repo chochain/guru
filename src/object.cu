@@ -64,15 +64,15 @@
 */
 __GURU__
 mrbc_value mrbc_send(mrbc_value *v, int reg_ofs,
-                      mrbc_value *recv, const char *method, int argc, ...)
+                     mrbc_value *rcv, const char *method, int argc, ...)
 {
-    mrbc_sym  sym_id = name2symid(method);
-    mrbc_proc *m     = mrbc_get_class_method(*recv, sym_id);
     mrbc_value *regs = v + reg_ofs + 2;
+    mrbc_sym  sym_id = name2symid(method);
+    mrbc_proc *m     = mrbc_get_class_method(*rcv, sym_id);
 
     if (m == 0) {
         console_str("No method. vtype=");
-        console_int(recv->tt);
+        console_int(rcv->tt);
         console_str(" method='");
         console_str(method);
         console_str("'\n");
@@ -87,8 +87,8 @@ mrbc_value mrbc_send(mrbc_value *v, int reg_ofs,
 
     // create call stack.
     mrbc_release(&regs[0]);
-    regs[0] = *recv;
-    mrbc_dup(recv);
+    regs[0] = *rcv;
+    mrbc_inc_refc(rcv);
 
     va_list ap;
     va_start(ap, argc);
@@ -100,14 +100,15 @@ mrbc_value mrbc_send(mrbc_value *v, int reg_ofs,
     }
     mrbc_release(&regs[i]);
     regs[i] = mrbc_nil_value();
+
     va_end(ap);
 
     // call method.
     m->func(regs, argc);
     mrbc_value ret = regs[0];
 
-    for (; i >= 0; i--) {
-        regs[i].tt = MRBC_TT_EMPTY;
+    while (i>=0) {
+        regs[i--].tt = MRBC_TT_EMPTY;
     }
     return ret;
 }
@@ -255,11 +256,11 @@ void c_object_getiv(mrbc_value v[], int argc)
 __GURU__
 void c_object_setiv(mrbc_value v[], int argc)
 {
-    const char *name = _get_callee(NULL);		// TODO:
+    const char *name = _get_callee(NULL);				// CC TODO: another way
 
-    char *namebuf = (char *)mrbc_alloc(STRLEN(name));
-    
+    char *namebuf = (char *)mrbc_alloc(STRLEN(name));	// CC TODO: messy code below
     if (!namebuf) return;
+
     STRCPY(namebuf, name);
     namebuf[STRLEN(name)-1] = '\0';	// delete '='
     mrbc_sym sym_id = name2symid(namebuf);

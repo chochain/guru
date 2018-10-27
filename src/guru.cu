@@ -7,15 +7,17 @@
   </pre>
 */
 #include <stdio.h>
-#include "console.h"
 #include "guru.h"
 #include "alloc.h"
 
-extern "C" __GURU__ void mrbc_init_global();		// global.cu
-extern "C" __GURU__ void mrbc_init_class();			// class.cu
+// forward declaration for implementation
+extern "C" __GURU__   void mrbc_init_global();							// global.cu
+extern "C" __GURU__   void mrbc_init_class();							// class.cu
+extern "C" __global__ void guru_console_init(uint8_t *buf, size_t sz);	// console.cu
+extern "C" __host__   void guru_console_flush(uint8_t *buf);			// console.cu
 
-extern "C" int guru_vm_init(guru_ses *ses);			// vm.cu
-extern "C" int guru_vm_run(guru_ses *ses);			// vm.cu
+extern "C" int guru_vm_init(guru_ses *ses);								// vm.cu
+extern "C" int guru_vm_run(guru_ses *ses);								// vm.cu
 
 __global__
 void guru_static_init(void)
@@ -67,10 +69,9 @@ int session_init(guru_ses *ses, const char *rite_fname)
 		fprintf(stderr, "ERROR: output buffer allocation error!\n");
 		return -3;
 	}
-
-    guru_console_init<<<1,1>>>(res, MAX_BUFFER_SIZE);			// initialize output buffer
     guru_memory_init<<<1,1>>>(mem, BLOCK_MEMORY_SIZE);			// setup memory management
 	guru_static_init<<<1,1>>>();								// setup static objects
+    guru_console_init<<<1,1>>>(res, MAX_BUFFER_SIZE);			// initialize output buffer
 
 #ifdef MRBC_DEBUG
 	printf("guru session initialized...\n");
@@ -89,8 +90,7 @@ int session_start(guru_ses *ses)
 	dump_alloc_stat();
 	guru_vm_run(ses);
 
-	guru_print(ses->res);		// dump output buffer
-
+	guru_console_flush(ses->res);		// dump output buffer
 #ifdef MRBC_DEBUG
 	printf("guru_session completed\n");
 	dump_alloc_stat();

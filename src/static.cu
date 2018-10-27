@@ -10,7 +10,6 @@
   </pre>
 */
 
-#include "vm_config.h"
 #include "guru.h"
 
 /* Class Tree */

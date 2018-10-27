@@ -21,6 +21,7 @@
 #include "value.h"
 #include "alloc.h"
 #include "errorcode.h"
+#include "vm.h"
 #include "load.h"
 
 //================================================================

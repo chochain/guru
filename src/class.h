@@ -22,7 +22,7 @@ extern "C" {
 
 __GURU__ mrbc_class *mrbc_get_class_by_object(mrbc_object *obj);
 __GURU__ mrbc_class *mrbc_get_class_by_name(const char *name);
-__GURU__ mrbc_proc  *mrbc_get_class_method(mrbc_value recv, mrbc_sym sym_id);
+__GURU__ mrbc_proc  *mrbc_get_class_method(mrbc_value rcv, mrbc_sym sym_id);
 
 __GURU__ mrbc_class *mrbc_define_class(const char *name, mrbc_class *super);
 __GURU__ mrbc_proc  *mrbc_proc_alloc(const char *name);
