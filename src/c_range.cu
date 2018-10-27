@@ -45,15 +45,6 @@ mrbc_value mrbc_range_last(const mrbc_value *v)
 }
 
 //================================================================
-/*! get exclude_end?
- */
-__GURU__
-int mrbc_range_exclude_end(const mrbc_value *v)
-{
-    return v->range->flag_exclude;
-}
-
-//================================================================
 /*! constructor
 
   @param  vm		pointer to VM.
@@ -63,16 +54,17 @@ int mrbc_range_exclude_end(const mrbc_value *v)
   @return		range object.
 */
 __GURU__
-mrbc_value mrbc_range_new(mrbc_value *first, mrbc_value *last, int flag_exclude)
+mrbc_value mrbc_range_new(mrbc_value *first, mrbc_value *last, int exclude_end)
 {
     mrbc_value value = {.tt = MRBC_TT_RANGE};
 
     value.range = (mrbc_range *)mrbc_alloc(sizeof(mrbc_range));
     if(!value.range) return value;		// ENOMEM
 
+    if (exclude_end) value.range->flag |= EXCLUDE_END;
+    else		     value.range->flag &= ~EXCLUDE_END;
     value.range->refc  = 1;
     value.range->tt    = MRBC_TT_STRING;	// TODO: for DEBUG
-    value.range->flag_exclude = flag_exclude;
     value.range->first = *first;
     value.range->last  = *last;
 
@@ -107,7 +99,7 @@ int mrbc_range_compare(const mrbc_value *v1, const mrbc_value *v2)
     res = mrbc_compare(&v1->range->last, &v2->range->last);
     if(res != 0) return res;
 
-    return (int)v2->range->flag_exclude - (int)v1->range->flag_exclude;
+    return (int)IS_EXCLUDE_END(v2) - (int)IS_EXCLUDE_END(v1);
 }
 
 //================================================================
@@ -130,7 +122,7 @@ void c_range_equal3(mrbc_value v[], int argc)
     }
 
     int cmp_last  = mrbc_compare(&v[1], &v[0].range->last);
-    result = (v->range->flag_exclude) ? (cmp_last < 0) : (cmp_last <= 0);
+    result = IS_EXCLUDE_END(v) ? (cmp_last < 0) : (cmp_last <= 0);
 
     SET_BOOL_RETURN(result);
 }
@@ -161,7 +153,7 @@ void c_range_last(mrbc_value v[], int argc)
 __GURU__
 void c_range_exclude_end(mrbc_value v[], int argc)
 {
-    int result = v->range->flag_exclude;
+    int result = IS_EXCLUDE_END(v);
     SET_BOOL_RETURN(result);
 }
 

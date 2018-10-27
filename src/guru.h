@@ -13,7 +13,7 @@
 #define MRBC_SRC_GURU_H_
 #include "vm_config.h"
 
-#include <stdint.h>
+#include <stdint.h>					// uint8_t, int32_t, ...
 
 #ifdef __cplusplus
 extern "C" {
@@ -107,7 +107,7 @@ typedef struct RClass {
 #endif
 } mrbc_class;
 
-#define GURU_PROC_C_FUNC 	1
+#define GURU_PROC_C_FUNC 	0x80
 #define IS_C_FUNC(m)		((m)->flag & GURU_PROC_C_FUNC)
 
 #define MRBC_OBJECT_HEADER      \

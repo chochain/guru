@@ -20,6 +20,9 @@
 extern "C" {
 #endif
 
+#define EXCLUDE_END				0x1
+#define IS_EXCLUDE_END(r)		((r)->flag & EXCLUDE_END)
+
 //================================================================
 /*!@brief
   Define Range object (same the handles of other objects)
@@ -27,20 +30,17 @@ extern "C" {
 typedef struct RRange {
     MRBC_OBJECT_HEADER;
 
-    uint8_t    flag_exclude;	// true: exclude the end object, otherwise include.
     mrbc_value first;
     mrbc_value last;
 } mrbc_range;
 
-__GURU__ mrbc_value mrbc_range_new(mrbc_value *first, mrbc_value *last, int flag_exclude);
+__GURU__ mrbc_value mrbc_range_new(mrbc_value *first, mrbc_value *last, int exclude_end);
 
 __GURU__ void       mrbc_range_delete(mrbc_value *v);
-__GURU__ void       mrbc_range_clear_vm_id(mrbc_value *v);
 __GURU__ int        mrbc_range_compare(const mrbc_value *v1, const mrbc_value *v2);
 
 __GURU__ mrbc_value mrbc_range_first(const mrbc_value *v);
 __GURU__ mrbc_value mrbc_range_last(const mrbc_value *v);
-__GURU__ int        mrbc_range_exclude_end(const mrbc_value *v);
 
 __GURU__ void       mrbc_init_class_range();
 
