@@ -491,23 +491,26 @@ void c_array_add(mrbc_value v[], int argc)
         return;
     }
 
-    mrbc_array *h1 = v[0].array;
-    mrbc_array *h2 = v[1].array;
+    mrbc_array *h0 = v[0].array;
+    mrbc_array *h1 = v[1].array;
 
-    mrbc_value value = mrbc_array_new(h1->n_stored + h2->n_stored);
+    mrbc_value value = mrbc_array_new(h0->n_stored + h1->n_stored);
     if (value.array==NULL) return;		// ENOMEM
 
-    MEMCPY((uint8_t *)(value.array->data),                (const uint8_t *)h1->data, sizeof(mrbc_value) * h1->n_stored);
-    MEMCPY((uint8_t *)(value.array->data) + h1->n_stored, (const uint8_t *)h2->data, sizeof(mrbc_value) * h2->n_stored);
-    value.array->n_stored = h1->n_stored + h2->n_stored;
+    int h0sz = sizeof(mrbc_value)*h0->n_stored;
+    int h1sz = sizeof(mrbc_value)*h1->n_stored;
 
-    mrbc_value *p1 = value.array->data;
-    const mrbc_value *p2 = p1 + value.array->n_stored;
-    while(p1 < p2) {
-        mrbc_inc_refc(p1++);
+    MEMCPY((uint8_t *)(value.array->data),        (const uint8_t *)h0->data, h0sz);
+    MEMCPY((uint8_t *)(value.array->data) + h0sz, (const uint8_t *)h1->data, h1sz);
+    value.array->n_stored = h0->n_stored + h1->n_stored;
+
+    mrbc_value       *v0 = value.array->data;
+    const mrbc_value *v1 = v0 + value.array->n_stored;
+    while (v0 < v1) {			// v0 data referenced also by the new array now
+        mrbc_inc_refc(v0++);
     }
 
-    mrbc_release(v+1);
+    mrbc_release(v+1);			// dec_refc v[1], free if not needed
     SET_RETURN(value);
 }
 
