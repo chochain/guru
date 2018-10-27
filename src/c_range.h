@@ -21,7 +21,7 @@ extern "C" {
 #endif
 
 #define EXCLUDE_END				0x1
-#define IS_EXCLUDE_END(r)		((r)->flag & EXCLUDE_END)
+#define IS_EXCLUDE_END(rng)		((rng)->flag & EXCLUDE_END)
 
 //================================================================
 /*!@brief

@@ -82,7 +82,7 @@ int mrbc_print_sub(mrbc_value *v)
     case MRBC_TT_RANGE:{
         mrbc_value v1 = mrbc_range_first(v);
         mrbc_print_sub(&v1);
-        console_str(IS_EXCLUDE_END(v) ? "..." : "..");
+        console_str(IS_EXCLUDE_END(v->range) ? "..." : "..");
         v1 = mrbc_range_last(v);
         mrbc_print_sub(&v1);
     } break;
@@ -161,7 +161,7 @@ int mrbc_p_sub(mrbc_value *v)
     case MRBC_TT_RANGE:{
         mrbc_value v1 = mrbc_range_first(v);
         mrbc_p_sub(&v1);
-        console_str(IS_EXCLUDE_END(v) ? "..." : "..");
+        console_str(IS_EXCLUDE_END(v->range) ? "..." : "..");
         v1 = mrbc_range_last(v);
         mrbc_p_sub(&v1);
     } break;

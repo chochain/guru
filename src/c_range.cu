@@ -99,7 +99,7 @@ int mrbc_range_compare(const mrbc_value *v1, const mrbc_value *v2)
     res = mrbc_compare(&v1->range->last, &v2->range->last);
     if(res != 0) return res;
 
-    return (int)IS_EXCLUDE_END(v2) - (int)IS_EXCLUDE_END(v1);
+    return (int)IS_EXCLUDE_END(v2->range) - (int)IS_EXCLUDE_END(v1->range);
 }
 
 //================================================================
@@ -122,7 +122,7 @@ void c_range_equal3(mrbc_value v[], int argc)
     }
 
     int cmp_last  = mrbc_compare(&v[1], &v[0].range->last);
-    result = IS_EXCLUDE_END(v) ? (cmp_last < 0) : (cmp_last <= 0);
+    result = IS_EXCLUDE_END(v[0].range) ? (cmp_last < 0) : (cmp_last <= 0);
 
     SET_BOOL_RETURN(result);
 }
@@ -153,7 +153,7 @@ void c_range_last(mrbc_value v[], int argc)
 __GURU__
 void c_range_exclude_end(mrbc_value v[], int argc)
 {
-    int result = IS_EXCLUDE_END(v);
+    int result = IS_EXCLUDE_END(v[0].range);
     SET_BOOL_RETURN(result);
 }
 
