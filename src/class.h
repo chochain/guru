@@ -30,6 +30,7 @@ __GURU__ void       mrbc_define_method(mrbc_class *cls, const char *name, mrbc_f
 
 // common c-functions
 __GURU__ void       c_proc_call(mrbc_value v[], int argc);
+__GURU__ void		c_object_new(mrbc_value v[], int argc);
 __GURU__ void       c_nop(mrbc_value v[], int argc);
 
 #ifdef __cplusplus

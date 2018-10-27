@@ -103,7 +103,7 @@ typedef struct RClass {
     struct RClass 	*super;		// mrbc_class[super]
     struct RProc  	*procs;		// mrbc_proc[rprocs], linked list
 #ifdef MRBC_DEBUG
-    const char    	*names;		// for debug. TODO: remove
+    const char    	*name;		// for debug. TODO: remove
 #endif
 } mrbc_class;
 

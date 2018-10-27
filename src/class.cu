@@ -22,7 +22,6 @@
 #include "static.h"
 #include "console.h"
 #include "class.h"
-#include "vm.h"
 
 //================================================================
 /*!@brief
@@ -131,7 +130,7 @@ mrbc_class *mrbc_define_class(const char *name, mrbc_class *super)
     cls->super 	= super;
     cls->procs 	= 0;
 #ifdef MRBC_DEBUG
-    cls->names 	= name;			// for debug; delete soon.
+    cls->name 	= name;				// for debug; delete soon.
 #endif
 
     // register to global constant.

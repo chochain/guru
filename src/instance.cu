@@ -33,7 +33,7 @@ mrbc_value mrbc_instance_new(mrbc_class *cls, int size)
     if (v.self == NULL) return v;	// ENOMEM
 
     v.self->ivar = mrbc_kv_new(0);
-    if (v.self->ivar == NULL) {	// ENOMEM
+    if (v.self->ivar == NULL) {		// ENOMEM
         mrbc_free(v.self);
         v.self = NULL;
         return v;
