@@ -22,7 +22,6 @@
 
 #include "console.h"
 #include "opcode.h"
-#include "vm.h"
 #include "class.h"
 
 #include "errorcode.h"
@@ -116,7 +115,7 @@ void mrbc_array_delete(mrbc_value *ary)
     mrbc_value *p1 = h->data;
     const mrbc_value *p2 = p1 + h->n_stored;
     while(p1 < p2) {
-        mrbc_dec_ref_counter(p1++);
+        mrbc_dec_refc(p1++);
     }
 
     mrbc_free(h->data);
@@ -170,7 +169,7 @@ int mrbc_array_set(mrbc_value *ary, int idx, mrbc_value *set_val)
 
     if (idx < h->n_stored) {
         // release existing data.
-        mrbc_dec_ref_counter(&h->data[idx]);
+        mrbc_dec_refc(&h->data[idx]);
     } else {
         // clear empty cells.
         int i;
@@ -362,7 +361,7 @@ void mrbc_array_clear(mrbc_value *ary)
     mrbc_value *p1 = h->data;
     const mrbc_value *p2 = p1 + h->n_stored;
     while(p1 < p2) {
-        mrbc_dec_ref_counter(p1++);
+        mrbc_dec_refc(p1++);
     }
 
     h->n_stored = 0;
@@ -468,7 +467,7 @@ void c_array_new(mrbc_value v[], int argc)
 
         int i;
         for(i = 0; i < v[1].i; i++) {
-            mrbc_dup(&v[2]);
+            mrbc_inc_refc(&v[2]);
             mrbc_array_set(&ret, i, &v[2]);
         }
         SET_RETURN(ret);
@@ -505,7 +504,7 @@ void c_array_add(mrbc_value v[], int argc)
     mrbc_value *p1 = value.array->data;
     const mrbc_value *p2 = p1 + value.array->n_stored;
     while(p1 < p2) {
-        mrbc_dup(p1++);
+        mrbc_inc_refc(p1++);
     }
 
     mrbc_release(v+1);
@@ -523,7 +522,7 @@ void c_array_get(mrbc_value v[], int argc)
     */
     if (argc==1 && v[1].tt==MRBC_TT_FIXNUM) {
         mrbc_value ret = mrbc_array_get(v, v[1].i);
-        mrbc_dup(&ret);
+        mrbc_inc_refc(&ret);
         SET_RETURN(ret);
         return;
     }
@@ -547,7 +546,7 @@ void c_array_get(mrbc_value v[], int argc)
         int i;
         for(i = 0; i < size; i++) {
             mrbc_value val = mrbc_array_get(v, v[1].i + i);
-            mrbc_dup(&val);
+            mrbc_inc_refc(&val);
             mrbc_array_push(&ret, &val);
         }
 
@@ -666,7 +665,7 @@ void c_array_index(mrbc_value v[], int argc)
 __GURU__ void c_array_first(mrbc_value v[], int argc)
 {
     mrbc_value val = mrbc_array_get(v, 0);
-    mrbc_dup(&val);
+    mrbc_inc_refc(&val);
     SET_RETURN(val);
 }
 
@@ -677,7 +676,7 @@ __GURU__
 void c_array_last(mrbc_value v[], int argc)
 {
     mrbc_value val = mrbc_array_get(v, -1);
-    mrbc_dup(&val);
+    mrbc_inc_refc(&val);
     SET_RETURN(val);
 }
 
@@ -774,7 +773,7 @@ void c_array_dup(mrbc_value v[], int argc)
     mrbc_value *p1 = value.array->data;
     const mrbc_value *p2 = p1 + value.array->n_stored;
     while(p1 < p2) {
-        mrbc_dup(p1++);
+        mrbc_inc_refc(p1++);
     }
 
     SET_RETURN(value);
@@ -796,7 +795,7 @@ void c_array_min(mrbc_value v[], int argc)
         return;
     }
 
-    mrbc_dup(p_min_value);
+    mrbc_inc_refc(p_min_value);
     SET_RETURN(*p_min_value);
 }
 
@@ -816,7 +815,7 @@ void c_array_max(mrbc_value v[], int argc)
         return;
     }
 
-    mrbc_dup(p_max_value);
+    mrbc_inc_refc(p_max_value);
     SET_RETURN(*p_max_value);
 }
 
@@ -836,8 +835,8 @@ void c_array_minmax(mrbc_value v[], int argc)
     if (p_min_value==NULL) p_min_value = &nil;
     if (p_max_value==NULL) p_max_value = &nil;
 
-    mrbc_dup(p_min_value);
-    mrbc_dup(p_max_value);
+    mrbc_inc_refc(p_min_value);
+    mrbc_inc_refc(p_max_value);
     mrbc_array_set(&ret, 0, p_min_value);
     mrbc_array_set(&ret, 1, p_max_value);
 
@@ -890,7 +889,7 @@ void c_array_join_1(mrbc_value v[], int argc,
         } else {
             mrbc_value v1 = mrbc_send(v, argc, &src->array->data[i], "to_s", 0);
             flag_error |= mrbc_string_append(ret, &v1);
-            mrbc_dec_ref_counter(&v1);
+            mrbc_dec_refc(&v1);
         }
         if (++i >= mrbc_array_size(src)) break;	// normal return.
         flag_error |= mrbc_string_append(ret, separator);
@@ -910,7 +909,7 @@ void c_array_join(mrbc_value v[], int argc)
     		: mrbc_send(v, argc, &v[1], "to_s", 0);
 
     c_array_join_1(v, argc, &v[0], &ret, &separator);
-    mrbc_dec_ref_counter(&separator);
+    mrbc_dec_refc(&separator);
 
     SET_RETURN(ret);
     return;
