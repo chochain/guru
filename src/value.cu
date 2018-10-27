@@ -75,30 +75,22 @@ int mrbc_compare(const mrbc_value *v1, const mrbc_value *v2)
     switch(v1->tt) {
     case MRBC_TT_NIL:
     case MRBC_TT_FALSE:
-    case MRBC_TT_TRUE:      return 0;
+    case MRBC_TT_TRUE:   return 0;
     case MRBC_TT_FIXNUM:
-    case MRBC_TT_SYMBOL:	return v1->i - v2->i;
+    case MRBC_TT_SYMBOL: return v1->i - v2->i;
 
     case MRBC_TT_CLASS:
     case MRBC_TT_OBJECT:
-    case MRBC_TT_PROC:
-        return -1 + (v1->self == v2->self) + (v1->self > v2->self)*2;
+    case MRBC_TT_PROC:   return -1 + (v1->self == v2->self) + (v1->self > v2->self)*2;
 
 #if MRBC_USE_FLOAT
-    case MRBC_TT_FLOAT:
-        return -1 + (v1->f==v2->f) + (v1->f > v2->f)*2;	// caution: NaN == NaN is false
+    case MRBC_TT_FLOAT:  return -1 + (v1->f==v2->f) + (v1->f > v2->f)*2;	// caution: NaN == NaN is false
 #endif
-    case MRBC_TT_STRING:
-        return mrbc_string_compare(v1, v2);
+    case MRBC_TT_STRING: return mrbc_string_compare(v1, v2);
 #if MRBC_USE_ARRAY
-    case MRBC_TT_ARRAY:
-        return mrbc_array_compare(v1, v2);
-
-    case MRBC_TT_RANGE:
-        return mrbc_range_compare(v1, v2);
-
-    case MRBC_TT_HASH:
-        return mrbc_hash_compare(v1, v2);
+    case MRBC_TT_ARRAY:  return mrbc_array_compare(v1, v2);
+    case MRBC_TT_RANGE:  return mrbc_range_compare(v1, v2);
+    case MRBC_TT_HASH:   return mrbc_hash_compare(v1, v2);
 #endif
     default:
         return 1;
@@ -144,7 +136,7 @@ void mrbc_dup(mrbc_value *v)
 __GURU__
 mrbc_int guru_atoi(const char *s, int base)
 {
-    int ret = 0;
+    int ret  = 0;
     int sign = 0;
 
 REDO:
@@ -165,7 +157,7 @@ REDO:
 
         ret = ret * base + n;
     }
-    return (sign) ? ret : -ret;
+    return (sign) ? -ret : ret;
 }
 
 __GURU__ mrbc_float guru_atof(const char *s)
