@@ -72,7 +72,7 @@ typedef enum {
 /*!@brief
   Guru value object.
 */
-typedef struct RObject {
+typedef struct RObject {			// 16-bytes
     mrbc_vtype           tt:8;
     unsigned int		 flag:8;	// reserved
     unsigned int	 	 size:16;	// reserved, 32-bit aligned
@@ -98,13 +98,13 @@ typedef struct RObject {
 /*!@brief
   Guru class object.
 */
-typedef struct RClass {
-    mrbc_sym       	sym_id;		// class name
+typedef struct RClass {			// 32-byte
     struct RClass 	*super;		// mrbc_class[super]
     struct RProc  	*procs;		// mrbc_proc[rprocs], linked list
 #ifdef MRBC_DEBUG
     const char    	*name;		// for debug. TODO: remove
 #endif
+    mrbc_sym       	sym_id;		// class name
 } mrbc_class;
 
 #define GURU_PROC_C_FUNC 	0x80
@@ -115,10 +115,10 @@ typedef struct RClass {
 	unsigned int	flag:8;		\
 	unsigned int	refc:16
 
-typedef struct RString {
-	MRBC_OBJECT_HEADER;
+typedef struct RString {		// 16-byte
+	MRBC_OBJECT_HEADER;			// 4-byte
 
-	uint16_t 		size;		//!< string length.
+	uint32_t 		size;		//!< string length.
 	uint8_t  		*data;		//!< pointer to allocated buffer.
 } mrbc_string;
 
@@ -126,7 +126,7 @@ typedef struct RString {
 /*!@brief
   Guru instance object.
 */
-typedef struct RInstance {
+typedef struct RInstance {		// 24-byte
     MRBC_OBJECT_HEADER;
 
     struct RClass          *cls;
@@ -142,10 +142,9 @@ typedef struct RInstance {
 struct Irep;
 typedef void (*mrbc_func_t)(mrbc_object *v, int argc);
 
-typedef struct RProc {
+typedef struct RProc {		// 40-byte
     MRBC_OBJECT_HEADER;
 
-    mrbc_sym 	 sym_id;
     struct RProc *next;
     union {
         struct Irep *irep;
@@ -154,6 +153,7 @@ typedef struct RProc {
 #ifdef MRBC_DEBUG
     const char 	 *name;		// for debug; delete soon
 #endif
+    mrbc_sym 	 sym_id;
 } mrbc_proc;
 
 int session_init(guru_ses *ses, const char *rite_fname);
