@@ -58,7 +58,7 @@ int mrbc_hash_size(const mrbc_value *hash) {
 __GURU__
 int mrbc_hash_resize(mrbc_value *hash, int size)
 {
-    return mrbc_array_resize(hash, size * 2);
+    return mrbc_array_resize(hash->array, size * 2);
 }
 
 //================================================================

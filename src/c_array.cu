@@ -24,7 +24,6 @@
 #include "opcode.h"
 #include "class.h"
 
-#include "errorcode.h"
 #include "object.h"
 #include "c_array.h"
 #include "c_string.h"
@@ -40,17 +39,17 @@
 
  (setter)
   --[name]-------------[arg]---[ret]-------------------------------------------
-    mrbc_array_set	*T	int
-    mrbc_array_push	*T	int
-    mrbc_array_unshift	*T	int
-    mrbc_array_insert	*T	int
+    mrbc_array_set		*T		int
+    mrbc_array_push		*T		int
+    mrbc_array_unshift	*T		int
+    mrbc_array_insert	*T		int
 
  (getter)
   --[name]-------------[arg]---[ret]---[note]----------------------------------
-    mrbc_array_get		T	Data remains in the container
-    mrbc_array_pop		T	Data does not remain in the container
-    mrbc_array_shift		T	Data does not remain in the container
-    mrbc_array_remove		T	Data does not remain in the container
+    mrbc_array_get		T		Data remains in the container
+    mrbc_array_pop		T		Data does not remain in the container
+    mrbc_array_shift	T		Data does not remain in the container
+    mrbc_array_remove	T		Data does not remain in the container
 
  (others)
     mrbc_array_resize
@@ -83,7 +82,7 @@ mrbc_value mrbc_array_new(int size)
     /*
       Allocate handle and data buffer.
     */
-    mrbc_array *h = (mrbc_array *)mrbc_alloc(sizeof(mrbc_array));
+    mrbc_array *h 	 = (mrbc_array *)mrbc_alloc(sizeof(mrbc_array));
     if (!h) return value;	// ENOMEM
 
     mrbc_value *data = (mrbc_value *)mrbc_alloc(sizeof(mrbc_value) * size);
@@ -110,14 +109,12 @@ mrbc_value mrbc_array_new(int size)
 __GURU__
 void mrbc_array_delete(mrbc_value *ary)
 {
-    mrbc_array *h = ary->array;
-
-    mrbc_value *p1 = h->data;
-    const mrbc_value *p2 = p1 + h->n_stored;
-    while(p1 < p2) {
-        mrbc_dec_refc(p1++);
+    mrbc_array 		 *h  = ary->array;
+    mrbc_value       *p0 = h->data;
+    const mrbc_value *p1 = p0 + h->n_stored;
+    while(p0 < p1) {
+        mrbc_release(p0++);
     }
-
     mrbc_free(h->data);
     mrbc_free(h);
 }
@@ -130,20 +127,38 @@ void mrbc_array_delete(mrbc_value *ary)
   @return	mrbc_error_code
 */
 __GURU__
-int mrbc_array_resize(mrbc_value *ary, int size)
+int mrbc_array_resize(mrbc_array *h, int size)
 {
-    mrbc_array *h = ary->array;
+	assert(size > h->data_size);
 
     mrbc_value *data2 = (mrbc_value *)mrbc_realloc(h->data, sizeof(mrbc_value) * size);
-    if (!data2) return E_NOMEMORY_ERROR;	// ENOMEM
+    if (!data2) return -1;
 
-    h->data = data2;
+    h->data      = data2;
     h->data_size = size;
 
     return 0;
 }
 
+__GURU__
+int _adjust_index(mrbc_array *h, int idx, int inc)
+{
+    if (idx < 0) {
+        idx = h->n_stored + idx + inc;
+        assert(idx>=0);
+    }
+    // need resize?
+    int ndx = idx;
+    if ((ndx + inc) >= h->data_size) {
+        ndx += inc;
+    }
+    if ((h->n_stored + inc) > h->data_size) {
+        ndx = h->n_stored + inc;
+    }
+    if (ndx>idx && mrbc_array_resize(h, ndx) != 0) return -1;
 
+    return ndx;
+}
 //================================================================
 /*! setter
 
@@ -157,28 +172,18 @@ int mrbc_array_set(mrbc_value *ary, int idx, mrbc_value *set_val)
 {
     mrbc_array *h = ary->array;
 
-    if (idx < 0) {
-        idx = h->n_stored + idx;
-        if (idx < 0) return E_INDEX_ERROR;		// raise?
-    }
-
-    // need resize?
-    if (idx >= h->data_size && mrbc_array_resize(ary, idx + 1) != 0) {
-        return E_NOMEMORY_ERROR;			// ENOMEM
-    }
+    idx = _adjust_index(h, idx, 0);				// adjust index if needed
+    if (idx<0) return -1;						// allocation error
 
     if (idx < h->n_stored) {
-        // release existing data.
-        mrbc_dec_refc(&h->data[idx]);
-    } else {
-        // clear empty cells.
-        int i;
-        for(i = h->n_stored; i < idx; i++) {
-            h->data[i] = mrbc_nil_value();
-        }
-        h->n_stored = idx + 1;
+        mrbc_release(&h->data[idx]);			// release existing data
     }
-
+    else {
+        for(int i=h->n_stored; i<idx; i++) {	// lazy fill here, instead of when resized
+            h->data[i] = mrbc_nil_value();		// prep newly allocated cells
+        }
+        h->n_stored = idx;
+    }
     h->data[idx] = *set_val;
 
     return 0;
@@ -216,10 +221,10 @@ int mrbc_array_push(mrbc_value *ary, mrbc_value *set_val)
 
     if (h->n_stored >= h->data_size) {
         int size = h->data_size + 6;
-        if (mrbc_array_resize(ary, size) != 0)
-            return E_NOMEMORY_ERROR;		// ENOMEM
+        if (mrbc_array_resize(h, size) != 0) {
+            return -1;
+        }
     }
-
     h->data[h->n_stored++] = *set_val;
 
     return 0;
@@ -267,7 +272,7 @@ mrbc_value mrbc_array_shift(mrbc_value *ary)
     if (h->n_stored <= 0) return mrbc_nil_value();
 
     mrbc_value ret = h->data[0];
-    MEMCPY((uint8_t *)h->data, (uint8_t *)h->data+1, sizeof(mrbc_value) * --h->n_stored);
+    MEMCPY((uint8_t *)h->data, (uint8_t *)(h->data+1), sizeof(mrbc_value)*--h->n_stored);
 
     return ret;
 }
@@ -285,26 +290,13 @@ int mrbc_array_insert(mrbc_value *ary, int idx, mrbc_value *set_val)
 {
     mrbc_array *h = ary->array;
 
-    if (idx < 0) {
-        idx = h->n_stored + idx + 1;
-        if (idx < 0) return E_INDEX_ERROR;		// raise?
-    }
-
-    // need resize?
-    int size = 0;
-    if (idx >= h->data_size) {
-        size = idx + 1;
-    } else if (h->n_stored >= h->data_size) {
-        size = h->data_size + 1;
-    }
-    if (size && mrbc_array_resize(ary, size) != 0) {
-        return E_NOMEMORY_ERROR;			// ENOMEM
-    }
+    int size = _adjust_index(h, idx, 1);
+    if (size < 0) return -1;
 
     // move datas.
     if (idx < h->n_stored) {
-        MEMCPY((uint8_t *)h->data + idx + 1, (uint8_t *)h->data + idx,
-                sizeof(mrbc_value) * (h->n_stored - idx));
+    	int blksz = sizeof(mrbc_value)*(h->n_stored - idx);
+        MEMCPY((uint8_t *)(h->data + idx + 1),(uint8_t *)(h->data + idx), blksz);	// shift
     }
 
     // set data
@@ -312,14 +304,12 @@ int mrbc_array_insert(mrbc_value *ary, int idx, mrbc_value *set_val)
     h->n_stored++;
 
     // clear empty cells if need.
-    if (idx >= h->n_stored) {
-        int i;
-        for(i = h->n_stored-1; i < idx; i++) {
+    if (size >= h->n_stored) {
+        for(int i = h->n_stored-1; i < size; i++) {
             h->data[i] = mrbc_nil_value();
         }
-        h->n_stored = idx + 1;
+        h->n_stored = size;
     }
-
     return 0;
 }
 
@@ -341,8 +331,8 @@ mrbc_value mrbc_array_remove(mrbc_value *ary, int idx)
     mrbc_value val = h->data[idx];
     h->n_stored--;
     if (idx < h->n_stored) {
-        MEMCPY((uint8_t *)h->data + idx, (uint8_t *)h->data + idx + 1,
-                sizeof(mrbc_value) * (h->n_stored - idx));
+    	int blksz = sizeof(mrbc_value) * (h->n_stored - idx);
+        MEMCPY((uint8_t *)(h->data + idx), (uint8_t *)(h->data + idx + 1), blksz);
     }
 
     return val;

@@ -36,8 +36,9 @@ typedef struct RArray {
 __GURU__ mrbc_value mrbc_array_new(int size);
 __GURU__ void       mrbc_array_delete(mrbc_value *ary);
 
+__GURU__ int        mrbc_array_resize(mrbc_array *h, int size);
+
 __GURU__ int        mrbc_array_size(const mrbc_value *ary);
-__GURU__ int        mrbc_array_resize(mrbc_value *ary, int size);
 __GURU__ int        mrbc_array_set(mrbc_value *ary, int idx, mrbc_value *set_val);
 __GURU__ mrbc_value mrbc_array_get(mrbc_value *ary, int idx);
 __GURU__ int        mrbc_array_push(mrbc_value *ary, mrbc_value *set_val);
