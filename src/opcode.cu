@@ -130,7 +130,7 @@ void _vm_proc_call(mrbc_vm *vm, mrbc_value v[], int argc)
 __GURU__
 void _vm_object_new(mrbc_vm *vm, mrbc_value v[], int argc)
 {
-    mrbc_value obj = mrbc_instance_new(v->cls, 0);
+    mrbc_value obj = mrbc_instance_new(v[0].cls, 0);
     char sym[] = "______initialize";
 
     _uint32_to_bin(1, (uint8_t*)&sym[0]);		// setup symbol table

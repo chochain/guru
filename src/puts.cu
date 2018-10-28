@@ -53,13 +53,15 @@ int mrbc_print_sub(mrbc_value *v)
     case MRBC_TT_OBJECT:
     	console_str("#<");
     	console_str(symid2name(mrbc_get_class_by_object(v)->sym_id));
-        console_str(":0x");
-        console_hex((mrbc_int)v->self);
+        console_str(":");
+        console_hex((uintptr_t)v->self>>16);
+        console_hex((uintptr_t)v->self&0xffff);
         console_str(">");
         break;
     case MRBC_TT_PROC:
-    	console_str("#<Proc:0x");
-    	console_hex((mrbc_int)v->proc);
+    	console_str("#<Proc:");
+    	console_hex((uintptr_t)v->proc>>16);
+    	console_hex((uintptr_t)v->proc&0xffff);
     	break;
 #if MRBC_USE_STRING
     case MRBC_TT_STRING:

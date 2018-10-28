@@ -155,6 +155,22 @@ void console_printf(const char *fstr, ...)
 	n->fmt = (mrbc_vtype)i;
 }
 
+__GURU__
+void _dump_obj_size(void)
+{
+	console_str("\nvalue=");
+	console_int(sizeof(mrbc_value));
+	console_str("\nrclass=");
+	console_int(sizeof(RClass));
+	console_str("\ninstance=");
+	console_int(sizeof(RInstance));
+    console_str("\nproc=");
+    console_int(sizeof(RProc));
+    console_str("\nstring=");
+    console_int(sizeof(RString));
+    console_str("\n");
+}
+
 __global__
 void guru_console_init(uint8_t *buf, size_t sz)
 {
@@ -162,6 +178,8 @@ void guru_console_init(uint8_t *buf, size_t sz)
 
 	guru_output = guru_output_ptr = buf;
 	guru_output_size = sz;
+
+//	_dump_obj_size();
 }
 
 #define NEXTNODE(n)	((guru_print_node *)(node->data + node->size))

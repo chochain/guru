@@ -169,7 +169,7 @@ __GURU__
 void c_object_neq(mrbc_value v[], int argc)
 {
     int result = mrbc_compare(&v[0], &v[1]);
-    SET_BOOL_RETURN(result != 0);
+    SET_BOOL_RETURN(result);
 }
 
 //================================================================
@@ -194,7 +194,7 @@ void c_object_equal3(mrbc_value v[], int argc)
     }
     else {
         int result = mrbc_compare(&v[0], &v[1]);
-        SET_BOOL_RETURN(result == 0);
+        SET_BOOL_RETURN(!result);
     }
 }
 
@@ -343,7 +343,8 @@ void c_object_to_s(mrbc_value v[], int argc)
     switch (v->tt) {
     case MRBC_TT_CLASS:  str = symid2name(v->cls->sym_id); break;
     case MRBC_TT_OBJECT:
-    	str = guru_sprintf(buf, "#<%s:%08x>", symid2name(v->cls->sym_id), (uintptr_t)v->self); break;
+    	str = symid2name(v->self->cls->sym_id);
+    	str = guru_sprintf(buf, "#<%s:%08x>", str, (uintptr_t)v->self); break;
     default: str = ""; break;
     }
     SET_RETURN(mrbc_string_new(str));

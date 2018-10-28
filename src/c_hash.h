@@ -37,7 +37,6 @@ typedef struct RHash {
     // TODO: and other member for search.
 } mrbc_hash;
 
-
 //================================================================
 /*!@brief
   Define Hash iterator.
