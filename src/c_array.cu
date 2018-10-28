@@ -519,7 +519,6 @@ void c_array_get(mrbc_value v[], int argc)
         SET_RETURN(ret);
         return;
     }
-
     /*
       in case of self[start, length] -> Array | nil
     */
@@ -546,7 +545,6 @@ void c_array_get(mrbc_value v[], int argc)
         SET_RETURN(ret);
         return;
     }
-
     /*
       other case
     */
@@ -612,11 +610,7 @@ void c_array_empty(mrbc_value v[], int argc)
 {
     int n = mrbc_array_size(v);
 
-    if (n) {
-        SET_FALSE_RETURN();
-    } else {
-        SET_TRUE_RETURN();
-    }
+    SET_BOOL_RETURN(!n);
 }
 
 //================================================================
@@ -657,9 +651,9 @@ void c_array_index(mrbc_value v[], int argc)
  */
 __GURU__ void c_array_first(mrbc_value v[], int argc)
 {
-    mrbc_value val = mrbc_array_get(v, 0);
-    mrbc_inc_refc(&val);
-    SET_RETURN(val);
+	mrbc_value val = mrbc_array_get(v, 0);
+	mrbc_inc_refc(&val);
+	SET_RETURN(val);
 }
 
 //================================================================
@@ -668,9 +662,9 @@ __GURU__ void c_array_first(mrbc_value v[], int argc)
 __GURU__
 void c_array_last(mrbc_value v[], int argc)
 {
-    mrbc_value val = mrbc_array_get(v, -1);
-    mrbc_inc_refc(&val);
-    SET_RETURN(val);
+	mrbc_value	val = mrbc_array_get(v, -1);
+	mrbc_inc_refc(&val);
+	SET_RETURN(val);
 }
 
 //================================================================
@@ -697,14 +691,12 @@ void c_array_pop(mrbc_value v[], int argc)
         SET_RETURN(val);
         return;
     }
-
     /*
       in case of pop(n) -> Array
     */
     if (argc==1 && v[1].tt==MRBC_TT_FIXNUM) {
         // TODO: not implement yet.
     }
-
     /*
       other case
     */

@@ -136,7 +136,7 @@ mrbc_class *mrbc_define_class(const char *name, mrbc_class *super)
 
     // register to global constant.
     mrbc_value v = { .tt = MRBC_TT_CLASS };
-    v.cls = cls;
+    v.cls    = cls;
     const_object_add(sym_id, &v);
 
     return cls;
