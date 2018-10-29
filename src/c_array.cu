@@ -21,6 +21,8 @@
 #include "static.h"
 
 #include "console.h"
+#include "sprintf.h"
+
 #include "opcode.h"
 #include "class.h"
 
@@ -78,20 +80,15 @@ __GURU__
 mrbc_value mrbc_array_new(int size)
 {
     mrbc_value value = {.tt = MRBC_TT_ARRAY};
-
-    /*
-      Allocate handle and data buffer.
-    */
-    mrbc_array *h 	 = (mrbc_array *)mrbc_alloc(sizeof(mrbc_array));
+    mrbc_array *h 	 = (mrbc_array *)mrbc_alloc(sizeof(mrbc_array));		// handle
     if (!h) return value;	// ENOMEM
 
-    mrbc_value *data = (mrbc_value *)mrbc_alloc(sizeof(mrbc_value) * size);
+    mrbc_value *data = (mrbc_value *)mrbc_alloc(sizeof(mrbc_value) * size);	// buffer
     if (!data) {			// ENOMEM
         mrbc_free(h);
         return value;
     }
-
-    h->refc      = 1;
+    h->refc      = 1;		// handle is referenced
     h->tt 		 = MRBC_TT_ARRAY;
     h->data_size = size;
     h->n_stored  = 0;
@@ -109,11 +106,10 @@ mrbc_value mrbc_array_new(int size)
 __GURU__
 void mrbc_array_delete(mrbc_value *ary)
 {
-    mrbc_array 		 *h  = ary->array;
-    mrbc_value       *p0 = h->data;
-    const mrbc_value *p1 = p0 + h->n_stored;
-    while(p0 < p1) {
-        mrbc_release(p0++);
+    mrbc_array *h = ary->array;
+    mrbc_value *p = h->data;
+    for (int i=0; i < h->n_stored; i++, p++) {
+    	mrbc_release(p);
     }
     mrbc_free(h->data);
     mrbc_free(h);
@@ -131,10 +127,10 @@ int mrbc_array_resize(mrbc_array *h, int size)
 {
 	assert(size > h->data_size);
 
-    mrbc_value *data2 = (mrbc_value *)mrbc_realloc(h->data, sizeof(mrbc_value) * size);
-    if (!data2) return -1;
+    mrbc_value *d2 = (mrbc_value *)mrbc_realloc(h->data, sizeof(mrbc_value) * size);
+    if (!d2) return -1;
 
-    h->data      = data2;
+    h->data      = d2;
     h->data_size = size;
 
     return 0;
@@ -184,7 +180,7 @@ int mrbc_array_set(mrbc_value *ary, int idx, mrbc_value *set_val)
         }
         h->n_stored = idx;
     }
-    h->data[idx] = *set_val;
+    h->data[idx] = *set_val;					// keep the same reference count
 
     return 0;
 }
@@ -204,7 +200,10 @@ mrbc_value mrbc_array_get(mrbc_value *ary, int idx)
     if (idx < 0) idx = h->n_stored + idx;
     if (idx < 0 || idx >= h->n_stored) return mrbc_nil_value();
 
-    return h->data[idx];
+    mrbc_value ret = h->data[idx];
+    mrbc_inc_refc(&ret);						// 20181029: CC Added
+
+    return ret;
 }
 
 //================================================================
@@ -242,6 +241,7 @@ mrbc_value mrbc_array_pop(mrbc_value *ary)
     mrbc_array *h = ary->array;
 
     if (h->n_stored <= 0) return mrbc_nil_value();
+
     return h->data[--h->n_stored];
 }
 
@@ -305,7 +305,7 @@ int mrbc_array_insert(mrbc_value *ary, int idx, mrbc_value *set_val)
 
     // clear empty cells if need.
     if (size >= h->n_stored) {
-        for(int i = h->n_stored-1; i < size; i++) {
+        for (int i = h->n_stored-1; i < size; i++) {
             h->data[i] = mrbc_nil_value();
         }
         h->n_stored = size;
@@ -318,7 +318,7 @@ int mrbc_array_insert(mrbc_value *ary, int idx, mrbc_value *set_val)
 
   @param  ary		pointer to target value
   @param  idx		index
-  @return		mrbc_value data at index position or Nil.
+  @return			mrbc_value data at index position or Nil.
 */
 __GURU__
 mrbc_value mrbc_array_remove(mrbc_value *ary, int idx)
@@ -328,14 +328,12 @@ mrbc_value mrbc_array_remove(mrbc_value *ary, int idx)
     if (idx < 0) idx = h->n_stored + idx;
     if (idx < 0 || idx >= h->n_stored) return mrbc_nil_value();
 
-    mrbc_value val = h->data[idx];
-    h->n_stored--;
-    if (idx < h->n_stored) {
+    mrbc_value *p = h->data + idx;
+    if (idx < --h->n_stored) {									// shrink by 1
     	int blksz = sizeof(mrbc_value) * (h->n_stored - idx);
-        MEMCPY((uint8_t *)(h->data + idx), (uint8_t *)(h->data + idx + 1), blksz);
+        MEMCPY((uint8_t *)p, (uint8_t *)(p+1), blksz);			// shift forward
     }
-
-    return val;
+    return *p;
 }
 
 //================================================================
@@ -347,13 +345,10 @@ __GURU__
 void mrbc_array_clear(mrbc_value *ary)
 {
     mrbc_array *h = ary->array;
-
-    mrbc_value *p1 = h->data;
-    const mrbc_value *p2 = p1 + h->n_stored;
-    while(p1 < p2) {
-        mrbc_dec_refc(p1++);
+    mrbc_value *p = h->data;
+    for (int i=0; i < h->n_stored; i++, p++) {
+    	mrbc_dec_refc(p);
     }
-
     h->n_stored = 0;
 }
 
@@ -367,15 +362,15 @@ void mrbc_array_clear(mrbc_value *ary)
   @retval minus	v1 <  v2
 */
 __GURU__
-int mrbc_array_compare(const mrbc_value *v1, const mrbc_value *v2)
+int mrbc_array_compare(const mrbc_value *v0, const mrbc_value *v1)
 {
-    int i;
-    for(i = 0; ; i++) {
-        if (i >= mrbc_array_size(v1) || i >= mrbc_array_size(v2)) {
-            return mrbc_array_size(v1) - mrbc_array_size(v2);
+	mrbc_value *d0 = v0->array->data;
+	mrbc_value *d1 = v1->array->data;
+    for (int i=0; ; i++) {
+        if (i >= mrbc_array_size(v0) || i >= mrbc_array_size(v1)) {
+            return mrbc_array_size(v0) - mrbc_array_size(v1);
         }
-
-        int res = mrbc_compare(&v1->array->data[i], &v2->array->data[i]);
+        int res = mrbc_compare(d0++, d1++);
         if (res != 0) return res;
     }
     return 0;
@@ -398,20 +393,13 @@ void mrbc_array_minmax(mrbc_value *ary, mrbc_value **pp_min_value, mrbc_value **
         *pp_max_value = NULL;
         return;
     }
-
     mrbc_value *p_min_value = h->data;
     mrbc_value *p_max_value = h->data;
-
-    int i;
-    for(i = 1; i < h->n_stored; i++) {
-        if (mrbc_compare(&h->data[i], p_min_value) < 0) {
-            p_min_value = &h->data[i];
-        }
-        if (mrbc_compare(&h->data[i], p_max_value) > 0) {
-            p_max_value = &h->data[i];
-        }
+    mrbc_value *p           = h->data;
+    for (int i = 1; i < h->n_stored; i++, p++) {
+        if (mrbc_compare(p, p_min_value) < 0) p_min_value = p;
+        if (mrbc_compare(p, p_max_value) > 0) p_max_value = p;
     }
-
     *pp_min_value = p_min_value;
     *pp_max_value = p_max_value;
 }
@@ -422,52 +410,34 @@ void mrbc_array_minmax(mrbc_value *ary, mrbc_value **pp_min_value, mrbc_value **
 __GURU__
 void c_array_new(mrbc_value v[], int argc)
 {
-    /*
-      in case of new()
-    */
-    if (argc==0) {
-        mrbc_value ret = mrbc_array_new(0);
+	mrbc_value ret;
+    if (argc==0) {													// in case of new()
+        ret = mrbc_array_new(0);
         if (ret.array==NULL) return;		// ENOMEM
-
-        SET_RETURN(ret);
-        return;
     }
-
-    /*
-      in case of new(num)
-    */
-    if (argc==1 && v[1].tt==MRBC_TT_FIXNUM && v[1].i >= 0) {
-        mrbc_value ret = mrbc_array_new(v[1].i);
+    else if (argc==1 && v[1].tt==MRBC_TT_FIXNUM && v[1].i >= 0) {	// new(num)
+        ret = mrbc_array_new(v[1].i);
         if (ret.array==NULL) return;		// ENOMEM
 
         mrbc_value nil = mrbc_nil_value();
         if (v[1].i > 0) {
             mrbc_array_set(&ret, v[1].i - 1, &nil);
         }
-        SET_RETURN(ret);
-        return;
     }
-
-    /*
-      in case of new(num, value)
-    */
-    if (argc==2 && v[1].tt==MRBC_TT_FIXNUM && v[1].i >= 0) {
-        mrbc_value ret = mrbc_array_new(v[1].i);
+    else if (argc==2 && v[1].tt==MRBC_TT_FIXNUM && v[1].i >= 0) {	// new(num, value)
+        ret = mrbc_array_new(v[1].i);
         if (ret.array==NULL) return;		// ENOMEM
 
-        int i;
-        for(i = 0; i < v[1].i; i++) {
+        for (int i=0; i < v[1].i; i++) {
             mrbc_inc_refc(&v[2]);
             mrbc_array_set(&ret, i, &v[2]);
         }
-        SET_RETURN(ret);
-        return;
     }
-
-    /*
-      other case
-    */
-    console_str("ArgumentError\n");	// raise?
+    else {
+    	ret = mrbc_nil_value();
+        console_str("ArgumentError\n");	// raise?
+    }
+    SET_RETURN(ret);
 }
 
 //================================================================
@@ -484,24 +454,23 @@ void c_array_add(mrbc_value v[], int argc)
     mrbc_array *h0 = v[0].array;
     mrbc_array *h1 = v[1].array;
 
-    mrbc_value value = mrbc_array_new(h0->n_stored + h1->n_stored);
-    if (value.array==NULL) return;		// ENOMEM
+    mrbc_value ret = mrbc_array_new(h0->n_stored + h1->n_stored);
+    if (ret.array==NULL) return;		// ENOMEM
 
     int h0sz = sizeof(mrbc_value)*h0->n_stored;
     int h1sz = sizeof(mrbc_value)*h1->n_stored;
 
-    MEMCPY((uint8_t *)(value.array->data),        (const uint8_t *)h0->data, h0sz);
-    MEMCPY((uint8_t *)(value.array->data) + h0sz, (const uint8_t *)h1->data, h1sz);
-    value.array->n_stored = h0->n_stored + h1->n_stored;
+    MEMCPY((uint8_t *)(ret.array->data),        (const uint8_t *)h0->data, h0sz);
+    MEMCPY((uint8_t *)(ret.array->data) + h0sz, (const uint8_t *)h1->data, h1sz);
 
-    mrbc_value       *v0 = value.array->data;
-    const mrbc_value *v1 = v0 + value.array->n_stored;
-    while (v0 < v1) {			// v0 data referenced also by the new array now
-        mrbc_inc_refc(v0++);
+    int        n  = ret.array->n_stored = h0sz + h1sz;
+    mrbc_value *p = ret.array->data;
+    for (int i=0; i<n; i++, p++) {
+    	mrbc_inc_refc(p);
     }
-
     mrbc_release(v+1);			// dec_refc v[1], free if not needed
-    SET_RETURN(value);
+
+    SET_RETURN(ret);
 }
 
 //================================================================
@@ -510,49 +479,37 @@ void c_array_add(mrbc_value v[], int argc)
 __GURU__
 void c_array_get(mrbc_value v[], int argc)
 {
-    /*
-      in case of self[nth] -> object | nil
-    */
-    if (argc==1 && v[1].tt==MRBC_TT_FIXNUM) {
-        mrbc_value ret = mrbc_array_get(v, v[1].i);
-        mrbc_inc_refc(&ret);
-        SET_RETURN(ret);
-        return;
+	mrbc_value ret;
+    if (argc==1 && v[1].tt==MRBC_TT_FIXNUM) {			// self[n] -> object | nil
+        ret = mrbc_array_get(v, v[1].i);
     }
-    /*
-      in case of self[start, length] -> Array | nil
-    */
-    if (argc==2 && v[1].tt==MRBC_TT_FIXNUM && v[2].tt==MRBC_TT_FIXNUM) {
+    else if (argc==2 &&			 						// self[idx, len] -> Array | nil
+    		v[1].tt==MRBC_TT_FIXNUM &&
+    		v[2].tt==MRBC_TT_FIXNUM) {
         int len = mrbc_array_size(&v[0]);
         int idx = v[1].i;
         if (idx < 0) idx += len;
-        if (idx < 0) goto RETURN_NIL;
+        if (idx < 0) goto DONE;
 
         int size = (v[2].i < (len - idx)) ? v[2].i : (len - idx);
         // min(v[2].i, (len - idx))
-        if (size < 0) goto RETURN_NIL;
+        if (size < 0) goto DONE;
 
-        mrbc_value ret = mrbc_array_new(size);
+        ret = mrbc_array_new(size);
         if (ret.array==NULL) return;		// ENOMEM
 
-        int i;
-        for(i = 0; i < size; i++) {
+        for (int i = 0; i < size; i++) {
             mrbc_value val = mrbc_array_get(v, v[1].i + i);
-            mrbc_inc_refc(&val);
+            // mrbc_inc_refc(&val);         // CC: remove 20181029
             mrbc_array_push(&ret, &val);
         }
-
-        SET_RETURN(ret);
-        return;
     }
-    /*
-      other case
-    */
-    console_str("Not support such case in Array#[].\n");
-    return;
-
-RETURN_NIL:
-    SET_NIL_RETURN();
+    else {
+        console_str("Not support such case in Array#[].\n");
+    	ret = mrbc_nil_value();
+    }
+DONE:
+    SET_RETURN(ret);
 }
 
 //================================================================
@@ -561,26 +518,18 @@ RETURN_NIL:
 __GURU__
 void c_array_set(mrbc_value v[], int argc)
 {
-    /*
-      in case of self[nth] = val
-    */
-    if (argc==2 && v[1].tt==MRBC_TT_FIXNUM) {
-        mrbc_array_set(v, v[1].i, &v[2]);	// raise? IndexError or ENOMEM
+    if (argc==2 && v[1].tt==MRBC_TT_FIXNUM) {	// self[n] = val
+        mrbc_array_set(v, v[1].i, &v[2]);		// raise? IndexError or ENOMEM
         v[2].tt = MRBC_TT_EMPTY;
-        return;
     }
-
-    /*
-      in case of self[start, length] = val
-    */
-    if (argc==3 && v[1].tt==MRBC_TT_FIXNUM && v[2].tt==MRBC_TT_FIXNUM) {
+    else if (argc==3 &&							// self[n, len] = valu
+    		v[1].tt==MRBC_TT_FIXNUM &&
+    		v[2].tt==MRBC_TT_FIXNUM) {
         // TODO: not implement yet.
     }
-
-    /*
-      other case
-    */
-    console_str("Not support such case in Array#[].\n");
+    else {
+        console_str("Not support such case in Array#[].\n");
+    }
 }
 
 //================================================================
@@ -631,19 +580,16 @@ __GURU__
 void c_array_index(mrbc_value v[], int argc)
 {
     mrbc_value *value = &GET_ARG(1);
-    mrbc_value *data = v->array->data;
-    int n = v->array->n_stored;
-    int i;
-
-    for(i = 0; i < n; i++) {
-        if (mrbc_compare(&data[i], value)==0) break;
+    
+    mrbc_array *h = v->array;
+    mrbc_value *p = h->data;
+    for (int i = 0; i < h->n_stored; i++, p++) {
+        if (mrbc_compare(p, value)==0) {
+            SET_INT_RETURN(i);
+            return;
+        }
     }
-
-    if (i < n) {
-        SET_INT_RETURN(i);
-    } else {
-        SET_NIL_RETURN();
-    }
+    SET_NIL_RETURN();
 }
 
 //================================================================
@@ -652,7 +598,7 @@ void c_array_index(mrbc_value v[], int argc)
 __GURU__ void c_array_first(mrbc_value v[], int argc)
 {
 	mrbc_value val = mrbc_array_get(v, 0);
-	mrbc_inc_refc(&val);
+    //mrbc_inc_refc(&val)        // CC: removed 20181029
 	SET_RETURN(val);
 }
 
@@ -663,7 +609,7 @@ __GURU__
 void c_array_last(mrbc_value v[], int argc)
 {
 	mrbc_value	val = mrbc_array_get(v, -1);
-	mrbc_inc_refc(&val);
+    //mrbc_inc_refc(&val)        // CC: removed 20181029
 	SET_RETURN(val);
 }
 
@@ -683,24 +629,17 @@ void c_array_push(mrbc_value v[], int argc)
 __GURU__
 void c_array_pop(mrbc_value v[], int argc)
 {
-    /*
-      in case of pop() -> object | nil
-    */
-    if (argc==0) {
-        mrbc_value val = mrbc_array_pop(v);
-        SET_RETURN(val);
-        return;
+	mrbc_value ret;
+    if (argc==0) {									// pop() -> object | nil
+        ret = mrbc_array_pop(v);
+        SET_RETURN(ret);
     }
-    /*
-      in case of pop(n) -> Array
-    */
-    if (argc==1 && v[1].tt==MRBC_TT_FIXNUM) {
+    else if (argc==1 && v[1].tt==MRBC_TT_FIXNUM) {	// pop(n) -> Array | nil
         // TODO: not implement yet.
     }
-    /*
-      other case
-    */
-    console_str("Not support such case in Array#pop.\n");
+    else {
+    	console_str("Not support such case in Array#pop.\n");
+    }
 }
 
 //================================================================
@@ -722,23 +661,17 @@ void c_array_shift(mrbc_value v[], int argc)
     /*
       in case of pop() -> object | nil
     */
-    if (argc==0) {
-        mrbc_value val = mrbc_array_shift(v);
-        SET_RETURN(val);
-        return;
+	mrbc_value ret;
+    if (argc==0) {									// shift() -> object | nil
+        ret = mrbc_array_shift(v);
+        SET_RETURN(ret);
     }
-
-    /*
-      in case of pop(n) -> Array
-    */
-    if (argc==1 && v[1].tt==MRBC_TT_FIXNUM) {
+    else if (argc==1 && v[1].tt==MRBC_TT_FIXNUM) {	// shift() -> Array | nil
         // TODO: not implement yet.
     }
-
-    /*
-      other case
-    */
-    console_str("Not support such case in Array#shift.\n");
+    else {
+    	console_str("Not support such case in Array#shift.\n");
+    }
 }
 
 //================================================================
@@ -747,21 +680,19 @@ void c_array_shift(mrbc_value v[], int argc)
 __GURU__
 void c_array_dup(mrbc_value v[], int argc)
 {
-    mrbc_array *h = v[0].array;
+    mrbc_array *h0 = v[0].array;
+    mrbc_value ret = mrbc_array_new(h0->n_stored);
+    mrbc_array *h1 = ret.array;
+    if (!h1) return;		// ENOMEM
 
-    mrbc_value value = mrbc_array_new(h->n_stored);
-    if (value.array==NULL) return;		// ENOMEM
+    int n = h1->n_stored = h0->n_stored;
+    MEMCPY((uint8_t *)h1->data, (const uint8_t *)h0->data, n*sizeof(mrbc_value));
 
-    MEMCPY((uint8_t *)value.array->data, (const uint8_t *)h->data, sizeof(mrbc_value) * h->n_stored);
-    value.array->n_stored = h->n_stored;
-
-    mrbc_value *p1 = value.array->data;
-    const mrbc_value *p2 = p1 + value.array->n_stored;
-    while(p1 < p2) {
-        mrbc_inc_refc(p1++);
+    mrbc_value *p = h1->data;
+    for (int i=0; i<n; i++, p++) {
+        mrbc_inc_refc(p);
     }
-
-    SET_RETURN(value);
+    SET_RETURN(ret);
 }
 
 //================================================================
@@ -777,11 +708,11 @@ void c_array_min(mrbc_value v[], int argc)
     mrbc_array_minmax(&v[0], &p_min_value, &p_max_value);
     if (p_min_value==NULL) {
         SET_NIL_RETURN();
-        return;
     }
-
-    mrbc_inc_refc(p_min_value);
-    SET_RETURN(*p_min_value);
+    else {
+    	mrbc_inc_refc(p_min_value);       // CC: 20181029 needed?
+    	SET_RETURN(*p_min_value);
+    }
 }
 
 //================================================================
@@ -797,11 +728,11 @@ void c_array_max(mrbc_value v[], int argc)
     mrbc_array_minmax(&v[0], &p_min_value, &p_max_value);
     if (p_max_value==NULL) {
         SET_NIL_RETURN();
-        return;
     }
-
-    mrbc_inc_refc(p_max_value);
-    SET_RETURN(*p_max_value);
+    else {
+    	mrbc_inc_refc(p_max_value);        // CC: 20181029 needed?
+    	SET_RETURN(*p_max_value);
+    }
 }
 
 //================================================================
@@ -833,28 +764,25 @@ void c_array_minmax(mrbc_value v[], int argc)
 /*! (method) inspect
  */
 __GURU__
-void c_array_inspect(mrbc_value v[], int argc)
+void c_array_to_s(mrbc_value v[], int argc)
 {
     mrbc_value ret = mrbc_string_new("[");
-    if (!ret.str) goto RETURN_NIL;		// ENOMEM
-
-    int i;
-    for(i = 0; i < mrbc_array_size(v); i++) {
+    if (!ret.str) {
+    	SET_NIL_RETURN();
+    	return;
+    }
+    for (int i = 0; i < mrbc_array_size(v); i++) {
         if (i != 0) mrbc_string_append_cstr(&ret, ", ");
 
         mrbc_value v1 = mrbc_array_get(v, i);
-        mrbc_value s1 = mrbc_send(v, argc, &v1, "inspect", 0);
+        mrbc_value s1 = mrbc_send(v+argc, &v1, "inspect", 0);
         mrbc_string_append(&ret, &s1);
-        mrbc_string_delete(&s1);
+        mrbc_string_delete(&s1);           // CC: added 20181029
+        mrbc_release(&v1);                 // CC: added 20181029
     }
-
     mrbc_string_append_cstr(&ret, "]");
 
     SET_RETURN(ret);
-    return;
-
-RETURN_NIL:
-    SET_NIL_RETURN();
 }
 
 //================================================================
@@ -867,17 +795,17 @@ void c_array_join_1(mrbc_value v[], int argc,
     if (mrbc_array_size(src)==0) return;
 
     int i = 0;
-    int flag_error = 0;
-    while(!flag_error) {
+    int error = 0;
+    while (!error) {
         if (src->array->data[i].tt==MRBC_TT_ARRAY) {
             c_array_join_1(v, argc, &src->array->data[i], ret, separator);
         } else {
-            mrbc_value v1 = mrbc_send(v, argc, &src->array->data[i], "to_s", 0);
-            flag_error |= mrbc_string_append(ret, &v1);
-            mrbc_dec_refc(&v1);
+            mrbc_value s1 = mrbc_send(v+argc, &src->array->data[i], "inspect", 0);
+            error |= mrbc_string_append(ret, &s1);
+            mrbc_string_delete(&s1);
         }
         if (++i >= mrbc_array_size(src)) break;	// normal return.
-        flag_error |= mrbc_string_append(ret, separator);
+        error |= mrbc_string_append(ret, separator);
     }
 }
 
@@ -891,13 +819,12 @@ void c_array_join(mrbc_value v[], int argc)
     }
     mrbc_value separator = (argc==0)
     		? mrbc_string_new("")
-    		: mrbc_send(v, argc, &v[1], "to_s", 0);
+    		: mrbc_send(v+argc, &v[1], "inspect", 0);
 
     c_array_join_1(v, argc, &v[0], &ret, &separator);
     mrbc_dec_refc(&separator);
 
     SET_RETURN(ret);
-    return;
 }
 #endif
 
@@ -933,8 +860,8 @@ void mrbc_init_class_array()
     mrbc_define_method(c, "max",       c_array_max);
     mrbc_define_method(c, "minmax",    c_array_minmax);
 #if MRBC_USE_STRING
-    mrbc_define_method(c, "inspect",   c_array_inspect);
-    mrbc_define_method(c, "to_s",      c_array_inspect);
+    mrbc_define_method(c, "inspect",   c_array_to_s);
+    mrbc_define_method(c, "to_s",      c_array_to_s);
     mrbc_define_method(c, "join",      c_array_join);
 #endif
 }
