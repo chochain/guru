@@ -14,10 +14,11 @@
 #include "alloc.h"
 #include "static.h"
 #include "symbol.h"
-#include "errorcode.h"
-#include "console.h"
 #include "class.h"
+
+#include "console.h"
 #include "sprintf.h"
+
 #include "c_string.h"
 
 #if MRBC_USE_ARRAY
@@ -136,7 +137,7 @@ mrbc_value mrbc_string_dup(mrbc_value *v0)
 {
     mrbc_string *h0 = v0->str;
 
-    mrbc_value v1 = _mrbc_string_new(NULL, h0->size);
+    mrbc_value v1 = _mrbc_string_new(NULL, h0->size);		// refc already set to 1
     if (v1.str==NULL) return v1;		// ENOMEM
 
     MEMCPY(v1.str->data, h0->data, h0->size + 1);
@@ -181,8 +182,8 @@ int mrbc_string_append(mrbc_value *v1, const mrbc_value *v2)
     int len1 = v1->str->size;
     int len2 = (v2->tt==MRBC_TT_STRING) ? v2->str->size : 1;
 
-    uint8_t *str = (uint8_t *)mrbc_realloc(v1->str->data, len1+len2+1);
-    if (!str) return E_NOMEMORY_ERROR;
+    uint8_t *str = (uint8_t *)mrbc_realloc(v1->str->data, len1+len2+1);		// +'\0'
+    if (!str) return -1;
 
     if (v2->tt==MRBC_TT_STRING) {
         MEMCPY((uint8_t *)str + len1, v2->str->data, len2 + 1);
@@ -211,7 +212,7 @@ int mrbc_string_append_cstr(mrbc_value *v1, const char *v2)
     int len2 = STRLEN(v2);
 
     uint8_t *str = (uint8_t *)mrbc_realloc(v1->str->data, len1+len2+1);
-    if (!str) return E_NOMEMORY_ERROR;
+    if (!str) return -1;
 
     MEMCPY(str + len1, (uint8_t *)v2, len2 + 1);
 
@@ -232,16 +233,16 @@ int mrbc_string_append_cstr(mrbc_value *v1, const char *v2)
 __GURU__
 int mrbc_string_index(const mrbc_value *v, const mrbc_value *pattern, int offset)
 {
-    char *p1 = VSTR(v) + offset;
-    char *p2 = VSTR(pattern);
+    char *p0 = VSTR(v) + offset;
+    char *p1 = VSTR(pattern);
     int try_cnt = VSTRLEN(v) - VSTRLEN(pattern) - offset;
 
     while (try_cnt >= 0) {
-        if (MEMCMP((uint8_t *)p1, (uint8_t *)p2, VSTRLEN(pattern))==0) {
+        if (MEMCMP((uint8_t *)p0, (uint8_t *)p1, VSTRLEN(pattern))==0) {
             return p1 - VSTR(v);	// matched.
         }
         try_cnt--;
-        p1++;
+        p0++;
     }
     return -1;
 }
@@ -256,29 +257,29 @@ int mrbc_string_index(const mrbc_value *v, const mrbc_value *pattern, int offset
 __GURU__
 int mrbc_string_strip(mrbc_value *v, int mode)
 {
-    char *p1 = VSTR(v);
-    char *p2 = p1 + VSTRLEN(v) - 1;
+    char *p0 = VSTR(v);
+    char *p1 = p0 + VSTRLEN(v) - 1;
 
     // left-side
     if (mode & 0x01) {
-        while (p1 <= p2) {
-            if (*p1=='\0') break;
-            if (!_is_space(*p1)) break;
-            p1++;
+        while (p0 <= p1) {
+            if (*p0=='\0') break;
+            if (!_is_space(*p0)) break;
+            p0++;
         }
     }
     // right-side
     if (mode & 0x02) {
-        while (p1 <= p2) {
-            if (!_is_space(*p2)) break;
-            p2--;
+        while (p0 <= p1) {
+            if (!_is_space(*p1)) break;
+            p1--;
         }
     }
-    int new_size = p2 - p1 + 1;
+    int new_size = p1 - p0 + 1;
     if (VSTRLEN(v)==new_size) return 0;
 
     char *buf = VSTR(v);
-    if (p1 != buf) MEMCPY((uint8_t *)buf, (uint8_t *)p1, new_size);
+    if (p0 != buf) MEMCPY((uint8_t *)buf, (uint8_t *)p0, new_size);
     buf[new_size] = '\0';
 
     mrbc_realloc((uint8_t *)buf, new_size+1);	// shrink suitable size.
@@ -296,13 +297,13 @@ int mrbc_string_strip(mrbc_value *v, int mode)
 __GURU__
 int mrbc_string_chomp(mrbc_value *v)
 {
-    char *p1 = VSTR(v);
-    char *p2 = p1 + VSTRLEN(v) - 1;
+    char *p0 = VSTR(v);
+    char *p1 = p0 + VSTRLEN(v) - 1;
 
-    if (*p2=='\n') p2--;
-    if (*p2=='\r') p2--;
+    if (*p1=='\n') p1--;
+    if (*p1=='\r') p1--;
 
-    int new_size = p2 - p1 + 1;
+    int new_size = p1 - p0 + 1;
     if (VSTRLEN(v)==new_size) return 0;
 
     char *buf = VSTR(v);
@@ -409,10 +410,7 @@ void c_string_slice(mrbc_value v[], int argc)
     mrbc_value *v1 = &v[1];
     mrbc_value *v2 = &v[2];
 
-    /*
-      in case of slice(nth) -> String | nil
-    */
-    if (argc==1 && v1->tt==MRBC_TT_FIXNUM) {
+    if (argc==1 && v1->tt==MRBC_TT_FIXNUM) {		// slice(n) -> String | nil
         int len = v->str->size;
         int idx = v1->i;
         int ch = -1;
@@ -429,19 +427,14 @@ void c_string_slice(mrbc_value v[], int argc)
         if (ch < 0) goto RETURN_NIL;
 
         mrbc_value value = _mrbc_string_new(NULL, 1);
-        if (!value.str) goto RETURN_NIL;		// ENOMEM
+        if (!value.str) goto RETURN_NIL;
 
         value.str->data[0] = ch;
         value.str->data[1] = '\0';
 
         SET_RETURN(value);
-        return;		// normal return
     }
-
-    /*
-      in case of slice(nth, len) -> String | nil
-    */
-    if (argc==2 && v1->tt==MRBC_TT_FIXNUM && v2->tt==MRBC_TT_FIXNUM) {
+    else if (argc==2 && v1->tt==MRBC_TT_FIXNUM && v2->tt==MRBC_TT_FIXNUM) { 	// slice(n, len) -> String | nil
         int len = v->str->size;
         int idx = v1->i;
         if (idx < 0) idx += len;
@@ -455,17 +448,14 @@ void c_string_slice(mrbc_value v[], int argc)
         if (!value.str) goto RETURN_NIL;		// ENOMEM
 
         SET_RETURN(value);
-        return;		// normal return
     }
-    /*
-      other case
-    */
-    console_str("Not support such case in String#[].\n");
+    else {
+    	console_str("Not support such case in String#[].\n");
+    }
     return;
 
-
 RETURN_NIL:
-    SET_NIL_RETURN();
+	SET_NIL_RETURN();
 }
 
 //================================================================
@@ -478,20 +468,14 @@ void c_string_insert(mrbc_value v[], int argc)
     int len;
     mrbc_value *val;
 
-    /*
-      in case of self[nth] = val
-    */
-    if (argc==2 &&
+    if (argc==2 &&								// self[n] = val
         v[1].tt==MRBC_TT_FIXNUM &&
         v[2].tt==MRBC_TT_STRING) {
         nth = v[1].i;
         len = 1;
         val = &v[2];
     }
-    /*
-      in case of self[nth, len] = val
-    */
-    else if (argc==3 &&
+    else if (argc==3 &&							// self[n, len] = val
              v[1].tt==MRBC_TT_FIXNUM &&
              v[2].tt==MRBC_TT_FIXNUM &&
              v[3].tt==MRBC_TT_STRING) {
@@ -499,9 +483,6 @@ void c_string_insert(mrbc_value v[], int argc)
         len = v[2].i;
         val = &v[3];
     }
-    /*
-      other cases
-    */
     else {
         console_str("Not support\n");
         return;
@@ -572,13 +553,13 @@ void c_string_index(mrbc_value v[], int argc)
 
     if (argc==1) {
         offset = 0;
-
-    } else if (argc==2 && v[2].tt==MRBC_TT_FIXNUM) {
+    }
+    else if (argc==2 && v[2].tt==MRBC_TT_FIXNUM) {
         offset = v[2].i;
         if (offset < 0) offset += VSTRLEN(&v[0]);
         if (offset < 0) goto NIL_RETURN;
-
-    } else {
+    }
+    else {
         goto NIL_RETURN;	// raise? ArgumentError
     }
 
@@ -729,6 +710,7 @@ void c_string_split(mrbc_value v[], int argc)
 
             mrbc_array_remove(&ret, idx);
             mrbc_string_delete(&v1);
+            mrbc_release(&v1);                 // CC: added 20181029
         }
     }
 

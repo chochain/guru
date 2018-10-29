@@ -59,7 +59,7 @@ mrbc_value mrbc_range_new(mrbc_value *first, mrbc_value *last, int exclude_end)
     mrbc_value value = {.tt = MRBC_TT_RANGE};
 
     value.range = (mrbc_range *)mrbc_alloc(sizeof(mrbc_range));
-    if(!value.range) return value;		// ENOMEM
+    if (!value.range) return value;		// ENOMEM
 
     if (exclude_end) value.range->flag |= EXCLUDE_END;
     else		     value.range->flag &= ~EXCLUDE_END;
@@ -94,10 +94,10 @@ int mrbc_range_compare(const mrbc_value *v1, const mrbc_value *v2)
     int res;
 
     res = mrbc_compare(&v1->range->first, &v2->range->first);
-    if(res != 0) return res;
+    if (res != 0) return res;
 
     res = mrbc_compare(&v1->range->last, &v2->range->last);
-    if(res != 0) return res;
+    if (res != 0) return res;
 
     return (int)IS_EXCLUDE_END(v2->range) - (int)IS_EXCLUDE_END(v1->range);
 }
@@ -108,15 +108,15 @@ int mrbc_range_compare(const mrbc_value *v1, const mrbc_value *v2)
 __GURU__
 void c_range_equal3(mrbc_value v[], int argc)
 {
-    if(v[0].tt == MRBC_TT_CLASS) {
-        mrbc_value result = mrbc_send(v, argc, &v[1], "kind_of?", 1, &v[0]);
+    if (v[0].tt == MRBC_TT_CLASS) {
+        mrbc_value result = mrbc_send(v+argc, &v[1], "kind_of?", 1, &v[0]);
         SET_RETURN(result);
         return;
     }
 
     int cmp_first = mrbc_compare(&v[0].range->first, &v[1]);
     int result = (cmp_first <= 0);
-    if(!result) {
+    if (!result) {
         SET_BOOL_RETURN(result);
         return;
     }
@@ -165,16 +165,15 @@ __GURU__
 void c_range_inspect(mrbc_value v[], int argc)
 {
     mrbc_value ret = mrbc_string_new(NULL);
-    if(!ret.str) {
+    if (!ret.str) {
         SET_NIL_RETURN();
         return;
     }
 
-    int i;
-    for(i = 0; i < 2; i++) {
-        if(i != 0) mrbc_string_append_cstr(&ret, "..");
+    for (int i = 0; i < 2; i++) {
+        if (i != 0) mrbc_string_append_cstr(&ret, "..");
         mrbc_value v1 = (i == 0) ? mrbc_range_first(v) : mrbc_range_last(v);
-        mrbc_value s1 = mrbc_send(v, argc, &v1, "inspect", 0);
+        mrbc_value s1 = mrbc_send(v+argc, &v1, "inspect", 0);
         mrbc_string_append(&ret, &s1);
         mrbc_string_delete(&s1);
     }

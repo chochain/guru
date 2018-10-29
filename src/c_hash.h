@@ -49,15 +49,7 @@ typedef struct RHashIterator {
 
 __GURU__ mrbc_value mrbc_hash_new(int size);
 __GURU__ void       mrbc_hash_delete(mrbc_value *hash);
-
-__GURU__ mrbc_value *mrbc_hash_search(const mrbc_value *hash, const mrbc_value *key);
-__GURU__ int        mrbc_hash_set(mrbc_value *hash, mrbc_value *key, mrbc_value *val);
-__GURU__ mrbc_value mrbc_hash_get(mrbc_value *hash, mrbc_value *key);
-__GURU__ mrbc_value mrbc_hash_remove(mrbc_value *hash, mrbc_value *key);
-__GURU__ void       mrbc_hash_clear(mrbc_value *hash);
-
 __GURU__ int        mrbc_hash_compare(const mrbc_value *v1, const mrbc_value *v2);
-__GURU__ mrbc_value mrbc_hash_dup(mrbc_value *src);
 
 __GURU__ mrbc_hash_iterator mrbc_hash_iterator_new(mrbc_value *v);
 __GURU__ int        mrbc_hash_i_has_next(mrbc_hash_iterator *ite);
