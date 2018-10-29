@@ -54,7 +54,7 @@
 
 #define NEXT(p) 		((uint8_t *)(p) + (p)->size)
 #define PREV(p) 		((uint8_t *)(p) - (p)->offset)
-#define OFF(p1,p2) 		((uint8_t *)(p2) - (uint8_t *)(p1))
+#define OFF(p0,p1) 		((uint8_t *)(p1) - (uint8_t *)(p0))
 
 // memory pool
 __GURU__ unsigned int 	memory_pool_size;
@@ -391,7 +391,7 @@ void * mrbc_realloc(void *ptr, unsigned int size)
     if (alloc_size > target->size) {
     	_merge_with_next((free_block *)target);
     }
-    if (alloc_size==target->size) {		// is the size the same now?
+    if (alloc_size==target->size) {							// is the size the same now?
         return ptr;
     }
     if (alloc_size < target->size) {	// need to split

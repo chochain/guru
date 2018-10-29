@@ -22,6 +22,7 @@ __GURU__ void  		mrbc_inc_refc(mrbc_value *v);
 __GURU__ void  		mrbc_release(mrbc_value *v);
 
 // for C call
+#define RESET_REG(v, n)		do { mrbc_release(v); *(v) = (n); } while (0)
 #define SET_RETURN(n)		do { mrbc_value nnn = (n); mrbc_dec_refc(v); v[0] = nnn; 	} while (0)
 #define SET_NIL_RETURN()	do { mrbc_dec_refc(v); v[0].tt = MRBC_TT_NIL;   			} while (0)
 

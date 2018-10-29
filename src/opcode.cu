@@ -164,14 +164,12 @@ void _vm_object_new(mrbc_vm *vm, mrbc_value v[], int argc)
     mrbc_irep 	*pc_irep0 	= vm->pc_irep;
 
     vm->pc 		= 0;
-//    vm->klass   = v->cls;	// needed?
     vm->pc_irep = &irep;
     vm->reg 	= v;
 
     mrbc_op(vm);
 
     vm->pc 		= pc0;
-//    vm->klass	= klass0;
     vm->reg 	= reg0;
     vm->pc_irep = pc_irep0;
 
@@ -212,10 +210,8 @@ int op_move(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     int ra = GETARG_A(code);
     int rb = GETARG_B(code);
 
-    mrbc_release(&regs[ra]);
-
     mrbc_inc_refc(&regs[rb]);
-    regs[ra] = regs[rb];
+    RESET_REG(&regs[ra], regs[rb]);
 
     return 0;
 }
@@ -237,12 +233,10 @@ int op_loadl(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     int ra = GETARG_A(code);
     int rb = GETARG_Bx(code);
 
-    mrbc_release(&regs[ra]);
-
     // regs[ra] = vm->pc_irep->pool[rb];
 
     mrbc_object *obj = vm->pc_irep->pool[rb];
-    regs[ra] = *obj;
+    RESET_REG(&regs[ra], *obj);
 
     return 0;
 }
@@ -329,9 +323,8 @@ int op_loadself(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 {
     int ra = GETARG_A(code);
 
-    mrbc_release(&regs[ra]);
     mrbc_inc_refc(&regs[0]);       // TODO: Need?
-    regs[ra] = regs[0];
+    RESET_REG(&regs[ra], regs[0]);
 
     return 0;
 }
@@ -395,9 +388,8 @@ int op_getglobal(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     int ra = GETARG_A(code);
     int rb = GETARG_Bx(code);
 
-    mrbc_release(&regs[ra]);
-
-    regs[ra] = global_object_get(_get_symid(vm->pc_irep->sym, rb));
+    mrbc_value v = global_object_get(_get_symid(vm->pc_irep->sym, rb));
+    RESET_REG(&regs[ra], v);
 
     return 0;
 }
@@ -448,8 +440,7 @@ int op_getiv(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 
     mrbc_value val = mrbc_instance_getiv(&regs[0], sym_id);
 
-    mrbc_release(&regs[ra]);
-    regs[ra] = val;
+    RESET_REG(&regs[ra], val);
 
     return 0;
 }
@@ -496,8 +487,8 @@ int op_getconst(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     int ra = GETARG_A(code);
     int rb = GETARG_Bx(code);
 
-    mrbc_release(&regs[ra]);
-    regs[ra] = const_object_get(_get_symid(vm->pc_irep->sym, rb));
+    mrbc_value v = const_object_get(_get_symid(vm->pc_irep->sym, rb));
+    RESET_REG(&regs[ra], v);
 
     return 0;
 }
@@ -551,9 +542,8 @@ int op_getupvar(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 
     mrbc_value *up_regs = ci->reg;
 
-    mrbc_release(&regs[ra]);
     mrbc_inc_refc(&up_regs[rb]);
-    regs[ra] = up_regs[rb];
+    RESET_REG(&regs[ra], up_regs[rb]);
 
     return 0;
 }
@@ -587,10 +577,8 @@ int op_setupvar(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 
     mrbc_value *up_regs = ci->reg;
 
-    mrbc_release(&up_regs[rb]);
     mrbc_inc_refc(&regs[ra]);
-
-    up_regs[rb] = regs[ra];    // update outer-scope vars
+    RESET_REG(&up_regs[rb], regs[ra]);    // update outer-scope vars
 
     return 0;
 }
@@ -682,7 +670,7 @@ int op_send(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     int rc = GETARG_C(code);  // number of params
     mrbc_value rcv = regs[ra];
 
-    // Block param
+    // Clear block param (needed ?)
     int bidx = ra + rc + 1;
     switch(GET_OPCODE(code)) {
     case OP_SEND:
@@ -690,7 +678,6 @@ int op_send(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
         mrbc_release(&regs[bidx]);
         regs[bidx].tt = MRBC_TT_NIL;
         break;
-
     case OP_SENDB:
         // set Proc object
         if (regs[bidx].tt != MRBC_TT_NIL && regs[bidx].tt != MRBC_TT_PROC){
@@ -700,9 +687,7 @@ int op_send(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
             return 0;
         }
         break;
-
-    default:
-        break;
+    default: break;
     }
 
 	mrbc_sym  sym_id = _get_symid(vm->pc_irep->sym, rb);
@@ -721,12 +706,9 @@ int op_send(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
         	_vm_object_new(vm, regs+ra, rc);
         }
         else {
-        	m->func(regs + ra, rc);					// call the C-func
-
-        	int release_reg = ra+1;
-            while (release_reg <= bidx) {
-                mrbc_release(&regs[release_reg]);
-                release_reg++;
+        	m->func(regs+ra, rc);					// call the C-func
+        	for (int i=ra+1; i<=bidx; i++) {		// clean up block parameters
+                mrbc_release(&regs[i]);
             }
         }
     }
@@ -737,6 +719,7 @@ int op_send(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     	vm->pc 		= 0;			// call into target context
     	vm->reg 	+= ra;			// add call stack (new register)
     }
+
     return 0;
 }
 
@@ -839,9 +822,8 @@ int op_blkpush(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
         return -1;  // EYIELD
     }
 
-    mrbc_release(&regs[ra]);
     mrbc_inc_refc(stack);
-    regs[ra] = stack[0];
+    RESET_REG(&regs[ra], stack[0]);
 
     return 0;
 }
@@ -887,6 +869,8 @@ int op_add(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     }
     // other case
     op_send(vm, code, regs);
+    mrbc_release(&regs[ra]);                // CC: added 20181029
+
     return 0;
 }
 
@@ -961,10 +945,10 @@ int op_sub(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
         }
 #endif
     }
-
     // other case
     op_send(vm, code, regs);
     mrbc_release(&regs[ra+1]);
+
     return 0;
 }
 
@@ -1040,10 +1024,10 @@ int op_mul(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
         }
 #endif
     }
-
     // other case
     op_send(vm, code, regs);
     mrbc_release(&regs[ra+1]);
+
     return 0;
 }
 
@@ -1086,10 +1070,10 @@ int op_div(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
         }
 #endif
     }
-
     // other case
     op_send(vm, code, regs);
     mrbc_release(&regs[ra+1]);
+
     return 0;
 }
 
@@ -1156,10 +1140,10 @@ int op_lt(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
         }
 #endif
     }
-
     // other case
     op_send(vm, code, regs);
     mrbc_release(&regs[ra+1]);
+
     return 0;
 
 DONE:
@@ -1206,10 +1190,10 @@ int op_le(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
         }
 #endif
     }
-
     // other case
     op_send(vm, code, regs);
     mrbc_release(&regs[ra+1]);
+
     return 0;
 
 DONE:
@@ -1256,10 +1240,10 @@ int op_gt(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
         }
 #endif
     }
-
     // other case
     op_send(vm, code, regs);
     mrbc_release(&regs[ra+1]);
+
     return 0;
 
 DONE:
@@ -1309,6 +1293,7 @@ int op_ge(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     // other case
     op_send(vm, code, regs);
     mrbc_release(&regs[ra+1]);
+
     return 0;
 
 DONE:
@@ -1343,9 +1328,7 @@ int op_string(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 
     if (value.str==NULL) return -1;		// ENOMEM
 
-    mrbc_release(&regs[ra]);
-    regs[ra] = value;
-
+    RESET_REG(&regs[ra], value);
 #else
     _not_support("string");
 #endif
@@ -1382,8 +1365,7 @@ int op_strcat(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     }
 
     mrbc_value v = mrbc_string_add(&regs[ra], &regs[rb]);
-    mrbc_release(&regs[ra]);
-    regs[ra] = v;
+    RESET_REG(&regs[ra], v);
 #else
     _not_support("string");
 #endif
@@ -1416,9 +1398,7 @@ int op_array(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     MEMSET((uint8_t *)&regs[rb], 0, sizeof(mrbc_value) * rc);
     value.array->n_stored = rc;
 
-    mrbc_release(&regs[ra]);
-    regs[ra] = value;
-
+    RESET_REG(&regs[ra], value);
 #else
     console_str("array not supported");
 #endif
@@ -1452,8 +1432,7 @@ int op_hash(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     MEMSET((uint8_t *)&regs[rb], 0, sizeof(mrbc_value) * rc);
     value.hash->n_stored = rc;
 
-    mrbc_release(&regs[ra]);
-    regs[ra] = value;
+    RESET_REG(&regs[ra], value);
 #else
     console_str("hash not supported");
 #endif
@@ -1485,8 +1464,7 @@ int op_range(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     mrbc_value value = mrbc_range_new(&regs[rb], &regs[rb+1], rc);
     if (value.range==NULL) return -1;		// ENOMEM
 
-    mrbc_release(&regs[ra]);
-    regs[ra] = value;
+    RESET_REG(&regs[ra], value);			// release and  reassign
 #else
     console_str("range not supported");
 #endif

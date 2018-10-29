@@ -226,11 +226,11 @@ int mrbc_kv_remove(mrbc_kv_handle *kvh, mrbc_sym sym_id)
 __GURU__
 void mrbc_kv_clear(mrbc_kv_handle *kvh)
 {
-    mrbc_kv *p1 = kvh->data;
-    const mrbc_kv *p2 = p1 + kvh->n_stored;
-    while (p1 < p2) {
-        mrbc_dec_refc(&p1->value);
-        p1++;
+    mrbc_kv       *p0 = kvh->data;
+    const mrbc_kv *p1 = p0 + kvh->n_stored;
+    while (p0 < p1) {
+        mrbc_dec_refc(&p0->value);
+        p0++;
     }
     kvh->n_stored = 0;
 }

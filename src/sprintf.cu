@@ -193,14 +193,14 @@ __GURU__
 int _mrbc_printf_float(mrbc_printf *pf, double value)
 {
     char fstr[16];
-    const char *p1 = pf->fstr;
-    char *p2 = fstr + sizeof(fstr) - 1;
+    const char *p0 = pf->fstr;
+    char       *p1 = fstr + sizeof(fstr) - 1;
 
-    *p2 = '\0';
-    while ((*--p2 = *--p1) != '%');
+    *p1 = '\0';
+    while ((*--p1 = *--p0) != '%');
 
     // TODO: 20181025 format print float
-    //snprintf(pf->p, (pf->buf_end - pf->p + 1), p2, value);
+    //snprintf(pf->p, (pf->buf_end - pf->p + 1), p1, value);
 
     while (*pf->p != '\0')
         pf->p++;

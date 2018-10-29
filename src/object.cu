@@ -63,10 +63,9 @@
   }
 */
 __GURU__
-mrbc_value mrbc_send(mrbc_value *v, int reg_ofs,
-                     mrbc_value *rcv, const char *method, int argc, ...)
+mrbc_value mrbc_send(mrbc_value v[], mrbc_value *rcv, const char *method, int argc, ...)
 {
-    mrbc_value *regs = v + reg_ofs + 2;
+    mrbc_value *regs = v + 2;	// allocate 2 for stack
     mrbc_sym  sym_id = name2symid(method);
     mrbc_proc *m     = mrbc_get_class_method(*rcv, sym_id);
 
@@ -86,30 +85,26 @@ mrbc_value mrbc_send(mrbc_value *v, int reg_ofs,
     }
 
     // create call stack.
-    mrbc_release(&regs[0]);
-    regs[0] = *rcv;
+    RESET_REG(&regs[0], *rcv);		// create call stack, start with receiver object
     mrbc_inc_refc(rcv);
 
-    va_list ap;
+    va_list ap;						// setup calling registers
     va_start(ap, argc);
-
-    int i;
-    for (i = 1; i <= argc; i++) {
-        mrbc_release(&regs[i]);
-        regs[i] = *va_arg(ap, mrbc_value *);
+    for (int i = 1; i <= argc; i++) {
+        RESET_REG(&regs[i], *va_arg(ap, mrbc_value *));
     }
-    mrbc_release(&regs[i]);
-    regs[i] = mrbc_nil_value();
-
+    RESET_REG(&regs[argc+1], mrbc_nil_value());
     va_end(ap);
 
-    // call method.
-    m->func(regs, argc);
+    m->func(regs, argc);			// call method
+
+    for (int i=1; i<=argc; i++) {	// clean up the regs
+    	regs[i].tt = MRBC_TT_EMPTY;
+    }
+
+    mrbc_inc_refc(&regs[0]);		// CC: added 20181029
     mrbc_value ret = regs[0];
 
-    while (i>=0) {
-        regs[i--].tt = MRBC_TT_EMPTY;
-    }
     return ret;
 }
 
@@ -168,8 +163,8 @@ __GURU__ void c_object_not(mrbc_value v[], int argc)
 __GURU__
 void c_object_neq(mrbc_value v[], int argc)
 {
-    int result = mrbc_compare(&v[0], &v[1]);
-    SET_BOOL_RETURN(result);
+    int t = mrbc_compare(&v[0], &v[1]);
+    SET_BOOL_RETURN(t);
 }
 
 //================================================================
@@ -178,8 +173,8 @@ void c_object_neq(mrbc_value v[], int argc)
 __GURU__
 void c_object_compare(mrbc_value v[], int argc)
 {
-    int result = mrbc_compare(&v[0], &v[1]);
-    SET_INT_RETURN(result);
+    int t = mrbc_compare(&v[0], &v[1]);
+    SET_INT_RETURN(t);
 }
 
 //================================================================
@@ -189,12 +184,12 @@ __GURU__
 void c_object_equal3(mrbc_value v[], int argc)
 {
     if (v[0].tt == MRBC_TT_CLASS) {
-        mrbc_value result = mrbc_send(v, argc, &v[1], "kind_of?", 1, &v[0]);
-        SET_RETURN(result);
+        mrbc_value ret = mrbc_send(v+argc, &v[1], "kind_of?", 1, &v[0]);
+        SET_RETURN(ret);
     }
     else {
-        int result = mrbc_compare(&v[0], &v[1]);
-        SET_BOOL_RETURN(!result);
+        int t = mrbc_compare(&v[0], &v[1]);
+        SET_BOOL_RETURN(!t);
     }
 }
 
@@ -204,9 +199,10 @@ void c_object_equal3(mrbc_value v[], int argc)
 __GURU__
 void c_object_class(mrbc_value v[], int argc)
 {
-    mrbc_value value = {.tt = MRBC_TT_CLASS};
-    value.cls = mrbc_get_class_by_object(v);
-    SET_RETURN(value);
+    mrbc_value ret = {.tt = MRBC_TT_CLASS };
+    ret.cls = mrbc_get_class_by_object(v);
+
+    SET_RETURN(ret);
 }
 
 // Object.new

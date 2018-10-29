@@ -13,6 +13,7 @@
 #include <assert.h>
 #include "value.h"
 #include "alloc.h"
+#include "console.h"
 
 #if MRBC_USE_STRING
 #include "c_string.h"
@@ -202,15 +203,18 @@ void mrbc_dec_refc(mrbc_value *v)
     case MRBC_TT_STRING:
     case MRBC_TT_RANGE:
     case MRBC_TT_HASH:
-        assert(v->self->refc != 0);
-        v->self->refc--;
-        break;
+    	if (v->self->refc <= 0) {
+    		console_str("refc==0\n");
+    	}
+    	else {
+    		v->self->refc--;
+    	}
+    	break;
 
     default:
         // Nothing
         return;
     }
-
     if (v->self->refc != 0) return;		// still used, keep going
 
     switch(v->tt) {

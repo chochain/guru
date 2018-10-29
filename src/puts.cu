@@ -78,6 +78,7 @@ int mrbc_print_sub(mrbc_value *v)
             if (i != 0) console_str(", ");
             mrbc_value v1 = mrbc_array_get(v, i);
             mrbc_p_sub(&v1);
+            mrbc_release(&v1);		// CC: added 20181029
         }
         console_char(']');
     } break;
@@ -93,6 +94,7 @@ int mrbc_print_sub(mrbc_value *v)
         mrbc_hash_iterator ite = mrbc_hash_iterator_new(v);
         while (mrbc_hash_i_has_next(&ite)) {
             mrbc_value *vk = mrbc_hash_i_next(&ite);
+            console_str(":");
             mrbc_p_sub(vk);
             console_str("=>");
             mrbc_p_sub(vk+1);
@@ -125,6 +127,7 @@ int mrbc_puts_sub(mrbc_value *v)
             if (i != 0) console_char('\n');
             mrbc_value v1 = mrbc_array_get(v, i);
             mrbc_puts_sub(&v1);
+            mrbc_release(&v1);       // CC: added 20181029
         }
 #endif
         return 0;
