@@ -36,6 +36,7 @@ __GURU__ void console_int(mrbc_int i);
 __GURU__ void console_hex(mrbc_int i);
 __GURU__ void console_str(const char *str);
 __GURU__ void console_float(mrbc_float f);
+__GURU__ void console_na(const char *msg);
 __GURU__ void console_printf(const char *fstr, ...);
 
 __global__ void guru_console_init(uint8_t *buf, size_t sz);

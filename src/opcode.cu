@@ -33,7 +33,7 @@
 #include "c_hash.h"
 #endif
 
-#define RESET_REG(v, n)	do { mrbc_release(v); *(v) = (n); } while (0)	// replace register content
+#define _RESET_REG(v, n)	do { mrbc_release(v); *(v) = (n); } while (0)	// replace register content
 
 //================================================================
 /*!@brief
@@ -206,7 +206,7 @@ int op_move(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     int rb = GETARG_B(code);
 
     mrbc_inc_refc(&regs[rb]);
-    RESET_REG(&regs[ra], regs[rb]);
+    _RESET_REG(&regs[ra], regs[rb]);
 
     return 0;
 }
@@ -231,7 +231,7 @@ int op_loadl(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     // regs[ra] = vm->pc_irep->pool[rb];
 
     mrbc_object *obj = vm->pc_irep->pool[rb];
-    RESET_REG(&regs[ra], *obj);
+    _RESET_REG(&regs[ra], *obj);
 
     return 0;
 }
@@ -319,7 +319,7 @@ int op_loadself(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     int ra = GETARG_A(code);
 
     mrbc_inc_refc(&regs[0]);       // TODO: Need?
-    RESET_REG(&regs[ra], regs[0]);
+    _RESET_REG(&regs[ra], regs[0]);
 
     return 0;
 }
@@ -384,7 +384,7 @@ int op_getglobal(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     int rb = GETARG_Bx(code);
 
     mrbc_value v = global_object_get(_get_symid(vm->pc_irep->sym, rb));
-    RESET_REG(&regs[ra], v);
+    _RESET_REG(&regs[ra], v);
 
     return 0;
 }
@@ -435,7 +435,7 @@ int op_getiv(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 
     mrbc_value val = mrbc_instance_getiv(&regs[0], sym_id);
 
-    RESET_REG(&regs[ra], val);
+    _RESET_REG(&regs[ra], val);
 
     return 0;
 }
@@ -483,7 +483,7 @@ int op_getconst(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     int rb = GETARG_Bx(code);
 
     mrbc_value v = const_object_get(_get_symid(vm->pc_irep->sym, rb));
-    RESET_REG(&regs[ra], v);
+    _RESET_REG(&regs[ra], v);
 
     return 0;
 }
@@ -538,7 +538,7 @@ int op_getupvar(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     mrbc_value *up_regs = ci->reg;
 
     mrbc_inc_refc(&up_regs[rb]);
-    RESET_REG(&regs[ra], up_regs[rb]);
+    _RESET_REG(&regs[ra], up_regs[rb]);
 
     return 0;
 }
@@ -573,7 +573,7 @@ int op_setupvar(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     mrbc_value *up_regs = ci->reg;
 
     mrbc_inc_refc(&regs[ra]);
-    RESET_REG(&up_regs[rb], regs[ra]);    // update outer-scope vars
+    _RESET_REG(&up_regs[rb], regs[ra]);    // update outer-scope vars
 
     return 0;
 }
@@ -818,7 +818,7 @@ int op_blkpush(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     }
 
     mrbc_inc_refc(stack);
-    RESET_REG(&regs[ra], stack[0]);
+    _RESET_REG(&regs[ra], stack[0]);
 
     return 0;
 }
@@ -1322,7 +1322,7 @@ int op_string(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 
     if (value.str==NULL) return -1;		// ENOMEM
 
-    RESET_REG(&regs[ra], value);
+    _RESET_REG(&regs[ra], value);
 #else
     console_na("String class");
 #endif
@@ -1359,7 +1359,7 @@ int op_strcat(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     }
 
     mrbc_value v = mrbc_string_add(&regs[ra], &regs[rb]);
-    RESET_REG(&regs[ra], v);
+    _RESET_REG(&regs[ra], v);
 #else
     console_na("String class");
 #endif
@@ -1393,7 +1393,7 @@ int op_array(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     MEMSET((uint8_t *)&regs[rb], 0, sizeof(mrbc_value) * rc);
     h->n = rc;
 
-    RESET_REG(&regs[ra], ret);
+    _RESET_REG(&regs[ra], ret);
 #else
     console_na("Array class");
 #endif
@@ -1428,7 +1428,7 @@ int op_hash(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     MEMSET((uint8_t *)&regs[rb], 0, sizeof(mrbc_value) * rc);
     h->n = rc;
 
-    RESET_REG(&regs[ra], ret);
+    _RESET_REG(&regs[ra], ret);
 #else
     console_na("Hash class");
 #endif
@@ -1460,7 +1460,7 @@ int op_range(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     mrbc_value value = mrbc_range_new(&regs[rb], &regs[rb+1], rc);
     if (value.range==NULL) return -1;		// ENOMEM
 
-    RESET_REG(&regs[ra], value);			// release and  reassign
+    _RESET_REG(&regs[ra], value);			// release and  reassign
 #else
     console_na("Range class");
 #endif

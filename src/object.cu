@@ -85,15 +85,18 @@ mrbc_value mrbc_send(mrbc_value v[], mrbc_value *rcv, const char *method, int ar
     }
 
     // create call stack.
-    RESET_REG(&regs[0], *rcv);		// create call stack, start with receiver object
+    mrbc_release(&regs[0]);
+    regs[0] = *rcv;					// create call stack, start with receiver object
     mrbc_inc_refc(rcv);
 
     va_list ap;						// setup calling registers
     va_start(ap, argc);
     for (int i = 1; i <= argc; i++) {
-        RESET_REG(&regs[i], *va_arg(ap, mrbc_value *));
+    	mrbc_release(&regs[i]);
+        regs[i] = *va_arg(ap, mrbc_value *);
     }
-    RESET_REG(&regs[argc+1], mrbc_nil_value());
+    mrbc_release(&regs[argc+1]);
+    regs[argc+1] = mrbc_nil_value();
     va_end(ap);
 
     m->func(regs, argc);			// call method
@@ -101,8 +104,7 @@ mrbc_value mrbc_send(mrbc_value v[], mrbc_value *rcv, const char *method, int ar
     for (int i=1; i<=argc; i++) {	// clean up the regs
     	regs[i].tt = MRBC_TT_EMPTY;
     }
-
-    mrbc_inc_refc(regs);		// CC: added 20181029
+    mrbc_inc_refc(regs);			// CC: added 20181029
     return regs[0];
 }
 
