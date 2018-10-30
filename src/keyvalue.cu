@@ -14,7 +14,6 @@
 #include "value.h"
 #include "alloc.h"
 #include "keyvalue.h"
-#include "errorcode.h"
 
 //================================================================
 /*! binary search
@@ -27,7 +26,7 @@ __GURU__
 int _binary_search(mrbc_kv_handle *kvh, mrbc_sym sym_id)
 {
     int left  = 0;
-    int right = kvh->n_stored - 1;
+    int right = kvh->n - 1;
     if (right < 0) return -1;
 
     while (left < right) {
@@ -62,9 +61,8 @@ mrbc_kv_handle * mrbc_kv_new(int size)
         mrbc_free(kvh);
         return NULL;
     }
-
-    kvh->data_size = size;
-    kvh->n_stored = 0;
+    kvh->size = size;
+    kvh->n    = 0;
 
     return kvh;
 }
@@ -93,11 +91,11 @@ void mrbc_kv_delete(mrbc_kv_handle *kvh)
 __GURU__
 int mrbc_kv_resize(mrbc_kv_handle *kvh, int size)
 {
-    mrbc_kv *data2 = (mrbc_kv *) mrbc_realloc(kvh->data, sizeof(mrbc_kv) * size);
-    if (!data2) return E_NOMEMORY_ERROR;		// ENOMEM
+    mrbc_kv *d2 = (mrbc_kv *) mrbc_realloc(kvh->data, sizeof(mrbc_kv) * size);
+    if (!d2) return -1;		// ENOMEM
 
-    kvh->data = data2;
-    kvh->data_size = size;
+    kvh->data = d2;
+    kvh->size = size;
 
     return 0;
 }
@@ -118,34 +116,32 @@ int mrbc_kv_set(mrbc_kv_handle *kvh, mrbc_sym sym_id, mrbc_value *set_val)
         idx = 0;
         goto INSERT_VALUE;
     }
-
     // replace value ?
     if (kvh->data[idx].sym_id == sym_id) {
         mrbc_dec_refc(&kvh->data[idx].value);
         kvh->data[idx].value = *set_val;
         return 0;
     }
-
     if (kvh->data[idx].sym_id < sym_id) {
         idx++;
     }
 
 INSERT_VALUE:
     // need resize?
-    if (kvh->n_stored >= kvh->data_size) {
-        if (mrbc_kv_resize(kvh, kvh->data_size + 5) != 0)
-            return E_NOMEMORY_ERROR;		// ENOMEM
+    if (kvh->n >= kvh->size) {
+        if (mrbc_kv_resize(kvh, kvh->size + 5) != 0)
+            return -1;		// ENOMEM
     }
 
     // need move data?
-    if (idx < kvh->n_stored) {
-        int size = sizeof(mrbc_kv) * (kvh->n_stored - idx);
+    if (idx < kvh->n) {
+        int size = sizeof(mrbc_kv) * (kvh->n - idx);
         MEMCPY((uint8_t *)&kvh->data[idx+1], (const uint8_t *)&kvh->data[idx], size);
     }
 
     kvh->data[idx].sym_id = sym_id;
-    kvh->data[idx].value = *set_val;
-    kvh->n_stored++;
+    kvh->data[idx].value  = *set_val;
+    kvh->n++;
 
     return 0;
 }
@@ -179,14 +175,14 @@ __GURU__
 int mrbc_kv_append(mrbc_kv_handle *kvh, mrbc_sym sym_id, mrbc_value *set_val)
 {
     // need resize?
-    if (kvh->n_stored >= kvh->data_size) {
-        if (mrbc_kv_resize(kvh, kvh->data_size + 5) != 0)
-            return E_NOMEMORY_ERROR;		// ENOMEM
+    if (kvh->n >= kvh->size) {
+        if (mrbc_kv_resize(kvh, kvh->size + 5) != 0)
+            return -1;		// ENOMEM
     }
 
-    kvh->data[kvh->n_stored].sym_id = sym_id;
-    kvh->data[kvh->n_stored].value = *set_val;
-    kvh->n_stored++;
+    kvh->data[kvh->n].sym_id = sym_id;
+    kvh->data[kvh->n].value = *set_val;
+    kvh->n++;
 
     return 0;
 }
@@ -212,8 +208,9 @@ int mrbc_kv_remove(mrbc_kv_handle *kvh, mrbc_sym sym_id)
     if (kvh->data[idx].sym_id != sym_id) return 0;
 
     mrbc_dec_refc(&kvh->data[idx].value);
-    kvh->n_stored--;
-    MEMCPY((uint8_t *)(kvh->data + idx), (const uint8_t *)(kvh->data + idx + 1), sizeof(mrbc_kv) * (kvh->n_stored - idx));
+
+    int blksz = sizeof(mrbc_kv)*(--kvh->n - idx);
+    MEMCPY((uint8_t *)(kvh->data+idx), (const uint8_t *)(kvh->data+idx+1), blksz);
 
     return 0;
 }
@@ -226,13 +223,11 @@ int mrbc_kv_remove(mrbc_kv_handle *kvh, mrbc_sym sym_id)
 __GURU__
 void mrbc_kv_clear(mrbc_kv_handle *kvh)
 {
-    mrbc_kv       *p0 = kvh->data;
-    const mrbc_kv *p1 = p0 + kvh->n_stored;
-    while (p0 < p1) {
-        mrbc_dec_refc(&p0->value);
-        p0++;
+    mrbc_kv *p = kvh->data;
+    for (int i=0; i<kvh->n; i++, p++) {
+        mrbc_dec_refc(&p->value);
     }
-    kvh->n_stored = 0;
+    kvh->n = 0;
 }
 
 //================================================================
@@ -241,7 +236,7 @@ void mrbc_kv_clear(mrbc_kv_handle *kvh)
 __GURU__ __forceinline__
 int mrbc_kv_size(const mrbc_kv_handle *kvh)
 {
-  return kvh->n_stored;
+  return kvh->n;
 }
 
 

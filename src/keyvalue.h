@@ -23,18 +23,17 @@ extern "C" {
 /*! Define Key-Value data.
 */
 typedef struct RKeyValue {
-  mrbc_sym sym_id;	//!< symbol ID as key.
-  mrbc_value value;	//!< stored value.
+    mrbc_sym   sym_id;	    //!< symbol ID as key.
+    mrbc_value value;	    //!< stored value.
 } mrbc_kv;
-
 
 //================================================================
 /*! Define Key-Value handle.
 */
 typedef struct RKeyValueHandle {
-  uint16_t data_size;	//!< data buffer size.
-  uint16_t n_stored;	//!< # of stored.
-  mrbc_kv *data;		//!< pointer to allocated memory.
+    uint16_t   size;	   //!< data buffer size.
+    uint16_t   n;	       //!< # of stored.
+    mrbc_kv    *data;	   //!< pointer to allocated memory.
 } mrbc_kv_handle;
 
 __GURU__ mrbc_kv_handle *mrbc_kv_new(int size);

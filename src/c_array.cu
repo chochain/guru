@@ -16,7 +16,6 @@
 #include <assert.h>
 
 #include "guru.h"
-
 #include "alloc.h"
 #include "static.h"
 
@@ -66,7 +65,7 @@
 __GURU__
 int mrbc_array_size(const mrbc_value *ary)
 {
-    return ary->array->n_stored;
+    return ary->array->n;
 }
 
 //================================================================
@@ -88,11 +87,11 @@ mrbc_value mrbc_array_new(int size)
         mrbc_free(h);
         return value;
     }
-    h->refc      = 1;		// handle is referenced
-    h->tt 		 = MRBC_TT_ARRAY;
-    h->data_size = size;
-    h->n_stored  = 0;
-    h->data 	 = data;
+    h->refc = 1;		// handle is referenced
+    h->tt 	= MRBC_TT_ARRAY;
+    h->size = size;
+    h->n  	= 0;
+    h->data = data;
 
     value.array = h;
     return value;
@@ -108,7 +107,7 @@ void mrbc_array_delete(mrbc_value *ary)
 {
     mrbc_array *h = ary->array;
     mrbc_value *p = h->data;
-    for (int i=0; i < h->n_stored; i++, p++) {
+    for (int i=0; i < h->n; i++, p++) {
     	mrbc_release(p);
     }
     mrbc_free(h->data);
@@ -125,13 +124,13 @@ void mrbc_array_delete(mrbc_value *ary)
 __GURU__
 int mrbc_array_resize(mrbc_array *h, int size)
 {
-	assert(size > h->data_size);
+	assert(size > h->size);
 
     mrbc_value *d2 = (mrbc_value *)mrbc_realloc(h->data, sizeof(mrbc_value) * size);
     if (!d2) return -1;
 
-    h->data      = d2;
-    h->data_size = size;
+    h->data = d2;
+    h->size = size;
 
     return 0;
 }
@@ -140,16 +139,16 @@ __GURU__
 int _adjust_index(mrbc_array *h, int idx, int inc)
 {
     if (idx < 0) {
-        idx = h->n_stored + idx + inc;
+        idx = h->n + idx + inc;
         assert(idx>=0);
     }
     // need resize?
     int ndx = idx;
-    if ((ndx + inc) >= h->data_size) {
+    if ((ndx + inc) >= h->size) {
         ndx += inc;
     }
-    if ((h->n_stored + inc) > h->data_size) {
-        ndx = h->n_stored + inc;
+    if ((h->n + inc) > h->size) {
+        ndx = h->n + inc;
     }
     if (ndx>idx && mrbc_array_resize(h, ndx) != 0) return -1;
 
@@ -171,14 +170,14 @@ int mrbc_array_set(mrbc_value *ary, int idx, mrbc_value *set_val)
     idx = _adjust_index(h, idx, 0);				// adjust index if needed
     if (idx<0) return -1;						// allocation error
 
-    if (idx < h->n_stored) {
+    if (idx < h->n) {
         mrbc_release(&h->data[idx]);			// release existing data
     }
     else {
-        for(int i=h->n_stored; i<idx; i++) {	// lazy fill here, instead of when resized
+        for(int i=h->n; i<idx; i++) {	// lazy fill here, instead of when resized
             h->data[i] = mrbc_nil_value();		// prep newly allocated cells
         }
-        h->n_stored = idx;
+        h->n = idx;
     }
     h->data[idx] = *set_val;					// keep the same reference count
 
@@ -197,8 +196,8 @@ mrbc_value mrbc_array_get(mrbc_value *ary, int idx)
 {
     mrbc_array *h = ary->array;
 
-    if (idx < 0) idx = h->n_stored + idx;
-    if (idx < 0 || idx >= h->n_stored) return mrbc_nil_value();
+    if (idx < 0) idx = h->n + idx;
+    if (idx < 0 || idx >= h->n) return mrbc_nil_value();
 
     mrbc_value ret = h->data[idx];
     mrbc_inc_refc(&ret);						// 20181029: CC Added
@@ -218,13 +217,13 @@ int mrbc_array_push(mrbc_value *ary, mrbc_value *set_val)
 {
     mrbc_array *h = ary->array;
 
-    if (h->n_stored >= h->data_size) {
-        int size = h->data_size + 6;
+    if (h->n >= h->size) {
+        int size = h->size + 6;
         if (mrbc_array_resize(h, size) != 0) {
             return -1;
         }
     }
-    h->data[h->n_stored++] = *set_val;
+    h->data[h->n++] = *set_val;
 
     return 0;
 }
@@ -240,9 +239,9 @@ mrbc_value mrbc_array_pop(mrbc_value *ary)
 {
     mrbc_array *h = ary->array;
 
-    if (h->n_stored <= 0) return mrbc_nil_value();
+    if (h->n <= 0) return mrbc_nil_value();
 
-    return h->data[--h->n_stored];
+    return h->data[--h->n];
 }
 
 //================================================================
@@ -269,10 +268,10 @@ mrbc_value mrbc_array_shift(mrbc_value *ary)
 {
     mrbc_array *h = ary->array;
 
-    if (h->n_stored <= 0) return mrbc_nil_value();
+    if (h->n <= 0) return mrbc_nil_value();
 
     mrbc_value ret = h->data[0];
-    MEMCPY((uint8_t *)h->data, (uint8_t *)(h->data+1), sizeof(mrbc_value)*--h->n_stored);
+    MEMCPY((uint8_t *)h->data, (uint8_t *)(h->data+1), sizeof(mrbc_value)*--h->n);
 
     return ret;
 }
@@ -294,21 +293,21 @@ int mrbc_array_insert(mrbc_value *ary, int idx, mrbc_value *set_val)
     if (size < 0) return -1;
 
     // move datas.
-    if (idx < h->n_stored) {
-    	int blksz = sizeof(mrbc_value)*(h->n_stored - idx);
+    if (idx < h->n) {
+    	int blksz = sizeof(mrbc_value)*(h->n - idx);
         MEMCPY((uint8_t *)(h->data + idx + 1),(uint8_t *)(h->data + idx), blksz);	// shift
     }
 
     // set data
     h->data[idx] = *set_val;
-    h->n_stored++;
+    h->n++;
 
     // clear empty cells if need.
-    if (size >= h->n_stored) {
-        for (int i = h->n_stored-1; i < size; i++) {
+    if (size >= h->n) {
+        for (int i = h->n-1; i < size; i++) {
             h->data[i] = mrbc_nil_value();
         }
-        h->n_stored = size;
+        h->n = size;
     }
     return 0;
 }
@@ -325,12 +324,12 @@ mrbc_value mrbc_array_remove(mrbc_value *ary, int idx)
 {
     mrbc_array *h = ary->array;
 
-    if (idx < 0) idx = h->n_stored + idx;
-    if (idx < 0 || idx >= h->n_stored) return mrbc_nil_value();
+    if (idx < 0) idx = h->n + idx;
+    if (idx < 0 || idx >= h->n) return mrbc_nil_value();
 
     mrbc_value *p = h->data + idx;
-    if (idx < --h->n_stored) {									// shrink by 1
-    	int blksz = sizeof(mrbc_value) * (h->n_stored - idx);
+    if (idx < --h->n) {									// shrink by 1
+    	int blksz = sizeof(mrbc_value) * (h->n - idx);
         MEMCPY((uint8_t *)p, (uint8_t *)(p+1), blksz);			// shift forward
     }
     return *p;
@@ -346,10 +345,10 @@ void mrbc_array_clear(mrbc_value *ary)
 {
     mrbc_array *h = ary->array;
     mrbc_value *p = h->data;
-    for (int i=0; i < h->n_stored; i++, p++) {
+    for (int i=0; i < h->n; i++, p++) {
     	mrbc_dec_refc(p);
     }
-    h->n_stored = 0;
+    h->n = 0;
 }
 
 //================================================================
@@ -388,7 +387,7 @@ void mrbc_array_minmax(mrbc_value *ary, mrbc_value **pp_min_value, mrbc_value **
 {
     mrbc_array *h = ary->array;
 
-    if (h->n_stored==0) {
+    if (h->n==0) {
         *pp_min_value = NULL;
         *pp_max_value = NULL;
         return;
@@ -396,7 +395,7 @@ void mrbc_array_minmax(mrbc_value *ary, mrbc_value **pp_min_value, mrbc_value **
     mrbc_value *p_min_value = h->data;
     mrbc_value *p_max_value = h->data;
     mrbc_value *p           = h->data;
-    for (int i = 1; i < h->n_stored; i++, p++) {
+    for (int i = 1; i < h->n; i++, p++) {
         if (mrbc_compare(p, p_min_value) < 0) p_min_value = p;
         if (mrbc_compare(p, p_max_value) > 0) p_max_value = p;
     }
@@ -454,16 +453,16 @@ void c_array_add(mrbc_value v[], int argc)
     mrbc_array *h0 = v[0].array;
     mrbc_array *h1 = v[1].array;
 
-    mrbc_value ret = mrbc_array_new(h0->n_stored + h1->n_stored);
+    mrbc_value ret = mrbc_array_new(h0->n + h1->n);
     if (ret.array==NULL) return;		// ENOMEM
 
-    int h0sz = sizeof(mrbc_value)*h0->n_stored;
-    int h1sz = sizeof(mrbc_value)*h1->n_stored;
+    int h0sz = sizeof(mrbc_value)*h0->n;
+    int h1sz = sizeof(mrbc_value)*h1->n;
 
     MEMCPY((uint8_t *)(ret.array->data),        (const uint8_t *)h0->data, h0sz);
     MEMCPY((uint8_t *)(ret.array->data) + h0sz, (const uint8_t *)h1->data, h1sz);
 
-    int        n  = ret.array->n_stored = h0sz + h1sz;
+    int        n  = ret.array->n = h0sz + h1sz;
     mrbc_value *p = ret.array->data;
     for (int i=0; i<n; i++, p++) {
     	mrbc_inc_refc(p);
@@ -583,7 +582,7 @@ void c_array_index(mrbc_value v[], int argc)
     
     mrbc_array *h = v->array;
     mrbc_value *p = h->data;
-    for (int i = 0; i < h->n_stored; i++, p++) {
+    for (int i = 0; i < h->n; i++, p++) {
         if (mrbc_compare(p, value)==0) {
             SET_INT_RETURN(i);
             return;
@@ -658,9 +657,6 @@ void c_array_unshift(mrbc_value v[], int argc)
 __GURU__
 void c_array_shift(mrbc_value v[], int argc)
 {
-    /*
-      in case of pop() -> object | nil
-    */
 	mrbc_value ret;
     if (argc==0) {									// shift() -> object | nil
         ret = mrbc_array_shift(v);
@@ -681,11 +677,11 @@ __GURU__
 void c_array_dup(mrbc_value v[], int argc)
 {
     mrbc_array *h0 = v[0].array;
-    mrbc_value ret = mrbc_array_new(h0->n_stored);
+    mrbc_value ret = mrbc_array_new(h0->n);
     mrbc_array *h1 = ret.array;
     if (!h1) return;		// ENOMEM
 
-    int n = h1->n_stored = h0->n_stored;
+    int n = h1->n = h0->n;
     MEMCPY((uint8_t *)h1->data, (const uint8_t *)h0->data, n*sizeof(mrbc_value));
 
     mrbc_value *p = h1->data;

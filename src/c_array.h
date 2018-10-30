@@ -27,8 +27,8 @@ extern "C" {
 typedef struct RArray {
     MRBC_OBJECT_HEADER;
 
-    uint16_t data_size;	//!< data buffer size.
-    uint16_t n_stored;	//!< # of stored.
+    uint16_t   size;	//!< data buffer size.
+    uint16_t   n;	    //!< # of stored.
     mrbc_value *data;	//!< pointer to allocated memory.
 
 } mrbc_array;

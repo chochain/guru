@@ -1391,14 +1391,15 @@ int op_array(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     int rb = GETARG_B(code);
     int rc = GETARG_C(code);
 
-    mrbc_value value = (mrbc_value)mrbc_array_new(rc);
-    if (value.array==NULL) return -1;	// ENOMEM
+    mrbc_value ret = (mrbc_value)mrbc_array_new(rc);
+    mrbc_array *h  = ret.array;
+    if (h==NULL) return -1;	// ENOMEM
 
-    MEMCPY((uint8_t *)value.array->data, (uint8_t *)&regs[rb], sizeof(mrbc_value) * rc);
+    MEMCPY((uint8_t *)h->data, (uint8_t *)&regs[rb], sizeof(mrbc_value) * rc);
     MEMSET((uint8_t *)&regs[rb], 0, sizeof(mrbc_value) * rc);
-    value.array->n_stored = rc;
+    h->n = rc;
 
-    RESET_REG(&regs[ra], value);
+    RESET_REG(&regs[ra], ret);
 #else
     console_str("array not supported");
 #endif
@@ -1424,15 +1425,16 @@ int op_hash(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     int rb = GETARG_B(code);
     int rc = GETARG_C(code);
 
-    mrbc_value value = mrbc_hash_new(rc);
-    if (value.hash==NULL) return -1;	// ENOMEM
+    mrbc_value ret = mrbc_hash_new(rc);
+    mrbc_hash  *h  = ret.hash;
+    if (h==NULL) return -1;	// ENOMEM
 
     rc *= 2;
-    MEMCPY((uint8_t *)value.hash->data, (uint8_t *)&regs[rb], sizeof(mrbc_value) * rc);
+    MEMCPY((uint8_t *)h->data, (uint8_t *)&regs[rb], sizeof(mrbc_value) * rc);
     MEMSET((uint8_t *)&regs[rb], 0, sizeof(mrbc_value) * rc);
-    value.hash->n_stored = rc;
+    h->n = rc;
 
-    RESET_REG(&regs[ra], value);
+    RESET_REG(&regs[ra], ret);
 #else
     console_str("hash not supported");
 #endif

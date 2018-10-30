@@ -50,7 +50,7 @@
  */
 __GURU__
 int mrbc_hash_size(const mrbc_value *kv) {
-    return kv->hash->n_stored / 2;
+    return kv->hash->n / 2;
 }
 
 //================================================================
@@ -71,7 +71,7 @@ mrbc_hash_iterator mrbc_hash_iterator_new(mrbc_value *v)
     mrbc_hash_iterator ite;
     ite.target = v->hash;
     ite.point  = v->hash->data;
-    ite.p_end  = ite.point + v->hash->n_stored;
+    ite.p_end  = ite.point + v->hash->n;
 
     return ite;
 }
@@ -118,11 +118,11 @@ mrbc_value mrbc_hash_new(int size)
         mrbc_free(h);
         return value;
     }
-    h->refc 	 = 1;
-    h->tt  		 = MRBC_TT_HASH;
-    h->data_size = size * 2;
-    h->n_stored  = 0;
-    h->data 	 = data;
+    h->refc = 1;
+    h->tt  	= MRBC_TT_HASH;
+    h->size	= size * 2;
+    h->n  	= 0;
+    h->data = data;
 
     value.hash = h;
     return value;
@@ -159,7 +159,7 @@ mrbc_value *_hash_search(const mrbc_value v[], const mrbc_value *key)
 
 #ifdef MRBC_HASH_SEARCH_LINER
     mrbc_value *p = v->hash->data;
-    for (int i=0; i<v->hash->n_stored; i++, p+=2) {
+    for (int i=0; i<v->hash->n; i++, p+=2) {
         if (mrbc_compare(p, key)==0) return p;
     }
     return NULL;
@@ -239,11 +239,10 @@ mrbc_value _hash_remove(mrbc_value *kv, mrbc_value *key)
 
     mrbc_dec_refc(v);			// key
     mrbc_value val = v[1];		// value
+    mrbc_hash  *h  = kv->hash;
+    h->n -= 2;
 
-    mrbc_hash *h = kv->hash;
-    h->n_stored -= 2;
-
-    MEMCPY((uint8_t *)v, (uint8_t *)(v+2), (uint8_t *)(h->data + h->n_stored) - (uint8_t *)v);
+    MEMCPY((uint8_t *)v, (uint8_t *)(v+2), (uint8_t *)(h->data + h->n) - (uint8_t *)v);
 
     // TODO: re-index hash table if need.
 
@@ -274,7 +273,7 @@ void _hash_clear(mrbc_value *kv)
 __GURU__
 int mrbc_hash_compare(const mrbc_value *v0, const mrbc_value *v1)
 {
-    if (v0->hash->n_stored != v1->hash->n_stored) return 1;
+    if (v0->hash->n != v1->hash->n) return 1;
 
     mrbc_value *p0 = v0->hash->data;
     for (int i = 0; i < mrbc_hash_size(v0); i++, p0++) {
@@ -298,11 +297,11 @@ mrbc_value _hash_dup(mrbc_value *kv)
     if (ret.hash==NULL) return ret;		// ENOMEM
 
     mrbc_hash *h = kv->hash;
-    MEMCPY((uint8_t *)ret.hash->data, (uint8_t *)h->data, sizeof(mrbc_value) * h->n_stored);
-    ret.hash->n_stored = h->n_stored;
+    MEMCPY((uint8_t *)ret.hash->data, (uint8_t *)h->data, sizeof(mrbc_value) * h->n);
+    ret.hash->n = h->n;
 
     mrbc_value *p = h->data;
-    for (int i=0; i<h->n_stored; i++, p++) {
+    for (int i=0; i<h->n; i++, p++) {
         mrbc_inc_refc(p++);
     }
     // TODO: dup other members.
