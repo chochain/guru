@@ -122,7 +122,7 @@ int _get_index(unsigned int alloc_size)
 __GURU__
 void _add_free_block(free_block *target)
 {
-    target->f = FLAG_FREE_BLOCK;
+    target->free = FLAG_FREE_BLOCK;
 
     int index = _get_index(target->size) - 1;
     int fli   = FLI(index);  // debug: (index>>3) & 0xff
@@ -183,12 +183,12 @@ free_block *_split_block(free_block *target, unsigned int size)
 
     split->size  	= target->size - size;
     split->offset	= OFF(target, split);
-    split->t     	= target->t;
+    split->tail     = target->tail;
 
     target->size 	= size;
-    target->t    	= FLAG_NOT_TAIL_BLOCK;
+    target->tail   	= FLAG_NOT_TAIL_BLOCK;
 
-    if (split->t==FLAG_NOT_TAIL_BLOCK) {
+    if (split->tail==FLAG_NOT_TAIL_BLOCK) {
         next->offset = OFF(split, next);
     }
     return split;
@@ -207,11 +207,11 @@ void _merge_block(free_block *ptr1, free_block *ptr2)
     assert(ptr1 < ptr2);
 
     // merge ptr1 and ptr2
-    ptr1->t     = ptr2->t;
+    ptr1->tail  = ptr2->tail;
     ptr1->size += ptr2->size;
 
     // update block info
-    if (ptr1->t==FLAG_NOT_TAIL_BLOCK) {
+    if (ptr1->tail==FLAG_NOT_TAIL_BLOCK) {
         free_block *next = (free_block *)NEXT(ptr1);
         next->offset = OFF(ptr1, next);
     }
@@ -220,11 +220,11 @@ void _merge_block(free_block *ptr1, free_block *ptr2)
 __GURU__
 void _merge_with_next(free_block *target)
 {
-	if (target->t!=FLAG_NOT_TAIL_BLOCK) return;
+	if (target->tail!=FLAG_NOT_TAIL_BLOCK) return;
 
 	free_block *next = (free_block *)NEXT(target);
 
-	if (next->f!=FLAG_FREE_BLOCK) return;
+	if (next->free!=FLAG_FREE_BLOCK) return;
 
 	_remove_index(next);
 	_merge_block(target, next);
@@ -235,7 +235,7 @@ free_block *_merge_with_prev(free_block *target)
 {
     free_block *prev = (free_block *)PREV(target);
 
-    if (prev==NULL || prev->f!=FLAG_FREE_BLOCK) return target; 	// no change
+    if (prev==NULL || prev->free!=FLAG_FREE_BLOCK) return target; 	// no change
 
     _remove_index(prev);
     _merge_block(prev, target);
@@ -289,7 +289,7 @@ free_block *_mark_used(int index)
     assert(target!=NULL);
 
     // remove free_blocks index
-    target->f        = FLAG_USED_BLOCK;
+    target->free     = FLAG_USED_BLOCK;
     free_list[index] = target->next;
 
     if (target->next==NULL) {			// end of linked list?
@@ -318,8 +318,8 @@ void _mrbc_init_mmu(void *mem, unsigned int size)
 
     // initialize entire memory pool as the first block
     free_block *block  = (free_block *)memory_pool;
-    block->t      = FLAG_TAIL_BLOCK;
-    block->f      = FLAG_FREE_BLOCK;
+    block->tail   = FLAG_TAIL_BLOCK;
+    block->free   = FLAG_FREE_BLOCK;
     block->size   = memory_pool_size;
     block->offset = 0;
 
@@ -357,9 +357,9 @@ void *mrbc_alloc(unsigned int size)
     assert(target->size >= alloc_size);
 
     // split the allocated block
-    free_block *release = _split_block(target, alloc_size);
-    if (release != NULL) {
-        _add_free_block(release);
+    free_block *free = _split_block(target, alloc_size);
+    if (free != NULL) {
+        _add_free_block(free);
     }
 
 #ifdef MRBC_DEBUG
@@ -384,7 +384,7 @@ void * mrbc_realloc(void *ptr, unsigned int size)
     unsigned int alloc_size = size + sizeof(free_block);
 
     // align 4 byte
-    alloc_size += ((4 - alloc_size) & 3);
+    alloc_size += ((8 - alloc_size) & 7);					// CC: 20181030 from 4 to 8-byte align
 
     // expand part1.
     // next phys block is free and check enough size?
@@ -443,8 +443,8 @@ void mrbc_free_all()
     int flag_loop = 1;
 
     while (flag_loop) {
-        if (ptr->t==FLAG_TAIL_BLOCK) flag_loop = 0;
-        if (ptr->f==FLAG_USED_BLOCK) {
+        if (ptr->tail==FLAG_TAIL_BLOCK) flag_loop = 0;
+        if (ptr->free==FLAG_USED_BLOCK) {
             if (free_target) {
                 mrbc_free(free_target);
             }
@@ -481,25 +481,25 @@ void _guru_alloc_stat(int v[])
 
     used_block *ptr = (used_block *)memory_pool;
     
-    int flag = ptr->f;
+    int flag = ptr->free;
     while (1) {
-        if (flag != ptr->f) {       // supposed to be merged
+        if (flag != ptr->free) {       // supposed to be merged
             nfrag++;
-            flag = ptr->f;
+            flag = ptr->free;
         }
 
         total += ptr->size;
         nblk  += 1;
-        if (ptr->f==FLAG_FREE_BLOCK) {
+        if (ptr->free==FLAG_FREE_BLOCK) {
         	nfree += 1;
         	free  += ptr->size;
         }
-        if (ptr->f==FLAG_USED_BLOCK) {
+        if (ptr->free==FLAG_USED_BLOCK) {
         	nused += 1;
         	used  += ptr->size;
         }
 
-        if (ptr->t==FLAG_TAIL_BLOCK) break;
+        if (ptr->tail==FLAG_TAIL_BLOCK) break;
 
         ptr = (used_block *)NEXT(ptr);
     }

@@ -33,8 +33,8 @@ extern "C" {
 
 // memory block header
 typedef struct used_block {
-  uint8_t 				t;      	//!< FLAG_TAIL_BLOCK or FLAG_NOT_TAIL_BLOCK
-  uint8_t 				f;      	//!< FLAG_FREE_BLOCK or BLOCK_IS_NOT_FREE
+  uint8_t 				tail;      	//!< FLAG_TAIL_BLOCK or FLAG_NOT_TAIL_BLOCK
+  uint8_t 				free;      	//!< FLAG_FREE_BLOCK or BLOCK_IS_NOT_FREE
   uint16_t				u;			// align 32
 
   mrbc_memsize_t 		size;       //!< block size, header included
@@ -42,8 +42,8 @@ typedef struct used_block {
 } used_block;
 
 typedef struct free_block {
-  uint8_t 				t;      	//!< FLAG_TAIL_BLOCK or FLAG_NOT_TAIL_BLOCK
-  uint8_t 				f;      	//!< FLAG_FREE_BLOCK or BLOCK_IS_NOT_FREE
+  uint8_t 				tail;      	//!< FLAG_TAIL_BLOCK or FLAG_NOT_TAIL_BLOCK
+  uint8_t 				free;      	//!< FLAG_FREE_BLOCK or BLOCK_IS_NOT_FREE
   uint16_t				u;
 
   mrbc_memsize_t 		size;       //!< block size, header included
