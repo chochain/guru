@@ -78,6 +78,13 @@ void console_str(const char *str)
 }
 
 __GURU__
+void console_na(const char *msg)
+{
+	console_str(msg);
+    console_str(" not supported!\n");
+}
+
+__GURU__
 char *_console_va_arg(char *p)
 {
     int ch;

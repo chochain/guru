@@ -33,17 +33,12 @@
 #include "c_hash.h"
 #endif
 
+#define RESET_REG(v, n)	do { mrbc_release(v); *(v) = (n); } while (0)	// replace register content
+
 //================================================================
 /*!@brief
 
  */
-__GURU__
-void _no_support(const char *msg)
-{
-	console_str(msg);
-    console_str(" not supported!\n");
-}
-
 //================================================================
 /*! get sym[n] from symbol table in irep
 
@@ -900,7 +895,7 @@ int op_addi(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
         return 0;
     }
 #else
-    _no_support("float");
+    console_na("Float class");
 #endif
     return 0;
 }
@@ -978,7 +973,7 @@ int op_subi(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
         return 0;
     }
 #else
-    _no_support("float");
+    console_na("Float class");
 #endif
 
     return 0;
@@ -1329,7 +1324,7 @@ int op_string(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 
     RESET_REG(&regs[ra], value);
 #else
-    _not_support("string");
+    console_na("String class");
 #endif
     return 0;
 }
@@ -1366,7 +1361,7 @@ int op_strcat(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     mrbc_value v = mrbc_string_add(&regs[ra], &regs[rb]);
     RESET_REG(&regs[ra], v);
 #else
-    _not_support("string");
+    console_na("String class");
 #endif
     return 0;
 }
@@ -1400,7 +1395,7 @@ int op_array(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 
     RESET_REG(&regs[ra], ret);
 #else
-    console_str("array not supported");
+    console_na("Array class");
 #endif
     return 0;
 }
@@ -1435,7 +1430,7 @@ int op_hash(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 
     RESET_REG(&regs[ra], ret);
 #else
-    console_str("hash not supported");
+    console_na("Hash class");
 #endif
     return 0;
 }
@@ -1467,7 +1462,7 @@ int op_range(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 
     RESET_REG(&regs[ra], value);			// release and  reassign
 #else
-    console_str("range not supported");
+    console_na("Range class");
 #endif
     return 0;
 }

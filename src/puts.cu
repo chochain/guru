@@ -104,7 +104,7 @@ int mrbc_print_sub(mrbc_value *v)
     } break;
 #endif
     default:
-    	console_str("Not support MRBC_TT_XX: ");
+    	console_str("?vtype: ");
     	console_int((mrbc_int)v->tt);
     	break;
     }

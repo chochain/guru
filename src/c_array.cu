@@ -503,7 +503,7 @@ void c_array_get(mrbc_value v[], int argc)
         }
     }
     else {
-        console_str("Not support such case in Array#[].\n");
+        console_na("case of Array#[]");
     	ret = mrbc_nil_value();
     }
 DONE:
@@ -526,7 +526,7 @@ void c_array_set(mrbc_value v[], int argc)
         // TODO: not implement yet.
     }
     else {
-        console_str("Not support such case in Array#[].\n");
+        console_na("case of Array#[]=");
     }
 }
 
@@ -636,7 +636,7 @@ void c_array_pop(mrbc_value v[], int argc)
         // TODO: not implement yet.
     }
     else {
-    	console_str("Not support such case in Array#pop.\n");
+    	console_str("case of Array#pop");
     }
 }
 
@@ -665,7 +665,7 @@ void c_array_shift(mrbc_value v[], int argc)
         // TODO: not implement yet.
     }
     else {
-    	console_str("Not support such case in Array#shift.\n");
+    	console_na("case of Array#shift");
     }
 }
 
@@ -755,25 +755,32 @@ void c_array_minmax(mrbc_value v[], int argc)
 }
 
 #if MRBC_USE_STRING
+__GURU__
+void _rfc(mrbc_value *str, mrbc_value *v)
+{
+	char buf[8];
+	guru_sprintf(buf, "^%d_", v->self->refc);
+	mrbc_string_append_cstr(str, buf);
+}
 //================================================================
 /*! (method) inspect
  */
 __GURU__
 void c_array_to_s(mrbc_value v[], int argc)
 {
-    mrbc_value ret = mrbc_string_new("[");
+	mrbc_value *ary = v+argc;
+	mrbc_value ret  = mrbc_string_new("[");
     if (!ret.str) {
     	SET_NIL_RETURN();
     	return;
     }
     for (int i = 0; i < mrbc_array_size(v); i++) {
         if (i != 0) mrbc_string_append_cstr(&ret, ", ");
-
-        mrbc_value v1 = mrbc_array_get(v, i);
-        mrbc_value s1 = mrbc_send(v+argc, &v1, "inspect", 0);
-        mrbc_string_append(&ret, &s1);
-        mrbc_release(&s1);           		// CC: added 20181029
-        mrbc_release(&v1);                 	// CC: added 20181029
+        mrbc_value vi = mrbc_array_get(v, i);
+        mrbc_value s  = mrbc_send(ary, &vi, "inspect", 0);
+        mrbc_string_append(&ret, &s);
+        mrbc_release(&s);           		// CC: added 20181029
+        mrbc_release(&vi);                 	// CC: added 20181029
     }
     mrbc_string_append_cstr(&ret, "]");
 

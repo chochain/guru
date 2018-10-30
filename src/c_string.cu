@@ -320,11 +320,12 @@ __GURU__
 void c_string_add(mrbc_value v[], int argc)
 {
     if (v[1].tt != MRBC_TT_STRING) {
-        console_str("Not support STRING + Other\n");
-        return;
+        console_na("str + other type");
     }
-    mrbc_value value = mrbc_string_add(&v[0], &v[1]);
-    SET_RETURN(value);
+    else {
+    	mrbc_value value = mrbc_string_add(&v[0], &v[1]);
+    	SET_RETURN(value);
+    }
 }
 
 //================================================================
@@ -484,7 +485,7 @@ void c_string_insert(mrbc_value v[], int argc)
         val = &v[3];
     }
     else {
-        console_str("Not support\n");
+        console_na("case of c_string_insert");
         return;
     }
 
@@ -718,7 +719,7 @@ void c_string_split(mrbc_value v[], int argc)
         mrbc_string_delete(&sep);
     }
 #else
-    mrbc_value ret = mrbc_string_new("not supported");
+    console_na("case of string#split");
 #endif
     SET_RETURN(ret);
 }
