@@ -111,9 +111,9 @@ typedef struct RClass {			// 32-byte
 #define IS_C_FUNC(m)		((m)->flag & GURU_PROC_C_FUNC)
 
 #define MRBC_OBJECT_HEADER      \
+	unsigned int	refc:16;	\
 	mrbc_vtype  	tt:8; 		\
-	unsigned int	flag:8;		\
-	unsigned int	refc:16
+	unsigned int	flag:8
 
 typedef struct RString {		// 16-byte
 	MRBC_OBJECT_HEADER;			// 4-byte

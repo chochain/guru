@@ -554,13 +554,13 @@ void c_hash_inspect(mrbc_value v[], int argc)
         mrbc_value *kv = mrbc_hash_i_next(&ite);
         mrbc_value s1  = mrbc_send(v+argc, &kv[0], "inspect", 0);
         mrbc_string_append(&ret, &s1);
-        mrbc_string_delete(&s1);
+        mrbc_release(&s1);
 
         mrbc_string_append_cstr(&ret, "=>");
 
         s1  = mrbc_send(v+argc, &kv[1], "inspect", 0);
         mrbc_string_append(&ret, &s1);
-        mrbc_string_delete(&s1);
+        mrbc_release(&s1);
     }
     mrbc_string_append_cstr(&ret, "}");
 

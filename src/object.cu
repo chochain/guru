@@ -102,10 +102,8 @@ mrbc_value mrbc_send(mrbc_value v[], mrbc_value *rcv, const char *method, int ar
     	regs[i].tt = MRBC_TT_EMPTY;
     }
 
-    mrbc_inc_refc(&regs[0]);		// CC: added 20181029
-    mrbc_value ret = regs[0];
-
-    return ret;
+    mrbc_inc_refc(regs);		// CC: added 20181029
+    return regs[0];
 }
 
 #ifdef MRBC_DEBUG

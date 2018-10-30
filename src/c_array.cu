@@ -449,21 +449,20 @@ void c_array_add(mrbc_value v[], int argc)
         console_str("TypeError\n");	// raise?
         return;
     }
-
     mrbc_array *h0 = v[0].array;
     mrbc_array *h1 = v[1].array;
 
-    mrbc_value ret = mrbc_array_new(h0->n + h1->n);
-    if (ret.array==NULL) return;		// ENOMEM
+    int h0sz = sizeof(mrbc_value) * h0->n;
+    int h1sz = sizeof(mrbc_value) * h1->n;
 
-    int h0sz = sizeof(mrbc_value)*h0->n;
-    int h1sz = sizeof(mrbc_value)*h1->n;
+    mrbc_value ret = mrbc_array_new(h0sz + h1sz);
+    if (ret.array==NULL) return;		// ENOMEM
 
     MEMCPY((uint8_t *)(ret.array->data),        (const uint8_t *)h0->data, h0sz);
     MEMCPY((uint8_t *)(ret.array->data) + h0sz, (const uint8_t *)h1->data, h1sz);
 
-    int        n  = ret.array->n = h0sz + h1sz;
     mrbc_value *p = ret.array->data;
+    int         n = ret.array->n = h0->size + h1->size;
     for (int i=0; i<n; i++, p++) {
     	mrbc_inc_refc(p);
     }
@@ -773,8 +772,8 @@ void c_array_to_s(mrbc_value v[], int argc)
         mrbc_value v1 = mrbc_array_get(v, i);
         mrbc_value s1 = mrbc_send(v+argc, &v1, "inspect", 0);
         mrbc_string_append(&ret, &s1);
-        mrbc_string_delete(&s1);           // CC: added 20181029
-        mrbc_release(&v1);                 // CC: added 20181029
+        mrbc_release(&s1);           		// CC: added 20181029
+        mrbc_release(&v1);                 	// CC: added 20181029
     }
     mrbc_string_append_cstr(&ret, "]");
 

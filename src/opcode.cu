@@ -869,7 +869,6 @@ int op_add(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     }
     // other case
     op_send(vm, code, regs);
-    mrbc_release(&regs[ra]);                // CC: added 20181029
 
     return 0;
 }
