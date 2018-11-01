@@ -80,7 +80,7 @@ mrbc_value mrbc_array_new(int size)
 {
     mrbc_value ret = {.tt = MRBC_TT_ARRAY};
     mrbc_array *h 	 = (mrbc_array *)mrbc_alloc(sizeof(mrbc_array));		// handle
-    if (!h) return ret;	// ENOMEM
+    if (!h) return ret;		// ENOMEM
 
     mrbc_value *data = (mrbc_value *)mrbc_alloc(sizeof(mrbc_value) * size);	// buffer
     if (!data) {			// ENOMEM
@@ -154,6 +154,7 @@ int _adjust_index(mrbc_array *h, int idx, int inc)
 
     return ndx;
 }
+
 //================================================================
 /*! setter
 
@@ -224,6 +225,7 @@ int mrbc_array_push(mrbc_value *ary, mrbc_value *set_val)
         }
     }
     h->data[h->n++] = *set_val;
+    mrbc_retain(set_val);					// CC: added 20181101
 
     return 0;
 }

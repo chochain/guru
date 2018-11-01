@@ -27,7 +27,7 @@
 
 /* maximum size of callinfo (callstack) */
 #ifndef MAX_CALL_STACK
-#define MAX_CALL_STACK 100
+#define MAX_CALL_STACK 32
 #endif
 
 /* maximum number of objects */

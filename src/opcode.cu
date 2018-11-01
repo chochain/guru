@@ -1653,11 +1653,38 @@ int op_tclass(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
   @retval -1  No error and exit from vm.
 */
 __GURU__
+void _clean_reg(mrbc_value v[])
+{
+	console_str("regfile[");
+	for(int i = 0; i < MAX_REGS_SIZE; i++, v++) {
+		if (v->tt==MRBC_TT_EMPTY) continue;
+
+		console_int(i);
+		console_str(":");
+		console_int(v->tt);
+		console_str("^");
+	    switch(v->tt){
+	    case MRBC_TT_OBJECT:
+	    case MRBC_TT_PROC:
+	    case MRBC_TT_ARRAY:
+	    case MRBC_TT_STRING:
+	    case MRBC_TT_RANGE:
+	    case MRBC_TT_HASH:
+	    	console_int(v->self->refc); 	break;
+	    default:
+	    	console_str(".");
+	    	break;
+	    }
+		console_str(" ");
+		// mrbc_release(p);
+    }
+	console_str("]\n");
+}
+
+__GURU__
 int op_stop(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 {
-	for(int i = 0; i < MAX_REGS_SIZE; i++) {
-		mrbc_release(&vm->regfile[i]);
-    }
+	_clean_reg(vm->regfile);
 	vm->run = 0;
     return -1;	// exit vm_op
 }
