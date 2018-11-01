@@ -33,7 +33,7 @@
 #include "c_hash.h"
 #endif
 
-#define _RESET_REG(v, n)	do { mrbc_release(v); *(v) = (n); } while (0)	// replace register content
+#define _RESET_REG(v, n) do { mrbc_release(v); *(v) = (n); } while (0)	// replace register content
 
 //================================================================
 /*!@brief
@@ -149,7 +149,7 @@ void _vm_object_new(mrbc_vm *vm, mrbc_value v[], int argc)
     };
     mrbc_release(&v[0]);
     v[0] = obj;
-    mrbc_inc_refc(&obj);
+    mrbc_retain(&obj);
 
     // context switch, which is not multi-thread ready
     // TODO: create a vm context object with separate regfile
@@ -205,8 +205,8 @@ int op_move(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     int ra = GETARG_A(code);
     int rb = GETARG_B(code);
 
-    mrbc_inc_refc(&regs[rb]);
     _RESET_REG(&regs[ra], regs[rb]);
+    mrbc_retain(&regs[rb]);
 
     return 0;
 }
@@ -318,8 +318,8 @@ int op_loadself(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 {
     int ra = GETARG_A(code);
 
-    mrbc_inc_refc(&regs[0]);       // TODO: Need?
     _RESET_REG(&regs[ra], regs[0]);
+    mrbc_retain(&regs[0]);       // TODO: Need?
 
     return 0;
 }
@@ -537,8 +537,8 @@ int op_getupvar(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 
     mrbc_value *up_regs = ci->reg;
 
-    mrbc_inc_refc(&up_regs[rb]);
     _RESET_REG(&regs[ra], up_regs[rb]);
+    mrbc_retain(&up_regs[rb]);
 
     return 0;
 }
@@ -572,8 +572,8 @@ int op_setupvar(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 
     mrbc_value *up_regs = ci->reg;
 
-    mrbc_inc_refc(&regs[ra]);
     _RESET_REG(&up_regs[rb], regs[ra]);    // update outer-scope vars
+    mrbc_retain(&regs[ra]);
 
     return 0;
 }
@@ -817,8 +817,8 @@ int op_blkpush(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
         return -1;  // EYIELD
     }
 
-    mrbc_inc_refc(stack);
     _RESET_REG(&regs[ra], stack[0]);
+    mrbc_retain(stack);
 
     return 0;
 }
@@ -1454,13 +1454,13 @@ int op_range(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     int rb = GETARG_B(code);
     int rc = GETARG_C(code);
 
-    mrbc_inc_refc(&regs[rb]);
-    mrbc_inc_refc(&regs[rb+1]);
-
     mrbc_value value = mrbc_range_new(&regs[rb], &regs[rb+1], rc);
     if (value.range==NULL) return -1;		// ENOMEM
 
     _RESET_REG(&regs[ra], value);			// release and  reassign
+    mrbc_retain(&regs[rb]);
+    mrbc_retain(&regs[rb+1]);
+
 #else
     console_na("Range class");
 #endif

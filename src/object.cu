@@ -12,6 +12,7 @@
   </pre>
 */
 #include <assert.h>
+#include <stdarg.h>
 
 #include "guru.h"
 #include "value.h"
@@ -87,16 +88,14 @@ mrbc_value mrbc_send(mrbc_value v[], mrbc_value *rcv, const char *method, int ar
     // create call stack.
     mrbc_release(&regs[0]);
     regs[0] = *rcv;					// create call stack, start with receiver object
-    mrbc_inc_refc(rcv);
+    mrbc_retain(rcv);
 
     va_list ap;						// setup calling registers
     va_start(ap, argc);
-    for (int i = 1; i <= argc; i++) {
+    for (int i = 1; i <= argc+1; i++) {
     	mrbc_release(&regs[i]);
-        regs[i] = *va_arg(ap, mrbc_value *);
+        regs[i] = (i>argc) ? mrbc_nil_value() : *va_arg(ap, mrbc_value *);
     }
-    mrbc_release(&regs[argc+1]);
-    regs[argc+1] = mrbc_nil_value();
     va_end(ap);
 
     m->func(regs, argc);			// call method
@@ -104,7 +103,7 @@ mrbc_value mrbc_send(mrbc_value v[], mrbc_value *rcv, const char *method, int ar
     for (int i=1; i<=argc; i++) {	// clean up the regs
     	regs[i].tt = MRBC_TT_EMPTY;
     }
-    mrbc_inc_refc(regs);			// CC: added 20181029
+    mrbc_retain(regs);			    // CC: added 20181029
     return regs[0];
 }
 
@@ -130,12 +129,10 @@ void c_puts(mrbc_value v[], int argc)
 {
     if (argc) {
     	for (int i = 1; i <= argc; i++) {
-    		if (mrbc_puts_sub(&v[i]) == 0) console_char('\n');
+    		if (mrbc_print_sub(&v[i]) == 0) console_char('\n');
     	}
     }
-    else {
-    	console_char('\n');
-    }
+    else console_char('\n');
 }
 
 //================================================================
@@ -378,7 +375,7 @@ void mrbc_init_class_object()
 
 #if MRBC_USE_STRING
 __GURU__
-void c_proc_to_s(mrbc_value v[], int argc)
+void c_proc_inspect(mrbc_value v[], int argc)
 {
 	char buf[20];
     const char *str = guru_sprintf(buf, "<#Proc:%08x>", (uintptr_t)v->proc);
@@ -395,8 +392,8 @@ void mrbc_init_class_proc()
     // Methods
     mrbc_define_method(c, "call", (mrbc_func_t)c_proc_call);
 #if MRBC_USE_STRING
-    mrbc_define_method(c, "inspect", 	c_proc_to_s);
-    mrbc_define_method(c, "to_s", 		c_proc_to_s);
+    mrbc_define_method(c, "inspect", 	c_proc_inspect);
+    mrbc_define_method(c, "to_s", 		c_proc_inspect);
 #endif
 }
 
@@ -474,7 +471,7 @@ void mrbc_init_class_false()
     mrbc_define_method(mrbc_class_false, "!", c_nil_false_not);
 #if MRBC_USE_STRING
     mrbc_define_method(mrbc_class_false, "inspect", c_false_to_s);
-    mrbc_define_method(mrbc_class_false, "to_s", c_false_to_s);
+    mrbc_define_method(mrbc_class_false, "to_s",    c_false_to_s);
 #endif
 }
 

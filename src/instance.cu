@@ -69,8 +69,8 @@ void mrbc_instance_delete(mrbc_value *v)
 __GURU__
 void mrbc_instance_setiv(mrbc_object *obj, mrbc_sym sym_id, mrbc_value *v)
 {
-    mrbc_inc_refc(v);
     mrbc_kv_set(obj->self->ivar, sym_id, v);
+    mrbc_retain(v);
 }
 
 
@@ -87,7 +87,7 @@ mrbc_value mrbc_instance_getiv(mrbc_object *obj, mrbc_sym sym_id)
     mrbc_value *v = mrbc_kv_get(obj->self->ivar, sym_id);
     if (!v) return mrbc_nil_value();
 
-    mrbc_inc_refc(v);
+    mrbc_retain(v);
     return *v;
 }
 

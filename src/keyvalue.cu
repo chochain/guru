@@ -118,7 +118,7 @@ int mrbc_kv_set(mrbc_kv_handle *kvh, mrbc_sym sym_id, mrbc_value *set_val)
     }
     // replace value ?
     if (kvh->data[idx].sym_id == sym_id) {
-        mrbc_dec_refc(&kvh->data[idx].value);
+        mrbc_release(&kvh->data[idx].value);      // CC: was dec_refc 20181101
         kvh->data[idx].value = *set_val;
         return 0;
     }
@@ -207,7 +207,7 @@ int mrbc_kv_remove(mrbc_kv_handle *kvh, mrbc_sym sym_id)
     if (idx < 0) return 0;
     if (kvh->data[idx].sym_id != sym_id) return 0;
 
-    mrbc_dec_refc(&kvh->data[idx].value);
+    mrbc_release(&kvh->data[idx].value);      // CC: was dec_ref 20181101
 
     int blksz = sizeof(mrbc_kv)*(--kvh->n - idx);
     MEMCPY((uint8_t *)(kvh->data+idx), (const uint8_t *)(kvh->data+idx+1), blksz);
@@ -225,7 +225,7 @@ void mrbc_kv_clear(mrbc_kv_handle *kvh)
 {
     mrbc_kv *p = kvh->data;
     for (int i=0; i<kvh->n; i++, p++) {
-        mrbc_dec_refc(&p->value);
+        mrbc_release(&p->value);              // CC: was dec_ref 20181101
     }
     kvh->n = 0;
 }

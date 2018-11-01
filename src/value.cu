@@ -241,7 +241,7 @@ void mrbc_dec_refc(mrbc_value *v)
   @param   v     Pointer to mrbc_value
 */
 __GURU__
-void mrbc_inc_refc(mrbc_value *v)
+void mrbc_retain(mrbc_value *v)         // CC: was mrbc_inc_refc() 20181101
 {
     switch(v->tt){
     case MRBC_TT_OBJECT:

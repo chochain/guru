@@ -17,9 +17,9 @@
 extern "C" {
 #endif
 __GURU__ int   		mrbc_compare(const mrbc_value *v1, const mrbc_value *v2);
-__GURU__ void  		mrbc_dec_refc(mrbc_value *v);
-__GURU__ void  		mrbc_inc_refc(mrbc_value *v);
+__GURU__ void  		mrbc_retain(mrbc_value *v);
 __GURU__ void  		mrbc_release(mrbc_value *v);
+__GURU__ void       mrbc_dec_refc(mrbc_value *v);
 
 // for C call
 #define SET_RETURN(n)		do { mrbc_value nnn = (n); mrbc_dec_refc(v); v[0] = nnn; 	} while (0)
