@@ -433,9 +433,9 @@ int op_getiv(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     const char *name  = _get_symbol(vm->pc_irep->sym, rb);
     mrbc_sym   sym_id = name2symid(name+1);	// skip '@'
 
-    mrbc_value val = mrbc_instance_getiv(&regs[0], sym_id);
+    mrbc_value ret = mrbc_instance_getiv(&regs[0], sym_id);
 
-    _RESET_REG(&regs[ra], val);
+    _RESET_REG(&regs[ra], ret);
 
     return 0;
 }
@@ -786,11 +786,11 @@ int op_return(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 {
     // return value
     int ra = GETARG_A(code);
-    mrbc_value value = regs[ra];
+    mrbc_value ret = regs[ra];
 
     _pop_callinfo(vm, regs);
 
-    regs[0] = value;
+    regs[0] = ret;
 
     return 0;
 }
@@ -1318,11 +1318,11 @@ int op_string(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     /* CAUTION: pool_obj->sym - 2. see IREP POOL structure. */
     int         len = _bin_to_uint16(obj->sym - 2);
     const char *str = (const char *)obj->sym;			// 20181025
-    mrbc_value value = mrbc_string_new(str);
+    mrbc_value  ret = mrbc_string_new(str);
 
-    if (value.str==NULL) return -1;		// ENOMEM
+    if (ret.str==NULL) return -1;		// ENOMEM
 
-    _RESET_REG(&regs[ra], value);
+    _RESET_REG(&regs[ra], ret);
 #else
     console_na("String class");
 #endif
@@ -1454,10 +1454,10 @@ int op_range(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     int rb = GETARG_B(code);
     int rc = GETARG_C(code);
 
-    mrbc_value value = mrbc_range_new(&regs[rb], &regs[rb+1], rc);
-    if (value.range==NULL) return -1;		// ENOMEM
+    mrbc_value ret = mrbc_range_new(&regs[rb], &regs[rb+1], rc);
+    if (ret.range==NULL) return -1;		// ENOMEM
 
-    _RESET_REG(&regs[ra], value);			// release and  reassign
+    _RESET_REG(&regs[ra], ret);			// release and  reassign
     mrbc_retain(&regs[rb]);
     mrbc_retain(&regs[rb+1]);
 

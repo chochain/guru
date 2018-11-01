@@ -37,7 +37,6 @@ __GURU__ void       mrbc_dec_refc(mrbc_value *v);
 #define GET_TT_ARG(n)			(v[(n)].tt)
 #define GET_INT_ARG(n)			(v[(n)].i)
 #define GET_ARY_ARG(n)			(v[(n)])
-#define GET_ARG(n)		    	(v[(n)])
 #define GET_FLOAT_ARG(n)		(v[(n)].f)
 #define GET_STRING_ARG(n)		(v[(n)].string->data)
 

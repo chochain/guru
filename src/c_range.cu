@@ -38,19 +38,20 @@
 __GURU__
 mrbc_value mrbc_range_new(mrbc_value *first, mrbc_value *last, int exclude_end)
 {
-    mrbc_value value = {.tt = MRBC_TT_RANGE};
+    mrbc_value ret = {.tt = MRBC_TT_RANGE};
 
-    value.range = (mrbc_range *)mrbc_alloc(sizeof(mrbc_range));
-    if (!value.range) return value;		// ENOMEM
+    ret.range = (mrbc_range *)mrbc_alloc(sizeof(mrbc_range));
+    if (!ret.range) return ret;		// ENOMEM
 
-    if (exclude_end) value.range->flag |= EXCLUDE_END;
-    else		     value.range->flag &= ~EXCLUDE_END;
-    value.range->refc  = 1;
-    value.range->tt    = MRBC_TT_STRING;	// TODO: for DEBUG
-    value.range->first = *first;
-    value.range->last  = *last;
+    if (exclude_end) ret.range->flag |= EXCLUDE_END;
+    else		     ret.range->flag &= ~EXCLUDE_END;
 
-    return value;
+    ret.range->refc  = 1;
+    ret.range->tt    = MRBC_TT_STRING;	// TODO: for DEBUG
+    ret.range->first = *first;
+    ret.range->last  = *last;
+
+    return ret;
 }
 
 //================================================================

@@ -72,17 +72,17 @@ int _string_size(const mrbc_value *v)
 __GURU__
 mrbc_value _mrbc_string_new(const char *src, int len)
 {
-    mrbc_value value = {.tt = MRBC_TT_STRING};
+    mrbc_value ret = {.tt = MRBC_TT_STRING};
     /*
       Allocate handle and string buffer.
     */
     mrbc_string *h = (mrbc_string *)mrbc_alloc(sizeof(mrbc_string));
-    if (!h) return value;		// ENOMEM
+    if (!h) return ret;		// ENOMEM
 
     uint8_t *str = (uint8_t *)mrbc_alloc(len);
     if (!str) {					// ENOMEM
         mrbc_free(h);
-        return value;
+        return ret;
     }
 
     // deep copy source string
@@ -94,9 +94,9 @@ mrbc_value _mrbc_string_new(const char *src, int len)
     h->size = len;
     h->data = str;
 
-    value.str = h;
+    ret.str = h;
 
-    return value;
+    return ret;
 }
 
 //================================================================
@@ -323,8 +323,8 @@ void c_string_add(mrbc_value v[], int argc)
         console_na("str + other type");
     }
     else {
-    	mrbc_value value = mrbc_string_add(&v[0], &v[1]);
-    	SET_RETURN(value);
+    	mrbc_value ret = mrbc_string_add(v, v+1);
+    	SET_RETURN(ret);
     }
 }
 
@@ -338,17 +338,17 @@ void c_string_mul(mrbc_value v[], int argc)
         console_str("TypeError\n");	// raise?
         return;
     }
-    mrbc_value value = _mrbc_string_new(NULL, VSTRLEN(&v[0]) * v[1].i);
-    if (value.str==NULL) return;		// ENOMEM
+    mrbc_value ret = _mrbc_string_new(NULL, VSTRLEN(&v[0]) * v[1].i);
+    if (ret.str==NULL) return;		// ENOMEM
 
-    uint8_t *p = (uint8_t *)value.str->data;
+    uint8_t *p = (uint8_t *)ret.str->data;
     for (int i = 0; i < v[1].i; i++) {
-        MEMCPY((uint8_t *)p, (uint8_t *)VSTR(&v[0]), VSTRLEN(&v[0]));
-        p += VSTRLEN(&v[0]);
+        MEMCPY((uint8_t *)p, (uint8_t *)VSTR(v), VSTRLEN(v));
+        p += VSTRLEN(v);
     }
     *p = 0;
 
-    SET_RETURN(value);
+    SET_RETURN(ret);
 }
 
 //================================================================
@@ -357,7 +357,7 @@ void c_string_mul(mrbc_value v[], int argc)
 __GURU__
 void c_string_size(mrbc_value v[], int argc)
 {
-    mrbc_int size = VSTRLEN(&v[0]);
+    mrbc_int size = VSTRLEN(v);
 
     SET_INT_RETURN(size);
 }
@@ -427,13 +427,13 @@ void c_string_slice(mrbc_value v[], int argc)
         }
         if (ch < 0) goto RETURN_NIL;
 
-        mrbc_value value = _mrbc_string_new(NULL, 1);
-        if (!value.str) goto RETURN_NIL;
+        mrbc_value ret = _mrbc_string_new(NULL, 1);
+        if (!ret.str) goto RETURN_NIL;
 
-        value.str->data[0] = ch;
-        value.str->data[1] = '\0';
+        ret.str->data[0] = ch;
+        ret.str->data[1] = '\0';
 
-        SET_RETURN(value);
+        SET_RETURN(ret);
     }
     else if (argc==2 && v1->tt==MRBC_TT_FIXNUM && v2->tt==MRBC_TT_FIXNUM) { 	// slice(n, len) -> String | nil
         int len = v->str->size;
@@ -445,10 +445,10 @@ void c_string_slice(mrbc_value v[], int argc)
         // min(v2->i, (len-idx))
         if (rlen < 0) goto RETURN_NIL;
 
-        mrbc_value value = _mrbc_string_new((char *)v->str->data + idx, rlen);
-        if (!value.str) goto RETURN_NIL;		// ENOMEM
+        mrbc_value ret = _mrbc_string_new((char *)v->str->data + idx, rlen);
+        if (!ret.str) goto RETURN_NIL;		// ENOMEM
 
-        SET_RETURN(value);
+        SET_RETURN(ret);
     }
     else {
     	console_str("Not support such case in String#[].\n");

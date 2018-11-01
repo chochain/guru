@@ -78,14 +78,14 @@ int mrbc_array_size(const mrbc_value *ary)
 __GURU__
 mrbc_value mrbc_array_new(int size)
 {
-    mrbc_value value = {.tt = MRBC_TT_ARRAY};
+    mrbc_value ret = {.tt = MRBC_TT_ARRAY};
     mrbc_array *h 	 = (mrbc_array *)mrbc_alloc(sizeof(mrbc_array));		// handle
-    if (!h) return value;	// ENOMEM
+    if (!h) return ret;	// ENOMEM
 
     mrbc_value *data = (mrbc_value *)mrbc_alloc(sizeof(mrbc_value) * size);	// buffer
     if (!data) {			// ENOMEM
         mrbc_free(h);
-        return value;
+        return ret;
     }
     h->refc = 1;			// handle is referenced
     h->tt 	= MRBC_TT_ARRAY;
@@ -93,8 +93,9 @@ mrbc_value mrbc_array_new(int size)
     h->n  	= 0;
     h->data = data;
 
-    value.array = h;
-    return value;
+    ret.array = h;
+
+    return ret;
 }
 
 //================================================================
@@ -541,8 +542,8 @@ void c_array_clear(mrbc_value v[], int argc)
 __GURU__
 void c_array_delete_at(mrbc_value v[], int argc)
 {
-    mrbc_value val = mrbc_array_remove(v, GET_INT_ARG(1));
-    SET_RETURN(val);
+    mrbc_value ret = mrbc_array_remove(v, GET_INT_ARG(1));
+    SET_RETURN(ret);
 }
 
 //================================================================
@@ -591,8 +592,8 @@ void c_array_index(mrbc_value v[], int argc)
  */
 __GURU__ void c_array_first(mrbc_value v[], int argc)
 {
-	mrbc_value val = mrbc_array_get(v, 0);
-	SET_RETURN(val);
+	mrbc_value ret = mrbc_array_get(v, 0);
+	SET_RETURN(ret);
     //mrbc_retain(&val)        	// CC: removed 20181029
 }
 
@@ -602,8 +603,8 @@ __GURU__ void c_array_first(mrbc_value v[], int argc)
 __GURU__
 void c_array_last(mrbc_value v[], int argc)
 {
-	mrbc_value	val = mrbc_array_get(v, -1);
-	SET_RETURN(val);
+	mrbc_value ret = mrbc_array_get(v, -1);
+	SET_RETURN(ret);
     //mrbc_retain(&val)        	// CC: removed 20181029
 }
 
@@ -613,7 +614,7 @@ void c_array_last(mrbc_value v[], int argc)
 __GURU__
 void c_array_push(mrbc_value v[], int argc)
 {
-    mrbc_array_push(&v[0], &v[1]);	// raise? ENOMEM
+    mrbc_array_push(v, &v[1]);	// raise? ENOMEM
     v[1].tt = MRBC_TT_EMPTY;
 }
 
