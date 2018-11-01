@@ -574,12 +574,12 @@ void c_array_size(mrbc_value v[], int argc)
 __GURU__
 void c_array_index(mrbc_value v[], int argc)
 {
-    mrbc_value *value = &GET_ARG(1);
+    mrbc_value *ret = v+1;
     
     mrbc_array *h = v->array;
     mrbc_value *p = h->data;
     for (int i = 0; i < h->n; i++, p++) {
-        if (mrbc_compare(p, value)==0) {
+        if (mrbc_compare(p, ret)==0) {
             SET_INT_RETURN(i);
             return;
         }
