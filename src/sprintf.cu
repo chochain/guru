@@ -10,6 +10,8 @@
 
   </pre>
 */
+#include <stdarg.h>
+
 #include "alloc.h"
 #include "value.h"
 #include "symbol.h"

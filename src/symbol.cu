@@ -186,7 +186,7 @@ __GURU__ mrbc_sym name2symid(const char *str)
   @retval NULL		Invalid sym_id was given.
 */
 __GURU__
-const char * symid2name(mrbc_sym sym_id)
+const char *symid2name(mrbc_sym sym_id)
 {
     return (sym_id < 0 || sym_id >= sym_idx)
     		? NULL

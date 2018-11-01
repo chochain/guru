@@ -120,49 +120,6 @@ PARSE_WIDTH:
 }
 
 __GURU__
-void console_printf(const char *fstr, ...)
-{
-    va_list ap;
-    va_start(ap, fstr);
-
-	guru_print_node *n = (guru_print_node *)guru_output_ptr;
-
-	guru_write(MRBC_TT_RANGE, (mrbc_vtype)0, guru_strlen(fstr)+1, (uint8_t *)fstr);
-
-	char *p = (char *)fstr;
-	int   i = 0;
-    while ((p = _console_va_arg(p))) {
-    	i++;
-     	switch(*(p-1)) {
-        case 'c': console_char(va_arg(ap, int));         break;
-        case 's': console_str(va_arg(ap, char *)); 		 break;
-        case 'd':
-        case 'i':
-        case 'u':
-        case 'b':
-        case 'B':
-        case 'x':
-        case 'X': console_int(va_arg(ap, unsigned int)); break;
-#if MRBC_USE_FLOAT
-        case 'f':
-        case 'e':
-        case 'E':
-        case 'g':
-        case 'G': console_float(va_arg(ap, mrbc_float)); break;
-#endif
-        default:
-        	console_str("?format:");
-        	console_char(*(p-1));
-        	console_str("\n");
-        	break;
-        }
-    }
-    va_end(ap);
-
-	n->fmt = (mrbc_vtype)i;
-}
-
-__GURU__
 void _dump_obj_size(void)
 {
 	console_str("\nvalue=");

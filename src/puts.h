@@ -21,7 +21,6 @@ extern "C" {
 #endif
 
 __GURU__ int mrbc_print_sub(mrbc_value *v);
-__GURU__ int mrbc_puts_sub(mrbc_value *v);
 __GURU__ int mrbc_p_sub(mrbc_value *v);
 
 #ifdef __cplusplus

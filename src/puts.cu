@@ -37,6 +37,7 @@
 __GURU__
 int mrbc_print_sub(mrbc_value *v)
 {
+    mrbc_value v1;
     int ret = 0;
 
     switch (v->tt){
@@ -48,7 +49,7 @@ int mrbc_print_sub(mrbc_value *v)
 #if MRBC_USE_FLOAT
     case MRBC_TT_FLOAT:  console_float(v->f);						break;
 #endif
-    case MRBC_TT_SYMBOL: console_str(VSYM(v)); 						break;
+    case MRBC_TT_SYMBOL: console_str(VSYM(v));						break;
     case MRBC_TT_CLASS:  console_str(symid2name(v->cls->sym_id));   break;
     case MRBC_TT_OBJECT:
     	console_str("#<");
@@ -72,29 +73,28 @@ int mrbc_print_sub(mrbc_value *v)
         break;
 #endif
 #if MRBC_USE_ARRAY
-    case MRBC_TT_ARRAY: {
+    case MRBC_TT_ARRAY:
         console_char('[');
         for (int i = 0; i < mrbc_array_size(v); i++) {
             if (i != 0) console_str(", ");
-            mrbc_value v1 = mrbc_array_get(v, i);
+            v1 = mrbc_array_get(v, i);
             mrbc_p_sub(&v1);
             mrbc_release(&v1);		// CC: added 20181029
         }
         console_char(']');
-    } break;
-    case MRBC_TT_RANGE:{
-        mrbc_value v1 = mrbc_range_first(v);
+        break;
+    case MRBC_TT_RANGE:
+        v1 = mrbc_range_first(v);
         mrbc_print_sub(&v1);
         console_str(IS_EXCLUDE_END(v->range) ? "..." : "..");
         v1 = mrbc_range_last(v);
         mrbc_print_sub(&v1);
-    } break;
-    case MRBC_TT_HASH:{
+        break;
+    case MRBC_TT_HASH: {
         console_char('{');
         mrbc_hash_iterator ite = mrbc_hash_iterator_new(v);
         while (mrbc_hash_i_has_next(&ite)) {
             mrbc_value *vk = mrbc_hash_i_next(&ite);
-            console_str(":");
             mrbc_p_sub(vk);
             console_str("=>");
             mrbc_p_sub(vk+1);
@@ -112,65 +112,36 @@ int mrbc_print_sub(mrbc_value *v)
 }
 
 //================================================================
-/*! puts - sub function
-
-  @param  v	pointer to target value.
-  @retval 0	normal return.
-  @retval 1	already output LF.
-*/
-__GURU__
-int mrbc_puts_sub(mrbc_value *v)
-{
-    if (v->tt == MRBC_TT_ARRAY) {
-#if MRBC_USE_ARRAY
-        for (int i = 0; i < mrbc_array_size(v); i++) {
-            if (i != 0) console_char('\n');
-            mrbc_value v1 = mrbc_array_get(v, i);
-            mrbc_puts_sub(&v1);
-            mrbc_release(&v1);       // CC: added 20181029
-        }
-#endif
-        return 0;
-    }
-    return mrbc_print_sub(v);
-}
-
-//================================================================
 /*! p - sub function
  */
 __GURU__
 int mrbc_p_sub(mrbc_value *v)
 {
-    switch (v->tt){
+	const char *s;
+
+    switch (v->tt){		// only when output different from print_sub
     case MRBC_TT_NIL: console_str("nil");		break;
-    case MRBC_TT_SYMBOL:{
-        const char *s   = VSYM(v);
-        const char *fmt = STRCHR(s, ':') ? "\":%s\"" : ":%s";
-        console_printf(s, fmt);
-    } break;
-
-    case MRBC_TT_STRING:{
+    case MRBC_TT_SYMBOL:
+        s = VSYM(v);
+        if (STRCHR(s, ':')) {
+        	console_str("\":");
+        	console_str(s);
+        	console_str("\"");
+        }
+        else {
+        	console_str(":");
+        	console_str(s);
+        }
+        break;
+    case MRBC_TT_STRING:
+        s = VSTR(v);
         console_char('"');
-        const char *s = VSTR(v);
-
         for (int i = 0; i < VSTRLEN(v); i++) {
-            if (s[i] < ' ' || 0x7f <= s[i]) {		// tiny isprint()
-                console_hex(s[i]);
-            } else {
-                console_char(s[i]);
-            }
+            if (s[i]<' ' || 0x7f<=s[i]) console_hex(s[i]);
+            else 						console_char(s[i]);
         }
         console_char('"');
-    } break;
-#if MRBC_USE_ARRAY
-    case MRBC_TT_RANGE:{
-        mrbc_value v1 = mrbc_range_first(v);
-        mrbc_p_sub(&v1);
-        console_str(IS_EXCLUDE_END(v->range) ? "..." : "..");
-        v1 = mrbc_range_last(v);
-        mrbc_p_sub(&v1);
-    } break;
-#endif
+        break;
     default:
         mrbc_print_sub(v);
         break;
