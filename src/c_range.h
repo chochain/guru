@@ -39,9 +39,6 @@ __GURU__ mrbc_value mrbc_range_new(mrbc_value *first, mrbc_value *last, int excl
 __GURU__ void       mrbc_range_delete(mrbc_value *v);
 __GURU__ int        mrbc_range_compare(const mrbc_value *v1, const mrbc_value *v2);
 
-__GURU__ mrbc_value mrbc_range_first(const mrbc_value *v);
-__GURU__ mrbc_value mrbc_range_last(const mrbc_value *v);
-
 __GURU__ void       mrbc_init_class_range();
 
 #ifdef __cplusplus

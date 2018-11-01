@@ -27,24 +27,6 @@
 #include "c_string.h"
 
 //================================================================
-/*! get first value
- */
-__GURU__
-mrbc_value mrbc_range_first(const mrbc_value *v)
-{
-    return v->range->first;
-}
-
-//================================================================
-/*! get last value
- */
-__GURU__
-mrbc_value mrbc_range_last(const mrbc_value *v)
-{
-    return v->range->last;
-}
-
-//================================================================
 /*! constructor
 
   @param  vm		pointer to VM.
@@ -133,7 +115,7 @@ void c_range_equal3(mrbc_value v[], int argc)
 __GURU__
 void c_range_first(mrbc_value v[], int argc)
 {
-    mrbc_value ret = mrbc_range_first(v);
+    mrbc_value ret = v->range->first;
     SET_RETURN(ret);
 }
 
@@ -143,7 +125,7 @@ void c_range_first(mrbc_value v[], int argc)
 __GURU__
 void c_range_last(mrbc_value v[], int argc)
 {
-    mrbc_value ret = mrbc_range_last(v);
+    mrbc_value ret = v->range->last;
     SET_RETURN(ret);
 }
 
@@ -172,7 +154,7 @@ void c_range_inspect(mrbc_value v[], int argc)
 
     for (int i = 0; i < 2; i++) {
         if (i != 0) mrbc_string_append_cstr(&ret, "..");
-        mrbc_value v1 = (i == 0) ? mrbc_range_first(v) : mrbc_range_last(v);
+        mrbc_value v1 = (i == 0) ? v->range->first : v->range->last;
         mrbc_value s1 = mrbc_send(v+argc, &v1, "inspect", 0);
         mrbc_string_append(&ret, &s1);
         mrbc_string_delete(&s1);

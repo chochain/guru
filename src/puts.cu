@@ -37,7 +37,7 @@
 __GURU__
 int mrbc_print_sub(mrbc_value *v)
 {
-    mrbc_value v1;
+    mrbc_value *p;
     int ret = 0;
 
     switch (v->tt){
@@ -74,34 +74,28 @@ int mrbc_print_sub(mrbc_value *v)
 #endif
 #if MRBC_USE_ARRAY
     case MRBC_TT_ARRAY:
-        console_char('[');
-        for (int i = 0; i < mrbc_array_size(v); i++) {
-            if (i != 0) console_str(", ");
-            v1 = mrbc_array_get(v, i);
-            mrbc_p_sub(&v1);
-            mrbc_release(&v1);		// CC: added 20181029
+        p = v->array->data;
+        for (int i = 0; i < v->array->n; i++, p++) {
+            if (i!=0) console_str("\n");
+            mrbc_p_sub(p);
         }
-        console_char(']');
         break;
     case MRBC_TT_RANGE:
-        v1 = mrbc_range_first(v);
-        mrbc_print_sub(&v1);
+        mrbc_print_sub(&v->range->first);
         console_str(IS_EXCLUDE_END(v->range) ? "..." : "..");
-        v1 = mrbc_range_last(v);
-        mrbc_print_sub(&v1);
+        mrbc_print_sub(&v->range->last);
         break;
-    case MRBC_TT_HASH: {
+    case MRBC_TT_HASH:
         console_char('{');
-        mrbc_hash_iterator ite = mrbc_hash_iterator_new(v);
-        while (mrbc_hash_i_has_next(&ite)) {
-            mrbc_value *vk = mrbc_hash_i_next(&ite);
-            mrbc_p_sub(vk);
+        p = v->hash->data;
+        for (int i=0; i < v->hash->n; i++, p+=2) {
+            if (i!=0) console_str(", ");
+        	mrbc_p_sub(p);
             console_str("=>");
-            mrbc_p_sub(vk+1);
-            if (mrbc_hash_i_has_next(&ite)) console_str(", ");
+            mrbc_p_sub(p+1);
         }
         console_char('}');
-    } break;
+        break;
 #endif
     default:
     	console_str("?vtype: ");
@@ -118,6 +112,7 @@ __GURU__
 int mrbc_p_sub(mrbc_value *v)
 {
 	const char *s;
+	mrbc_value *p;
 
     switch (v->tt){		// only when output different from print_sub
     case MRBC_TT_NIL: console_str("nil");		break;
@@ -133,6 +128,18 @@ int mrbc_p_sub(mrbc_value *v)
         	console_str(s);
         }
         break;
+#if MRBC_USE_ARRAY
+    case MRBC_TT_ARRAY:
+        console_char('[');
+        p = v->array->data;
+        for (int i = 0; i < v->array->n; i++, p++) {
+            if (i!=0) console_str(", ");
+            mrbc_p_sub(p);
+        }
+        console_char(']');
+        break;
+#endif
+#if MRBC_USE_STRING
     case MRBC_TT_STRING:
         s = VSTR(v);
         console_char('"');
@@ -142,6 +149,7 @@ int mrbc_p_sub(mrbc_value *v)
         }
         console_char('"');
         break;
+#endif
     default:
         mrbc_print_sub(v);
         break;

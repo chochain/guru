@@ -27,6 +27,45 @@
 #include "c_hash.h"
 #include "c_string.h"
 
+//================================================================
+/*!@brief
+  Define Hash iterator.
+*/
+extern "C" typedef struct RHashIterator {
+    mrbc_hash  *h;
+    mrbc_value *p;
+    mrbc_value *p_end;
+} _iterator;
+
+//================================================================
+/*! iterator constructor
+ */
+__GURU__
+_iterator _iterator_new(mrbc_value *v)
+{
+    _iterator itr;
+
+    itr.h     = v->hash;
+    itr.p     = v->hash->data;
+    itr.p_end = itr.p + v->hash->n;
+
+    return itr;
+}
+
+//================================================================
+/*! iterator getter
+ */
+__GURU__
+mrbc_value *_next(_iterator *itr)
+{
+	if (itr->p >= itr->p_end) return NULL;
+
+    mrbc_value *ret = itr->p;
+    itr->p += 2;					// k + v
+
+    return ret;
+}
+
 /*
   function summary
 
@@ -63,41 +102,6 @@ __GURU__
 int mrbc_hash_resize(mrbc_value *kv, int size)
 {
     return mrbc_array_resize(kv->array, size * 2);
-}
-
-//================================================================
-/*! iterator constructor
- */
-__GURU__
-mrbc_hash_iterator mrbc_hash_iterator_new(mrbc_value *v)
-{
-    mrbc_hash_iterator itr;
-    itr.target = v->hash;
-    itr.point  = v->hash->data;
-    itr.p_end  = itr.point + v->hash->n;
-
-    return itr;
-}
-
-//================================================================
-/*! iterator has_next?
- */
-__GURU__
-int mrbc_hash_i_has_next(mrbc_hash_iterator *itr)
-{
-    return itr->point < itr->p_end;
-}
-
-//================================================================
-/*! iterator getter
- */
-__GURU__
-mrbc_value *mrbc_hash_i_next(mrbc_hash_iterator *itr)
-{
-    mrbc_value *ret = itr->point;
-    itr->point += 2;					// k + v
-
-    return ret;
 }
 
 //================================================================
@@ -170,9 +174,9 @@ mrbc_value *_hash_search(const mrbc_value v[], const mrbc_value *key)
 #endif
 
 #ifdef MRBC_HASH_SEARCH_LINER_ITERATOR
-    mrbc_hash_iterator itr = mrbc_hash_iterator_new(hash);
-    while (mrbc_hash_i_has_next(&itr)) {
-        mrbc_value *p = mrbc_hash_i_next(&itr);
+    _iterator itr = _iterator_new(hash);
+    mrbc_value *p;
+    while ((p=_next(&itr))!=NULL) {
         if (mrbc_compare(p, key)==0) return p;
     }
     return NULL;
@@ -416,17 +420,16 @@ void c_hash_has_key(mrbc_value v[], int argc)
 __GURU__
 void c_hash_has_value(mrbc_value v[], int argc)
 {
-    int ret = 0;
-    mrbc_hash_iterator itr = mrbc_hash_iterator_new(&v[0]);
+    _iterator itr = _iterator_new(&v[0]);
 
-    while (mrbc_hash_i_has_next(&itr)) {
-        mrbc_value *val = mrbc_hash_i_next(&itr) + 1;	// skip key, get value
-        if (mrbc_compare(val, &v[1])==0) {
-            ret = 1;
-            break;
+    mrbc_value *val;
+    while ((val=_next(&itr))) {
+        if (mrbc_compare(val+1, &v[1])==0) {	// value to value
+            SET_BOOL_RETURN(1);
+            return;
         }
     }
-    SET_BOOL_RETURN(ret);
+    SET_BOOL_RETURN(0);
 }
 
 //================================================================
@@ -436,10 +439,10 @@ __GURU__
 void c_hash_key(mrbc_value v[], int argc)
 {
     mrbc_value *ret = NULL;
-    mrbc_hash_iterator itr = mrbc_hash_iterator_new(&v[0]);
+    _iterator   itr = _iterator_new(&v[0]);
 
-    while (mrbc_hash_i_has_next(&itr)) {
-        mrbc_value *kv = mrbc_hash_i_next(&itr);
+    mrbc_value *kv;
+    while ((kv=_next(&itr))) {
         if (mrbc_compare(&kv[1], &v[1])==0) {
             mrbc_retain(&kv[0]);
             ret = &kv[0];
@@ -457,10 +460,10 @@ __GURU__
 void c_hash_keys(mrbc_value v[], int argc)
 {
     mrbc_value ret = mrbc_array_new(mrbc_hash_size(v));
-    mrbc_hash_iterator itr = mrbc_hash_iterator_new(v);
+    _iterator  itr = _iterator_new(v);
 
-    while (mrbc_hash_i_has_next(&itr)) {
-        mrbc_value *key = mrbc_hash_i_next(&itr);
+    mrbc_value *key;
+    while ((key=_next(&itr))) {
         mrbc_array_push(&ret, key);
         mrbc_retain(key);
     }
@@ -485,10 +488,10 @@ __GURU__
 void c_hash_merge(mrbc_value v[], int argc)		// non-destructive merge
 {
     mrbc_value ret = _hash_dup(&v[0]);
-    mrbc_hash_iterator itr = mrbc_hash_iterator_new(&v[1]);
+    _iterator  itr = _iterator_new(&v[1]);
 
-    while (mrbc_hash_i_has_next(&itr)) {
-        mrbc_value *kv = mrbc_hash_i_next(&itr);
+    mrbc_value *kv;
+    while ((kv=_next(&itr))) {
         // mrbc_retain(&kv[0]);                   // CC: removed 20181029
         // mrbc_retain(&kv[1]);
         _hash_set(&ret, &kv[0], &kv[1]);
@@ -502,10 +505,10 @@ void c_hash_merge(mrbc_value v[], int argc)		// non-destructive merge
 __GURU__
 void c_hash_merge_self(mrbc_value v[], int argc)
 {
-    mrbc_hash_iterator itr = mrbc_hash_iterator_new(&v[1]);
+    _iterator itr = _iterator_new(&v[1]);
 
-    while (mrbc_hash_i_has_next(&itr)) {
-        mrbc_value *kv = mrbc_hash_i_next(&itr);
+    mrbc_value *kv;
+    while ((kv=_next(&itr))) {
         // mrbc_retain(&kv[0]);                   // CC: removed 20181029
         // mrbc_retain(&kv[1]); 
         _hash_set(v, &kv[0], &kv[1]);
@@ -519,14 +522,14 @@ __GURU__
 void c_hash_values(mrbc_value v[], int argc)
 {
     mrbc_value ret = mrbc_array_new(mrbc_hash_size(v));
-    mrbc_hash_iterator itr = mrbc_hash_iterator_new(v);
+    _iterator itr = _iterator_new(v);
 
-    while (mrbc_hash_i_has_next(&itr)) {
-        mrbc_value *val = mrbc_hash_i_next(&itr) + 1;
-        mrbc_array_push(&ret, val);
-        mrbc_retain(val);
+
+    mrbc_value *val;
+    while ((val=_next(&itr))) {
+        mrbc_array_push(&ret, val+1);
+        mrbc_retain(val+1);
     }
-
     SET_RETURN(ret);
 }
 
@@ -552,21 +555,21 @@ void c_hash_inspect(mrbc_value v[], int argc)
     	return;
     }
 
-    mrbc_hash_iterator itr = mrbc_hash_iterator_new(v);
+    _iterator itr = _iterator_new(v);
     int first = 1;
 
-    while (mrbc_hash_i_has_next(&itr)) {
+    mrbc_value *kv;
+    while ((kv=_next(&itr))) {
         if (!first) mrbc_string_append_cstr(&ret, ", ");
         first = 0;
 
-        mrbc_value *kv = mrbc_hash_i_next(&itr);
-        mrbc_value s1  = mrbc_send(v+argc, &kv[0], "inspect", 0);
+        mrbc_value s1  = mrbc_send(v+argc, kv, "inspect", 0);
         mrbc_string_append(&ret, &s1);
         mrbc_release(&s1);
 
         mrbc_string_append_cstr(&ret, "=>");
 
-        s1 = mrbc_send(v+argc, &kv[1], "inspect", 0);
+        s1 = mrbc_send(v+argc, kv+1, "inspect", 0);
         mrbc_string_append(&ret, &s1);
         mrbc_release(&s1);
     }
