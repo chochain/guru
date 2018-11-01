@@ -75,7 +75,7 @@ void _push_callinfo(mrbc_vm *vm, int argc)
 {
     mrbc_callinfo *ci = (mrbc_callinfo *)mrbc_alloc(sizeof(mrbc_callinfo));
 
-    ci->reg 	= vm->reg;
+    ci->reg 	= vm->reg;			// pass register file
     ci->pc_irep = vm->pc_irep;
     ci->pc 		= vm->pc;
     ci->argc 	= argc;
@@ -96,8 +96,8 @@ void _pop_callinfo(mrbc_vm *vm, mrbc_value *regs)
 {
     mrbc_callinfo *ci = vm->calltop;
     
+    vm->reg  	= ci->reg;				// restore register file
     vm->calltop = ci->prev;
-    vm->reg  	= ci->reg;
     vm->pc_irep = ci->pc_irep;
     vm->pc      = ci->pc;
     vm->klass  	= ci->klass;
@@ -116,7 +116,7 @@ void _vm_proc_call(mrbc_vm *vm, mrbc_value v[], int argc)
 
 	vm->pc      = 0;
 	vm->pc_irep = v[0].proc->irep;		// switch into callee context
-	vm->reg     = v;
+	vm->reg     = v;					// shift register file pointer (for local stack)
 
 	v[0].proc->refc++;					// CC: 20181027 added to track proc usage
 }
@@ -160,9 +160,9 @@ void _vm_object_new(mrbc_vm *vm, mrbc_value v[], int argc)
 
     vm->pc 		= 0;
     vm->pc_irep = &irep;
-    vm->reg 	= v;
+    vm->reg 	= v;		// new register file (shift for call stack)
 
-    mrbc_op(vm);
+    while (guru_op(vm, v)==0);
 
     vm->pc 		= pc0;
     vm->reg 	= reg0;
@@ -534,7 +534,6 @@ int op_getupvar(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
         ci = ci->prev;
         n--;
     }
-
     mrbc_value *up_regs = ci->reg;
 
     _RESET_REG(&regs[ra], up_regs[rb]);
@@ -569,7 +568,6 @@ int op_setupvar(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
         ci = ci->prev;
         n--;
     }
-
     mrbc_value *up_regs = ci->reg;
 
     _RESET_REG(&up_regs[rb], regs[ra]);    // update outer-scope vars
@@ -1553,7 +1551,7 @@ int op_exec(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 
     vm->pc 		= 0;							// switch context to callee
     vm->pc_irep = vm->irep->irep_list[rb];
-    vm->reg 	+= ra;
+    vm->reg 	+= ra;							// shift regfile (for local stack)
     vm->klass 	= mrbc_get_class_by_object(&rcv);
 
     return 0;
@@ -1653,38 +1651,8 @@ int op_tclass(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
   @retval -1  No error and exit from vm.
 */
 __GURU__
-void _clean_reg(mrbc_value v[])
-{
-	console_str("regfile[");
-	for(int i = 0; i < MAX_REGS_SIZE; i++, v++) {
-		if (v->tt==MRBC_TT_EMPTY) continue;
-
-		console_int(i);
-		console_str(":");
-		console_int(v->tt);
-		console_str("^");
-	    switch(v->tt){
-	    case MRBC_TT_OBJECT:
-	    case MRBC_TT_PROC:
-	    case MRBC_TT_ARRAY:
-	    case MRBC_TT_STRING:
-	    case MRBC_TT_RANGE:
-	    case MRBC_TT_HASH:
-	    	console_int(v->self->refc); 	break;
-	    default:
-	    	console_str(".");
-	    	break;
-	    }
-		console_str(" ");
-		// mrbc_release(p);
-    }
-	console_str("]\n");
-}
-
-__GURU__
 int op_stop(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 {
-	_clean_reg(vm->regfile);
 	vm->run = 0;
     return -1;	// exit vm_op
 }
@@ -1696,90 +1664,134 @@ int op_abort(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 }
 
 __GURU__
-int mrbc_op(mrbc_vm *vm)
+int guru_op(mrbc_vm *vm, mrbc_value *regs)
 {
-    int ret       = 0;
-    int opcode    = 0;
-    uint32_t code = 0;
-    mrbc_value *regs;
+	uint32_t code   = _bin_to_uint32(vm->pc_irep->iseq + vm->pc * 4);	// next bytecode (see opcode.h)
+	int      opcode = GET_OPCODE(code);
+	int		 ret;
 
-    do {
-        code   = _bin_to_uint32(vm->pc_irep->iseq + vm->pc * 4);	// next bytecode (see opcode.h)
-        opcode = GET_OPCODE(code);
-        regs   = vm->reg;
-
-        vm->pc++;
-
-        switch (opcode) {
-        // LOAD,STORE
-        case OP_LOADL:      ret = op_loadl     (vm, code, regs); break;
-        case OP_LOADI:      ret = op_loadi     (vm, code, regs); break;
-        case OP_LOADSYM:    ret = op_loadsym   (vm, code, regs); break;
-        case OP_LOADNIL:    ret = op_loadnil   (vm, code, regs); break;
-        case OP_LOADSELF:   ret = op_loadself  (vm, code, regs); break;
-        case OP_LOADT:      ret = op_loadt     (vm, code, regs); break;
-        case OP_LOADF:      ret = op_loadf     (vm, code, regs); break;
-        case OP_GETGLOBAL:  ret = op_getglobal (vm, code, regs); break;
-        case OP_SETGLOBAL:  ret = op_setglobal (vm, code, regs); break;
-        case OP_GETIV:      ret = op_getiv     (vm, code, regs); break;
-        case OP_SETIV:      ret = op_setiv     (vm, code, regs); break;
-        case OP_GETCONST:   ret = op_getconst  (vm, code, regs); break;
-        case OP_SETCONST:   ret = op_setconst  (vm, code, regs); break;
-        case OP_GETUPVAR:   ret = op_getupvar  (vm, code, regs); break;
-        case OP_SETUPVAR:   ret = op_setupvar  (vm, code, regs); break;
-        // BRANCH
-        case OP_JMP:        ret = op_jmp       (vm, code, regs); break;
-        case OP_JMPIF:      ret = op_jmpif     (vm, code, regs); break;
-        case OP_JMPNOT:     ret = op_jmpnot    (vm, code, regs); break;
-        case OP_SEND:       ret = op_send      (vm, code, regs); break;
-        case OP_SENDB:      ret = op_send      (vm, code, regs); break;  // reuse
-        case OP_CALL:       ret = op_call      (vm, code, regs); break;
-        case OP_ENTER:      ret = op_enter     (vm, code, regs); break;
-        case OP_RETURN:     ret = op_return    (vm, code, regs); break;
-        case OP_BLKPUSH:    ret = op_blkpush   (vm, code, regs); break;
-        // ALU
-        case OP_MOVE:       ret = op_move      (vm, code, regs); break;
-        case OP_ADD:        ret = op_add       (vm, code, regs); break;
-        case OP_ADDI:       ret = op_addi      (vm, code, regs); break;
-        case OP_SUB:        ret = op_sub       (vm, code, regs); break;
-        case OP_SUBI:       ret = op_subi      (vm, code, regs); break;
-        case OP_MUL:        ret = op_mul       (vm, code, regs); break;
-        case OP_DIV:        ret = op_div       (vm, code, regs); break;
-        case OP_EQ:         ret = op_eq        (vm, code, regs); break;
-        case OP_LT:         ret = op_lt        (vm, code, regs); break;
-        case OP_LE:         ret = op_le        (vm, code, regs); break;
-        case OP_GT:         ret = op_gt        (vm, code, regs); break;
-        case OP_GE:         ret = op_ge        (vm, code, regs); break;
+    vm->pc++;
+    switch (opcode) {
+    // LOAD,STORE
+    case OP_LOADL:      ret = op_loadl     (vm, code, regs); break;
+    case OP_LOADI:      ret = op_loadi     (vm, code, regs); break;
+    case OP_LOADSYM:    ret = op_loadsym   (vm, code, regs); break;
+    case OP_LOADNIL:    ret = op_loadnil   (vm, code, regs); break;
+    case OP_LOADSELF:   ret = op_loadself  (vm, code, regs); break;
+    case OP_LOADT:      ret = op_loadt     (vm, code, regs); break;
+    case OP_LOADF:      ret = op_loadf     (vm, code, regs); break;
+    case OP_GETGLOBAL:  ret = op_getglobal (vm, code, regs); break;
+    case OP_SETGLOBAL:  ret = op_setglobal (vm, code, regs); break;
+    case OP_GETIV:      ret = op_getiv     (vm, code, regs); break;
+    case OP_SETIV:      ret = op_setiv     (vm, code, regs); break;
+    case OP_GETCONST:   ret = op_getconst  (vm, code, regs); break;
+    case OP_SETCONST:   ret = op_setconst  (vm, code, regs); break;
+    case OP_GETUPVAR:   ret = op_getupvar  (vm, code, regs); break;
+    case OP_SETUPVAR:   ret = op_setupvar  (vm, code, regs); break;
+    // BRANCH
+    case OP_JMP:        ret = op_jmp       (vm, code, regs); break;
+    case OP_JMPIF:      ret = op_jmpif     (vm, code, regs); break;
+    case OP_JMPNOT:     ret = op_jmpnot    (vm, code, regs); break;
+    case OP_SEND:       ret = op_send      (vm, code, regs); break;
+    case OP_SENDB:      ret = op_send      (vm, code, regs); break;  // reuse
+    case OP_CALL:       ret = op_call      (vm, code, regs); break;
+    case OP_ENTER:      ret = op_enter     (vm, code, regs); break;
+    case OP_RETURN:     ret = op_return    (vm, code, regs); break;
+    case OP_BLKPUSH:    ret = op_blkpush   (vm, code, regs); break;
+    // ALU
+    case OP_MOVE:       ret = op_move      (vm, code, regs); break;
+    case OP_ADD:        ret = op_add       (vm, code, regs); break;
+    case OP_ADDI:       ret = op_addi      (vm, code, regs); break;
+    case OP_SUB:        ret = op_sub       (vm, code, regs); break;
+    case OP_SUBI:       ret = op_subi      (vm, code, regs); break;
+    case OP_MUL:        ret = op_mul       (vm, code, regs); break;
+    case OP_DIV:        ret = op_div       (vm, code, regs); break;
+    case OP_EQ:         ret = op_eq        (vm, code, regs); break;
+    case OP_LT:         ret = op_lt        (vm, code, regs); break;
+    case OP_LE:         ret = op_le        (vm, code, regs); break;
+    case OP_GT:         ret = op_gt        (vm, code, regs); break;
+    case OP_GE:         ret = op_ge        (vm, code, regs); break;
 #if MRBC_USE_STRING
-        case OP_STRING:     ret = op_string    (vm, code, regs); break;
-        case OP_STRCAT:     ret = op_strcat    (vm, code, regs); break;
+    case OP_STRING:     ret = op_string    (vm, code, regs); break;
+    case OP_STRCAT:     ret = op_strcat    (vm, code, regs); break;
 #endif
 #if MRBC_USE_ARRAY
-        case OP_ARRAY:      ret = op_array     (vm, code, regs); break;
-        case OP_HASH:       ret = op_hash      (vm, code, regs); break;
-        case OP_RANGE:      ret = op_range     (vm, code, regs); break;
+    case OP_ARRAY:      ret = op_array     (vm, code, regs); break;
+    case OP_HASH:       ret = op_hash      (vm, code, regs); break;
+    case OP_RANGE:      ret = op_range     (vm, code, regs); break;
 #endif
-        // BRANCH
-        case OP_LAMBDA:     ret = op_lambda    (vm, code, regs); break;
-        case OP_CLASS:      ret = op_class     (vm, code, regs); break;
-        case OP_EXEC:       ret = op_exec      (vm, code, regs); break;
-        case OP_METHOD:     ret = op_method    (vm, code, regs); break;
-        case OP_TCLASS:     ret = op_tclass    (vm, code, regs); break;
-        // EXEC
-        case OP_STOP:       ret = op_stop      (vm, code, regs); break;
-        case OP_ABORT:      ret = op_abort     (vm, code, regs); break;  // reuse
-        case OP_NOP:        ret = op_nop       (vm, code, regs); break;
-        default:
-            console_str("Skip OP=");
-            console_int(opcode);
-            console_str("\n");
-            ret = 0;
-            break;
-        }
-    } while (ret==0 && vm->run);
-
-    return ret;
+    // BRANCH
+    case OP_LAMBDA:     ret = op_lambda    (vm, code, regs); break;
+    case OP_CLASS:      ret = op_class     (vm, code, regs); break;
+    case OP_EXEC:       ret = op_exec      (vm, code, regs); break;
+    case OP_METHOD:     ret = op_method    (vm, code, regs); break;
+    case OP_TCLASS:     ret = op_tclass    (vm, code, regs); break;
+    // EXEC
+    case OP_STOP:       ret = op_stop      (vm, code, regs); break;
+    case OP_ABORT:      ret = op_abort     (vm, code, regs); break;  // reuse
+    case OP_NOP:        ret = op_nop       (vm, code, regs); break;
+    default:
+    	console_str("Skip OP=");
+    	console_int(opcode);
+    	console_str("\n");
+    	ret = 0;
+    	break;
+    }
+#ifdef MRBC_DEBUG
+        guru_show_regfile(opcode, regs);
+#endif
+    return (ret && vm->run);
 }
 
+#ifdef MRBC_DEBUG
+__GURU__ const char *guru_vtype[] = {
+	"","NIL","F","T","NUM","FLT","SYM","CLS",
+	"","","","","","","","",
+	"","","","","OBJ","PRC","ARY","STR",
+	"RNG","HSH"
+};
+
+__GURU__ const char *guru_opcode[] = {
+    "NOP","MOVE","LOADL","LOADI","LOADSYM","LOADNIL","LOADSLF","LOADT",
+    "LOADF","GETG","SETG","","","GETI","SETI","",
+    "","GETC","SETC","","","GETU","SETU","JMP",
+    "JMPIF","JMPNOT","","","","","","",
+    "SEND","SENDB","","CALL","","","ENTER","",
+    "","RETURN","","BLKP","ADD","ADDI","SUB","SUBI",
+    "MUL","DIV","EQ","LT","LE","GT","GE","ARRAY",
+    "","","","","","STRING","STRCAT","HASH",
+    "LAMBDA","RANGE","","CLASS","","EXEC","METHOD","",
+    "CLASS","","STOP","","","","","",
+    "ABORT"
+};
+
+__GURU__
+void guru_show_regfile(int op, mrbc_value v[])
+{
+	console_str(guru_opcode[op]);
+    console_str("\t=>[ ");
+	for(int i = 0; i < MAX_REGS_SIZE; i++, v++) {
+		if (v->tt==MRBC_TT_EMPTY) continue;
+
+		console_int(i);
+		console_str(":");
+		console_str(guru_vtype[v->tt]);
+	    switch(v->tt){
+	    case MRBC_TT_OBJECT:
+	    case MRBC_TT_PROC:
+	    case MRBC_TT_ARRAY:
+	    case MRBC_TT_STRING:
+	    case MRBC_TT_RANGE:
+	    case MRBC_TT_HASH:
+			console_str("_");
+	    	console_int(v->self->refc); 	break;
+	    default: break;
+	    }
+		console_str(" ");
+		// mrbc_release(p);
+    }
+	console_str("]\n");
+}
+#endif
 
 

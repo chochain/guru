@@ -27,9 +27,10 @@
 
   @param  vm  Pointer to VM
 */
-__GURU__
-void _mrbc_vm_begin(mrbc_vm *vm)
+__global__ void
+_vm_begin(mrbc_vm *vm)
 {
+	if (threadIdx.x!=0 || blockIdx.x!=0) return;
 
     MEMSET((uint8_t *)vm->regfile, 0, sizeof(vm->regfile));	// clean up registers
 
@@ -51,10 +52,17 @@ void _mrbc_vm_begin(mrbc_vm *vm)
 
   @param  vm  Pointer to VM
 */
-__GURU__ __INLINE__
-void _mrbc_vm_end(mrbc_vm *vm)
+__global__ void
+_vm_end(mrbc_vm *vm)
 {
+	if (threadIdx.x!=0 || blockIdx.x!=0) return;
+
 #ifndef MRBC_DEBUG
+	// clean up register file?						// CC: moved from mrbc_op 20181102
+	mrbc_value *p = vm->regfile;
+	for(int i = 0; i < MAX_REGS_SIZE; i++, p++) {
+		mrbc_release(p);
+	}
     mrbc_free_all();
 #endif
 }
@@ -66,10 +74,17 @@ void _mrbc_vm_end(mrbc_vm *vm)
   @param  vm    A pointer of VM.
   @retval 0  No error.
 */
-__GURU__ __INLINE__
-int _mrbc_vm_exec(mrbc_vm *vm)
+__global__ void
+_vm_exec(mrbc_vm *vm, mrbc_value *regfile)
 {
-	return mrbc_op(vm);
+	if (threadIdx.x!=0 || blockIdx.x!=0) return;
+	//
+	// create a vm loop, potentially with different register files per vm
+	while (guru_op(vm, regfile)==0) {
+		// add service hook here
+		// i.g. flush output buffer
+	}
+	__syncthreads();
 }
 
 //================================================================
@@ -92,18 +107,6 @@ void _mrbc_free_irep(mrbc_irep *irep)
     if (irep->rlen) mrbc_free(irep->irep_list);
 
     mrbc_free(irep);
-}
-
-__global__
-void _run_vm(mrbc_vm *vm)
-{
-	if (threadIdx.x!=0 || blockIdx.x!=0) return;
-
-	_mrbc_vm_begin(vm);
-	_mrbc_vm_exec(vm);
-	_mrbc_vm_end(vm);
-
-	__syncthreads();
 }
 
 int guru_vm_init(guru_ses *ses)
@@ -132,7 +135,10 @@ int guru_vm_run(guru_ses *ses)
 	cudaDeviceGetLimit((size_t *)&sz, cudaLimitStackSize);
 	printf("%d\n", sz);
 
-	_run_vm<<<1,1>>>((mrbc_vm *)ses->vm);
+	mrbc_vm *vm = (mrbc_vm *)ses->vm;
+	_vm_begin<<<1,1>>>(vm);
+	_vm_exec<<<1,1>>>(vm, vm->regfile);
+	_vm_end<<<1,1>>>(vm);
 	cudaDeviceSynchronize();
 
 	return 0;
