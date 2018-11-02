@@ -67,7 +67,7 @@ load.o: load.cu         vm_config.h guru.h alloc.h instance.h \
 						vm.h errorcode.h load.h
 
 vm.o: vm.cu             vm_config.h guru.h alloc.h value.h static.h keyvalue.h \
-						opcode.h vm.h load.h
+						console.h opcode.h vm.h load.h
 
 console.o: console.cu 	vm_config.h guru.h value.h console.h
 

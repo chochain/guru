@@ -73,7 +73,9 @@ typedef struct VM {
     mrbc_irep      	*pc_irep;   // PC
     struct Callinfo *prev;
 
+    uint16_t	 	opcode;		// debugging
     volatile int8_t run;
+    volatile int8_t	err;
 } mrbc_vm;
 
 int  guru_vm_init(guru_ses *ses);
@@ -156,6 +158,8 @@ void _uint32_to_bin(uint32_t l, uint8_t *bin)
     *bin++ = (l >> 8) & 0xff;
     *bin   = l & 0xff;
 }
+
+#define GET_BYTECODE(vm)	(_bin_to_uint32((vm)->pc_irep->iseq + (vm)->pc * 4))
 
 int guru_vm_init(guru_ses *ses);
 int guru_vm_run(guru_ses *ses);

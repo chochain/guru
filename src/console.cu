@@ -140,10 +140,12 @@ void guru_console_init(uint8_t *buf, size_t sz)
 {
 	if (threadIdx.x!=0 || blockIdx.x !=0) return;
 
-	guru_output = guru_output_ptr = buf;
-	guru_output_size = sz;
+	guru_print_node *node = (guru_print_node *)buf;
+	node->tt = MRBC_TT_EMPTY;
 
-//	_dump_obj_size();
+	guru_output = guru_output_ptr = buf;
+
+	if (sz) guru_output_size = sz;					// set to new size
 }
 
 #define NEXTNODE(n)	((guru_print_node *)(node->data + node->size))
@@ -183,9 +185,11 @@ void guru_console_flush(uint8_t *output_buf)
 {
 	guru_print_node *node = (guru_print_node *)output_buf;
 
-	while (node->tt != MRBC_TT_EMPTY) {		// 0
+	while (node->tt != MRBC_TT_EMPTY) {			// 0
 		node = _guru_print_core(node);
 		node = NEXTNODE(node);
 	}
+	guru_console_init<<<1,1>>>(output_buf, 0);
+	cudaDeviceSynchronize();
 }
 

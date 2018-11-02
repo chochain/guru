@@ -16,7 +16,7 @@
 
 #include "alloc.h"
 #include "static.h"
-
+#include "console.h"
 #include "opcode.h"
 #include "load.h"
 #include "vm.h"
@@ -44,6 +44,7 @@ _vm_begin(mrbc_vm *vm)
     vm->reg 	= vm->regfile;					// pointer to reg[0]
     vm->pc_irep = vm->irep;						// root of irep tree
     vm->run   	= 1;							// TODO: updated by scheduler
+    vm->err     = 0;
 }
 
 //================================================================
@@ -75,16 +76,11 @@ _vm_end(mrbc_vm *vm)
   @retval 0  No error.
 */
 __global__ void
-_vm_exec(mrbc_vm *vm, mrbc_value *regfile)
+_vm_exec(mrbc_vm *vm, int step)
 {
-	if (threadIdx.x!=0 || blockIdx.x!=0) return;
-	//
-	// create a vm loop, potentially with different register files per vm
-	while (guru_op(vm, regfile)==0) {
-		// add service hook here
-		// i.g. flush output buffer
-	}
-	__syncthreads();
+	if (threadIdx.x!=0 || blockIdx.x!=0) return;		// single thread for now
+
+	while (guru_op(vm)==0 && step==0);
 }
 
 //================================================================
@@ -108,6 +104,59 @@ void _mrbc_free_irep(mrbc_irep *irep)
 
     mrbc_free(irep);
 }
+
+#ifdef MRBC_DEBUG
+void dump_irep(mrbc_irep *irep)
+{
+	printf("\tnregs=%d, nlocals=%d, pools=%d, syms=%d, reps=%d, ilen=%d\n",
+			irep->nreg, irep->nlv, irep->plen, irep->slen, irep->rlen, irep->ilen);
+	// dump all children ireps
+	for (int i=0; i<irep->rlen; i++) {
+		dump_irep(irep->irep_list[i]);
+	}
+}
+
+static const char *_vtype[] = {
+	"___","nil","f  ","t  ","num","flt","sym","cls",
+	"","","","","","","","",
+	"","","","","obj","prc","ary","str",
+	"rng","hsh"
+};
+
+static const char *_opcode[] = {
+    "NOP ","MOVE","LOADL","LOADI","LOADSYM","LOADNIL","LOADSLF","LOADT",
+    "LOADF","GETG","SETG","","","GETI","SETI","",
+    "","GETC","SETC","","","GETU","SETU","JMP ",
+    "JMPIF","JMPNOT","","","","","","",
+    "SEND","SENDB","","CALL","","","ENTER","",
+    "","RETURN","","BLKPUSH","ADD ","ADDI","SUB ","SUBI",
+    "MUL ","DIV ","EQ  ","LT  ","LE  ","GT  ","GE  ","ARRAY",
+    "","","","","","STRING","STRCAT","HASH",
+    "LAMBDA","RANGE","","CLASS","","EXEC","METHOD","",
+    "CLASS","","STOP","","","","","",
+    "ABORT"
+};
+
+void _show_regfile(mrbc_vm *vm)
+{
+	mrbc_value *v = vm->regfile;
+
+	int last=0;
+	for(int i=0; i<MAX_REGS_SIZE; i++, v++) {
+		if (v->tt==MRBC_TT_EMPTY) continue;
+		last=i;
+	}
+	v = vm->regfile;
+
+	printf("%s\t[ ", _opcode[vm->opcode]);
+	for (int i=0; i<last; i++, v++) {
+		printf("%2d.%s", i, _vtype[v->tt]);
+	    if (v->tt >= MRBC_TT_OBJECT) printf("_%d", v->self->refc);
+	    printf(" ");
+    }
+	printf("]\n");
+}
+#endif
 
 int guru_vm_init(guru_ses *ses)
 {
@@ -135,24 +184,26 @@ int guru_vm_run(guru_ses *ses)
 	cudaDeviceGetLimit((size_t *)&sz, cudaLimitStackSize);
 	printf("%d\n", sz);
 
-	mrbc_vm *vm = (mrbc_vm *)ses->vm;
+    guru_console_init<<<1,1>>>(ses->res, MAX_BUFFER_SIZE);	// initialize output buffer
+
+    mrbc_vm *vm = (mrbc_vm *)ses->vm;
 	_vm_begin<<<1,1>>>(vm);
-	_vm_exec<<<1,1>>>(vm, vm->regfile);
+	cudaDeviceSynchronize();
+
+	// enter the vm loop, potentially with different register files per thread
+	do {
+		_vm_exec<<<1,1>>>(vm, 1);							// 1: single-step
+		cudaDeviceSynchronize();
+
+		// add service hook here
+		guru_console_flush(ses->res);						// dump output buffer
+		_show_regfile(vm);
+	} while (vm->run && vm->err==0);
+
 	_vm_end<<<1,1>>>(vm);
 	cudaDeviceSynchronize();
 
 	return 0;
 }
 
-#ifdef MRBC_DEBUG
-void dump_irep(mrbc_irep *irep)
-{
-	printf("\tnregs=%d, nlocals=%d, pools=%d, syms=%d, reps=%d, ilen=%d\n",
-			irep->nreg, irep->nlv, irep->plen, irep->slen, irep->rlen, irep->ilen);
-	// dump all children ireps
-	for (int i=0; i<irep->rlen; i++) {
-		dump_irep(irep->irep_list[i]);
-	}
-}
-#endif
 

@@ -160,9 +160,9 @@ void _vm_object_new(mrbc_vm *vm, mrbc_value v[], int argc)
 
     vm->pc 		= 0;
     vm->pc_irep = &irep;
-    vm->reg 	= v;		// new register file (shift for call stack)
+    vm->reg 	= v;		   // new register file (shift for call stack)
 
-    while (guru_op(vm, v)==0);
+    while (guru_op(vm)==0); // run til ABORT, or exception
 
     vm->pc 		= pc0;
     vm->reg 	= reg0;
@@ -640,6 +640,7 @@ int _not_found(const char *name)						// method not found
 	console_str("func?:");
 	console_str(name);
 	console_str("\n");
+
 	return 0;
 }
 
@@ -755,15 +756,13 @@ int op_call(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 __GURU__
 int op_enter(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 {
-    mrbc_callinfo *callinfo = vm->calltop;
-
     uint32_t enter_param = GETARG_Ax(code);
 
     int def_args = (enter_param >> 13) & 0x1f;  // default args
     int argc     = (enter_param >> 18) & 0x1f;  // given args
 
     if (def_args > 0){
-        vm->pc += callinfo->argc - argc;
+        vm->pc += vm->calltop->argc - argc;
     }
     return 0;
 }
@@ -812,7 +811,7 @@ int op_blkpush(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     mrbc_value *stack = regs + 1;
 
     if (stack[0].tt==MRBC_TT_NIL){
-        return -1;  // EYIELD
+        return vm->err = -1;  			// EYIELD
     }
 
     _RESET_REG(&regs[ra], stack[0]);
@@ -1318,7 +1317,7 @@ int op_string(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     const char *str = (const char *)obj->sym;			// 20181025
     mrbc_value  ret = mrbc_string_new(str);
 
-    if (ret.str==NULL) return -1;		// ENOMEM
+    if (ret.str==NULL) return vm->err = -1;				// ENOMEM
 
     _RESET_REG(&regs[ra], ret);
 #else
@@ -1385,7 +1384,7 @@ int op_array(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 
     mrbc_value ret = (mrbc_value)mrbc_array_new(rc);
     mrbc_array *h  = ret.array;
-    if (h==NULL) return -1;	// ENOMEM
+    if (h==NULL) return vm->err = -1;	// ENOMEM
 
     MEMCPY((uint8_t *)h->data, (uint8_t *)&regs[rb], sizeof(mrbc_value) * rc);
     MEMSET((uint8_t *)&regs[rb], 0, sizeof(mrbc_value) * rc);
@@ -1419,7 +1418,7 @@ int op_hash(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 
     mrbc_value ret = mrbc_hash_new(rc);
     mrbc_hash  *h  = ret.hash;
-    if (h==NULL) return -1;	// ENOMEM
+    if (h==NULL) return vm->err = -1;	// ENOMEM
 
     rc *= 2;
     MEMCPY((uint8_t *)h->data, (uint8_t *)&regs[rb], sizeof(mrbc_value) * rc);
@@ -1453,9 +1452,9 @@ int op_range(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     int rc = GETARG_C(code);
 
     mrbc_value ret = mrbc_range_new(&regs[rb], &regs[rb+1], rc);
-    if (ret.range==NULL) return -1;		// ENOMEM
+    if (ret.range==NULL) return vm->err = -1;		// ENOMEM
 
-    _RESET_REG(&regs[ra], ret);			// release and  reassign
+    _RESET_REG(&regs[ra], ret);						// release and  reassign
     mrbc_retain(&regs[rb]);
     mrbc_retain(&regs[rb+1]);
 
@@ -1654,21 +1653,22 @@ __GURU__
 int op_stop(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 {
 	vm->run = 0;
-    return -1;	// exit vm_op
+    return -1;		// exit guru_op loop
 }
 
 __GURU__
 int op_abort(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 {
-	return -1;	// exit vm_op
+	return -1;		// exit guru_op loop
 }
 
 __GURU__
-int guru_op(mrbc_vm *vm, mrbc_value *regs)
+int guru_op(mrbc_vm *vm)
 {
-	uint32_t code   = _bin_to_uint32(vm->pc_irep->iseq + vm->pc * 4);	// next bytecode (see opcode.h)
-	int      opcode = GET_OPCODE(code);
-	int		 ret;
+	mrbc_value *regs  = vm->reg;
+	uint32_t   code   = GET_BYTECODE(vm);
+	int        opcode = vm->opcode = GET_OPCODE(code);		// keep current opcode for debugging
+	int ret;
 
     vm->pc++;
     switch (opcode) {
@@ -1737,61 +1737,8 @@ int guru_op(mrbc_vm *vm, mrbc_value *regs)
     	ret = 0;
     	break;
     }
-#ifdef MRBC_DEBUG
-        guru_show_regfile(opcode, regs);
-#endif
-    return (ret && vm->run);
+    return ret;
 }
 
-#ifdef MRBC_DEBUG
-__GURU__ const char *guru_vtype[] = {
-	"","NIL","F","T","NUM","FLT","SYM","CLS",
-	"","","","","","","","",
-	"","","","","OBJ","PRC","ARY","STR",
-	"RNG","HSH"
-};
-
-__GURU__ const char *guru_opcode[] = {
-    "NOP","MOVE","LOADL","LOADI","LOADSYM","LOADNIL","LOADSLF","LOADT",
-    "LOADF","GETG","SETG","","","GETI","SETI","",
-    "","GETC","SETC","","","GETU","SETU","JMP",
-    "JMPIF","JMPNOT","","","","","","",
-    "SEND","SENDB","","CALL","","","ENTER","",
-    "","RETURN","","BLKP","ADD","ADDI","SUB","SUBI",
-    "MUL","DIV","EQ","LT","LE","GT","GE","ARRAY",
-    "","","","","","STRING","STRCAT","HASH",
-    "LAMBDA","RANGE","","CLASS","","EXEC","METHOD","",
-    "CLASS","","STOP","","","","","",
-    "ABORT"
-};
-
-__GURU__
-void guru_show_regfile(int op, mrbc_value v[])
-{
-	console_str(guru_opcode[op]);
-    console_str("\t=>[ ");
-	for(int i = 0; i < MAX_REGS_SIZE; i++, v++) {
-		if (v->tt==MRBC_TT_EMPTY) continue;
-
-		console_int(i);
-		console_str(":");
-		console_str(guru_vtype[v->tt]);
-	    switch(v->tt){
-	    case MRBC_TT_OBJECT:
-	    case MRBC_TT_PROC:
-	    case MRBC_TT_ARRAY:
-	    case MRBC_TT_STRING:
-	    case MRBC_TT_RANGE:
-	    case MRBC_TT_HASH:
-			console_str("_");
-	    	console_int(v->self->refc); 	break;
-	    default: break;
-	    }
-		console_str(" ");
-		// mrbc_release(p);
-    }
-	console_str("]\n");
-}
-#endif
 
 

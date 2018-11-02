@@ -164,10 +164,8 @@ enum OPCODE {
     OP_ABORT     = 0x50,  // using OP_ABORT inside mruby/c only
 };
 
-__GURU__ int  guru_op(mrbc_vm *vm, mrbc_value *regs);
-#ifdef MRBC_DEBUG
-__GURU__ void guru_show_regfile(int op, mrbc_value v[]);
-#endif
+__GURU__ int guru_op(mrbc_vm *vm);
+
 #ifdef __cplusplus
 }
 #endif
