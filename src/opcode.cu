@@ -634,16 +634,6 @@ op_jmpnot(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     return 0;
 }
 
-__GURU__ int
-_not_found(const char *name)						// method not found
-{
-	console_str("func?:");
-	console_str(name);
-	console_str("\n");
-
-	return 0;
-}
-
 //================================================================
 /*!@brief
   Execute OP_SEND / OP_SENDB
@@ -690,7 +680,10 @@ op_send(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 	const char *name = _get_symbol(vm->pc_irep->sym, rb);
 #endif
 
-    if (m==0) return _not_found(name);				// dump error, bail out
+    if (m==0) {
+    	console_na(name);							// dump error, bail out
+    	return -1;
+    }
 
     if (m->flag & GURU_PROC_C_FUNC) {				// m is a C function
         if (m->func==c_proc_call) {
