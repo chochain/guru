@@ -104,62 +104,6 @@ _mrbc_free_irep(mrbc_irep *irep)
 
     mrbc_free(irep);
 }
-
-#ifdef MRBC_DEBUG
-__host__ void
-dump_irep(mrbc_irep *irep)
-{
-	printf("\tnregs=%d, nlocals=%d, pools=%d, syms=%d, reps=%d, ilen=%d\n",
-			irep->nreg, irep->nlv, irep->plen, irep->slen, irep->rlen, irep->ilen);
-	// dump all children ireps
-	for (int i=0; i<irep->rlen; i++) {
-		dump_irep(irep->irep_list[i]);
-	}
-}
-
-static const char *_vtype[] = {
-	"___","nil","f  ","t  ","num","flt","sym","cls",
-	"","","","","","","","",
-	"","","","","obj","prc","ary","str",
-	"rng","hsh"
-};
-
-static const char *_opcode[] = {
-    "NOP ","MOVE","LOADL","LOADI","LOADSYM","LOADNIL","LOADSLF","LOADT",
-    "LOADF","GETG","SETG","","","GETI","SETI","",
-    "","GETC","SETC","","","GETU","SETU","JMP ",
-    "JMPIF","JMPNOT","","","","","","",
-    "SEND","SENDB","","CALL","","","ENTER","",
-    "","RETURN","","BLKPUSH","ADD ","ADDI","SUB ","SUBI",
-    "MUL ","DIV ","EQ  ","LT  ","LE  ","GT  ","GE  ","ARRAY",
-    "","","","","","STRING","STRCAT","HASH",
-    "LAMBDA","RANGE","","CLASS","","EXEC","METHOD","",
-    "CLASS","","STOP","","","","","",
-    "ABORT"
-};
-
-__host__ void
-_show_regfile(mrbc_vm *vm)
-{
-	mrbc_value *v = vm->regfile;
-
-	int last=0;
-	for(int i=0; i<MAX_REGS_SIZE; i++, v++) {
-		if (v->tt==MRBC_TT_EMPTY) continue;
-		last=i;
-	}
-	v = vm->regfile;
-
-	printf("%s\t[ ", _opcode[vm->opcode]);
-	for (int i=0; i<last; i++, v++) {
-		printf("%2d.%s", i, _vtype[v->tt]);
-	    if (v->tt >= MRBC_TT_OBJECT) printf("_%d", v->self->refc);
-	    printf(" ");
-    }
-	printf("]\n");
-}
-#endif
-
 __host__ int
 guru_vm_init(guru_ses *ses)
 {
@@ -171,7 +115,7 @@ guru_vm_init(guru_ses *ses)
 
 #ifdef MRBC_DEBUG
 	printf("guru bytecode loaded:\n");
-	dump_irep(vm->irep);
+	guru_dump_irep(vm->irep);
 #endif
 	ses->vm = (uint8_t *)vm;
 	return 0;
@@ -201,7 +145,7 @@ guru_vm_run(guru_ses *ses)
 
 		// add service hook here
 		guru_console_flush(ses->res);						// dump output buffer
-		_show_regfile(vm);
+		guru_dump_regfile(vm);
 	} while (vm->run && vm->err==0);
 
 	_vm_end<<<1,1>>>(vm);
@@ -209,5 +153,61 @@ guru_vm_run(guru_ses *ses)
 
 	return 0;
 }
+
+#ifdef MRBC_DEBUG
+__host__ void
+guru_dump_irep(mrbc_irep *irep)
+{
+	printf("\tnregs=%d, nlocals=%d, pools=%d, syms=%d, reps=%d, ilen=%d\n",
+			irep->nreg, irep->nlv, irep->plen, irep->slen, irep->rlen, irep->ilen);
+	// dump all children ireps
+	for (int i=0; i<irep->rlen; i++) {
+		guru_dump_irep(irep->irep_list[i]);
+	}
+}
+
+static const char *_vtype[] = {
+	"___","nil","f  ","t  ","num","flt","sym","cls",
+	"","","","","","","","",
+	"","","","","obj","prc","ary","str",
+	"rng","hsh"
+};
+
+static const char *_opcode[] = {
+    "NOP ","MOVE","LOADL","LOADI","LOADSYM","LOADNIL","LOADSLF","LOADT",
+    "LOADF","GETG","SETG","","","GETI","SETI","",
+    "","GETC","SETC","","","GETU","SETU","JMP ",
+    "JMPIF","JMPNOT","","","","","","",
+    "SEND","SENDB","","CALL","","","ENTER","",
+    "","RETURN","","BLKPUSH","ADD ","ADDI","SUB ","SUBI",
+    "MUL ","DIV ","EQ  ","LT  ","LE  ","GT  ","GE  ","ARRAY",
+    "","","","","","STRING","STRCAT","HASH",
+    "LAMBDA","RANGE","","CLASS","","EXEC","METHOD","",
+    "CLASS","","STOP","","","","","",
+    "ABORT"
+};
+
+__host__ void
+guru_dump_regfile(mrbc_vm *vm)
+{
+	mrbc_value *v = vm->regfile;
+
+	int last=0;
+	for(int i=0; i<MAX_REGS_SIZE; i++, v++) {
+		if (v->tt==MRBC_TT_EMPTY) continue;
+		last=i;
+	}
+	v = vm->regfile;
+
+	printf("%s\t[ ", _opcode[vm->opcode]);
+	for (int i=0; i<last; i++, v++) {
+		printf("%2d.%s", i, _vtype[v->tt]);
+	    if (v->tt >= MRBC_TT_OBJECT) printf("_%d", v->self->refc);
+	    printf(" ");
+    }
+	printf("]\n");
+}
+#endif
+
 
 

@@ -165,7 +165,8 @@ int guru_vm_init(guru_ses *ses);
 int guru_vm_run(guru_ses *ses);
 
 #ifdef MRBC_DEBUG
-void dump_irep(mrbc_irep *irep);
+void guru_dump_irep(mrbc_irep *irep);
+void guru_dump_regfile(mrbc_vm *vm);
 #endif
 
 #ifdef __cplusplus
