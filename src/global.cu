@@ -17,8 +17,8 @@ typedef enum {
 
 typedef struct GLOBAL_OBJECT {
     mrbc_globaltype gtype : 8;
-    mrbc_sym sym_id;
-    mrbc_object obj;
+    mrbc_sym 		sym_id;
+    mrbc_object 	obj;
 } mrbc_globalobject;
 
 // max of global object in mrbc_global[]
@@ -100,9 +100,7 @@ const_object_add(mrbc_sym sym_id, mrbc_object *obj)
 __GURU__ mrbc_value
 global_object_get(mrbc_sym sym_id)
 {
-    mrbc_value ret = _get_obj(sym_id, MRBC_GLOBAL_OBJECT);
-    mrbc_retain(&ret);
-    return ret;
+    return _get_obj(sym_id, MRBC_GLOBAL_OBJECT);
 }
 
 /* add const */
@@ -111,12 +109,11 @@ global_object_get(mrbc_sym sym_id)
 __GURU__
 /* get const */
 /* TODO: Integrate with get_global_object */
+
 __GURU__
 mrbc_object const_object_get(mrbc_sym sym_id)
 {
-    mrbc_value ret = _get_obj(sym_id, MRBC_CONST_OBJECT);
-    mrbc_retain(&ret);
-    return ret;
+    return _get_obj(sym_id, MRBC_CONST_OBJECT);
 }
 
 

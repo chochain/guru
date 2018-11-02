@@ -323,8 +323,7 @@ c_string_add(mrbc_value v[], int argc)
         console_na("str + other type");
     }
     else {
-    	mrbc_value ret = mrbc_string_add(v, v+1);
-    	SET_RETURN(ret);
+    	SET_RETURN(mrbc_string_add(v, v+1));
     }
 }
 
@@ -528,7 +527,7 @@ __GURU__ void
 c_string_chomp_self(mrbc_value v[], int argc)
 {
     if (mrbc_string_chomp(&v[0])==0) {
-        SET_RETURN(mrbc_nil_value());
+        SET_NIL_RETURN();
     }
 }
 
@@ -538,9 +537,7 @@ c_string_chomp_self(mrbc_value v[], int argc)
 __GURU__ void
 c_string_dup(mrbc_value v[], int argc)
 {
-    mrbc_value ret = mrbc_string_dup(&v[0]);
-
-    SET_RETURN(ret);
+    SET_RETURN(mrbc_string_dup(&v[0]));
 }
 
 //================================================================
@@ -605,9 +602,7 @@ c_string_inspect(mrbc_value v[], int argc)
 __GURU__ void
 c_string_ord(mrbc_value v[], int argc)
 {
-    int i = VSTR(v)[0];
-
-    SET_INT_RETURN(i);
+    SET_INT_RETURN(VSTR(v)[0]);
 }
 
 //================================================================
@@ -710,8 +705,6 @@ c_string_split(mrbc_value v[], int argc)
             if (_string_size(&v1) != 0) break;
 
             mrbc_array_remove(&ret, idx);
-            mrbc_string_delete(&v1);
-            mrbc_release(&v1);                 // CC: added 20181029
         }
     }
 
@@ -791,7 +784,7 @@ __GURU__ void
 c_string_rstrip_self(mrbc_value v[], int argc)
 {
     if (mrbc_string_strip(&v[0], 0x02)==0) {	// 2: right side only
-        SET_RETURN(mrbc_nil_value());
+        SET_RETURN(mrbc_nil_value());			// keep refc
     }
 }
 
@@ -815,7 +808,7 @@ __GURU__ void
 c_string_strip_self(mrbc_value v[], int argc)
 {
     if (mrbc_string_strip(&v[0], 0x03)==0) {	// 3: left and right
-        SET_RETURN(mrbc_nil_value());
+        SET_RETURN(mrbc_nil_value());			// keep refc
     }
 }
 
@@ -825,9 +818,7 @@ c_string_strip_self(mrbc_value v[], int argc)
 __GURU__ void
 c_string_to_sym(mrbc_value v[], int argc)
 {
-    mrbc_value ret = mrbc_symbol_new(VSTR(&v[0]));
-
-    SET_RETURN(ret);
+    SET_RETURN(mrbc_symbol_new(VSTR(&v[0])));
 }
 
 //================================================================

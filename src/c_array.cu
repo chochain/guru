@@ -164,23 +164,24 @@ _adjust_index(mrbc_array *h, int idx, int inc)
   @return		mrbc_error_code
 */
 __GURU__ int
-mrbc_array_set(mrbc_value *ary, int idx, mrbc_value *set_val)
+mrbc_array_set(mrbc_value *ary, int idx, mrbc_value *val)
 {
     mrbc_array *h = ary->array;
 
-    idx = _adjust_index(h, idx, 0);				// adjust index if needed
-    if (idx<0) return -1;						// allocation error
+    int ndx = _adjust_index(h, idx, 0);				// adjust index if needed
+    if (ndx<0) return -1;						// allocation error
 
-    if (idx < h->n) {
+    if (ndx < h->n) {
         mrbc_release(&h->data[idx]);			// release existing data
     }
     else {
-        for(int i=h->n; i<idx; i++) {	// lazy fill here, instead of when resized
+        for(int i=h->n; i<ndx; i++) {			// lazy fill here, instead of when resized
             h->data[i] = mrbc_nil_value();		// prep newly allocated cells
         }
-        h->n = idx;
+        h->n = ndx;
     }
-    h->data[idx] = *set_val;					// keep the same reference count
+    h->data[ndx] = *val;
+    mrbc_retain(val);
 
     return 0;
 }
@@ -200,10 +201,7 @@ mrbc_array_get(mrbc_value *ary, int idx)
     if (idx < 0) idx = h->n + idx;
     if (idx < 0 || idx >= h->n) return mrbc_nil_value();
 
-    mrbc_value ret = h->data[idx];
-    mrbc_retain(&ret);						// 20181029: CC Added
-
-    return ret;
+    return h->data[idx];
 }
 
 //================================================================
@@ -428,7 +426,6 @@ c_array_new(mrbc_value v[], int argc)
 
         for (int i=0; i < v[1].i; i++) {
             mrbc_array_set(&ret, i, &v[2]);
-            mrbc_retain(&v[2]);
         }
     }
     else {
@@ -498,7 +495,6 @@ c_array_get(mrbc_value v[], int argc)
         for (int i = 0; i < size; i++) {
             mrbc_value val = mrbc_array_get(v, v[1].i + i);
             mrbc_array_push(&ret, &val);
-            // mrbc_retain(&val);         // CC: remove 20181029
         }
     }
     else {
@@ -517,7 +513,6 @@ c_array_set(mrbc_value v[], int argc)
 {
     if (argc==2 && v[1].tt==MRBC_TT_FIXNUM) {	// self[n] = val
         mrbc_array_set(v, v[1].i, &v[2]);		// raise? IndexError or ENOMEM
-        v[2].tt = MRBC_TT_EMPTY;
     }
     else if (argc==3 &&							// self[n, len] = valu
     		v[1].tt==MRBC_TT_FIXNUM &&
@@ -554,9 +549,7 @@ c_array_delete_at(mrbc_value v[], int argc)
 __GURU__ void
 c_array_empty(mrbc_value v[], int argc)
 {
-    int n = mrbc_array_size(v);
-
-    SET_BOOL_RETURN(!n);
+    SET_BOOL_RETURN(mrbc_array_size(v)==0);
 }
 
 //================================================================
@@ -565,9 +558,7 @@ c_array_empty(mrbc_value v[], int argc)
 __GURU__ void
 c_array_size(mrbc_value v[], int argc)
 {
-    int n = mrbc_array_size(v);
-
-    SET_INT_RETURN(n);
+    SET_INT_RETURN(mrbc_array_size(v));
 }
 
 //================================================================
@@ -594,9 +585,7 @@ c_array_index(mrbc_value v[], int argc)
  */
 __GURU__ void c_array_first(mrbc_value v[], int argc)
 {
-	mrbc_value ret = mrbc_array_get(v, 0);
-	SET_RETURN(ret);
-    //mrbc_retain(&val)        	// CC: removed 20181029
+	SET_RETURN(mrbc_array_get(v, 0));
 }
 
 //================================================================
@@ -605,9 +594,7 @@ __GURU__ void c_array_first(mrbc_value v[], int argc)
 __GURU__ void
 c_array_last(mrbc_value v[], int argc)
 {
-	mrbc_value ret = mrbc_array_get(v, -1);
-	SET_RETURN(ret);
-    //mrbc_retain(&val)        	// CC: removed 20181029
+	SET_RETURN(mrbc_array_get(v, -1));
 }
 
 //================================================================
@@ -655,10 +642,8 @@ c_array_unshift(mrbc_value v[], int argc)
 __GURU__ void
 c_array_shift(mrbc_value v[], int argc)
 {
-	mrbc_value ret;
     if (argc==0) {									// shift() -> object | nil
-        ret = mrbc_array_shift(v);
-        SET_RETURN(ret);
+        SET_RETURN(mrbc_array_shift(v));
     }
     else if (argc==1 && v[1].tt==MRBC_TT_FIXNUM) {	// shift() -> Array | nil
         // TODO: not implement yet.
@@ -700,12 +685,10 @@ c_array_min(mrbc_value v[], int argc)
     mrbc_value *p_min_value, *p_max_value;
 
     mrbc_array_minmax(&v[0], &p_min_value, &p_max_value);
-    if (p_min_value==NULL) {
-        SET_NIL_RETURN();
-    }
+    if (p_min_value==NULL) SET_NIL_RETURN();
     else {
     	SET_RETURN(*p_min_value);
-    	mrbc_retain(p_min_value);       // CC: 20181029 needed?
+    	mrbc_retain(p_min_value);
     }
 }
 
@@ -720,12 +703,10 @@ c_array_max(mrbc_value v[], int argc)
     mrbc_value *p_min_value, *p_max_value;
 
     mrbc_array_minmax(&v[0], &p_min_value, &p_max_value);
-    if (p_max_value==NULL) {
-        SET_NIL_RETURN();
-    }
+    if (p_max_value==NULL) SET_NIL_RETURN();
     else {
     	SET_RETURN(*p_max_value);
-    	mrbc_retain(p_max_value);        // CC: 20181029 needed?
+    	mrbc_retain(p_max_value);
     }
 }
 
@@ -747,8 +728,6 @@ c_array_minmax(mrbc_value v[], int argc)
 
     mrbc_array_set(&ret, 0, p_min_value);
     mrbc_array_set(&ret, 1, p_max_value);
-    mrbc_retain(p_min_value);				// needed?
-    mrbc_retain(p_max_value);				// needed?
 
     SET_RETURN(ret);
 }
@@ -779,7 +758,6 @@ c_array_inspect(mrbc_value v[], int argc)
         mrbc_value s  = mrbc_send(ary, &vi, "inspect", 0);
         mrbc_string_append(&ret, &s);
         mrbc_release(&s);           		// CC: added 20181029
-        mrbc_release(&vi);                 	// CC: added 20181029
     }
     mrbc_string_append_cstr(&ret, "]");
 

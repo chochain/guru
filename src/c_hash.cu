@@ -283,8 +283,7 @@ _hash_dup(mrbc_value *kv)
 __GURU__ void
 c_hash_new(mrbc_value v[], int argc)
 {
-    mrbc_value ret = mrbc_hash_new(0);
-    SET_RETURN(ret);
+    SET_RETURN(mrbc_hash_new(0));
 }
 
 //================================================================
@@ -297,9 +296,7 @@ c_hash_get(mrbc_value v[], int argc)
     	assert(argc!=1);
         return;	// raise ArgumentError.
     }
-    mrbc_value kv = _hash_get(v, v+1);
-
-    SET_RETURN(kv);
+    SET_RETURN(_hash_get(v, v+1));
 }
 
 //================================================================
@@ -344,11 +341,9 @@ c_hash_delete(mrbc_value v[], int argc)
 {
     // TODO : now, support only delete(key) -> object
 
-    mrbc_value ret = _hash_remove(v, v+1);
+    SET_RETURN(_hash_remove(v, v+1));
 
     // TODO: re-index hash table if need.
-
-    SET_RETURN(ret);
 }
 
 //================================================================
@@ -357,9 +352,7 @@ c_hash_delete(mrbc_value v[], int argc)
 __GURU__ void
 c_hash_empty(mrbc_value v[], int argc)
 {
-    int n = mrbc_hash_size(v);
-
-    SET_BOOL_RETURN(!n);
+    SET_BOOL_RETURN(mrbc_hash_size(v)==0);
 }
 
 //================================================================
@@ -368,9 +361,7 @@ c_hash_empty(mrbc_value v[], int argc)
 __GURU__ void
 c_hash_has_key(mrbc_value v[], int argc)
 {
-    mrbc_value *res = _hash_search(v, v+1);
-
-    SET_BOOL_RETURN(res);
+    SET_BOOL_RETURN(_hash_search(v, v+1)!=NULL);
 }
 
 //================================================================

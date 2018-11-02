@@ -104,6 +104,7 @@ mrbc_send(mrbc_value v[], mrbc_value *rcv, const char *method, int argc, ...)
     	regs[i].tt = MRBC_TT_EMPTY;
     }
     mrbc_retain(regs);			    // CC: added 20181029
+
     return regs[0];
 }
 
@@ -180,14 +181,8 @@ c_object_compare(mrbc_value v[], int argc)
 __GURU__ void
 c_object_equal3(mrbc_value v[], int argc)
 {
-    if (v[0].tt == MRBC_TT_CLASS) {
-        mrbc_value ret = mrbc_send(v+argc, &v[1], "kind_of?", 1, &v[0]);
-        SET_RETURN(ret);
-    }
-    else {
-        int t = mrbc_compare(&v[0], &v[1]);
-        SET_BOOL_RETURN(!t);
-    }
+    if (v[0].tt != MRBC_TT_CLASS) SET_BOOL_RETURN(mrbc_compare(&v[0], &v[1]));
+    else 						  SET_RETURN(mrbc_send(v+argc, &v[1], "kind_of?", 1, &v[0]));
 }
 
 //================================================================
@@ -236,11 +231,9 @@ __GURU__ void
 c_object_getiv(mrbc_value v[], int argc)
 {
     const char *name = _get_callee(NULL);		// TODO:
+    mrbc_sym   sid   = name2symid(name);
 
-    mrbc_sym sym_id = name2symid(name);
-    mrbc_value ret = mrbc_instance_getiv(&v[0], sym_id);
-
-    SET_RETURN(ret);
+    SET_RETURN(mrbc_instance_getiv(&v[0], sid));
 }
 
 //================================================================

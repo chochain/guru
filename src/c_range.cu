@@ -92,22 +92,21 @@ __GURU__ void
 c_range_equal3(mrbc_value v[], int argc)
 {
     if (v[0].tt == MRBC_TT_CLASS) {
-        mrbc_value result = mrbc_send(v+argc, &v[1], "kind_of?", 1, &v[0]);
-        SET_RETURN(result);
+        mrbc_value ret = mrbc_send(v+argc, &v[1], "kind_of?", 1, &v[0]);
+        SET_RETURN(ret);
         return;
     }
 
-    int cmp_first = mrbc_compare(&v[0].range->first, &v[1]);
-    int result = (cmp_first <= 0);
-    if (!result) {
-        SET_BOOL_RETURN(result);
+    int first = mrbc_compare(&v[0].range->first, &v[1]);
+    if (first <= 0) {
+        SET_FALSE_RETURN();
         return;
     }
 
-    int cmp_last  = mrbc_compare(&v[1], &v[0].range->last);
-    result = IS_EXCLUDE_END(v[0].range) ? (cmp_last < 0) : (cmp_last <= 0);
+    int last = mrbc_compare(&v[1], &v[0].range->last);
+    int flag = IS_EXCLUDE_END(v[0].range) ? (last < 0) : (last <= 0);
 
-    SET_BOOL_RETURN(result);
+    SET_BOOL_RETURN(flag);
 }
 
 //================================================================
@@ -116,8 +115,7 @@ c_range_equal3(mrbc_value v[], int argc)
 __GURU__ void
 c_range_first(mrbc_value v[], int argc)
 {
-    mrbc_value ret = v->range->first;
-    SET_RETURN(ret);
+    SET_RETURN(v->range->first);
 }
 
 //================================================================
@@ -126,8 +124,7 @@ c_range_first(mrbc_value v[], int argc)
 __GURU__ void
 c_range_last(mrbc_value v[], int argc)
 {
-    mrbc_value ret = v->range->last;
-    SET_RETURN(ret);
+    SET_RETURN(v->range->last);
 }
 
 //================================================================
@@ -136,8 +133,7 @@ c_range_last(mrbc_value v[], int argc)
 __GURU__ void
 c_range_exclude_end(mrbc_value v[], int argc)
 {
-    int result = IS_EXCLUDE_END(v[0].range);
-    SET_BOOL_RETURN(result);
+    SET_BOOL_RETURN(IS_EXCLUDE_END(v[0].range));
 }
 
 #if MRBC_USE_STRING
