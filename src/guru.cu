@@ -17,8 +17,8 @@ extern "C" __GURU__   void mrbc_init_class();							// class.cu
 extern "C" int guru_vm_init(guru_ses *ses);								// vm.cu
 extern "C" int guru_vm_run(guru_ses *ses);								// vm.cu
 
-__global__
-void guru_static_init(void)
+__global__ void
+guru_static_init(void)
 {
 	if (threadIdx.x!=0 || blockIdx.x!=0) return;
 
@@ -26,7 +26,8 @@ void guru_static_init(void)
 	mrbc_init_class();
 }
 
-uint8_t *_load_bytecode(const char *rite_fname)
+__host__ uint8_t*
+_load_bytecode(const char *rite_fname)
 {
   FILE *fp = fopen(rite_fname, "rb");
 
@@ -50,7 +51,8 @@ uint8_t *_load_bytecode(const char *rite_fname)
   return req;
 }
 
-int session_init(guru_ses *ses, const char *rite_fname)
+__host__ int
+session_init(guru_ses *ses, const char *rite_fname)
 {
 	void *mem = guru_malloc(BLOCK_MEMORY_SIZE, 1);
 	if (!mem) {
@@ -77,7 +79,8 @@ int session_init(guru_ses *ses, const char *rite_fname)
 	return 0;
 }
 
-int session_start(guru_ses *ses)
+__host__ int
+session_start(guru_ses *ses)
 {
 	int ret = guru_vm_init(ses);
 	if (ret!=0) {

@@ -28,8 +28,8 @@ __GURU__ mrbc_globalobject mrbc_global[MAX_GLOBAL_OBJECT_SIZE];
 /* search */
 /* linear search is not efficient! */
 /* TODO: Use binary search */
-__GURU__
-int _get_idx(mrbc_sym sym_id, mrbc_globaltype gtype)
+__GURU__ int
+_get_idx(mrbc_sym sym_id, mrbc_globaltype gtype)
 {
     for (int i=0 ; i<global_end ; i++) {
         mrbc_globalobject *obj = &mrbc_global[i];
@@ -38,8 +38,8 @@ int _get_idx(mrbc_sym sym_id, mrbc_globaltype gtype)
     return -1;
 }
 
-__GURU__
-mrbc_value _get_obj(mrbc_sym sym_id, mrbc_globaltype gtype)
+__GURU__ mrbc_value
+_get_obj(mrbc_sym sym_id, mrbc_globaltype gtype)
 {
     int index = _get_idx(sym_id, gtype);
     if (index < 0) mrbc_nil_value();
@@ -48,16 +48,16 @@ mrbc_value _get_obj(mrbc_sym sym_id, mrbc_globaltype gtype)
 }
 
 //
-__GURU__
-void  mrbc_init_global(void)
+__GURU__ void
+ mrbc_init_global(void)
 {
 	global_end = 0;
 }
 
 /* add */
 /* TODO: Check reference count */
-__GURU__
-void global_object_add(mrbc_sym sym_id, mrbc_value v)
+__GURU__ void
+global_object_add(mrbc_sym sym_id, mrbc_value v)
 {
     int index = _get_idx(sym_id, MRBC_GLOBAL_OBJECT);
 
@@ -75,8 +75,8 @@ void global_object_add(mrbc_sym sym_id, mrbc_value v)
     mrbc_retain(&v);
 }
 
-__GURU__
-void const_object_add(mrbc_sym sym_id, mrbc_object *obj)
+__GURU__ void
+const_object_add(mrbc_sym sym_id, mrbc_object *obj)
 {
     int index = _get_idx(sym_id, MRBC_CONST_OBJECT);
 
@@ -97,8 +97,8 @@ void const_object_add(mrbc_sym sym_id, mrbc_object *obj)
 }
 
 /* get */
-__GURU__
-mrbc_value global_object_get(mrbc_sym sym_id)
+__GURU__ mrbc_value
+global_object_get(mrbc_sym sym_id)
 {
     mrbc_value ret = _get_obj(sym_id, MRBC_GLOBAL_OBJECT);
     mrbc_retain(&ret);

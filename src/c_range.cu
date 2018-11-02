@@ -35,8 +35,8 @@
   @param  flag_exclude	true: exclude the end object, otherwise include.
   @return		range object.
 */
-__GURU__
-mrbc_value mrbc_range_new(mrbc_value *first, mrbc_value *last, int exclude_end)
+__GURU__ mrbc_value
+mrbc_range_new(mrbc_value *first, mrbc_value *last, int exclude_end)
 {
     mrbc_value ret = {.tt = MRBC_TT_RANGE};
 
@@ -59,8 +59,8 @@ mrbc_value mrbc_range_new(mrbc_value *first, mrbc_value *last, int exclude_end)
 
   @param  target 	pointer to range object.
 */
-__GURU__
-void mrbc_range_delete(mrbc_value *v)
+__GURU__ void
+mrbc_range_delete(mrbc_value *v)
 {
     mrbc_release(&v->range->first);
     mrbc_release(&v->range->last);
@@ -71,8 +71,8 @@ void mrbc_range_delete(mrbc_value *v)
 //================================================================
 /*! compare
  */
-__GURU__
-int mrbc_range_compare(const mrbc_value *v1, const mrbc_value *v2)
+__GURU__ int
+mrbc_range_compare(const mrbc_value *v1, const mrbc_value *v2)
 {
     int res;
 
@@ -88,8 +88,8 @@ int mrbc_range_compare(const mrbc_value *v1, const mrbc_value *v2)
 //================================================================
 /*! (method) ===
  */
-__GURU__
-void c_range_equal3(mrbc_value v[], int argc)
+__GURU__ void
+c_range_equal3(mrbc_value v[], int argc)
 {
     if (v[0].tt == MRBC_TT_CLASS) {
         mrbc_value result = mrbc_send(v+argc, &v[1], "kind_of?", 1, &v[0]);
@@ -113,8 +113,8 @@ void c_range_equal3(mrbc_value v[], int argc)
 //================================================================
 /*! (method) first
  */
-__GURU__
-void c_range_first(mrbc_value v[], int argc)
+__GURU__ void
+c_range_first(mrbc_value v[], int argc)
 {
     mrbc_value ret = v->range->first;
     SET_RETURN(ret);
@@ -123,8 +123,8 @@ void c_range_first(mrbc_value v[], int argc)
 //================================================================
 /*! (method) last
  */
-__GURU__
-void c_range_last(mrbc_value v[], int argc)
+__GURU__ void
+c_range_last(mrbc_value v[], int argc)
 {
     mrbc_value ret = v->range->last;
     SET_RETURN(ret);
@@ -133,8 +133,8 @@ void c_range_last(mrbc_value v[], int argc)
 //================================================================
 /*! (method) exclude_end?
  */
-__GURU__
-void c_range_exclude_end(mrbc_value v[], int argc)
+__GURU__ void
+c_range_exclude_end(mrbc_value v[], int argc)
 {
     int result = IS_EXCLUDE_END(v[0].range);
     SET_BOOL_RETURN(result);
@@ -144,8 +144,8 @@ void c_range_exclude_end(mrbc_value v[], int argc)
 //================================================================
 /*! (method) inspect
  */
-__GURU__
-void c_range_inspect(mrbc_value v[], int argc)
+__GURU__ void
+c_range_inspect(mrbc_value v[], int argc)
 {
     mrbc_value ret = mrbc_string_new(NULL);
     if (!ret.str) {
@@ -168,8 +168,8 @@ void c_range_inspect(mrbc_value v[], int argc)
 //================================================================
 /*! initialize
  */
-__GURU__
-void mrbc_init_class_range()
+__GURU__ void
+mrbc_init_class_range()
 {
     mrbc_class *c = mrbc_class_range = mrbc_define_class("Range", mrbc_class_object);
 

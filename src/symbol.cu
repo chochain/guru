@@ -46,8 +46,8 @@ __GURU__ int sym_idx;	// point to the last(free) sym_list array.
   @param  str		Target string.
   @return uint16_t	Hash value.
 */
-__GURU__ __INLINE__
-uint16_t _calc_hash(const char *str)
+__GURU__ __INLINE__ uint16_t
+_calc_hash(const char *str)
 {
     uint16_t h = 0;
 
@@ -61,8 +61,8 @@ uint16_t _calc_hash(const char *str)
 //================================================================
 /*! search index table
  */
-__GURU__
-int _search_index(const char *str)
+__GURU__ int
+_search_index(const char *str)
 {
     uint16_t   hash = _calc_hash(str);
 
@@ -93,8 +93,8 @@ int _search_index(const char *str)
 //================================================================
 /*! add to index table
  */
-__GURU__
-int _add_index(const char *str)
+__GURU__ int
+_add_index(const char *str)
 {
     uint16_t hash = _calc_hash(str);
 
@@ -142,8 +142,8 @@ int _add_index(const char *str)
   @param  str	String
   @return 	symbol object
 */
-__GURU__
-mrbc_value mrbc_symbol_new(const char *str)
+__GURU__ mrbc_value
+mrbc_symbol_new(const char *str)
 {
     mrbc_value v      = {.tt = MRBC_TT_SYMBOL};
     mrbc_sym   sym_id = _search_index(str);
@@ -170,7 +170,8 @@ mrbc_value mrbc_symbol_new(const char *str)
   @param  str		Target string.
   @return mrbc_sym	Symbol value.
 */
-__GURU__ mrbc_sym name2symid(const char *str)
+__GURU__ mrbc_sym
+name2symid(const char *str)
 {
     mrbc_sym sym_id = _search_index(str);
     if (sym_id >= 0) return sym_id;
@@ -185,8 +186,8 @@ __GURU__ mrbc_sym name2symid(const char *str)
   @return const char*	String.
   @retval NULL		Invalid sym_id was given.
 */
-__GURU__
-const char *symid2name(mrbc_sym sym_id)
+__GURU__ const char*
+symid2name(mrbc_sym sym_id)
 {
     return (sym_id < 0 || sym_id >= sym_idx)
     		? NULL
@@ -201,8 +202,8 @@ extern "C" __GURU__ int        mrbc_string_append_cstr(mrbc_value *s1, const cha
 //================================================================
 /*! (method) inspect
  */
-__GURU__
-void c_inspect(mrbc_value v[], int argc)
+__GURU__ void
+c_inspect(mrbc_value v[], int argc)
 {
     const char *s = symid2name(v[0].i);
     v[0] = mrbc_string_new(":");
@@ -214,8 +215,8 @@ void c_inspect(mrbc_value v[], int argc)
 //================================================================
 /*! (method) to_s
  */
-__GURU__
-void c_to_s(mrbc_value v[], int argc)
+__GURU__ void
+c_to_s(mrbc_value v[], int argc)
 {
     v[0] = mrbc_string_new(symid2name(v[0].i));
 }
@@ -225,7 +226,8 @@ void c_to_s(mrbc_value v[], int argc)
 //================================================================
 /*! (method) all_symbols
  */
-__GURU__ void c_all_symbols(mrbc_value v[], int argc)
+__GURU__ void
+c_all_symbols(mrbc_value v[], int argc)
 {
     mrbc_value ret = mrbc_array_new(sym_idx);
 

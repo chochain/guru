@@ -32,8 +32,8 @@
   @param  obj
   @return pointer to mrbc_class
 */
-__GURU__
-mrbc_class *mrbc_get_class_by_object(mrbc_object *obj)
+__GURU__ mrbc_class*
+mrbc_get_class_by_object(mrbc_object *obj)
 {
     mrbc_class *cls;
 
@@ -69,8 +69,8 @@ mrbc_class *mrbc_get_class_by_object(mrbc_object *obj)
   @param  name		class name.
   @return		pointer to class object.
 */
-__GURU__
-mrbc_class *mrbc_get_class_by_name(const char *name)
+__GURU__ mrbc_class*
+mrbc_get_class_by_name(const char *name)
 {
     mrbc_sym   sym_id = name2symid(name);
     mrbc_value v      = const_object_get(sym_id);
@@ -87,8 +87,8 @@ mrbc_class *mrbc_get_class_by_name(const char *name)
   @param  sym_id
   @return
 */
-__GURU__
-mrbc_proc *mrbc_get_class_method(mrbc_value rcv, mrbc_sym sym_id)
+__GURU__ mrbc_proc*
+mrbc_get_class_method(mrbc_value rcv, mrbc_sym sym_id)
 {
     mrbc_class *cls = mrbc_get_class_by_object(&rcv);
 
@@ -113,8 +113,8 @@ mrbc_proc *mrbc_get_class_method(mrbc_value rcv, mrbc_sym sym_id)
   @param  name		class name.
   @param  super		super class.
 */
-__GURU__
-mrbc_class *mrbc_define_class(const char *name, mrbc_class *super)
+__GURU__ mrbc_class*
+mrbc_define_class(const char *name, mrbc_class *super)
 {
     if (super == NULL) super = mrbc_class_object;  // set default to Object.
 
@@ -142,8 +142,8 @@ mrbc_class *mrbc_define_class(const char *name, mrbc_class *super)
     return cls;
 }
 
-__GURU__
-mrbc_proc *mrbc_proc_alloc(const char *name)
+__GURU__ mrbc_proc*
+mrbc_proc_alloc(const char *name)
 {
     mrbc_proc *proc = (mrbc_proc *)mrbc_alloc(sizeof(mrbc_proc));
     if (proc) {
@@ -166,8 +166,8 @@ mrbc_proc *mrbc_proc_alloc(const char *name)
   @param  name		method name.
   @param  cfunc		pointer to function.
 */
-__GURU__
-void mrbc_define_method(mrbc_class *cls, const char *name, mrbc_func_t cfunc)
+__GURU__ void
+mrbc_define_method(mrbc_class *cls, const char *name, mrbc_func_t cfunc)
 {
     if (cls==NULL) cls = mrbc_class_object;	// set default to Object.
 
@@ -181,8 +181,8 @@ void mrbc_define_method(mrbc_class *cls, const char *name, mrbc_func_t cfunc)
 }
 
 // =============== ProcClass
-__GURU__
-void c_proc_call(mrbc_value v[], int argc)
+__GURU__ void
+c_proc_call(mrbc_value v[], int argc)
 {
 	// not suppose to come here
 	assert(1==0);		// taken care by vm#op_send
@@ -193,8 +193,8 @@ void c_proc_call(mrbc_value v[], int argc)
 //================================================================
 /*! Nop operator / method
  */
-__GURU__
-void c_nop(mrbc_value v[], int argc)
+__GURU__ void
+c_nop(mrbc_value v[], int argc)
 {
     // nothing to do.
 }

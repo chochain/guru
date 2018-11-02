@@ -57,7 +57,7 @@
 #define OFF(p0,p1) 		((uint8_t *)(p1) - (uint8_t *)(p0))
 
 // memory pool
-__GURU__ unsigned int 	memory_pool_size;
+__GURU__ unsigned int memory_pool_size;
 __GURU__ uint8_t     	*memory_pool;
 
 __GURU__ free_block 	*free_list[SIZE_FREE_BLOCKS + 1];
@@ -77,8 +77,8 @@ __GURU__ uint16_t 		sli_bitmap[FLI_BITS + 2]; // + sentinel
   @param  x	target (16bit unsined)
   @retval int	nlz value
 */
-__GURU__
-int _nlz16(uint16_t x)
+__GURU__ int
+_nlz16(uint16_t x)
 {
     if (x==0) return 16;
 
@@ -96,8 +96,8 @@ int _nlz16(uint16_t x)
   @param  alloc_size	alloc size
   @retval int		index of free_blocks
 */
-__GURU__
-int _get_index(unsigned int alloc_size)
+__GURU__ int
+_get_index(unsigned int alloc_size)
 {
     if ((alloc_size >> (FLI_BITS+SLI_BITS+LSB_BITS)) != 0) {		// overflow check
         return SIZE_FREE_BLOCKS;
@@ -119,8 +119,8 @@ int _get_index(unsigned int alloc_size)
 
   @param  target	Pointer to target block.
 */
-__GURU__
-void _add_free_block(free_block *target)
+__GURU__ void
+_add_free_block(free_block *target)
 {
     target->free = FLAG_FREE_BLOCK;
 
@@ -144,8 +144,8 @@ void _add_free_block(free_block *target)
 
   @param  target	pointer to target block.
 */
-__GURU__
-void _remove_index(free_block *target)
+__GURU__ void
+_remove_index(free_block *target)
 {
     if (target->prev==NULL) {	// head of linked list?
         int index = _get_index(target->size) - 1;
@@ -170,8 +170,8 @@ void _remove_index(free_block *target)
   @retval NULL	no split.
   @retval FREE_BLOCK *	pointer to splitted free block.
 */
-__GURU__
-free_block *_split_block(free_block *target, unsigned int size)
+__GURU__ free_block*
+_split_block(free_block *target, unsigned int size)
 {
     if (target->size < (size + sizeof(free_block) + LSB_BLOCK)) {
     	return NULL;
@@ -201,8 +201,8 @@ free_block *_split_block(free_block *target, unsigned int size)
   @param  ptr1	pointer to free block 1
   @param  ptr2	pointer to free block 2
 */
-__GURU__
-void _merge_block(free_block *ptr1, free_block *ptr2)
+__GURU__ void
+_merge_block(free_block *ptr1, free_block *ptr2)
 {
     assert(ptr1 < ptr2);
 
@@ -217,8 +217,8 @@ void _merge_block(free_block *ptr1, free_block *ptr2)
     }
 }
 
-__GURU__
-void _merge_with_next(free_block *target)
+__GURU__ void
+_merge_with_next(free_block *target)
 {
 	if (target->tail!=FLAG_NOT_TAIL_BLOCK) return;
 
@@ -230,8 +230,8 @@ void _merge_with_next(free_block *target)
 	_merge_block(target, next);
 }
 
-__GURU__
-free_block *_merge_with_prev(free_block *target)
+__GURU__ free_block*
+_merge_with_prev(free_block *target)
 {
     free_block *prev = (free_block *)PREV(target);
 
@@ -243,8 +243,8 @@ free_block *_merge_with_prev(free_block *target)
     return prev;
 }
 
-__GURU__
-int _get_free_index(unsigned int alloc_size)
+__GURU__ int
+_get_free_index(unsigned int alloc_size)
 {
     int index = _get_index(alloc_size);	// find free memory block
 
@@ -281,8 +281,8 @@ int _get_free_index(unsigned int alloc_size)
 /*
  * TODO: refactor into _remove_index()
  */
-__GURU__
-free_block *_mark_used(int index)
+__GURU__ free_block*
+_mark_used(int index)
 {
     free_block *target = free_list[index];
 
@@ -307,8 +307,8 @@ free_block *_mark_used(int index)
   @param  ptr	pointer to free memory block.
   @param  size	size. (max 64KB. see mrbc_memsize_t)
 */
-__GURU__
-void _mrbc_init_mmu(void *mem, unsigned int size)
+__GURU__ void
+_mrbc_init_mmu(void *mem, unsigned int size)
 {
     assert(size != 0);
     assert(size <= (mrbc_memsize_t)(~0));
@@ -333,8 +333,8 @@ void _mrbc_init_mmu(void *mem, unsigned int size)
   @return void * pointer to allocated memory.
   @retval NULL	error.
 */
-__GURU__
-void *mrbc_alloc(unsigned int size)
+__GURU__ void*
+mrbc_alloc(unsigned int size)
 {
     // TODO: maximum alloc size
     //  (1 << (FLI_BITS + SLI_BITS + LSB_BITS)) - alpha
@@ -377,8 +377,8 @@ void *mrbc_alloc(unsigned int size)
   @return void * pointer to allocated memory.
   @retval NULL	error.
 */
-__GURU__
-void * mrbc_realloc(void *ptr, unsigned int size)
+__GURU__ void*
+mrbc_realloc(void *ptr, unsigned int size)
 {
     used_block *target      = (used_block *)((uint8_t *)ptr - sizeof(used_block));
     unsigned int alloc_size = size + sizeof(free_block);
@@ -420,8 +420,8 @@ void * mrbc_realloc(void *ptr, unsigned int size)
 
   @param  ptr	Return value of mrbc_raw_alloc()
 */
-__GURU__
-void mrbc_free(void *ptr)
+__GURU__ void
+mrbc_free(void *ptr)
 {
     // get target block
     free_block *target = (free_block *)((uint8_t *)ptr - sizeof(used_block));
@@ -435,8 +435,8 @@ void mrbc_free(void *ptr)
 
   @param  vm	pointer to VM.
 */
-__GURU__
-void mrbc_free_all()
+__GURU__ void
+mrbc_free_all()
 {
     used_block *ptr = (used_block *)memory_pool;
     void *free_target = NULL;
@@ -466,8 +466,8 @@ void mrbc_free_all()
   @param  *free		returns free memory.
   @param  *fragment	returns memory fragmentation
 */
-__global__
-void _guru_alloc_stat(int v[])
+__global__ void
+_guru_alloc_stat(int v[])
 {
 	if (threadIdx.x!=0 || blockIdx.x!=0) return;
 
@@ -517,7 +517,8 @@ __global__ void guru_memory_init(void *ptr, unsigned int sz)
 	_mrbc_init_mmu(ptr, sz);
 }
 
-void *guru_malloc(size_t sz, int type)
+__host__ void *
+guru_malloc(size_t sz, int type)
 {
 	void *mem;
 
@@ -530,7 +531,8 @@ void *guru_malloc(size_t sz, int type)
     return mem;
 }
 
-void dump_alloc_stat(void)
+__host__ void
+dump_alloc_stat(void)
 {
 	int *v;
 	cudaMallocManaged(&v, 8*sizeof(int));

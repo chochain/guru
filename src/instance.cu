@@ -25,8 +25,8 @@
   @param  size	size of additional data.
   @return       mrbc_instance object.
 */
-__GURU__
-mrbc_value mrbc_instance_new(mrbc_class *cls, int size)
+__GURU__ mrbc_value
+mrbc_instance_new(mrbc_class *cls, int size)
 {
     mrbc_value v = {.tt = MRBC_TT_OBJECT};
     v.self = (mrbc_instance *)mrbc_alloc(sizeof(mrbc_instance) + size);
@@ -51,8 +51,8 @@ mrbc_value mrbc_instance_new(mrbc_class *cls, int size)
 
   @param  v	pointer to target value
 */
-__GURU__
-void mrbc_instance_delete(mrbc_value *v)
+__GURU__ void
+mrbc_instance_delete(mrbc_value *v)
 {
     mrbc_kv_delete(v->self->ivar);
     mrbc_free(v->self);
@@ -66,8 +66,8 @@ void mrbc_instance_delete(mrbc_value *v)
   @param  sym_id	key symbol ID.
   @param  v		pointer to value.
 */
-__GURU__
-void mrbc_instance_setiv(mrbc_object *obj, mrbc_sym sym_id, mrbc_value *v)
+__GURU__ void
+mrbc_instance_setiv(mrbc_object *obj, mrbc_sym sym_id, mrbc_value *v)
 {
     mrbc_kv_set(obj->self->ivar, sym_id, v);
     mrbc_retain(v);
@@ -81,8 +81,8 @@ void mrbc_instance_setiv(mrbc_object *obj, mrbc_sym sym_id, mrbc_value *v)
   @param  sym_id	key symbol ID.
   @return		value.
 */
-__GURU__
-mrbc_value mrbc_instance_getiv(mrbc_object *obj, mrbc_sym sym_id)
+__GURU__ mrbc_value
+mrbc_instance_getiv(mrbc_object *obj, mrbc_sym sym_id)
 {
     mrbc_value *v = mrbc_kv_get(obj->self->ivar, sym_id);
     if (!v) return mrbc_nil_value();

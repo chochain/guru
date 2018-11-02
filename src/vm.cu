@@ -87,8 +87,8 @@ _vm_exec(mrbc_vm *vm, int step)
 /*!@brief
   release mrbc_irep holds memory
 */
-__GURU__
-void _mrbc_free_irep(mrbc_irep *irep)
+__GURU__ void
+_mrbc_free_irep(mrbc_irep *irep)
 {
     // release pool.
     for(int i = 0; i < irep->plen; i++) {
@@ -106,7 +106,8 @@ void _mrbc_free_irep(mrbc_irep *irep)
 }
 
 #ifdef MRBC_DEBUG
-void dump_irep(mrbc_irep *irep)
+__host__ void
+dump_irep(mrbc_irep *irep)
 {
 	printf("\tnregs=%d, nlocals=%d, pools=%d, syms=%d, reps=%d, ilen=%d\n",
 			irep->nreg, irep->nlv, irep->plen, irep->slen, irep->rlen, irep->ilen);
@@ -137,7 +138,8 @@ static const char *_opcode[] = {
     "ABORT"
 };
 
-void _show_regfile(mrbc_vm *vm)
+__host__ void
+_show_regfile(mrbc_vm *vm)
 {
 	mrbc_value *v = vm->regfile;
 
@@ -158,7 +160,8 @@ void _show_regfile(mrbc_vm *vm)
 }
 #endif
 
-int guru_vm_init(guru_ses *ses)
+__host__ int
+guru_vm_init(guru_ses *ses)
 {
 	mrbc_vm *vm = (mrbc_vm *)guru_malloc(sizeof(mrbc_vm), 1);
 	if (!vm) return -4;
@@ -174,7 +177,8 @@ int guru_vm_init(guru_ses *ses)
 	return 0;
 }
 
-int guru_vm_run(guru_ses *ses)
+__host__ int
+guru_vm_run(guru_ses *ses)
 {
 	int sz;
 	cudaDeviceGetLimit((size_t *)&sz, cudaLimitStackSize);

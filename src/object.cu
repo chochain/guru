@@ -63,8 +63,8 @@
   SET_RETURN(ret);
   }
 */
-__GURU__
-mrbc_value mrbc_send(mrbc_value v[], mrbc_value *rcv, const char *method, int argc, ...)
+__GURU__ mrbc_value
+mrbc_send(mrbc_value v[], mrbc_value *rcv, const char *method, int argc, ...)
 {
     mrbc_value *regs = v + 2;	// allocate 2 for stack
     mrbc_sym  sym_id = name2symid(method);
@@ -111,8 +111,8 @@ mrbc_value mrbc_send(mrbc_value v[], mrbc_value *rcv, const char *method, int ar
 //================================================================
 /*! (method) p
  */
-__GURU__
-void c_p(mrbc_value v[], int argc)
+__GURU__ void
+c_p(mrbc_value v[], int argc)
 {
     for (int i = 1; i <= argc; i++) {
         mrbc_p_sub(&v[i]);
@@ -124,8 +124,8 @@ void c_p(mrbc_value v[], int argc)
 //================================================================
 /*! (method) puts
  */
-__GURU__
-void c_puts(mrbc_value v[], int argc)
+__GURU__ void
+c_puts(mrbc_value v[], int argc)
 {
     if (argc) {
     	for (int i = 1; i <= argc; i++) {
@@ -138,8 +138,8 @@ void c_puts(mrbc_value v[], int argc)
 //================================================================
 /*! (method) print
  */
-__GURU__
-void c_print(mrbc_value v[], int argc)
+__GURU__ void
+c_print(mrbc_value v[], int argc)
 {
     for (int i = 1; i <= argc; i++) {
         mrbc_print_sub(&v[i]);
@@ -157,8 +157,8 @@ __GURU__ void c_object_not(mrbc_value v[], int argc)
 //================================================================
 /*! (operator) !=
  */
-__GURU__
-void c_object_neq(mrbc_value v[], int argc)
+__GURU__ void
+c_object_neq(mrbc_value v[], int argc)
 {
     int t = mrbc_compare(&v[0], &v[1]);
     SET_BOOL_RETURN(t);
@@ -167,8 +167,8 @@ void c_object_neq(mrbc_value v[], int argc)
 //================================================================
 /*! (operator) <=>
  */
-__GURU__
-void c_object_compare(mrbc_value v[], int argc)
+__GURU__ void
+c_object_compare(mrbc_value v[], int argc)
 {
     int t = mrbc_compare(&v[0], &v[1]);
     SET_INT_RETURN(t);
@@ -177,8 +177,8 @@ void c_object_compare(mrbc_value v[], int argc)
 //================================================================
 /*! (operator) ===
  */
-__GURU__
-void c_object_equal3(mrbc_value v[], int argc)
+__GURU__ void
+c_object_equal3(mrbc_value v[], int argc)
 {
     if (v[0].tt == MRBC_TT_CLASS) {
         mrbc_value ret = mrbc_send(v+argc, &v[1], "kind_of?", 1, &v[0]);
@@ -193,8 +193,8 @@ void c_object_equal3(mrbc_value v[], int argc)
 //================================================================
 /*! (method) class
  */
-__GURU__
-void c_object_class(mrbc_value v[], int argc)
+__GURU__ void
+c_object_class(mrbc_value v[], int argc)
 {
     mrbc_value ret = {.tt = MRBC_TT_CLASS };
     ret.cls = mrbc_get_class_by_object(v);
@@ -203,8 +203,8 @@ void c_object_class(mrbc_value v[], int argc)
 }
 
 // Object.new
-__GURU__
-void c_object_new(mrbc_value v[], int argc)
+__GURU__ void
+c_object_new(mrbc_value v[], int argc)
 {
 	assert(1==0);			// taken cared in vm
 }
@@ -215,8 +215,8 @@ void c_object_new(mrbc_value v[], int argc)
   @param  vm	Pointer to VM
   @return	string
 */
-__GURU__
-const char *_get_callee(mrbc_vm *vm)
+__GURU__ const char*
+_get_callee(mrbc_vm *vm)
 {
 #if 0
     uint32_t iseq = _bin_to_uint32(vm->pc_irep->iseq + (vm->pc - 1) * 4);
@@ -232,8 +232,8 @@ const char *_get_callee(mrbc_vm *vm)
 //================================================================
 /*! (method) instance variable getter
  */
-__GURU__
-void c_object_getiv(mrbc_value v[], int argc)
+__GURU__ void
+c_object_getiv(mrbc_value v[], int argc)
 {
     const char *name = _get_callee(NULL);		// TODO:
 
@@ -246,8 +246,8 @@ void c_object_getiv(mrbc_value v[], int argc)
 //================================================================
 /*! (method) instance variable setter
  */
-__GURU__
-void c_object_setiv(mrbc_value v[], int argc)
+__GURU__ void
+c_object_setiv(mrbc_value v[], int argc)
 {
     const char *name = _get_callee(NULL);				// CC TODO: another way
 
@@ -265,8 +265,8 @@ void c_object_setiv(mrbc_value v[], int argc)
 //================================================================
 /*! (class method) access method 'attr_reader'
  */
-__GURU__
-void c_object_attr_reader(mrbc_value v[], int argc)
+__GURU__ void
+c_object_attr_reader(mrbc_value v[], int argc)
 {
     for (int i = 1; i <= argc; i++) {
         if (v[i].tt != MRBC_TT_SYMBOL) continue;	// TypeError raise?
@@ -280,8 +280,8 @@ void c_object_attr_reader(mrbc_value v[], int argc)
 //================================================================
 /*! (class method) access method 'attr_accessor'
  */
-__GURU__
-void c_object_attr_accessor(mrbc_value v[], int argc)
+__GURU__ void
+c_object_attr_accessor(mrbc_value v[], int argc)
 {
     for (int i = 1; i <= argc; i++) {
         if (v[i].tt != MRBC_TT_SYMBOL) continue;	// TypeError raise?
@@ -305,8 +305,8 @@ void c_object_attr_accessor(mrbc_value v[], int argc)
 //================================================================
 /*! (method) is_a, kind_of
  */
-__GURU__
-void c_object_kind_of(mrbc_value v[], int argc)
+__GURU__ void
+c_object_kind_of(mrbc_value v[], int argc)
 {
     int result = 0;
     if (v[1].tt != MRBC_TT_CLASS) {
@@ -327,8 +327,8 @@ void c_object_kind_of(mrbc_value v[], int argc)
 //================================================================
 /*! (method) to_s
  */
-__GURU__
-void c_object_to_s(mrbc_value v[], int argc)
+__GURU__ void
+c_object_to_s(mrbc_value v[], int argc)
 {
 	const char *str;
 	char buf[20];
@@ -344,8 +344,8 @@ void c_object_to_s(mrbc_value v[], int argc)
 }
 #endif
 
-__GURU__
-void mrbc_init_class_object()
+__GURU__ void
+mrbc_init_class_object()
 {
     // Class
     mrbc_class *c = mrbc_class_object = mrbc_define_class("Object", NULL);
@@ -374,8 +374,8 @@ void mrbc_init_class_object()
 }
 
 #if MRBC_USE_STRING
-__GURU__
-void c_proc_inspect(mrbc_value v[], int argc)
+__GURU__ void
+c_proc_inspect(mrbc_value v[], int argc)
 {
 	char buf[20];
     const char *str = guru_sprintf(buf, "<#Proc:%08x>", (uintptr_t)v->proc);
@@ -384,8 +384,8 @@ void c_proc_inspect(mrbc_value v[], int argc)
 }
 #endif
 
-__GURU__
-void mrbc_init_class_proc()
+__GURU__ void
+mrbc_init_class_proc()
 {
     // Class
     mrbc_class *c = mrbc_class_proc = mrbc_define_class("Proc", mrbc_class_object);
@@ -403,8 +403,8 @@ void mrbc_init_class_proc()
 //================================================================
 /*! (method) !
  */
-__GURU__
-void c_nil_false_not(mrbc_value v[], int argc)
+__GURU__ void
+c_nil_false_not(mrbc_value v[], int argc)
 {
     v[0].tt = MRBC_TT_TRUE;
 }
@@ -413,8 +413,8 @@ void c_nil_false_not(mrbc_value v[], int argc)
 //================================================================
 /*! (method) inspect
  */
-__GURU__
-void c_nil_inspect(mrbc_value v[], int argc)
+__GURU__ void
+c_nil_inspect(mrbc_value v[], int argc)
 {
     v[0] = mrbc_string_new((char *)"nil");
 }
@@ -422,8 +422,8 @@ void c_nil_inspect(mrbc_value v[], int argc)
 //================================================================
 /*! (method) to_s
  */
-__GURU__
-void c_nil_to_s(mrbc_value v[], int argc)
+__GURU__ void
+c_nil_to_s(mrbc_value v[], int argc)
 {
     v[0] = mrbc_string_new(NULL);
 }
@@ -432,8 +432,8 @@ void c_nil_to_s(mrbc_value v[], int argc)
 //================================================================
 /*! Nil class
  */
-__GURU__
-void mrbc_init_class_nil()
+__GURU__ void
+mrbc_init_class_nil()
 {
     // Class
     mrbc_class *c = mrbc_class_nil = mrbc_define_class("NilClass", mrbc_class_object);
@@ -452,8 +452,8 @@ void mrbc_init_class_nil()
 //================================================================
 /*! (method) to_s
  */
-__GURU__
-void c_false_to_s(mrbc_value v[], int argc)
+__GURU__ void
+c_false_to_s(mrbc_value v[], int argc)
 {
     v[0] = mrbc_string_new((char *)"false");
 }
@@ -462,8 +462,8 @@ void c_false_to_s(mrbc_value v[], int argc)
 //================================================================
 /*! False class
  */
-__GURU__
-void mrbc_init_class_false()
+__GURU__ void
+mrbc_init_class_false()
 {
     // Class
     mrbc_class_false = mrbc_define_class("FalseClass", mrbc_class_object);
@@ -482,15 +482,15 @@ void mrbc_init_class_false()
 //================================================================
 /*! (method) to_s
  */
-__GURU__
-void c_true_to_s(mrbc_value v[], int argc)
+__GURU__ void
+c_true_to_s(mrbc_value v[], int argc)
 {
     v[0] = mrbc_string_new((char *)"true");
 }
 #endif
 
-__GURU__
-void mrbc_init_class_true()
+__GURU__ void
+mrbc_init_class_true()
 {
     // Class
     mrbc_class_true = mrbc_define_class("TrueClass", mrbc_class_object);
@@ -523,8 +523,8 @@ __GURU__ void mrbc_init_class_symbol()  // << from symbol.cu
 //================================================================
 // initialize
 
-__GURU__
-void mrbc_init_class(void)
+__GURU__ void
+mrbc_init_class(void)
 {
     mrbc_init_class_object();
     mrbc_init_class_nil();

@@ -18,8 +18,8 @@ __GURU__ size_t  guru_output_size;
 __GURU__ uint8_t *guru_output;
 __GURU__ uint8_t *guru_output_ptr;	// global output buffer for now, per session later
 
-__GURU__
-void guru_write(mrbc_vtype tt, mrbc_vtype fmt, size_t sz, uint8_t *buf)
+__GURU__ void
+guru_write(mrbc_vtype tt, mrbc_vtype fmt, size_t sz, uint8_t *buf)
 {
 	guru_print_node *n = (guru_print_node *)guru_output_ptr;
 
@@ -39,28 +39,28 @@ void guru_write(mrbc_vtype tt, mrbc_vtype fmt, size_t sz, uint8_t *buf)
 
   @param  c	character
 */
-__GURU__
-void console_char(char c)
+__GURU__ void
+console_char(char c)
 {
 	char buf[2] = { c, '\0' };
 	guru_write(MRBC_TT_STRING, MRBC_TT_EMPTY, 2, (uint8_t *)buf);
 }
 
-__GURU__
-void console_int(mrbc_int i)
+__GURU__ void
+console_int(mrbc_int i)
 {
 	guru_write(MRBC_TT_FIXNUM, MRBC_TT_FIXNUM, sizeof(mrbc_int), (uint8_t *)&i);
 }
 
-__GURU__
-void console_hex(mrbc_int i)
+__GURU__ void
+console_hex(mrbc_int i)
 {
 	guru_write(MRBC_TT_FIXNUM, MRBC_TT_EMPTY, sizeof(mrbc_int), (uint8_t *)&i);
 }
 
 #if MRBC_USE_FLOAT
-__GURU__
-void console_float(mrbc_float f)
+__GURU__ void
+console_float(mrbc_float f)
 {
 	guru_write(MRBC_TT_FLOAT, MRBC_TT_EMPTY, sizeof(mrbc_float), (uint8_t *)&f);
 }
@@ -71,21 +71,21 @@ void console_float(mrbc_float f)
 
   @param str	str
 */
-__GURU__
-void console_str(const char *str)
+__GURU__ void
+console_str(const char *str)
 {
 	guru_write(MRBC_TT_STRING, MRBC_TT_EMPTY, guru_strlen(str)+1, (uint8_t *)str);
 }
 
-__GURU__
-void console_na(const char *msg)
+__GURU__ void
+console_na(const char *msg)
 {
 	console_str(msg);
     console_str(" not supported!\n");
 }
 
-__GURU__
-char *_console_va_arg(char *p)
+__GURU__ char*
+_console_va_arg(char *p)
 {
     int ch;
     while ((ch = *p) != '\0') {
@@ -119,8 +119,8 @@ PARSE_WIDTH:
     return p;
 }
 
-__GURU__
-void _dump_obj_size(void)
+__GURU__ void
+_dump_obj_size(void)
 {
 	console_str("\nvalue=");
 	console_int(sizeof(mrbc_value));
@@ -135,8 +135,8 @@ void _dump_obj_size(void)
     console_str("\n");
 }
 
-__global__
-void guru_console_init(uint8_t *buf, size_t sz)
+__global__ void
+guru_console_init(uint8_t *buf, size_t sz)
 {
 	if (threadIdx.x!=0 || blockIdx.x !=0) return;
 
@@ -150,8 +150,8 @@ void guru_console_init(uint8_t *buf, size_t sz)
 
 #define NEXTNODE(n)	((guru_print_node *)(node->data + node->size))
 
-__host__
-guru_print_node *_guru_print_core(guru_print_node *node)
+__host__ guru_print_node*
+_guru_print_core(guru_print_node *node)
 {
 	uint8_t *fmt[80], *buf[80];		// check buffer overflow
 	int 	argc;
@@ -180,8 +180,8 @@ guru_print_node *_guru_print_core(guru_print_node *node)
 	return node;
 }
 
-__host__
-void guru_console_flush(uint8_t *output_buf)
+__host__ void
+guru_console_flush(uint8_t *output_buf)
 {
 	guru_print_node *node = (guru_print_node *)output_buf;
 

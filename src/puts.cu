@@ -34,8 +34,8 @@
   @retval 0	normal return.
   @retval 1	already output LF.
 */
-__GURU__
-int mrbc_print_sub(mrbc_value *v)
+__GURU__ int
+mrbc_print_sub(mrbc_value *v)
 {
     mrbc_value *p;
     int ret = 0;
@@ -108,8 +108,8 @@ int mrbc_print_sub(mrbc_value *v)
 //================================================================
 /*! p - sub function
  */
-__GURU__
-int mrbc_p_sub(mrbc_value *v)
+__GURU__ int
+mrbc_p_sub(mrbc_value *v)
 {
 	const char *s;
 	mrbc_value *p;

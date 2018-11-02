@@ -51,16 +51,16 @@
 //================================================================
 /*! get size
  */
-__GURU__
-int mrbc_hash_size(const mrbc_value *kv) {
+__GURU__ int
+mrbc_hash_size(const mrbc_value *kv) {
     return kv->hash->n >> 1;
 }
 
 //================================================================
 /*! resize buffer
  */
-__GURU__
-int mrbc_hash_resize(mrbc_value *kv, int size)
+__GURU__ int
+mrbc_hash_resize(mrbc_value *kv, int size)
 {
     return mrbc_array_resize(kv->array, size << 1);
 }
@@ -72,8 +72,8 @@ int mrbc_hash_resize(mrbc_value *kv, int size)
   @param  size	initial size
   @return 	hash object
 */
-__GURU__
-mrbc_value mrbc_hash_new(int size)
+__GURU__ mrbc_value
+mrbc_hash_new(int size)
 {
     mrbc_value ret = {.tt = MRBC_TT_HASH};
     /*
@@ -104,8 +104,8 @@ mrbc_value mrbc_hash_new(int size)
 
   @param  hash	pointer to target value
 */
-__GURU__
-void mrbc_hash_delete(mrbc_value *kv)
+__GURU__ void
+mrbc_hash_delete(mrbc_value *kv)
 {
     // TODO: delete other members (for search).
 
@@ -120,8 +120,8 @@ void mrbc_hash_delete(mrbc_value *kv)
   @param  key	pointer to key value
   @return	pointer to found key or NULL(not found).
 */
-__GURU__
-mrbc_value *_hash_search(const mrbc_value v[], const mrbc_value *key)
+__GURU__ mrbc_value
+*_hash_search(const mrbc_value v[], const mrbc_value *key)
 {
 #ifndef MRBC_HASH_SEARCH_LINER
 #define MRBC_HASH_SEARCH_LINER
@@ -152,8 +152,8 @@ mrbc_value *_hash_search(const mrbc_value v[], const mrbc_value *key)
   @param  val	pointer to value
   @return	mrbc_error_code
 */
-__GURU__
-int _hash_set(mrbc_value *kv, mrbc_value *key, mrbc_value *val)
+__GURU__ int
+_hash_set(mrbc_value *kv, mrbc_value *key, mrbc_value *val)
 {
     mrbc_value *v = _hash_search(kv, key);
     int ret = 0;
@@ -180,8 +180,8 @@ int _hash_set(mrbc_value *kv, mrbc_value *key, mrbc_value *val)
   @param  key	pointer to key value
   @return	mrbc_value data at key position or Nil.
 */
-__GURU__
-mrbc_value _hash_get(mrbc_value *kv, mrbc_value *key)
+__GURU__ mrbc_value
+_hash_get(mrbc_value *kv, mrbc_value *key)
 {
     mrbc_value *v = _hash_search(kv, key);
 
@@ -199,8 +199,8 @@ mrbc_value _hash_get(mrbc_value *kv, mrbc_value *key)
   @param  key	pointer to key value
   @return	removed data or Nil
 */
-__GURU__
-mrbc_value _hash_remove(mrbc_value *kv, mrbc_value *key)
+__GURU__ mrbc_value
+_hash_remove(mrbc_value *kv, mrbc_value *key)
 {
     mrbc_value *v = _hash_search(kv, key);
     if (v==NULL) return mrbc_nil_value();
@@ -222,8 +222,8 @@ mrbc_value _hash_remove(mrbc_value *kv, mrbc_value *key)
 
   @param  hash	pointer to target hash
 */
-__GURU__
-void _hash_clear(mrbc_value *kv)
+__GURU__ void
+_hash_clear(mrbc_value *kv)
 {
     mrbc_array_clear(kv);
 
@@ -238,8 +238,8 @@ void _hash_clear(mrbc_value *kv)
   @retval 0	v1==v2
   @retval 1	v1 != v2
 */
-__GURU__
-int mrbc_hash_compare(const mrbc_value *v0, const mrbc_value *v1)
+__GURU__ int
+mrbc_hash_compare(const mrbc_value *v0, const mrbc_value *v1)
 {
     if (v0->hash->n != v1->hash->n) return 1;
 
@@ -258,8 +258,8 @@ int mrbc_hash_compare(const mrbc_value *v0, const mrbc_value *v1)
   @param  vm	pointer to VM.
   @param  src	pointer to target hash.
 */
-__GURU__
-mrbc_value _hash_dup(mrbc_value *kv)
+__GURU__ mrbc_value
+_hash_dup(mrbc_value *kv)
 {
     mrbc_value ret = mrbc_hash_new(mrbc_hash_size(kv));
     if (ret.hash==NULL) return ret;		// ENOMEM
@@ -280,8 +280,8 @@ mrbc_value _hash_dup(mrbc_value *kv)
 //================================================================
 /*! (method) new
  */
-__GURU__
-void c_hash_new(mrbc_value v[], int argc)
+__GURU__ void
+c_hash_new(mrbc_value v[], int argc)
 {
     mrbc_value ret = mrbc_hash_new(0);
     SET_RETURN(ret);
@@ -290,8 +290,8 @@ void c_hash_new(mrbc_value v[], int argc)
 //================================================================
 /*! (operator) []
  */
-__GURU__
-void c_hash_get(mrbc_value v[], int argc)
+__GURU__ void
+c_hash_get(mrbc_value v[], int argc)
 {
     if (argc != 1) {
     	assert(argc!=1);
@@ -305,8 +305,8 @@ void c_hash_get(mrbc_value v[], int argc)
 //================================================================
 /*! (operator) []=
  */
-__GURU__
-void c_hash_set(mrbc_value v[], int argc)
+__GURU__ void
+c_hash_set(mrbc_value v[], int argc)
 {
     if (argc != 2) {
     	assert(argc!=2);
@@ -319,8 +319,8 @@ void c_hash_set(mrbc_value v[], int argc)
 //================================================================
 /*! (method) clear
  */
-__GURU__
-void c_hash_clear(mrbc_value v[], int argc)
+__GURU__ void
+c_hash_clear(mrbc_value v[], int argc)
 {
     _hash_clear(v);
 }
@@ -328,8 +328,8 @@ void c_hash_clear(mrbc_value v[], int argc)
 //================================================================
 /*! (method) dup
  */
-__GURU__
-void c_hash_dup(mrbc_value v[], int argc)
+__GURU__ void
+c_hash_dup(mrbc_value v[], int argc)
 {
     mrbc_value ret = _hash_dup(v);
 
@@ -339,8 +339,8 @@ void c_hash_dup(mrbc_value v[], int argc)
 //================================================================
 /*! (method) delete
  */
-__GURU__
-void c_hash_delete(mrbc_value v[], int argc)
+__GURU__ void
+c_hash_delete(mrbc_value v[], int argc)
 {
     // TODO : now, support only delete(key) -> object
 
@@ -354,8 +354,8 @@ void c_hash_delete(mrbc_value v[], int argc)
 //================================================================
 /*! (method) empty?
  */
-__GURU__
-void c_hash_empty(mrbc_value v[], int argc)
+__GURU__ void
+c_hash_empty(mrbc_value v[], int argc)
 {
     int n = mrbc_hash_size(v);
 
@@ -365,8 +365,8 @@ void c_hash_empty(mrbc_value v[], int argc)
 //================================================================
 /*! (method) has_key?
  */
-__GURU__
-void c_hash_has_key(mrbc_value v[], int argc)
+__GURU__ void
+c_hash_has_key(mrbc_value v[], int argc)
 {
     mrbc_value *res = _hash_search(v, v+1);
 
@@ -376,8 +376,8 @@ void c_hash_has_key(mrbc_value v[], int argc)
 //================================================================
 /*! (method) has_value?
  */
-__GURU__
-void c_hash_has_value(mrbc_value v[], int argc)
+__GURU__ void
+c_hash_has_value(mrbc_value v[], int argc)
 {
     mrbc_value *p = v->hash->data;
     int         n = v->hash->n;
@@ -393,8 +393,8 @@ void c_hash_has_value(mrbc_value v[], int argc)
 //================================================================
 /*! (method) key
  */
-__GURU__
-void c_hash_key(mrbc_value v[], int argc)
+__GURU__ void
+c_hash_key(mrbc_value v[], int argc)
 {
     mrbc_value *p = v->hash->data;
     int         n = v->hash->n;
@@ -410,8 +410,8 @@ void c_hash_key(mrbc_value v[], int argc)
 //================================================================
 /*! (method) keys
  */
-__GURU__
-void c_hash_keys(mrbc_value v[], int argc)
+__GURU__ void
+c_hash_keys(mrbc_value v[], int argc)
 {
     mrbc_value ret = mrbc_array_new(mrbc_hash_size(v));
     mrbc_value *p  = v->hash->data;
@@ -425,8 +425,8 @@ void c_hash_keys(mrbc_value v[], int argc)
 //================================================================
 /*! (method) size,length,count
  */
-__GURU__
-void c_hash_size(mrbc_value v[], int argc)
+__GURU__ void
+c_hash_size(mrbc_value v[], int argc)
 {
     int n = mrbc_hash_size(v);
 
@@ -436,8 +436,8 @@ void c_hash_size(mrbc_value v[], int argc)
 //================================================================
 /*! (method) merge
  */
-__GURU__
-void c_hash_merge(mrbc_value v[], int argc)		// non-destructive merge
+__GURU__ void
+c_hash_merge(mrbc_value v[], int argc)		// non-destructive merge
 {
     mrbc_value ret = _hash_dup(v);
     mrbc_value *p  = (v+1)->hash->data;
@@ -451,8 +451,8 @@ void c_hash_merge(mrbc_value v[], int argc)		// non-destructive merge
 //================================================================
 /*! (method) merge!
  */
-__GURU__
-void c_hash_merge_self(mrbc_value v[], int argc)
+__GURU__ void
+c_hash_merge_self(mrbc_value v[], int argc)
 {
     mrbc_value *p  = (v+1)->hash->data;
     int         n  = (v+1)->hash->n;
@@ -464,8 +464,8 @@ void c_hash_merge_self(mrbc_value v[], int argc)
 //================================================================
 /*! (method) values
  */
-__GURU__
-void c_hash_values(mrbc_value v[], int argc)
+__GURU__ void
+c_hash_values(mrbc_value v[], int argc)
 {
     mrbc_value ret = mrbc_array_new(mrbc_hash_size(v));
     mrbc_value *p  = v->hash->data;
@@ -480,16 +480,16 @@ void c_hash_values(mrbc_value v[], int argc)
 //================================================================
 /*! (method) inspect
  */
-__GURU__
-void _hrfc(mrbc_value *str, mrbc_value *v)
+__GURU__ void
+_hrfc(mrbc_value *str, mrbc_value *v)
 {
 	char buf[8];
 	guru_sprintf(buf, "^%d_", v->self->refc);
 	mrbc_string_append_cstr(str, buf);
 }
 
-__GURU__
-void c_hash_inspect(mrbc_value v[], int argc)
+__GURU__ void
+c_hash_inspect(mrbc_value v[], int argc)
 {
     mrbc_value ret = mrbc_string_new("{");
     if (!ret.str) {
@@ -521,8 +521,8 @@ void c_hash_inspect(mrbc_value v[], int argc)
 //================================================================
 /*! initialize
  */
-__GURU__
-void mrbc_init_class_hash()
+__GURU__ void
+mrbc_init_class_hash()
 {
     mrbc_class *c = mrbc_class_hash = mrbc_define_class("Hash", mrbc_class_object);
 

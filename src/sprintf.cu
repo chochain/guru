@@ -28,8 +28,8 @@
   @param  size	buffer size.
   @param  fstr	format string.
 */
-__GURU__
-void _mrbc_printf_init(mrbc_printf *pf, char *buf, int sz, const char *fstr)
+__GURU__ void
+_mrbc_printf_init(mrbc_printf *pf, char *buf, int sz, const char *fstr)
 {
     pf->buf = pf->p = buf;    
     pf->end = buf + sz - 1;
@@ -42,8 +42,8 @@ void _mrbc_printf_init(mrbc_printf *pf, char *buf, int sz, const char *fstr)
 
   @param  pf	pointer to mrbc_printf
 */
-__GURU__ __forceinline__
-void _mrbc_printf_clear(mrbc_printf *pf)
+__GURU__ __INLINE__ void
+_mrbc_printf_clear(mrbc_printf *pf)
 {
     pf->p = pf->buf;		// back to head
 }
@@ -53,8 +53,8 @@ void _mrbc_printf_clear(mrbc_printf *pf)
 
   @param  pf	pointer to mrbc_printf
 */
-__GURU__ __forceinline__
-void _mrbc_printf_end(mrbc_printf *pf)
+__GURU__ __INLINE__ void
+_mrbc_printf_end(mrbc_printf *pf)
 {
     *pf->p = '\0';
 }
@@ -65,8 +65,8 @@ void _mrbc_printf_end(mrbc_printf *pf)
   @param  pf	pointer to mrbc_printf
   @return	length
 */
-__GURU__ __forceinline__
-int _mrbc_printf_len(mrbc_printf *pf)
+__GURU__ __INLINE__ int
+_mrbc_printf_len(mrbc_printf *pf)
 {
     return pf->p - pf->buf;
 }
@@ -78,8 +78,8 @@ int _mrbc_printf_len(mrbc_printf *pf)
   @param  buf	pointer to output buffer.
   @param  size	buffer size.
 */
-__GURU__
-int _mrbc_printf_resize(mrbc_printf *pf)
+__GURU__ int
+_mrbc_printf_resize(mrbc_printf *pf)
 {
     int sz  = pf->end - pf->p;
 	if (sz > 0) return 1;
@@ -110,8 +110,8 @@ int _mrbc_printf_resize(mrbc_printf *pf)
   @retval -1	buffer full.
   @note		not terminate ('\0') buffer tail.
 */
-__GURU__
-int _mrbc_printf_char(mrbc_printf *pf, int ch)
+__GURU__ int
+_mrbc_printf_char(mrbc_printf *pf, int ch)
 {
     if (pf->fmt.minus) {
         if (pf->p == pf->end) return -1;
@@ -142,8 +142,8 @@ int _mrbc_printf_char(mrbc_printf *pf, int ch)
   @retval -1	buffer full.
   @note		not terminate ('\0') buffer tail.
 */
-__GURU__
-int _mrbc_printf_bstr(mrbc_printf *pf, const char *str, int len, int pad)
+__GURU__ int
+_mrbc_printf_bstr(mrbc_printf *pf, const char *str, int len, int pad)
 {
     int ret = 0;
 
@@ -191,8 +191,8 @@ int _mrbc_printf_bstr(mrbc_printf *pf, const char *str, int len, int pad)
   @retval 0	done.
   @retval -1	buffer full.
 */
-__GURU__
-int _mrbc_printf_float(mrbc_printf *pf, double value)
+__GURU__ int
+_mrbc_printf_float(mrbc_printf *pf, double value)
 {
     char fstr[16];
     const char *p0 = pf->fstr;
@@ -221,8 +221,8 @@ int _mrbc_printf_float(mrbc_printf *pf, double value)
   @retval -1	buffer full.
   @note		not terminate ('\0') buffer tail.
 */
-__GURU__
-int _mrbc_printf_str(mrbc_printf *pf, const char *str, int pad)
+__GURU__ int
+_mrbc_printf_str(mrbc_printf *pf, const char *str, int pad)
 {
     return _mrbc_printf_bstr(pf, str, STRLEN(str), pad);
 }
@@ -237,8 +237,8 @@ int _mrbc_printf_str(mrbc_printf *pf, const char *str, int pad)
   @retval -1	buffer full.
   @note		not terminate ('\0') buffer tail.
 */
-__GURU__
-int _mrbc_printf_int(mrbc_printf *pf, mrbc_int value, int base)
+__GURU__ int
+_mrbc_printf_int(mrbc_printf *pf, mrbc_int value, int base)
 {
     int sign = 0;
     uint32_t v = value;			// (note) Change this when supporting 64 bit.
@@ -295,8 +295,8 @@ int _mrbc_printf_int(mrbc_printf *pf, mrbc_int value, int base)
   @retval -1	buffer full.
   @note		not terminate ('\0') buffer tail.
 */
-__GURU__
-int _mrbc_printf_next(mrbc_printf *pf)
+__GURU__ int
+_mrbc_printf_next(mrbc_printf *pf)
 {
     int ch = -1;
     pf->fmt = (mrbc_print_fmt){0};
@@ -355,8 +355,8 @@ PARSE_WIDTH:
 
   @param  fstr		format string.
 */
-__GURU__
-const char *guru_sprintf(char *buf, const char *fstr, ...)
+__GURU__ const char*
+guru_sprintf(char *buf, const char *fstr, ...)
 {
     va_list ap;
     va_start(ap, fstr);
@@ -397,8 +397,8 @@ const char *guru_sprintf(char *buf, const char *fstr, ...)
     return pf.buf;
 }
 
-__GURU__
-const char *guru_vprintf(char *buf, const char *fstr, mrbc_value v[], int argc)		// << from c_string.cu
+__GURU__ const char*
+guru_vprintf(char *buf, const char *fstr, mrbc_value v[], int argc)		// << from c_string.cu
 {
     int i   = 0;
     int ret = 0;

@@ -2,14 +2,14 @@
 
 #define SZ 512
 
-__global__
-void k_saxpy(int N, float a, float *x, float *y) {
+__global__ void
+k_saxpy(int N, float a, float *x, float *y) {
 	int i = blockIdx.x*blockDim.x + threadIdx.x;	// blockDim.x = number of threads/block
 	if (i < N) y[i] += a*x[i];						// C = aX+B in global memory
 }
 
-__global__
-void k_minit(int N, float *d_x, float *d_y) {
+__global__ void
+k_minit(int N, float *d_x, float *d_y) {
 	int i = blockIdx.x*blockDim.x + threadIdx.x;	// for (..., i+=n_threads) ...
 	if (i < N) {									// while (i<N) ...
 		d_x[i] = 1.0f;
@@ -17,7 +17,8 @@ void k_minit(int N, float *d_x, float *d_y) {
 	}
 }
 
-__global__ void k_sum(int N, float *d_y) {	// sum front and back of entire array, destructive
+__global__ void
+k_sum(int N, float *d_y) {	// sum front and back of entire array, destructive
     __shared__ float sum[SZ];				// statically allocated on device
 
 	int t = threadIdx.x;					// in-block thread id
@@ -32,7 +33,8 @@ __global__ void k_sum(int N, float *d_y) {	// sum front and back of entire array
 	if (t==0) d_y[blockIdx.x] = sum[0]; 	// write back to each global block head
 }
 
-__forceinline__ __device__ void d_sum2(int t, float *sum) {	// reduce array sum[2*SZ] into sum[0]
+__forceinline__ __device__ void
+d_sum2(int t, float *sum) {	// reduce array sum[2*SZ] into sum[0]
     for (int s=SZ; s>32; s>>=1) {			// folding by half the stride-size
        if (t < s) sum[t] += sum[t + s]; 	// add second half of the block to the first half
        __syncthreads();						// dataflow flood gate between warps
@@ -43,7 +45,8 @@ __forceinline__ __device__ void d_sum2(int t, float *sum) {	// reduce array sum[
     }
 }
 
-__global__ void k_sum_rec(int N, float *o_y, float *i_y) {	// recursively in blocks per SM
+__global__ void
+k_sum_rec(int N, float *o_y, float *i_y) {	// recursively in blocks per SM
     __shared__ float sum[2 * SZ];			// hold double the thread count
 
     int t = threadIdx.x;					// [0..511]
@@ -57,7 +60,8 @@ __global__ void k_sum_rec(int N, float *o_y, float *i_y) {	// recursively in blo
     if (t==0) o_y[blockIdx.x] = sum[0];		// put sum into block head
 }
 
-__global__ void k_sum2(int N, float *o_y, float *i_y) {	// recursively in blocks per SM
+__global__ void
+k_sum2(int N, float *o_y, float *i_y) {	// recursively in blocks per SM
     __shared__ float sum[2 * SZ];			// hold double the thread count
 
     int t = threadIdx.x;					// [0..511]
@@ -73,7 +77,8 @@ __global__ void k_sum2(int N, float *o_y, float *i_y) {	// recursively in blocks
     if (t==0) o_y[0] += sum[0];				// put sum into block head
 }
 
-__global__ void k_sum_fast(int N, float *o_y, float *i_y) {	// sum front and back of entire array, destructive
+__global__ void
+k_sum_fast(int N, float *o_y, float *i_y) {	// sum front and back of entire array, destructive
     __shared__ float sum[SZ*2];				// hold double the thread count
 
 	int t = threadIdx.x;					// thread id [0..511]
@@ -94,7 +99,8 @@ __global__ void k_sum_fast(int N, float *o_y, float *i_y) {	// sum front and bac
 	if (t==0) o_y[blockIdx.x] = sum[0];		// put sum into block head
 }
 
-void echeck(const char *str) {
+__host__ void
+echeck(const char *str) {
 	cudaDeviceSynchronize();
     cudaError err = cudaGetLastError();
     if (cudaSuccess == err) printf("\nOK> %s: ", str);
@@ -104,7 +110,8 @@ void echeck(const char *str) {
     }
 }
 
-void bmark2(int N, float msec, float *d_y) {
+__host__ void
+bmark2(int N, float msec, float *d_y) {
 	//	k_sum<<<(N+SZ-1)/SZ, SZ>>>(N, d_y);	// vanilla sum, SZ threads/block
 	float *o_y;
 	cudaMalloc(&o_y, sizeof(float));				// allocate output array, sync here
@@ -119,7 +126,8 @@ void bmark2(int N, float msec, float *d_y) {
 	cudaFree(o_y);							// release, async
 }
 
-void bmark_rec(int N, float msec, float *d_y) {
+__host__ void
+bmark_rec(int N, float msec, float *d_y) {
 	int n = N, SZ2 = SZ*2;
 	int nblk = (n+SZ2-1)/SZ2;				// double-width block count
 
@@ -142,7 +150,8 @@ void bmark_rec(int N, float msec, float *d_y) {
 	cudaFree(o_y);							// release, async
 }
 
-void bmark_fast(int N, float msec, float *d_y) {
+__host__ void
+bmark_fast(int N, float msec, float *d_y) {
 	int NBLK = 12;							// number_of_sm * max_threads_per_sm / threads_per_block
 
 	float *o_y;

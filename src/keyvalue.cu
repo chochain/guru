@@ -22,8 +22,8 @@
   @param  sym_id	symbol ID.
   @return		result. It's not necessarily found.
 */
-__GURU__
-int _binary_search(mrbc_kv_handle *kvh, mrbc_sym sym_id)
+__GURU__ int
+_binary_search(mrbc_kv_handle *kvh, mrbc_sym sym_id)
 {
     int left  = 0;
     int right = kvh->n - 1;
@@ -47,8 +47,8 @@ int _binary_search(mrbc_kv_handle *kvh, mrbc_sym sym_id)
   @param  size	initial size.
   @return 	Key-Value handle.
 */
-__GURU__
-mrbc_kv_handle * mrbc_kv_new(int size)
+__GURU__ mrbc_kv_handle*
+mrbc_kv_new(int size)
 {
     /*
       Allocate handle and data buffer.
@@ -72,8 +72,8 @@ mrbc_kv_handle * mrbc_kv_new(int size)
 
   @param  kvh	pointer to key-value handle.
 */
-__GURU__
-void mrbc_kv_delete(mrbc_kv_handle *kvh)
+__GURU__ void
+mrbc_kv_delete(mrbc_kv_handle *kvh)
 {
     mrbc_kv_clear(kvh);
 
@@ -88,8 +88,8 @@ void mrbc_kv_delete(mrbc_kv_handle *kvh)
   @param  size	size.
   @return	mrbc_error_code.
 */
-__GURU__
-int mrbc_kv_resize(mrbc_kv_handle *kvh, int size)
+__GURU__ int
+mrbc_kv_resize(mrbc_kv_handle *kvh, int size)
 {
     mrbc_kv *d2 = (mrbc_kv *) mrbc_realloc(kvh->data, sizeof(mrbc_kv) * size);
     if (!d2) return -1;		// ENOMEM
@@ -108,8 +108,8 @@ int mrbc_kv_resize(mrbc_kv_handle *kvh, int size)
   @param  set_val	set value.
   @return		mrbc_error_code.
 */
-__GURU__
-int mrbc_kv_set(mrbc_kv_handle *kvh, mrbc_sym sym_id, mrbc_value *set_val)
+__GURU__ int
+mrbc_kv_set(mrbc_kv_handle *kvh, mrbc_sym sym_id, mrbc_value *set_val)
 {
     int idx = _binary_search(kvh, sym_id);
     if (idx < 0) {
@@ -153,8 +153,8 @@ INSERT_VALUE:
   @param  sym_id	symbol ID.
   @return		pointer to mrbc_value or NULL.
 */
-__GURU__
-mrbc_value * mrbc_kv_get(mrbc_kv_handle *kvh, mrbc_sym sym_id)
+__GURU__ mrbc_value*
+mrbc_kv_get(mrbc_kv_handle *kvh, mrbc_sym sym_id)
 {
     int idx = _binary_search(kvh, sym_id);
     if (idx < 0) return NULL;
@@ -171,8 +171,8 @@ mrbc_value * mrbc_kv_get(mrbc_kv_handle *kvh, mrbc_sym sym_id)
   @param  set_val	set value.
   @return		mrbc_error_code.
 */
-__GURU__
-int mrbc_kv_append(mrbc_kv_handle *kvh, mrbc_sym sym_id, mrbc_value *set_val)
+__GURU__ int
+mrbc_kv_append(mrbc_kv_handle *kvh, mrbc_sym sym_id, mrbc_value *set_val)
 {
     // need resize?
     if (kvh->n >= kvh->size) {
@@ -187,8 +187,8 @@ int mrbc_kv_append(mrbc_kv_handle *kvh, mrbc_sym sym_id, mrbc_value *set_val)
     return 0;
 }
 
-__GURU__
-int compare_key(const void *kv1, const void *kv2)
+__GURU__ int
+compare_key(const void *kv1, const void *kv2)
 {
     return ((mrbc_kv *)kv1)->sym_id - ((mrbc_kv *)kv2)->sym_id;
 }
@@ -200,8 +200,8 @@ int compare_key(const void *kv1, const void *kv2)
   @param  sym_id	symbol ID.
   @return		mrbc_error_code.
 */
-__GURU__
-int mrbc_kv_remove(mrbc_kv_handle *kvh, mrbc_sym sym_id)
+__GURU__ int
+mrbc_kv_remove(mrbc_kv_handle *kvh, mrbc_sym sym_id)
 {
     int idx = _binary_search(kvh, sym_id);
     if (idx < 0) return 0;
@@ -220,8 +220,8 @@ int mrbc_kv_remove(mrbc_kv_handle *kvh, mrbc_sym sym_id)
 
   @param  kvh		pointer to key-value handle.
 */
-__GURU__
-void mrbc_kv_clear(mrbc_kv_handle *kvh)
+__GURU__ void
+mrbc_kv_clear(mrbc_kv_handle *kvh)
 {
     mrbc_kv *p = kvh->data;
     for (int i=0; i<kvh->n; i++, p++) {
@@ -233,8 +233,8 @@ void mrbc_kv_clear(mrbc_kv_handle *kvh)
 //================================================================
 /*! get size
 */
-__GURU__ __forceinline__
-int mrbc_kv_size(const mrbc_kv_handle *kvh)
+__GURU__ __INLINE__ int
+mrbc_kv_size(const mrbc_kv_handle *kvh)
 {
   return kvh->n;
 }

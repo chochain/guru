@@ -62,8 +62,8 @@
 //================================================================
 /*! get size
  */
-__GURU__
-int mrbc_array_size(const mrbc_value *ary)
+__GURU__ int
+mrbc_array_size(const mrbc_value *ary)
 {
     return ary->array->n;
 }
@@ -75,8 +75,8 @@ int mrbc_array_size(const mrbc_value *ary)
   @param  size	initial size
   @return 	array object
 */
-__GURU__
-mrbc_value mrbc_array_new(int size)
+__GURU__ mrbc_value
+mrbc_array_new(int size)
 {
     mrbc_value ret = {.tt = MRBC_TT_ARRAY};
     mrbc_array *h 	 = (mrbc_array *)mrbc_alloc(sizeof(mrbc_array));		// handle
@@ -103,8 +103,8 @@ mrbc_value mrbc_array_new(int size)
 
   @param  ary	pointer to target value
 */
-__GURU__
-void mrbc_array_delete(mrbc_value *ary)
+__GURU__ void
+mrbc_array_delete(mrbc_value *ary)
 {
     mrbc_array *h = ary->array;
     mrbc_value *p = h->data;
@@ -122,8 +122,8 @@ void mrbc_array_delete(mrbc_value *ary)
   @param  size	size
   @return	mrbc_error_code
 */
-__GURU__
-int mrbc_array_resize(mrbc_array *h, int size)
+__GURU__ int
+mrbc_array_resize(mrbc_array *h, int size)
 {
 	assert(size > h->size);
 
@@ -136,8 +136,8 @@ int mrbc_array_resize(mrbc_array *h, int size)
     return 0;
 }
 
-__GURU__
-int _adjust_index(mrbc_array *h, int idx, int inc)
+__GURU__ int
+_adjust_index(mrbc_array *h, int idx, int inc)
 {
     if (idx < 0) {
         idx = h->n + idx + inc;
@@ -163,8 +163,8 @@ int _adjust_index(mrbc_array *h, int idx, int inc)
   @param  set_val	set value
   @return		mrbc_error_code
 */
-__GURU__
-int mrbc_array_set(mrbc_value *ary, int idx, mrbc_value *set_val)
+__GURU__ int
+mrbc_array_set(mrbc_value *ary, int idx, mrbc_value *set_val)
 {
     mrbc_array *h = ary->array;
 
@@ -192,8 +192,8 @@ int mrbc_array_set(mrbc_value *ary, int idx, mrbc_value *set_val)
   @param  idx		index
   @return		mrbc_value data at index position or Nil.
 */
-__GURU__
-mrbc_value mrbc_array_get(mrbc_value *ary, int idx)
+__GURU__ mrbc_value
+mrbc_array_get(mrbc_value *ary, int idx)
 {
     mrbc_array *h = ary->array;
 
@@ -213,8 +213,8 @@ mrbc_value mrbc_array_get(mrbc_value *ary, int idx)
   @param  set_val	set value
   @return		mrbc_error_code
 */
-__GURU__
-int mrbc_array_push(mrbc_value *ary, mrbc_value *set_val)
+__GURU__ int
+mrbc_array_push(mrbc_value *ary, mrbc_value *set_val)
 {
     mrbc_array *h = ary->array;
 
@@ -236,8 +236,8 @@ int mrbc_array_push(mrbc_value *ary, mrbc_value *set_val)
   @param  ary		pointer to target value
   @return		tail data or Nil
 */
-__GURU__
-mrbc_value mrbc_array_pop(mrbc_value *ary)
+__GURU__ mrbc_value
+mrbc_array_pop(mrbc_value *ary)
 {
     mrbc_array *h = ary->array;
 
@@ -253,8 +253,8 @@ mrbc_value mrbc_array_pop(mrbc_value *ary)
   @param  set_val	set value
   @return		mrbc_error_code
 */
-__GURU__
-int mrbc_array_unshift(mrbc_value *ary, mrbc_value *set_val)
+__GURU__ int
+mrbc_array_unshift(mrbc_value *ary, mrbc_value *set_val)
 {
     return mrbc_array_insert(ary, 0, set_val);
 }
@@ -265,8 +265,8 @@ int mrbc_array_unshift(mrbc_value *ary, mrbc_value *set_val)
   @param  ary		pointer to target value
   @return		first data or Nil
 */
-__GURU__
-mrbc_value mrbc_array_shift(mrbc_value *ary)
+__GURU__ mrbc_value
+mrbc_array_shift(mrbc_value *ary)
 {
     mrbc_array *h = ary->array;
 
@@ -286,8 +286,8 @@ mrbc_value mrbc_array_shift(mrbc_value *ary)
   @param  set_val	set value
   @return		mrbc_error_code
 */
-__GURU__
-int mrbc_array_insert(mrbc_value *ary, int idx, mrbc_value *set_val)
+__GURU__ int
+mrbc_array_insert(mrbc_value *ary, int idx, mrbc_value *set_val)
 {
     mrbc_array *h = ary->array;
 
@@ -318,8 +318,8 @@ int mrbc_array_insert(mrbc_value *ary, int idx, mrbc_value *set_val)
   @param  idx		index
   @return			mrbc_value data at index position or Nil.
 */
-__GURU__
-mrbc_value mrbc_array_remove(mrbc_value *ary, int idx)
+__GURU__ mrbc_value
+mrbc_array_remove(mrbc_value *ary, int idx)
 {
     mrbc_array *h = ary->array;
 
@@ -339,8 +339,8 @@ mrbc_value mrbc_array_remove(mrbc_value *ary, int idx)
 
   @param  ary		pointer to target value
 */
-__GURU__
-void mrbc_array_clear(mrbc_value *ary)
+__GURU__ void
+mrbc_array_clear(mrbc_value *ary)
 {
     mrbc_array *h = ary->array;
     mrbc_value *p = h->data;
@@ -359,8 +359,8 @@ void mrbc_array_clear(mrbc_value *ary)
   @retval plus	v1 >  v2
   @retval minus	v1 <  v2
 */
-__GURU__
-int mrbc_array_compare(const mrbc_value *v0, const mrbc_value *v1)
+__GURU__ int
+mrbc_array_compare(const mrbc_value *v0, const mrbc_value *v1)
 {
 	mrbc_value *d0 = v0->array->data;
 	mrbc_value *d1 = v1->array->data;
@@ -381,8 +381,8 @@ int mrbc_array_compare(const mrbc_value *v0, const mrbc_value *v1)
   @param  pp_min_value	returns minimum mrbc_value
   @param  pp_max_value	returns maxmum mrbc_value
 */
-__GURU__
-void mrbc_array_minmax(mrbc_value *ary, mrbc_value **pp_min_value, mrbc_value **pp_max_value)
+__GURU__ void
+mrbc_array_minmax(mrbc_value *ary, mrbc_value **pp_min_value, mrbc_value **pp_max_value)
 {
     mrbc_array *h = ary->array;
 
@@ -405,8 +405,8 @@ void mrbc_array_minmax(mrbc_value *ary, mrbc_value **pp_min_value, mrbc_value **
 //================================================================
 /*! method new
  */
-__GURU__
-void c_array_new(mrbc_value v[], int argc)
+__GURU__ void
+c_array_new(mrbc_value v[], int argc)
 {
 	mrbc_value ret;
     if (argc==0) {													// in case of new()
@@ -441,8 +441,8 @@ void c_array_new(mrbc_value v[], int argc)
 //================================================================
 /*! (operator) +
  */
-__GURU__
-void c_array_add(mrbc_value v[], int argc)
+__GURU__ void
+c_array_add(mrbc_value v[], int argc)
 {
     if (GET_TT_ARG(1) != MRBC_TT_ARRAY) {
         console_str("TypeError\n");		// raise?
@@ -473,8 +473,8 @@ void c_array_add(mrbc_value v[], int argc)
 //================================================================
 /*! (operator) []
  */
-__GURU__
-void c_array_get(mrbc_value v[], int argc)
+__GURU__ void
+c_array_get(mrbc_value v[], int argc)
 {
 	mrbc_value ret;
     if (argc==1 && v[1].tt==MRBC_TT_FIXNUM) {			// self[n] -> object | nil
@@ -512,8 +512,8 @@ DONE:
 //================================================================
 /*! (operator) []=
  */
-__GURU__
-void c_array_set(mrbc_value v[], int argc)
+__GURU__ void
+c_array_set(mrbc_value v[], int argc)
 {
     if (argc==2 && v[1].tt==MRBC_TT_FIXNUM) {	// self[n] = val
         mrbc_array_set(v, v[1].i, &v[2]);		// raise? IndexError or ENOMEM
@@ -532,8 +532,8 @@ void c_array_set(mrbc_value v[], int argc)
 //================================================================
 /*! (method) clear
  */
-__GURU__
-void c_array_clear(mrbc_value v[], int argc)
+__GURU__ void
+c_array_clear(mrbc_value v[], int argc)
 {
     mrbc_array_clear(v);
 }
@@ -541,8 +541,8 @@ void c_array_clear(mrbc_value v[], int argc)
 //================================================================
 /*! (method) delete_at
  */
-__GURU__
-void c_array_delete_at(mrbc_value v[], int argc)
+__GURU__ void
+c_array_delete_at(mrbc_value v[], int argc)
 {
     mrbc_value ret = mrbc_array_remove(v, GET_INT_ARG(1));
     SET_RETURN(ret);
@@ -551,8 +551,8 @@ void c_array_delete_at(mrbc_value v[], int argc)
 //================================================================
 /*! (method) empty?
  */
-__GURU__
-void c_array_empty(mrbc_value v[], int argc)
+__GURU__ void
+c_array_empty(mrbc_value v[], int argc)
 {
     int n = mrbc_array_size(v);
 
@@ -562,8 +562,8 @@ void c_array_empty(mrbc_value v[], int argc)
 //================================================================
 /*! (method) size,length,count
  */
-__GURU__
-void c_array_size(mrbc_value v[], int argc)
+__GURU__ void
+c_array_size(mrbc_value v[], int argc)
 {
     int n = mrbc_array_size(v);
 
@@ -573,8 +573,8 @@ void c_array_size(mrbc_value v[], int argc)
 //================================================================
 /*! (method) index
  */
-__GURU__
-void c_array_index(mrbc_value v[], int argc)
+__GURU__ void
+c_array_index(mrbc_value v[], int argc)
 {
     mrbc_value *ret = v+1;
     
@@ -602,8 +602,8 @@ __GURU__ void c_array_first(mrbc_value v[], int argc)
 //================================================================
 /*! (method) last
  */
-__GURU__
-void c_array_last(mrbc_value v[], int argc)
+__GURU__ void
+c_array_last(mrbc_value v[], int argc)
 {
 	mrbc_value ret = mrbc_array_get(v, -1);
 	SET_RETURN(ret);
@@ -613,8 +613,8 @@ void c_array_last(mrbc_value v[], int argc)
 //================================================================
 /*! (method) push
  */
-__GURU__
-void c_array_push(mrbc_value v[], int argc)
+__GURU__ void
+c_array_push(mrbc_value v[], int argc)
 {
     mrbc_array_push(v, &v[1]);	// raise? ENOMEM
     v[1].tt = MRBC_TT_EMPTY;
@@ -623,8 +623,8 @@ void c_array_push(mrbc_value v[], int argc)
 //================================================================
 /*! (method) pop
  */
-__GURU__
-void c_array_pop(mrbc_value v[], int argc)
+__GURU__ void
+c_array_pop(mrbc_value v[], int argc)
 {
 	mrbc_value ret;
     if (argc==0) {									// pop() -> object | nil
@@ -642,8 +642,8 @@ void c_array_pop(mrbc_value v[], int argc)
 //================================================================
 /*! (method) unshift
  */
-__GURU__
-void c_array_unshift(mrbc_value v[], int argc)
+__GURU__ void
+c_array_unshift(mrbc_value v[], int argc)
 {
     mrbc_array_unshift(&v[0], &v[1]);	// raise? IndexError or ENOMEM
     v[1].tt = MRBC_TT_EMPTY;
@@ -652,8 +652,8 @@ void c_array_unshift(mrbc_value v[], int argc)
 //================================================================
 /*! (method) shift
  */
-__GURU__
-void c_array_shift(mrbc_value v[], int argc)
+__GURU__ void
+c_array_shift(mrbc_value v[], int argc)
 {
 	mrbc_value ret;
     if (argc==0) {									// shift() -> object | nil
@@ -671,8 +671,8 @@ void c_array_shift(mrbc_value v[], int argc)
 //================================================================
 /*! (method) dup
  */
-__GURU__
-void c_array_dup(mrbc_value v[], int argc)
+__GURU__ void
+c_array_dup(mrbc_value v[], int argc)
 {
     mrbc_array *h0 = v[0].array;
     mrbc_value ret = mrbc_array_new(h0->n);
@@ -692,8 +692,8 @@ void c_array_dup(mrbc_value v[], int argc)
 //================================================================
 /*! (method) min
  */
-__GURU__
-void c_array_min(mrbc_value v[], int argc)
+__GURU__ void
+c_array_min(mrbc_value v[], int argc)
 {
     // Subset of Array#min, not support min(n).
 
@@ -712,8 +712,8 @@ void c_array_min(mrbc_value v[], int argc)
 //================================================================
 /*! (method) max
  */
-__GURU__
-void c_array_max(mrbc_value v[], int argc)
+__GURU__ void
+c_array_max(mrbc_value v[], int argc)
 {
     // Subset of Array#max, not support max(n).
 
@@ -732,8 +732,8 @@ void c_array_max(mrbc_value v[], int argc)
 //================================================================
 /*! (method) minmax
  */
-__GURU__
-void c_array_minmax(mrbc_value v[], int argc)
+__GURU__ void
+c_array_minmax(mrbc_value v[], int argc)
 {
     // Subset of Array#minmax, not support minmax(n).
 
@@ -754,8 +754,8 @@ void c_array_minmax(mrbc_value v[], int argc)
 }
 
 #if MRBC_USE_STRING
-__GURU__
-void _rfc(mrbc_value *str, mrbc_value *v)
+__GURU__ void
+_rfc(mrbc_value *str, mrbc_value *v)
 {
 	char buf[8];
 	guru_sprintf(buf, "^%d_", v->self->refc);
@@ -764,8 +764,8 @@ void _rfc(mrbc_value *str, mrbc_value *v)
 //================================================================
 /*! (method) inspect
  */
-__GURU__
-void c_array_inspect(mrbc_value v[], int argc)
+__GURU__ void
+c_array_inspect(mrbc_value v[], int argc)
 {
 	mrbc_value *ary = v+argc;
 	mrbc_value ret  = mrbc_string_new("[");
@@ -789,8 +789,8 @@ void c_array_inspect(mrbc_value v[], int argc)
 //================================================================
 /*! (method) join
  */
-__GURU__
-void c_array_join_1(mrbc_value v[], int argc,
+__GURU__ void
+c_array_join_1(mrbc_value v[], int argc,
                     mrbc_value *src, mrbc_value *ret, mrbc_value *separator)
 {
     if (mrbc_array_size(src)==0) return;
@@ -811,8 +811,8 @@ void c_array_join_1(mrbc_value v[], int argc,
     }
 }
 
-__GURU__
-void c_array_join(mrbc_value v[], int argc)
+__GURU__ void
+c_array_join(mrbc_value v[], int argc)
 {
     mrbc_value ret = mrbc_string_new(NULL);
     if (!ret.str) {
@@ -833,8 +833,8 @@ void c_array_join(mrbc_value v[], int argc)
 //================================================================
 /*! initialize
  */
-__GURU__
-void mrbc_init_class_array()
+__GURU__ void
+mrbc_init_class_array()
 {
     mrbc_class *c = mrbc_class_array = mrbc_define_class("Array", mrbc_class_object);
 
