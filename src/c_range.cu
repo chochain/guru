@@ -154,7 +154,7 @@ c_range_inspect(mrbc_value v[], int argc)
         mrbc_value v1 = (i == 0) ? v->range->first : v->range->last;
         mrbc_value s1 = mrbc_send(v+argc, &v1, "inspect", 0);
         mrbc_string_append(&ret, &s1);
-        mrbc_string_delete(&s1);
+        mrbc_string_delete(&s1);					// free locally allocated memory
     }
 
     SET_RETURN(ret);

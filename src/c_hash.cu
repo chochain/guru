@@ -51,16 +51,18 @@
 //================================================================
 /*! get size
  */
-__GURU__ int
-mrbc_hash_size(const mrbc_value *kv) {
+__GURU__ __INLINE__ int
+_size(const mrbc_value *kv) {
     return kv->hash->n >> 1;
 }
 
-//================================================================
-/*! resize buffer
- */
-__GURU__ int
-mrbc_hash_resize(mrbc_value *kv, int size)
+__GURU__ __INLINE__ mrbc_value*
+_data(const mrbc_value *kv) {
+	return kv->hash->data;
+}
+
+__GURU__ __INLINE__ int
+_resize(mrbc_value *kv, int size)
 {
     return mrbc_array_resize(kv->array, size << 1);
 }
@@ -107,9 +109,9 @@ mrbc_hash_new(int size)
 __GURU__ void
 mrbc_hash_delete(mrbc_value *kv)
 {
-    // TODO: delete other members (for search).
-
-    mrbc_array_delete(kv);
+    mrbc_array_delete(kv);		// free content
+    mrbc_release(kv);			// release handle
+    mrbc_free(kv);				// free handle
 }
 
 
@@ -120,14 +122,14 @@ mrbc_hash_delete(mrbc_value *kv)
   @param  key	pointer to key value
   @return	pointer to found key or NULL(not found).
 */
-__GURU__ mrbc_value
-*_hash_search(const mrbc_value v[], const mrbc_value *key)
+__GURU__ mrbc_value*
+_hash_search(const mrbc_value v[], const mrbc_value *key)
 {
 #ifndef MRBC_HASH_SEARCH_LINER
 #define MRBC_HASH_SEARCH_LINER
 #endif
     mrbc_value *p = v->hash->data;
-    int         n = v->hash->n;
+    int         n = _size(v);
 
 #ifdef MRBC_HASH_SEARCH_LINER
     for (int i=0; i < n; i+=2, p+=2) {
@@ -241,13 +243,13 @@ _hash_clear(mrbc_value *kv)
 __GURU__ int
 mrbc_hash_compare(const mrbc_value *v0, const mrbc_value *v1)
 {
-    if (v0->hash->n != v1->hash->n) return 1;
+    if (_size(v0) != _size(v1)) return 1;
 
-    mrbc_value *p0 = v0->hash->data;
-    for (int i = 0; i < mrbc_hash_size(v0); i++, p0++) {
+    mrbc_value *p0 = _data(v0);
+    for (int i = 0; i < _size(v0); i++, p0+=2) {
         mrbc_value *p1 = _hash_search(v1, p0);	// check key
         if (p1==NULL) return 1;
-        if (mrbc_compare(++p0, ++p1)) return 1;	// check data
+        if (mrbc_compare(p0+1, p1+1)) return 1;	// check data
     }
     return 0;
 }
@@ -261,15 +263,14 @@ mrbc_hash_compare(const mrbc_value *v0, const mrbc_value *v1)
 __GURU__ mrbc_value
 _hash_dup(mrbc_value *kv)
 {
-    mrbc_value ret = mrbc_hash_new(mrbc_hash_size(kv));
+    mrbc_value ret = mrbc_hash_new(_size(kv));
     if (ret.hash==NULL) return ret;		// ENOMEM
 
-    mrbc_hash *h = kv->hash;
-    MEMCPY((uint8_t *)ret.hash->data, (uint8_t *)h->data, sizeof(mrbc_value) * h->n);
-    ret.hash->n = h->n;
+    int n2 = ret.hash->n = _size(kv) << 1;
+    MEMCPY((uint8_t *)_data(&ret), (uint8_t *)_data(kv), sizeof(mrbc_value) * n2);
 
-    mrbc_value *p = ret.hash->data;
-    for (int i=0; i < h->n; i++, p++) {
+    mrbc_value *p = _data(&ret);
+    for (int i=0; i < n2; i++, p++) {
         mrbc_retain(p++);				// dup, add one extra reference
     }
     // TODO: dup other members.
@@ -352,7 +353,7 @@ c_hash_delete(mrbc_value v[], int argc)
 __GURU__ void
 c_hash_empty(mrbc_value v[], int argc)
 {
-    SET_BOOL_RETURN(mrbc_hash_size(v)==0);
+    SET_BOOL_RETURN(_size(v)==0);
 }
 
 //================================================================
@@ -370,9 +371,9 @@ c_hash_has_key(mrbc_value v[], int argc)
 __GURU__ void
 c_hash_has_value(mrbc_value v[], int argc)
 {
-    mrbc_value *p = v->hash->data;
-    int         n = v->hash->n;
-    for (int i=0; i<n; i+=2, p+=2) {
+    mrbc_value *p = _data(v);
+    int         n = _size(v);
+    for (int i=0; i<n; i++, p+=2) {
         if (mrbc_compare(p+1, v+1)==0) {	// value to value
             SET_BOOL_RETURN(1);
             return;
@@ -387,9 +388,9 @@ c_hash_has_value(mrbc_value v[], int argc)
 __GURU__ void
 c_hash_key(mrbc_value v[], int argc)
 {
-    mrbc_value *p = v->hash->data;
-    int         n = v->hash->n;
-    for (int i=0; i<n; i+=2, p+=2) {
+    mrbc_value *p = _data(v);
+    int         n = _size(v);
+    for (int i=0; i<n; i++, p+=2) {
         if (mrbc_compare(p+1, v+1)==0) {
             SET_RETURN(*p);
             return;
@@ -404,10 +405,11 @@ c_hash_key(mrbc_value v[], int argc)
 __GURU__ void
 c_hash_keys(mrbc_value v[], int argc)
 {
-    mrbc_value ret = mrbc_array_new(mrbc_hash_size(v));
-    mrbc_value *p  = v->hash->data;
-    int         n  = v->hash->n;
-    for (int i=0; i<n; i+=2, p+=2) {
+    mrbc_value *p  = _data(v);
+    int         n  = _size(v);
+    mrbc_value ret = mrbc_array_new(n);
+
+    for (int i=0; i<n; i++, p+=2) {
         mrbc_array_push(&ret, p);
     }
     SET_RETURN(ret);
@@ -419,9 +421,7 @@ c_hash_keys(mrbc_value v[], int argc)
 __GURU__ void
 c_hash_size(mrbc_value v[], int argc)
 {
-    int n = mrbc_hash_size(v);
-
-    SET_INT_RETURN(n);
+    SET_INT_RETURN(_size(v));
 }
 
 //================================================================
@@ -431,10 +431,12 @@ __GURU__ void
 c_hash_merge(mrbc_value v[], int argc)		// non-destructive merge
 {
     mrbc_value ret = _hash_dup(v);
-    mrbc_value *p  = (v+1)->hash->data;
-    int         n  = (v+1)->hash->n;
-    for (int i=0; i<n; i+=2, p+=2) {
+    mrbc_value *p  = _data(v+1);
+    int         n  = _size(v+1);
+    for (int i=0; i<n; i++, p+=2) {
         _hash_set(&ret, p, p+1);
+        mrbc_retain(p);
+        mrbc_retain(p+1);
     }
     SET_RETURN(ret);
 }
@@ -445,9 +447,9 @@ c_hash_merge(mrbc_value v[], int argc)		// non-destructive merge
 __GURU__ void
 c_hash_merge_self(mrbc_value v[], int argc)
 {
-    mrbc_value *p  = (v+1)->hash->data;
-    int         n  = (v+1)->hash->n;
-    for (int i=0; i<n; i+=2, p+=2) {
+    mrbc_value *p  = _data(v+1);
+    int         n  = _size(v+1);
+    for (int i=0; i<n; i++, p+=2) {
         _hash_set(v, p, p+1);
     }
 }
@@ -458,10 +460,11 @@ c_hash_merge_self(mrbc_value v[], int argc)
 __GURU__ void
 c_hash_values(mrbc_value v[], int argc)
 {
-    mrbc_value ret = mrbc_array_new(mrbc_hash_size(v));
-    mrbc_value *p  = v->hash->data;
-    int         n  = v->hash->n;
-    for (int i=0; i<n; i+=2, p+=2) {
+    mrbc_value *p  = _data(v);
+    int         n  = _size(v);
+    mrbc_value ret = mrbc_array_new(n);
+
+    for (int i=0; i<n; i++, p+=2) {
         mrbc_array_push(&ret, p+1);
     }
     SET_RETURN(ret);
@@ -488,20 +491,24 @@ c_hash_inspect(mrbc_value v[], int argc)
     	return;
     }
 
-    mrbc_value *p = v->hash->data;
-    int         n = v->hash->n;
-    for (int i=0; i<n; i+=2, p+=2) {
+    int rc;
+    mrbc_value s1;
+    mrbc_value *p = _data(v);
+    int         n = _size(v);
+    for (int i=0; i<n; i++, p+=2) {
         if (i!=0) mrbc_string_append_cstr(&ret, ", ");
 
-        mrbc_value s1 = mrbc_send(v+argc, p, "inspect", 0);
+        s1 = mrbc_send(v+argc, p, "inspect", 0);
+        rc = s1.self->refc;
         mrbc_string_append(&ret, &s1);
-        mrbc_release(&s1);
+        mrbc_string_delete(&s1);						// free locally allocated memory
 
         mrbc_string_append_cstr(&ret, "=>");
 
         s1 = mrbc_send(v+argc, p+1, "inspect", 0);
+        rc = s1.self->refc;
         mrbc_string_append(&ret, &s1);
-        mrbc_release(&s1);
+        mrbc_string_delete(&s1);
     }
     mrbc_string_append_cstr(&ret, "}");
 

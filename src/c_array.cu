@@ -755,9 +755,9 @@ c_array_inspect(mrbc_value v[], int argc)
     for (int i = 0; i < mrbc_array_size(v); i++) {
         if (i != 0) mrbc_string_append_cstr(&ret, ", ");
         mrbc_value vi = mrbc_array_get(v, i);
-        mrbc_value s  = mrbc_send(ary, &vi, "inspect", 0);
-        mrbc_string_append(&ret, &s);
-        mrbc_release(&s);           		// CC: added 20181029
+        mrbc_value s1 = mrbc_send(ary, &vi, "inspect", 0);
+        mrbc_string_append(&ret, &s1);
+        mrbc_string_delete(&s1);					// free locally allocated memory
     }
     mrbc_string_append_cstr(&ret, "]");
 
@@ -782,9 +782,9 @@ c_array_join_1(mrbc_value v[], int argc,
         else {
             mrbc_value s1 = mrbc_send(v+argc, &src->array->data[i], "inspect", 0);
             error |= mrbc_string_append(ret, &s1);
-            mrbc_string_delete(&s1);
+            mrbc_string_delete(&s1);					// free locally allocated memory
         }
-        if (++i >= mrbc_array_size(src)) break;	// normal return.
+        if (++i >= mrbc_array_size(src)) break;			// normal return.
         error |= mrbc_string_append(ret, separator);
     }
 }
@@ -802,7 +802,7 @@ c_array_join(mrbc_value v[], int argc)
     		: mrbc_send(v+argc, &v[1], "inspect", 0);
 
     c_array_join_1(v, argc, &v[0], &ret, &separator);
-    mrbc_dec_refc(&separator);
+    mrbc_string_delete(&separator);		// release locally allocated memory
 
     SET_RETURN(ret);
 }

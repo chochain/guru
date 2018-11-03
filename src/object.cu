@@ -86,9 +86,9 @@ mrbc_send(mrbc_value v[], mrbc_value *rcv, const char *method, int argc, ...)
     }
 
     // create call stack.
-    mrbc_release(&regs[0]);
+    // mrbc_release(&regs[0]);		// CC: removed 20181105
     regs[0] = *rcv;					// create call stack, start with receiver object
-    mrbc_retain(rcv);
+    // mrbc_retain(rcv);			// CC: removed 20181105
 
     va_list ap;						// setup calling registers
     va_start(ap, argc);
@@ -100,11 +100,11 @@ mrbc_send(mrbc_value v[], mrbc_value *rcv, const char *method, int argc, ...)
 
     m->func(regs, argc);			// call method
 
-    for (int i=1; i<=argc; i++) {	// clean up the regs
-    	regs[i].tt = MRBC_TT_EMPTY;
+#ifdef MRBC_DEBUG
+    for (int i=1; i<=argc; i++) {	// not really needed!
+    	regs[i].tt = MRBC_TT_EMPTY;	// but, clean up the stack before returning
     }
-    mrbc_retain(regs);			    // CC: added 20181029
-
+#endif
     return regs[0];
 }
 
@@ -242,17 +242,10 @@ c_object_getiv(mrbc_value v[], int argc)
 __GURU__ void
 c_object_setiv(mrbc_value v[], int argc)
 {
-    const char *name = _get_callee(NULL);				// CC TODO: another way
-
-    char *namebuf = (char *)mrbc_alloc(STRLEN(name));	// CC TODO: messy code below
-    if (!namebuf) return;
-
-    STRCPY(namebuf, name);
-    namebuf[STRLEN(name)-1] = '\0';	// delete '='
-    mrbc_sym sym_id = name2symid(namebuf);
+    const char *name  = _get_callee(NULL);				// CC TODO: another way
+    mrbc_sym   sym_id = name2symid(name);
 
     mrbc_instance_setiv(&v[0], sym_id, &v[1]);
-    mrbc_free(namebuf);
 }
 
 //================================================================
@@ -327,7 +320,8 @@ c_object_to_s(mrbc_value v[], int argc)
 	char buf[20];
 
     switch (v->tt) {
-    case MRBC_TT_CLASS:  str = symid2name(v->cls->sym_id); break;
+    case MRBC_TT_CLASS:
+    	str = symid2name(v->cls->sym_id); 								break;
     case MRBC_TT_OBJECT:
     	str = symid2name(v->self->cls->sym_id);
     	str = guru_sprintf(buf, "#<%s:%08x>", str, (uintptr_t)v->self); break;

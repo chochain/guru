@@ -442,22 +442,13 @@ mrbc_free(void *ptr)
 __GURU__ void
 mrbc_free_all()
 {
-    used_block *ptr    = (used_block *)_memory_pool;
-    void       *target = NULL;
-    int ok = 1;
-
-    while (ok) {
-        if (ptr->tail==FLAG_TAIL_BLOCK) ok = 0;
-        if (ptr->free==FLAG_USED_BLOCK) {
-            if (target) {
-                mrbc_free(target);
-            }
-            target = (uint8_t *)ptr + sizeof(used_block);
-        }
-        ptr = (used_block *)NEXT(ptr);
-    }
-    if (target) {
-        mrbc_free(target);
+    used_block *p = (used_block *)_memory_pool;
+    while (1) {
+    	if (p->free==FLAG_USED_BLOCK) {
+    		mrbc_free((uint8_t *)p + sizeof(used_block));
+    	}
+    	if (p->tail==FLAG_TAIL_BLOCK) break;
+    	p = (used_block *)NEXT(p);
     }
 }
 
@@ -483,29 +474,29 @@ _guru_alloc_stat(int v[])
     int nblk  = 0;
     int nfrag = 0;
 
-    used_block *ptr = (used_block *)_memory_pool;
+    used_block *p = (used_block *)_memory_pool;
     
-    int flag = ptr->free;
+    int flag = p->free;
     while (1) {
-        if (flag != ptr->free) {       // supposed to be merged
+        if (flag != p->free) {       // supposed to be merged
             nfrag++;
-            flag = ptr->free;
+            flag = p->free;
         }
 
-        total += ptr->size;
+        total += p->size;
         nblk  += 1;
-        if (ptr->free==FLAG_FREE_BLOCK) {
+        if (p->free==FLAG_FREE_BLOCK) {
         	nfree += 1;
-        	free  += ptr->size;
+        	free  += p->size;
         }
-        if (ptr->free==FLAG_USED_BLOCK) {
+        if (p->free==FLAG_USED_BLOCK) {
         	nused += 1;
-        	used  += ptr->size;
+        	used  += p->size;
         }
 
-        if (ptr->tail==FLAG_TAIL_BLOCK) break;
+        if (p->tail==FLAG_TAIL_BLOCK) break;
 
-        ptr = (used_block *)NEXT(ptr);
+        p = (used_block *)NEXT(p);
     }
     v[0] = total;
     v[1] = nfree;
