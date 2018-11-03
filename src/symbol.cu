@@ -206,9 +206,11 @@ __GURU__ void
 c_inspect(mrbc_value v[], int argc)
 {
     const char *s = symid2name(v[0].i);
-    v[0] = mrbc_string_new(":");
 
-    mrbc_string_append_cstr(&v[0], s);
+    mrbc_value ret = mrbc_string_new(":");
+    mrbc_string_append_cstr(&ret, s);
+
+    SET_RETURN(ret);
 }
 
 

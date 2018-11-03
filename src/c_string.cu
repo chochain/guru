@@ -10,6 +10,8 @@
 
   </pre>
 */
+#include <assert.h>
+
 #include "value.h"
 #include "alloc.h"
 #include "static.h"
@@ -77,22 +79,25 @@ _mrbc_string_new(const char *src, int len)
       Allocate handle and string buffer.
     */
     mrbc_string *h = (mrbc_string *)mrbc_alloc(sizeof(mrbc_string));
-    if (!h) return ret;		// ENOMEM
 
-    uint8_t *str = (uint8_t *)mrbc_alloc(len);
-    if (!str) {					// ENOMEM
+    assert(h!=NULL);			// out of memory
+    assert(((uintptr_t)h & 7)==0);
+
+    uint8_t *s = (uint8_t *)mrbc_alloc(len);
+    if (s==NULL) {					// ENOMEM
         mrbc_free(h);
         return ret;
     }
+    assert(((uintptr_t)s & 7)==0);
 
     // deep copy source string
-    if (src==NULL) 	str[0] = '\0';
-    else 			MEMCPY(str, (uint8_t *)src, len+1);		// plus '\0'
+    if (src==NULL) 	s[0] = '\0';
+    else 			MEMCPY(s, (uint8_t *)src, len+1);		// plus '\0'
 
     h->refc = 1;
     h->tt   = MRBC_TT_STRING;	// TODO: for DEBUG
     h->size = len;
-    h->data = str;
+    h->data = s;
 
     ret.str = h;
 
@@ -138,7 +143,7 @@ mrbc_string_dup(mrbc_value *v0)
     mrbc_string *h0 = v0->str;
 
     mrbc_value v1 = _mrbc_string_new(NULL, h0->size);		// refc already set to 1
-    if (v1.str==NULL) return v1;		// ENOMEM
+    if (v1.str==NULL) return v1;							// ENOMEM
 
     MEMCPY(v1.str->data, h0->data, h0->size + 1);
 
@@ -161,7 +166,6 @@ mrbc_string_add(const mrbc_value *v1, const mrbc_value *v2)
 
     mrbc_value  v  = _mrbc_string_new(NULL, h1->size + h2->size);
     mrbc_string *s = v.str;
-    if (s==NULL) return v;		// ENOMEM
 
     MEMCPY(s->data,            h1->data, h1->size);
     MEMCPY(s->data + h1->size, h2->data, h2->size + 1);	// include the '\0'
@@ -182,18 +186,20 @@ mrbc_string_append(mrbc_value *v1, const mrbc_value *v2)
     int len1 = v1->str->size;
     int len2 = (v2->tt==MRBC_TT_STRING) ? v2->str->size : 1;
 
-    uint8_t *str = (uint8_t *)mrbc_realloc(v1->str->data, len1+len2+1);		// +'\0'
-    if (!str) return -1;
+    uint8_t *s = (uint8_t *)mrbc_realloc(v1->str->data, len1+len2+1);		// +'\0'
+
+    assert(s!=NULL);						// out of memory
+    assert(((uintptr_t)s & 7)==0);
 
     if (v2->tt==MRBC_TT_STRING) {
-        MEMCPY((uint8_t *)str + len1, v2->str->data, len2 + 1);
+        MEMCPY((uint8_t *)s + len1, v2->str->data, len2 + 1);
     }
     else if (v2->tt==MRBC_TT_FIXNUM) {
-        str[len1]   = v2->i;
-        str[len1+1] = '\0';
+        s[len1]   = v2->i;
+        s[len1+1] = '\0';
     }
     v1->str->size = len1 + len2;
-    v1->str->data = str;
+    v1->str->data = s;
 
     return 0;
 }
@@ -211,13 +217,15 @@ mrbc_string_append_cstr(mrbc_value *v1, const char *v2)
     int len1 = v1->str->size;
     int len2 = STRLEN(v2);
 
-    uint8_t *str = (uint8_t *)mrbc_realloc(v1->str->data, len1+len2+1);
-    if (!str) return -1;
+    uint8_t *s = (uint8_t *)mrbc_realloc(v1->str->data, len1+len2+1);
 
-    MEMCPY(str + len1, (uint8_t *)v2, len2 + 1);
+    assert(s!=NULL);						// out of memory
+    assert(((uintptr_t)s & 7)==0);
+
+    MEMCPY(s + len1, (uint8_t *)v2, len2 + 1);
 
     v1->str->size = len1 + len2;
-    v1->str->data = str;
+    v1->str->data = s;
 
     return 0;
 }

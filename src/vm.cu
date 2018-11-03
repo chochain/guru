@@ -147,6 +147,10 @@ guru_vm_run(guru_ses *ses)
 		guru_console_flush(ses->res);						// dump output buffer
 		guru_dump_regfile(vm);
 	} while (vm->run && vm->err==0);
+	cudaError rst = cudaGetLastError();
+    if (cudaSuccess != rst) {
+    	printf("\nERR> %s\n", cudaGetErrorString(rst));
+    }
 
 	_vm_end<<<1,1>>>(vm);
 	cudaDeviceSynchronize();
