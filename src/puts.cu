@@ -88,7 +88,7 @@ mrbc_print_sub(mrbc_value *v)
     case MRBC_TT_HASH:
         console_char('{');
         p = v->hash->data;
-        for (int i=0; i < v->hash->n; i++, p+=2) {
+        for (int i=0; i < v->hash->n; i+=2, p+=2) {
             if (i!=0) console_str(", ");
         	mrbc_p_sub(p);
             console_str("=>");
