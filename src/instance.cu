@@ -14,8 +14,159 @@
 */
 #include "alloc.h"
 #include "value.h"
-#include "keyvalue.h"
 #include "instance.h"
+
+//================================================================
+/*! binary search
+
+  @param  kv		pointer to key-value handle.
+  @param  sym_id	symbol ID.
+  @return		result. It's not necessarily found.
+*/
+__GURU__ int
+_bsearch(mrbc_kv *kv, mrbc_sym sym_id)
+{
+    int left  = 0;
+    int right = kv->n - 1;
+    if (right < 0) return -1;
+
+    while (left < right) {
+        int mid = (left + right) / 2;
+        if (kv->data[mid].sym_id < sym_id) {
+            left = mid + 1;
+        } else {
+            right = mid;
+        }
+    }
+    return left;
+}
+
+//================================================================
+/*! resize buffer
+
+  @param  kv	pointer to key-value handle.
+  @param  size	size.
+  @return	mrbc_error_code.
+*/
+__GURU__ int
+_resize(mrbc_kv *kv, int size)
+{
+    mrbc_kv_data *d2 = (mrbc_kv_data *) mrbc_realloc(kv->data, sizeof(mrbc_kv_data) * size);
+    if (!d2) return -1;		// ENOMEM
+
+    kv->data = d2;
+    kv->size = size;
+
+    return 0;
+}
+
+//================================================================
+/*! constructor
+
+  @param  vm	pointer to VM.
+  @param  size	initial size.
+  @return 	Key-Value handle.
+*/
+__GURU__ mrbc_kv*
+_new(int size)
+{
+    /*
+      Allocate handle and data buffer.
+    */
+    mrbc_kv *kv = (mrbc_kv *)mrbc_alloc(sizeof(mrbc_kv));
+    if (!kv) return NULL;	// ENOMEM
+
+    kv->data = (mrbc_kv_data *)mrbc_alloc(sizeof(mrbc_kv_data) * size);
+    if (!kv->data) {		// ENOMEM
+        mrbc_free(kv);
+        return NULL;
+    }
+    kv->size = size;
+    kv->n    = 0;
+
+    return kv;
+}
+
+//================================================================
+/*! destructor
+
+  @param  kv	pointer to key-value handle.
+*/
+__GURU__ void
+_delete(mrbc_kv *kv)
+{
+    mrbc_kv_data *p = kv->data;
+    for (int i=0; i<kv->n; i++, p++) {
+        mrbc_release(&p->value);              // CC: was dec_ref 20181101
+    }
+    kv->n = 0;
+
+    mrbc_free(kv->data);
+    mrbc_free(kv);
+}
+
+//================================================================
+/*! setter
+
+  @param  kv		pointer to key-value handle.
+  @param  sym_id	symbol ID.
+  @param  set_val	set value.
+  @return		mrbc_error_code.
+*/
+__GURU__ int
+_set(mrbc_kv *kv, mrbc_sym sym_id, mrbc_value *set_val)
+{
+    int idx = _bsearch(kv, sym_id);
+    if (idx < 0) {
+        idx = 0;
+        goto INSERT_VALUE;
+    }
+    // replace value ?
+    if (kv->data[idx].sym_id == sym_id) {
+        mrbc_release(&kv->data[idx].value);      // CC: was dec_refc 20181101
+        kv->data[idx].value = *set_val;
+        return 0;
+    }
+    if (kv->data[idx].sym_id < sym_id) {
+        idx++;
+    }
+
+INSERT_VALUE:
+    // need resize?
+    if (kv->n >= kv->size) {
+        if (_resize(kv, kv->size + 5) != 0)
+            return -1;		// ENOMEM
+    }
+
+    // need move data?
+    if (idx < kv->n) {
+        int size = sizeof(mrbc_kv_data) * (kv->n - idx);
+        MEMCPY((uint8_t *)&kv->data[idx+1], (const uint8_t *)&kv->data[idx], size);
+    }
+
+    kv->data[idx].sym_id = sym_id;
+    kv->data[idx].value  = *set_val;
+    kv->n++;
+
+    return 0;
+}
+
+//================================================================
+/*! getter
+
+  @param  kv		pointer to key-value handle.
+  @param  sym_id	symbol ID.
+  @return		pointer to mrbc_value or NULL.
+*/
+__GURU__ mrbc_value*
+_get(mrbc_kv *kv, mrbc_sym sym_id)
+{
+    int idx = _bsearch(kv, sym_id);
+    if (idx < 0) return NULL;
+    if (kv->data[idx].sym_id != sym_id) return NULL;
+
+    return &kv->data[idx].value;
+}
 
 //================================================================
 /*! mrbc_instance constructor
@@ -32,7 +183,7 @@ mrbc_instance_new(mrbc_class *cls, int size)
     v.self = (mrbc_instance *)mrbc_alloc(sizeof(mrbc_instance) + size);
     if (v.self == NULL) return v;	// ENOMEM
 
-    v.self->ivar = mrbc_kv_new(0);
+    v.self->ivar = _new(0);
     if (v.self->ivar == NULL) {		// ENOMEM
         mrbc_free(v.self);
         v.self = NULL;
@@ -54,7 +205,7 @@ mrbc_instance_new(mrbc_class *cls, int size)
 __GURU__ void
 mrbc_instance_delete(mrbc_value *v)
 {
-    mrbc_kv_delete(v->self->ivar);
+    _delete(v->self->ivar);
     mrbc_free(v->self);
 }
 
@@ -69,7 +220,7 @@ mrbc_instance_delete(mrbc_value *v)
 __GURU__ void
 mrbc_instance_setiv(mrbc_object *obj, mrbc_sym sym_id, mrbc_value *v)
 {
-    mrbc_kv_set(obj->self->ivar, sym_id, v);
+    _set(obj->self->ivar, sym_id, v);
     mrbc_retain(v);
 }
 
@@ -84,7 +235,7 @@ mrbc_instance_setiv(mrbc_object *obj, mrbc_sym sym_id, mrbc_value *v)
 __GURU__ mrbc_value
 mrbc_instance_getiv(mrbc_object *obj, mrbc_sym sym_id)
 {
-    mrbc_value *v = mrbc_kv_get(obj->self->ivar, sym_id);
+    mrbc_value *v = _get(obj->self->ivar, sym_id);
     return (v) ? *v : mrbc_nil_value();
 }
 

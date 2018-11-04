@@ -21,6 +21,23 @@
 extern "C" {
 #endif
 
+//================================================================
+/*! Define Key-Value data.
+*/
+typedef struct RKeyValueData {
+    mrbc_sym   sym_id;	    //!< symbol ID as key.
+    mrbc_value value;	    //!< stored value.
+} mrbc_kv_data;
+
+//================================================================
+/*! Define Key-Value handle.
+*/
+typedef struct RKeyValue {
+    uint16_t     size;		//!< data buffer size.
+    uint16_t     n;	    	//!< # of stored.
+    mrbc_kv_data *data;		//!< pointer to allocated memory.
+} mrbc_kv;
+
 __GURU__ mrbc_value mrbc_instance_new(mrbc_class *cls, int size);
 __GURU__ void       mrbc_instance_delete(mrbc_value *v);
 __GURU__ void       mrbc_instance_setiv(mrbc_object *obj, mrbc_sym sym_id, mrbc_value *v);

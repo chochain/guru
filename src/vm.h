@@ -18,7 +18,7 @@
 
 #include "guru.h"
 #include "value.h"
-#include "keyvalue.h"
+#include "instance.h"
 
 #ifdef __cplusplus
 extern "C" {
