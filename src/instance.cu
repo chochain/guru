@@ -30,9 +30,10 @@ _bsearch(mrbc_kv *kv, mrbc_sym sym_id)
     int right = kv->n - 1;
     if (right < 0) return -1;
 
+    mrbc_kv_data *d = kv->data;
     while (left < right) {
-        int mid = (left + right) / 2;
-        if (kv->data[mid].sym_id < sym_id) {
+        int mid = (left + right) >> 1; 			// div by 2
+        if ((d+mid)->sym_id < sym_id) {
             left = mid + 1;
         } else {
             right = mid;
@@ -70,9 +71,6 @@ _resize(mrbc_kv *kv, int size)
 __GURU__ mrbc_kv*
 _new(int size)
 {
-    /*
-      Allocate handle and data buffer.
-    */
     mrbc_kv *kv = (mrbc_kv *)mrbc_alloc(sizeof(mrbc_kv));
     if (!kv) return NULL;	// ENOMEM
 
@@ -95,13 +93,13 @@ _new(int size)
 __GURU__ void
 _delete(mrbc_kv *kv)
 {
-    mrbc_kv_data *p = kv->data;
-    for (int i=0; i<kv->n; i++, p++) {
-        mrbc_release(&p->value);              // CC: was dec_ref 20181101
+    mrbc_kv_data *d = kv->data;
+    for (int i=0; i<kv->n; i++, d++) {		// free logical
+        mrbc_release(&d->value);            // CC: was dec_ref 20181101
     }
     kv->n = 0;
 
-    mrbc_free(kv->data);
+    mrbc_free(kv->data);					// free physical
     mrbc_free(kv);
 }
 
@@ -114,7 +112,7 @@ _delete(mrbc_kv *kv)
   @return		mrbc_error_code.
 */
 __GURU__ int
-_set(mrbc_kv *kv, mrbc_sym sym_id, mrbc_value *set_val)
+_set(mrbc_kv *kv, mrbc_sym sym_id, mrbc_value *val)
 {
     int idx = _bsearch(kv, sym_id);
     if (idx < 0) {
@@ -122,30 +120,25 @@ _set(mrbc_kv *kv, mrbc_sym sym_id, mrbc_value *set_val)
         goto INSERT_VALUE;
     }
     // replace value ?
-    if (kv->data[idx].sym_id == sym_id) {
-        mrbc_release(&kv->data[idx].value);      // CC: was dec_refc 20181101
-        kv->data[idx].value = *set_val;
+    mrbc_kv_data *d = kv->data + idx;
+    if (d->sym_id == sym_id) {
+        mrbc_release(&d->value);      // CC: was dec_refc 20181101
+        d->value = *val;
         return 0;
     }
-    if (kv->data[idx].sym_id < sym_id) {
-        idx++;
-    }
+    if (d->sym_id < sym_id) idx++;
 
 INSERT_VALUE:
-    // need resize?
-    if (kv->n >= kv->size) {
-        if (_resize(kv, kv->size + 5) != 0)
-            return -1;		// ENOMEM
+    if (kv->n >= kv->size) {								// need resize?
+        if (_resize(kv, kv->size + 5) != 0) return -1;		// ENOMEM
     }
-
-    // need move data?
-    if (idx < kv->n) {
+    d = kv->data + idx;
+    if (idx < kv->n) {										// need more data?
         int size = sizeof(mrbc_kv_data) * (kv->n - idx);
-        MEMCPY((uint8_t *)&kv->data[idx+1], (const uint8_t *)&kv->data[idx], size);
+        MEMCPY((uint8_t *)(d+1), (const uint8_t *)d, size);
     }
-
-    kv->data[idx].sym_id = sym_id;
-    kv->data[idx].value  = *set_val;
+    d->sym_id = sym_id;
+    d->value  = *val;
     kv->n++;
 
     return 0;
@@ -163,9 +156,11 @@ _get(mrbc_kv *kv, mrbc_sym sym_id)
 {
     int idx = _bsearch(kv, sym_id);
     if (idx < 0) return NULL;
-    if (kv->data[idx].sym_id != sym_id) return NULL;
 
-    return &kv->data[idx].value;
+    mrbc_kv_data *d = kv->data + idx;
+    if (d->sym_id != sym_id) return NULL;
+
+    return &d->value;
 }
 
 //================================================================
@@ -183,7 +178,7 @@ mrbc_instance_new(mrbc_class *cls, int size)
     v.self = (mrbc_instance *)mrbc_alloc(sizeof(mrbc_instance) + size);
     if (v.self == NULL) return v;	// ENOMEM
 
-    v.self->ivar = _new(0);
+    v.self->ivar = _new(0);			// allocate internal kv handle
     if (v.self->ivar == NULL) {		// ENOMEM
         mrbc_free(v.self);
         v.self = NULL;

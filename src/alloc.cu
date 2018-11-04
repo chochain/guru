@@ -101,7 +101,7 @@ __calc_index(int l1, int l2)
     assert(l2 >= 0);
     assert(l2 <= L2_MASK);
 
-    return (l1 << L2_BITS) + l2;
+    return (l1 << L2_BITS) | l2;
 }
 
 //================================================================
@@ -113,7 +113,7 @@ __calc_index(int l1, int l2)
 __GURU__ int
 _get_index(unsigned int alloc_size)
 {
-    if ((alloc_size >> (L1_BITS+L2_BITS+XX_BITS)) != 0) {		// overflow check
+    if ((alloc_size >> (L1_BITS+L2_BITS+XX_BITS)) != 0) {			// overflow check
         return BLOCK_SLOTS;
     }
     int l1    = 16 - __nlz16(alloc_size >> (L2_BITS + XX_BITS));	// 1st level index
@@ -121,6 +121,34 @@ _get_index(unsigned int alloc_size)
     int l2    = (alloc_size >> shift) & L2_MASK;					// 2nd level index
 
     return __calc_index(l1, l2);
+}
+
+__GURU__ int
+_get_free_index(unsigned int alloc_size)
+{
+    int index = _get_index(alloc_size);	// find free memory block
+
+    if (_free_list[index] != NULL) {
+    	return index;					// allocated before, keep using the same block
+    }
+
+    // no previous block exist, create a new one
+    int l1 = L1(index);
+    int l2 = L2(index);
+
+    int used = GET_L2(index);
+    if (used) {							// check any 2nd level available
+    	l2 = __nlz16(used);
+    }
+    else {								// go up to 1st level
+    	used = GET_L1(index);
+        if (used) {						// allocate new 1st & 2nd level indices
+        	l1 = __nlz16(used);			// CC: this might have problem, 20181104 because used is changed
+            l2 = __nlz16(_l2_map[l1]);
+        }
+        else return -1;					// out of memeory
+    }
+    return __calc_index(l1, l2);		// new index
 }
 
 //================================================================
@@ -135,10 +163,10 @@ _remove_index(free_block *target)
         int index = _get_index(target->size) - 1;
 
         if ((_free_list[index]=target->next)==NULL) {
-            CLEAR_MAP(index);
+            CLEAR_MAP(index);	// make slot available
         }
     }
-    else {	// link previous to next
+    else {						// link previous to next
         target->prev->next = target->next;
     }
     if (target->next != NULL) {	// reverse link
@@ -154,8 +182,6 @@ _remove_index(free_block *target)
 __GURU__ void
 _mark_free(free_block *target)
 {
-    target->free = FLAG_FREE_BLOCK;
-
     int index = _get_index(target->size) - 1;
 
 #ifdef MRBC_DEBUG
@@ -167,6 +193,7 @@ _mark_free(free_block *target)
     SET_L1(index);							// update maps
     SET_L2(index);
 
+    target->free = FLAG_FREE_BLOCK;
     target->next = _free_list[index];		// current block
     target->prev = NULL;
     if (target->next != NULL) {				// non-end block
@@ -211,19 +238,6 @@ _merge_with_next(free_block *target)
 	_merge_blocks(target, next);
 }
 
-__GURU__ free_block*
-_merge_with_prev(free_block *target)
-{
-    free_block *prev = (free_block *)PREV(target);
-
-    if (prev==NULL || prev->free!=FLAG_FREE_BLOCK) return target; 	// no change
-
-    _remove_index(prev);
-    _merge_blocks(prev, target);
-
-    return prev;
-}
-
 //================================================================
 /*! Split block by size
 
@@ -258,34 +272,6 @@ _split_free_block(free_block *target, unsigned int size, int merge)
     	_mark_free(free);
     }
     return free;
-}
-
-__GURU__ int
-_get_free_index(unsigned int alloc_size)
-{
-    int index = _get_index(alloc_size);	// find free memory block
-
-    if (_free_list[index] != NULL) {
-    	return index;					// allocated before, keep using the same block
-    }
-
-    // no previous block exist, create a new one
-    int l1 = L1(index);
-    int l2 = L2(index);
-
-    int used = GET_L2(index);
-    if (used) {							// check any 2nd level available
-    	l2 = __nlz16(used);
-    }
-    else {								// go up to 1st level
-    	used = GET_L1(index);
-        if (used) {						// allocate new 1st & 2nd level indices
-        	l1 = __nlz16(used);			// CC: this might have problem, 20181104 because used is changed
-            l2 = __nlz16(_l2_map[l1]);
-        }
-        else return -1;					// out of memeory
-    }
-    return __calc_index(l1, l2);		// new index
 }
 
 /*
@@ -361,20 +347,17 @@ mrbc_alloc(unsigned int size)
     assert(alloc_size >= XX_BLOCK);
 #endif
 
-	int index = _get_free_index(alloc_size);
-    free_block *target = _mark_used(index);
-
-    assert(target->size >= alloc_size);
-    assert(((uintptr_t)target & 7)==0);							// check alignment
+	int index 			= _get_free_index(alloc_size);
+    free_block *target 	= _mark_used(index);
 
     // split the allocated block
     if (!_split_free_block(target, alloc_size, 0)) return NULL;	// out of memory?
 
 #ifdef MRBC_DEBUG
-    uint8_t *p = (uint8_t *)target + sizeof(used_block);
-    for (int i=0; i<target->size-sizeof(used_block); i++) *p++ = 0xaa;
+    uint8_t *p = BLOCKDATA(target);
+    for (int i=0; i < BLOCKSIZE(target); i++) *p++ = 0xaa;
 #endif
-    return (uint8_t *)target + sizeof(used_block);
+    return BLOCKDATA(target);
 }
 
 //================================================================
@@ -388,8 +371,8 @@ mrbc_alloc(unsigned int size)
 __GURU__ void*
 mrbc_realloc(void *ptr, unsigned int size)
 {
-    used_block *target      = (used_block *)((uint8_t *)ptr - sizeof(used_block));
-    unsigned int alloc_size = size + sizeof(free_block);
+    used_block *target    = (used_block *)BLOCKHEAD(ptr);
+    int        alloc_size = size + sizeof(free_block);
 
     // align 4 byte
     alloc_size += ((8 - alloc_size) & 7);					// CC: 20181030 from 4 to 8-byte align
@@ -411,8 +394,9 @@ mrbc_realloc(void *ptr, unsigned int size)
     void *new_ptr = mrbc_alloc(size);
     if (!new_ptr) return NULL;  								// ENOMEM
 
-    uint8_t *d = (uint8_t *)new_ptr, *s = (uint8_t *)ptr;
-    for (int i=0; i < (target->size-sizeof(used_block)); i++, *d++=*s++);
+    uint8_t *d = (uint8_t *)new_ptr;
+    uint8_t *s = (uint8_t *)ptr;
+    for (int i=0; i < BLOCKSIZE(target); i++) *d++=*s++;
 
     mrbc_free(ptr);
 
@@ -428,10 +412,17 @@ __GURU__ void
 mrbc_free(void *ptr)
 {
     // get target block
-    free_block *target = (free_block *)((uint8_t *)ptr - sizeof(used_block));
+    free_block *target = (free_block *)BLOCKHEAD(ptr);
+    free_block *prev   = (free_block *)PREV(target);
 
     _merge_with_next(target);
-    _mark_free(_merge_with_prev(target));	// target, add to index
+
+    if (prev && prev->free==FLAG_FREE_BLOCK) {	// merge with previous block if free
+    	_remove_index(prev);
+    	_merge_blocks(prev, target);
+    	target = prev;
+    }
+    _mark_free(target);					// target, add to index
 }
 
 //================================================================
@@ -445,7 +436,7 @@ mrbc_free_all()
     used_block *p = (used_block *)_memory_pool;
     while (1) {
     	if (p->free==FLAG_USED_BLOCK) {
-    		mrbc_free((uint8_t *)p + sizeof(used_block));
+    		mrbc_free(BLOCKDATA(p));
     	}
     	if (p->tail==FLAG_TAIL_BLOCK) break;
     	p = (used_block *)NEXT(p);

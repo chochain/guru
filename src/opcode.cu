@@ -1724,7 +1724,7 @@ guru_op(mrbc_vm *vm)
     case OP_ABORT:      ret = op_abort     (vm, code, regs); break;  // reuse
     case OP_NOP:        ret = op_nop       (vm, code, regs); break;
     default:
-    	console_str("Skip OP=");
+    	console_str("?OP=");
     	console_int(opcode);
     	console_str("\n");
     	ret = 0;

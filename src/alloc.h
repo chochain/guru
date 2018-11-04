@@ -53,6 +53,10 @@ typedef struct free_block {
   struct free_block 	*prev;
 } free_block;
 
+#define BLOCKHEAD(p) ((uint8_t *)p - sizeof(used_block))
+#define BLOCKDATA(p) ((uint8_t *)p + sizeof(used_block))
+#define BLOCKSIZE(p) (p->size - sizeof(used_block))
+
 __GURU__ void *mrbc_alloc(unsigned int size);
 __GURU__ void *mrbc_realloc(void *ptr, unsigned int size);
 __GURU__ void  mrbc_free(void *ptr);
