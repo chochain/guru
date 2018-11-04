@@ -129,9 +129,9 @@ typedef struct RString {		// 16-byte
 typedef struct RInstance {		// 24-byte
     MRBC_OBJECT_HEADER;
 
-    struct RClass          *cls;
-    struct RKeyValueHandle *ivar;
-    uint8_t 				data[];
+    struct RClass    *cls;
+    struct RKeyValue *ivar;
+    uint8_t 		 data[];
 } mrbc_instance;
 
 //================================================================

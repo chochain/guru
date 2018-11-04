@@ -21,6 +21,22 @@
 #endif
 
 //================================================================
+/*! x-bit left shift for x
+ */
+__GURU__ mrbc_int
+_shift(mrbc_int x, mrbc_int y)
+{
+    // Don't support environments that include padding in int.
+    const int INT_BITS = sizeof(mrbc_int) * CHAR_BIT;
+
+    if (y >= INT_BITS)  return 0;
+    if (y >= 0)         return x << y;
+    if (y <= -INT_BITS) return 0;
+
+    return x >> -y;
+}
+
+//================================================================
 /*! (operator) [] bit reference
  */
 __GURU__ void
@@ -116,22 +132,6 @@ c_fixnum_not(mrbc_value v[], int argc)
 {
     mrbc_int num = GET_INT_ARG(0);
     SET_INT_RETURN(~num);
-}
-
-//================================================================
-/*! x-bit left shift for x
- */
-__GURU__ mrbc_int
-_shift(mrbc_int x, mrbc_int y)
-{
-    // Don't support environments that include padding in int.
-    const int INT_BITS = sizeof(mrbc_int) * CHAR_BIT;
-
-    if (y >= INT_BITS)  return 0;
-    if (y >= 0)         return x << y;
-    if (y <= -INT_BITS) return 0;
-
-    return x >> -y;
 }
 
 //================================================================

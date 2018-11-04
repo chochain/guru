@@ -36,21 +36,11 @@ typedef struct RArray {
 __GURU__ mrbc_value mrbc_array_new(int size);
 __GURU__ void       mrbc_array_delete(mrbc_value *ary);
 
-__GURU__ int        mrbc_array_resize(mrbc_array *h, int size);
-
-__GURU__ int        mrbc_array_size(const mrbc_value *ary);
-__GURU__ int        mrbc_array_set(mrbc_value *ary, int idx, mrbc_value *set_val);
-__GURU__ mrbc_value mrbc_array_get(mrbc_value *ary, int idx);
+__GURU__ int		mrbc_array_resize(mrbc_array *h, int size);
 __GURU__ int        mrbc_array_push(mrbc_value *ary, mrbc_value *set_val);
-__GURU__ mrbc_value mrbc_array_pop(mrbc_value *ary);
-__GURU__ int        mrbc_array_unshift(mrbc_value *ary, mrbc_value *set_val);
-__GURU__ mrbc_value mrbc_array_shift(mrbc_value *ary);
-__GURU__ int        mrbc_array_insert(mrbc_value *ary, int idx, mrbc_value *set_val);
-__GURU__ mrbc_value mrbc_array_remove(mrbc_value *ary, int idx);
 __GURU__ void       mrbc_array_clear(mrbc_value *ary);
 __GURU__ int        mrbc_array_compare(const mrbc_value *v1, const mrbc_value *v2);
-__GURU__ void       mrbc_array_minmax(mrbc_value *ary, mrbc_value **pp_min_value, mrbc_value **pp_max_value);
-    
+
 __GURU__ void       mrbc_init_class_array();
 
 

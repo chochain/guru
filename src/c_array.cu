@@ -63,9 +63,209 @@
 /*! get size
  */
 __GURU__ int
-mrbc_array_size(const mrbc_value *ary)
+_size(const mrbc_value *ary)
 {
     return ary->array->n;
+}
+
+__GURU__ int
+_adjust_index(mrbc_array *h, int idx, int inc)
+{
+    if (idx < 0) {
+        idx = h->n + idx + inc;
+        assert(idx>=0);
+    }
+    int ndx = idx;
+    if ((ndx + inc) >= h->size) {	// need resize?
+        ndx += inc;
+    }
+    if ((h->n + inc) > h->size) {
+        ndx = h->n + inc;
+    }
+    if (ndx>idx && mrbc_array_resize(h, ndx) != 0) return -1;
+
+    return ndx;
+}
+
+//================================================================
+/*! setter
+
+  @param  ary		pointer to target value
+  @param  idx		index
+  @param  set_val	set value
+  @return		mrbc_error_code
+*/
+__GURU__ int
+_set(mrbc_value *ary, int idx, mrbc_value *val)
+{
+    mrbc_array *h = ary->array;
+
+    int ndx = _adjust_index(h, idx, 0);				// adjust index if needed
+    if (ndx<0) return -1;						// allocation error
+
+    if (ndx < h->n) {
+        mrbc_release(&h->data[idx]);			// release existing data
+    }
+    else {
+        for(int i=h->n; i<ndx; i++) {			// lazy fill here, instead of when resized
+            h->data[i] = mrbc_nil_value();		// prep newly allocated cells
+        }
+        h->n = ndx;
+    }
+    h->data[ndx] = *val;
+    mrbc_retain(val);
+
+    return 0;
+}
+
+//================================================================
+/*! pop a data from tail.
+
+  @param  ary		pointer to target value
+  @return		tail data or Nil
+*/
+__GURU__ mrbc_value
+_pop(mrbc_value *ary)
+{
+    mrbc_array *h = ary->array;
+
+    if (h->n <= 0) return mrbc_nil_value();
+
+    return h->data[--h->n];
+}
+
+//================================================================
+/*! insert a data
+
+  @param  ary		pointer to target value
+  @param  idx		index
+  @param  set_val	set value
+  @return		mrbc_error_code
+*/
+__GURU__ int
+_insert(mrbc_value *ary, int idx, mrbc_value *set_val)
+{
+    mrbc_array *h = ary->array;
+
+    int size = _adjust_index(h, idx, 1);
+    if (size < 0) return -1;
+
+    if (idx < h->n) {			// move data
+    	int blksz = sizeof(mrbc_value)*(h->n - idx);
+        MEMCPY((uint8_t *)(h->data + idx + 1),(uint8_t *)(h->data + idx), blksz);	// shift
+    }
+
+    h->data[idx] = *set_val;	// set data
+    h->n++;
+
+    if (size >= h->n) {			// clear empty cells if needed
+        for (int i = h->n-1; i < size; i++) {
+            h->data[i] = mrbc_nil_value();
+        }
+        h->n = size;
+    }
+    return 0;
+}
+
+//================================================================
+/*! insert a data to the first.
+
+  @param  ary		pointer to target value
+  @param  set_val	set value
+  @return		mrbc_error_code
+*/
+__GURU__ int
+_unshift(mrbc_value *ary, mrbc_value *set_val)
+{
+    return _insert(ary, 0, set_val);
+}
+
+//================================================================
+/*! removes the first data and returns it.
+
+  @param  ary		pointer to target value
+  @return		first data or Nil
+*/
+__GURU__ mrbc_value
+_shift(mrbc_value *ary)
+{
+    mrbc_array *h = ary->array;
+
+    if (h->n <= 0) return mrbc_nil_value();
+
+    mrbc_value ret = h->data[0];
+    MEMCPY((uint8_t *)h->data, (uint8_t *)(h->data+1), sizeof(mrbc_value)*--h->n);
+
+    return ret;
+}
+
+//================================================================
+/*! getter
+
+  @param  ary		pointer to target value
+  @param  idx		index
+  @return		mrbc_value data at index position or Nil.
+*/
+__GURU__ mrbc_value
+_get(mrbc_value *ary, int idx)
+{
+    mrbc_array *h = ary->array;
+
+    if (idx < 0) idx = h->n + idx;
+    if (idx < 0 || idx >= h->n) return mrbc_nil_value();
+
+    return h->data[idx];
+}
+
+//================================================================
+/*! remove a data
+
+  @param  ary		pointer to target value
+  @param  idx		index
+  @return			mrbc_value data at index position or Nil.
+*/
+__GURU__ mrbc_value
+_remove(mrbc_value *ary, int idx)
+{
+    mrbc_array *h = ary->array;
+
+    if (idx < 0) idx = h->n + idx;
+    if (idx < 0 || idx >= h->n) return mrbc_nil_value();
+
+    mrbc_value *p = h->data + idx;
+    if (idx < --h->n) {										// shrink by 1
+    	int blksz = sizeof(mrbc_value) * (h->n - idx);
+        MEMCPY((uint8_t *)p, (uint8_t *)(p+1), blksz);		// shift forward
+    }
+    return *p;
+}
+
+//================================================================
+/*! get min, max value
+
+  @param  ary		pointer to target value
+  @param  pp_min_value	returns minimum mrbc_value
+  @param  pp_max_value	returns maxmum mrbc_value
+*/
+__GURU__ void
+_minmax(mrbc_value *ary, mrbc_value **pp_min_value, mrbc_value **pp_max_value)
+{
+    mrbc_array *h = ary->array;
+
+    if (h->n==0) {
+        *pp_min_value = NULL;
+        *pp_max_value = NULL;
+        return;
+    }
+    mrbc_value *p_min_value = h->data;
+    mrbc_value *p_max_value = h->data;
+    mrbc_value *p           = h->data;
+    for (int i = 1; i < h->n; i++, p++) {
+        if (mrbc_compare(p, p_min_value) < 0) p_min_value = p;
+        if (mrbc_compare(p, p_max_value) > 0) p_max_value = p;
+    }
+    *pp_min_value = p_min_value;
+    *pp_max_value = p_max_value;
 }
 
 //================================================================
@@ -136,74 +336,6 @@ mrbc_array_resize(mrbc_array *h, int size)
     return 0;
 }
 
-__GURU__ int
-_adjust_index(mrbc_array *h, int idx, int inc)
-{
-    if (idx < 0) {
-        idx = h->n + idx + inc;
-        assert(idx>=0);
-    }
-    int ndx = idx;
-    if ((ndx + inc) >= h->size) {	// need resize?
-        ndx += inc;
-    }
-    if ((h->n + inc) > h->size) {
-        ndx = h->n + inc;
-    }
-    if (ndx>idx && mrbc_array_resize(h, ndx) != 0) return -1;
-
-    return ndx;
-}
-
-//================================================================
-/*! setter
-
-  @param  ary		pointer to target value
-  @param  idx		index
-  @param  set_val	set value
-  @return		mrbc_error_code
-*/
-__GURU__ int
-mrbc_array_set(mrbc_value *ary, int idx, mrbc_value *val)
-{
-    mrbc_array *h = ary->array;
-
-    int ndx = _adjust_index(h, idx, 0);				// adjust index if needed
-    if (ndx<0) return -1;						// allocation error
-
-    if (ndx < h->n) {
-        mrbc_release(&h->data[idx]);			// release existing data
-    }
-    else {
-        for(int i=h->n; i<ndx; i++) {			// lazy fill here, instead of when resized
-            h->data[i] = mrbc_nil_value();		// prep newly allocated cells
-        }
-        h->n = ndx;
-    }
-    h->data[ndx] = *val;
-    mrbc_retain(val);
-
-    return 0;
-}
-
-//================================================================
-/*! getter
-
-  @param  ary		pointer to target value
-  @param  idx		index
-  @return		mrbc_value data at index position or Nil.
-*/
-__GURU__ mrbc_value
-mrbc_array_get(mrbc_value *ary, int idx)
-{
-    mrbc_array *h = ary->array;
-
-    if (idx < 0) idx = h->n + idx;
-    if (idx < 0 || idx >= h->n) return mrbc_nil_value();
-
-    return h->data[idx];
-}
-
 //================================================================
 /*! push a data to tail
 
@@ -226,110 +358,6 @@ mrbc_array_push(mrbc_value *ary, mrbc_value *set_val)
     mrbc_retain(set_val);					// CC: added 20181101
 
     return 0;
-}
-
-//================================================================
-/*! pop a data from tail.
-
-  @param  ary		pointer to target value
-  @return		tail data or Nil
-*/
-__GURU__ mrbc_value
-mrbc_array_pop(mrbc_value *ary)
-{
-    mrbc_array *h = ary->array;
-
-    if (h->n <= 0) return mrbc_nil_value();
-
-    return h->data[--h->n];
-}
-
-//================================================================
-/*! insert a data to the first.
-
-  @param  ary		pointer to target value
-  @param  set_val	set value
-  @return		mrbc_error_code
-*/
-__GURU__ int
-mrbc_array_unshift(mrbc_value *ary, mrbc_value *set_val)
-{
-    return mrbc_array_insert(ary, 0, set_val);
-}
-
-//================================================================
-/*! removes the first data and returns it.
-
-  @param  ary		pointer to target value
-  @return		first data or Nil
-*/
-__GURU__ mrbc_value
-mrbc_array_shift(mrbc_value *ary)
-{
-    mrbc_array *h = ary->array;
-
-    if (h->n <= 0) return mrbc_nil_value();
-
-    mrbc_value ret = h->data[0];
-    MEMCPY((uint8_t *)h->data, (uint8_t *)(h->data+1), sizeof(mrbc_value)*--h->n);
-
-    return ret;
-}
-
-//================================================================
-/*! insert a data
-
-  @param  ary		pointer to target value
-  @param  idx		index
-  @param  set_val	set value
-  @return		mrbc_error_code
-*/
-__GURU__ int
-mrbc_array_insert(mrbc_value *ary, int idx, mrbc_value *set_val)
-{
-    mrbc_array *h = ary->array;
-
-    int size = _adjust_index(h, idx, 1);
-    if (size < 0) return -1;
-
-    if (idx < h->n) {			// move data
-    	int blksz = sizeof(mrbc_value)*(h->n - idx);
-        MEMCPY((uint8_t *)(h->data + idx + 1),(uint8_t *)(h->data + idx), blksz);	// shift
-    }
-
-    h->data[idx] = *set_val;	// set data
-    h->n++;
-
-    if (size >= h->n) {			// clear empty cells if needed
-        for (int i = h->n-1; i < size; i++) {
-            h->data[i] = mrbc_nil_value();
-        }
-        h->n = size;
-    }
-    return 0;
-}
-
-//================================================================
-/*! remove a data
-
-  @param  ary		pointer to target value
-  @param  idx		index
-  @return			mrbc_value data at index position or Nil.
-*/
-__GURU__ mrbc_value
-mrbc_array_remove(mrbc_value *ary, int idx)
-{
-    mrbc_array *h = ary->array;
-
-    if (idx < 0) idx = h->n + idx;
-    if (idx < 0 || idx >= h->n) return mrbc_nil_value();
-
-    mrbc_value *p = h->data + idx;
-    if (idx < --h->n) {										// shrink by 1
-    	int blksz = sizeof(mrbc_value) * (h->n - idx);
-        MEMCPY((uint8_t *)p, (uint8_t *)(p+1), blksz);		// shift forward
-    }
-    return *p;
 }
 
 //================================================================
@@ -363,41 +391,13 @@ mrbc_array_compare(const mrbc_value *v0, const mrbc_value *v1)
 	mrbc_value *d0 = v0->array->data;
 	mrbc_value *d1 = v1->array->data;
     for (int i=0; ; i++) {
-        if (i >= mrbc_array_size(v0) || i >= mrbc_array_size(v1)) {
-            return mrbc_array_size(v0) - mrbc_array_size(v1);
+        if (i >= _size(v0) || i >= _size(v1)) {
+            return _size(v0) - _size(v1);
         }
         int res = mrbc_compare(d0++, d1++);
         if (res != 0) return res;
     }
     return 0;
-}
-
-//================================================================
-/*! get min, max value
-
-  @param  ary		pointer to target value
-  @param  pp_min_value	returns minimum mrbc_value
-  @param  pp_max_value	returns maxmum mrbc_value
-*/
-__GURU__ void
-mrbc_array_minmax(mrbc_value *ary, mrbc_value **pp_min_value, mrbc_value **pp_max_value)
-{
-    mrbc_array *h = ary->array;
-
-    if (h->n==0) {
-        *pp_min_value = NULL;
-        *pp_max_value = NULL;
-        return;
-    }
-    mrbc_value *p_min_value = h->data;
-    mrbc_value *p_max_value = h->data;
-    mrbc_value *p           = h->data;
-    for (int i = 1; i < h->n; i++, p++) {
-        if (mrbc_compare(p, p_min_value) < 0) p_min_value = p;
-        if (mrbc_compare(p, p_max_value) > 0) p_max_value = p;
-    }
-    *pp_min_value = p_min_value;
-    *pp_max_value = p_max_value;
 }
 
 //================================================================
@@ -417,7 +417,7 @@ c_array_new(mrbc_value v[], int argc)
 
         mrbc_value nil = mrbc_nil_value();
         if (v[1].i > 0) {
-            mrbc_array_set(&ret, v[1].i - 1, &nil);
+            _set(&ret, v[1].i - 1, &nil);
         }
     }
     else if (argc==2 && v[1].tt==MRBC_TT_FIXNUM && v[1].i >= 0) {	// new(num, value)
@@ -425,7 +425,7 @@ c_array_new(mrbc_value v[], int argc)
         if (ret.array==NULL) return;		// ENOMEM
 
         for (int i=0; i < v[1].i; i++) {
-            mrbc_array_set(&ret, i, &v[2]);
+            _set(&ret, i, &v[2]);
         }
     }
     else {
@@ -475,12 +475,12 @@ c_array_get(mrbc_value v[], int argc)
 {
 	mrbc_value ret;
     if (argc==1 && v[1].tt==MRBC_TT_FIXNUM) {			// self[n] -> object | nil
-        ret = mrbc_array_get(v, v[1].i);
+        ret = _get(v, v[1].i);
     }
     else if (argc==2 &&			 						// self[idx, len] -> Array | nil
     		v[1].tt==MRBC_TT_FIXNUM &&
     		v[2].tt==MRBC_TT_FIXNUM) {
-        int len = mrbc_array_size(&v[0]);
+        int len = _size(v);
         int idx = v[1].i;
         if (idx < 0) idx += len;
         if (idx < 0) goto DONE;
@@ -493,7 +493,7 @@ c_array_get(mrbc_value v[], int argc)
         if (ret.array==NULL) return;		// ENOMEM
 
         for (int i = 0; i < size; i++) {
-            mrbc_value val = mrbc_array_get(v, v[1].i + i);
+            mrbc_value val = _get(v, v[1].i + i);
             mrbc_array_push(&ret, &val);
         }
     }
@@ -512,7 +512,7 @@ __GURU__ void
 c_array_set(mrbc_value v[], int argc)
 {
     if (argc==2 && v[1].tt==MRBC_TT_FIXNUM) {	// self[n] = val
-        mrbc_array_set(v, v[1].i, &v[2]);		// raise? IndexError or ENOMEM
+        _set(v, v[1].i, &v[2]);		// raise? IndexError or ENOMEM
     }
     else if (argc==3 &&							// self[n, len] = valu
     		v[1].tt==MRBC_TT_FIXNUM &&
@@ -539,8 +539,7 @@ c_array_clear(mrbc_value v[], int argc)
 __GURU__ void
 c_array_delete_at(mrbc_value v[], int argc)
 {
-    mrbc_value ret = mrbc_array_remove(v, GET_INT_ARG(1));
-    SET_RETURN(ret);
+    SET_RETURN(_remove(v, GET_INT_ARG(1)));
 }
 
 //================================================================
@@ -549,7 +548,7 @@ c_array_delete_at(mrbc_value v[], int argc)
 __GURU__ void
 c_array_empty(mrbc_value v[], int argc)
 {
-    SET_BOOL_RETURN(mrbc_array_size(v)==0);
+    SET_BOOL_RETURN(_size(v)==0);
 }
 
 //================================================================
@@ -558,7 +557,7 @@ c_array_empty(mrbc_value v[], int argc)
 __GURU__ void
 c_array_size(mrbc_value v[], int argc)
 {
-    SET_INT_RETURN(mrbc_array_size(v));
+    SET_INT_RETURN(_size(v));
 }
 
 //================================================================
@@ -585,7 +584,7 @@ c_array_index(mrbc_value v[], int argc)
  */
 __GURU__ void c_array_first(mrbc_value v[], int argc)
 {
-	SET_RETURN(mrbc_array_get(v, 0));
+	SET_RETURN(_get(v, 0));
 }
 
 //================================================================
@@ -594,7 +593,7 @@ __GURU__ void c_array_first(mrbc_value v[], int argc)
 __GURU__ void
 c_array_last(mrbc_value v[], int argc)
 {
-	SET_RETURN(mrbc_array_get(v, -1));
+	SET_RETURN(_get(v, -1));
 }
 
 //================================================================
@@ -613,10 +612,8 @@ c_array_push(mrbc_value v[], int argc)
 __GURU__ void
 c_array_pop(mrbc_value v[], int argc)
 {
-	mrbc_value ret;
     if (argc==0) {									// pop() -> object | nil
-        ret = mrbc_array_pop(v);
-        SET_RETURN(ret);
+        SET_RETURN(_pop(v));
     }
     else if (argc==1 && v[1].tt==MRBC_TT_FIXNUM) {	// pop(n) -> Array | nil
         // TODO: not implement yet.
@@ -632,7 +629,7 @@ c_array_pop(mrbc_value v[], int argc)
 __GURU__ void
 c_array_unshift(mrbc_value v[], int argc)
 {
-    mrbc_array_unshift(&v[0], &v[1]);	// raise? IndexError or ENOMEM
+    _unshift(v, v+1);	// raise? IndexError or ENOMEM
     v[1].tt = MRBC_TT_EMPTY;
 }
 
@@ -643,7 +640,7 @@ __GURU__ void
 c_array_shift(mrbc_value v[], int argc)
 {
     if (argc==0) {									// shift() -> object | nil
-        SET_RETURN(mrbc_array_shift(v));
+        SET_RETURN(_shift(v));
     }
     else if (argc==1 && v[1].tt==MRBC_TT_FIXNUM) {	// shift() -> Array | nil
         // TODO: not implement yet.
@@ -684,7 +681,7 @@ c_array_min(mrbc_value v[], int argc)
 
     mrbc_value *p_min_value, *p_max_value;
 
-    mrbc_array_minmax(&v[0], &p_min_value, &p_max_value);
+    _minmax(v, &p_min_value, &p_max_value);
     if (p_min_value==NULL) SET_NIL_RETURN();
     else {
     	SET_RETURN(*p_min_value);
@@ -702,7 +699,7 @@ c_array_max(mrbc_value v[], int argc)
 
     mrbc_value *p_min_value, *p_max_value;
 
-    mrbc_array_minmax(&v[0], &p_min_value, &p_max_value);
+    _minmax(v, &p_min_value, &p_max_value);
     if (p_max_value==NULL) SET_NIL_RETURN();
     else {
     	SET_RETURN(*p_max_value);
@@ -722,12 +719,12 @@ c_array_minmax(mrbc_value v[], int argc)
     mrbc_value nil = mrbc_nil_value();
     mrbc_value ret = mrbc_array_new(2);
 
-    mrbc_array_minmax(&v[0], &p_min_value, &p_max_value);
+    _minmax(v, &p_min_value, &p_max_value);
     if (p_min_value==NULL) p_min_value = &nil;
     if (p_max_value==NULL) p_max_value = &nil;
 
-    mrbc_array_set(&ret, 0, p_min_value);
-    mrbc_array_set(&ret, 1, p_max_value);
+    _set(&ret, 0, p_min_value);
+    _set(&ret, 1, p_max_value);
 
     SET_RETURN(ret);
 }
@@ -752,9 +749,9 @@ c_array_inspect(mrbc_value v[], int argc)
     	SET_NIL_RETURN();
     	return;
     }
-    for (int i = 0; i < mrbc_array_size(v); i++) {
+    for (int i = 0; i < _size(v); i++) {
         if (i != 0) mrbc_string_append_cstr(&ret, ", ");
-        mrbc_value vi = mrbc_array_get(v, i);
+        mrbc_value vi = _get(v, i);
         mrbc_value s1 = mrbc_send(ary, &vi, "inspect", 0);
         mrbc_string_append(&ret, &s1);
         mrbc_string_delete(&s1);					// free locally allocated memory
@@ -771,7 +768,7 @@ __GURU__ void
 c_array_join_1(mrbc_value v[], int argc,
                     mrbc_value *src, mrbc_value *ret, mrbc_value *separator)
 {
-    if (mrbc_array_size(src)==0) return;
+    if (_size(src)==0) return;
 
     int i = 0;
     int error = 0;
@@ -784,7 +781,7 @@ c_array_join_1(mrbc_value v[], int argc,
             error |= mrbc_string_append(ret, &s1);
             mrbc_string_delete(&s1);					// free locally allocated memory
         }
-        if (++i >= mrbc_array_size(src)) break;			// normal return.
+        if (++i >= _size(src)) break;			// normal return.
         error |= mrbc_string_append(ret, separator);
     }
 }
@@ -799,9 +796,9 @@ c_array_join(mrbc_value v[], int argc)
     }
     mrbc_value separator = (argc==0)
     		? mrbc_string_new("")
-    		: mrbc_send(v+argc, &v[1], "inspect", 0);
+    		: mrbc_send(v+argc, v+1, "inspect", 0);
 
-    c_array_join_1(v, argc, &v[0], &ret, &separator);
+    c_array_join_1(v, argc, v, &ret, &separator);
     mrbc_string_delete(&separator);		// release locally allocated memory
 
     SET_RETURN(ret);

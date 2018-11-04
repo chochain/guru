@@ -23,8 +23,8 @@
 
 #include "vm.h"
 #include "object.h"
-#include "c_array.h"
 #include "c_hash.h"
+#include "c_array.h"
 #include "c_string.h"
 
 /*
@@ -64,7 +64,124 @@ _data(const mrbc_value *kv) {
 __GURU__ __INLINE__ int
 _resize(mrbc_value *kv, int size)
 {
-    return mrbc_array_resize(kv->array, size << 1);
+	return mrbc_array_resize(kv->array, size<<1);
+}
+
+//================================================================
+/*! search key
+
+  @param  hash	pointer to target hash
+  @param  key	pointer to key value
+  @return	pointer to found key or NULL(not found).
+*/
+__GURU__ mrbc_value*
+_search(const mrbc_value v[], const mrbc_value *key)
+{
+#ifndef MRBC_HASH_SEARCH_LINER
+#define MRBC_HASH_SEARCH_LINER
+#endif
+    mrbc_value *p = v->hash->data;
+    int         n = _size(v);
+
+#ifdef MRBC_HASH_SEARCH_LINER
+    for (int i=0; i < n; i+=2, p+=2) {
+        if (mrbc_compare(p, key)==0) return p;
+    }
+    return NULL;
+#endif
+
+#ifdef MRBC_HASH_SEARCH_LINER_ITERATOR
+    for (int i=0; i < n; i+=2, p+=2) {
+        if (mrbc_compare(p, key)==0) return p;
+    }
+    return NULL;
+#endif
+}
+
+//================================================================
+/*! setter
+
+  @param  hash	pointer to target hash
+  @param  key	pointer to key value
+  @param  val	pointer to value
+  @return	mrbc_error_code
+*/
+__GURU__ int
+_set(mrbc_value *kv, mrbc_value *key, mrbc_value *val)
+{
+    mrbc_value *v = _search(kv, key);
+    int ret = 0;
+    if (v==NULL) {
+        // set a new value
+        if ((ret = mrbc_array_push(kv, key)) != 0) return ret;
+        ret = mrbc_array_push(kv, val);
+    }
+    else {
+    	mrbc_release(v);		// CC: added 20181101
+        mrbc_release(v+1);		// CC: added 20181101
+        *(v)   = *key;
+        *(v+1) = *val;
+        mrbc_retain(key);		// CC: added 20181101
+        mrbc_retain(val);		// CC: added 20181101
+    }
+    return ret;
+}
+
+//================================================================
+/*! getter
+
+  @param  hash	pointer to target hash
+  @param  key	pointer to key value
+  @return	mrbc_value data at key position or Nil.
+*/
+__GURU__ mrbc_value
+_get(mrbc_value *kv, mrbc_value *key)
+{
+    mrbc_value *v = _search(kv, key);
+
+    if (v) {
+    	mrbc_retain(++v);		// CC: added 20181101, inc_ref the value
+    	return *v;
+    }
+    else return mrbc_nil_value();
+}
+
+//================================================================
+/*! remove a data
+
+  @param  hash	pointer to target hash
+  @param  key	pointer to key value
+  @return	removed data or Nil
+*/
+__GURU__ mrbc_value
+_remove(mrbc_value *kv, mrbc_value *key)
+{
+    mrbc_value *v = _search(kv, key);
+    if (v==NULL) return mrbc_nil_value();
+
+    mrbc_release(v);				// CC: was dec_refc 20181101
+    mrbc_value ret = v[1];			// value
+    mrbc_hash  *h  = kv->hash;
+    h->n -= 2;
+
+    MEMCPY((uint8_t *)v, (uint8_t *)(v+2), (uint8_t *)(h->data + h->n) - (uint8_t *)v);
+
+    // TODO: re-index hash table if need.
+
+    return ret;
+}
+
+//================================================================
+/*! clear all
+
+  @param  hash	pointer to target hash
+*/
+__GURU__ void
+_clear(mrbc_value *kv)
+{
+    mrbc_array_clear(kv);
+
+    // TODO: re-index hash table if need.
 }
 
 //================================================================
@@ -116,123 +233,6 @@ mrbc_hash_delete(mrbc_value *kv)
 
 
 //================================================================
-/*! search key
-
-  @param  hash	pointer to target hash
-  @param  key	pointer to key value
-  @return	pointer to found key or NULL(not found).
-*/
-__GURU__ mrbc_value*
-_hash_search(const mrbc_value v[], const mrbc_value *key)
-{
-#ifndef MRBC_HASH_SEARCH_LINER
-#define MRBC_HASH_SEARCH_LINER
-#endif
-    mrbc_value *p = v->hash->data;
-    int         n = _size(v);
-
-#ifdef MRBC_HASH_SEARCH_LINER
-    for (int i=0; i < n; i+=2, p+=2) {
-        if (mrbc_compare(p, key)==0) return p;
-    }
-    return NULL;
-#endif
-
-#ifdef MRBC_HASH_SEARCH_LINER_ITERATOR
-    for (int i=0; i < n; i+=2, p+=2) {
-        if (mrbc_compare(p, key)==0) return p;
-    }
-    return NULL;
-#endif
-}
-
-//================================================================
-/*! setter
-
-  @param  hash	pointer to target hash
-  @param  key	pointer to key value
-  @param  val	pointer to value
-  @return	mrbc_error_code
-*/
-__GURU__ int
-_hash_set(mrbc_value *kv, mrbc_value *key, mrbc_value *val)
-{
-    mrbc_value *v = _hash_search(kv, key);
-    int ret = 0;
-    if (v==NULL) {
-        // set a new value
-        if ((ret = mrbc_array_push(kv, key)) != 0) return ret;
-        ret = mrbc_array_push(kv, val);
-    }
-    else {
-    	mrbc_release(v);		// CC: added 20181101
-        mrbc_release(v+1);		// CC: added 20181101
-        *(v)   = *key;
-        *(v+1) = *val;
-        mrbc_retain(key);		// CC: added 20181101
-        mrbc_retain(val);		// CC: added 20181101
-    }
-    return ret;
-}
-
-//================================================================
-/*! getter
-
-  @param  hash	pointer to target hash
-  @param  key	pointer to key value
-  @return	mrbc_value data at key position or Nil.
-*/
-__GURU__ mrbc_value
-_hash_get(mrbc_value *kv, mrbc_value *key)
-{
-    mrbc_value *v = _hash_search(kv, key);
-
-    if (v) {
-    	mrbc_retain(++v);		// CC: added 20181101, inc_ref the value
-    	return *v;
-    }
-    else return mrbc_nil_value();
-}
-
-//================================================================
-/*! remove a data
-
-  @param  hash	pointer to target hash
-  @param  key	pointer to key value
-  @return	removed data or Nil
-*/
-__GURU__ mrbc_value
-_hash_remove(mrbc_value *kv, mrbc_value *key)
-{
-    mrbc_value *v = _hash_search(kv, key);
-    if (v==NULL) return mrbc_nil_value();
-
-    mrbc_release(v);				// CC: was dec_refc 20181101
-    mrbc_value ret = v[1];			// value
-    mrbc_hash  *h  = kv->hash;
-    h->n -= 2;
-
-    MEMCPY((uint8_t *)v, (uint8_t *)(v+2), (uint8_t *)(h->data + h->n) - (uint8_t *)v);
-
-    // TODO: re-index hash table if need.
-
-    return ret;
-}
-
-//================================================================
-/*! clear all
-
-  @param  hash	pointer to target hash
-*/
-__GURU__ void
-_hash_clear(mrbc_value *kv)
-{
-    mrbc_array_clear(kv);
-
-    // TODO: re-index hash table if need.
-}
-
-//================================================================
 /*! compare
 
   @param  v1	Pointer to mrbc_value
@@ -247,7 +247,7 @@ mrbc_hash_compare(const mrbc_value *v0, const mrbc_value *v1)
 
     mrbc_value *p0 = _data(v0);
     for (int i = 0; i < _size(v0); i++, p0+=2) {
-        mrbc_value *p1 = _hash_search(v1, p0);	// check key
+        mrbc_value *p1 = _search(v1, p0);	// check key
         if (p1==NULL) return 1;
         if (mrbc_compare(p0+1, p1+1)) return 1;	// check data
     }
@@ -297,7 +297,7 @@ c_hash_get(mrbc_value v[], int argc)
     	assert(argc!=1);
         return;	// raise ArgumentError.
     }
-    SET_RETURN(_hash_get(v, v+1));
+    SET_RETURN(_get(v, v+1));
 }
 
 //================================================================
@@ -310,7 +310,7 @@ c_hash_set(mrbc_value v[], int argc)
     	assert(argc!=2);
         return;				// raise ArgumentError.
     }
-    _hash_set(v, v+1, v+2);	// k + v
+    _set(v, v+1, v+2);	// k + v
 }
 
 
@@ -320,7 +320,7 @@ c_hash_set(mrbc_value v[], int argc)
 __GURU__ void
 c_hash_clear(mrbc_value v[], int argc)
 {
-    _hash_clear(v);
+    _clear(v);
 }
 
 //================================================================
@@ -342,7 +342,7 @@ c_hash_delete(mrbc_value v[], int argc)
 {
     // TODO : now, support only delete(key) -> object
 
-    SET_RETURN(_hash_remove(v, v+1));
+    SET_RETURN(_remove(v, v+1));
 
     // TODO: re-index hash table if need.
 }
@@ -362,7 +362,7 @@ c_hash_empty(mrbc_value v[], int argc)
 __GURU__ void
 c_hash_has_key(mrbc_value v[], int argc)
 {
-    SET_BOOL_RETURN(_hash_search(v, v+1)!=NULL);
+    SET_BOOL_RETURN(_search(v, v+1)!=NULL);
 }
 
 //================================================================
@@ -434,7 +434,7 @@ c_hash_merge(mrbc_value v[], int argc)		// non-destructive merge
     mrbc_value *p  = _data(v+1);
     int         n  = _size(v+1);
     for (int i=0; i<n; i++, p+=2) {
-        _hash_set(&ret, p, p+1);
+        _set(&ret, p, p+1);
         mrbc_retain(p);
         mrbc_retain(p+1);
     }
@@ -450,7 +450,7 @@ c_hash_merge_self(mrbc_value v[], int argc)
     mrbc_value *p  = _data(v+1);
     int         n  = _size(v+1);
     for (int i=0; i<n; i++, p+=2) {
-        _hash_set(v, p, p+1);
+        _set(v, p, p+1);
     }
 }
 

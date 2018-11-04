@@ -26,15 +26,10 @@ extern "C" {
 */
 __GURU__ mrbc_value mrbc_string_new(const char *src);
 __GURU__ void       mrbc_string_delete(mrbc_value *str);
-__GURU__ void       mrbc_string_clear_vm_id(mrbc_value *str);
-__GURU__ mrbc_value mrbc_string_dup(mrbc_value *s1);
-__GURU__ mrbc_value mrbc_string_add(const mrbc_value *s1, const mrbc_value *s2);
 
 __GURU__ int        mrbc_string_append(mrbc_value *s1, const mrbc_value *s2);
 __GURU__ int        mrbc_string_append_cstr(mrbc_value *s1, const char *s2);
-__GURU__ int        mrbc_string_index(const mrbc_value *src, const mrbc_value *pattern, int offset);
-__GURU__ int        mrbc_string_strip(mrbc_value *src, int mode);
-__GURU__ int        mrbc_string_chomp(mrbc_value *src);
+__GURU__ mrbc_value mrbc_string_add(const mrbc_value *s1, const mrbc_value *s2);
 
 __GURU__ void       mrbc_init_class_string(void);
 

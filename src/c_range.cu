@@ -92,19 +92,19 @@ __GURU__ void
 c_range_equal3(mrbc_value v[], int argc)
 {
     if (v[0].tt == MRBC_TT_CLASS) {
-        mrbc_value ret = mrbc_send(v+argc, &v[1], "kind_of?", 1, &v[0]);
+        mrbc_value ret = mrbc_send(v+argc, v+1, "kind_of?", 1, v);
         SET_RETURN(ret);
         return;
     }
 
-    int first = mrbc_compare(&v[0].range->first, &v[1]);
+    int first = mrbc_compare(&v->range->first, v+1);
     if (first <= 0) {
         SET_FALSE_RETURN();
         return;
     }
 
-    int last = mrbc_compare(&v[1], &v[0].range->last);
-    int flag = IS_EXCLUDE_END(v[0].range) ? (last < 0) : (last <= 0);
+    int last = mrbc_compare(v+1, &v->range->last);
+    int flag = IS_EXCLUDE_END(v->range) ? (last < 0) : (last <= 0);
 
     SET_BOOL_RETURN(flag);
 }

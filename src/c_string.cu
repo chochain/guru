@@ -23,10 +23,6 @@
 
 #include "c_string.h"
 
-#if MRBC_USE_ARRAY
-#include "c_array.h"
-#endif
-
 #if MRBC_USE_STRING
 //================================================================
 /*! white space character test
@@ -46,21 +42,21 @@ _is_space(int ch)
 }
 
 //================================================================
-/*! get c-language string (char *)
- */
-__GURU__ __INLINE__ char*
-_string_cstr(const mrbc_value *v)
-{
-    return (char*)v->str->data;
-}
-
-//================================================================
 /*! get size
  */
 __GURU__ __INLINE__ int
-_string_size(const mrbc_value *v)
+_size(const mrbc_value *v)
 {
     return v->str->size;
+}
+
+//================================================================
+/*! get c-language string (char *)
+ */
+__GURU__ __INLINE__ char*
+_data(const mrbc_value *v)
+{
+    return (char*)v->str->data;
 }
 
 //================================================================
@@ -72,7 +68,7 @@ _string_size(const mrbc_value *v)
   @return 	string object
 */
 __GURU__ mrbc_value
-_mrbc_string_new(const char *src, int len)
+_new(const char *src, int len)
 {
     mrbc_value ret = {.tt = MRBC_TT_STRING};
     /*
@@ -105,6 +101,118 @@ _mrbc_string_new(const char *src, int len)
 }
 
 //================================================================
+/*! duplicate string
+
+  @param  vm	pointer to VM.
+  @param  s1	pointer to target value 1
+  @param  s2	pointer to target value 2
+  @return	new string as s1 + s2
+*/
+__GURU__ mrbc_value
+_dup(mrbc_value *v0)
+{
+    mrbc_string *h0 = v0->str;
+
+    mrbc_value v1 = _new(NULL, h0->size);		// refc already set to 1
+    if (v1.str==NULL) return v1;							// ENOMEM
+
+    MEMCPY(v1.str->data, h0->data, h0->size + 1);
+
+    return v1;
+}
+
+//================================================================
+/*! locate a substring in a string
+
+  @param  src		pointer to target string
+  @param  pattern	pointer to substring
+  @param  offset	search offset
+  @return		position index. or minus value if not found.
+*/
+__GURU__ int
+_index(const mrbc_value *v, const mrbc_value *pattern, int offset)
+{
+    char *p0 = _data(v) + offset;
+    char *p1 = _data(pattern);
+    int try_cnt = _size(v) - _size(pattern) - offset;
+
+    while (try_cnt >= 0) {
+        if (MEMCMP((uint8_t *)p0, (uint8_t *)p1, _size(pattern))==0) {
+            return p1 - _data(v);	// matched.
+        }
+        try_cnt--;
+        p0++;
+    }
+    return -1;
+}
+
+//================================================================
+/*! remove the whitespace in myself
+
+  @param  src	pointer to target value
+  @param  mode	1:left-side, 2:right-side, 3:each
+  @return	0 when not removed.
+*/
+__GURU__ int
+_strip(mrbc_value *v, int mode)
+{
+    char *p0 = _data(v);
+    char *p1 = p0 + _size(v) - 1;
+
+    // left-side
+    if (mode & 0x01) {
+        while (p0 <= p1) {
+            if (*p0=='\0') break;
+            if (!_is_space(*p0)) break;
+            p0++;
+        }
+    }
+    // right-side
+    if (mode & 0x02) {
+        while (p0 <= p1) {
+            if (!_is_space(*p1)) break;
+            p1--;
+        }
+    }
+    int new_size = p1 - p0 + 1;
+    if (_size(v)==new_size) return 0;
+
+    char *buf = _data(v);
+    if (p0 != buf) MEMCPY((uint8_t *)buf, (uint8_t *)p0, new_size);
+    buf[new_size] = '\0';
+
+    mrbc_realloc((uint8_t *)buf, new_size+1);	// shrink suitable size.
+    v->str->size = new_size;
+
+    return 1;
+}
+
+//================================================================
+/*! remove the CR,LF in myself
+
+  @param  src	pointer to target value
+  @return	0 when not removed.
+*/
+__GURU__ int
+_chomp(mrbc_value *v)
+{
+    char *p0 = _data(v);
+    char *p1 = p0 + _size(v) - 1;
+
+    if (*p1=='\n') p1--;
+    if (*p1=='\r') p1--;
+
+    int new_size = p1 - p0 + 1;
+    if (_size(v)==new_size) return 0;
+
+    char *buf = _data(v);
+    buf[new_size] = '\0';
+    v->str->size = new_size;
+
+    return 1;
+}
+
+//================================================================
 /*! constructor by c string
 
   @param  vm	pointer to VM.
@@ -114,7 +222,7 @@ _mrbc_string_new(const char *src, int len)
 __GURU__ mrbc_value
 mrbc_string_new(const char *src)
 {
-    return _mrbc_string_new(src, STRLEN(src));
+    return _new(src, STRLEN(src));
 }
 
 //================================================================
@@ -127,50 +235,6 @@ mrbc_string_delete(mrbc_value *v)
 {
     mrbc_free(v->str->data);
     mrbc_free(v->str);
-}
-
-//================================================================
-/*! duplicate string
-
-  @param  vm	pointer to VM.
-  @param  s1	pointer to target value 1
-  @param  s2	pointer to target value 2
-  @return	new string as s1 + s2
-*/
-__GURU__ mrbc_value
-mrbc_string_dup(mrbc_value *v0)
-{
-    mrbc_string *h0 = v0->str;
-
-    mrbc_value v1 = _mrbc_string_new(NULL, h0->size);		// refc already set to 1
-    if (v1.str==NULL) return v1;							// ENOMEM
-
-    MEMCPY(v1.str->data, h0->data, h0->size + 1);
-
-    return v1;
-}
-
-//================================================================
-/*! add string (s1 + s2)
-
-  @param  vm	pointer to VM.
-  @param  s1	pointer to target value 1
-  @param  s2	pointer to target value 2
-  @return	new string as s1 + s2
-*/
-__GURU__ mrbc_value
-mrbc_string_add(const mrbc_value *v1, const mrbc_value *v2)
-{
-    mrbc_string *h1 = v1->str;
-    mrbc_string *h2 = v2->str;
-
-    mrbc_value  v  = _mrbc_string_new(NULL, h1->size + h2->size);
-    mrbc_string *s = v.str;
-
-    MEMCPY(s->data,            h1->data, h1->size);
-    MEMCPY(s->data + h1->size, h2->data, h2->size + 1);	// include the '\0'
-
-    return v;
 }
 
 //================================================================
@@ -231,94 +295,26 @@ mrbc_string_append_cstr(mrbc_value *v1, const char *v2)
 }
 
 //================================================================
-/*! locate a substring in a string
+/*! add string (s1 + s2)
 
-  @param  src		pointer to target string
-  @param  pattern	pointer to substring
-  @param  offset	search offset
-  @return		position index. or minus value if not found.
+  @param  vm	pointer to VM.
+  @param  s1	pointer to target value 1
+  @param  s2	pointer to target value 2
+  @return	new string as s1 + s2
 */
-__GURU__ int
-mrbc_string_index(const mrbc_value *v, const mrbc_value *pattern, int offset)
+__GURU__ mrbc_value
+mrbc_string_add(const mrbc_value *v1, const mrbc_value *v2)
 {
-    char *p0 = VSTR(v) + offset;
-    char *p1 = VSTR(pattern);
-    int try_cnt = VSTRLEN(v) - VSTRLEN(pattern) - offset;
+    mrbc_string *h1 = v1->str;
+    mrbc_string *h2 = v2->str;
 
-    while (try_cnt >= 0) {
-        if (MEMCMP((uint8_t *)p0, (uint8_t *)p1, VSTRLEN(pattern))==0) {
-            return p1 - VSTR(v);	// matched.
-        }
-        try_cnt--;
-        p0++;
-    }
-    return -1;
-}
+    mrbc_value  v  = _new(NULL, h1->size + h2->size);
+    mrbc_string *s = v.str;
 
-//================================================================
-/*! remove the whitespace in myself
+    MEMCPY(s->data,            h1->data, h1->size);
+    MEMCPY(s->data + h1->size, h2->data, h2->size + 1);	// include the '\0'
 
-  @param  src	pointer to target value
-  @param  mode	1:left-side, 2:right-side, 3:each
-  @return	0 when not removed.
-*/
-__GURU__ int
-mrbc_string_strip(mrbc_value *v, int mode)
-{
-    char *p0 = VSTR(v);
-    char *p1 = p0 + VSTRLEN(v) - 1;
-
-    // left-side
-    if (mode & 0x01) {
-        while (p0 <= p1) {
-            if (*p0=='\0') break;
-            if (!_is_space(*p0)) break;
-            p0++;
-        }
-    }
-    // right-side
-    if (mode & 0x02) {
-        while (p0 <= p1) {
-            if (!_is_space(*p1)) break;
-            p1--;
-        }
-    }
-    int new_size = p1 - p0 + 1;
-    if (VSTRLEN(v)==new_size) return 0;
-
-    char *buf = VSTR(v);
-    if (p0 != buf) MEMCPY((uint8_t *)buf, (uint8_t *)p0, new_size);
-    buf[new_size] = '\0';
-
-    mrbc_realloc((uint8_t *)buf, new_size+1);	// shrink suitable size.
-    v->str->size = new_size;
-
-    return 1;
-}
-
-//================================================================
-/*! remove the CR,LF in myself
-
-  @param  src	pointer to target value
-  @return	0 when not removed.
-*/
-__GURU__ int
-mrbc_string_chomp(mrbc_value *v)
-{
-    char *p0 = VSTR(v);
-    char *p1 = p0 + VSTRLEN(v) - 1;
-
-    if (*p1=='\n') p1--;
-    if (*p1=='\r') p1--;
-
-    int new_size = p1 - p0 + 1;
-    if (VSTRLEN(v)==new_size) return 0;
-
-    char *buf = VSTR(v);
-    buf[new_size] = '\0';
-    v->str->size = new_size;
-
-    return 1;
+    return v;
 }
 
 //================================================================
@@ -345,13 +341,13 @@ c_string_mul(mrbc_value v[], int argc)
         console_str("TypeError\n");	// raise?
         return;
     }
-    mrbc_value ret = _mrbc_string_new(NULL, VSTRLEN(&v[0]) * v[1].i);
+    mrbc_value ret = _new(NULL, _size(v) * v[1].i);
     if (ret.str==NULL) return;		// ENOMEM
 
     uint8_t *p = (uint8_t *)ret.str->data;
     for (int i = 0; i < v[1].i; i++) {
-        MEMCPY((uint8_t *)p, (uint8_t *)VSTR(v), VSTRLEN(v));
-        p += VSTRLEN(v);
+        MEMCPY((uint8_t *)p, (uint8_t *)_data(v), _size(v));
+        p += _size(v);
     }
     *p = 0;
 
@@ -364,7 +360,7 @@ c_string_mul(mrbc_value v[], int argc)
 __GURU__ void
 c_string_size(mrbc_value v[], int argc)
 {
-    mrbc_int size = VSTRLEN(v);
+    mrbc_int size = _size(v);
 
     SET_INT_RETURN(size);
 }
@@ -380,7 +376,7 @@ c_string_to_i(mrbc_value v[], int argc)
         base = v[1].i;
         if (base < 2 || base > 36) return;	// raise ? ArgumentError
     }
-    mrbc_int i = guru_atoi(VSTR(v), base);
+    mrbc_int i = guru_atoi(_data(v), base);
 
     SET_INT_RETURN(i);
 }
@@ -392,7 +388,7 @@ c_string_to_i(mrbc_value v[], int argc)
 __GURU__ void
 c_string_to_f(mrbc_value v[], int argc)
 {
-    mrbc_float d = ATOF(VSTR(v));
+    mrbc_float d = ATOF(_data(v));
 
     SET_FLOAT_RETURN(d);
 }
@@ -404,7 +400,7 @@ c_string_to_f(mrbc_value v[], int argc)
 __GURU__ void
 c_string_append(mrbc_value v[], int argc)
 {
-    if (!mrbc_string_append(&v[0], &v[1])) {
+    if (!mrbc_string_append(v, v+1)) {
         // raise ? ENOMEM
     }
 }
@@ -434,7 +430,7 @@ c_string_slice(mrbc_value v[], int argc)
         }
         if (ch < 0) goto RETURN_NIL;
 
-        mrbc_value ret = _mrbc_string_new(NULL, 1);
+        mrbc_value ret = _new(NULL, 1);
         if (!ret.str) goto RETURN_NIL;
 
         ret.str->data[0] = ch;
@@ -452,7 +448,7 @@ c_string_slice(mrbc_value v[], int argc)
         // min(v2->i, (len-idx))
         if (rlen < 0) goto RETURN_NIL;
 
-        mrbc_value ret = _mrbc_string_new((char *)v->str->data + idx, rlen);
+        mrbc_value ret = _new((char *)v->str->data + idx, rlen);
         if (!ret.str) goto RETURN_NIL;		// ENOMEM
 
         SET_RETURN(ret);
@@ -505,11 +501,11 @@ c_string_insert(mrbc_value v[], int argc)
         return;
     }
 
-    uint8_t *str = (uint8_t *)mrbc_realloc(VSTR(v), len1 + len2 - len + 1);
+    uint8_t *str = (uint8_t *)mrbc_realloc(_data(v), len1 + len2 - len + 1);
     if (!str) return;
 
     MEMCPY(str + nth + len2, str + nth + len, len1 - nth - len + 1);
-    MEMCPY(str + nth, (uint8_t *)VSTR(val), len2);
+    MEMCPY(str + nth, (uint8_t *)_data(val), len2);
     v->str->size = len1 + len2 - len;
 
     v->str->data = str;
@@ -521,10 +517,8 @@ c_string_insert(mrbc_value v[], int argc)
 __GURU__ void
 c_string_chomp(mrbc_value v[], int argc)
 {
-    mrbc_value ret = mrbc_string_dup(&v[0]);
-
-    mrbc_string_chomp(&ret);
-
+    mrbc_value ret = _dup(v);
+    _chomp(&ret);
     SET_RETURN(ret);
 }
 
@@ -534,7 +528,7 @@ c_string_chomp(mrbc_value v[], int argc)
 __GURU__ void
 c_string_chomp_self(mrbc_value v[], int argc)
 {
-    if (mrbc_string_chomp(&v[0])==0) {
+    if (_chomp(v)==0) {
         SET_NIL_RETURN();
     }
 }
@@ -545,7 +539,7 @@ c_string_chomp_self(mrbc_value v[], int argc)
 __GURU__ void
 c_string_dup(mrbc_value v[], int argc)
 {
-    SET_RETURN(mrbc_string_dup(&v[0]));
+    SET_RETURN(_dup(v));
 }
 
 //================================================================
@@ -562,14 +556,14 @@ c_string_index(mrbc_value v[], int argc)
     }
     else if (argc==2 && v[2].tt==MRBC_TT_FIXNUM) {
         offset = v[2].i;
-        if (offset < 0) offset += VSTRLEN(&v[0]);
+        if (offset < 0) offset += _size(v);
         if (offset < 0) goto NIL_RETURN;
     }
     else {
         goto NIL_RETURN;	// raise? ArgumentError
     }
 
-    index = mrbc_string_index(&v[0], &v[1], offset);
+    index = _index(v, v+1, offset);
     if (index < 0) goto NIL_RETURN;
 
     SET_INT_RETURN(index);
@@ -587,9 +581,9 @@ c_string_inspect(mrbc_value v[], int argc)
 {
     char buf[10] = "\\x";
     mrbc_value ret = mrbc_string_new("\"");
-    const unsigned char *s = (const unsigned char *)VSTR(v);
+    const unsigned char *s = (const unsigned char *)_data(v);
   
-    for (int i = 0; i < VSTRLEN(v); i++) {
+    for (int i = 0; i < _size(v); i++) {
         if (s[i] < ' ' || 0x7f <= s[i]) {	// tiny isprint()
             buf[2] = "0123456789ABCDEF"[s[i] >> 4];
             buf[3] = "0123456789ABCDEF"[s[i] & 0x0f];
@@ -610,7 +604,7 @@ c_string_inspect(mrbc_value v[], int argc)
 __GURU__ void
 c_string_ord(mrbc_value v[], int argc)
 {
-    SET_INT_RETURN(VSTR(v)[0]);
+    SET_INT_RETURN(_data(v)[0]);
 }
 
 //================================================================
@@ -619,110 +613,7 @@ c_string_ord(mrbc_value v[], int argc)
 __GURU__ void
 c_string_split(mrbc_value v[], int argc)
 {
-#if MRBC_USE_ARRAY
-    mrbc_value ret = mrbc_array_new(0);
-    if (_string_size(&v[0])==0) {
-    	SET_RETURN(ret);
-    	return;
-    }
-    // check limit parameter.
-    int limit = 0;
-    if (argc >= 2) {
-        if (v[2].tt != MRBC_TT_FIXNUM) {
-            console_str("TypeError\n");     // raise?
-            return;
-        }
-        limit = v[2].i;
-        if (limit==1) {
-            mrbc_array_push(&ret, &v[0]);
-            SET_RETURN(ret);
-            mrbc_retain(&v[0]);
-            return;
-        }
-    }
-
-    // check separator parameter.
-    mrbc_value sep = (argc==0) ? mrbc_string_new(" ") : v[1];
-    switch(sep.tt) {
-    case MRBC_TT_NIL:    sep = mrbc_string_new(" "); 	break;
-    case MRBC_TT_STRING:								break;
-    default:
-        console_str("TypeError\n");     // raise?
-        return;
-    }
-
-    int flag_strip = (sep.str->data)[0]==' ' && (_string_size(&sep)==1);
-    int offset  = 0;
-    int sep_len = _string_size(&sep);
-    if (sep_len==0) sep_len++;
-
-    while (1) {
-        int pos, len;
-
-        if (flag_strip) {
-            for (; offset < _string_size(&v[0]); offset++) {
-                if (!_is_space(_string_cstr(&v[0])[offset])) break;
-            }
-            if (offset > _string_size(&v[0])) break;
-        }
-
-        // check limit
-        if (limit > 0 && mrbc_array_size(&ret)+1 >= limit) {
-            pos = -1;
-            goto SPLIT_ITEM;
-        }
-
-        // split by space character.
-        if (flag_strip) {
-            pos = offset;
-            for (; pos < _string_size(&v[0]); pos++) {
-                if (_is_space(_string_cstr(&v[0])[pos])) break;
-            }
-            len = pos - offset;
-            goto SPLIT_ITEM;
-        }
-
-        // split by each character.
-        if (_string_size(&sep)==0) {
-            pos = (offset < _string_size(&v[0])-1) ? offset : -1;
-            len = 1;
-            goto SPLIT_ITEM;
-        }
-
-        // split by specified character.
-        pos = mrbc_string_index(&v[0], &sep, offset);
-        len = pos - offset;
-
-    SPLIT_ITEM:
-        if (pos < 0) len = _string_size(&v[0]) - offset;
-
-        mrbc_value v1 = _mrbc_string_new(_string_cstr(&v[0]) + offset, len);
-        mrbc_array_push(&ret, &v1);
-
-        if (pos < 0) break;
-        offset = pos + sep_len;
-    }
-
-    // remove trailing empty item
-    if (limit==0) {
-        while (1) {
-            int idx = mrbc_array_size(&ret) - 1;
-            if (idx < 0) break;
-
-            mrbc_value v1 = mrbc_array_get(&ret, idx);
-            if (_string_size(&v1) != 0) break;
-
-            mrbc_array_remove(&ret, idx);
-        }
-    }
-
-    if (argc==0 || v[1].tt==MRBC_TT_NIL) {
-        mrbc_string_delete(&sep);
-    }
-#else
-    console_na("case of string#split");
-#endif
-    SET_RETURN(ret);
+    console_na("string#split");
 }
 
 //================================================================
@@ -744,7 +635,7 @@ __GURU__ void
 c_object_printf(mrbc_value v[], int argc)
 {
     c_object_sprintf(v, argc);
-    console_str(VSTR(v));
+    console_str(_data(v));
     SET_NIL_RETURN();
 }
 
@@ -754,9 +645,9 @@ c_object_printf(mrbc_value v[], int argc)
 __GURU__ void
 c_string_lstrip(mrbc_value v[], int argc)
 {
-    mrbc_value ret = mrbc_string_dup(&v[0]);
+    mrbc_value ret = _dup(v);
 
-    mrbc_string_strip(&ret, 0x01);	// 1: left side only
+    _strip(&ret, 0x01);	// 1: left side only
 
     SET_RETURN(ret);
 }
@@ -767,7 +658,7 @@ c_string_lstrip(mrbc_value v[], int argc)
 __GURU__ void
 c_string_lstrip_self(mrbc_value v[], int argc)
 {
-    if (mrbc_string_strip(&v[0], 0x01)==0) {	// 1: left side only
+    if (_strip(v, 0x01)==0) {	// 1: left side only
         SET_RETURN(mrbc_nil_value());
     }
 }
@@ -778,9 +669,9 @@ c_string_lstrip_self(mrbc_value v[], int argc)
 __GURU__ void
 c_string_rstrip(mrbc_value v[], int argc)
 {
-    mrbc_value ret = mrbc_string_dup(&v[0]);
+    mrbc_value ret = _dup(v);
 
-    mrbc_string_strip(&ret, 0x02);	// 2: right side only
+    _strip(&ret, 0x02);							// 2: right side only
 
     SET_RETURN(ret);
 }
@@ -791,7 +682,7 @@ c_string_rstrip(mrbc_value v[], int argc)
 __GURU__ void
 c_string_rstrip_self(mrbc_value v[], int argc)
 {
-    if (mrbc_string_strip(&v[0], 0x02)==0) {	// 2: right side only
+    if (_strip(v, 0x02)==0) {				// 2: right side only
         SET_RETURN(mrbc_nil_value());			// keep refc
     }
 }
@@ -802,10 +693,8 @@ c_string_rstrip_self(mrbc_value v[], int argc)
 __GURU__ void
 c_string_strip(mrbc_value v[], int argc)
 {
-    mrbc_value ret = mrbc_string_dup(&v[0]);
-
-    mrbc_string_strip(&ret, 0x03);	// 3: left and right
-
+    mrbc_value ret = _dup(v);
+    _strip(&ret, 0x03);	// 3: left and right
     SET_RETURN(ret);
 }
 
@@ -815,8 +704,8 @@ c_string_strip(mrbc_value v[], int argc)
 __GURU__ void
 c_string_strip_self(mrbc_value v[], int argc)
 {
-    if (mrbc_string_strip(&v[0], 0x03)==0) {	// 3: left and right
-        SET_RETURN(mrbc_nil_value());			// keep refc
+    if (_strip(v, 0x03)==0) {		// 3: left and right
+        SET_RETURN(mrbc_nil_value());	// keep refc
     }
 }
 
@@ -826,7 +715,7 @@ c_string_strip_self(mrbc_value v[], int argc)
 __GURU__ void
 c_string_to_sym(mrbc_value v[], int argc)
 {
-    SET_RETURN(mrbc_symbol_new(VSTR(&v[0])));
+    SET_RETURN(mrbc_symbol_new(_data(v)));
 }
 
 //================================================================
