@@ -181,7 +181,7 @@ _strip(mrbc_value *v, int mode)
     if (p0 != buf) MEMCPY((uint8_t *)buf, (uint8_t *)p0, new_size);
     buf[new_size] = '\0';
 
-    mrbc_realloc((uint8_t *)buf, new_size+1);	// shrink suitable size.
+    v->str->data = (uint8_t *)mrbc_realloc((uint8_t *)buf, new_size+1);	// shrink suitable size.
     v->str->size = new_size;
 
     return 1;
@@ -245,25 +245,25 @@ mrbc_string_delete(mrbc_value *v)
   @param	mrbc_error_code
 */
 __GURU__ int
-mrbc_string_append(mrbc_value *v1, const mrbc_value *v2)
+mrbc_string_append(mrbc_value *v0, const mrbc_value *v1)
 {
-    int len1 = v1->str->size;
-    int len2 = (v2->tt==MRBC_TT_STRING) ? v2->str->size : 1;
+    int len0 = v0->str->size;
+    int len1 = (v1->tt==MRBC_TT_STRING) ? v1->str->size : 1;
 
-    uint8_t *s = (uint8_t *)mrbc_realloc(v1->str->data, len1+len2+1);		// +'\0'
+    uint8_t *s = (uint8_t *)mrbc_realloc(v0->str->data, len0+len1+1);		// +'\0'
 
     assert(s!=NULL);						// out of memory
     assert(((uintptr_t)s & 7)==0);
 
-    if (v2->tt==MRBC_TT_STRING) {
-        MEMCPY((uint8_t *)s + len1, v2->str->data, len2 + 1);
+    if (v1->tt==MRBC_TT_STRING) {			// append str2
+        MEMCPY((uint8_t *)s + len0, v1->str->data, len1 + 1);
     }
-    else if (v2->tt==MRBC_TT_FIXNUM) {
-        s[len1]   = v2->i;
-        s[len1+1] = '\0';
+    else if (v1->tt==MRBC_TT_FIXNUM) {
+        s[len0]   = v1->i;
+        s[len0+1] = '\0';
     }
-    v1->str->size = len1 + len2;
-    v1->str->data = s;
+    v0->str->size = len0 + len1;
+    v0->str->data = s;
 
     return 0;
 }
@@ -276,20 +276,20 @@ mrbc_string_append(mrbc_value *v1, const mrbc_value *v2)
   @param	mrbc_error_code
 */
 __GURU__ int
-mrbc_string_append_cstr(mrbc_value *v1, const char *v2)
+mrbc_string_append_cstr(mrbc_value *v0, const char *v1)
 {
-    int len1 = v1->str->size;
-    int len2 = STRLEN(v2);
+    int len0 = v0->str->size;
+    int len1 = STRLEN(v1);
 
-    uint8_t *s = (uint8_t *)mrbc_realloc(v1->str->data, len1+len2+1);
+    uint8_t *s = (uint8_t *)mrbc_realloc(v0->str->data, len0+len1+1);
 
     assert(s!=NULL);						// out of memory
     assert(((uintptr_t)s & 7)==0);
 
-    MEMCPY(s + len1, (uint8_t *)v2, len2 + 1);
+    MEMCPY(s + len0, (uint8_t *)v1, len1 + 1);
 
-    v1->str->size = len1 + len2;
-    v1->str->data = s;
+    v0->str->size = len0 + len1;
+    v0->str->data = s;
 
     return 0;
 }
@@ -576,24 +576,37 @@ NIL_RETURN:
 //================================================================
 /*! (method) inspect
  */
+#define BUF_SIZE 80
+
 __GURU__ void
 c_string_inspect(mrbc_value v[], int argc)
 {
-    char buf[10] = "\\x";
-    mrbc_value ret = mrbc_string_new("\"");
-    const unsigned char *s = (const unsigned char *)_data(v);
-  
-    for (int i = 0; i < _size(v); i++) {
+	const char    *hex = "0123456789ABCDEF";
+    const uint8_t *s   = (const uint8_t *)_data(v);
+    mrbc_value    ret  = mrbc_string_new("\"");
+
+    char buf[BUF_SIZE];
+    int  j = 0;
+
+    for (int i=0; i < _size(v); i++) {
         if (s[i] < ' ' || 0x7f <= s[i]) {	// tiny isprint()
-            buf[2] = "0123456789ABCDEF"[s[i] >> 4];
-            buf[3] = "0123456789ABCDEF"[s[i] & 0x0f];
-            mrbc_string_append_cstr(&ret, buf);
-        } else {
-            buf[3] = s[i];
-            mrbc_string_append_cstr(&ret, buf+3);
+        	buf[j++] = '\\';
+        	buf[j++] = 'x';
+            buf[j++] = hex[s[i] >> 4];
+            buf[j++] = hex[s[i] & 0x0f];
         }
+        else {
+        	buf[j++] = s[i];
+        }
+    	if (j > BUF_SIZE-5) {
+    		buf[j++] = '\0';
+    		mrbc_string_append_cstr(&ret, buf);
+    		j = 0;
+    	}
     }
-    mrbc_string_append_cstr(&ret, "\"");
+    buf[j++] = '\"';
+    buf[j]   = '\0';
+    mrbc_string_append_cstr(&ret, buf);
 
     SET_RETURN(ret);
 }

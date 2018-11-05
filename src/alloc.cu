@@ -53,7 +53,7 @@
 #define BLOCK_SLOTS		((L1_BITS + 1) * (1 << L2_BITS))
 
 #define NEXT(p) 		((uint8_t *)(p) + (p)->size)
-#define PREV(p) 		((uint8_t *)(p) - (p)->offset)
+#define PREV(p) 		((uint8_t *)(p) - (p)->psize)
 #define OFF(p0,p1) 		((uint8_t *)(p1) - (uint8_t *)(p0))
 
 // memory pool
@@ -221,8 +221,11 @@ _merge_blocks(free_block *p0, free_block *p1)
     // update block info
     if (p0->tail==FLAG_NOT_TAIL_BLOCK) {
         free_block *next = (free_block *)NEXT(p0);
-        next->offset = OFF(p0, next);
+        next->psize = OFF(p0, next);
     }
+#ifdef MRBC_DEBUG
+    *((uint64_t *)p1) = 0xeeeeeeeeeeeeeeee;
+#endif
 }
 
 __GURU__ void
@@ -246,32 +249,29 @@ _merge_with_next(free_block *target)
   @retval NULL	no split.
   @retval FREE_BLOCK *	pointer to splitted free block.
 */
-__GURU__ free_block*
+__GURU__ void
 _split_free_block(free_block *target, unsigned int size, int merge)
 {
-    if (target->size < (size + sizeof(free_block) + XX_BLOCK)) {
-    	return NULL;	// out of memory!
-    }
+    if (target->size < (size + sizeof(free_block) + XX_BLOCK)) return; // too small to split 											// too small to split
 
     // split block, free
     free_block *free = (free_block *)((uint8_t *)target + size);	// future next block
     free_block *next = (free_block *)NEXT(target);					// current next
 
-    free->size   = target->size - size;
-    free->offset = OFF(target, free);
+    free->size   = target->size - size;								// carve out the block
+    free->psize  = OFF(target, free);
     free->tail   = target->tail;
 
     target->size = size;
     target->tail = FLAG_NOT_TAIL_BLOCK;
 
     if (free->tail==FLAG_NOT_TAIL_BLOCK) {
-        next->offset = OFF(free, next);
+        next->psize = OFF(free, next);
     }
     if (free != NULL) {
     	if (merge) _merge_with_next(free);
     	_mark_free(free);
     }
-    return free;
 }
 
 /*
@@ -307,17 +307,17 @@ __GURU__ void
 _init_mmu(void *mem, unsigned int size)
 {
     assert(size != 0);
-    assert(size <= (mrbc_memsize_t)(~0));
+    assert(size < 0x80000000);		// 2G max
 
     _memory_pool      = (uint8_t *)mem;
     _memory_pool_size = size;
 
     // initialize entire memory pool as the first block
     free_block *block  = (free_block *)_memory_pool;
-    block->tail   = FLAG_TAIL_BLOCK;
-    block->free   = FLAG_FREE_BLOCK;
-    block->size   = _memory_pool_size;
-    block->offset = 0;
+    block->tail = FLAG_TAIL_BLOCK;
+    block->free = FLAG_FREE_BLOCK;
+    block->size = _memory_pool_size;
+    block->prev = 0;
 
     _mark_free(block);
 }
@@ -350,8 +350,7 @@ mrbc_alloc(unsigned int size)
 	int index 			= _get_free_index(alloc_size);
     free_block *target 	= _mark_used(index);
 
-    // split the allocated block
-    if (!_split_free_block(target, alloc_size, 0)) return NULL;	// out of memory?
+    _split_free_block(target, alloc_size, 0);
 
 #ifdef MRBC_DEBUG
     uint8_t *p = BLOCKDATA(target);
@@ -374,31 +373,26 @@ mrbc_realloc(void *ptr, unsigned int size)
     used_block *target    = (used_block *)BLOCKHEAD(ptr);
     int        alloc_size = size + sizeof(free_block);
 
-    // align 4 byte
-    alloc_size += ((8 - alloc_size) & 7);					// CC: 20181030 from 4 to 8-byte align
+    alloc_size += ((8 - alloc_size) & 7);				// CC: 20181030 from 4 to 8-byte align
 
-    // expand part1.
-    // next phys block is free and check enough size?
     if (alloc_size > target->size) {
-    	_merge_with_next((free_block *)target);
+    	_merge_with_next((free_block *)target);					// try to get the block bigger
     }
-    if (alloc_size==target->size) {								// is the size the same now?
-        return ptr;
-    }
-    if (alloc_size < target->size) {							// need to split
+    if (alloc_size==target->size) return ptr;					// same size, good fit
+    if (alloc_size < target->size) {							// a little to big, split if we can
         _split_free_block((free_block *)target, alloc_size, 1);
         return ptr;
     }
 
-    // expand part2. new alloc and deep copy
+    // not big enough block found, new alloc and deep copy
     void *new_ptr = mrbc_alloc(size);
     if (!new_ptr) return NULL;  								// ENOMEM
 
     uint8_t *d = (uint8_t *)new_ptr;
     uint8_t *s = (uint8_t *)ptr;
-    for (int i=0; i < BLOCKSIZE(target); i++) *d++=*s++;
+    for (int i=0; i < size; i++) *d++=*s++;						// deep copy
 
-    mrbc_free(ptr);
+    mrbc_free(ptr);												// reclaim block
 
     return new_ptr;
 }
@@ -411,18 +405,17 @@ mrbc_realloc(void *ptr, unsigned int size)
 __GURU__ void
 mrbc_free(void *ptr)
 {
-    // get target block
-    free_block *target = (free_block *)BLOCKHEAD(ptr);
+    free_block *target = (free_block *)BLOCKHEAD(ptr);	// get block header
     free_block *prev   = (free_block *)PREV(target);
 
     _merge_with_next(target);
 
-    if (prev && prev->free==FLAG_FREE_BLOCK) {	// merge with previous block if free
+    if (prev && prev->free==FLAG_FREE_BLOCK) {			// merge with previous, needed?
     	_remove_index(prev);
     	_merge_blocks(prev, target);
     	target = prev;
     }
-    _mark_free(target);					// target, add to index
+    _mark_free(target);
 }
 
 //================================================================
@@ -453,47 +446,42 @@ mrbc_free_all()
   @param  *fragment	returns memory fragmentation
 */
 __global__ void
-_guru_alloc_stat(int v[])
+guru_alloc_stat(int v[])
 {
 	if (threadIdx.x!=0 || blockIdx.x!=0) return;
 
-    int total = 0;
-    int nfree = 0;
-    int free  = 0;
-    int nused = 0;
-    int used  = 0;
-    int nblk  = 0;
-    int nfrag = 0;
+	int total=0, nfree=0, free=0, nused=0, used=0, nblk=0, nfrag=0;
 
-    used_block *p = (used_block *)_memory_pool;
-    
-    int flag = p->free;
-    while (1) {
-        if (flag != p->free) {       // supposed to be merged
-            nfrag++;
-            flag = p->free;
-        }
+	used_block *p = (used_block *)_memory_pool;
 
-        total += p->size;
-        nblk  += 1;
-        if (p->free==FLAG_FREE_BLOCK) {
-        	nfree += 1;
-        	free  += p->size;
-        }
-        if (p->free==FLAG_USED_BLOCK) {
-        	nused += 1;
-        	used  += p->size;
-        }
+	int flag = p->free;
+	while (1) {
+		if (flag != p->free) {       // supposed to be merged
+			nfrag++;
+			flag = p->free;
+		}
+		total += p->size;
+		nblk  += 1;
+		if (p->free==FLAG_FREE_BLOCK) {
+			nfree += 1;
+			free  += p->size;
+		}
+		if (p->free==FLAG_USED_BLOCK) {
+			nused += 1;
+			used  += p->size;
+		}
+		if (p->tail==FLAG_TAIL_BLOCK) break;
+		p = (used_block *)NEXT(p);
+	}
+	v[0] = total;
+	v[1] = nfree;
+	v[2] = free;
+	v[3] = nused;
+	v[4] = used;
+	v[5] = nblk;
+	v[6] = nfrag;
 
-        if (p->tail==FLAG_TAIL_BLOCK) break;
-
-        p = (used_block *)NEXT(p);
-    }
-    v[0] = total;
-    v[1] = nfree;
-    v[2] = free;
-    v[3] = nused;
-    v[4] = used;
+	__syncthreads();
 }
 
 __global__ void guru_memory_init(void *ptr, unsigned int sz)
@@ -518,16 +506,16 @@ guru_malloc(size_t sz, int type)
 }
 
 __host__ void
-dump_alloc_stat(void)
+guru_dump_alloc_stat(void)
 {
 	int *v;
 	cudaMallocManaged(&v, 8*sizeof(int));
 
-	_guru_alloc_stat<<<1,1>>>(v);
+	guru_alloc_stat<<<1,1>>>(v);
 	cudaDeviceSynchronize();
 
-	printf("\ttotal %d(0x%x)> free=%d(%d), used=%d(%d), %d%% allocated\n",
-				v[0], v[0], v[1], v[2], v[3], v[4], (int)(100*(v[4]+1)/v[0]));
+	printf("\ttotal %d(0x%x)> free=%d(%d), used=%d(%d), nblk=%d, nfrag=%d, %d%% allocated\n",
+				v[0], v[0], v[1], v[2], v[3], v[4], v[5], v[6], (int)(100*(v[4]+1)/v[0]));
 
 	cudaFree(v);
 }

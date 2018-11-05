@@ -21,33 +21,25 @@
 extern "C" {
 #endif
 
-#ifndef mrbc_memsize_t
-#define mrbc_memsize_t     	uint16_t
-#endif
-
 // define flags
 #define FLAG_TAIL_BLOCK     1
 #define FLAG_NOT_TAIL_BLOCK 0
 #define FLAG_FREE_BLOCK     1
 #define FLAG_USED_BLOCK     0
 
-// memory block header
+// 31-bit max memory block header
 typedef struct used_block {
-  uint8_t 				tail;      	//!< FLAG_TAIL_BLOCK or FLAG_NOT_TAIL_BLOCK
-  uint8_t 				free;      	//!< FLAG_FREE_BLOCK or BLOCK_IS_NOT_FREE
-  uint16_t				u;			// align 32
-
-  mrbc_memsize_t 		size;       //!< block size, header included
-  mrbc_memsize_t 		offset; 	//!< offset of previous physical block
+  uint32_t				size:31;    //!< block size, header included
+  uint32_t 				tail:1;     //!< FLAG_TAIL_BLOCK or FLAG_NOT_TAIL_BLOCK
+  uint32_t				psize:31; 	//!< offset of previous physical block
+  uint32_t 				free:1;     //!< FLAG_FREE_BLOCK or BLOCK_IS_NOT_FREE
 } used_block;
 
 typedef struct free_block {
-  uint8_t 				tail;      	//!< FLAG_TAIL_BLOCK or FLAG_NOT_TAIL_BLOCK
-  uint8_t 				free;      	//!< FLAG_FREE_BLOCK or BLOCK_IS_NOT_FREE
-  uint16_t				u;
-
-  mrbc_memsize_t 		size;       //!< block size, header included
-  mrbc_memsize_t 		offset; 	//!< offset of previous physical block
+  uint32_t				size:31;    //!< block size, header included
+  uint32_t 				tail:1;     //!< FLAG_TAIL_BLOCK or FLAG_NOT_TAIL_BLOCK
+  uint32_t				psize:31; 	//!< offset of previous physical block
+  uint32_t 				free:1;     //!< FLAG_FREE_BLOCK or BLOCK_IS_NOT_FREE
 
   struct free_block 	*next;
   struct free_block 	*prev;
@@ -66,7 +58,7 @@ __GURU__ void  mrbc_free_all();
 __global__ void guru_memory_init(void *mem, unsigned int sz);
 
 void *guru_malloc(size_t sz, int mem_type);		// mem_type: 0=>managed, 1=>device
-void dump_alloc_stat(void);
+void guru_dump_alloc_stat(void);
 
 #ifdef __cplusplus
 }

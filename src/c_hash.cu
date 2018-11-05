@@ -498,15 +498,13 @@ c_hash_inspect(mrbc_value v[], int argc)
     for (int i=0; i<n; i++, p+=2) {
         if (i!=0) mrbc_string_append_cstr(&ret, ", ");
 
-        s1 = mrbc_send(v+argc, p, "inspect", 0);
-        rc = s1.self->refc;
+        s1 = mrbc_send(v+argc, p, "inspect", 0);		// key
         mrbc_string_append(&ret, &s1);
         mrbc_string_delete(&s1);						// free locally allocated memory
 
         mrbc_string_append_cstr(&ret, "=>");
 
-        s1 = mrbc_send(v+argc, p+1, "inspect", 0);
-        rc = s1.self->refc;
+        s1 = mrbc_send(v+argc, p+1, "inspect", 0);		// value
         mrbc_string_append(&ret, &s1);
         mrbc_string_delete(&s1);
     }
