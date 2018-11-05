@@ -108,7 +108,7 @@ _load_irep_1(mrbc_irep *irep, const uint8_t **pos)
 
     p += ((uint8_t *)irep - p) & 0x03;	// 32-bit align code pointer
 
-    irep->iseq = (uint8_t *)p;			p += irep->ilen * sizeof(uint32_t);		// ISEQ (code) block
+    irep->iseq = (uint32_t *)p;			p += irep->ilen * sizeof(uint32_t);		// ISEQ (code) block
     irep->plen = _bin_to_uint32(p);		p += sizeof(uint32_t);					// POOL block
 
     // allocate memory for child irep's pointers

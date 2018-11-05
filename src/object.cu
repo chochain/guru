@@ -214,9 +214,9 @@ __GURU__ const char*
 _get_callee(mrbc_vm *vm)
 {
 #if 0
-    uint32_t iseq = _bin_to_uint32(vm->pc_irep->iseq + (vm->pc - 1) * 4);
+    uint32_t code = vm->pc_irep->iseq + vm->pc - 1;
 
-    int rb = GETARG_B(iseq);  // index of method sym
+    int rb = GETARG_B(code);  // index of method sym
 
     return _get_symbol(vm->pc_irep->sym, rb);
 #else

@@ -115,12 +115,12 @@ __GURU__ int
 _set(mrbc_kv *kv, mrbc_sym sym_id, mrbc_value *val)
 {
     int idx = _bsearch(kv, sym_id);
+    mrbc_kv_data *d = kv->data + idx;
     if (idx < 0) {
         idx = 0;
         goto INSERT_VALUE;
     }
     // replace value ?
-    mrbc_kv_data *d = kv->data + idx;
     if (d->sym_id == sym_id) {
         mrbc_release(&d->value);      // CC: was dec_refc 20181101
         d->value = *val;

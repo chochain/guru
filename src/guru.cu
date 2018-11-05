@@ -74,7 +74,7 @@ session_init(guru_ses *ses, const char *rite_fname)
 
 #ifdef MRBC_DEBUG
 	printf("guru session initialized...\n");
-	dump_alloc_stat();
+	guru_dump_alloc_stat();
 #endif
 	return 0;
 }
@@ -87,12 +87,12 @@ session_start(guru_ses *ses)
 		fprintf(stderr, "ERROR: virtual memory block allocation error!\n");
 		return ret;
 	}
-	dump_alloc_stat();
+	guru_dump_alloc_stat();
 	guru_vm_run(ses);
 
 #ifdef MRBC_DEBUG
 	printf("guru_session completed\n");
-	dump_alloc_stat();
+	guru_dump_alloc_stat();
 #endif
 
 	return 0;
