@@ -80,7 +80,9 @@ _vm_exec(mrbc_vm *vm, int step)
 {
 	if (threadIdx.x!=0 || blockIdx.x!=0) return;		// single thread for now
 
-	while (guru_op(vm)==0 && step==0);
+	while (guru_op(vm)==0 && step==0) {
+		// add cuda hook here
+	}
 }
 
 //================================================================
@@ -104,6 +106,7 @@ _mrbc_free_irep(mrbc_irep *irep)
 
     mrbc_free(irep);
 }
+
 __host__ int
 guru_vm_init(guru_ses *ses)
 {
@@ -140,12 +143,13 @@ guru_vm_run(guru_ses *ses)
 
 	// enter the vm loop, potentially with different register files per thread
 	do {
+		guru_dump_regfile(vm);								// debugging
 		_vm_exec<<<1,1>>>(vm, 1);							// 1: single-step
 		cudaDeviceSynchronize();
 
-		// add service hook here
+		// add host hook here
 		guru_console_flush(ses->res);						// dump output buffer
-		guru_dump_regfile(vm);
+		guru_dump_alloc_stat();
 	} while (vm->run && vm->err==0);
 	cudaError rst = cudaGetLastError();
     if (cudaSuccess != rst) {
@@ -191,10 +195,15 @@ static const char *_opcode[] = {
     "ABORT"
 };
 
+//(_bin_to_uint32((vm)->pc_irep->iseq + (vm)->pc * 4))
+//		((i) & 0x7f)
+
 __host__ void
 guru_dump_regfile(mrbc_vm *vm)
 {
-	mrbc_value *v = vm->regfile;
+	uint16_t    opid    = (*(vm->pc_irep->iseq + vm->pc) >> 24) & 0x7f;
+	const char 	*opcode = _opcode[GET_OPCODE(opid)];
+	mrbc_value 	*v 	 	= vm->regfile;
 
 	int last=0;
 	for(int i=0; i<MAX_REGS_SIZE; i++, v++) {
@@ -203,8 +212,8 @@ guru_dump_regfile(mrbc_vm *vm)
 	}
 	v = vm->regfile;
 
-	printf("%s\t[ ", _opcode[vm->opcode]);
-	for (int i=0; i<last; i++, v++) {
+	printf("%s\t[ ", opcode);
+	for (int i=0; i<=last; i++, v++) {
 		printf("%2d.%s", i, _vtype[v->tt]);
 	    if (v->tt >= MRBC_TT_OBJECT) printf("_%d", v->self->refc);
 	    printf(" ");

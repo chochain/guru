@@ -36,7 +36,7 @@ typedef struct Irep {
     uint16_t 	plen;			//!< # of objects in pool
     uint16_t	slen;			//!< # of symbols
 
-    uint8_t     *iseq;			//!< ISEQ (code) BLOCK
+    uint32_t    *iseq;			//!< ISEQ (code) BLOCK
     uint8_t     *sym;			//!< SYMBOL list
 
     mrbc_object **pool;    		//!< array of POOL objects pointer.
@@ -61,9 +61,9 @@ typedef struct Callinfo {
   Virtual Machine
 */
 typedef struct VM {
-    mrbc_irep      *irep;		// pointer to IREP tree
-    mrbc_callinfo  *calltop;
-    mrbc_value     regfile[MAX_REGS_SIZE];
+    mrbc_irep       *irep;		// pointer to IREP tree
+    mrbc_callinfo   *calltop;
+    mrbc_value      regfile[MAX_REGS_SIZE];
 
     // callinfo					// TODO: refactor into calltop linked list
     uint16_t       	pc;         // program counter
@@ -73,7 +73,6 @@ typedef struct VM {
     mrbc_irep      	*pc_irep;   // PC
     struct Callinfo *prev;
 
-    uint16_t	 	opcode;		// debugging
     volatile int8_t run;
     volatile int8_t	err;
 } mrbc_vm;
@@ -89,7 +88,7 @@ void dump_irep(mrbc_irep *irep);
   @param  s	Pointer of memory.
   @return	32bit unsigned value.
 */
-__GURU__ __forceinline__
+__GURU__ __INLINE__
 uint32_t _bin_to_uint32(const void *s)
 {
 #if MRBC_REQUIRE_32BIT_ALIGNMENT
@@ -115,7 +114,7 @@ uint32_t _bin_to_uint32(const void *s)
   @param  s	Pointer of memory.
   @return	16bit unsigned value.
 */
-__GURU__ __forceinline__
+__GURU__ __INLINE__
 uint16_t _bin_to_uint16(const void *s)
 {
 #if MRBC_REQUIRE_32BIT_ALIGNMENT
@@ -136,7 +135,7 @@ uint16_t _bin_to_uint16(const void *s)
   @param  bin Pointer of memory.
   @return sizeof(uint16_t).
 */
-__GURU__ __forceinline__
+__GURU__ __INLINE__
 void _uint16_to_bin(uint16_t s, uint8_t *bin)
 {
     *bin++ = (s >> 8) & 0xff;
@@ -150,7 +149,7 @@ void _uint16_to_bin(uint16_t s, uint8_t *bin)
   @param  bin Pointer of memory.
   @return sizeof(uint32_t).
 */
-__GURU__ __forceinline__
+__GURU__ __INLINE__
 void _uint32_to_bin(uint32_t l, uint8_t *bin)
 {
     *bin++ = (l >> 24) & 0xff;
@@ -159,7 +158,7 @@ void _uint32_to_bin(uint32_t l, uint8_t *bin)
     *bin   = l & 0xff;
 }
 
-#define GET_BYTECODE(vm)	(_bin_to_uint32((vm)->pc_irep->iseq + (vm)->pc * 4))
+#define GET_BYTECODE(vm)	(_bin_to_uint32((vm)->pc_irep->iseq + (vm)->pc))
 
 int guru_vm_init(guru_ses *ses);
 int guru_vm_run(guru_ses *ses);

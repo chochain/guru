@@ -142,7 +142,7 @@ _vm_object_new(mrbc_vm *vm, mrbc_value v[], int argc)
         2,     				// ilen
         0,     				// plen
         0,					// slen
-        (uint8_t *)code,   	// iseq
+        code,   			// iseq
         (uint8_t *)sym,  	// ptr_to_sym
         NULL,  				// object pool
         NULL,  				// irep_list
@@ -832,29 +832,26 @@ op_add(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     if (regs[ra].tt==MRBC_TT_FIXNUM) {
         if (regs[ra+1].tt==MRBC_TT_FIXNUM) {	// in case of Fixnum, Fixnum
             regs[ra].i += regs[ra+1].i;
-            return 0;
         }
 #if MRBC_USE_FLOAT
-        if (regs[ra+1].tt==MRBC_TT_FLOAT) {	// in case of Fixnum, Float
+        else if (regs[ra+1].tt==MRBC_TT_FLOAT) {	// in case of Fixnum, Float
             regs[ra].tt = MRBC_TT_FLOAT;
             regs[ra].f = regs[ra].i + regs[ra+1].f;
-            return 0;
         }
     }
-    if (regs[ra].tt==MRBC_TT_FLOAT) {
+    else if (regs[ra].tt==MRBC_TT_FLOAT) {
         if (regs[ra+1].tt==MRBC_TT_FIXNUM) {	// in case of Float, Fixnum
             regs[ra].f += regs[ra+1].i;
-            return 0;
         }
-        if (regs[ra+1].tt==MRBC_TT_FLOAT) {	// in case of Float, Float
+        else if (regs[ra+1].tt==MRBC_TT_FLOAT) {	// in case of Float, Float
             regs[ra].f += regs[ra+1].f;
-            return 0;
         }
 #endif
     }
-    // other case
-    op_send(vm, code, regs);
-
+    else {    	// other case
+    	op_send(vm, code, regs);
+    }
+	mrbc_release(&regs[ra+1]);
     return 0;
 }
 
@@ -876,16 +873,15 @@ op_addi(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 
     if (regs[ra].tt==MRBC_TT_FIXNUM) {
         regs[ra].i += GETARG_C(code);
-        return 0;
     }
-
 #if MRBC_USE_FLOAT
-    if (regs[ra].tt==MRBC_TT_FLOAT) {
+    else if (regs[ra].tt==MRBC_TT_FLOAT) {
         regs[ra].f += GETARG_C(code);
-        return 0;
     }
 #else
-    console_na("Float class");
+    else {
+    	console_na("Float class");
+    }
 #endif
     return 0;
 }
@@ -909,31 +905,28 @@ op_sub(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     if (regs[ra].tt==MRBC_TT_FIXNUM) {
         if (regs[ra+1].tt==MRBC_TT_FIXNUM) {	// in case of Fixnum, Fixnum
             regs[ra].i -= regs[ra+1].i;
-            return 0;
         }
 #if MRBC_USE_FLOAT
-        if (regs[ra+1].tt==MRBC_TT_FLOAT) {		// in case of Fixnum, Float
+        else if (regs[ra+1].tt==MRBC_TT_FLOAT) {		// in case of Fixnum, Float
             regs[ra].tt = MRBC_TT_FLOAT;
             regs[ra].f = regs[ra].i - regs[ra+1].f;
-            return 0;
         }
     }
-    if (regs[ra].tt==MRBC_TT_FLOAT) {
+    else if (regs[ra].tt==MRBC_TT_FLOAT) {
         if (regs[ra+1].tt==MRBC_TT_FIXNUM) {	// in case of Float, Fixnum
             regs[ra].f -= regs[ra+1].i;
-            return 0;
         }
-        if (regs[ra+1].tt==MRBC_TT_FLOAT) {		// in case of Float, Float
+        else if (regs[ra+1].tt==MRBC_TT_FLOAT) {		// in case of Float, Float
             regs[ra].f -= regs[ra+1].f;
-            return 0;
         }
 #endif
     }
-    // other case
-    op_send(vm, code, regs);
-    mrbc_release(&regs[ra+1]);
+    else {  // other case
+    	op_send(vm, code, regs);
+    }
+	mrbc_release(&regs[ra+1]);
 
-    return 0;
+	return 0;
 }
 
 //================================================================
@@ -954,18 +947,16 @@ op_subi(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 
     if (regs[ra].tt==MRBC_TT_FIXNUM) {
         regs[ra].i -= GETARG_C(code);
-        return 0;
     }
-
 #if MRBC_USE_FLOAT
-    if (regs[ra].tt==MRBC_TT_FLOAT) {
+    else if (regs[ra].tt==MRBC_TT_FLOAT) {
         regs[ra].f -= GETARG_C(code);
-        return 0;
     }
 #else
-    console_na("Float class");
+    else {
+    	console_na("Float class");
+    }
 #endif
-
     return 0;
 }
 
@@ -988,28 +979,25 @@ op_mul(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     if (regs[ra].tt==MRBC_TT_FIXNUM) {
         if (regs[ra+1].tt==MRBC_TT_FIXNUM) {	// in case of Fixnum, Fixnum
             regs[ra].i *= regs[ra+1].i;
-            return 0;
         }
 #if MRBC_USE_FLOAT
-        if (regs[ra+1].tt==MRBC_TT_FLOAT) {	// in case of Fixnum, Float
+        else if (regs[ra+1].tt==MRBC_TT_FLOAT) {	// in case of Fixnum, Float
             regs[ra].tt = MRBC_TT_FLOAT;
             regs[ra].f = regs[ra].i * regs[ra+1].f;
-            return 0;
         }
     }
-    if (regs[ra].tt==MRBC_TT_FLOAT) {
+    else if (regs[ra].tt==MRBC_TT_FLOAT) {
         if (regs[ra+1].tt==MRBC_TT_FIXNUM) {	// in case of Float, Fixnum
             regs[ra].f *= regs[ra+1].i;
-            return 0;
         }
-        if (regs[ra+1].tt==MRBC_TT_FLOAT) {	// in case of Float, Float
+        else if (regs[ra+1].tt==MRBC_TT_FLOAT) {	// in case of Float, Float
             regs[ra].f *= regs[ra+1].f;
-            return 0;
         }
 #endif
     }
-    // other case
-    op_send(vm, code, regs);
+    else {   // other case
+    	op_send(vm, code, regs);
+    }
     mrbc_release(&regs[ra+1]);
 
     return 0;
@@ -1034,28 +1022,25 @@ op_div(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     if (regs[ra].tt==MRBC_TT_FIXNUM) {
         if (regs[ra+1].tt==MRBC_TT_FIXNUM) {	// in case of Fixnum, Fixnum
             regs[ra].i /= regs[ra+1].i;
-            return 0;
         }
 #if MRBC_USE_FLOAT
-        if (regs[ra+1].tt==MRBC_TT_FLOAT) {		// in case of Fixnum, Float
+        else if (regs[ra+1].tt==MRBC_TT_FLOAT) {		// in case of Fixnum, Float
             regs[ra].tt = MRBC_TT_FLOAT;
             regs[ra].f = regs[ra].i / regs[ra+1].f;
-            return 0;
         }
     }
-    if (regs[ra].tt==MRBC_TT_FLOAT) {
+    else if (regs[ra].tt==MRBC_TT_FLOAT) {
         if (regs[ra+1].tt==MRBC_TT_FIXNUM) {	// in case of Float, Fixnum
             regs[ra].f /= regs[ra+1].i;
-            return 0;
         }
-        if (regs[ra+1].tt==MRBC_TT_FLOAT) {		// in case of Float, Float
+        else if (regs[ra+1].tt==MRBC_TT_FLOAT) {		// in case of Float, Float
             regs[ra].f /= regs[ra+1].f;
-            return 0;
         }
 #endif
     }
-    // other case
-    op_send(vm, code, regs);
+    else {   // other case
+    	op_send(vm, code, regs);
+    }
     mrbc_release(&regs[ra+1]);
 
     return 0;
@@ -1105,33 +1090,30 @@ op_lt(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     if (regs[ra].tt==MRBC_TT_FIXNUM) {
         if (regs[ra+1].tt==MRBC_TT_FIXNUM) {
             result = regs[ra].i < regs[ra+1].i;	// in case of Fixnum, Fixnum
-            goto DONE;
+            regs[ra].tt = result ? MRBC_TT_TRUE : MRBC_TT_FALSE;
         }
 #if MRBC_USE_FLOAT
-        if (regs[ra+1].tt==MRBC_TT_FLOAT) {
+        else if (regs[ra+1].tt==MRBC_TT_FLOAT) {
             result = regs[ra].i < regs[ra+1].f;	// in case of Fixnum, Float
-            goto DONE;
+            regs[ra].tt = result ? MRBC_TT_TRUE : MRBC_TT_FALSE;
         }
     }
-    if (regs[ra].tt==MRBC_TT_FLOAT) {
+    else if (regs[ra].tt==MRBC_TT_FLOAT) {
         if (regs[ra+1].tt==MRBC_TT_FIXNUM) {
             result = regs[ra].f < regs[ra+1].i;	// in case of Float, Fixnum
-            goto DONE;
+            regs[ra].tt = result ? MRBC_TT_TRUE : MRBC_TT_FALSE;
         }
-        if (regs[ra+1].tt==MRBC_TT_FLOAT) {
+        else if (regs[ra+1].tt==MRBC_TT_FLOAT) {
             result = regs[ra].f < regs[ra+1].f;	// in case of Float, Float
-            goto DONE;
+            regs[ra].tt = result ? MRBC_TT_TRUE : MRBC_TT_FALSE;
         }
 #endif
     }
-    // other case
-    op_send(vm, code, regs);
+    else {	// other case
+    	op_send(vm, code, regs);
+    }
     mrbc_release(&regs[ra+1]);
 
-    return 0;
-
-DONE:
-    regs[ra].tt = result ? MRBC_TT_TRUE : MRBC_TT_FALSE;
     return 0;
 }
 
@@ -1155,33 +1137,30 @@ op_le(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     if (regs[ra].tt==MRBC_TT_FIXNUM) {
         if (regs[ra+1].tt==MRBC_TT_FIXNUM) {
             result = regs[ra].i <= regs[ra+1].i;	// in case of Fixnum, Fixnum
-            goto DONE;
+            regs[ra].tt = result ? MRBC_TT_TRUE : MRBC_TT_FALSE;
         }
 #if MRBC_USE_FLOAT
-        if (regs[ra+1].tt==MRBC_TT_FLOAT) {
+        else if (regs[ra+1].tt==MRBC_TT_FLOAT) {
             result = regs[ra].i <= regs[ra+1].f;	// in case of Fixnum, Float
-            goto DONE;
+            regs[ra].tt = result ? MRBC_TT_TRUE : MRBC_TT_FALSE;
         }
     }
-    if (regs[ra].tt==MRBC_TT_FLOAT) {
+    else if (regs[ra].tt==MRBC_TT_FLOAT) {
         if (regs[ra+1].tt==MRBC_TT_FIXNUM) {
             result = regs[ra].f <= regs[ra+1].i;	// in case of Float, Fixnum
-            goto DONE;
+            regs[ra].tt = result ? MRBC_TT_TRUE : MRBC_TT_FALSE;
         }
-        if (regs[ra+1].tt==MRBC_TT_FLOAT) {
+        else if (regs[ra+1].tt==MRBC_TT_FLOAT) {
             result = regs[ra].f <= regs[ra+1].f;	// in case of Float, Float
-            goto DONE;
+            regs[ra].tt = result ? MRBC_TT_TRUE : MRBC_TT_FALSE;
         }
 #endif
     }
-    // other case
-    op_send(vm, code, regs);
+    else {    // other case
+    	op_send(vm, code, regs);
+    }
     mrbc_release(&regs[ra+1]);
 
-    return 0;
-
-DONE:
-    regs[ra].tt = result ? MRBC_TT_TRUE : MRBC_TT_FALSE;
     return 0;
 }
 
@@ -1205,33 +1184,30 @@ op_gt(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     if (regs[ra].tt==MRBC_TT_FIXNUM) {
         if (regs[ra+1].tt==MRBC_TT_FIXNUM) {
             result = regs[ra].i > regs[ra+1].i;	// in case of Fixnum, Fixnum
-            goto DONE;
+            regs[ra].tt = result ? MRBC_TT_TRUE : MRBC_TT_FALSE;
         }
 #if MRBC_USE_FLOAT
-        if (regs[ra+1].tt==MRBC_TT_FLOAT) {
+        else if (regs[ra+1].tt==MRBC_TT_FLOAT) {
             result = regs[ra].i > regs[ra+1].f;	// in case of Fixnum, Float
-            goto DONE;
+            regs[ra].tt = result ? MRBC_TT_TRUE : MRBC_TT_FALSE;
         }
     }
-    if (regs[ra].tt==MRBC_TT_FLOAT) {
+    else if (regs[ra].tt==MRBC_TT_FLOAT) {
         if (regs[ra+1].tt==MRBC_TT_FIXNUM) {
             result = regs[ra].f > regs[ra+1].i;	// in case of Float, Fixnum
-            goto DONE;
+            regs[ra].tt = result ? MRBC_TT_TRUE : MRBC_TT_FALSE;
         }
-        if (regs[ra+1].tt==MRBC_TT_FLOAT) {
+        else if (regs[ra+1].tt==MRBC_TT_FLOAT) {
             result = regs[ra].f > regs[ra+1].f;	// in case of Float, Float
-            goto DONE;
+            regs[ra].tt = result ? MRBC_TT_TRUE : MRBC_TT_FALSE;
         }
 #endif
     }
-    // other case
-    op_send(vm, code, regs);
+    else {    // other case
+    	op_send(vm, code, regs);
+    }
     mrbc_release(&regs[ra+1]);
 
-    return 0;
-
-DONE:
-    regs[ra].tt = result ? MRBC_TT_TRUE : MRBC_TT_FALSE;
     return 0;
 }
 
@@ -1255,33 +1231,30 @@ op_ge(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     if (regs[ra].tt==MRBC_TT_FIXNUM) {
         if (regs[ra+1].tt==MRBC_TT_FIXNUM) {
             result = regs[ra].i >= regs[ra+1].i;	// in case of Fixnum, Fixnum
-            goto DONE;
+            regs[ra].tt = result ? MRBC_TT_TRUE : MRBC_TT_FALSE;
         }
 #if MRBC_USE_FLOAT
-        if (regs[ra+1].tt==MRBC_TT_FLOAT) {
+        else if (regs[ra+1].tt==MRBC_TT_FLOAT) {
             result = regs[ra].i >= regs[ra+1].f;	// in case of Fixnum, Float
-            goto DONE;
+            regs[ra].tt = result ? MRBC_TT_TRUE : MRBC_TT_FALSE;
         }
     }
-    if (regs[ra].tt==MRBC_TT_FLOAT) {
+    else if (regs[ra].tt==MRBC_TT_FLOAT) {
         if (regs[ra+1].tt==MRBC_TT_FIXNUM) {
             result = regs[ra].f >= regs[ra+1].i;	// in case of Float, Fixnum
-            goto DONE;
+            regs[ra].tt = result ? MRBC_TT_TRUE : MRBC_TT_FALSE;
         }
-        if (regs[ra+1].tt==MRBC_TT_FLOAT) {
+        else if (regs[ra+1].tt==MRBC_TT_FLOAT) {
             result = regs[ra].f >= regs[ra+1].f;	// in case of Float, Float
-            goto DONE;
+            regs[ra].tt = result ? MRBC_TT_TRUE : MRBC_TT_FALSE;
         }
 #endif
     }
-    // other case
-    op_send(vm, code, regs);
+    else { // other case
+    	op_send(vm, code, regs);
+    }
     mrbc_release(&regs[ra+1]);
 
-    return 0;
-
-DONE:
-    regs[ra].tt = result ? MRBC_TT_TRUE : MRBC_TT_FALSE;
     return 0;
 }
 
@@ -1658,12 +1631,12 @@ op_abort(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 __GURU__ int
 guru_op(mrbc_vm *vm)
 {
-	mrbc_value *regs  = vm->reg;
 	uint32_t   code   = GET_BYTECODE(vm);
-	int        opcode = vm->opcode = GET_OPCODE(code);		// keep current opcode for debugging
+	int        opcode = GET_OPCODE(code);
+	mrbc_value *regs  = vm->reg;
 	int ret;
 
-    vm->pc++;
+    vm->pc++;		// advance program counter, ready for next cycle
     switch (opcode) {
     // LOAD,STORE
     case OP_LOADL:      ret = op_loadl     (vm, code, regs); break;
