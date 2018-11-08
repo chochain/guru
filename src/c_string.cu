@@ -349,7 +349,7 @@ c_string_mul(mrbc_value v[], int argc)
         MEMCPY((uint8_t *)p, (uint8_t *)_data(v), _size(v));
         p += _size(v);
     }
-    *p = 0;
+    *p = '\0';
 
     SET_RETURN(ret);
 }
@@ -422,7 +422,8 @@ c_string_slice(mrbc_value v[], int argc)
             if (idx < len) {
                 ch = *(v->str->data + idx);
             }
-        } else {
+        }
+        else {
             idx += len;
             if (idx >= 0) {
                 ch = *(v->str->data + idx);
@@ -509,6 +510,8 @@ c_string_insert(mrbc_value v[], int argc)
     v->str->size = len1 + len2 - len;
 
     v->str->data = str;
+
+    mrbc_release(v+1);
 }
 
 //================================================================
@@ -566,10 +569,12 @@ c_string_index(mrbc_value v[], int argc)
     index = _index(v, v+1, offset);
     if (index < 0) goto NIL_RETURN;
 
+    mrbc_release(v+1);
     SET_INT_RETURN(index);
     return;
 
 NIL_RETURN:
+	mrbc_release(v+1);
     SET_NIL_RETURN();
 }
 
@@ -582,30 +587,29 @@ __GURU__ void
 c_string_inspect(mrbc_value v[], int argc)
 {
 	const char    *hex = "0123456789ABCDEF";
-    const uint8_t *s   = (const uint8_t *)_data(v);
     mrbc_value    ret  = mrbc_string_new("\"");
 
     char buf[BUF_SIZE];
-    int  j = 0;
+    char *p = buf, *s = (char *)_data(v);
 
-    for (int i=0; i < _size(v); i++) {
-        if (s[i] < ' ' || 0x7f <= s[i]) {	// tiny isprint()
-        	buf[j++] = '\\';
-        	buf[j++] = 'x';
-            buf[j++] = hex[s[i] >> 4];
-            buf[j++] = hex[s[i] & 0x0f];
+    for (int i=0; i < _size(v); i++, s++) {
+        if (*s >= ' ' && *s < 0x80) {
+        	*p++ = *s;
         }
-        else {
-        	buf[j++] = s[i];
+        else {							// tiny isprint()
+        	*p++ = '\\';
+        	*p++ = 'x';
+            *p++ = hex[*s >> 4];
+            *p++ = hex[*s & 0x0f];
         }
-    	if (j > BUF_SIZE-5) {
-    		buf[j++] = '\0';
+    	if ((p-buf) > BUF_SIZE-5) {			// flush buffer
+    		*p = '\0';
     		mrbc_string_append_cstr(&ret, buf);
-    		j = 0;
+    		p = buf;
     	}
     }
-    buf[j++] = '\"';
-    buf[j]   = '\0';
+    *p++ = '\"';
+    *p   = '\0';
     mrbc_string_append_cstr(&ret, buf);
 
     SET_RETURN(ret);
@@ -637,7 +641,9 @@ c_object_sprintf(mrbc_value v[], int argc)
 {
 	char buf[20];
 	const char *str = guru_vprintf(buf, "<#%s:%08x>", v, argc);
-
+	for (int i=1; i<=argc; i++) {
+		mrbc_release(v+i);
+	}
     SET_RETURN(mrbc_string_new(str));
 }
 
