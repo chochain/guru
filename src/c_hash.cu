@@ -84,14 +84,14 @@ _search(const mrbc_value v[], const mrbc_value *key)
     int         n = _size(v);
 
 #ifdef MRBC_HASH_SEARCH_LINER
-    for (int i=0; i < n; i+=2, p+=2) {
+    for (int i=0; i < n; i++, p+=2) {
         if (mrbc_compare(p, key)==0) return p;
     }
     return NULL;
 #endif
 
 #ifdef MRBC_HASH_SEARCH_LINER_ITERATOR
-    for (int i=0; i < n; i+=2, p+=2) {
+    for (int i=0; i < n; i++, p+=2) {
         if (mrbc_compare(p, key)==0) return p;
     }
     return NULL;
@@ -111,8 +111,7 @@ _set(mrbc_value *kv, mrbc_value *key, mrbc_value *val)
 {
     mrbc_value *v = _search(kv, key);
     int ret = 0;
-    if (v==NULL) {
-        // set a new value
+    if (v==NULL) {				// key not found, create new kv pair
         if ((ret = mrbc_array_push(kv, key)) != 0) return ret;
         ret = mrbc_array_push(kv, val);
     }
@@ -139,11 +138,7 @@ _get(mrbc_value *kv, mrbc_value *key)
 {
     mrbc_value *v = _search(kv, key);
 
-    if (v) {
-    	mrbc_retain(++v);		// CC: added 20181101, inc_ref the value
-    	return *v;
-    }
-    else return mrbc_nil_value();
+    return v ? *(v+1) : mrbc_nil_value();
 }
 
 //================================================================
@@ -159,8 +154,8 @@ _remove(mrbc_value *kv, mrbc_value *key)
     mrbc_value *v = _search(kv, key);
     if (v==NULL) return mrbc_nil_value();
 
-    mrbc_release(v);				// CC: was dec_refc 20181101
-    mrbc_value ret = v[1];			// value
+    mrbc_release(v);						// CC: was dec_refc 20181101
+    mrbc_value ret = *(v+1);				// value
     mrbc_hash  *h  = kv->hash;
     h->n -= 2;
 
@@ -243,11 +238,12 @@ mrbc_hash_delete(mrbc_value *kv)
 __GURU__ int
 mrbc_hash_compare(const mrbc_value *v0, const mrbc_value *v1)
 {
-    if (_size(v0) != _size(v1)) return 1;
+	int n0 = _size(v0);
+    if (n0 != _size(v1)) return 1;
 
     mrbc_value *p0 = _data(v0);
-    for (int i = 0; i < _size(v0); i++, p0+=2) {
-        mrbc_value *p1 = _search(v1, p0);	// check key
+    for (int i = 0; i < n0; i++, p0+=2) {
+        mrbc_value *p1 = _search(v1, p0);		// check key
         if (p1==NULL) return 1;
         if (mrbc_compare(p0+1, p1+1)) return 1;	// check data
     }
@@ -298,6 +294,7 @@ c_hash_get(mrbc_value v[], int argc)
         return;	// raise ArgumentError.
     }
     SET_RETURN(_get(v, v+1));
+    mrbc_release(v+1);
 }
 
 //================================================================
@@ -306,11 +303,13 @@ c_hash_get(mrbc_value v[], int argc)
 __GURU__ void
 c_hash_set(mrbc_value v[], int argc)
 {
+	mrbc_value ret = v[2];
     if (argc != 2) {
     	assert(argc!=2);
         return;				// raise ArgumentError.
     }
-    _set(v, v+1, v+2);	// k + v
+    _set(v, v+1, v+2);		// k + v
+    SET_RETURN(ret);
 }
 
 
@@ -482,31 +481,33 @@ _hrfc(mrbc_value *str, mrbc_value *v)
 	mrbc_string_append_cstr(str, buf);
 }
 
+#define BUF_SIZE 80
+
 __GURU__ void
 c_hash_inspect(mrbc_value v[], int argc)
 {
-    mrbc_value ret = mrbc_string_new("{");
+    mrbc_value blank = mrbc_string_new("");
+    mrbc_value comma = mrbc_string_new(", ");
+    mrbc_value ret   = mrbc_string_new("{");
     if (!ret.str) {
     	SET_NIL_RETURN();
     	return;
     }
 
-    int rc;
-    mrbc_value s1;
+    char buf[BUF_SIZE];
+    mrbc_value s[3];
     mrbc_value *p = _data(v);
     int         n = _size(v);
     for (int i=0; i<n; i++, p+=2) {
-        if (i!=0) mrbc_string_append_cstr(&ret, ", ");
+    	s[0] = (i==0) ? blank : comma;
+        s[1] = mrbc_send(v+argc, p,   "inspect", 0);		// key
+        s[2] = mrbc_send(v+argc, p+1, "inspect", 0);		// value
 
-        s1 = mrbc_send(v+argc, p, "inspect", 0);		// key
-        mrbc_string_append(&ret, &s1);
-        mrbc_string_delete(&s1);						// free locally allocated memory
+        guru_vprintf(buf, "%s%s=>%s", s, 3);
+        mrbc_string_append_cstr(&ret, buf);
 
-        mrbc_string_append_cstr(&ret, "=>");
-
-        s1 = mrbc_send(v+argc, p+1, "inspect", 0);		// value
-        mrbc_string_append(&ret, &s1);
-        mrbc_string_delete(&s1);
+        mrbc_release(&s[1]);								// free locally allocated memory
+        mrbc_release(&s[2]);
     }
     mrbc_string_append_cstr(&ret, "}");
 

@@ -86,13 +86,12 @@ mrbc_send(mrbc_value v[], mrbc_value *rcv, const char *method, int argc, ...)
     }
 
     // create call stack.
-    // mrbc_release(&regs[0]);		// CC: removed 20181105
     regs[0] = *rcv;					// create call stack, start with receiver object
-    // mrbc_retain(rcv);			// CC: removed 20181105
+    mrbc_retain(rcv);				// CC: removed 20181105, added back 20181108
 
     va_list ap;						// setup calling registers
     va_start(ap, argc);
-    for (int i = 1; i <= argc+1; i++) {
+    for (int i = 1; i <= argc; i++) {
     	mrbc_release(&regs[i]);
         regs[i] = (i>argc) ? mrbc_nil_value() : *va_arg(ap, mrbc_value *);
     }

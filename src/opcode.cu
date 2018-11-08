@@ -658,12 +658,10 @@ op_send(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     int bidx = ra + rc + 1;
     switch(GET_OPCODE(code)) {
     case OP_SEND:
-        // set nil
-        mrbc_release(&regs[bidx]);
+//        mrbc_release(&regs[bidx]);
         regs[bidx].tt = MRBC_TT_NIL;
         break;
-    case OP_SENDB:
-        // set Proc object
+    case OP_SENDB:						// set Proc object
         if (regs[bidx].tt != MRBC_TT_NIL && regs[bidx].tt != MRBC_TT_PROC){
             // TODO: fix the following behavior
             // convert to Proc ?
@@ -849,9 +847,9 @@ op_add(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 #endif
     }
     else {    	// other case
-    	op_send(vm, code, regs);
+    	op_send(vm, code, regs);		// should have already released regs[ra + n], ...
     }
-	mrbc_release(&regs[ra+1]);
+	// mrbc_release(&regs[ra+1]);		//  CC: removed 20181108
     return 0;
 }
 
@@ -924,7 +922,7 @@ op_sub(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     else {  // other case
     	op_send(vm, code, regs);
     }
-	mrbc_release(&regs[ra+1]);
+//	mrbc_release(&regs[ra+1]);					// CC: removed 20181108
 
 	return 0;
 }
@@ -998,7 +996,7 @@ op_mul(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     else {   // other case
     	op_send(vm, code, regs);
     }
-    mrbc_release(&regs[ra+1]);
+//    mrbc_release(&regs[ra+1]);		// CC: removed 20181108
 
     return 0;
 }
@@ -1041,7 +1039,7 @@ op_div(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     else {   // other case
     	op_send(vm, code, regs);
     }
-    mrbc_release(&regs[ra+1]);
+    // mrbc_release(&regs[ra+1]);				// CC: removed 20181108
 
     return 0;
 }
@@ -1112,7 +1110,7 @@ op_lt(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     else {	// other case
     	op_send(vm, code, regs);
     }
-    mrbc_release(&regs[ra+1]);
+    // mrbc_release(&regs[ra+1]);		// CC: removed 20181108
 
     return 0;
 }
@@ -1159,7 +1157,7 @@ op_le(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     else {    // other case
     	op_send(vm, code, regs);
     }
-    mrbc_release(&regs[ra+1]);
+    // mrbc_release(&regs[ra+1]);			// CC: removed 20181108
 
     return 0;
 }
@@ -1206,7 +1204,7 @@ op_gt(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     else {    // other case
     	op_send(vm, code, regs);
     }
-    mrbc_release(&regs[ra+1]);
+    // mrbc_release(&regs[ra+1]);		// CC: removed 20181108
 
     return 0;
 }
@@ -1253,7 +1251,7 @@ op_ge(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     else { // other case
     	op_send(vm, code, regs);
     }
-    mrbc_release(&regs[ra+1]);
+    // mrbc_release(&regs[ra+1]);		// CC: removed 20181108
 
     return 0;
 }
@@ -1386,12 +1384,14 @@ op_hash(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     mrbc_hash  *h  = ret.hash;
     if (h==NULL) return vm->err = -1;	// ENOMEM
 
-    rc *= 2;
-    MEMCPY((uint8_t *)h->data, (uint8_t *)&regs[rb], sizeof(mrbc_value) * rc);
-    MEMSET((uint8_t *)&regs[rb], 0, sizeof(mrbc_value) * rc);
-    h->n = rc;
+    mrbc_value  *p = regs + rb;
+    int 		sz = sizeof(mrbc_value) * (rc<<1);		// size of k,v pairs
+    MEMCPY((uint8_t *)h->data, (uint8_t *)p, sz);		// copy k,v pairs
 
-    _RESET_REG(&regs[ra], ret);
+    for (int i=0; i<(h->n=(rc<<1)); i++, p++) {
+    	p->tt = MRBC_TT_EMPTY;							// clean up call stack
+    }
+    _RESET_REG(&regs[ra], ret);							// set return value on stack top
 #else
     console_na("Hash class");
 #endif
