@@ -231,7 +231,11 @@ __GURU__ mrbc_value
 mrbc_instance_getiv(mrbc_object *obj, mrbc_sym sym_id)
 {
     mrbc_value *v = _get(obj->self->ivar, sym_id);
-    return (v) ? *v : mrbc_nil_value();
+
+    if (!v) return mrbc_nil_value();
+
+    mrbc_retain(v);
+    return *v;
 }
 
 

@@ -116,12 +116,10 @@ _set(mrbc_value *kv, mrbc_value *key, mrbc_value *val)
         ret = mrbc_array_push(kv, val);
     }
     else {
-    	mrbc_release(v);		// CC: added 20181101
-        mrbc_release(v+1);		// CC: added 20181101
+    	mrbc_release(v);       // CC: was dec_refc 20181101
+    	mrbc_release(v+1);     // CC: was dec_refc 20181101
         *(v)   = *key;
         *(v+1) = *val;
-        mrbc_retain(key);		// CC: added 20181101
-        mrbc_retain(val);		// CC: added 20181101
     }
     return ret;
 }
@@ -293,8 +291,9 @@ c_hash_get(mrbc_value v[], int argc)
     	assert(argc!=1);
         return;	// raise ArgumentError.
     }
-    SET_RETURN(_get(v, v+1));
-    mrbc_release(v+1);
+    mrbc_value ret = _get(v, v+1);
+    mrbc_retain(&ret);
+    SET_RETURN(ret);
 }
 
 //================================================================
@@ -391,6 +390,7 @@ c_hash_key(mrbc_value v[], int argc)
     int         n = _size(v);
     for (int i=0; i<n; i++, p+=2) {
         if (mrbc_compare(p+1, v+1)==0) {
+            mrbc_retain(p);
             SET_RETURN(*p);
             return;
         }

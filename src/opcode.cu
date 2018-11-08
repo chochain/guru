@@ -33,7 +33,9 @@
 #include "c_hash.h"
 #endif
 
-#define _RESET_REG(v, n) do { mrbc_release(v); *(v) = (n); } while (0)	// replace register content
+#define _RA_X(r)    do { mrbc_release(&regs[ra]); regs[ra] = *(r); mrbc_retain(r);  } while (0)
+#define _RA_V(v)    do { mrbc_release(&regs[ra]); regs[ra] = (v); } while (0)
+#define _RA_T(t, e) do { mrbc_release(&regs[ra]); regs[ra].tt = (t); regs[ra].e; } while (0)
 
 //================================================================
 /*!@brief
@@ -154,9 +156,9 @@ _vm_object_new(mrbc_vm *vm, mrbc_value v[], int argc)
     // context switch, which is not multi-thread ready
     // TODO: create a vm context object with separate regfile
     uint16_t    pc0 		= vm->pc;
-    mrbc_class* klass0		= vm->klass;
     mrbc_value* reg0 	 	= vm->reg;
     mrbc_irep 	*pc_irep0 	= vm->pc_irep;
+//    mrbc_class* klass0		= vm->klass;    // not used?
 
     vm->pc 		= 0;
     vm->pc_irep = &irep;
@@ -205,8 +207,7 @@ op_move(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     int ra = GETARG_A(code);
     int rb = GETARG_B(code);
 
-    _RESET_REG(&regs[ra], regs[rb]);
-    mrbc_retain(&regs[rb]);
+    _RA_X(&regs[rb]);                  // swap ra <= rb
 
     return 0;
 }
@@ -231,7 +232,8 @@ op_loadl(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     // regs[ra] = vm->pc_irep->pool[rb];
 
     mrbc_object *obj = vm->pc_irep->pool[rb];
-    _RESET_REG(&regs[ra], *obj);
+    
+    _RA_V(*obj);
 
     return 0;
 }
@@ -252,8 +254,7 @@ op_loadi(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 {
     int ra = GETARG_A(code);
 
-    regs[ra].tt = MRBC_TT_FIXNUM;
-    regs[ra].i = GETARG_sBx(code);
+    _RA_T(MRBC_TT_FIXNUM, i=GETARG_sBx(code));
 
     return 0;
 }
@@ -275,8 +276,7 @@ op_loadsym(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     int ra = GETARG_A(code);
     int rb = GETARG_Bx(code);
 
-    regs[ra].tt = MRBC_TT_SYMBOL;
-    regs[ra].i = _get_symid(vm->pc_irep->sym, rb);
+    _RA_T(MRBC_TT_SYMBOL, i=_get_symid(vm->pc_irep->sym, rb));
 
     return 0;
 }
@@ -297,7 +297,7 @@ op_loadnil(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 {
     int ra = GETARG_A(code);
 
-    regs[ra].tt = MRBC_TT_NIL;
+    _RA_T(MRBC_TT_NIL, i=0);
 
     return 0;
 }
@@ -318,8 +318,7 @@ op_loadself(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 {
     int ra = GETARG_A(code);
 
-    _RESET_REG(&regs[ra], regs[0]);
-    mrbc_retain(&regs[0]);       // TODO: Need?
+    _RA_X(&regs[0]);                   // ra <= vm
 
     return 0;
 }
@@ -340,7 +339,7 @@ op_loadt(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 {
     int ra = GETARG_A(code);
 
-    regs[ra].tt = MRBC_TT_TRUE;
+    _RA_T(MRBC_TT_TRUE, i=0);
 
     return 0;
 }
@@ -361,7 +360,7 @@ op_loadf(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 {
     int ra = GETARG_A(code);
 
-    regs[ra].tt = MRBC_TT_FALSE;
+    _RA_T(MRBC_TT_FALSE, i=0);
 
     return 0;
 }
@@ -384,7 +383,7 @@ op_getglobal(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     int rb = GETARG_Bx(code);
 
     mrbc_value v = global_object_get(_get_symid(vm->pc_irep->sym, rb));
-    _RESET_REG(&regs[ra], v);
+    _RA_V(v);
 
     return 0;
 }
@@ -435,7 +434,7 @@ op_getiv(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 
     mrbc_value ret = mrbc_instance_getiv(&regs[0], sym_id);
 
-    _RESET_REG(&regs[ra], ret);
+    _RA_V(ret);
 
     return 0;
 }
@@ -483,7 +482,8 @@ op_getconst(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     int rb = GETARG_Bx(code);
 
     mrbc_value v = const_object_get(_get_symid(vm->pc_irep->sym, rb));
-    _RESET_REG(&regs[ra], v);
+
+    _RA_X(&v);
 
     return 0;
 }
@@ -534,10 +534,9 @@ op_getupvar(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
         ci = ci->prev;
         n--;
     }
-    mrbc_value *up_regs = ci->reg;
+    mrbc_value *uregs = ci->reg;
 
-    _RESET_REG(&regs[ra], up_regs[rb]);
-    mrbc_retain(&up_regs[rb]);
+    _RA_X(&uregs[rb]);             // ra <= up[rb]
 
     return 0;
 }
@@ -570,7 +569,8 @@ op_setupvar(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     }
     mrbc_value *up_regs = ci->reg;
 
-    _RESET_REG(&up_regs[rb], regs[ra]);    // update outer-scope vars
+    mrbc_release(&up_regs[rb]);
+    up_regs[rb] = regs[ra];                // update outer-scope vars
     mrbc_retain(&regs[ra]);
 
     return 0;
@@ -658,7 +658,7 @@ op_send(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     int bidx = ra + rc + 1;
     switch(GET_OPCODE(code)) {
     case OP_SEND:
-//        mrbc_release(&regs[bidx]);
+        mrbc_release(&regs[bidx]);
         regs[bidx].tt = MRBC_TT_NIL;
         break;
     case OP_SENDB:						// set Proc object
@@ -680,7 +680,7 @@ op_send(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 
     if (m==0) {
     	console_na(name);							// dump error, bail out
-    	return -1;
+    	return 0;
     }
 
     if (m->flag & GURU_PROC_C_FUNC) {				// m is a C function
@@ -776,9 +776,11 @@ op_return(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     int ra = GETARG_A(code);
     mrbc_value ret = regs[ra];
 
-    _pop_callinfo(vm, regs);
-
+    mrbc_release(&regs[0]);
     regs[0] = ret;
+    regs[ra].tt = MRBC_TT_EMPTY;
+
+    _pop_callinfo(vm, regs);
 
     return 0;
 }
@@ -799,14 +801,12 @@ op_blkpush(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 {
     int ra = GETARG_A(code);
 
-    mrbc_value *stack = regs + 1;
+    mrbc_value *stack = regs + 1;       // call stack: push 1 mrbc_value
 
     if (stack[0].tt==MRBC_TT_NIL){
         return vm->err = -1;  			// EYIELD
     }
-
-    _RESET_REG(&regs[ra], stack[0]);
-    mrbc_retain(stack);
+    _RA_X(stack);                       // ra <= stack[0]
 
     return 0;
 }
@@ -848,8 +848,8 @@ op_add(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     }
     else {    	// other case
     	op_send(vm, code, regs);		// should have already released regs[ra + n], ...
+        mrbc_release(&regs[ra+1]);
     }
-	// mrbc_release(&regs[ra+1]);		//  CC: removed 20181108
     return 0;
 }
 
@@ -911,7 +911,7 @@ op_sub(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
         }
     }
     else if (regs[ra].tt==MRBC_TT_FLOAT) {
-        if (regs[ra+1].tt==MRBC_TT_FIXNUM) {	// in case of Float, Fixnum
+        if (regs[ra+1].tt==MRBC_TT_FIXNUM) {	        // in case of Float, Fixnum
             regs[ra].f -= regs[ra+1].i;
         }
         else if (regs[ra+1].tt==MRBC_TT_FLOAT) {		// in case of Float, Float
@@ -921,8 +921,8 @@ op_sub(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     }
     else {  // other case
     	op_send(vm, code, regs);
+        mrbc_release(&regs[ra+1]);
     }
-//	mrbc_release(&regs[ra+1]);					// CC: removed 20181108
 
 	return 0;
 }
@@ -995,9 +995,8 @@ op_mul(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     }
     else {   // other case
     	op_send(vm, code, regs);
+        mrbc_release(&regs[ra+1]);
     }
-//    mrbc_release(&regs[ra+1]);		// CC: removed 20181108
-
     return 0;
 }
 
@@ -1038,9 +1037,8 @@ op_div(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     }
     else {   // other case
     	op_send(vm, code, regs);
+        mrbc_release(&regs[ra+1]);
     }
-    // mrbc_release(&regs[ra+1]);				// CC: removed 20181108
-
     return 0;
 }
 
@@ -1061,9 +1059,8 @@ op_eq(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     int ra = GETARG_A(code);
     int result = mrbc_compare(&regs[ra], &regs[ra+1]);
 
+    _RA_T(result ? MRBC_TT_FALSE : MRBC_TT_TRUE, i=0);
     mrbc_release(&regs[ra+1]);
-    mrbc_release(&regs[ra]);
-    regs[ra].tt = result ? MRBC_TT_FALSE : MRBC_TT_TRUE;
 
     return 0;
 }
@@ -1109,9 +1106,8 @@ op_lt(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     }
     else {	// other case
     	op_send(vm, code, regs);
+        mrbc_release(&regs[ra+1]);
     }
-    // mrbc_release(&regs[ra+1]);		// CC: removed 20181108
-
     return 0;
 }
 
@@ -1156,9 +1152,8 @@ op_le(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     }
     else {    // other case
     	op_send(vm, code, regs);
+        mrbc_release(&regs[ra+1]);
     }
-    // mrbc_release(&regs[ra+1]);			// CC: removed 20181108
-
     return 0;
 }
 
@@ -1203,9 +1198,8 @@ op_gt(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     }
     else {    // other case
     	op_send(vm, code, regs);
+        mrbc_release(&regs[ra+1]);
     }
-    // mrbc_release(&regs[ra+1]);		// CC: removed 20181108
-
     return 0;
 }
 
@@ -1250,9 +1244,8 @@ op_ge(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     }
     else { // other case
     	op_send(vm, code, regs);
+        mrbc_release(&regs[ra+1]);
     }
-    // mrbc_release(&regs[ra+1]);		// CC: removed 20181108
-
     return 0;
 }
 
@@ -1283,7 +1276,7 @@ op_string(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 
     if (ret.str==NULL) return vm->err = -1;				// ENOMEM
 
-    _RESET_REG(&regs[ra], ret);
+    _RA_V(ret);
 #else
     console_na("String class");
 #endif
@@ -1319,8 +1312,8 @@ op_strcat(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
         m->func(regs+rb, 0);
     }
 
-    mrbc_value v = mrbc_string_add(&regs[ra], &regs[rb]);
-    _RESET_REG(&regs[ra], v);
+    mrbc_value ret = mrbc_string_add(&regs[ra], &regs[rb]);
+    _RA_V(ret);
 #else
     console_na("String class");
 #endif
@@ -1350,11 +1343,11 @@ op_array(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     mrbc_array *h  = ret.array;
     if (h==NULL) return vm->err = -1;	// ENOMEM
 
-    MEMCPY((uint8_t *)h->data, (uint8_t *)&regs[rb], sizeof(mrbc_value) * rc);
-    MEMSET((uint8_t *)&regs[rb], 0, sizeof(mrbc_value) * rc);
+    MEMCPY((uint8_t *)h->data, (uint8_t *)regs+rb, sizeof(mrbc_value) * rc);
+    MEMSET((uint8_t *)regs+rb, 0, sizeof(mrbc_value) * rc);
     h->n = rc;
 
-    _RESET_REG(&regs[ra], ret);
+    _RA_V(ret);
 #else
     console_na("Array class");
 #endif
@@ -1391,7 +1384,7 @@ op_hash(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     for (int i=0; i<(h->n=(rc<<1)); i++, p++) {
     	p->tt = MRBC_TT_EMPTY;							// clean up call stack
     }
-    _RESET_REG(&regs[ra], ret);							// set return value on stack top
+    _RA_V(ret);						                // set return value on stack top
 #else
     console_na("Hash class");
 #endif
@@ -1420,7 +1413,7 @@ op_range(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     mrbc_value ret = mrbc_range_new(&regs[rb], &regs[rb+1], rc);
     if (ret.range==NULL) return vm->err = -1;		// ENOMEM
 
-    _RESET_REG(&regs[ra], ret);						// release and  reassign
+    _RA_V(ret);						// release and  reassign
     mrbc_retain(&regs[rb]);
     mrbc_retain(&regs[rb+1]);
 
@@ -1448,14 +1441,12 @@ op_lambda(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     int rb = GETARG_b(code);      		// sequence position in irep list
     // int c = GETARG_C(code);    		// TODO: Add flags support for OP_LAMBDA
 
-    mrbc_proc *proc = (mrbc_proc *)mrbc_proc_alloc("(lambda)");
+    mrbc_proc *prc = (mrbc_proc *)mrbc_proc_alloc("(lambda)");
 
-    proc->flag &= ~GURU_PROC_C_FUNC;	// IREP
-    proc->irep = vm->pc_irep->irep_list[rb];
+    prc->flag &= ~GURU_PROC_C_FUNC;	// IREP
+    prc->irep = vm->pc_irep->irep_list[rb];
 
-    mrbc_release(&regs[ra]);
-    regs[ra].tt = MRBC_TT_PROC;
-    regs[ra].proc = proc;
+    _RA_T(MRBC_TT_PROC, proc=prc);
 
     return 0;
 }
@@ -1596,9 +1587,7 @@ op_tclass(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 {
     int ra = GETARG_A(code);
 
-    mrbc_release(&regs[ra]);
-    regs[ra].tt  = MRBC_TT_CLASS;
-    regs[ra].cls = vm->klass;
+    _RA_T(MRBC_TT_CLASS, cls=vm->klass);
 
     return 0;
 }

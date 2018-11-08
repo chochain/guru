@@ -86,12 +86,13 @@ mrbc_send(mrbc_value v[], mrbc_value *rcv, const char *method, int argc, ...)
     }
 
     // create call stack.
+    mrbc_release(&regs[0]);
     regs[0] = *rcv;					// create call stack, start with receiver object
-    mrbc_retain(rcv);				// CC: removed 20181105, added back 20181108
+    mrbc_retain(rcv);
 
     va_list ap;						// setup calling registers
     va_start(ap, argc);
-    for (int i = 1; i <= argc; i++) {
+    for (int i = 1; i <= argc+1; i++) {
     	mrbc_release(&regs[i]);
         regs[i] = (i>argc) ? mrbc_nil_value() : *va_arg(ap, mrbc_value *);
     }
@@ -200,7 +201,7 @@ c_object_class(mrbc_value v[], int argc)
 __GURU__ void
 c_object_new(mrbc_value v[], int argc)
 {
-	assert(1==0);			// taken cared in vm
+	assert(1==0);			// taken cared in opcode
 }
 
 //================================================================

@@ -113,7 +113,6 @@ _set(mrbc_value *ary, int idx, mrbc_value *val)
         h->n = ndx;
     }
     h->data[ndx] = *val;
-    mrbc_retain(val);
 
     return 0;
 }
@@ -355,7 +354,6 @@ mrbc_array_push(mrbc_value *ary, mrbc_value *set_val)
         }
     }
     h->data[h->n++] = *set_val;
-    mrbc_retain(set_val);					// CC: added 20181101
 
     return 0;
 }
@@ -425,6 +423,7 @@ c_array_new(mrbc_value v[], int argc)
         if (ret.array==NULL) return;		// ENOMEM
 
         for (int i=0; i < v[1].i; i++) {
+            mrbc_retain(&v[2]);
             _set(&ret, i, &v[2]);
         }
     }
@@ -476,6 +475,7 @@ c_array_get(mrbc_value v[], int argc)
 	mrbc_value ret;
     if (argc==1 && v[1].tt==MRBC_TT_FIXNUM) {			// self[n] -> object | nil
         ret = _get(v, v[1].i);
+        mrbc_retain(&ret);
     }
     else if (argc==2 &&			 						// self[idx, len] -> Array | nil
     		v[1].tt==MRBC_TT_FIXNUM &&
@@ -494,6 +494,7 @@ c_array_get(mrbc_value v[], int argc)
 
         for (int i = 0; i < size; i++) {
             mrbc_value val = _get(v, v[1].i + i);
+            mrbc_retain(&val);
             mrbc_array_push(&ret, &val);
         }
     }
@@ -584,7 +585,9 @@ c_array_index(mrbc_value v[], int argc)
  */
 __GURU__ void c_array_first(mrbc_value v[], int argc)
 {
-	SET_RETURN(_get(v, 0));
+    mrbc_value ret = _get(v, 0);
+    mrbc_retain(&ret);
+	SET_RETURN(ret);
 }
 
 //================================================================
@@ -593,7 +596,9 @@ __GURU__ void c_array_first(mrbc_value v[], int argc)
 __GURU__ void
 c_array_last(mrbc_value v[], int argc)
 {
-	SET_RETURN(_get(v, -1));
+    mrbc_value ret = _get(v, -1);
+    mrbc_retain(&ret);
+	SET_RETURN(ret);
 }
 
 //================================================================
@@ -683,7 +688,10 @@ c_array_min(mrbc_value v[], int argc)
 
     _minmax(v, &p_min_value, &p_max_value);
     if (p_min_value==NULL) SET_NIL_RETURN();
-    else     			   SET_RETURN(*p_min_value);
+    else {
+        mrbc_retain(p_min_value);
+        SET_RETURN(*p_min_value);
+    }
 }
 
 //================================================================
@@ -698,7 +706,10 @@ c_array_max(mrbc_value v[], int argc)
 
     _minmax(v, &p_min_value, &p_max_value);
     if (p_max_value==NULL) SET_NIL_RETURN();
-    else 		       	   SET_RETURN(*p_max_value);
+    else {
+        mrbc_retain(p_max_value);
+        SET_RETURN(*p_max_value);
+    }
 }
 
 //================================================================
@@ -717,6 +728,8 @@ c_array_minmax(mrbc_value v[], int argc)
     if (p_min_value==NULL) p_min_value = &nil;
     if (p_max_value==NULL) p_max_value = &nil;
 
+    mrbc_retain(p_min_value);
+    mrbc_retain(p_max_value);
     _set(&ret, 0, p_min_value);
     _set(&ret, 1, p_max_value);
 
@@ -773,7 +786,7 @@ c_array_join_1(mrbc_value v[], int argc,
         else {
             mrbc_value s1 = mrbc_send(v+argc, &src->array->data[i], "inspect", 0);
             error |= mrbc_string_append(ret, &s1);
-            mrbc_string_delete(&s1);					// free locally allocated memory
+            mrbc_release(&s1);					// free locally allocated memory
         }
         if (++i >= _size(src)) break;			// normal return.
         error |= mrbc_string_append(ret, separator);
@@ -793,7 +806,7 @@ c_array_join(mrbc_value v[], int argc)
     		: mrbc_send(v+argc, v+1, "inspect", 0);
 
     c_array_join_1(v, argc, v, &ret, &separator);
-    mrbc_string_delete(&separator);		// release locally allocated memory
+    mrbc_release(&separator);		            // release locally allocated memory
 
     SET_RETURN(ret);
 }
