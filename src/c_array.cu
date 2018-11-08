@@ -100,7 +100,7 @@ _set(mrbc_value *ary, int idx, mrbc_value *val)
 {
     mrbc_array *h = ary->array;
 
-    int ndx = _adjust_index(h, idx, 0);				// adjust index if needed
+    int ndx = _adjust_index(h, idx, 0);			// adjust index if needed
     if (ndx<0) return -1;						// allocation error
 
     if (ndx < h->n) {
@@ -602,7 +602,7 @@ c_array_last(mrbc_value v[], int argc)
 __GURU__ void
 c_array_push(mrbc_value v[], int argc)
 {
-    mrbc_array_push(v, &v[1]);	// raise? ENOMEM
+    mrbc_array_push(v, v+1);	// raise? ENOMEM
     v[1].tt = MRBC_TT_EMPTY;
 }
 
@@ -683,10 +683,7 @@ c_array_min(mrbc_value v[], int argc)
 
     _minmax(v, &p_min_value, &p_max_value);
     if (p_min_value==NULL) SET_NIL_RETURN();
-    else {
-    	SET_RETURN(*p_min_value);
-    	mrbc_retain(p_min_value);
-    }
+    else     			   SET_RETURN(*p_min_value);
 }
 
 //================================================================
@@ -701,10 +698,7 @@ c_array_max(mrbc_value v[], int argc)
 
     _minmax(v, &p_min_value, &p_max_value);
     if (p_max_value==NULL) SET_NIL_RETURN();
-    else {
-    	SET_RETURN(*p_max_value);
-    	mrbc_retain(p_max_value);
-    }
+    else 		       	   SET_RETURN(*p_max_value);
 }
 
 //================================================================
