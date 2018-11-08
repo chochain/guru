@@ -143,9 +143,9 @@ mrbc_p_sub(mrbc_value *v)
     case MRBC_TT_STRING:
         s = VSTR(v);
         console_char('"');
-        for (int i = 0; i < VSTRLEN(v); i++) {
-            if (s[i]<' ' || 0x7f<=s[i]) console_hex(s[i]);
-            else 						console_char(s[i]);
+        for (int i = 0; i < VSTRLEN(v); i++, s++) {
+            if (*s>=' ' && *s < 0x80) console_char(*s);
+            else 					  console_hex(*s);
         }
         console_char('"');
         break;
