@@ -1311,9 +1311,10 @@ op_strcat(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     if (m && IS_C_FUNC(m)){
         m->func(regs+rb, 0);
     }
-
     mrbc_value ret = mrbc_string_add(&regs[ra], &regs[rb]);
+
     _RA_V(ret);
+
 #else
     console_na("String class");
 #endif
@@ -1338,13 +1339,14 @@ op_array(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     int ra = GETARG_A(code);
     int rb = GETARG_B(code);
     int rc = GETARG_C(code);
+    int sz = sizeof(mrbc_value) * rc;
 
     mrbc_value ret = (mrbc_value)mrbc_array_new(rc);
     mrbc_array *h  = ret.array;
     if (h==NULL) return vm->err = -1;	// ENOMEM
 
-    MEMCPY((uint8_t *)h->data, (uint8_t *)regs+rb, sizeof(mrbc_value) * rc);
-    MEMSET((uint8_t *)regs+rb, 0, sizeof(mrbc_value) * rc);
+    MEMCPY((uint8_t *)h->data, (uint8_t *)&regs[rb], sz);
+    MEMSET((uint8_t *)&regs[rb], 0, sz);
     h->n = rc;
 
     _RA_V(ret);
@@ -1372,13 +1374,13 @@ op_hash(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     int ra = GETARG_A(code);
     int rb = GETARG_B(code);
     int rc = GETARG_C(code);
+    int sz = sizeof(mrbc_value) * (rc<<1);				// size of k,v pairs
 
     mrbc_value ret = mrbc_hash_new(rc);
     mrbc_hash  *h  = ret.hash;
-    if (h==NULL) return vm->err = -1;	// ENOMEM
+    if (h==NULL) return vm->err = -1;					// ENOMEM
 
-    mrbc_value  *p = regs + rb;
-    int 		sz = sizeof(mrbc_value) * (rc<<1);		// size of k,v pairs
+    mrbc_value  *p = &regs[rb];
     MEMCPY((uint8_t *)h->data, (uint8_t *)p, sz);		// copy k,v pairs
 
     for (int i=0; i<(h->n=(rc<<1)); i++, p++) {
