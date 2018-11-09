@@ -506,7 +506,7 @@ guru_malloc(size_t sz, int type)
 }
 
 __host__ void
-guru_dump_alloc_stat(void)
+guru_get_alloc_stat(int stat[])
 {
 	int *v;
 	cudaMallocManaged(&v, 8*sizeof(int));
@@ -514,9 +514,19 @@ guru_dump_alloc_stat(void)
 	guru_alloc_stat<<<1,1>>>(v);
 	cudaDeviceSynchronize();
 
-	printf("\ttotal %d(0x%x)> free=%d(%d), used=%d(%d), nblk=%d, nfrag=%d, %d%% allocated\n",
-				v[0], v[0], v[1], v[2], v[3], v[4], v[5], v[6], (int)(100*(v[4]+1)/v[0]));
-
+	for (int i=0; i<8; i++) {
+		stat[i] = v[i];
+	}
 	cudaFree(v);
+}
+
+__host__ void
+guru_dump_alloc_stat(void)
+{
+	int s[8];
+	guru_get_alloc_stat(s);
+
+	printf("\ttotal %d(0x%x)> free=%d(%d), used=%d(%d), nblk=%d, nfrag=%d, %d%% allocated\n",
+				s[0], s[0], s[1], s[2], s[3], s[4], s[5], s[6], (int)(100*(s[4]+1)/s[0]));
 }
 #endif

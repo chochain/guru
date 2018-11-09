@@ -116,10 +116,10 @@ guru_vm_init(guru_ses *ses)
 	guru_parse_bytecode<<<1,1>>>(vm, ses->req);		// can also be done on host?
 	cudaDeviceSynchronize();
 
-#ifdef MRBC_DEBUG
-	printf("guru bytecode loaded:\n");
-	guru_dump_irep(vm->irep);
-#endif
+	if (ses->debug > 0) {
+		printf("guru bytecode loaded:\n");
+		guru_dump_irep(vm->irep);
+	}
 	ses->vm = (uint8_t *)vm;
 	return 0;
 }
@@ -127,35 +127,31 @@ guru_vm_init(guru_ses *ses)
 __host__ int
 guru_vm_run(guru_ses *ses)
 {
-	int sz;
-	cudaDeviceGetLimit((size_t *)&sz, cudaLimitStackSize);
-	printf("defaultStackSize %d =>", sz);
+	int sz0, sz1;
+	cudaDeviceGetLimit((size_t *)&sz0, cudaLimitStackSize);
 
-	cudaDeviceSetLimit(cudaLimitStackSize, (size_t)sz*4);
-	cudaDeviceGetLimit((size_t *)&sz, cudaLimitStackSize);
-	printf("%d\n", sz);
+	cudaDeviceSetLimit(cudaLimitStackSize, (size_t)sz0*4);
+	cudaDeviceGetLimit((size_t *)&sz1, cudaLimitStackSize);
+	if (ses->debug > 0) printf("defaultStackSize %d => %d\n", sz0, sz1);
 
     guru_console_init<<<1,1>>>(ses->res, MAX_BUFFER_SIZE);	// initialize output buffer
 
     mrbc_vm *vm = (mrbc_vm *)ses->vm;
 	_vm_begin<<<1,1>>>(vm);
 	cudaDeviceSynchronize();
+	do {	// enter the vm loop, potentially with different register files per thread
+		guru_dump_regfile(vm, ses->debug);					// for debugging
 
-	// enter the vm loop, potentially with different register files per thread
-	do {
-		guru_dump_regfile(vm);								// debugging
 		_vm_exec<<<1,1>>>(vm, 1);							// 1: single-step
 		cudaDeviceSynchronize();
 
 		// add host hook here
 		guru_console_flush(ses->res);						// dump output buffer
-		guru_dump_alloc_stat();
 	} while (vm->run && vm->err==0);
 	cudaError rst = cudaGetLastError();
     if (cudaSuccess != rst) {
-    	printf("\nERR> %s\n", cudaGetErrorString(rst));
+    	fprintf(stderr, "\nERR> %s\n", cudaGetErrorString(rst));
     }
-
 	_vm_end<<<1,1>>>(vm);
 	cudaDeviceSynchronize();
 
@@ -199,8 +195,10 @@ static const char *_opcode[] = {
 //		((i) & 0x7f)
 
 __host__ void
-guru_dump_regfile(mrbc_vm *vm)
+guru_dump_regfile(mrbc_vm *vm, int debug)
 {
+	if (debug==0) return;
+
 	uint16_t    opid    = (*(vm->pc_irep->iseq + vm->pc) >> 24) & 0x7f;
 	const char 	*opcode = _opcode[GET_OPCODE(opid)];
 	mrbc_value 	*v 	 	= vm->regfile;
@@ -212,7 +210,15 @@ guru_dump_regfile(mrbc_vm *vm)
 	}
 	v = vm->regfile;
 
-	printf("%s\t[ ", opcode);
+	if (debug==1) {
+		int s[8];
+		guru_get_alloc_stat(s);
+		printf("%-4d%-8s%-3d[ ", vm->pc, opcode, s[3]);
+	}
+	else if (debug==2) {
+		guru_dump_alloc_stat();
+		printf("%-4d%-8s[ ", vm->pc, opcode);
+	}
 	for (int i=0; i<=last; i++, v++) {
 		printf("%2d.%s", i, _vtype[v->tt]);
 	    if (v->tt >= MRBC_TT_OBJECT) printf("_%d", v->self->refc);
