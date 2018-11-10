@@ -15,8 +15,8 @@
 extern "C" __GURU__   void mrbc_init_global();							// global.cu
 extern "C" __GURU__   void mrbc_init_class();							// class.cu
 
-extern "C" int guru_vm_init(guru_ses *ses);						        // vm.cu
-extern "C" int guru_vm_run(guru_ses *ses);						        // vm.cu
+extern "C" cudaError_t guru_vm_init(guru_ses *ses);						// vm.cu
+extern "C" cudaError_t guru_vm_run(guru_ses *ses);						// vm.cu
 
 __global__ void
 guru_static_init(void)
@@ -89,17 +89,17 @@ session_init(guru_ses *ses, const char *rite_fname)
 __host__ int
 session_start(guru_ses *ses)
 {
-	int ret = guru_vm_init(ses);
-	if (ret != 0) {
+	cudaError_t rst = guru_vm_init(ses);
+	if (cudaSuccess != rst) {
 		fprintf(stderr, "ERROR: virtual memory block allocation error!\n");
-		return ret;
+		return -1;
 	}
 	if (ses->debug > 0) {
 		printf("guru bytecode loaded\n");
 		guru_dump_alloc_stat();
 	}
 
-	cudaError rst = guru_vm_run(ses);
+	rst = guru_vm_run(ses);
     if (cudaSuccess != rst) {
     	fprintf(stderr, "\nERR> %s\n", cudaGetErrorString(rst));
     }

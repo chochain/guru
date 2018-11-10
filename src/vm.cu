@@ -107,11 +107,11 @@ _mrbc_free_irep(mrbc_irep *irep)
     mrbc_free(irep);
 }
 
-__host__ int
+__host__ cudaError_t
 guru_vm_init(guru_ses *ses)
 {
 	mrbc_vm *vm = (mrbc_vm *)guru_malloc(sizeof(mrbc_vm), 1);
-	if (!vm) return -4;
+	if (!vm) return cudaErrorMemoryAllocation;
 
 	guru_parse_bytecode<<<1,1>>>(vm, ses->req);		// can also be done on host?
 	cudaDeviceSynchronize();
@@ -120,10 +120,10 @@ guru_vm_init(guru_ses *ses)
 
 	if (ses->debug > 0)	guru_dump_irep(vm->irep);
 
-	return 0;
+	return cudaSuccess;
 }
 
-__host__ int
+__host__ cudaError_t
 guru_vm_run(guru_ses *ses)
 {
     mrbc_vm *vm = (mrbc_vm *)ses->vm;
@@ -143,7 +143,7 @@ guru_vm_run(guru_ses *ses)
     _vm_end<<<1,1>>>(vm);
 	cudaDeviceSynchronize();
 
-	return 0;
+	return cudaSuccess;
 }
 
 #ifdef MRBC_DEBUG

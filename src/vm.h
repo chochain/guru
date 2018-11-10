@@ -156,8 +156,8 @@ void _uint32_to_bin(uint32_t l, uint8_t *bin)
 
 #define GET_BYTECODE(vm)	(_bin_to_uint32((vm)->pc_irep->iseq + (vm)->pc))
 
-int guru_vm_init(guru_ses *ses);
-int guru_vm_run(guru_ses *ses);
+cudaError_t guru_vm_init(guru_ses *ses);
+cudaError_t guru_vm_run(guru_ses *ses);
 
 #ifdef MRBC_DEBUG
 void guru_dump_irep(mrbc_irep *irep);

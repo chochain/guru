@@ -385,13 +385,12 @@ mrbc_array_compare(const mrbc_value *v0, const mrbc_value *v1)
 	mrbc_value *d0 = h0->data;
 	mrbc_value *d1 = h0->data;
     for (int i=0; ; i++) {
-        if (i >= h0->n || i >= h1->n) {
-            return h0->n - h1->n;
-        }
+        if (i >= h0->n || i >= h1->n) break;
+
         int res = mrbc_compare(d0++, d1++);
         if (res != 0) return res;
     }
-    return 0;
+    return h0->n - h1->n;
 }
 
 //================================================================
