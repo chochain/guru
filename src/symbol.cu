@@ -206,6 +206,7 @@ __GURU__ void
 c_inspect(mrbc_value v[], int argc)
 {
     mrbc_value ret = mrbc_string_new(":");
+
     mrbc_string_append_cstr(&ret, symid2name(v[0].i));
 
     SET_RETURN(ret);

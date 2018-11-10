@@ -202,7 +202,9 @@ c_fixnum_to_s(mrbc_value v[], int argc)
     }
     char buf[64+2];
     guru_vprintf(buf, "%d", v, 1);
-    SET_RETURN(mrbc_string_new(buf));
+
+    mrbc_value ret = mrbc_string_new(buf);
+    SET_RETURN(ret);
 }
 #endif
 

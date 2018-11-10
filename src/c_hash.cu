@@ -210,6 +210,28 @@ mrbc_hash_new(int size)
     return ret;
 }
 
+//================================================================
+/*! duplicate
+
+  @param  vm	pointer to VM.
+  @param  src	pointer to target hash.
+*/
+__GURU__ mrbc_value
+_hash_dup(const mrbc_value *kv)
+{
+	int        n   = _size(kv);
+    mrbc_value ret = mrbc_hash_new(n);
+    if (ret.hash==NULL) return ret;			// ENOMEM
+
+    mrbc_value *d = _data(&ret);
+    mrbc_value *s = _data(kv);
+    int        n2 = ret.hash->n = n<<1;		// n pairs (k,v)
+    for (int i=0; i < n2; i++) {
+    	mrbc_retain(s);						// one extra ref
+    	*d++ = *s++;
+    }
+    return ret;
+}
 
 //================================================================
 /*! destructor
@@ -220,8 +242,6 @@ __GURU__ void
 mrbc_hash_delete(mrbc_value *kv)
 {
     mrbc_array_delete(kv);		// free content
-    mrbc_release(kv);			// release handle
-    mrbc_free(kv);				// free handle
 }
 
 
@@ -249,36 +269,14 @@ mrbc_hash_compare(const mrbc_value *v0, const mrbc_value *v1)
 }
 
 //================================================================
-/*! duplicate
-
-  @param  vm	pointer to VM.
-  @param  src	pointer to target hash.
-*/
-__GURU__ mrbc_value
-_hash_dup(mrbc_value *kv)
-{
-    mrbc_value ret = mrbc_hash_new(_size(kv));
-    if (ret.hash==NULL) return ret;		// ENOMEM
-
-    int n2 = ret.hash->n = _size(kv) << 1;
-    MEMCPY((uint8_t *)_data(&ret), (uint8_t *)_data(kv), sizeof(mrbc_value) * n2);
-
-    mrbc_value *p = _data(&ret);
-    for (int i=0; i < n2; i++, p++) {
-        mrbc_retain(p++);				// dup, add one extra reference
-    }
-    // TODO: dup other members.
-
-    return ret;
-}
-
-//================================================================
 /*! (method) new
  */
 __GURU__ void
 c_hash_new(mrbc_value v[], int argc)
 {
-    SET_RETURN(mrbc_hash_new(0));
+	mrbc_value ret = mrbc_hash_new(0);
+
+    SET_RETURN(ret);
 }
 
 //================================================================
@@ -293,6 +291,7 @@ c_hash_get(mrbc_value v[], int argc)
     }
     mrbc_value ret = _get(v, v+1);
     mrbc_retain(&ret);
+
     SET_RETURN(ret);
 }
 
@@ -302,13 +301,14 @@ c_hash_get(mrbc_value v[], int argc)
 __GURU__ void
 c_hash_set(mrbc_value v[], int argc)
 {
-	mrbc_value ret = v[2];
     if (argc != 2) {
     	assert(argc!=2);
         return;				// raise ArgumentError.
     }
     _set(v, v+1, v+2);		// k + v
-    SET_RETURN(ret);
+
+    (v+1)->tt = MRBC_TT_EMPTY;
+    (v+2)->tt = MRBC_TT_EMPTY;
 }
 
 
@@ -339,8 +339,9 @@ __GURU__ void
 c_hash_delete(mrbc_value v[], int argc)
 {
     // TODO : now, support only delete(key) -> object
+	mrbc_value ret = _remove(v, v+1);
 
-    SET_RETURN(_remove(v, v+1));
+    SET_RETURN(ret);
 
     // TODO: re-index hash table if need.
 }
@@ -434,7 +435,7 @@ c_hash_merge(mrbc_value v[], int argc)		// non-destructive merge
     int         n  = _size(v+1);
     for (int i=0; i<n; i++, p+=2) {
         _set(&ret, p, p+1);
-        mrbc_retain(p);
+        mrbc_retain(p);						// extra ref on incoming kv
         mrbc_retain(p+1);
     }
     SET_RETURN(ret);
@@ -450,6 +451,8 @@ c_hash_merge_self(mrbc_value v[], int argc)
     int         n  = _size(v+1);
     for (int i=0; i<n; i++, p+=2) {
         _set(v, p, p+1);
+        mrbc_retain(p);						// extra ref on incoming kv
+        mrbc_retain(p+1);
     }
 }
 

@@ -27,17 +27,8 @@ int main(int argc, char **argv)
 	ses.debug = argc<3 ? 0 : (*argv[2]=='1' ? 1 : 2);
 
 	if (session_init(&ses, argv[1])!=0) return -1;
-	if (ses.debug > 0) {
-		printf("guru session initialized...\n");
-		guru_dump_alloc_stat();
-	}
 
 	session_start(&ses);
-
-	if (ses.debug > 0) {
-		printf("guru_session completed\n");
-		guru_dump_alloc_stat();
-	}
 
     return 0;
 }

@@ -66,9 +66,9 @@
 __GURU__ mrbc_value
 mrbc_send(mrbc_value v[], mrbc_value *rcv, const char *method, int argc, ...)
 {
-    mrbc_value *regs = v + 2;	// allocate 2 for stack
-    mrbc_sym  sym_id = name2symid(method);
-    mrbc_proc *m     = mrbc_get_class_method(*rcv, sym_id);
+    mrbc_value *regs  = v + 2;	     // allocate 2 for stack
+    mrbc_sym   sym_id = name2symid(method);
+    mrbc_proc  *m     = mrbc_get_class_method(*rcv, sym_id);
 
     if (m == 0) {
         console_str("No method. vtype=");
@@ -99,13 +99,14 @@ mrbc_send(mrbc_value v[], mrbc_value *rcv, const char *method, int argc, ...)
     va_end(ap);
 
     m->func(regs, argc);			// call method
+    mrbc_value ret = regs[0];		// copy result
 
 #ifdef MRBC_DEBUG
-    for (int i=1; i<=argc; i++) {	// not really needed!
+    for (int i=0; i<=argc+1; i++) {	// not really needed!
     	regs[i].tt = MRBC_TT_EMPTY;	// but, clean up the stack before returning
     }
 #endif
-    return regs[0];
+    return ret;
 }
 
 #ifdef MRBC_DEBUG

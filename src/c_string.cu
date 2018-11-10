@@ -109,7 +109,7 @@ _new(const char *src, int len)
   @return	new string as s1 + s2
 */
 __GURU__ mrbc_value
-_dup(mrbc_value *v0)
+_dup(const mrbc_value *v0)
 {
     mrbc_string *h0 = v0->str;
 

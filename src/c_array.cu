@@ -63,12 +63,6 @@
 /*! get size
  */
 __GURU__ int
-_size(const mrbc_value *ary)
-{
-    return ary->array->n;
-}
-
-__GURU__ int
 _adjust_index(mrbc_array *h, int idx, int inc)
 {
     if (idx < 0) {
@@ -386,11 +380,13 @@ mrbc_array_clear(mrbc_value *ary)
 __GURU__ int
 mrbc_array_compare(const mrbc_value *v0, const mrbc_value *v1)
 {
-	mrbc_value *d0 = v0->array->data;
-	mrbc_value *d1 = v1->array->data;
+	mrbc_array *h0 = v0->array;
+	mrbc_array *h1 = v1->array;
+	mrbc_value *d0 = h0->data;
+	mrbc_value *d1 = h0->data;
     for (int i=0; ; i++) {
-        if (i >= _size(v0) || i >= _size(v1)) {
-            return _size(v0) - _size(v1);
+        if (i >= h0->n || i >= h1->n) {
+            return h0->n - h1->n;
         }
         int res = mrbc_compare(d0++, d1++);
         if (res != 0) return res;
@@ -480,7 +476,7 @@ c_array_get(mrbc_value v[], int argc)
     else if (argc==2 &&			 						// self[idx, len] -> Array | nil
     		v[1].tt==MRBC_TT_FIXNUM &&
     		v[2].tt==MRBC_TT_FIXNUM) {
-        int len = _size(v);
+        int len = v->array->n;
         int idx = v[1].i;
         if (idx < 0) idx += len;
         if (idx < 0) goto DONE;
@@ -549,7 +545,7 @@ c_array_delete_at(mrbc_value v[], int argc)
 __GURU__ void
 c_array_empty(mrbc_value v[], int argc)
 {
-    SET_BOOL_RETURN(_size(v)==0);
+    SET_BOOL_RETURN(v->array->n==0);
 }
 
 //================================================================
@@ -558,7 +554,7 @@ c_array_empty(mrbc_value v[], int argc)
 __GURU__ void
 c_array_size(mrbc_value v[], int argc)
 {
-    SET_INT_RETURN(_size(v));
+    SET_INT_RETURN(v->array->n);
 }
 
 //================================================================
@@ -750,18 +746,19 @@ _rfc(mrbc_value *str, mrbc_value *v)
 __GURU__ void
 c_array_inspect(mrbc_value v[], int argc)
 {
-	mrbc_value *ary = v+argc;
 	mrbc_value ret  = mrbc_string_new("[");
     if (!ret.str) {
     	SET_NIL_RETURN();
     	return;
     }
-    for (int i = 0; i < _size(v); i++) {
+    mrbc_value vi, s1;
+    int n = v->array->n;
+    for (int i = 0; i < n; i++) {
         if (i != 0) mrbc_string_append_cstr(&ret, ", ");
-        mrbc_value vi = _get(v, i);
-        mrbc_value s1 = mrbc_send(ary, &vi, "inspect", 0);
+        vi = _get(v, i);
+        s1 = mrbc_send(v+argc, &vi, "inspect", 0);
         mrbc_string_append(&ret, &s1);
-        mrbc_string_delete(&s1);					// free locally allocated memory
+        mrbc_release(&s1);
     }
     mrbc_string_append_cstr(&ret, "]");
 
@@ -775,21 +772,23 @@ __GURU__ void
 c_array_join_1(mrbc_value v[], int argc,
                     mrbc_value *src, mrbc_value *ret, mrbc_value *separator)
 {
-    if (_size(src)==0) return;
+	mrbc_array *h = src->array;
+    if (h->n==0) return;
 
-    int i = 0;
-    int error = 0;
-    while (!error) {
-        if (src->array->data[i].tt==MRBC_TT_ARRAY) {
-            c_array_join_1(v, argc, &src->array->data[i], ret, separator);
+    int i   = 0;
+    int err = 0;
+    mrbc_value s1;
+    while (!err) {
+        if (h->data[i].tt==MRBC_TT_ARRAY) {
+            c_array_join_1(v, argc, &h->data[i], ret, separator);
         }
         else {
-            mrbc_value s1 = mrbc_send(v+argc, &src->array->data[i], "inspect", 0);
-            error |= mrbc_string_append(ret, &s1);
+            s1 = mrbc_send(v+argc, &h->data[i], "inspect", 0);
+            err |= mrbc_string_append(ret, &s1);
             mrbc_release(&s1);					// free locally allocated memory
         }
-        if (++i >= _size(src)) break;			// normal return.
-        error |= mrbc_string_append(ret, separator);
+        if (++i >= h->n) break;					// normal return.
+        err |= mrbc_string_append(ret, separator);
     }
 }
 
