@@ -59,8 +59,10 @@ typedef enum {
     MRBC_TT_SYMBOL,
     MRBC_TT_CLASS,
 
+    MRBC_TT_HAS_REF = 16,						// 0x10
+
     /* non-primitive */
-    MRBC_TT_OBJECT = 20,
+    MRBC_TT_OBJECT = MRBC_TT_HAS_REF + 4,		// 0x14 or 20
     MRBC_TT_PROC,
     MRBC_TT_ARRAY,
     MRBC_TT_STRING,

@@ -205,26 +205,11 @@ guru_strcat(char *d, const char *s)
 __GURU__ void
 mrbc_dec_refc(mrbc_value *v)
 {
-    switch(v->tt){
-    case MRBC_TT_OBJECT:
-    case MRBC_TT_PROC:
-    case MRBC_TT_ARRAY:
-    case MRBC_TT_STRING:
-    case MRBC_TT_RANGE:
-    case MRBC_TT_HASH:
-    	if (v->self->refc <= 0) {
-    		console_str("refc==0\n");
-    	}
-    	else {
-    		v->self->refc--;
-    	}
-    	break;
+	if (!(v->tt & MRBC_TT_HAS_REF)) return;
 
-    default:
-        // Nothing
-        return;
-    }
-    if (v->self->refc != 0) return;		// still used, keep going
+	assert(v->self->refc > 0);
+
+    if (--v->self->refc > 0) return;		// still used, keep going
 
     switch(v->tt) {
     case MRBC_TT_OBJECT:	mrbc_instance_delete(v);	break;
@@ -237,9 +222,7 @@ mrbc_dec_refc(mrbc_value *v)
     case MRBC_TT_RANGE:	    mrbc_range_delete(v);		break;
     case MRBC_TT_HASH:	    mrbc_hash_delete(v);		break;
 #endif
-    default:
-        // Nothing
-        break;
+    default: break;
     }
 }
 
@@ -250,24 +233,11 @@ mrbc_dec_refc(mrbc_value *v)
   @param   v     Pointer to mrbc_value
 */
 __GURU__ void
-mrbc_retain(mrbc_value *v)         // CC: was mrbc_inc_refc() 20181101
+mrbc_retain(mrbc_value *v)         			// CC: was mrbc_inc_refc() 20181101
 {
-    switch(v->tt){
-    case MRBC_TT_OBJECT:
-    case MRBC_TT_PROC:
-    case MRBC_TT_ARRAY:
-    case MRBC_TT_STRING:
-    case MRBC_TT_RANGE:
-    case MRBC_TT_HASH:
-        assert(v->self->refc > 0);
-        assert(v->self->refc != 0xffff);	// check max value.
-        v->self->refc++;
-        break;
+	if (!(v->tt & MRBC_TT_HAS_REF)) return;
 
-    default:
-        // Nothing
-        break;
-    }
+	v->self->refc++;
 }
 
 //================================================================
@@ -280,6 +250,7 @@ __GURU__ void
 mrbc_release(mrbc_value *v)
 {
     mrbc_dec_refc(v);
+
     v->tt = MRBC_TT_EMPTY;
 }
 
