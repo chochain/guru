@@ -9,13 +9,14 @@
 #include <stdio.h>
 #include "guru.h"
 #include "alloc.h"
+#include "console.h"
 
 // forward declaration for implementation
 extern "C" __GURU__   void mrbc_init_global();							// global.cu
 extern "C" __GURU__   void mrbc_init_class();							// class.cu
 
-extern "C" int guru_vm_init(guru_ses *ses);								// vm.cu
-extern "C" int guru_vm_run(guru_ses *ses);								// vm.cu
+extern "C" int guru_vm_init(guru_ses *ses);						        // vm.cu
+extern "C" int guru_vm_run(guru_ses *ses);						        // vm.cu
 
 __global__ void
 guru_static_init(void)
@@ -71,7 +72,17 @@ session_init(guru_ses *ses, const char *rite_fname)
 	}
     guru_memory_init<<<1,1>>>(mem, BLOCK_MEMORY_SIZE);			// setup memory management
 	guru_static_init<<<1,1>>>();								// setup static objects
+    guru_console_init<<<1,1>>>(ses->res, MAX_BUFFER_SIZE);		// initialize output buffer
 
+	int sz0, sz1;
+	cudaDeviceGetLimit((size_t *)&sz0, cudaLimitStackSize);
+	cudaDeviceSetLimit(cudaLimitStackSize, (size_t)sz0*4);
+	cudaDeviceGetLimit((size_t *)&sz1, cudaLimitStackSize);
+
+	if (ses->debug > 0) {
+		printf("guru session initialized[defaultStackSize %d => %d]\n", sz0, sz1);
+		guru_dump_alloc_stat();
+	}
 	return 0;
 }
 
@@ -79,14 +90,25 @@ __host__ int
 session_start(guru_ses *ses)
 {
 	int ret = guru_vm_init(ses);
-	if (ret!=0) {
+	if (ret != 0) {
 		fprintf(stderr, "ERROR: virtual memory block allocation error!\n");
 		return ret;
 	}
-	if (ses->debug > 0) guru_dump_alloc_stat();
+	if (ses->debug > 0) {
+		printf("guru bytecode loaded\n");
+		guru_dump_alloc_stat();
+	}
 
-	guru_vm_run(ses);
-	return 0;
+	cudaError rst = guru_vm_run(ses);
+    if (cudaSuccess != rst) {
+    	fprintf(stderr, "\nERR> %s\n", cudaGetErrorString(rst));
+    }
+
+	if (ses->debug > 0) {
+		printf("guru_session completed\n");
+		guru_dump_alloc_stat();
+	}
+	return cudaSuccess!=rst;
 }
 
     

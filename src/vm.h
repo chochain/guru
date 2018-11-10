@@ -77,10 +77,6 @@ typedef struct VM {
     volatile int8_t	err;
 } mrbc_vm;
 
-int  guru_vm_init(guru_ses *ses);
-int  guru_vm_run(guru_ses *ses);
-void dump_irep(mrbc_irep *irep);
-
 //================================================================
 /*!@brief
   Get 32bit value from memory big endian.

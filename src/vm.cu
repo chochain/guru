@@ -116,29 +116,20 @@ guru_vm_init(guru_ses *ses)
 	guru_parse_bytecode<<<1,1>>>(vm, ses->req);		// can also be done on host?
 	cudaDeviceSynchronize();
 
-	if (ses->debug > 0) {
-		printf("guru bytecode loaded:\n");
-		guru_dump_irep(vm->irep);
-	}
 	ses->vm = (uint8_t *)vm;
+
+	if (ses->debug > 0)	guru_dump_irep(vm->irep);
+
 	return 0;
 }
 
 __host__ int
 guru_vm_run(guru_ses *ses)
 {
-	int sz0, sz1;
-	cudaDeviceGetLimit((size_t *)&sz0, cudaLimitStackSize);
-
-	cudaDeviceSetLimit(cudaLimitStackSize, (size_t)sz0*4);
-	cudaDeviceGetLimit((size_t *)&sz1, cudaLimitStackSize);
-	if (ses->debug > 0) printf("defaultStackSize %d => %d\n", sz0, sz1);
-
-    guru_console_init<<<1,1>>>(ses->res, MAX_BUFFER_SIZE);	// initialize output buffer
-
     mrbc_vm *vm = (mrbc_vm *)ses->vm;
 	_vm_begin<<<1,1>>>(vm);
 	cudaDeviceSynchronize();
+
 	do {	// enter the vm loop, potentially with different register files per thread
 		guru_dump_regfile(vm, ses->debug);					// for debugging
 
@@ -148,11 +139,8 @@ guru_vm_run(guru_ses *ses)
 		// add host hook here
 		guru_console_flush(ses->res);						// dump output buffer
 	} while (vm->run && vm->err==0);
-	cudaError rst = cudaGetLastError();
-    if (cudaSuccess != rst) {
-    	fprintf(stderr, "\nERR> %s\n", cudaGetErrorString(rst));
-    }
-	_vm_end<<<1,1>>>(vm);
+
+    _vm_end<<<1,1>>>(vm);
 	cudaDeviceSynchronize();
 
 	return 0;
@@ -164,6 +152,7 @@ guru_dump_irep(mrbc_irep *irep)
 {
 	printf("\tnregs=%d, nlocals=%d, pools=%d, syms=%d, reps=%d, ilen=%d\n",
 			irep->nreg, irep->nlv, irep->plen, irep->slen, irep->rlen, irep->ilen);
+
 	// dump all children ireps
 	for (int i=0; i<irep->rlen; i++) {
 		guru_dump_irep(irep->irep_list[i]);
