@@ -80,8 +80,9 @@ console_str(const char *str)
 __GURU__ void
 console_na(const char *msg)
 {
+    console_str("method not supported: ");
 	console_str(msg);
-    console_str(" not supported!\n");
+	console_str("\n");
 }
 
 __GURU__ char*

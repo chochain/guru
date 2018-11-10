@@ -66,19 +66,19 @@ __GURU__ int
 _adjust_index(mrbc_array *h, int idx, int inc)
 {
     if (idx < 0) {
-        idx = h->n + idx + inc;
+        idx += h->n + inc;
         assert(idx>=0);
     }
-    int ndx = idx;
-    if ((ndx + inc) >= h->size) {	// need resize?
-        ndx += inc;
+    int nsz = 0;
+    if (idx >= h->size) {	// need resize?
+        nsz = idx + inc;
     }
-    if ((h->n + inc) > h->size) {
-        ndx = h->n + inc;
+    else if (h->n >= h->size) {
+        nsz = h->n + 4;		// pre allocate
     }
-    if (ndx>idx && mrbc_array_resize(h, ndx) != 0) return -1;
+    if (nsz && mrbc_array_resize(h, nsz) != 0) return -1;
 
-    return ndx;
+    return idx;
 }
 
 //================================================================
@@ -98,13 +98,13 @@ _set(mrbc_value *ary, int idx, mrbc_value *val)
     if (ndx<0) return -1;						// allocation error
 
     if (ndx < h->n) {
-        mrbc_release(&h->data[idx]);			// release existing data
+        mrbc_release(&h->data[ndx]);			// release existing data
     }
     else {
         for(int i=h->n; i<ndx; i++) {			// lazy fill here, instead of when resized
             h->data[i] = mrbc_nil_value();		// prep newly allocated cells
         }
-        h->n = ndx;
+        h->n = ndx+1;
     }
     h->data[ndx] = *val;
 
@@ -323,7 +323,7 @@ mrbc_array_resize(mrbc_array *h, int size)
     mrbc_value *d2 = (mrbc_value *)mrbc_realloc(h->data, sizeof(mrbc_value) * size);
     if (!d2) return -1;
 
-    h->data = d2;
+    h->data = d2;			// lazy fill later
     h->size = size;
 
     return 0;
