@@ -31,7 +31,7 @@ guru_write(mrbc_vtype tt, mrbc_vtype fmt, size_t sz, uint8_t *buf)
 
 	guru_output_ptr = (uint8_t *)n->data + n->size;		// advance pointer to next print block
 
-	*guru_output_ptr = (uint8_t)MRBC_TT_EMPTY;
+	*guru_output_ptr = (uint8_t)GURU_TT_EMPTY;
 }
 
 //================================================================
@@ -43,26 +43,26 @@ __GURU__ void
 console_char(char c)
 {
 	char buf[2] = { c, '\0' };
-	guru_write(MRBC_TT_STRING, MRBC_TT_EMPTY, 2, (uint8_t *)buf);
+	guru_write(GURU_TT_STRING, GURU_TT_EMPTY, 2, (uint8_t *)buf);
 }
 
 __GURU__ void
 console_int(mrbc_int i)
 {
-	guru_write(MRBC_TT_FIXNUM, MRBC_TT_FIXNUM, sizeof(mrbc_int), (uint8_t *)&i);
+	guru_write(GURU_TT_FIXNUM, GURU_TT_FIXNUM, sizeof(mrbc_int), (uint8_t *)&i);
 }
 
 __GURU__ void
 console_hex(mrbc_int i)
 {
-	guru_write(MRBC_TT_FIXNUM, MRBC_TT_EMPTY, sizeof(mrbc_int), (uint8_t *)&i);
+	guru_write(GURU_TT_FIXNUM, GURU_TT_EMPTY, sizeof(mrbc_int), (uint8_t *)&i);
 }
 
 #if GURU_USE_FLOAT
 __GURU__ void
 console_float(mrbc_float f)
 {
-	guru_write(MRBC_TT_FLOAT, MRBC_TT_EMPTY, sizeof(mrbc_float), (uint8_t *)&f);
+	guru_write(GURU_TT_FLOAT, GURU_TT_EMPTY, sizeof(mrbc_float), (uint8_t *)&f);
 }
 #endif
 
@@ -74,7 +74,7 @@ console_float(mrbc_float f)
 __GURU__ void
 console_str(const char *str)
 {
-	guru_write(MRBC_TT_STRING, MRBC_TT_EMPTY, guru_strlen(str)+1, (uint8_t *)str);
+	guru_write(GURU_TT_STRING, GURU_TT_EMPTY, guru_strlen(str)+1, (uint8_t *)str);
 }
 
 __GURU__ void
@@ -142,7 +142,7 @@ guru_console_init(uint8_t *buf, size_t sz)
 	if (threadIdx.x!=0 || blockIdx.x !=0) return;
 
 	guru_print_node *node = (guru_print_node *)buf;
-	node->tt = MRBC_TT_EMPTY;
+	node->tt = GURU_TT_EMPTY;
 
 	guru_output = guru_output_ptr = buf;
 
@@ -157,17 +157,17 @@ _guru_print_core(guru_print_node *node)
 	uint8_t *fmt[80], *buf[80];		// check buffer overflow
 	int 	argc;
 	switch (node->tt) {
-	case MRBC_TT_FIXNUM:
-		printf((node->fmt==MRBC_TT_FIXNUM ? "%d" : "%04x"), *((mrbc_int *)node->data));
+	case GURU_TT_FIXNUM:
+		printf((node->fmt==GURU_TT_FIXNUM ? "%d" : "%04x"), *((mrbc_int *)node->data));
 		break;
-	case MRBC_TT_FLOAT:
+	case GURU_TT_FLOAT:
 		printf("%f", *((mrbc_float *)node->data));
 		break;
-	case MRBC_TT_STRING:
+	case GURU_TT_STRING:
 		memcpy(buf, (uint8_t *)node->data, node->size);
 		printf("%s", (char *)buf);
 		break;
-	case MRBC_TT_RANGE:							// TODO: va_list needed here
+	case GURU_TT_RANGE:							// TODO: va_list needed here
 		argc = (int)node->fmt;
 		memcpy(fmt, (uint8_t *)node->data, node->size);
 		printf("%s", (char *)fmt);
@@ -186,7 +186,7 @@ guru_console_flush(uint8_t *output_buf)
 {
 	guru_print_node *node = (guru_print_node *)output_buf;
 
-	while (node->tt != MRBC_TT_EMPTY) {			// 0
+	while (node->tt != GURU_TT_EMPTY) {			// 0
 		node = _guru_print_core(node);
 		node = NEXTNODE(node);
 	}

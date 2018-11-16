@@ -25,7 +25,7 @@ extern "C" {
   Define Array handle.
 */
 typedef struct RArray {
-    MRBC_OBJECT_HEADER;
+    GURU_OBJECT_HEADER;
 
     uint16_t   size;	//!< data buffer size.
     uint16_t   n;	    //!< # of stored.

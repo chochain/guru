@@ -38,25 +38,25 @@ mrbc_get_class_by_object(mrbc_object *obj)
     mrbc_class *cls;
 
     switch (obj->tt) {
-    case MRBC_TT_TRUE:	  cls = mrbc_class_true;		break;
-    case MRBC_TT_FALSE:	  cls = mrbc_class_false; 	    break;
-    case MRBC_TT_NIL:	  cls = mrbc_class_nil;		    break;
-    case MRBC_TT_FIXNUM:  cls = mrbc_class_fixnum;	    break;
+    case GURU_TT_TRUE:	  cls = mrbc_class_true;		break;
+    case GURU_TT_FALSE:	  cls = mrbc_class_false; 	    break;
+    case GURU_TT_NIL:	  cls = mrbc_class_nil;		    break;
+    case GURU_TT_FIXNUM:  cls = mrbc_class_fixnum;	    break;
 #if GURU_USE_FLOAT
-    case MRBC_TT_FLOAT:	  cls = mrbc_class_float; 	    break;
+    case GURU_TT_FLOAT:	  cls = mrbc_class_float; 	    break;
 #endif
-    case MRBC_TT_SYMBOL:  cls = mrbc_class_symbol;	    break;
+    case GURU_TT_SYMBOL:  cls = mrbc_class_symbol;	    break;
 
-    case MRBC_TT_OBJECT:  cls = obj->self->cls;     	break;
-    case MRBC_TT_CLASS:   cls = obj->cls;               break;
-    case MRBC_TT_PROC:	  cls = mrbc_class_proc;		break;
+    case GURU_TT_OBJECT:  cls = obj->self->cls;     	break;
+    case GURU_TT_CLASS:   cls = obj->cls;               break;
+    case GURU_TT_PROC:	  cls = mrbc_class_proc;		break;
 #if GURU_USE_STRING
-    case MRBC_TT_STRING:  cls = mrbc_class_string;	    break;
+    case GURU_TT_STRING:  cls = mrbc_class_string;	    break;
 #endif
 #if GURU_USE_ARRAY
-    case MRBC_TT_ARRAY:   cls = mrbc_class_array; 	    break;
-    case MRBC_TT_RANGE:	  cls = mrbc_class_range; 	    break;
-    case MRBC_TT_HASH:	  cls = mrbc_class_hash;		break;
+    case GURU_TT_ARRAY:   cls = mrbc_class_array; 	    break;
+    case GURU_TT_RANGE:	  cls = mrbc_class_range; 	    break;
+    case GURU_TT_HASH:	  cls = mrbc_class_hash;		break;
 #endif
     default:		      cls = mrbc_class_object;	    break;
     }
@@ -75,7 +75,7 @@ mrbc_get_class_by_name(const char *name)
     mrbc_sym   sym_id = name2symid(name);
     mrbc_value v      = const_object_get(sym_id);
 
-    return (v.tt == MRBC_TT_CLASS) ? v.cls : NULL;
+    return (v.tt == GURU_TT_CLASS) ? v.cls : NULL;
 }
 
 //================================================================
@@ -135,7 +135,7 @@ mrbc_define_class(const char *name, mrbc_class *super)
 #endif
 
     // register to global constant.
-    mrbc_value v = { .tt = MRBC_TT_CLASS };
+    mrbc_value v = { .tt = GURU_TT_CLASS };
     v.cls    = cls;
     const_object_add(sym_id, &v);
 

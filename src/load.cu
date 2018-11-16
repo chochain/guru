@@ -136,26 +136,26 @@ _load_irep_1(mrbc_irep *irep, const uint8_t **pos)
         }
         switch (tt) {
         case 0: { 	// IREP_TT_STRING
-            obj->tt  = MRBC_TT_STRING;
+            obj->tt  = GURU_TT_STRING;
             obj->sym = (char *)p;
         } break;
         case 1: { 	// IREP_TT_FIXNUM
             MEMCPY((uint8_t *)buf, p, obj_size);
             buf[obj_size] = '\0';
             
-            obj->tt = MRBC_TT_FIXNUM;
+            obj->tt = GURU_TT_FIXNUM;
             obj->i = (int)ATOI(buf);
         } break;
 #if GURU_USE_FLOAT
         case 2: { 	// IREP_TT_FLOAT
             MEMCPY((uint8_t *)buf, p, obj_size);
             buf[obj_size] = '\0';
-            obj->tt = MRBC_TT_FLOAT;
+            obj->tt = GURU_TT_FLOAT;
             obj->f  = ATOF(buf);
         } break;
 #endif
         default:
-        	obj->tt = MRBC_TT_EMPTY;
+        	obj->tt = GURU_TT_EMPTY;
         	break;
         }
         irep->pool[i] = obj;

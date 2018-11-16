@@ -34,7 +34,7 @@ _vm_begin(mrbc_vm *vm)
 
     MEMSET((uint8_t *)vm->regfile, 0, sizeof(vm->regfile));	// clean up registers
 
-    vm->regfile[0].tt  	= MRBC_TT_CLASS;		// regfile[0] is self
+    vm->regfile[0].tt  	= GURU_TT_CLASS;		// regfile[0] is self
     vm->regfile[0].cls 	= mrbc_class_object;	// root class
 
     vm->calltop = NULL;							// no call
@@ -194,7 +194,7 @@ guru_dump_regfile(mrbc_vm *vm, int debug)
 
 	int last=0;
 	for(int i=0; i<MAX_REGS_SIZE; i++, v++) {
-		if (v->tt==MRBC_TT_EMPTY) continue;
+		if (v->tt==GURU_TT_EMPTY) continue;
 		last=i;
 	}
 	v = vm->regfile;
@@ -210,7 +210,7 @@ guru_dump_regfile(mrbc_vm *vm, int debug)
 	}
 	for (int i=0; i<=last; i++, v++) {
 		printf("%2d.%s", i, _vtype[v->tt]);
-	    if (v->tt >= MRBC_TT_OBJECT) printf("_%d", v->self->refc);
+	    if (v->tt >= GURU_TT_OBJECT) printf("_%d", v->self->refc);
 	    printf(" ");
     }
 	printf("]\n");

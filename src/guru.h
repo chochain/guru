@@ -45,30 +45,57 @@ typedef int16_t 	mrbc_sym;
 /*!@brief
   define the value type.
 */
+#if 0                 // mruby vtypes
+  MRB_TT_FALSE = 0,   /*   0 */
+  MRB_TT_FREE,        /*   1 */
+  MRB_TT_TRUE,        /*   2 */
+  MRB_TT_FIXNUM,      /*   3 */
+  MRB_TT_SYMBOL,      /*   4 */
+  MRB_TT_UNDEF,       /*   5 */
+  MRB_TT_FLOAT,       /*   6 */
+  MRB_TT_CPTR,        /*   7 */
+  MRB_TT_OBJECT,      /*   8 */
+  MRB_TT_CLASS,       /*   9 */
+  MRB_TT_MODULE,      /*  10 */
+  MRB_TT_ICLASS,      /*  11 */
+  MRB_TT_SCLASS,      /*  12 */
+  MRB_TT_PROC,        /*  13 */
+  MRB_TT_ARRAY,       /*  14 */
+  MRB_TT_HASH,        /*  15 */
+  MRB_TT_STRING,      /*  16 */
+  MRB_TT_RANGE,       /*  17 */
+  MRB_TT_EXCEPTION,   /*  18 */
+  MRB_TT_FILE,        /*  19 */
+  MRB_TT_ENV,         /*  20 */
+  MRB_TT_DATA,        /*  21 */
+  MRB_TT_FIBER,       /*  22 */
+  MRB_TT_ISTRUCT,     /*  23 */
+  MRB_TT_BREAK,       /*  24 */
+  MRB_TT_MAXDEFINE    /*  25 */
+#endif
+
 typedef enum {
-    /* internal use */
-    MRBC_TT_HANDLE = -1,
     /* primitive */
-    MRBC_TT_EMPTY = 0,
-    MRBC_TT_NIL,
-    MRBC_TT_FALSE,		// (note) true/false threshold. see op_jmpif
+    GURU_TT_EMPTY = 0,
+    GURU_TT_NIL,
 
-    MRBC_TT_TRUE,
-    MRBC_TT_FIXNUM,
-    MRBC_TT_FLOAT,
-    MRBC_TT_SYMBOL,
-    MRBC_TT_CLASS,
+    GURU_TT_FALSE,								// (note) true/false threshold. see op_jmpif
+    GURU_TT_TRUE,
 
-    MRBC_TT_HAS_REF = 16,						// 0x10
+    GURU_TT_FIXNUM,								// 0x4
+    GURU_TT_FLOAT,
+    GURU_TT_SYMBOL,
+    GURU_TT_CLASS,
+
+    GURU_TT_HAS_REF = 16,						// 0x10
 
     /* non-primitive */
-    MRBC_TT_OBJECT = MRBC_TT_HAS_REF + 4,		// 0x14 or 20
-    MRBC_TT_PROC,
-    MRBC_TT_ARRAY,
-    MRBC_TT_STRING,
-    MRBC_TT_RANGE,
-    MRBC_TT_HASH,
-
+    GURU_TT_OBJECT = GURU_TT_HAS_REF + 4,		// 0x14 or 20
+    GURU_TT_PROC,
+    GURU_TT_ARRAY,
+    GURU_TT_STRING,
+    GURU_TT_RANGE,
+    GURU_TT_HASH,
 } mrbc_vtype;
 
 //================================================================
@@ -80,18 +107,18 @@ typedef struct RObject {			// 16-bytes
     unsigned int		 flag:8;	// reserved
     unsigned int	 	 size:16;	// reserved, 32-bit aligned
     union {
-        mrbc_int         i;			// MRBC_TT_FIXNUM, SYMBOL
+        mrbc_int         i;			// GURU_TT_FIXNUM, SYMBOL
 #if GURU_USE_FLOAT
-        mrbc_float       f;			// MRBC_TT_FLOAT
+        mrbc_float       f;			// GURU_TT_FLOAT
 #endif
-        struct RClass    *cls;		// MRBC_TT_CLASS
-        struct RInstance *self;		// MRBC_TT_OBJECT
-        struct RProc     *proc;		// MRBC_TT_PROC
-        struct RString   *str;		// MRBC_TT_STRING
+        struct RClass    *cls;		// GURU_TT_CLASS
+        struct RInstance *self;		// GURU_TT_OBJECT
+        struct RProc     *proc;		// GURU_TT_PROC
+        struct RString   *str;		// GURU_TT_STRING
 #if GURU_USE_ARRAY
-        struct RArray    *array;	// MRBC_TT_ARRAY
-        struct RRange    *range;	// MRBC_TT_RANGE
-        struct RHash     *hash;		// MRBC_TT_HASH
+        struct RArray    *array;	// GURU_TT_ARRAY
+        struct RRange    *range;	// GURU_TT_RANGE
+        struct RHash     *hash;		// GURU_TT_HASH
 #endif
         const char       *sym;		// C-string (only loader use.)
     };
@@ -113,13 +140,13 @@ typedef struct RClass {			// 32-byte
 #define GURU_PROC_C_FUNC 	0x80
 #define IS_C_FUNC(m)		((m)->flag & GURU_PROC_C_FUNC)
 
-#define MRBC_OBJECT_HEADER      \
+#define GURU_OBJECT_HEADER      \
 	unsigned int	refc:16;	\
 	mrbc_vtype  	tt:8; 		\
 	unsigned int	flag:8
 
 typedef struct RString {		// 16-byte
-	MRBC_OBJECT_HEADER;			// 4-byte
+	GURU_OBJECT_HEADER;			// 4-byte
 
 	uint32_t 		size;		//!< string length.
 	uint8_t  		*data;		//!< pointer to allocated buffer.
@@ -130,7 +157,7 @@ typedef struct RString {		// 16-byte
   Guru instance object.
 */
 typedef struct RInstance {		// 24-byte
-    MRBC_OBJECT_HEADER;
+    GURU_OBJECT_HEADER;
 
     struct RClass    *cls;
     struct RKeyValue *ivar;
@@ -146,7 +173,7 @@ struct Irep;
 typedef void (*mrbc_func_t)(mrbc_object *v, int argc);
 
 typedef struct RProc {		// 40-byte
-    MRBC_OBJECT_HEADER;
+    GURU_OBJECT_HEADER;
 
     struct RProc *next;
     union {

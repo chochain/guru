@@ -174,7 +174,7 @@ _get(mrbc_kv *kv, mrbc_sym sym_id)
 __GURU__ mrbc_value
 mrbc_instance_new(mrbc_class *cls, int size)
 {
-    mrbc_value v = {.tt = MRBC_TT_OBJECT};
+    mrbc_value v = {.tt = GURU_TT_OBJECT};
     v.self = (mrbc_instance *)mrbc_alloc(sizeof(mrbc_instance) + size);
     if (v.self == NULL) return v;	// ENOMEM
 
@@ -186,7 +186,7 @@ mrbc_instance_new(mrbc_class *cls, int size)
     }
 
     v.self->refc = 1;
-    v.self->tt   = MRBC_TT_OBJECT;	// for debug only.
+    v.self->tt   = GURU_TT_OBJECT;	// for debug only.
     v.self->cls  = cls;
 
     return v;

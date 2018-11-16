@@ -254,7 +254,7 @@ op_loadi(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 {
     int ra = GETARG_A(code);
 
-    _RA_T(MRBC_TT_FIXNUM, i=GETARG_sBx(code));
+    _RA_T(GURU_TT_FIXNUM, i=GETARG_sBx(code));
 
     return 0;
 }
@@ -276,7 +276,7 @@ op_loadsym(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     int ra = GETARG_A(code);
     int rb = GETARG_Bx(code);
 
-    _RA_T(MRBC_TT_SYMBOL, i=_get_symid(vm->pc_irep->sym, rb));
+    _RA_T(GURU_TT_SYMBOL, i=_get_symid(vm->pc_irep->sym, rb));
 
     return 0;
 }
@@ -297,7 +297,7 @@ op_loadnil(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 {
     int ra = GETARG_A(code);
 
-    _RA_T(MRBC_TT_NIL, i=0);
+    _RA_T(GURU_TT_NIL, i=0);
 
     return 0;
 }
@@ -339,7 +339,7 @@ op_loadt(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 {
     int ra = GETARG_A(code);
 
-    _RA_T(MRBC_TT_TRUE, i=0);
+    _RA_T(GURU_TT_TRUE, i=0);
 
     return 0;
 }
@@ -360,7 +360,7 @@ op_loadf(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 {
     int ra = GETARG_A(code);
 
-    _RA_T(MRBC_TT_FALSE, i=0);
+    _RA_T(GURU_TT_FALSE, i=0);
 
     return 0;
 }
@@ -608,7 +608,7 @@ op_jmp(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 __GURU__ int
 op_jmpif (mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 {
-    if (regs[GETARG_A(code)].tt > MRBC_TT_FALSE) {
+    if (regs[GETARG_A(code)].tt > GURU_TT_FALSE) {
         vm->pc += GETARG_sBx(code) - 1;
     }
     return 0;
@@ -628,7 +628,7 @@ op_jmpif (mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 __GURU__ int
 op_jmpnot(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 {
-    if (regs[GETARG_A(code)].tt <= MRBC_TT_FALSE) {
+    if (regs[GETARG_A(code)].tt <= GURU_TT_FALSE) {
         vm->pc += GETARG_sBx(code) - 1;
     }
     return 0;
@@ -659,10 +659,10 @@ op_send(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     switch(GET_OPCODE(code)) {
     case OP_SEND:
         mrbc_release(&regs[bidx]);
-        regs[bidx].tt = MRBC_TT_NIL;
+        regs[bidx].tt = GURU_TT_NIL;
         break;
     case OP_SENDB:						// set Proc object
-        if (regs[bidx].tt != MRBC_TT_NIL && regs[bidx].tt != MRBC_TT_PROC){
+        if (regs[bidx].tt != GURU_TT_NIL && regs[bidx].tt != GURU_TT_PROC){
             // TODO: fix the following behavior
             // convert to Proc ?
             // raise exceprion in mruby/c ?
@@ -778,7 +778,7 @@ op_return(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 
     mrbc_release(&regs[0]);
     regs[0] = ret;
-    regs[ra].tt = MRBC_TT_EMPTY;
+    regs[ra].tt = GURU_TT_EMPTY;
 
     _pop_callinfo(vm, regs);
 
@@ -803,7 +803,7 @@ op_blkpush(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 
     mrbc_value *stack = regs + 1;       // call stack: push 1 mrbc_value
 
-    if (stack[0].tt==MRBC_TT_NIL){
+    if (stack[0].tt==GURU_TT_NIL){
         return vm->err = -1;  			// EYIELD
     }
     _RA_X(stack);                       // ra <= stack[0]
@@ -827,21 +827,21 @@ op_add(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 {
     int ra = GETARG_A(code);
 
-    if (regs[ra].tt==MRBC_TT_FIXNUM) {
-        if (regs[ra+1].tt==MRBC_TT_FIXNUM) {	// in case of Fixnum, Fixnum
+    if (regs[ra].tt==GURU_TT_FIXNUM) {
+        if (regs[ra+1].tt==GURU_TT_FIXNUM) {	// in case of Fixnum, Fixnum
             regs[ra].i += regs[ra+1].i;
         }
 #if GURU_USE_FLOAT
-        else if (regs[ra+1].tt==MRBC_TT_FLOAT) {	// in case of Fixnum, Float
-            regs[ra].tt = MRBC_TT_FLOAT;
+        else if (regs[ra+1].tt==GURU_TT_FLOAT) {	// in case of Fixnum, Float
+            regs[ra].tt = GURU_TT_FLOAT;
             regs[ra].f = regs[ra].i + regs[ra+1].f;
         }
     }
-    else if (regs[ra].tt==MRBC_TT_FLOAT) {
-        if (regs[ra+1].tt==MRBC_TT_FIXNUM) {	// in case of Float, Fixnum
+    else if (regs[ra].tt==GURU_TT_FLOAT) {
+        if (regs[ra+1].tt==GURU_TT_FIXNUM) {	// in case of Float, Fixnum
             regs[ra].f += regs[ra+1].i;
         }
-        else if (regs[ra+1].tt==MRBC_TT_FLOAT) {	// in case of Float, Float
+        else if (regs[ra+1].tt==GURU_TT_FLOAT) {	// in case of Float, Float
             regs[ra].f += regs[ra+1].f;
         }
 #endif
@@ -869,11 +869,11 @@ op_addi(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 {
     int ra = GETARG_A(code);
 
-    if (regs[ra].tt==MRBC_TT_FIXNUM) {
+    if (regs[ra].tt==GURU_TT_FIXNUM) {
         regs[ra].i += GETARG_C(code);
     }
 #if GURU_USE_FLOAT
-    else if (regs[ra].tt==MRBC_TT_FLOAT) {
+    else if (regs[ra].tt==GURU_TT_FLOAT) {
         regs[ra].f += GETARG_C(code);
     }
 #else
@@ -900,21 +900,21 @@ op_sub(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 {
     int ra = GETARG_A(code);
 
-    if (regs[ra].tt==MRBC_TT_FIXNUM) {
-        if (regs[ra+1].tt==MRBC_TT_FIXNUM) {	// in case of Fixnum, Fixnum
+    if (regs[ra].tt==GURU_TT_FIXNUM) {
+        if (regs[ra+1].tt==GURU_TT_FIXNUM) {	// in case of Fixnum, Fixnum
             regs[ra].i -= regs[ra+1].i;
         }
 #if GURU_USE_FLOAT
-        else if (regs[ra+1].tt==MRBC_TT_FLOAT) {		// in case of Fixnum, Float
-            regs[ra].tt = MRBC_TT_FLOAT;
+        else if (regs[ra+1].tt==GURU_TT_FLOAT) {		// in case of Fixnum, Float
+            regs[ra].tt = GURU_TT_FLOAT;
             regs[ra].f = regs[ra].i - regs[ra+1].f;
         }
     }
-    else if (regs[ra].tt==MRBC_TT_FLOAT) {
-        if (regs[ra+1].tt==MRBC_TT_FIXNUM) {	        // in case of Float, Fixnum
+    else if (regs[ra].tt==GURU_TT_FLOAT) {
+        if (regs[ra+1].tt==GURU_TT_FIXNUM) {	        // in case of Float, Fixnum
             regs[ra].f -= regs[ra+1].i;
         }
-        else if (regs[ra+1].tt==MRBC_TT_FLOAT) {		// in case of Float, Float
+        else if (regs[ra+1].tt==GURU_TT_FLOAT) {		// in case of Float, Float
             regs[ra].f -= regs[ra+1].f;
         }
 #endif
@@ -943,11 +943,11 @@ op_subi(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 {
     int ra = GETARG_A(code);
 
-    if (regs[ra].tt==MRBC_TT_FIXNUM) {
+    if (regs[ra].tt==GURU_TT_FIXNUM) {
         regs[ra].i -= GETARG_C(code);
     }
 #if GURU_USE_FLOAT
-    else if (regs[ra].tt==MRBC_TT_FLOAT) {
+    else if (regs[ra].tt==GURU_TT_FLOAT) {
         regs[ra].f -= GETARG_C(code);
     }
 #else
@@ -974,21 +974,21 @@ op_mul(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 {
     int ra = GETARG_A(code);
 
-    if (regs[ra].tt==MRBC_TT_FIXNUM) {
-        if (regs[ra+1].tt==MRBC_TT_FIXNUM) {	// in case of Fixnum, Fixnum
+    if (regs[ra].tt==GURU_TT_FIXNUM) {
+        if (regs[ra+1].tt==GURU_TT_FIXNUM) {	// in case of Fixnum, Fixnum
             regs[ra].i *= regs[ra+1].i;
         }
 #if GURU_USE_FLOAT
-        else if (regs[ra+1].tt==MRBC_TT_FLOAT) {	// in case of Fixnum, Float
-            regs[ra].tt = MRBC_TT_FLOAT;
+        else if (regs[ra+1].tt==GURU_TT_FLOAT) {	// in case of Fixnum, Float
+            regs[ra].tt = GURU_TT_FLOAT;
             regs[ra].f = regs[ra].i * regs[ra+1].f;
         }
     }
-    else if (regs[ra].tt==MRBC_TT_FLOAT) {
-        if (regs[ra+1].tt==MRBC_TT_FIXNUM) {	// in case of Float, Fixnum
+    else if (regs[ra].tt==GURU_TT_FLOAT) {
+        if (regs[ra+1].tt==GURU_TT_FIXNUM) {	// in case of Float, Fixnum
             regs[ra].f *= regs[ra+1].i;
         }
-        else if (regs[ra+1].tt==MRBC_TT_FLOAT) {	// in case of Float, Float
+        else if (regs[ra+1].tt==GURU_TT_FLOAT) {	// in case of Float, Float
             regs[ra].f *= regs[ra+1].f;
         }
 #endif
@@ -1016,21 +1016,21 @@ op_div(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 {
     int ra = GETARG_A(code);
 
-    if (regs[ra].tt==MRBC_TT_FIXNUM) {
-        if (regs[ra+1].tt==MRBC_TT_FIXNUM) {	// in case of Fixnum, Fixnum
+    if (regs[ra].tt==GURU_TT_FIXNUM) {
+        if (regs[ra+1].tt==GURU_TT_FIXNUM) {	// in case of Fixnum, Fixnum
             regs[ra].i /= regs[ra+1].i;
         }
 #if GURU_USE_FLOAT
-        else if (regs[ra+1].tt==MRBC_TT_FLOAT) {		// in case of Fixnum, Float
-            regs[ra].tt = MRBC_TT_FLOAT;
+        else if (regs[ra+1].tt==GURU_TT_FLOAT) {		// in case of Fixnum, Float
+            regs[ra].tt = GURU_TT_FLOAT;
             regs[ra].f = regs[ra].i / regs[ra+1].f;
         }
     }
-    else if (regs[ra].tt==MRBC_TT_FLOAT) {
-        if (regs[ra+1].tt==MRBC_TT_FIXNUM) {	// in case of Float, Fixnum
+    else if (regs[ra].tt==GURU_TT_FLOAT) {
+        if (regs[ra+1].tt==GURU_TT_FIXNUM) {	// in case of Float, Fixnum
             regs[ra].f /= regs[ra+1].i;
         }
-        else if (regs[ra+1].tt==MRBC_TT_FLOAT) {		// in case of Float, Float
+        else if (regs[ra+1].tt==GURU_TT_FLOAT) {		// in case of Float, Float
             regs[ra].f /= regs[ra+1].f;
         }
 #endif
@@ -1059,7 +1059,7 @@ op_eq(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     int ra = GETARG_A(code);
     int result = mrbc_compare(&regs[ra], &regs[ra+1]);
 
-    _RA_T(result ? MRBC_TT_FALSE : MRBC_TT_TRUE, i=0);
+    _RA_T(result ? GURU_TT_FALSE : GURU_TT_TRUE, i=0);
     mrbc_release(&regs[ra+1]);
 
     return 0;
@@ -1082,25 +1082,25 @@ op_lt(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     int ra = GETARG_A(code);
     int result;
 
-    if (regs[ra].tt==MRBC_TT_FIXNUM) {
-        if (regs[ra+1].tt==MRBC_TT_FIXNUM) {
+    if (regs[ra].tt==GURU_TT_FIXNUM) {
+        if (regs[ra+1].tt==GURU_TT_FIXNUM) {
             result = regs[ra].i < regs[ra+1].i;	// in case of Fixnum, Fixnum
-            regs[ra].tt = result ? MRBC_TT_TRUE : MRBC_TT_FALSE;
+            regs[ra].tt = result ? GURU_TT_TRUE : GURU_TT_FALSE;
         }
 #if GURU_USE_FLOAT
-        else if (regs[ra+1].tt==MRBC_TT_FLOAT) {
+        else if (regs[ra+1].tt==GURU_TT_FLOAT) {
             result = regs[ra].i < regs[ra+1].f;	// in case of Fixnum, Float
-            regs[ra].tt = result ? MRBC_TT_TRUE : MRBC_TT_FALSE;
+            regs[ra].tt = result ? GURU_TT_TRUE : GURU_TT_FALSE;
         }
     }
-    else if (regs[ra].tt==MRBC_TT_FLOAT) {
-        if (regs[ra+1].tt==MRBC_TT_FIXNUM) {
+    else if (regs[ra].tt==GURU_TT_FLOAT) {
+        if (regs[ra+1].tt==GURU_TT_FIXNUM) {
             result = regs[ra].f < regs[ra+1].i;	// in case of Float, Fixnum
-            regs[ra].tt = result ? MRBC_TT_TRUE : MRBC_TT_FALSE;
+            regs[ra].tt = result ? GURU_TT_TRUE : GURU_TT_FALSE;
         }
-        else if (regs[ra+1].tt==MRBC_TT_FLOAT) {
+        else if (regs[ra+1].tt==GURU_TT_FLOAT) {
             result = regs[ra].f < regs[ra+1].f;	// in case of Float, Float
-            regs[ra].tt = result ? MRBC_TT_TRUE : MRBC_TT_FALSE;
+            regs[ra].tt = result ? GURU_TT_TRUE : GURU_TT_FALSE;
         }
 #endif
     }
@@ -1128,25 +1128,25 @@ op_le(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     int ra = GETARG_A(code);
     int result;
 
-    if (regs[ra].tt==MRBC_TT_FIXNUM) {
-        if (regs[ra+1].tt==MRBC_TT_FIXNUM) {
+    if (regs[ra].tt==GURU_TT_FIXNUM) {
+        if (regs[ra+1].tt==GURU_TT_FIXNUM) {
             result = regs[ra].i <= regs[ra+1].i;	// in case of Fixnum, Fixnum
-            regs[ra].tt = result ? MRBC_TT_TRUE : MRBC_TT_FALSE;
+            regs[ra].tt = result ? GURU_TT_TRUE : GURU_TT_FALSE;
         }
 #if GURU_USE_FLOAT
-        else if (regs[ra+1].tt==MRBC_TT_FLOAT) {
+        else if (regs[ra+1].tt==GURU_TT_FLOAT) {
             result = regs[ra].i <= regs[ra+1].f;	// in case of Fixnum, Float
-            regs[ra].tt = result ? MRBC_TT_TRUE : MRBC_TT_FALSE;
+            regs[ra].tt = result ? GURU_TT_TRUE : GURU_TT_FALSE;
         }
     }
-    else if (regs[ra].tt==MRBC_TT_FLOAT) {
-        if (regs[ra+1].tt==MRBC_TT_FIXNUM) {
+    else if (regs[ra].tt==GURU_TT_FLOAT) {
+        if (regs[ra+1].tt==GURU_TT_FIXNUM) {
             result = regs[ra].f <= regs[ra+1].i;	// in case of Float, Fixnum
-            regs[ra].tt = result ? MRBC_TT_TRUE : MRBC_TT_FALSE;
+            regs[ra].tt = result ? GURU_TT_TRUE : GURU_TT_FALSE;
         }
-        else if (regs[ra+1].tt==MRBC_TT_FLOAT) {
+        else if (regs[ra+1].tt==GURU_TT_FLOAT) {
             result = regs[ra].f <= regs[ra+1].f;	// in case of Float, Float
-            regs[ra].tt = result ? MRBC_TT_TRUE : MRBC_TT_FALSE;
+            regs[ra].tt = result ? GURU_TT_TRUE : GURU_TT_FALSE;
         }
 #endif
     }
@@ -1174,25 +1174,25 @@ op_gt(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     int ra = GETARG_A(code);
     int result;
 
-    if (regs[ra].tt==MRBC_TT_FIXNUM) {
-        if (regs[ra+1].tt==MRBC_TT_FIXNUM) {
+    if (regs[ra].tt==GURU_TT_FIXNUM) {
+        if (regs[ra+1].tt==GURU_TT_FIXNUM) {
             result = regs[ra].i > regs[ra+1].i;	// in case of Fixnum, Fixnum
-            regs[ra].tt = result ? MRBC_TT_TRUE : MRBC_TT_FALSE;
+            regs[ra].tt = result ? GURU_TT_TRUE : GURU_TT_FALSE;
         }
 #if GURU_USE_FLOAT
-        else if (regs[ra+1].tt==MRBC_TT_FLOAT) {
+        else if (regs[ra+1].tt==GURU_TT_FLOAT) {
             result = regs[ra].i > regs[ra+1].f;	// in case of Fixnum, Float
-            regs[ra].tt = result ? MRBC_TT_TRUE : MRBC_TT_FALSE;
+            regs[ra].tt = result ? GURU_TT_TRUE : GURU_TT_FALSE;
         }
     }
-    else if (regs[ra].tt==MRBC_TT_FLOAT) {
-        if (regs[ra+1].tt==MRBC_TT_FIXNUM) {
+    else if (regs[ra].tt==GURU_TT_FLOAT) {
+        if (regs[ra+1].tt==GURU_TT_FIXNUM) {
             result = regs[ra].f > regs[ra+1].i;	// in case of Float, Fixnum
-            regs[ra].tt = result ? MRBC_TT_TRUE : MRBC_TT_FALSE;
+            regs[ra].tt = result ? GURU_TT_TRUE : GURU_TT_FALSE;
         }
-        else if (regs[ra+1].tt==MRBC_TT_FLOAT) {
+        else if (regs[ra+1].tt==GURU_TT_FLOAT) {
             result = regs[ra].f > regs[ra+1].f;	// in case of Float, Float
-            regs[ra].tt = result ? MRBC_TT_TRUE : MRBC_TT_FALSE;
+            regs[ra].tt = result ? GURU_TT_TRUE : GURU_TT_FALSE;
         }
 #endif
     }
@@ -1220,25 +1220,25 @@ op_ge(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     int ra = GETARG_A(code);
     int result;
 
-    if (regs[ra].tt==MRBC_TT_FIXNUM) {
-        if (regs[ra+1].tt==MRBC_TT_FIXNUM) {
+    if (regs[ra].tt==GURU_TT_FIXNUM) {
+        if (regs[ra+1].tt==GURU_TT_FIXNUM) {
             result = regs[ra].i >= regs[ra+1].i;	// in case of Fixnum, Fixnum
-            regs[ra].tt = result ? MRBC_TT_TRUE : MRBC_TT_FALSE;
+            regs[ra].tt = result ? GURU_TT_TRUE : GURU_TT_FALSE;
         }
 #if GURU_USE_FLOAT
-        else if (regs[ra+1].tt==MRBC_TT_FLOAT) {
+        else if (regs[ra+1].tt==GURU_TT_FLOAT) {
             result = regs[ra].i >= regs[ra+1].f;	// in case of Fixnum, Float
-            regs[ra].tt = result ? MRBC_TT_TRUE : MRBC_TT_FALSE;
+            regs[ra].tt = result ? GURU_TT_TRUE : GURU_TT_FALSE;
         }
     }
-    else if (regs[ra].tt==MRBC_TT_FLOAT) {
-        if (regs[ra+1].tt==MRBC_TT_FIXNUM) {
+    else if (regs[ra].tt==GURU_TT_FLOAT) {
+        if (regs[ra+1].tt==GURU_TT_FIXNUM) {
             result = regs[ra].f >= regs[ra+1].i;	// in case of Float, Fixnum
-            regs[ra].tt = result ? MRBC_TT_TRUE : MRBC_TT_FALSE;
+            regs[ra].tt = result ? GURU_TT_TRUE : GURU_TT_FALSE;
         }
-        else if (regs[ra+1].tt==MRBC_TT_FLOAT) {
+        else if (regs[ra+1].tt==GURU_TT_FLOAT) {
             result = regs[ra].f >= regs[ra+1].f;	// in case of Float, Float
-            regs[ra].tt = result ? MRBC_TT_TRUE : MRBC_TT_FALSE;
+            regs[ra].tt = result ? GURU_TT_TRUE : GURU_TT_FALSE;
         }
 #endif
     }
@@ -1384,7 +1384,7 @@ op_hash(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     MEMCPY((uint8_t *)h->data, (uint8_t *)p, sz);		// copy k,v pairs
 
     for (int i=0; i<(h->n=(rc<<1)); i++, p++) {
-    	p->tt = MRBC_TT_EMPTY;							// clean up call stack
+    	p->tt = GURU_TT_EMPTY;							// clean up call stack
     }
     _RA_V(ret);						                // set return value on stack top
 #else
@@ -1448,7 +1448,7 @@ op_lambda(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     prc->flag &= ~GURU_PROC_C_FUNC;	// IREP
     prc->irep = vm->pc_irep->irep_list[rb];
 
-    _RA_T(MRBC_TT_PROC, proc=prc);
+    _RA_T(GURU_TT_PROC, proc=prc);
 
     return 0;
 }
@@ -1472,13 +1472,13 @@ op_class(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     int ra = GETARG_A(code);
     int rb = GETARG_B(code);
 
-    mrbc_class *super = (regs[ra+1].tt==MRBC_TT_CLASS) ? regs[ra+1].cls : mrbc_class_object;
+    mrbc_class *super = (regs[ra+1].tt==GURU_TT_CLASS) ? regs[ra+1].cls : mrbc_class_object;
 
     mrbc_irep  *cur_irep = vm->pc_irep;
     const char *name     = _get_symbol(cur_irep->sym, rb);
     mrbc_class *cls 	 = (mrbc_class *)mrbc_define_class(name, super);
 
-    mrbc_value ret = {.tt = MRBC_TT_CLASS};
+    mrbc_value ret = {.tt = GURU_TT_CLASS};
     ret.cls = cls;
 
     regs[ra] = ret;
@@ -1532,7 +1532,7 @@ op_method(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     int ra = GETARG_A(code);
     int rb = GETARG_B(code);
 
-    if (regs[ra].tt != MRBC_TT_CLASS) {
+    if (regs[ra].tt != GURU_TT_CLASS) {
     	console_str("?op_method");
     	return 0;
     }
@@ -1553,7 +1553,7 @@ op_method(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     if (p) {	// found?
     	*((mrbc_proc**)pp) = p->next;
     	if (!IS_C_FUNC(p)) {
-    		mrbc_value v = {.tt = MRBC_TT_PROC};
+    		mrbc_value v = {.tt = GURU_TT_PROC};
     		v.proc = p;
     		mrbc_release(&v);
         }
@@ -1568,7 +1568,7 @@ op_method(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     proc->next   = cls->procs;
     cls->procs   = proc;
 
-    regs[ra+1].tt = MRBC_TT_EMPTY;
+    regs[ra+1].tt = GURU_TT_EMPTY;
 
     return 0;
 }
@@ -1589,7 +1589,7 @@ op_tclass(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 {
     int ra = GETARG_A(code);
 
-    _RA_T(MRBC_TT_CLASS, cls=vm->klass);
+    _RA_T(GURU_TT_CLASS, cls=vm->klass);
 
     return 0;
 }

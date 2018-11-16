@@ -66,7 +66,7 @@ c_fixnum_negative(mrbc_value v[], int argc)
 __GURU__ void
 c_fixnum_power(mrbc_value v[], int argc)
 {
-    if (v[1].tt == MRBC_TT_FIXNUM) {
+    if (v[1].tt == GURU_TT_FIXNUM) {
         mrbc_int x = 1;
 
         if (v[1].i < 0) x = 0;
@@ -77,7 +77,7 @@ c_fixnum_power(mrbc_value v[], int argc)
     }
 
 #if GURU_USE_FLOAT && GURU_USE_MATH
-    else if (v[1].tt == MRBC_TT_FLOAT) {
+    else if (v[1].tt == GURU_TT_FLOAT) {
         SET_FLOAT_RETURN(pow(v[0].i, v[1].f));
     }
 #endif
@@ -203,8 +203,7 @@ c_fixnum_to_s(mrbc_value v[], int argc)
     char buf[64+2];
     guru_vprintf(buf, "%d", v, 1);
 
-    mrbc_value ret = mrbc_string_new(buf);
-    SET_RETURN(ret);
+    SET_RETURN(mrbc_string_new(buf));
 }
 #endif
 
@@ -258,8 +257,8 @@ c_float_power(mrbc_value v[], int argc)
 {
     mrbc_float n = 0;
     switch (v[1].tt) {
-    case MRBC_TT_FIXNUM: n = v[1].i;	break;
-    case MRBC_TT_FLOAT:	 n = v[1].d;	break;
+    case GURU_TT_FIXNUM: n = v[1].i;	break;
+    case GURU_TT_FLOAT:	 n = v[1].d;	break;
     default: break;
     }
 

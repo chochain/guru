@@ -22,19 +22,19 @@
 #include "c_array.h"
 #endif
 
-#if !defined(MRBC_SYMBOL_SEARCH_LINER) && !defined(MRBC_SYMBOL_SEARCH_BTREE)
-#define MRBC_SYMBOL_SEARCH_BTREE
+#if !defined(GURU_SYMBOL_SEARCH_LINER) && !defined(GURU_SYMBOL_SEARCH_BTREE)
+#define GURU_SYMBOL_SEARCH_BTREE
 #endif
 
-#ifndef MRBC_SYMBOL_TABLE_INDEX_TYPE
-#define MRBC_SYMBOL_TABLE_INDEX_TYPE	uint16_t
+#ifndef GURU_SYMBOL_TABLE_INDEX_TYPE
+#define GURU_SYMBOL_TABLE_INDEX_TYPE	uint16_t
 #endif
 
 struct SYM_LIST {
     uint16_t hash;	//!< hash value, returned by calc_hash().
-#ifdef MRBC_SYMBOL_SEARCH_BTREE
-    MRBC_SYMBOL_TABLE_INDEX_TYPE left;
-    MRBC_SYMBOL_TABLE_INDEX_TYPE right;
+#ifdef GURU_SYMBOL_SEARCH_BTREE
+    GURU_SYMBOL_TABLE_INDEX_TYPE left;
+    GURU_SYMBOL_TABLE_INDEX_TYPE right;
 #endif
     const char *cstr;	//!< point to the symbol string.
 };
@@ -68,7 +68,7 @@ _search_index(const char *str)
 {
     uint16_t   hash = _calc_hash(str);
 
-#ifdef MRBC_SYMBOL_SEARCH_LINER
+#ifdef GURU_SYMBOL_SEARCH_LINER
     for(int i = 0; i < sym_idx; i++) {
         if (sym_list[i].hash==hash && strcmp(str, sym_list[i].cstr)==0) {
             return i;
@@ -77,7 +77,7 @@ _search_index(const char *str)
     return -1;
 #endif
 
-#ifdef MRBC_SYMBOL_SEARCH_BTREE
+#ifdef GURU_SYMBOL_SEARCH_BTREE
     int i = 0;
     do {
         if (sym_list[i].hash==hash &&
@@ -112,7 +112,7 @@ _add_index(const char *str)
     sym_list[sym_id].hash = hash;
     sym_list[sym_id].cstr = str;
 
-#ifdef MRBC_SYMBOL_SEARCH_BTREE
+#ifdef GURU_SYMBOL_SEARCH_BTREE
     int i = 0;
 
     while (1) {
@@ -147,7 +147,7 @@ _add_index(const char *str)
 __GURU__ mrbc_value
 mrbc_symbol_new(const char *str)
 {
-    mrbc_value v      = {.tt = MRBC_TT_SYMBOL};
+    mrbc_value v      = {.tt = GURU_TT_SYMBOL};
     mrbc_sym   sym_id = _search_index(str);
 
     if (sym_id >= 0) {
@@ -235,7 +235,7 @@ c_all_symbols(mrbc_value v[], int argc)
     mrbc_value ret = mrbc_array_new(sym_idx);
 
     for(int i = 0; i < sym_idx; i++) {
-        mrbc_value sym1 = {.tt = MRBC_TT_SYMBOL};
+        mrbc_value sym1 = {.tt = GURU_TT_SYMBOL};
         sym1.i = i;
         mrbc_array_push(&ret, &sym1);
     }

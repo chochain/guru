@@ -77,20 +77,20 @@ _resize(mrbc_value *kv, int size)
 __GURU__ mrbc_value*
 _search(const mrbc_value v[], const mrbc_value *key)
 {
-#ifndef MRBC_HASH_SEARCH_LINER
-#define MRBC_HASH_SEARCH_LINER
+#ifndef GURU_HASH_SEARCH_LINER
+#define GURU_HASH_SEARCH_LINER
 #endif
     mrbc_value *p = v->hash->data;
     int         n = _size(v);
 
-#ifdef MRBC_HASH_SEARCH_LINER
+#ifdef GURU_HASH_SEARCH_LINER
     for (int i=0; i < n; i++, p+=2) {
         if (mrbc_compare(p, key)==0) return p;
     }
     return NULL;
 #endif
 
-#ifdef MRBC_HASH_SEARCH_LINER_ITERATOR
+#ifdef GURU_HASH_SEARCH_LINER_ITERATOR
     for (int i=0; i < n; i++, p+=2) {
         if (mrbc_compare(p, key)==0) return p;
     }
@@ -187,7 +187,7 @@ _clear(mrbc_value *kv)
 __GURU__ mrbc_value
 mrbc_hash_new(int size)
 {
-    mrbc_value ret = {.tt = MRBC_TT_HASH};
+    mrbc_value ret = {.tt = GURU_TT_HASH};
     /*
       Allocate handle and data buffer.
     */
@@ -200,7 +200,7 @@ mrbc_hash_new(int size)
         return ret;
     }
     h->refc = 1;
-    h->tt  	= MRBC_TT_HASH;
+    h->tt  	= GURU_TT_HASH;
     h->size	= size<<1;
     h->n  	= 0;
     h->data = data;
@@ -274,9 +274,7 @@ mrbc_hash_compare(const mrbc_value *v0, const mrbc_value *v1)
 __GURU__ void
 c_hash_new(mrbc_value v[], int argc)
 {
-	mrbc_value ret = mrbc_hash_new(0);
-
-    SET_RETURN(ret);
+	SET_RETURN(mrbc_hash_new(0));
 }
 
 //================================================================
@@ -307,8 +305,8 @@ c_hash_set(mrbc_value v[], int argc)
     }
     _set(v, v+1, v+2);		// k + v
 
-    (v+1)->tt = MRBC_TT_EMPTY;
-    (v+2)->tt = MRBC_TT_EMPTY;
+    (v+1)->tt = GURU_TT_EMPTY;
+    (v+2)->tt = GURU_TT_EMPTY;
 }
 
 
@@ -327,9 +325,7 @@ c_hash_clear(mrbc_value v[], int argc)
 __GURU__ void
 c_hash_dup(mrbc_value v[], int argc)
 {
-    mrbc_value ret = _hash_dup(v);
-
-    SET_RETURN(ret);
+    SET_RETURN(_hash_dup(v));
 }
 
 //================================================================
@@ -339,11 +335,8 @@ __GURU__ void
 c_hash_delete(mrbc_value v[], int argc)
 {
     // TODO : now, support only delete(key) -> object
-	mrbc_value ret = _remove(v, v+1);
-
-    SET_RETURN(ret);
-
     // TODO: re-index hash table if need.
+	SET_RETURN(_remove(v, v+1));
 }
 
 //================================================================

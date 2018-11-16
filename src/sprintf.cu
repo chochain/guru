@@ -411,41 +411,41 @@ guru_vprintf(char *buf, const char *fstr, mrbc_value v[], int argc)		// << from 
 
         switch(pf.fmt.type) {
         case 'c':
-            if (v[i].tt==MRBC_TT_FIXNUM) {
+            if (v[i].tt==GURU_TT_FIXNUM) {
                 ret = __char(&pf, v[i].i);
             }
             break;
         case 's':
-            if (v[i].tt==MRBC_TT_STRING) {
+            if (v[i].tt==GURU_TT_STRING) {
                 ret = __str(&pf, VSTR(&v[i]), ' ');
             }
-            else if (v[i].tt==MRBC_TT_SYMBOL) {
+            else if (v[i].tt==GURU_TT_SYMBOL) {
                 ret = __str(&pf, VSYM(&v[i]), ' ');
             }
             break;
         case 'd':
         case 'i':
         case 'u':
-            if (v[i].tt==MRBC_TT_FIXNUM) {
+            if (v[i].tt==GURU_TT_FIXNUM) {
                 ret = __int(&pf, v[i].i, 10);
 #if GURU_USE_FLOAT
-            } else if (v[i].tt==MRBC_TT_FLOAT) {
+            } else if (v[i].tt==GURU_TT_FLOAT) {
                 ret = __int(&pf, (mrbc_int)v[i].f, 10);
 #endif
-            } else if (v[i].tt==MRBC_TT_STRING) {
+            } else if (v[i].tt==GURU_TT_STRING) {
                 mrbc_int ival = ATOI(VSTR(&v[i]));
                 ret = __int(&pf, ival, 10);
             }
             break;
         case 'b':
         case 'B':
-            if (v[i].tt==MRBC_TT_FIXNUM) {
+            if (v[i].tt==GURU_TT_FIXNUM) {
                 ret = __int(&pf, v[i].i, 2);
             }
             break;
         case 'x':
         case 'X':
-            if (v[i].tt==MRBC_TT_FIXNUM) {
+            if (v[i].tt==GURU_TT_FIXNUM) {
                 ret = __int(&pf, v[i].i, 16);
             }
             break;
@@ -455,10 +455,10 @@ guru_vprintf(char *buf, const char *fstr, mrbc_value v[], int argc)		// << from 
         case 'E':
         case 'g':
         case 'G':
-            if (v[i].tt==MRBC_TT_FLOAT) {
+            if (v[i].tt==GURU_TT_FLOAT) {
                 ret = __float(&pf, v[i].f);
             }
-            else if (v[i].tt==MRBC_TT_FIXNUM) {
+            else if (v[i].tt==GURU_TT_FIXNUM) {
             	ret = __float(&pf, v[i].i);
             }
             break;

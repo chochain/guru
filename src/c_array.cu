@@ -271,7 +271,7 @@ _minmax(mrbc_value *ary, mrbc_value **pp_min_value, mrbc_value **pp_max_value)
 __GURU__ mrbc_value
 mrbc_array_new(int size)
 {
-    mrbc_value ret = {.tt = MRBC_TT_ARRAY};
+    mrbc_value ret = {.tt = GURU_TT_ARRAY};
     mrbc_array *h 	 = (mrbc_array *)mrbc_alloc(sizeof(mrbc_array));		// handle
     if (!h) return ret;		// ENOMEM
 
@@ -281,7 +281,7 @@ mrbc_array_new(int size)
         return ret;
     }
     h->refc = 1;			// handle is referenced
-    h->tt 	= MRBC_TT_ARRAY;
+    h->tt 	= GURU_TT_ARRAY;
     h->size = size;
     h->n  	= 0;
     h->data = data;
@@ -404,7 +404,7 @@ c_array_new(mrbc_value v[], int argc)
         ret = mrbc_array_new(0);
         if (ret.array==NULL) return;		// ENOMEM
     }
-    else if (argc==1 && v[1].tt==MRBC_TT_FIXNUM && v[1].i >= 0) {	// new(num)
+    else if (argc==1 && v[1].tt==GURU_TT_FIXNUM && v[1].i >= 0) {	// new(num)
         ret = mrbc_array_new(v[1].i);
         if (ret.array==NULL) return;		// ENOMEM
 
@@ -413,7 +413,7 @@ c_array_new(mrbc_value v[], int argc)
             _set(&ret, v[1].i - 1, &nil);
         }
     }
-    else if (argc==2 && v[1].tt==MRBC_TT_FIXNUM && v[1].i >= 0) {	// new(num, value)
+    else if (argc==2 && v[1].tt==GURU_TT_FIXNUM && v[1].i >= 0) {	// new(num, value)
         ret = mrbc_array_new(v[1].i);
         if (ret.array==NULL) return;		// ENOMEM
 
@@ -435,7 +435,7 @@ c_array_new(mrbc_value v[], int argc)
 __GURU__ void
 c_array_add(mrbc_value v[], int argc)
 {
-    if (GET_TT_ARG(1) != MRBC_TT_ARRAY) {
+    if (GET_TT_ARG(1) != GURU_TT_ARRAY) {
         console_str("TypeError\n");		// raise?
         return;
     }
@@ -468,13 +468,13 @@ __GURU__ void
 c_array_get(mrbc_value v[], int argc)
 {
 	mrbc_value ret;
-    if (argc==1 && v[1].tt==MRBC_TT_FIXNUM) {			// self[n] -> object | nil
+    if (argc==1 && v[1].tt==GURU_TT_FIXNUM) {			// self[n] -> object | nil
         ret = _get(v, v[1].i);
         mrbc_retain(&ret);
     }
     else if (argc==2 &&			 						// self[idx, len] -> Array | nil
-    		v[1].tt==MRBC_TT_FIXNUM &&
-    		v[2].tt==MRBC_TT_FIXNUM) {
+    		v[1].tt==GURU_TT_FIXNUM &&
+    		v[2].tt==GURU_TT_FIXNUM) {
         int len = v->array->n;
         int idx = v[1].i;
         if (idx < 0) idx += len;
@@ -507,12 +507,12 @@ DONE:
 __GURU__ void
 c_array_set(mrbc_value v[], int argc)
 {
-    if (argc==2 && v[1].tt==MRBC_TT_FIXNUM) {	// self[n] = val
+    if (argc==2 && v[1].tt==GURU_TT_FIXNUM) {	// self[n] = val
         _set(v, v[1].i, &v[2]);		// raise? IndexError or ENOMEM
     }
     else if (argc==3 &&							// self[n, len] = valu
-    		v[1].tt==MRBC_TT_FIXNUM &&
-    		v[2].tt==MRBC_TT_FIXNUM) {
+    		v[1].tt==GURU_TT_FIXNUM &&
+    		v[2].tt==GURU_TT_FIXNUM) {
         // TODO: not implement yet.
     }
     else {
@@ -603,7 +603,7 @@ __GURU__ void
 c_array_push(mrbc_value v[], int argc)
 {
     mrbc_array_push(v, v+1);	// raise? ENOMEM
-    v[1].tt = MRBC_TT_EMPTY;
+    v[1].tt = GURU_TT_EMPTY;
 }
 
 //================================================================
@@ -615,7 +615,7 @@ c_array_pop(mrbc_value v[], int argc)
     if (argc==0) {									// pop() -> object | nil
         SET_RETURN(_pop(v));
     }
-    else if (argc==1 && v[1].tt==MRBC_TT_FIXNUM) {	// pop(n) -> Array | nil
+    else if (argc==1 && v[1].tt==GURU_TT_FIXNUM) {	// pop(n) -> Array | nil
         // TODO: not implement yet.
     }
     else {
@@ -630,7 +630,7 @@ __GURU__ void
 c_array_unshift(mrbc_value v[], int argc)
 {
     _unshift(v, v+1);	// raise? IndexError or ENOMEM
-    v[1].tt = MRBC_TT_EMPTY;
+    v[1].tt = GURU_TT_EMPTY;
 }
 
 //================================================================
@@ -642,7 +642,7 @@ c_array_shift(mrbc_value v[], int argc)
     if (argc==0) {									// shift() -> object | nil
         SET_RETURN(_shift(v));
     }
-    else if (argc==1 && v[1].tt==MRBC_TT_FIXNUM) {	// shift() -> Array | nil
+    else if (argc==1 && v[1].tt==GURU_TT_FIXNUM) {	// shift() -> Array | nil
         // TODO: not implement yet.
     }
     else {
@@ -778,7 +778,7 @@ c_array_join_1(mrbc_value v[], int argc,
     int err = 0;
     mrbc_value s1;
     while (!err) {
-        if (h->data[i].tt==MRBC_TT_ARRAY) {
+        if (h->data[i].tt==GURU_TT_ARRAY) {
             c_array_join_1(v, argc, &h->data[i], ret, separator);
         }
         else {

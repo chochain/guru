@@ -53,20 +53,20 @@ mrbc_compare(const mrbc_value *v1, const mrbc_value *v2)
 #if GURU_USE_FLOAT
     	mrbc_float f1, f2;
 
-        if (v1->tt == MRBC_TT_FIXNUM && v2->tt == MRBC_TT_FLOAT) {
+        if (v1->tt == GURU_TT_FIXNUM && v2->tt == GURU_TT_FLOAT) {
             f1 = v1->i;
             f2 = v2->f;
             return -1 + (f1 == f2) + (f1 > f2)*2;	// caution: NaN == NaN is false
         }
-        if (v1->tt == MRBC_TT_FLOAT && v2->tt == MRBC_TT_FIXNUM) {
+        if (v1->tt == GURU_TT_FLOAT && v2->tt == GURU_TT_FIXNUM) {
             f1 = v1->f;
             f2 = v2->i;
             return -1 + (f1 == f2) + (f1 > f2)*2;	// caution: NaN == NaN is false
         }
 #endif
         // leak Empty?
-        if ((v1->tt == MRBC_TT_EMPTY && v2->tt == MRBC_TT_NIL) ||
-            (v1->tt == MRBC_TT_NIL   && v2->tt == MRBC_TT_EMPTY)) return 0;
+        if ((v1->tt == GURU_TT_EMPTY && v2->tt == GURU_TT_NIL) ||
+            (v1->tt == GURU_TT_NIL   && v2->tt == GURU_TT_EMPTY)) return 0;
 
         // other case
         return v1->tt - v2->tt;
@@ -74,24 +74,24 @@ mrbc_compare(const mrbc_value *v1, const mrbc_value *v2)
 
     // check value
     switch(v1->tt) {
-    case MRBC_TT_NIL:
-    case MRBC_TT_FALSE:
-    case MRBC_TT_TRUE:   return 0;
-    case MRBC_TT_FIXNUM:
-    case MRBC_TT_SYMBOL: return v1->i - v2->i;
+    case GURU_TT_NIL:
+    case GURU_TT_FALSE:
+    case GURU_TT_TRUE:   return 0;
+    case GURU_TT_FIXNUM:
+    case GURU_TT_SYMBOL: return v1->i - v2->i;
 
-    case MRBC_TT_CLASS:
-    case MRBC_TT_OBJECT:
-    case MRBC_TT_PROC:   return -1 + (v1->self == v2->self) + (v1->self > v2->self)*2;
-    case MRBC_TT_STRING: return _string_compare(v1, v2);
+    case GURU_TT_CLASS:
+    case GURU_TT_OBJECT:
+    case GURU_TT_PROC:   return -1 + (v1->self == v2->self) + (v1->self > v2->self)*2;
+    case GURU_TT_STRING: return _string_compare(v1, v2);
 
 #if GURU_USE_FLOAT
-    case MRBC_TT_FLOAT:  return -1 + (v1->f==v2->f) + (v1->f > v2->f)*2;	// caution: NaN == NaN is false
+    case GURU_TT_FLOAT:  return -1 + (v1->f==v2->f) + (v1->f > v2->f)*2;	// caution: NaN == NaN is false
 #endif
 #if GURU_USE_ARRAY
-    case MRBC_TT_ARRAY:  return mrbc_array_compare(v1, v2);
-    case MRBC_TT_RANGE:  return mrbc_range_compare(v1, v2);
-    case MRBC_TT_HASH:   return mrbc_hash_compare(v1, v2);
+    case GURU_TT_ARRAY:  return mrbc_array_compare(v1, v2);
+    case GURU_TT_RANGE:  return mrbc_range_compare(v1, v2);
+    case GURU_TT_HASH:   return mrbc_hash_compare(v1, v2);
 #endif
     default:
         return 1;
@@ -205,22 +205,22 @@ guru_strcat(char *d, const char *s)
 __GURU__ void
 mrbc_dec_refc(mrbc_value *v)
 {
-	if (!(v->tt & MRBC_TT_HAS_REF)) return;
+	if (!(v->tt & GURU_TT_HAS_REF)) return;
 
 	assert(v->self->refc > 0);
 
     if (--v->self->refc > 0) return;		// still used, keep going
 
     switch(v->tt) {
-    case MRBC_TT_OBJECT:	mrbc_instance_delete(v);	break;
-    case MRBC_TT_PROC:	    mrbc_free(v->proc);			break;
+    case GURU_TT_OBJECT:	mrbc_instance_delete(v);	break;
+    case GURU_TT_PROC:	    mrbc_free(v->proc);			break;
 #if GURU_USE_STRING
-    case MRBC_TT_STRING:	mrbc_string_delete(v);		break;
+    case GURU_TT_STRING:	mrbc_string_delete(v);		break;
 #endif
 #if GURU_USE_ARRAY
-    case MRBC_TT_ARRAY:	    mrbc_array_delete(v);		break;
-    case MRBC_TT_RANGE:	    mrbc_range_delete(v);		break;
-    case MRBC_TT_HASH:	    mrbc_hash_delete(v);		break;
+    case GURU_TT_ARRAY:	    mrbc_array_delete(v);		break;
+    case GURU_TT_RANGE:	    mrbc_range_delete(v);		break;
+    case GURU_TT_HASH:	    mrbc_hash_delete(v);		break;
 #endif
     default: break;
     }
@@ -235,7 +235,7 @@ mrbc_dec_refc(mrbc_value *v)
 __GURU__ void
 mrbc_retain(mrbc_value *v)         			// CC: was mrbc_inc_refc() 20181101
 {
-	if (!(v->tt & MRBC_TT_HAS_REF)) return;
+	if (!(v->tt & GURU_TT_HAS_REF)) return;
 
 	v->self->refc++;
 }
@@ -251,7 +251,7 @@ mrbc_release(mrbc_value *v)
 {
     mrbc_dec_refc(v);
 
-    v->tt = MRBC_TT_EMPTY;
+    v->tt = GURU_TT_EMPTY;
 }
 
 

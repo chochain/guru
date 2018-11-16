@@ -70,7 +70,7 @@ _data(const mrbc_value *v)
 __GURU__ mrbc_value
 _new(const char *src, int len)
 {
-    mrbc_value ret = {.tt = MRBC_TT_STRING};
+    mrbc_value ret = {.tt = GURU_TT_STRING};
     /*
       Allocate handle and string buffer.
     */
@@ -95,7 +95,7 @@ _new(const char *src, int len)
     else 			MEMCPY(s, (uint8_t *)src, len+1);		// plus '\0'
 
     h->refc = 1;
-    h->tt   = MRBC_TT_STRING;	// TODO: for DEBUG
+    h->tt   = GURU_TT_STRING;	// TODO: for DEBUG
     h->size = len;
     h->data = s;
 
@@ -252,7 +252,7 @@ __GURU__ int
 mrbc_string_append(mrbc_value *v0, const mrbc_value *v1)
 {
     int len0 = v0->str->size;
-    int len1 = (v1->tt==MRBC_TT_STRING) ? v1->str->size : 1;
+    int len1 = (v1->tt==GURU_TT_STRING) ? v1->str->size : 1;
 
     uint8_t *s = (uint8_t *)mrbc_realloc(v0->str->data, len0+len1+1);		// +'\0'
 
@@ -260,10 +260,10 @@ mrbc_string_append(mrbc_value *v0, const mrbc_value *v1)
 #if GURU_REQUIRE_64BIT_ALIGNMENT
     assert(((uintptr_t)s & 7)==0);
 #endif
-    if (v1->tt==MRBC_TT_STRING) {			// append str2
+    if (v1->tt==GURU_TT_STRING) {			// append str2
         MEMCPY((uint8_t *)s + len0, v1->str->data, len1 + 1);
     }
-    else if (v1->tt==MRBC_TT_FIXNUM) {
+    else if (v1->tt==GURU_TT_FIXNUM) {
         s[len0]   = v1->i;
         s[len0+1] = '\0';
     }
@@ -329,7 +329,7 @@ mrbc_string_add(const mrbc_value *v1, const mrbc_value *v2)
 __GURU__ void
 c_string_add(mrbc_value v[], int argc)
 {
-    if (v[1].tt != MRBC_TT_STRING) {
+    if (v[1].tt != GURU_TT_STRING) {
         console_na("str + other type");
     }
     else {
@@ -343,7 +343,7 @@ c_string_add(mrbc_value v[], int argc)
 __GURU__ void
 c_string_mul(mrbc_value v[], int argc)
 {
-    if (v[1].tt != MRBC_TT_FIXNUM) {
+    if (v[1].tt != GURU_TT_FIXNUM) {
         console_str("TypeError\n");	// raise?
         return;
     }
@@ -420,7 +420,7 @@ c_string_slice(mrbc_value v[], int argc)
     mrbc_value *v1 = &v[1];
     mrbc_value *v2 = &v[2];
 
-    if (argc==1 && v1->tt==MRBC_TT_FIXNUM) {		// slice(n) -> String | nil
+    if (argc==1 && v1->tt==GURU_TT_FIXNUM) {		// slice(n) -> String | nil
         int len = v->str->size;
         int idx = v1->i;
         int ch = -1;
@@ -445,7 +445,7 @@ c_string_slice(mrbc_value v[], int argc)
 
         SET_RETURN(ret);
     }
-    else if (argc==2 && v1->tt==MRBC_TT_FIXNUM && v2->tt==MRBC_TT_FIXNUM) { 	// slice(n, len) -> String | nil
+    else if (argc==2 && v1->tt==GURU_TT_FIXNUM && v2->tt==GURU_TT_FIXNUM) { 	// slice(n, len) -> String | nil
         int len = v->str->size;
         int idx = v1->i;
         if (idx < 0) idx += len;
@@ -480,16 +480,16 @@ c_string_insert(mrbc_value v[], int argc)
     mrbc_value *val;
 
     if (argc==2 &&								// self[n] = val
-        v[1].tt==MRBC_TT_FIXNUM &&
-        v[2].tt==MRBC_TT_STRING) {
+        v[1].tt==GURU_TT_FIXNUM &&
+        v[2].tt==GURU_TT_STRING) {
         nth = v[1].i;
         len = 1;
         val = &v[2];
     }
     else if (argc==3 &&							// self[n, len] = val
-             v[1].tt==MRBC_TT_FIXNUM &&
-             v[2].tt==MRBC_TT_FIXNUM &&
-             v[3].tt==MRBC_TT_STRING) {
+             v[1].tt==GURU_TT_FIXNUM &&
+             v[2].tt==GURU_TT_FIXNUM &&
+             v[3].tt==GURU_TT_STRING) {
         nth = v[1].i;
         len = v[2].i;
         val = &v[3];
@@ -563,7 +563,7 @@ c_string_index(mrbc_value v[], int argc)
     if (argc==1) {
         offset = 0;
     }
-    else if (argc==2 && v[2].tt==MRBC_TT_FIXNUM) {
+    else if (argc==2 && v[2].tt==GURU_TT_FIXNUM) {
         offset = v[2].i;
         if (offset < 0) offset += _size(v);
         if (offset < 0) goto NIL_RETURN;

@@ -38,7 +38,7 @@
 __GURU__ mrbc_value
 mrbc_range_new(mrbc_value *first, mrbc_value *last, int exclude_end)
 {
-    mrbc_value ret = {.tt = MRBC_TT_RANGE};
+    mrbc_value ret = {.tt = GURU_TT_RANGE};
 
     ret.range = (mrbc_range *)mrbc_alloc(sizeof(mrbc_range));
     if (!ret.range) return ret;		// ENOMEM
@@ -47,7 +47,7 @@ mrbc_range_new(mrbc_value *first, mrbc_value *last, int exclude_end)
     else		     ret.range->flag &= ~EXCLUDE_END;
 
     ret.range->refc  = 1;
-    ret.range->tt    = MRBC_TT_STRING;	// TODO: for DEBUG
+    ret.range->tt    = GURU_TT_STRING;	// TODO: for DEBUG
     ret.range->first = *first;
     ret.range->last  = *last;
 
@@ -91,7 +91,7 @@ mrbc_range_compare(const mrbc_value *v1, const mrbc_value *v2)
 __GURU__ void
 c_range_equal3(mrbc_value v[], int argc)
 {
-    if (v[0].tt == MRBC_TT_CLASS) {
+    if (v[0].tt == GURU_TT_CLASS) {
         mrbc_value ret = mrbc_send(v+argc, v+1, "kind_of?", 1, v);
         SET_RETURN(ret);
         return;

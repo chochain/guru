@@ -23,16 +23,16 @@ __GURU__ void       mrbc_dec_refc(mrbc_value *v);
 
 // for C call
 #define SET_RETURN(n)		do { mrbc_value nnn = (n); mrbc_dec_refc(v); v[0] = nnn; 	} while (0)
-#define SET_NIL_RETURN()	do { mrbc_dec_refc(v); v[0].tt = MRBC_TT_NIL;   			} while (0)
+#define SET_NIL_RETURN()	do { mrbc_dec_refc(v); v[0].tt = GURU_TT_NIL;   			} while (0)
 
-#define SET_FALSE_RETURN()	do { mrbc_dec_refc(v); v[0].tt = MRBC_TT_FALSE; 			} while (0)
-#define SET_TRUE_RETURN()	do { mrbc_dec_refc(v); v[0].tt = MRBC_TT_TRUE;  			} while (0)
-#define SET_BOOL_RETURN(n)	do { mrbc_dec_refc(v); v[0].tt = (n)?MRBC_TT_TRUE:MRBC_TT_FALSE; } while (0)
+#define SET_FALSE_RETURN()	do { mrbc_dec_refc(v); v[0].tt = GURU_TT_FALSE; 			} while (0)
+#define SET_TRUE_RETURN()	do { mrbc_dec_refc(v); v[0].tt = GURU_TT_TRUE;  			} while (0)
+#define SET_BOOL_RETURN(n)	do { mrbc_dec_refc(v); v[0].tt = (n)?GURU_TT_TRUE:GURU_TT_FALSE; } while (0)
 
 #define SET_INT_RETURN(n)	do { mrbc_int nnn = (n);					\
-		mrbc_dec_refc(v); v[0].tt = MRBC_TT_FIXNUM; v[0].i = nnn; } while (0)
+		mrbc_dec_refc(v); v[0].tt = GURU_TT_FIXNUM; v[0].i = nnn; } while (0)
 #define SET_FLOAT_RETURN(n)	do { mrbc_float nnn = (n);                  \
-        mrbc_dec_refc(v); v[0].tt = MRBC_TT_FLOAT;  v[0].f = nnn; } while (0)
+        mrbc_dec_refc(v); v[0].tt = GURU_TT_FLOAT;  v[0].f = nnn; } while (0)
 
 #define GET_TT_ARG(n)			(v[(n)].tt)
 #define GET_INT_ARG(n)			(v[(n)].i)
@@ -40,12 +40,12 @@ __GURU__ void       mrbc_dec_refc(mrbc_value *v);
 #define GET_FLOAT_ARG(n)		(v[(n)].f)
 #define GET_STRING_ARG(n)		(v[(n)].string->data)
 
-#define mrbc_fixnum_value(n)	((mrbc_value){.tt = MRBC_TT_FIXNUM, .i=(n)})
-#define mrbc_float_value(n)	    ((mrbc_value){.tt = MRBC_TT_FLOAT,  .f=(n)})
-#define mrbc_nil_value()	    ((mrbc_value){.tt = MRBC_TT_NIL})
-#define mrbc_true_value()	    ((mrbc_value){.tt = MRBC_TT_TRUE})
-#define mrbc_false_value()	    ((mrbc_value){.tt = MRBC_TT_FALSE})
-#define mrbc_bool_value(n)	    ((mrbc_value){.tt = (n)?MRBC_TT_TRUE:MRBC_TT_FALSE})
+#define mrbc_fixnum_value(n)	((mrbc_value){.tt = GURU_TT_FIXNUM, .i=(n)})
+#define mrbc_float_value(n)	    ((mrbc_value){.tt = GURU_TT_FLOAT,  .f=(n)})
+#define mrbc_nil_value()	    ((mrbc_value){.tt = GURU_TT_NIL})
+#define mrbc_true_value()	    ((mrbc_value){.tt = GURU_TT_TRUE})
+#define mrbc_false_value()	    ((mrbc_value){.tt = GURU_TT_FALSE})
+#define mrbc_bool_value(n)	    ((mrbc_value){.tt = (n)?GURU_TT_TRUE:GURU_TT_FALSE})
 
 #ifdef __GURU_CUDA__
 __GURU__ mrbc_int   guru_atoi(const char *s, int base);

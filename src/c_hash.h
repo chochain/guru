@@ -28,7 +28,7 @@ extern "C" {
 typedef struct RHash {
     // (NOTE)
     //  Needs to be same members and order as RArray.
-    MRBC_OBJECT_HEADER;
+    GURU_OBJECT_HEADER;
 
     uint16_t   size;	//!< data buffer size.
     uint16_t   n;	    //!< # of stored.

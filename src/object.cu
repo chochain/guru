@@ -103,7 +103,7 @@ mrbc_send(mrbc_value v[], mrbc_value *rcv, const char *method, int argc, ...)
 
 #ifdef GURU_DEBUG
     for (int i=0; i<=argc+1; i++) {	// not really needed!
-    	regs[i].tt = MRBC_TT_EMPTY;	// but, clean up the stack before returning
+    	regs[i].tt = GURU_TT_EMPTY;	// but, clean up the stack before returning
     }
 #endif
     return ret;
@@ -182,7 +182,7 @@ c_object_compare(mrbc_value v[], int argc)
 __GURU__ void
 c_object_equal3(mrbc_value v[], int argc)
 {
-    if (v[0].tt != MRBC_TT_CLASS) SET_BOOL_RETURN(mrbc_compare(&v[0], &v[1]));
+    if (v[0].tt != GURU_TT_CLASS) SET_BOOL_RETURN(mrbc_compare(&v[0], &v[1]));
     else 						  SET_RETURN(mrbc_send(v+argc, &v[1], "kind_of?", 1, &v[0]));
 }
 
@@ -192,7 +192,7 @@ c_object_equal3(mrbc_value v[], int argc)
 __GURU__ void
 c_object_class(mrbc_value v[], int argc)
 {
-    mrbc_value ret = {.tt = MRBC_TT_CLASS };
+    mrbc_value ret = {.tt = GURU_TT_CLASS };
     ret.cls = mrbc_get_class_by_object(v);
 
     SET_RETURN(ret);
@@ -256,7 +256,7 @@ __GURU__ void
 c_object_attr_reader(mrbc_value v[], int argc)
 {
     for (int i = 1; i <= argc; i++) {
-        if (v[i].tt != MRBC_TT_SYMBOL) continue;	// TypeError raise?
+        if (v[i].tt != GURU_TT_SYMBOL) continue;	// TypeError raise?
 
         // define reader method
         const char *name = VSYM(&v[i]);
@@ -271,7 +271,7 @@ __GURU__ void
 c_object_attr_accessor(mrbc_value v[], int argc)
 {
     for (int i = 1; i <= argc; i++) {
-        if (v[i].tt != MRBC_TT_SYMBOL) continue;	// TypeError raise?
+        if (v[i].tt != GURU_TT_SYMBOL) continue;	// TypeError raise?
 
         // define reader method
         char *name = VSYM(&v[i]);
@@ -296,7 +296,7 @@ __GURU__ void
 c_object_kind_of(mrbc_value v[], int argc)
 {
     int result = 0;
-    if (v[1].tt != MRBC_TT_CLASS) {
+    if (v[1].tt != GURU_TT_CLASS) {
         SET_BOOL_RETURN(result);
         return;
     }
@@ -321,9 +321,9 @@ c_object_to_s(mrbc_value v[], int argc)
 	char buf[20];
 
     switch (v->tt) {
-    case MRBC_TT_CLASS:
+    case GURU_TT_CLASS:
     	str = symid2name(v->cls->sym_id); 								break;
-    case MRBC_TT_OBJECT:
+    case GURU_TT_OBJECT:
     	str = symid2name(v->self->cls->sym_id);
     	str = guru_sprintf(buf, "#<%s:%08x>", str, (uintptr_t)v->self); break;
     default: str = ""; break;
@@ -394,7 +394,7 @@ mrbc_init_class_proc()
 __GURU__ void
 c_nil_false_not(mrbc_value v[], int argc)
 {
-    v[0].tt = MRBC_TT_TRUE;
+    v[0].tt = GURU_TT_TRUE;
 }
 
 #if GURU_USE_STRING

@@ -28,7 +28,7 @@ extern "C" {
   Define Range object (same the handles of other objects)
 */
 typedef struct RRange {
-    MRBC_OBJECT_HEADER;
+    GURU_OBJECT_HEADER;
 
     mrbc_value first;
     mrbc_value last;
