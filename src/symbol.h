@@ -9,8 +9,8 @@
   This file is distributed under BSD 3-Clause License.
   </pre>
 */
-#ifndef MRBC_SRC_SYMBOL_H_
-#define MRBC_SRC_SYMBOL_H_
+#ifndef GURU_SRC_SYMBOL_H_
+#define GURU_SRC_SYMBOL_H_
 
 #include "guru.h"
 
@@ -23,10 +23,7 @@ __GURU__ uint16_t   calc_hash(const char *str);
 __GURU__ mrbc_sym   name2symid(const char *str);
 __GURU__ const char *symid2name(mrbc_sym sym_id);
 
-// extern to class.cu
-__GURU__ void c_inspect(mrbc_value v[], int argc);
-__GURU__ void c_to_s(mrbc_value v[], int argc);
-
+__GURU__ void mrbc_init_class_symbol();
 
 #ifdef __cplusplus
 }

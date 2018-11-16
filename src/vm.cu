@@ -58,7 +58,7 @@ _vm_end(mrbc_vm *vm)
 {
 	if (threadIdx.x!=0 || blockIdx.x!=0) return;
 
-#ifndef MRBC_DEBUG
+#ifndef GURU_DEBUG
 	// clean up register file?						// CC: moved from mrbc_op 20181102
 	mrbc_value *p = vm->regfile;
 	for(int i = 0; i < MAX_REGS_SIZE; i++, p++) {
@@ -146,7 +146,7 @@ guru_vm_run(guru_ses *ses)
 	return cudaSuccess;
 }
 
-#ifdef MRBC_DEBUG
+#ifdef GURU_DEBUG
 __host__ void
 guru_dump_irep(mrbc_irep *irep)
 {

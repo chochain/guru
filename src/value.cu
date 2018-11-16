@@ -15,10 +15,10 @@
 #include "alloc.h"
 #include "console.h"
 
-#if MRBC_USE_STRING
+#if GURU_USE_STRING
 #include "c_string.h"
 #endif
-#if MRBC_USE_ARRAY
+#if GURU_USE_ARRAY
 #include "c_range.h"
 #include "c_array.h"
 #include "c_hash.h"
@@ -50,7 +50,7 @@ __GURU__ int
 mrbc_compare(const mrbc_value *v1, const mrbc_value *v2)
 {
     if (v1->tt != v2->tt) { 						// mrbc_vtype different
-#if MRBC_USE_FLOAT
+#if GURU_USE_FLOAT
     	mrbc_float f1, f2;
 
         if (v1->tt == MRBC_TT_FIXNUM && v2->tt == MRBC_TT_FLOAT) {
@@ -85,10 +85,10 @@ mrbc_compare(const mrbc_value *v1, const mrbc_value *v2)
     case MRBC_TT_PROC:   return -1 + (v1->self == v2->self) + (v1->self > v2->self)*2;
     case MRBC_TT_STRING: return _string_compare(v1, v2);
 
-#if MRBC_USE_FLOAT
+#if GURU_USE_FLOAT
     case MRBC_TT_FLOAT:  return -1 + (v1->f==v2->f) + (v1->f > v2->f)*2;	// caution: NaN == NaN is false
 #endif
-#if MRBC_USE_ARRAY
+#if GURU_USE_ARRAY
     case MRBC_TT_ARRAY:  return mrbc_array_compare(v1, v2);
     case MRBC_TT_RANGE:  return mrbc_range_compare(v1, v2);
     case MRBC_TT_HASH:   return mrbc_hash_compare(v1, v2);
@@ -214,10 +214,10 @@ mrbc_dec_refc(mrbc_value *v)
     switch(v->tt) {
     case MRBC_TT_OBJECT:	mrbc_instance_delete(v);	break;
     case MRBC_TT_PROC:	    mrbc_free(v->proc);			break;
-#if MRBC_USE_STRING
+#if GURU_USE_STRING
     case MRBC_TT_STRING:	mrbc_string_delete(v);		break;
 #endif
-#if MRBC_USE_ARRAY
+#if GURU_USE_ARRAY
     case MRBC_TT_ARRAY:	    mrbc_array_delete(v);		break;
     case MRBC_TT_RANGE:	    mrbc_range_delete(v);		break;
     case MRBC_TT_HASH:	    mrbc_hash_delete(v);		break;

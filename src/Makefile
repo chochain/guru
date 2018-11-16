@@ -2,7 +2,7 @@
 # guru  src/Makefile
 #
 CC=cc
-CFLAGS= -Wall -Wpointer-arith -g -c -DMRBC_DEBUG
+CFLAGS= -Wall -Wpointer-arith -g -c -DGURU_DEBUG
 NVCC=nvcc
 CUDAFLAGS= -dc
 
@@ -56,7 +56,7 @@ global.o: global.cu	    vm_config.h guru.h value.h global.h
 instance.o: instance.cu vm_config.h guru.h alloc.h value.h instance.h
 
 symbol.o: symbol.cu 	vm_config.h guru.h alloc.h value.h symbol.h \
-						c_array.h
+						static.h class.h c_array.h
 
 class.o: class.cu	    vm_config.h guru.h value.h alloc.h static.h symbol.h global.h \
 						console.h class.h

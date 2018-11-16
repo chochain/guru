@@ -10,8 +10,8 @@
 
   </pre>
 */
-#ifndef MRBC_SRC_ERRORCODE_H_
-#define MRBC_SRC_ERRORCODE_H_
+#ifndef GURU_SRC_ERRORCODE_H_
+#define GURU_SRC_ERRORCODE_H_
 
 #ifdef __cplusplus
 extern "C" {

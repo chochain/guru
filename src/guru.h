@@ -9,8 +9,8 @@
   This file is distributed under BSD 3-Clause License.
   </pre>
 */
-#ifndef MRBC_SRC_GURU_H_
-#define MRBC_SRC_GURU_H_
+#ifndef GURU_SRC_GURU_H_
+#define GURU_SRC_GURU_H_
 #include "vm_config.h"
 
 #include <stdint.h>					// uint8_t, int32_t, ...
@@ -81,14 +81,14 @@ typedef struct RObject {			// 16-bytes
     unsigned int	 	 size:16;	// reserved, 32-bit aligned
     union {
         mrbc_int         i;			// MRBC_TT_FIXNUM, SYMBOL
-#if MRBC_USE_FLOAT
+#if GURU_USE_FLOAT
         mrbc_float       f;			// MRBC_TT_FLOAT
 #endif
         struct RClass    *cls;		// MRBC_TT_CLASS
         struct RInstance *self;		// MRBC_TT_OBJECT
         struct RProc     *proc;		// MRBC_TT_PROC
         struct RString   *str;		// MRBC_TT_STRING
-#if MRBC_USE_ARRAY
+#if GURU_USE_ARRAY
         struct RArray    *array;	// MRBC_TT_ARRAY
         struct RRange    *range;	// MRBC_TT_RANGE
         struct RHash     *hash;		// MRBC_TT_HASH
@@ -104,7 +104,7 @@ typedef struct RObject {			// 16-bytes
 typedef struct RClass {			// 32-byte
     struct RClass 	*super;		// mrbc_class[super]
     struct RProc  	*procs;		// mrbc_proc[rprocs], linked list
-#ifdef MRBC_DEBUG
+#ifdef GURU_DEBUG
     const char    	*name;		// for debug. TODO: remove
 #endif
     mrbc_sym       	sym_id;		// class name
@@ -153,7 +153,7 @@ typedef struct RProc {		// 40-byte
         struct Irep *irep;
         mrbc_func_t func;
     };
-#ifdef MRBC_DEBUG
+#ifdef GURU_DEBUG
     const char 	 *name;		// for debug; delete soon
 #endif
     mrbc_sym 	 sym_id;

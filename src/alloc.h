@@ -13,8 +13,8 @@
   </pre>
 */
 
-#ifndef MRBC_SRC_ALLOC_H_
-#define MRBC_SRC_ALLOC_H_
+#ifndef GURU_SRC_ALLOC_H_
+#define GURU_SRC_ALLOC_H_
 #include "guru.h"
 
 #ifdef __cplusplus
@@ -54,7 +54,7 @@ __GURU__ void *mrbc_realloc(void *ptr, unsigned int size);
 __GURU__ void  mrbc_free(void *ptr);
 __GURU__ void  mrbc_free_all();
 
-// for statistics or debug. (need #define MRBC_DEBUG)
+// for statistics or debug. (need #define GURU_DEBUG)
 __global__ void guru_memory_init(void *mem, unsigned int sz);
 
 void *guru_malloc(size_t sz, int mem_type);		// mem_type: 0=>managed, 1=>device

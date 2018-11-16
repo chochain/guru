@@ -13,8 +13,8 @@
   </pre>
 */
 
-#ifndef MRBC_SRC_INSTANCE_H_
-#define MRBC_SRC_INSTANCE_H_
+#ifndef GURU_SRC_INSTANCE_H_
+#define GURU_SRC_INSTANCE_H_
 #include "guru.h"
 
 #ifdef __cplusplus

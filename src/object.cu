@@ -31,12 +31,12 @@
 
 #include "c_fixnum.h"
 
-#if MRBC_USE_STRING
+#if GURU_USE_STRING
 #include "sprintf.h"
 #include "c_string.h"
 #endif
 
-#if MRBC_USE_ARRAY
+#if GURU_USE_ARRAY
 #include "c_array.h"
 #include "c_hash.h"
 #include "c_range.h"
@@ -101,7 +101,7 @@ mrbc_send(mrbc_value v[], mrbc_value *rcv, const char *method, int argc, ...)
     m->func(regs, argc);			// call method
     mrbc_value ret = regs[0];		// copy result
 
-#ifdef MRBC_DEBUG
+#ifdef GURU_DEBUG
     for (int i=0; i<=argc+1; i++) {	// not really needed!
     	regs[i].tt = MRBC_TT_EMPTY;	// but, clean up the stack before returning
     }
@@ -109,7 +109,7 @@ mrbc_send(mrbc_value v[], mrbc_value *rcv, const char *method, int argc, ...)
     return ret;
 }
 
-#ifdef MRBC_DEBUG
+#ifdef GURU_DEBUG
 //================================================================
 /*! (method) p
  */
@@ -310,7 +310,7 @@ c_object_kind_of(mrbc_value v[], int argc)
     } while (cls != NULL);
 }
 
-#if MRBC_USE_STRING
+#if GURU_USE_STRING
 //================================================================
 /*! (method) to_s
  */
@@ -352,16 +352,16 @@ mrbc_init_class_object()
     mrbc_define_method(c, "attr_accessor", 	c_object_attr_accessor);
     mrbc_define_method(c, "is_a?",         	c_object_kind_of);
     mrbc_define_method(c, "kind_of?",      	c_object_kind_of);
-#if MRBC_USE_STRING
+#if GURU_USE_STRING
     mrbc_define_method(c, "inspect",       	c_object_to_s);
     mrbc_define_method(c, "to_s",          	c_object_to_s);
 #endif
-#ifdef MRBC_DEBUG
+#ifdef GURU_DEBUG
     mrbc_define_method(c, "p", 				c_p);
 #endif
 }
 
-#if MRBC_USE_STRING
+#if GURU_USE_STRING
 __GURU__ void
 c_proc_inspect(mrbc_value v[], int argc)
 {
@@ -379,7 +379,7 @@ mrbc_init_class_proc()
     mrbc_class *c = mrbc_class_proc = mrbc_define_class("Proc", mrbc_class_object);
     // Methods
     mrbc_define_method(c, "call", (mrbc_func_t)c_proc_call);
-#if MRBC_USE_STRING
+#if GURU_USE_STRING
     mrbc_define_method(c, "inspect", 	c_proc_inspect);
     mrbc_define_method(c, "to_s", 		c_proc_inspect);
 #endif
@@ -397,7 +397,7 @@ c_nil_false_not(mrbc_value v[], int argc)
     v[0].tt = MRBC_TT_TRUE;
 }
 
-#if MRBC_USE_STRING
+#if GURU_USE_STRING
 //================================================================
 /*! (method) inspect
  */
@@ -427,7 +427,7 @@ mrbc_init_class_nil()
     mrbc_class *c = mrbc_class_nil = mrbc_define_class("NilClass", mrbc_class_object);
     // Methods
     mrbc_define_method(c, "!", 			c_nil_false_not);
-#if MRBC_USE_STRING
+#if GURU_USE_STRING
     mrbc_define_method(c, "inspect", 	c_nil_inspect);
     mrbc_define_method(c, "to_s", 		c_nil_to_s);
 #endif
@@ -436,7 +436,7 @@ mrbc_init_class_nil()
 //================================================================
 // False class
 
-#if MRBC_USE_STRING
+#if GURU_USE_STRING
 //================================================================
 /*! (method) to_s
  */
@@ -457,7 +457,7 @@ mrbc_init_class_false()
     mrbc_class_false = mrbc_define_class("FalseClass", mrbc_class_object);
     // Methods
     mrbc_define_method(mrbc_class_false, "!", c_nil_false_not);
-#if MRBC_USE_STRING
+#if GURU_USE_STRING
     mrbc_define_method(mrbc_class_false, "inspect", c_false_to_s);
     mrbc_define_method(mrbc_class_false, "to_s",    c_false_to_s);
 #endif
@@ -466,7 +466,7 @@ mrbc_init_class_false()
 //================================================================
 // True class
 
-#if MRBC_USE_STRING
+#if GURU_USE_STRING
 //================================================================
 /*! (method) to_s
  */
@@ -483,29 +483,10 @@ mrbc_init_class_true()
     // Class
     mrbc_class_true = mrbc_define_class("TrueClass", mrbc_class_object);
     // Methods
-#if MRBC_USE_STRING
+#if GURU_USE_STRING
     mrbc_define_method(mrbc_class_true, "inspect", 	c_true_to_s);
     mrbc_define_method(mrbc_class_true, "to_s", 	c_true_to_s);
 #endif
-}
-
-__GURU__ void c_all_symbols(mrbc_value v[], int argc);		// from symbols
-//================================================================
-/*! initialize
- */
-__GURU__ void mrbc_init_class_symbol()  // << from symbol.cu
-{
-    mrbc_class *c = mrbc_class_symbol = mrbc_define_class("Symbol", mrbc_class_object);
-
-#if MRBC_USE_ARRAY
-    mrbc_define_method(c, "all_symbols", 	c_all_symbols);
-#endif
-#if MRBC_USE_STRING
-    mrbc_define_method(c, "inspect", 		c_inspect);
-    mrbc_define_method(c, "to_s", 			c_to_s);
-    mrbc_define_method(c, "id2name", 		c_to_s);
-#endif
-    mrbc_define_method(c, "to_sym", 		c_nop);
 }
 
 //================================================================
@@ -522,17 +503,17 @@ mrbc_init_class(void)
 
     mrbc_init_class_symbol();
     mrbc_init_class_fixnum();
-#if MRBC_USE_FLOAT
+#if GURU_USE_FLOAT
     mrbc_init_class_float();
-#if MRBC_USE_MATH
+#if GURU_USE_MATH
     mrbc_init_class_math();
 #endif
 #endif
     
-#if MRBC_USE_STRING
+#if GURU_USE_STRING
     mrbc_init_class_string();
 #endif
-#if MRBC_USE_ARRAY
+#if GURU_USE_ARRAY
     mrbc_init_class_array();
     mrbc_init_class_range();
     mrbc_init_class_hash();

@@ -9,8 +9,8 @@
   This file is distributed under BSD 3-Clause License.
   </pre>
 */
-#ifndef MRBC_SRC_VALUE_H_
-#define MRBC_SRC_VALUE_H_
+#ifndef GURU_SRC_VALUE_H_
+#define GURU_SRC_VALUE_H_
 #include "guru.h"
 
 #ifdef __cplusplus

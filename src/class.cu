@@ -42,7 +42,7 @@ mrbc_get_class_by_object(mrbc_object *obj)
     case MRBC_TT_FALSE:	  cls = mrbc_class_false; 	    break;
     case MRBC_TT_NIL:	  cls = mrbc_class_nil;		    break;
     case MRBC_TT_FIXNUM:  cls = mrbc_class_fixnum;	    break;
-#if MRBC_USE_FLOAT
+#if GURU_USE_FLOAT
     case MRBC_TT_FLOAT:	  cls = mrbc_class_float; 	    break;
 #endif
     case MRBC_TT_SYMBOL:  cls = mrbc_class_symbol;	    break;
@@ -50,10 +50,10 @@ mrbc_get_class_by_object(mrbc_object *obj)
     case MRBC_TT_OBJECT:  cls = obj->self->cls;     	break;
     case MRBC_TT_CLASS:   cls = obj->cls;               break;
     case MRBC_TT_PROC:	  cls = mrbc_class_proc;		break;
-#if MRBC_USE_STRING
+#if GURU_USE_STRING
     case MRBC_TT_STRING:  cls = mrbc_class_string;	    break;
 #endif
-#if MRBC_USE_ARRAY
+#if GURU_USE_ARRAY
     case MRBC_TT_ARRAY:   cls = mrbc_class_array; 	    break;
     case MRBC_TT_RANGE:	  cls = mrbc_class_range; 	    break;
     case MRBC_TT_HASH:	  cls = mrbc_class_hash;		break;
@@ -130,7 +130,7 @@ mrbc_define_class(const char *name, mrbc_class *super)
     cls->sym_id = sym_id;
     cls->super 	= super;
     cls->procs 	= 0;
-#ifdef MRBC_DEBUG
+#ifdef GURU_DEBUG
     cls->name 	= name;				// for debug; delete soon.
 #endif
 
@@ -150,7 +150,7 @@ mrbc_proc_alloc(const char *name)
         proc->refc   = 1;
         proc->sym_id = name2symid(name);
         proc->next   = 0;
-#ifdef MRBC_DEBUG
+#ifdef GURU_DEBUG
         proc->name   = name;	// for debug; delete soon.
 #endif
     }

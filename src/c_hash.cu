@@ -472,7 +472,7 @@ c_hash_values(mrbc_value v[], int argc)
     SET_RETURN(ret);
 }
 
-#if MRBC_USE_STRING
+#if GURU_USE_STRING
 //================================================================
 /*! (method) inspect
  */
@@ -544,7 +544,7 @@ mrbc_init_class_hash()
     mrbc_define_method(c, "merge!",	    c_hash_merge_self);
     mrbc_define_method(c, "to_h",	    c_nop);
     mrbc_define_method(c, "values",	    c_hash_values);
-#if MRBC_USE_STRING
+#if GURU_USE_STRING
     mrbc_define_method(c, "inspect",	c_hash_inspect);
     mrbc_define_method(c, "to_s",	    c_hash_inspect);
 #endif

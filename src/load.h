@@ -11,8 +11,8 @@
   </pre>
 */
 
-#ifndef MRBC_SRC_LOAD_H_
-#define MRBC_SRC_LOAD_H_
+#ifndef GURU_SRC_LOAD_H_
+#define GURU_SRC_LOAD_H_
 
 #include <stdint.h>
 #include "guru.h"

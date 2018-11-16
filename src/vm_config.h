@@ -12,8 +12,8 @@
   </pre>
 */
 
-#ifndef MRBC_SRC_VM_CONFIG_H_
-#define MRBC_SRC_VM_CONFIG_H_
+#ifndef GURU_SRC_VM_CONFIG_H_
+#define GURU_SRC_VM_CONFIG_H_
 
 /* maximum number of VMs */
 #ifndef MAX_VM_COUNT
@@ -61,20 +61,21 @@
 /* 1: USE */
 
 /* USE String. Support String class */
-#define MRBC_USE_FLOAT  0
-#define MRBC_USE_STRING 1
-#define MRBC_USE_MATH   0
-#define MRBC_USE_ARRAY  1
+#define GURU_USE_FLOAT  0
+#define GURU_USE_STRING 1
+#define GURU_USE_MATH   0
+#define GURU_USE_ARRAY  1
 
 /* Hardware dependent flags */
 
 /* 32it alignment is required */
 /* 0: Byte alignment */
 /* 1: 32bit alignment */
-#define MRBC_REQUIRE_32BIT_ALIGNMENT 1
+#define GURU_REQUIRE_32BIT_ALIGNMENT 1
+#define GURU_REQUIRE_64BIT_ALIGNMENT 1
 
 #define __GURU_CUDA__
-#define MRBC_DEBUG
+#define GURU_DEBUG
 
 #define BLOCK_MEMORY_SIZE 			(32*1024)
 

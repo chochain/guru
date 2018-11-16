@@ -10,8 +10,8 @@
   </pre>
 */
 
-#ifndef MRBC_SRC_STATIC_H_
-#define MRBC_SRC_STATIC_H_
+#ifndef GURU_SRC_STATIC_H_
+#define GURU_SRC_STATIC_H_
 
 #include "guru.h"
 
@@ -26,7 +26,7 @@ extern __GURU__ mrbc_class *mrbc_class_false;
 extern __GURU__ mrbc_class *mrbc_class_true;
 extern __GURU__ mrbc_class *mrbc_class_nil;
 extern __GURU__ mrbc_class *mrbc_class_fixnum;
-#if MRBC_USE_FLOAT
+#if GURU_USE_FLOAT
 extern __GURU__ mrbc_class *mrbc_class_float;
 extern __GURU__ mrbc_class *mrbc_class_math;
 #endif
@@ -34,10 +34,10 @@ extern __GURU__ mrbc_class *mrbc_class_symbol;
 
 extern __GURU__ mrbc_class *mrbc_class_proc;
 
-#if MRBC_USE_STRING
+#if GURU_USE_STRING
 extern __GURU__ mrbc_class *mrbc_class_string;
 #endif
-#if MRBC_USE_ARRAY
+#if GURU_USE_ARRAY
 extern __GURU__ mrbc_class *mrbc_class_array;
 extern __GURU__ mrbc_class *mrbc_class_range;
 extern __GURU__ mrbc_class *mrbc_class_hash;

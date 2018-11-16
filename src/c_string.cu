@@ -23,7 +23,7 @@
 
 #include "c_string.h"
 
-#if MRBC_USE_STRING
+#if GURU_USE_STRING
 //================================================================
 /*! white space character test
 
@@ -77,14 +77,18 @@ _new(const char *src, int len)
     mrbc_string *h = (mrbc_string *)mrbc_alloc(sizeof(mrbc_string));
 
     assert(h!=NULL);			// out of memory
+#if GURU_REQUIRE_64BIT_ALIGNMENT
     assert(((uintptr_t)h & 7)==0);
+#endif
 
     uint8_t *s = (uint8_t *)mrbc_alloc(len);
     if (s==NULL) {					// ENOMEM
         mrbc_free(h);
         return ret;
     }
+#if GURU_REQUIRE_64BIT_ALIGNMENT
     assert(((uintptr_t)s & 7)==0);
+#endif
 
     // deep copy source string
     if (src==NULL) 	s[0] = '\0';
@@ -253,8 +257,9 @@ mrbc_string_append(mrbc_value *v0, const mrbc_value *v1)
     uint8_t *s = (uint8_t *)mrbc_realloc(v0->str->data, len0+len1+1);		// +'\0'
 
     assert(s!=NULL);						// out of memory
+#if GURU_REQUIRE_64BIT_ALIGNMENT
     assert(((uintptr_t)s & 7)==0);
-
+#endif
     if (v1->tt==MRBC_TT_STRING) {			// append str2
         MEMCPY((uint8_t *)s + len0, v1->str->data, len1 + 1);
     }
@@ -284,8 +289,9 @@ mrbc_string_append_cstr(mrbc_value *v0, const char *v1)
     uint8_t *s = (uint8_t *)mrbc_realloc(v0->str->data, len0+len1+1);
 
     assert(s!=NULL);						// out of memory
+#if GURU_REQUIRE_64BIT_ALIGNMENT
     assert(((uintptr_t)s & 7)==0);
-
+#endif
     MEMCPY(s + len0, (uint8_t *)v1, len1 + 1);
 
     v0->str->size = len0 + len1;
@@ -381,7 +387,7 @@ c_string_to_i(mrbc_value v[], int argc)
     SET_INT_RETURN(i);
 }
 
-#if MRBC_USE_FLOAT
+#if GURU_USE_FLOAT
 //================================================================
 /*! (method) to_f
  */
@@ -769,7 +775,7 @@ mrbc_init_class_string()
     mrbc_define_method(c, "strip!",	c_string_strip_self);
     mrbc_define_method(c, "to_sym",	c_string_to_sym);
     mrbc_define_method(c, "intern",	c_string_to_sym);
-#if MRBC_USE_FLOAT
+#if GURU_USE_FLOAT
     mrbc_define_method(c, "to_f",	c_string_to_f);
 #endif
 
@@ -777,4 +783,4 @@ mrbc_init_class_string()
     mrbc_define_method(mrbc_class_object, "printf",		c_object_printf);
 }
 
-#endif // MRBC_USE_STRING
+#endif // GURU_USE_STRING

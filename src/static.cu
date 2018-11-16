@@ -25,14 +25,14 @@ __GURU__ mrbc_class *mrbc_class_symbol;
 /* Proc */
 __GURU__ mrbc_class *mrbc_class_proc;
 
-#if MRBC_USE_FLOAT
+#if GURU_USE_FLOAT
 __GURU__ mrbc_class *mrbc_class_float;
 __GURU__ mrbc_class *mrbc_class_math;
 #endif
-#if MRBC_USE_STRING
+#if GURU_USE_STRING
 __GURU__ mrbc_class *mrbc_class_string;
 #endif
-#if MRBC_USE_ARRAY
+#if GURU_USE_ARRAY
 __GURU__ mrbc_class *mrbc_class_array;
 __GURU__ mrbc_class *mrbc_class_range;
 __GURU__ mrbc_class *mrbc_class_hash;

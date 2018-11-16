@@ -22,7 +22,7 @@
 #include "console.h"
 #include "puts.h"
 
-#if MRBC_USE_ARRAY
+#if GURU_USE_ARRAY
 #include "c_array.h"
 #include "c_range.h"
 #include "c_hash.h"
@@ -46,7 +46,7 @@ mrbc_print_sub(mrbc_value *v)
     case MRBC_TT_FALSE:	 console_str("false");						break;
     case MRBC_TT_TRUE:	 console_str("true");						break;
     case MRBC_TT_FIXNUM: console_int(v->i);							break;
-#if MRBC_USE_FLOAT
+#if GURU_USE_FLOAT
     case MRBC_TT_FLOAT:  console_float(v->f);						break;
 #endif
     case MRBC_TT_SYMBOL: console_str(VSYM(v));						break;
@@ -64,7 +64,7 @@ mrbc_print_sub(mrbc_value *v)
     	console_hex((uintptr_t)v->proc>>16);
     	console_hex((uintptr_t)v->proc&0xffff);
     	break;
-#if MRBC_USE_STRING
+#if GURU_USE_STRING
     case MRBC_TT_STRING:
         console_str(VSTR(v));
         if (VSTRLEN(v) != 0 && VSTR(v)[VSTRLEN(v) - 1]=='\n') {
@@ -72,7 +72,7 @@ mrbc_print_sub(mrbc_value *v)
         }
         break;
 #endif
-#if MRBC_USE_ARRAY
+#if GURU_USE_ARRAY
     case MRBC_TT_ARRAY:
         p = v->array->data;
         for (int i = 0; i < v->array->n; i++, p++) {
@@ -128,7 +128,7 @@ mrbc_p_sub(mrbc_value *v)
         	console_str(s);
         }
         break;
-#if MRBC_USE_ARRAY
+#if GURU_USE_ARRAY
     case MRBC_TT_ARRAY:
         console_char('[');
         p = v->array->data;
@@ -139,7 +139,7 @@ mrbc_p_sub(mrbc_value *v)
         console_char(']');
         break;
 #endif
-#if MRBC_USE_STRING
+#if GURU_USE_STRING
     case MRBC_TT_STRING:
         s = VSTR(v);
         console_char('"');

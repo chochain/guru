@@ -11,8 +11,8 @@
   </pre>
 */
 
-#ifndef MRBC_SRC_OBJECT_H_
-#define MRBC_SRC_OBJECT_H_
+#ifndef GURU_SRC_OBJECT_H_
+#define GURU_SRC_OBJECT_H_
 
 #include "guru.h"
 

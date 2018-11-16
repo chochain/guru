@@ -13,8 +13,8 @@
   </pre>
 */
 
-#ifndef MRBC_SRC_VM_H_
-#define MRBC_SRC_VM_H_
+#ifndef GURU_SRC_VM_H_
+#define GURU_SRC_VM_H_
 
 #include "guru.h"
 #include "value.h"
@@ -87,7 +87,7 @@ typedef struct VM {
 __GURU__ __INLINE__
 uint32_t _bin_to_uint32(const void *s)
 {
-#if MRBC_REQUIRE_32BIT_ALIGNMENT
+#if GURU_REQUIRE_32BIT_ALIGNMENT
     uint8_t *p = (uint8_t *)s;
     uint32_t x = *p++;
     x <<= 8;
@@ -113,7 +113,7 @@ uint32_t _bin_to_uint32(const void *s)
 __GURU__ __INLINE__
 uint16_t _bin_to_uint16(const void *s)
 {
-#if MRBC_REQUIRE_32BIT_ALIGNMENT
+#if GURU_REQUIRE_32BIT_ALIGNMENT
     uint8_t *p = (uint8_t *)s;
     uint16_t x = *p++ << 8;
     x |= *p;
@@ -159,7 +159,7 @@ void _uint32_to_bin(uint32_t l, uint8_t *bin)
 cudaError_t guru_vm_init(guru_ses *ses);
 cudaError_t guru_vm_run(guru_ses *ses);
 
-#ifdef MRBC_DEBUG
+#ifdef GURU_DEBUG
 void guru_dump_irep(mrbc_irep *irep);
 void guru_dump_regfile(mrbc_vm *vm, int debug);
 #endif

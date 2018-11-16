@@ -12,8 +12,8 @@
   </pre>
 */
 
-#ifndef MRBC_SRC_C_NUMERIC_H_
-#define MRBC_SRC_C_NUMERIC_H_
+#ifndef GURU_SRC_C_NUMERIC_H_
+#define GURU_SRC_C_NUMERIC_H_
 
 #include "vm_config.h"
 

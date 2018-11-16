@@ -184,7 +184,7 @@ _mark_free(free_block *target)
 {
     int index = _get_index(target->size) - 1;
 
-#ifdef MRBC_DEBUG
+#ifdef GURU_DEBUG
     int l1 = L1(index);  					// debug: (index>>3) & 0xff
     int l2 = L2(index);  					// debug: index & 0x7
     free_block *blk = _free_list[index];	// debug:
@@ -223,7 +223,7 @@ _merge_blocks(free_block *p0, free_block *p1)
         free_block *next = (free_block *)NEXT(p0);
         next->psize = OFF(p0, next);
     }
-#ifdef MRBC_DEBUG
+#ifdef GURU_DEBUG
     *((uint64_t *)p1) = 0xeeeeeeeeeeeeeeee;
 #endif
 }
@@ -336,15 +336,16 @@ mrbc_alloc(unsigned int size)
     //  (1 << (L1_BITS + L2_BITS + XX_BITS)) - alpha
     unsigned int alloc_size = size + sizeof(free_block);
 
+#if GURU_REQUIRE_64BIT_ALIGNMENT
     alloc_size += ((8 - alloc_size) & 7);	// 8-byte align
-
+#endif
     // check minimum alloc size. if need.
-#if 0
+#ifdef GURU_DEBUG
+    assert(alloc_size >= XX_BLOCK);
+#else
     if (alloc_size < XX_BLOCK) {
         alloc_size = XX_BLOCK;
     }
-#else
-    assert(alloc_size >= XX_BLOCK);
 #endif
 
 	int index 			= _get_free_index(alloc_size);
@@ -352,7 +353,7 @@ mrbc_alloc(unsigned int size)
 
     _split_free_block(target, alloc_size, 0);
 
-#ifdef MRBC_DEBUG
+#ifdef GURU_DEBUG
     uint8_t *p = BLOCKDATA(target);
     for (int i=0; i < BLOCKSIZE(target); i++) *p++ = 0xaa;
 #endif
@@ -436,7 +437,7 @@ mrbc_free_all()
     }
 }
 
-#ifdef MRBC_DEBUG
+#ifdef GURU_DEBUG
 //================================================================
 /*! statistics
 

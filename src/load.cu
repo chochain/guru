@@ -146,7 +146,7 @@ _load_irep_1(mrbc_irep *irep, const uint8_t **pos)
             obj->tt = MRBC_TT_FIXNUM;
             obj->i = (int)ATOI(buf);
         } break;
-#if MRBC_USE_FLOAT
+#if GURU_USE_FLOAT
         case 2: { 	// IREP_TT_FLOAT
             MEMCPY((uint8_t *)buf, p, obj_size);
             buf[obj_size] = '\0';

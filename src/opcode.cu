@@ -24,10 +24,10 @@
 #include "opcode.h"
 #include "class.h"
 
-#if MRBC_USE_STRING
+#if GURU_USE_STRING
 #include "c_string.h"
 #endif
-#if MRBC_USE_ARRAY
+#if GURU_USE_ARRAY
 #include "c_range.h"
 #include "c_array.h"
 #include "c_hash.h"
@@ -674,7 +674,7 @@ op_send(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 
 	mrbc_sym  sym_id = _get_symid(vm->pc_irep->sym, rb);
     mrbc_proc *m 	 = (mrbc_proc *)mrbc_get_class_method(rcv, sym_id);
-#ifdef MRBC_DEBUG
+#ifdef GURU_DEBUG
 	const char *name = _get_symbol(vm->pc_irep->sym, rb);
 #endif
 
@@ -831,7 +831,7 @@ op_add(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
         if (regs[ra+1].tt==MRBC_TT_FIXNUM) {	// in case of Fixnum, Fixnum
             regs[ra].i += regs[ra+1].i;
         }
-#if MRBC_USE_FLOAT
+#if GURU_USE_FLOAT
         else if (regs[ra+1].tt==MRBC_TT_FLOAT) {	// in case of Fixnum, Float
             regs[ra].tt = MRBC_TT_FLOAT;
             regs[ra].f = regs[ra].i + regs[ra+1].f;
@@ -872,7 +872,7 @@ op_addi(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     if (regs[ra].tt==MRBC_TT_FIXNUM) {
         regs[ra].i += GETARG_C(code);
     }
-#if MRBC_USE_FLOAT
+#if GURU_USE_FLOAT
     else if (regs[ra].tt==MRBC_TT_FLOAT) {
         regs[ra].f += GETARG_C(code);
     }
@@ -904,7 +904,7 @@ op_sub(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
         if (regs[ra+1].tt==MRBC_TT_FIXNUM) {	// in case of Fixnum, Fixnum
             regs[ra].i -= regs[ra+1].i;
         }
-#if MRBC_USE_FLOAT
+#if GURU_USE_FLOAT
         else if (regs[ra+1].tt==MRBC_TT_FLOAT) {		// in case of Fixnum, Float
             regs[ra].tt = MRBC_TT_FLOAT;
             regs[ra].f = regs[ra].i - regs[ra+1].f;
@@ -946,7 +946,7 @@ op_subi(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     if (regs[ra].tt==MRBC_TT_FIXNUM) {
         regs[ra].i -= GETARG_C(code);
     }
-#if MRBC_USE_FLOAT
+#if GURU_USE_FLOAT
     else if (regs[ra].tt==MRBC_TT_FLOAT) {
         regs[ra].f -= GETARG_C(code);
     }
@@ -978,7 +978,7 @@ op_mul(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
         if (regs[ra+1].tt==MRBC_TT_FIXNUM) {	// in case of Fixnum, Fixnum
             regs[ra].i *= regs[ra+1].i;
         }
-#if MRBC_USE_FLOAT
+#if GURU_USE_FLOAT
         else if (regs[ra+1].tt==MRBC_TT_FLOAT) {	// in case of Fixnum, Float
             regs[ra].tt = MRBC_TT_FLOAT;
             regs[ra].f = regs[ra].i * regs[ra+1].f;
@@ -1020,7 +1020,7 @@ op_div(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
         if (regs[ra+1].tt==MRBC_TT_FIXNUM) {	// in case of Fixnum, Fixnum
             regs[ra].i /= regs[ra+1].i;
         }
-#if MRBC_USE_FLOAT
+#if GURU_USE_FLOAT
         else if (regs[ra+1].tt==MRBC_TT_FLOAT) {		// in case of Fixnum, Float
             regs[ra].tt = MRBC_TT_FLOAT;
             regs[ra].f = regs[ra].i / regs[ra+1].f;
@@ -1087,7 +1087,7 @@ op_lt(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
             result = regs[ra].i < regs[ra+1].i;	// in case of Fixnum, Fixnum
             regs[ra].tt = result ? MRBC_TT_TRUE : MRBC_TT_FALSE;
         }
-#if MRBC_USE_FLOAT
+#if GURU_USE_FLOAT
         else if (regs[ra+1].tt==MRBC_TT_FLOAT) {
             result = regs[ra].i < regs[ra+1].f;	// in case of Fixnum, Float
             regs[ra].tt = result ? MRBC_TT_TRUE : MRBC_TT_FALSE;
@@ -1133,7 +1133,7 @@ op_le(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
             result = regs[ra].i <= regs[ra+1].i;	// in case of Fixnum, Fixnum
             regs[ra].tt = result ? MRBC_TT_TRUE : MRBC_TT_FALSE;
         }
-#if MRBC_USE_FLOAT
+#if GURU_USE_FLOAT
         else if (regs[ra+1].tt==MRBC_TT_FLOAT) {
             result = regs[ra].i <= regs[ra+1].f;	// in case of Fixnum, Float
             regs[ra].tt = result ? MRBC_TT_TRUE : MRBC_TT_FALSE;
@@ -1179,7 +1179,7 @@ op_gt(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
             result = regs[ra].i > regs[ra+1].i;	// in case of Fixnum, Fixnum
             regs[ra].tt = result ? MRBC_TT_TRUE : MRBC_TT_FALSE;
         }
-#if MRBC_USE_FLOAT
+#if GURU_USE_FLOAT
         else if (regs[ra+1].tt==MRBC_TT_FLOAT) {
             result = regs[ra].i > regs[ra+1].f;	// in case of Fixnum, Float
             regs[ra].tt = result ? MRBC_TT_TRUE : MRBC_TT_FALSE;
@@ -1225,7 +1225,7 @@ op_ge(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
             result = regs[ra].i >= regs[ra+1].i;	// in case of Fixnum, Fixnum
             regs[ra].tt = result ? MRBC_TT_TRUE : MRBC_TT_FALSE;
         }
-#if MRBC_USE_FLOAT
+#if GURU_USE_FLOAT
         else if (regs[ra+1].tt==MRBC_TT_FLOAT) {
             result = regs[ra].i >= regs[ra+1].f;	// in case of Fixnum, Float
             regs[ra].tt = result ? MRBC_TT_TRUE : MRBC_TT_FALSE;
@@ -1263,7 +1263,7 @@ op_ge(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 __GURU__ int
 op_string(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 {
-#if MRBC_USE_STRING
+#if GURU_USE_STRING
 	int ra = GETARG_A(code);
     int rb = GETARG_Bx(code);
 
@@ -1297,7 +1297,7 @@ op_string(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 __GURU__ int
 op_strcat(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 {
-#if MRBC_USE_STRING
+#if GURU_USE_STRING
     int ra = GETARG_A(code);
     int rb = GETARG_B(code);
 
@@ -1335,7 +1335,7 @@ op_strcat(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 __GURU__ int
 op_array(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 {
-#if MRBC_USE_ARRAY
+#if GURU_USE_ARRAY
     int ra = GETARG_A(code);
     int rb = GETARG_B(code);
     int rc = GETARG_C(code);
@@ -1370,7 +1370,7 @@ op_array(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 __GURU__ int
 op_hash(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 {
-#if MRBC_USE_ARRAY
+#if GURU_USE_ARRAY
     int ra = GETARG_A(code);
     int rb = GETARG_B(code);
     int rc = GETARG_C(code);
@@ -1407,7 +1407,7 @@ op_hash(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 __GURU__ int
 op_range(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 {
-#if MRBC_USE_ARRAY
+#if GURU_USE_ARRAY
     int ra = GETARG_A(code);
     int rb = GETARG_B(code);
     int rc = GETARG_C(code);
@@ -1562,7 +1562,7 @@ op_method(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     // add proc to class
     proc->flag   &= ~GURU_PROC_C_FUNC;
     proc->sym_id = sym_id;
-#ifdef MRBC_DEBUG
+#ifdef GURU_DEBUG
     proc->name  = _get_symbol(irep->sym, rb);
 #endif
     proc->next   = cls->procs;
@@ -1668,11 +1668,11 @@ guru_op(mrbc_vm *vm)
     case OP_LE:         ret = op_le        (vm, code, regs); break;
     case OP_GT:         ret = op_gt        (vm, code, regs); break;
     case OP_GE:         ret = op_ge        (vm, code, regs); break;
-#if MRBC_USE_STRING
+#if GURU_USE_STRING
     case OP_STRING:     ret = op_string    (vm, code, regs); break;
     case OP_STRCAT:     ret = op_strcat    (vm, code, regs); break;
 #endif
-#if MRBC_USE_ARRAY
+#if GURU_USE_ARRAY
     case OP_ARRAY:      ret = op_array     (vm, code, regs); break;
     case OP_HASH:       ret = op_hash      (vm, code, regs); break;
     case OP_RANGE:      ret = op_range     (vm, code, regs); break;

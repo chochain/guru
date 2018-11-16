@@ -136,7 +136,7 @@ c_range_exclude_end(mrbc_value v[], int argc)
     SET_BOOL_RETURN(IS_EXCLUDE_END(v[0].range));
 }
 
-#if MRBC_USE_STRING
+#if GURU_USE_STRING
 //================================================================
 /*! (method) inspect
  */
@@ -174,7 +174,7 @@ mrbc_init_class_range()
     mrbc_define_method(c, "last",         c_range_last);
     mrbc_define_method(c, "exclude_end?", c_range_exclude_end);
 
-#if MRBC_USE_STRING
+#if GURU_USE_STRING
     mrbc_define_method(c, "inspect",      c_range_inspect);
     mrbc_define_method(c, "to_s",         c_range_inspect);
 #endif

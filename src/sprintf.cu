@@ -244,7 +244,7 @@ __bstr(mrbc_printf *pf, const char *str, int len, int pad)
     return ret;
 }
 
-#if MRBC_USE_FLOAT
+#if GURU_USE_FLOAT
 //================================================================
 /*! sprintf subcontract function for float(double) '%f'
 
@@ -374,7 +374,7 @@ guru_sprintf(char *buf, const char *fstr, ...)
         case 'B': ret = __int(&pf, va_arg(ap, unsigned int), 2);  break;
         case 'x':
         case 'X': ret = __int(&pf, va_arg(ap, unsigned int), 16); break;
-#if MRBC_USE_FLOAT
+#if GURU_USE_FLOAT
         case 'f':
         case 'e':
         case 'E':
@@ -428,7 +428,7 @@ guru_vprintf(char *buf, const char *fstr, mrbc_value v[], int argc)		// << from 
         case 'u':
             if (v[i].tt==MRBC_TT_FIXNUM) {
                 ret = __int(&pf, v[i].i, 10);
-#if MRBC_USE_FLOAT
+#if GURU_USE_FLOAT
             } else if (v[i].tt==MRBC_TT_FLOAT) {
                 ret = __int(&pf, (mrbc_int)v[i].f, 10);
 #endif
@@ -449,7 +449,7 @@ guru_vprintf(char *buf, const char *fstr, mrbc_value v[], int argc)		// << from 
                 ret = __int(&pf, v[i].i, 16);
             }
             break;
-#if MRBC_USE_FLOAT
+#if GURU_USE_FLOAT
         case 'f':
         case 'e':
         case 'E':

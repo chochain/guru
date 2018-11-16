@@ -10,8 +10,8 @@
   </pre>
 */
 
-#ifndef MRBC_SRC_OPCODE_H_
-#define MRBC_SRC_OPCODE_H_
+#ifndef GURU_SRC_OPCODE_H_
+#define GURU_SRC_OPCODE_H_
 
 #include "guru.h"
 #include "vm.h"

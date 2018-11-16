@@ -11,8 +11,8 @@
   </pre>
 */
 
-#ifndef MRBC_SRC_CONSOLE_H_
-#define MRBC_SRC_CONSOLE_H_
+#ifndef GURU_SRC_CONSOLE_H_
+#define GURU_SRC_CONSOLE_H_
 
 #include "guru.h"
 

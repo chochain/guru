@@ -14,9 +14,11 @@
 
 #include "value.h"
 #include "alloc.h"
+#include "static.h"
+#include "class.h"
 #include "symbol.h"
 
-#if MRBC_USE_ARRAY
+#if GURU_USE_ARRAY
 #include "c_array.h"
 #endif
 
@@ -194,7 +196,7 @@ symid2name(mrbc_sym sym_id)
     		: sym_list[sym_id].cstr;
 }
 
-#if MRBC_USE_STRING
+#if GURU_USE_STRING
 // from c_string.cu
 extern "C" __GURU__ mrbc_value mrbc_string_new(const char *src);
 extern "C" __GURU__ int        mrbc_string_append_cstr(mrbc_value *s1, const char *s2);
@@ -223,7 +225,7 @@ c_to_s(mrbc_value v[], int argc)
 }
 #endif
 
-#if MRBC_USE_ARRAY
+#if GURU_USE_ARRAY
 //================================================================
 /*! (method) all_symbols
  */
@@ -240,5 +242,25 @@ c_all_symbols(mrbc_value v[], int argc)
     SET_RETURN(ret);
 }
 #endif
+
+//================================================================
+/*! initialize
+ */
+__GURU__ void mrbc_init_class_symbol()  // << from symbol.cu
+{
+    mrbc_class *c = mrbc_class_symbol = mrbc_define_class("Symbol", mrbc_class_object);
+
+#if GURU_USE_ARRAY
+    mrbc_define_method(c, "all_symbols", 	c_all_symbols);
+#endif
+#if GURU_USE_STRING
+    mrbc_define_method(c, "inspect", 		c_inspect);
+    mrbc_define_method(c, "to_s", 			c_to_s);
+    mrbc_define_method(c, "id2name", 		c_to_s);
+#endif
+    mrbc_define_method(c, "to_sym", 		c_nop);
+}
+
+
 
 

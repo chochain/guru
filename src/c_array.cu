@@ -731,7 +731,7 @@ c_array_minmax(mrbc_value v[], int argc)
     SET_RETURN(ret);
 }
 
-#if MRBC_USE_STRING
+#if GURU_USE_STRING
 __GURU__ void
 _rfc(mrbc_value *str, mrbc_value *v)
 {
@@ -841,7 +841,7 @@ mrbc_init_class_array()
     mrbc_define_method(c, "min",       c_array_min);
     mrbc_define_method(c, "max",       c_array_max);
     mrbc_define_method(c, "minmax",    c_array_minmax);
-#if MRBC_USE_STRING
+#if GURU_USE_STRING
     mrbc_define_method(c, "inspect",   c_array_inspect);
     mrbc_define_method(c, "to_s",      c_array_inspect);
     mrbc_define_method(c, "join",      c_array_join);

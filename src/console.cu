@@ -58,7 +58,7 @@ console_hex(mrbc_int i)
 	guru_write(MRBC_TT_FIXNUM, MRBC_TT_EMPTY, sizeof(mrbc_int), (uint8_t *)&i);
 }
 
-#if MRBC_USE_FLOAT
+#if GURU_USE_FLOAT
 __GURU__ void
 console_float(mrbc_float f)
 {
