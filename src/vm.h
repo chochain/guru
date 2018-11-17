@@ -47,14 +47,14 @@ typedef struct Irep {
 /*!@brief
   Call information
 */
-typedef struct Callinfo {
+typedef struct RState {
     uint16_t        pc;
     uint16_t        argc;     // num of args
     mrbc_class      *klass;
     mrbc_value      *reg;
     mrbc_irep       *pc_irep;
-    struct Callinfo *prev;
-} mrbc_callinfo;
+    struct RState   *prev;
+} mrbc_state;
 
 //================================================================
 /*!@brief
@@ -62,16 +62,8 @@ typedef struct Callinfo {
 */
 typedef struct VM {
     mrbc_irep       *irep;		// pointer to IREP tree
-    mrbc_callinfo   *calltop;
+    mrbc_state      *state;		// VM state (callinfo) linked list
     mrbc_value      regfile[MAX_REGS_SIZE];
-
-    // callinfo					// TODO: refactor into calltop linked list
-    uint16_t       	pc;         // program counter
-    uint16_t		argc;		// dummy for callinfo struct replacement
-    mrbc_class     	*klass;
-    mrbc_value     	*reg;		// register top pointer
-    mrbc_irep      	*pc_irep;   // PC
-    struct Callinfo *prev;
 
     volatile int8_t run;
     volatile int8_t	err;
@@ -154,7 +146,8 @@ void _uint32_to_bin(uint32_t l, uint8_t *bin)
     *bin   = l & 0xff;
 }
 
-#define GET_BYTECODE(vm)	(_bin_to_uint32((vm)->pc_irep->iseq + (vm)->pc))
+#define GET_IREP(vm)        ((vm)->state->pc_irep)
+#define GET_BYTECODE(vm)	(_bin_to_uint32(GET_IREP(vm)->iseq + (vm)->state->pc))
 
 cudaError_t guru_vm_init(guru_ses *ses);
 cudaError_t guru_vm_run(guru_ses *ses);

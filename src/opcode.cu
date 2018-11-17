@@ -73,19 +73,20 @@ _get_symid(const uint8_t *p, int n)
 
 */
 __GURU__ void
-_push_callinfo(mrbc_vm *vm, int argc)
+_push_state(mrbc_vm *vm, int argc)
 {
-    mrbc_callinfo *ci = (mrbc_callinfo *)mrbc_alloc(sizeof(mrbc_callinfo));
+    mrbc_state *ci  = (mrbc_state *)mrbc_alloc(sizeof(mrbc_state));
+	mrbc_state *top = vm->state;
 
-    ci->reg 	= vm->reg;			// pass register file
-    ci->pc_irep = vm->pc_irep;
-    ci->pc 		= vm->pc;
+
+    ci->reg 	= top->reg;			// pass register file
+    ci->pc_irep = top->pc_irep;
+    ci->pc 		= top->pc;
     ci->argc 	= argc;
-    ci->klass 	= vm->klass;
+    ci->klass 	= top->klass;
+    ci->prev 	= top;
 
-    // push call stack
-    ci->prev 	= vm->calltop;
-    vm->calltop = ci;
+    vm->state = ci;
 }
 
 //================================================================
@@ -94,15 +95,11 @@ _push_callinfo(mrbc_vm *vm, int argc)
 
 */
 __GURU__ void
-_pop_callinfo(mrbc_vm *vm, mrbc_value *regs)
+_pop_state(mrbc_vm *vm, mrbc_value *regs)
 {
-    mrbc_callinfo *ci = vm->calltop;
+    mrbc_state *ci = vm->state;
     
-    vm->reg  	= ci->reg;				// restore register file
-    vm->calltop = ci->prev;
-    vm->pc_irep = ci->pc_irep;
-    vm->pc      = ci->pc;
-    vm->klass  	= ci->klass;
+    vm->state = ci->prev;
     
     // clear stacked arguments
     for (int i = 1; i <= ci->argc; i++) {
@@ -114,11 +111,11 @@ _pop_callinfo(mrbc_vm *vm, mrbc_value *regs)
 __GURU__ void
 _vm_proc_call(mrbc_vm *vm, mrbc_value v[], int argc)
 {
-	_push_callinfo(vm, argc);			// check _funcall which is not used
+	_push_state(vm, argc);			// check _funcall which is not used
 
-	vm->pc      = 0;
-	vm->pc_irep = v[0].proc->irep;		// switch into callee context
-	vm->reg     = v;					// shift register file pointer (for local stack)
+	vm->state->pc      = 0;
+	vm->state->pc_irep = v[0].proc->irep;		// switch into callee context
+	vm->state->reg     = v;					// shift register file pointer (for local stack)
 
 	v[0].proc->refc++;					// CC: 20181027 added to track proc usage
 }
@@ -155,20 +152,20 @@ _vm_object_new(mrbc_vm *vm, mrbc_value v[], int argc)
 
     // context switch, which is not multi-thread ready
     // TODO: create a vm context object with separate regfile
-    uint16_t    pc0 		= vm->pc;
-    mrbc_value* reg0 	 	= vm->reg;
-    mrbc_irep 	*pc_irep0 	= vm->pc_irep;
-//    mrbc_class* klass0		= vm->klass;    // not used?
+    mrbc_state  *ci       = vm->state;
+    uint16_t    pc0 	  = ci->pc;
+    mrbc_value* reg0 	  = ci->reg;
+    mrbc_irep 	*pc_irep0 = ci->pc_irep;
 
-    vm->pc 		= 0;
-    vm->pc_irep = &irep;
-    vm->reg 	= v;		   // new register file (shift for call stack)
+    ci->pc 		= 0;
+    ci->pc_irep = &irep;
+    ci->reg 	= v;		   // new register file (shift for call stack)
 
     while (guru_op(vm)==0); // run til ABORT, or exception
 
-    vm->pc 		= pc0;
-    vm->reg 	= reg0;
-    vm->pc_irep = pc_irep0;
+    ci->pc 		= pc0;
+    ci->reg 	= reg0;
+    ci->pc_irep = pc_irep0;
 
     SET_RETURN(obj);
 }
@@ -231,7 +228,7 @@ op_loadl(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 
     // regs[ra] = vm->pc_irep->pool[rb];
 
-    mrbc_object *obj = vm->pc_irep->pool[rb];
+    mrbc_object *obj = GET_IREP(vm)->pool[rb];
     
     _RA_V(*obj);
 
@@ -276,7 +273,7 @@ op_loadsym(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     int ra = GETARG_A(code);
     int rb = GETARG_Bx(code);
 
-    _RA_T(GURU_TT_SYMBOL, i=_get_symid(vm->pc_irep->sym, rb));
+    _RA_T(GURU_TT_SYMBOL, i=_get_symid(GET_IREP(vm)->sym, rb));
 
     return 0;
 }
@@ -382,7 +379,7 @@ op_getglobal(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     int ra = GETARG_A(code);
     int rb = GETARG_Bx(code);
 
-    mrbc_value v = global_object_get(_get_symid(vm->pc_irep->sym, rb));
+    mrbc_value v = global_object_get(_get_symid(GET_IREP(vm)->sym, rb));
     _RA_V(v);
 
     return 0;
@@ -405,7 +402,7 @@ op_setglobal(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     int ra = GETARG_A(code);
     int rb = GETARG_Bx(code);
 
-    mrbc_sym sym_id = _get_symid(vm->pc_irep->sym, rb);
+    mrbc_sym sym_id = _get_symid(GET_IREP(vm)->sym, rb);
 
     global_object_add(sym_id, regs[ra]);
 
@@ -429,7 +426,7 @@ op_getiv(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     int ra = GETARG_A(code);
     int rb = GETARG_Bx(code);
 
-    const char *name  = _get_symbol(vm->pc_irep->sym, rb);
+    const char *name  = _get_symbol(GET_IREP(vm)->sym, rb);
     mrbc_sym   sym_id = name2symid(name+1);	// skip '@'
 
     mrbc_value ret = mrbc_instance_getiv(&regs[0], sym_id);
@@ -456,7 +453,7 @@ op_setiv(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     int ra = GETARG_A(code);
     int rb = GETARG_Bx(code);
 
-    const char *name  = _get_symbol(vm->pc_irep->sym, rb);
+    const char *name  = _get_symbol(GET_IREP(vm)->sym, rb);
     mrbc_sym   sym_id = name2symid(name+1);	// skip '@'
 
     mrbc_instance_setiv(&regs[0], sym_id, &regs[ra]);
@@ -481,7 +478,7 @@ op_getconst(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     int ra = GETARG_A(code);
     int rb = GETARG_Bx(code);
 
-    mrbc_value v = const_object_get(_get_symid(vm->pc_irep->sym, rb));
+    mrbc_value v = const_object_get(_get_symid(GET_IREP(vm)->sym, rb));
 
     _RA_X(&v);
 
@@ -504,7 +501,7 @@ op_setconst(mrbc_vm *vm, uint32_t code, mrbc_value *regs) {
     int ra = GETARG_A(code);
     int rb = GETARG_Bx(code);
 
-    const_object_add(_get_symid(vm->pc_irep->sym, rb), &regs[ra]);
+    const_object_add(_get_symid(GET_IREP(vm)->sym, rb), &regs[ra]);
 
     return 0;
 }
@@ -526,7 +523,8 @@ op_getupvar(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     int ra = GETARG_A(code);
     int rb = GETARG_B(code);
     int rc = GETARG_C(code);   // UP
-    mrbc_callinfo *ci = vm->calltop;
+
+    mrbc_state *ci = vm->state;
 
     // find callinfo
     int n = rc * 2 + 1;
@@ -559,7 +557,7 @@ op_setupvar(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     int rb = GETARG_B(code);
     int rc = GETARG_C(code);   // UP
 
-    mrbc_callinfo *ci = vm->calltop;
+    mrbc_state *ci = vm->state;
 
     // find callinfo
     int n = rc * 2 + 1;
@@ -590,7 +588,7 @@ op_setupvar(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 __GURU__ int
 op_jmp(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 {
-    vm->pc += GETARG_sBx(code) - 1;
+    vm->state->pc += GETARG_sBx(code) - 1;
     return 0;
 }
 
@@ -609,7 +607,7 @@ __GURU__ int
 op_jmpif (mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 {
     if (regs[GETARG_A(code)].tt > GURU_TT_FALSE) {
-        vm->pc += GETARG_sBx(code) - 1;
+        vm->state->pc += GETARG_sBx(code) - 1;
     }
     return 0;
 }
@@ -629,7 +627,7 @@ __GURU__ int
 op_jmpnot(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 {
     if (regs[GETARG_A(code)].tt <= GURU_TT_FALSE) {
-        vm->pc += GETARG_sBx(code) - 1;
+        vm->state->pc += GETARG_sBx(code) - 1;
     }
     return 0;
 }
@@ -672,10 +670,10 @@ op_send(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     default: break;
     }
 
-	mrbc_sym  sym_id = _get_symid(vm->pc_irep->sym, rb);
+	mrbc_sym  sym_id = _get_symid(GET_IREP(vm)->sym, rb);
     mrbc_proc *m 	 = (mrbc_proc *)mrbc_get_class_method(rcv, sym_id);
 #ifdef GURU_DEBUG
-	const char *name = _get_symbol(vm->pc_irep->sym, rb);
+	const char *name = _get_symbol(GET_IREP(vm)->sym, rb);
 #endif
 
     if (m==0) {
@@ -697,12 +695,12 @@ op_send(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
             }
         }
     }
-    else {							// m is a Ruby function
-    	_push_callinfo(vm, rc);		// append callinfo list
+    else {								// m is a Ruby function
+    	_push_state(vm, rc);			// append callinfo list
 
-    	vm->pc_irep = m->irep;		// call into target context
-    	vm->pc 		= 0;			// call into target context
-    	vm->reg 	+= ra;			// add call stack (new register)
+    	vm->state->pc_irep = m->irep;	// call into target context
+    	vm->state->pc 	   = 0;			// call into target context
+    	vm->state->reg 	   += ra;		// add call stack (new register)
     }
 
     return 0;
@@ -722,11 +720,11 @@ op_send(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 __GURU__ int
 op_call(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 {
-    _push_callinfo(vm, 0);
+    _push_state(vm, 0);
 
     // jump to proc
-    vm->pc 		= 0;
-    vm->pc_irep = regs[0].proc->irep;
+    vm->state->pc 	   = 0;
+    vm->state->pc_irep = regs[0].proc->irep;
 
     return 0;
 }
@@ -753,7 +751,7 @@ op_enter(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     int argc     = (enter_param >> 18) & 0x1f;  // given args
 
     if (def_args > 0){
-        vm->pc += vm->calltop->argc - argc;
+        vm->state->pc += vm->state->argc - argc;
     }
     return 0;
 }
@@ -780,7 +778,7 @@ op_return(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     regs[0] = ret;
     regs[ra].tt = GURU_TT_EMPTY;
 
-    _pop_callinfo(vm, regs);
+    _pop_state(vm, regs);
 
     return 0;
 }
@@ -1266,7 +1264,7 @@ op_string(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 	int ra = GETARG_A(code);
     int rb = GETARG_Bx(code);
 
-    mrbc_object *obj = vm->pc_irep->pool[rb];
+    mrbc_object *obj = GET_IREP(vm)->pool[rb];
 
     /* CAUTION: pool_obj->sym - 2. see IREP POOL structure. */
     int         len = _bin_to_uint16(obj->sym - 2);
@@ -1445,7 +1443,7 @@ op_lambda(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     mrbc_proc *prc = (mrbc_proc *)mrbc_proc_alloc("(lambda)");
 
     prc->flag &= ~GURU_PROC_C_FUNC;	// IREP
-    prc->irep = vm->pc_irep->irep_list[rb];
+    prc->irep = GET_IREP(vm)->irep_list[rb];
 
     _RA_T(GURU_TT_PROC, proc=prc);
 
@@ -1473,7 +1471,7 @@ op_class(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 
     mrbc_class *super = (regs[ra+1].tt==GURU_TT_CLASS) ? regs[ra+1].cls : mrbc_class_object;
 
-    mrbc_irep  *cur_irep = vm->pc_irep;
+    mrbc_irep  *cur_irep = GET_IREP(vm);
     const char *name     = _get_symbol(cur_irep->sym, rb);
     mrbc_class *cls 	 = (mrbc_class *)mrbc_define_class(name, super);
 
@@ -1504,12 +1502,12 @@ op_exec(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 
     mrbc_value rcv = regs[ra];					// receiver
 
-    _push_callinfo(vm, 0);						// push call stack
+    _push_state(vm, 0);						// push call stack
 
-    vm->pc 		= 0;							// switch context to callee
-    vm->pc_irep = vm->irep->irep_list[rb];
-    vm->reg 	+= ra;							// shift regfile (for local stack)
-    vm->klass 	= mrbc_get_class_by_object(&rcv);
+    vm->state->pc 	 = 0;							// switch context to callee
+    vm->state->pc_irep = vm->irep->irep_list[rb];
+    vm->state->reg 	 += ra;							// shift regfile (for local stack)
+    vm->state->klass 	 = mrbc_get_class_by_object(&rcv);
 
     return 0;
 }
@@ -1538,7 +1536,7 @@ op_method(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 
     mrbc_class 	*cls 	= regs[ra].cls;
     mrbc_proc 	*proc   = regs[ra+1].proc;
-    mrbc_irep  	*irep 	= vm->pc_irep;
+    mrbc_irep  	*irep 	= GET_IREP(vm);
     mrbc_sym   	sym_id  = _get_symid(irep->sym, rb);
 
     // check same name method
@@ -1588,7 +1586,7 @@ op_tclass(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 {
     int ra = GETARG_A(code);
 
-    _RA_T(GURU_TT_CLASS, cls=vm->klass);
+    _RA_T(GURU_TT_CLASS, cls=vm->state->klass);
 
     return 0;
 }
@@ -1623,10 +1621,10 @@ guru_op(mrbc_vm *vm)
 {
 	uint32_t   code   = GET_BYTECODE(vm);
 	int        opcode = GET_OPCODE(code);
-	mrbc_value *regs  = vm->reg;
-	int ret;
+	mrbc_value *regs  = vm->state->reg;
+	int 	   ret;
 
-    vm->pc++;		// advance program counter, ready for next cycle
+    vm->state->pc++;		// advance program counter, ready for next cycle
     switch (opcode) {
     // LOAD,STORE
     case OP_LOADL:      ret = op_loadl     (vm, code, regs); break;

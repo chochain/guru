@@ -37,12 +37,16 @@ _vm_begin(mrbc_vm *vm)
     vm->regfile[0].tt  	= GURU_TT_CLASS;		// regfile[0] is self
     vm->regfile[0].cls 	= mrbc_class_object;	// root class
 
-    vm->calltop = NULL;							// no call
+    mrbc_state *ci = (mrbc_state *)mrbc_alloc(sizeof(mrbc_state));
 
-    vm->pc 		= 0;							// starting IP
-    vm->klass 	= mrbc_class_object;			// target class
-    vm->reg 	= vm->regfile;					// pointer to reg[0]
-    vm->pc_irep = vm->irep;						// root of irep tree
+    ci->pc 		= 0;							// starting IP
+    ci->klass 	= mrbc_class_object;			// target class
+    ci->reg 	= vm->regfile;					// pointer to reg[0]
+    ci->pc_irep = vm->irep;						// root of irep tree
+    ci->argc    = 0;
+    ci->prev    = NULL;
+
+    vm->state   = ci;
     vm->run   	= 1;							// TODO: updated by scheduler
     vm->err     = 0;
 }
@@ -78,7 +82,7 @@ _vm_end(mrbc_vm *vm)
 __global__ void
 _vm_exec(mrbc_vm *vm, int step)
 {
-	if (threadIdx.x!=0 || blockIdx.x!=0) return;		// single thread for now
+	if (threadIdx.x!=0 || blockIdx.x!=0) return;		// TODO: multi-threading
 
 	while (guru_op(vm)==0 && step==0) {
 		// add cuda hook here
@@ -188,7 +192,7 @@ guru_dump_regfile(mrbc_vm *vm, int debug)
 {
 	if (debug==0) return;
 
-	uint16_t    opid    = (*(vm->pc_irep->iseq + vm->pc) >> 24) & 0x7f;
+	uint16_t    opid    = (*(GET_IREP(vm)->iseq + vm->state->pc) >> 24) & 0x7f;
 	const char 	*opcode = _opcode[GET_OPCODE(opid)];
 	mrbc_value 	*v 	 	= vm->regfile;
 
@@ -202,11 +206,11 @@ guru_dump_regfile(mrbc_vm *vm, int debug)
 	if (debug==1) {
 		int s[8];
 		guru_get_alloc_stat(s);
-		printf("%-4d%-8s%-3d[ ", vm->pc, opcode, s[3]);
+		printf("%-4d%-8s%-3d[ ", vm->state->pc, opcode, s[3]);
 	}
 	else if (debug==2) {
 		guru_dump_alloc_stat();
-		printf("%-4d%-8s[ ", vm->pc, opcode);
+		printf("%-4d%-8s[ ", vm->state->pc, opcode);
 	}
 	for (int i=0; i<=last; i++, v++) {
 		printf("%2d.%s", i, _vtype[v->tt]);

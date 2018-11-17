@@ -215,11 +215,11 @@ __GURU__ const char*
 _get_callee(mrbc_vm *vm)
 {
 #if 0
-    uint32_t code = vm->pc_irep->iseq + vm->pc - 1;
+    uint32_t code = GET_IREP(vm)->iseq + vm->pc - 1;
 
     int rb = GETARG_B(code);  // index of method sym
 
-    return _get_symbol(vm->pc_irep->sym, rb);
+    return _get_symbol(GET_IREP(vm)->sym, rb);
 #else
     return "no support";
 #endif
