@@ -161,7 +161,7 @@ _guru_print_core(guru_print_node *node)
 		printf((node->fmt==GURU_TT_FIXNUM ? "%d" : "%04x"), *((mrbc_int *)node->data));
 		break;
 	case GURU_TT_FLOAT:
-		printf("%f", *((mrbc_float *)node->data));
+		printf("%g", *((mrbc_float *)node->data));
 		break;
 	case GURU_TT_STRING:
 		memcpy(buf, (uint8_t *)node->data, node->size);

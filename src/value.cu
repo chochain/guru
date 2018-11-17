@@ -137,8 +137,40 @@ REDO:
 __GURU__ mrbc_float
 guru_atof(const char *s)
 {
-// not implemented yet
+#if GURU_USE_FLOAT
+    int sign = 1, esign = 1, state=0;
+    int r = 0, e = 0;
+    long v = 0L, f = 0L;
+
+    while ((*s<'0' || *s>'9') && *s!='+' && *s!='-') s++;
+
+    if (*s=='+' || *s=='-') sign = *s++=='-' ? -1 : 1;
+
+    while (*s!='\0' && *s!='\n' && *s!=' ' && *s!='\t') {
+    	if      (state==0 && *s>='0' && *s<='9') {	// integer
+    		v = (*s - '0') + v * 10;
+    	}
+    	else if (state==1 && *s>='0' && *s<='9') {	// decimal
+    			f = (*s - '0') + f * 10;
+    			r--;
+        }
+    	else if (state==2) {						// exponential
+            if (*s=='-') {
+                esign = -1;
+                s++;
+            }
+            if (*s>='0' && *s<='9') e = (*s - '0') + e * 10;
+        }
+        state = (*s=='e' || *s=='E') ? 2 : ((*s=='.') ? 1 : state);
+        s++;
+    }
+    double ret = sign
+    		* (v + (f==0 ? 0.0 : f * exp10((double)r)))
+    		* (e==0 ? 1.0 : exp10((double)esign * e));
+    return (mrbc_float)ret;
+#else
     return 0.0;
+#endif
 }
 
 __GURU__ void

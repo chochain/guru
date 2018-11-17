@@ -848,8 +848,8 @@ op_add(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     }
     else {    	// other case
     	op_send(vm, code, regs);		// should have already released regs[ra + n], ...
-        mrbc_release(&regs[ra+1]);
     }
+    mrbc_release(&regs[ra+1]);
     return 0;
 }
 
@@ -921,9 +921,8 @@ op_sub(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     }
     else {  // other case
     	op_send(vm, code, regs);
-        mrbc_release(&regs[ra+1]);
     }
-
+    mrbc_release(&regs[ra+1]);
 	return 0;
 }
 
@@ -995,8 +994,8 @@ op_mul(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     }
     else {   // other case
     	op_send(vm, code, regs);
-        mrbc_release(&regs[ra+1]);
     }
+    mrbc_release(&regs[ra+1]);
     return 0;
 }
 
@@ -1037,8 +1036,8 @@ op_div(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     }
     else {   // other case
     	op_send(vm, code, regs);
-        mrbc_release(&regs[ra+1]);
     }
+    mrbc_release(&regs[ra+1]);
     return 0;
 }
 
@@ -1106,8 +1105,8 @@ op_lt(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     }
     else {	// other case
     	op_send(vm, code, regs);
-        mrbc_release(&regs[ra+1]);
     }
+    mrbc_release(&regs[ra+1]);
     return 0;
 }
 
@@ -1152,8 +1151,8 @@ op_le(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     }
     else {    // other case
     	op_send(vm, code, regs);
-        mrbc_release(&regs[ra+1]);
     }
+    mrbc_release(&regs[ra+1]);
     return 0;
 }
 
@@ -1198,8 +1197,8 @@ op_gt(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     }
     else {    // other case
     	op_send(vm, code, regs);
-        mrbc_release(&regs[ra+1]);
     }
+    mrbc_release(&regs[ra+1]);
     return 0;
 }
 
@@ -1244,8 +1243,8 @@ op_ge(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     }
     else { // other case
     	op_send(vm, code, regs);
-        mrbc_release(&regs[ra+1]);
     }
+    mrbc_release(&regs[ra+1]);
     return 0;
 }
 
