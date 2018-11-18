@@ -100,8 +100,9 @@ _pop_state(mrbc_vm *vm, mrbc_value *regs)
     
     vm->state = st->prev;
     
-    for (int i = 1; i <= st->argc; i++) {	// clear stacked arguments
-        mrbc_release(&regs[i]);
+    mrbc_value *p  = regs+1;				// clear stacked arguments
+    for (int i = 0; i < st->argc; i++) {
+        mrbc_release(p++);
     }
     mrbc_free(st);
 }
@@ -177,7 +178,7 @@ _vm_object_new(mrbc_vm *vm, mrbc_value v[], int argc)
 
   @param  vm    A pointer of VM.
   @param  code  bytecode
-  @param  regs  vm->regs + vm->reg_top
+  @param  regs  vm->regfile + vm->state->reg
   @retval 0  No error.
 */
 __GURU__ int
@@ -194,7 +195,7 @@ op_nop(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 
   @param  vm    A pointer of VM.
   @param  code  bytecode
-  @param  regs  vm->regs + vm->reg_top
+  @param  regs  vm->regfile + vm->state->reg
   @retval 0  No error.
 */
 __GURU__ int
@@ -216,7 +217,7 @@ op_move(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 
   @param  vm    A pointer of VM.
   @param  code  bytecode
-  @param  regs  vm->regs + vm->reg_top
+  @param  regs  vm->regfile + vm->state->reg
   @retval 0  No error.
 */
 __GURU__ int
@@ -224,8 +225,6 @@ op_loadl(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 {
     int ra = GETARG_A(code);
     int rb = GETARG_Bx(code);
-
-    // regs[ra] = vm->pc_irep->pool[rb];
 
     mrbc_object *obj = GET_IREP(vm)->pool[rb];
     
@@ -242,15 +241,16 @@ op_loadl(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 
   @param  vm    A pointer of VM.
   @param  code  bytecode
-  @param  regs  vm->regs + vm->reg_top
+  @param  regs  vm->regfile + vm->state->reg
   @retval 0  No error.
 */
 __GURU__ int
 op_loadi(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 {
     int ra = GETARG_A(code);
+    int rb = GETARG_sBx(code);
 
-    _RA_T(GURU_TT_FIXNUM, i=GETARG_sBx(code));
+    _RA_T(GURU_TT_FIXNUM, i=rb);
 
     return 0;
 }
@@ -263,7 +263,7 @@ op_loadi(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 
   @param  vm    A pointer of VM.
   @param  code  bytecode
-  @param  regs  vm->regs + vm->reg_top
+  @param  regs  vm->regfile + vm->state->reg
   @retval 0  No error.
 */
 __GURU__ int
@@ -285,7 +285,7 @@ op_loadsym(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 
   @param  vm    A pointer of VM.
   @param  code  bytecode
-  @param  regs  vm->regs + vm->reg_top
+  @param  regs  vm->regfile + vm->state->reg
   @retval 0  No error.
 */
 __GURU__ int
@@ -306,7 +306,7 @@ op_loadnil(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 
   @param  vm    A pointer of VM.
   @param  code  bytecode
-  @param  regs  vm->regs + vm->reg_top
+  @param  regs  vm->regfile + vm->state->reg
   @retval 0  No error.
 */
 __GURU__ int
@@ -327,7 +327,7 @@ op_loadself(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 
   @param  vm    A pointer of VM.
   @param  code  bytecode
-  @param  regs  vm->regs + vm->reg_top
+  @param  regs  vm->regfile + vm->state->reg
   @retval 0  No error.
 */
 __GURU__ int
@@ -348,7 +348,7 @@ op_loadt(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 
   @param  vm    A pointer of VM.
   @param  code  bytecode
-  @param  regs  vm->regs + vm->reg_top
+  @param  regs  vm->regfile + vm->state->reg
   @retval 0  No error.
 */
 __GURU__ int
@@ -369,7 +369,7 @@ op_loadf(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 
   @param  vm    A pointer of VM.
   @param  code  bytecode
-  @param  regs  vm->regs + vm->reg_top
+  @param  regs  vm->regfile + vm->state->reg
   @retval 0  No error.
 */
 __GURU__ int
@@ -392,7 +392,7 @@ op_getglobal(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 
   @param  vm    A pointer of VM.
   @param  code  bytecode
-  @param  regs  vm->regs + vm->reg_top
+  @param  regs  vm->regfile + vm->state->reg
   @retval 0  No error.
 */
 __GURU__ int
@@ -416,7 +416,7 @@ op_setglobal(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 
   @param  vm    A pointer of VM.
   @param  code  bytecode
-  @param  regs  vm->regs + vm->reg_top
+  @param  regs  vm->regfile + vm->state->reg
   @retval 0  No error.
 */
 __GURU__ int
@@ -426,9 +426,8 @@ op_getiv(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     int rb = GETARG_Bx(code);
 
     const char *name  = _get_symbol(GET_IREP(vm)->sym, rb);
-    mrbc_sym   sym_id = name2symid(name+1);	// skip '@'
-
-    mrbc_value ret = mrbc_instance_getiv(&regs[0], sym_id);
+    mrbc_sym   sym_id = name2symid(name+1);		// skip '@'
+    mrbc_value ret    = mrbc_instance_getiv(&regs[0], sym_id);
 
     _RA_V(ret);
 
@@ -443,7 +442,7 @@ op_getiv(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 
   @param  vm    A pointer of VM.
   @param  code  bytecode
-  @param  regs  vm->regs + vm->reg_top
+  @param  regs  vm->regfile + vm->state->reg
   @retval 0  No error.
 */
 __GURU__ int
@@ -468,7 +467,7 @@ op_setiv(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 
   @param  vm    A pointer of VM.
   @param  code  bytecode
-  @param  regs  vm->regs + vm->reg_top
+  @param  regs  vm->regfile + vm->state->reg
   @retval 0  No error.
 */
 __GURU__ int
@@ -492,7 +491,7 @@ op_getconst(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 
   @param  vm    A pointer of VM.
   @param  code  bytecode
-  @param  regs  vm->regs + vm->reg_top
+  @param  regs  vm->regfile + vm->state->reg
   @retval 0  No error.
 */
 __GURU__ int
@@ -513,7 +512,7 @@ op_setconst(mrbc_vm *vm, uint32_t code, mrbc_value *regs) {
 
   @param  vm    A pointer of VM.
   @param  code  bytecode
-  @param  regs  vm->regs + vm->reg_top
+  @param  regs  vm->regfile + vm->state->reg
   @retval 0  No error.
 */
 __GURU__ int
@@ -521,19 +520,18 @@ op_getupvar(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 {
     int ra = GETARG_A(code);
     int rb = GETARG_B(code);
-    int rc = GETARG_C(code);   // UP
+    int rc = GETARG_C(code);   		// UP
 
     mrbc_state *st = vm->state;
 
-    // find callinfo
-    int n = (rc+1) << 1;
-    while (n > 0){
+    int n = (rc+1) << 1;			// depth of call stack
+    while (n > 0){					// walk up call stack
         st = st->prev;
         n--;
     }
-    mrbc_value *uregs = st->reg;
+    mrbc_value *uregs = st->reg;	// outer scope register file
 
-    _RA_X(&uregs[rb]);             // ra <= up[rb]
+    _RA_X(&uregs[rb]);             	// ra <= up[rb]
 
     return 0;
 }
@@ -546,7 +544,7 @@ op_getupvar(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 
   @param  vm    A pointer of VM.
   @param  code  bytecode
-  @param  regs  vm->regs + vm->reg_top
+  @param  regs  vm->regfile + vm->state->reg
   @retval 0  No error.
 */
 __GURU__ int
@@ -580,7 +578,7 @@ op_setupvar(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 
   @param  vm    A pointer of VM.
   @param  code  bytecode
-  @param  regs  vm->regs + vm->reg_top
+  @param  regs  vm->regfile + vm->state->reg
   @retval 0  No error.
 */
 __GURU__ int
@@ -598,7 +596,7 @@ op_jmp(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 
   @param  vm    A pointer of VM.
   @param  code  bytecode
-  @param  regs  vm->regs + vm->reg_top
+  @param  regs  vm->regfile + vm->state->reg
   @retval 0  No error.
 */
 __GURU__ int
@@ -618,7 +616,7 @@ op_jmpif (mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 
   @param  vm    A pointer of VM.
   @param  code  bytecode
-  @param  regs  vm->regs + vm->reg_top
+  @param  regs  vm->regfile + vm->state->reg
   @retval 0  No error.
 */
 __GURU__ int
@@ -639,7 +637,7 @@ op_jmpnot(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 
   @param  vm    A pointer of VM.
   @param  code  bytecode
-  @param  regs  vm->regs + vm->reg_top
+  @param  regs  vm->regfile + vm->state->reg
   @retval 0  No error.
 */
 __GURU__ int
@@ -712,7 +710,7 @@ op_send(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 
   @param  vm    A pointer of VM.
   @param  code  bytecode
-  @param  regs  vm->regs + vm->reg_top
+  @param  regs  vm->regfile + vm->state->reg
   @retval 0  No error.
 */
 __GURU__ int
@@ -737,7 +735,7 @@ op_call(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 
   @param  vm    A pointer of VM.
   @param  code  bytecode
-  @param  regs  vm->regs + vm->reg_top
+  @param  regs  vm->regfile + vm->state->reg
   @retval 0  No error.
 */
 __GURU__ int
@@ -762,7 +760,7 @@ op_enter(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 
   @param  vm    A pointer of VM.
   @param  code  bytecode
-  @param  regs  vm->regs + vm->reg_top
+  @param  regs  vm->regfile + vm->state->reg
   @retval 0  No error.
 */
 __GURU__ int
@@ -789,7 +787,7 @@ op_return(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 
   @param  vm    A pointer of VM.
   @param  code  bytecode
-  @param  regs  vm->regs + vm->reg_top
+  @param  regs  vm->regfile + vm->state->reg
   @retval 0  No error.
 */
 __GURU__ int
@@ -815,37 +813,36 @@ op_blkpush(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 
   @param  vm    A pointer of VM.
   @param  code  bytecode
-  @param  regs  vm->regs + vm->reg_top
+  @param  regs  vm->regfile + vm->state->reg
   @retval 0  No error.
 */
 __GURU__ int
 op_add(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 {
     int ra = GETARG_A(code);
+    mrbc_value *r0 = &regs[ra];
+    mrbc_value *r1 = &regs[ra+1];
 
-    if (regs[ra].tt==GURU_TT_FIXNUM) {
-        if (regs[ra+1].tt==GURU_TT_FIXNUM) {	// in case of Fixnum, Fixnum
-            regs[ra].i += regs[ra+1].i;
-        }
+    if (r0->tt==GURU_TT_FIXNUM) {
+        if      (r1->tt==GURU_TT_FIXNUM) r0->i += r1->i;
 #if GURU_USE_FLOAT
-        else if (regs[ra+1].tt==GURU_TT_FLOAT) {	// in case of Fixnum, Float
-            regs[ra].tt = GURU_TT_FLOAT;
-            regs[ra].f = regs[ra].i + regs[ra+1].f;
+        else if (r1->tt==GURU_TT_FLOAT) {	// in case of Fixnum, Float
+            r0->tt = GURU_TT_FLOAT;
+            r0->f = r0->i + r1->f;
         }
+        else console_na("Fixnum + ?");
     }
-    else if (regs[ra].tt==GURU_TT_FLOAT) {
-        if (regs[ra+1].tt==GURU_TT_FIXNUM) {	// in case of Float, Fixnum
-            regs[ra].f += regs[ra+1].i;
-        }
-        else if (regs[ra+1].tt==GURU_TT_FLOAT) {	// in case of Float, Float
-            regs[ra].f += regs[ra+1].f;
-        }
+    else if (r0->tt==GURU_TT_FLOAT) {
+        if      (r1->tt==GURU_TT_FIXNUM) r0->f += r1->i;
+        else if (r1->tt==GURU_TT_FLOAT)	 r0->f += r1->f;
+        else console_na("Float + ?");
 #endif
     }
     else {    	// other case
-    	op_send(vm, code, regs);		// should have already released regs[ra + n], ...
+    	op_send(vm, code, regs);			// should have already released regs[ra + n], ...
     }
-    mrbc_release(&regs[ra+1]);
+    mrbc_release(r1);
+
     return 0;
 }
 
@@ -857,25 +854,22 @@ op_add(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 
   @param  vm    A pointer of VM.
   @param  code  bytecode
-  @param  regs  vm->regs + vm->reg_top
+  @param  regs  vm->regfile + vm->state->reg
   @retval 0  No error.
 */
 __GURU__ int
 op_addi(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 {
-    int ra = GETARG_A(code);
+	int ra = GETARG_A(code);
+	int rc = GETARG_C(code);
 
-    if (regs[ra].tt==GURU_TT_FIXNUM) {
-        regs[ra].i += GETARG_C(code);
-    }
+    mrbc_value *r0 = &regs[ra];
+
+    if (r0->tt==GURU_TT_FIXNUM)     r0->i += rc;
 #if GURU_USE_FLOAT
-    else if (regs[ra].tt==GURU_TT_FLOAT) {
-        regs[ra].f += GETARG_C(code);
-    }
+    else if (r0->tt==GURU_TT_FLOAT)	r0->f += rc;
 #else
-    else {
-    	console_na("Float class");
-    }
+    else console_na("Float class");
 #endif
     return 0;
 }
@@ -888,7 +882,7 @@ op_addi(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 
   @param  vm    A pointer of VM.
   @param  code  bytecode
-  @param  regs  vm->regs + vm->reg_top
+  @param  regs  vm->regfile + vm->state->reg
   @retval 0  No error.
 */
 __GURU__ int
@@ -896,29 +890,28 @@ op_sub(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 {
     int ra = GETARG_A(code);
 
-    if (regs[ra].tt==GURU_TT_FIXNUM) {
-        if (regs[ra+1].tt==GURU_TT_FIXNUM) {	// in case of Fixnum, Fixnum
-            regs[ra].i -= regs[ra+1].i;
-        }
+    mrbc_value *r0 = &regs[ra];
+    mrbc_value *r1 = &regs[ra+1];
+
+    if (r0->tt==GURU_TT_FIXNUM) {
+        if      (r1->tt==GURU_TT_FIXNUM) 	r0->i -= r1->i;
 #if GURU_USE_FLOAT
-        else if (regs[ra+1].tt==GURU_TT_FLOAT) {		// in case of Fixnum, Float
-            regs[ra].tt = GURU_TT_FLOAT;
-            regs[ra].f = regs[ra].i - regs[ra+1].f;
+        else if (r1->tt==GURU_TT_FLOAT) {		// in case of Fixnum, Float
+            r0->tt = GURU_TT_FLOAT;
+            r0->f  = r0->i - r1->f;
         }
+        else console_na("Fixnum - ?");
     }
-    else if (regs[ra].tt==GURU_TT_FLOAT) {
-        if (regs[ra+1].tt==GURU_TT_FIXNUM) {	        // in case of Float, Fixnum
-            regs[ra].f -= regs[ra+1].i;
-        }
-        else if (regs[ra+1].tt==GURU_TT_FLOAT) {		// in case of Float, Float
-            regs[ra].f -= regs[ra+1].f;
-        }
+    else if (r0->tt==GURU_TT_FLOAT) {
+        if      (r1->tt==GURU_TT_FIXNUM)	r0->f -= r1->i;
+        else if (r1->tt==GURU_TT_FLOAT)		r0->f -= r1->f;
+        else console_na("Float - ?");
 #endif
     }
     else {  // other case
     	op_send(vm, code, regs);
     }
-    mrbc_release(&regs[ra+1]);
+    mrbc_release(r1);
 	return 0;
 }
 
@@ -930,25 +923,22 @@ op_sub(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 
   @param  vm    A pointer of VM.
   @param  code  bytecode
-  @param  regs  vm->regs + vm->reg_top
+  @param  regs  vm->regfile + vm->state->reg
   @retval 0  No error.
 */
 __GURU__ int
 op_subi(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 {
     int ra = GETARG_A(code);
+    int rc = GETARG_C(code);
 
-    if (regs[ra].tt==GURU_TT_FIXNUM) {
-        regs[ra].i -= GETARG_C(code);
-    }
+    mrbc_value *r0 = &regs[ra];
+
+    if (r0->tt==GURU_TT_FIXNUM) 	r0->i -= rc;
 #if GURU_USE_FLOAT
-    else if (regs[ra].tt==GURU_TT_FLOAT) {
-        regs[ra].f -= GETARG_C(code);
-    }
+    else if (r0->tt==GURU_TT_FLOAT) r0->f -= rc;
 #else
-    else {
-    	console_na("Float class");
-    }
+    else console_na("Float class");
 #endif
     return 0;
 }
@@ -961,37 +951,35 @@ op_subi(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 
   @param  vm    A pointer of VM.
   @param  code  bytecode
-  @param  regs  vm->regs + vm->reg_top
+  @param  regs  vm->regfile + vm->state->reg
   @retval 0  No error.
 */
 __GURU__ int
 op_mul(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 {
     int ra = GETARG_A(code);
+    mrbc_value *r0 = &regs[ra];
+    mrbc_value *r1 = &regs[ra+1];
 
-    if (regs[ra].tt==GURU_TT_FIXNUM) {
-        if (regs[ra+1].tt==GURU_TT_FIXNUM) {	// in case of Fixnum, Fixnum
-            regs[ra].i *= regs[ra+1].i;
-        }
+    if (r0->tt==GURU_TT_FIXNUM) {
+        if      (r1->tt==GURU_TT_FIXNUM) 	r0->i *= r1->i;
 #if GURU_USE_FLOAT
-        else if (regs[ra+1].tt==GURU_TT_FLOAT) {	// in case of Fixnum, Float
-            regs[ra].tt = GURU_TT_FLOAT;
-            regs[ra].f = regs[ra].i * regs[ra+1].f;
+        else if (r1->tt==GURU_TT_FLOAT) {	// in case of Fixnum, Float
+            r0->tt = GURU_TT_FLOAT;
+            r0->f  = r0->i * r1->f;
         }
+        else console_na("Fixnum * ?");
     }
-    else if (regs[ra].tt==GURU_TT_FLOAT) {
-        if (regs[ra+1].tt==GURU_TT_FIXNUM) {	// in case of Float, Fixnum
-            regs[ra].f *= regs[ra+1].i;
-        }
-        else if (regs[ra+1].tt==GURU_TT_FLOAT) {	// in case of Float, Float
-            regs[ra].f *= regs[ra+1].f;
-        }
+    else if (r0->tt==GURU_TT_FLOAT) {
+        if      (r1->tt==GURU_TT_FIXNUM) r0->f *= r1->i;
+        else if (r1->tt==GURU_TT_FLOAT)  r0->f *= r1->f;
+        else console_na("Float * ?");
 #endif
     }
     else {   // other case
     	op_send(vm, code, regs);
     }
-    mrbc_release(&regs[ra+1]);
+    mrbc_release(r1);
     return 0;
 }
 
@@ -1003,37 +991,35 @@ op_mul(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 
   @param  vm    A pointer of VM.
   @param  code  bytecode
-  @param  regs  vm->regs + vm->reg_top
+  @param  regs  vm->regfile + vm->state->reg
   @retval 0  No error.
 */
 __GURU__ int
 op_div(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 {
     int ra = GETARG_A(code);
+    mrbc_value *r0 = &regs[ra];
+    mrbc_value *r1 = &regs[ra+1];
 
-    if (regs[ra].tt==GURU_TT_FIXNUM) {
-        if (regs[ra+1].tt==GURU_TT_FIXNUM) {	// in case of Fixnum, Fixnum
-            regs[ra].i /= regs[ra+1].i;
-        }
+    if (r0->tt==GURU_TT_FIXNUM) {
+        if      (r1->tt==GURU_TT_FIXNUM) 	r0->i /= r1->i;
 #if GURU_USE_FLOAT
-        else if (regs[ra+1].tt==GURU_TT_FLOAT) {		// in case of Fixnum, Float
-            regs[ra].tt = GURU_TT_FLOAT;
-            regs[ra].f = regs[ra].i / regs[ra+1].f;
+        else if (r1->tt==GURU_TT_FLOAT) {		// in case of Fixnum, Float
+            r0->tt = GURU_TT_FLOAT;
+            r0->f  = r0->i / r1->f;
         }
+        else console_na("Fixnum / ?");
     }
-    else if (regs[ra].tt==GURU_TT_FLOAT) {
-        if (regs[ra+1].tt==GURU_TT_FIXNUM) {	// in case of Float, Fixnum
-            regs[ra].f /= regs[ra+1].i;
-        }
-        else if (regs[ra+1].tt==GURU_TT_FLOAT) {		// in case of Float, Float
-            regs[ra].f /= regs[ra+1].f;
-        }
+    else if (r0->tt==GURU_TT_FLOAT) {
+        if      (r1->tt==GURU_TT_FIXNUM) 	r0->f /= r1->i;
+        else if (r1->tt==GURU_TT_FLOAT)		r0->f /= r1->f;
+        else console_na("Float / ?");
 #endif
     }
     else {   // other case
     	op_send(vm, code, regs);
     }
-    mrbc_release(&regs[ra+1]);
+    mrbc_release(r1);
     return 0;
 }
 
@@ -1045,20 +1031,45 @@ op_div(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 
   @param  vm    A pointer of VM.
   @param  code  bytecode
-  @param  regs  vm->regs + vm->reg_top
+  @param  regs  vm->regfile + vm->state->reg
   @retval 0  No error.
 */
 __GURU__ int
 op_eq(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 {
     int ra = GETARG_A(code);
-    int result = mrbc_compare(&regs[ra], &regs[ra+1]);
 
-    _RA_T(result ? GURU_TT_FALSE : GURU_TT_TRUE, i=0);
+    _RA_T(TT_BOOL(mrbc_compare(&regs[ra], &regs[ra+1])==0), i=0);
+
     mrbc_release(&regs[ra+1]);
 
     return 0;
 }
+
+// macro for comparators
+#define ncmp(r0, op, r1)								\
+do {													\
+	if ((r0)->tt==GURU_TT_FIXNUM) {						\
+		if ((r1)->tt==GURU_TT_FIXNUM) {					\
+			(r0)->tt = TT_BOOL((r0)->i op (r1)->i);		\
+		}												\
+		else if ((r1)->tt==GURU_TT_FLOAT) {				\
+			(r0)->tt = TT_BOOL((r0)->i op (r1)->f);		\
+		}												\
+	}													\
+	else if ((r0)->tt==GURU_TT_FLOAT) {					\
+		if ((r1)->tt==GURU_TT_FIXNUM) {					\
+			(r0)->tt = TT_BOOL((r0)->f op (r1)->i);		\
+		}												\
+		else if ((r1)->tt==GURU_TT_FLOAT) {				\
+			(r0)->tt = TT_BOOL((r0)->f op (r1)->f);		\
+		}												\
+	}													\
+	else {												\
+		op_send(vm, code, regs);						\
+	}													\
+    mrbc_release(r1);									\
+} while (0)
 
 //================================================================
 /*!@brief
@@ -1068,41 +1079,16 @@ op_eq(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 
   @param  vm    A pointer of VM.
   @param  code  bytecode
-  @param  regs  vm->regs + vm->reg_top
+  @param  regs  vm->regfile + vm->state->reg
   @retval 0  No error.
 */
 __GURU__ int
 op_lt(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 {
-    int ra = GETARG_A(code);
-    int result;
+	int ra = GETARG_A(code);
 
-    if (regs[ra].tt==GURU_TT_FIXNUM) {
-        if (regs[ra+1].tt==GURU_TT_FIXNUM) {
-            result = regs[ra].i < regs[ra+1].i;	// in case of Fixnum, Fixnum
-            regs[ra].tt = result ? GURU_TT_TRUE : GURU_TT_FALSE;
-        }
-#if GURU_USE_FLOAT
-        else if (regs[ra+1].tt==GURU_TT_FLOAT) {
-            result = regs[ra].i < regs[ra+1].f;	// in case of Fixnum, Float
-            regs[ra].tt = result ? GURU_TT_TRUE : GURU_TT_FALSE;
-        }
-    }
-    else if (regs[ra].tt==GURU_TT_FLOAT) {
-        if (regs[ra+1].tt==GURU_TT_FIXNUM) {
-            result = regs[ra].f < regs[ra+1].i;	// in case of Float, Fixnum
-            regs[ra].tt = result ? GURU_TT_TRUE : GURU_TT_FALSE;
-        }
-        else if (regs[ra+1].tt==GURU_TT_FLOAT) {
-            result = regs[ra].f < regs[ra+1].f;	// in case of Float, Float
-            regs[ra].tt = result ? GURU_TT_TRUE : GURU_TT_FALSE;
-        }
-#endif
-    }
-    else {	// other case
-    	op_send(vm, code, regs);
-    }
-    mrbc_release(&regs[ra+1]);
+	ncmp(&regs[ra], <, &regs[ra+1]);
+
     return 0;
 }
 
@@ -1114,41 +1100,16 @@ op_lt(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 
   @param  vm    A pointer of VM.
   @param  code  bytecode
-  @param  regs  vm->regs + vm->reg_top
+  @param  regs  vm->regfile + vm->state->reg
   @retval 0  No error.
 */
 __GURU__ int
 op_le(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 {
     int ra = GETARG_A(code);
-    int result;
 
-    if (regs[ra].tt==GURU_TT_FIXNUM) {
-        if (regs[ra+1].tt==GURU_TT_FIXNUM) {
-            result = regs[ra].i <= regs[ra+1].i;	// in case of Fixnum, Fixnum
-            regs[ra].tt = result ? GURU_TT_TRUE : GURU_TT_FALSE;
-        }
-#if GURU_USE_FLOAT
-        else if (regs[ra+1].tt==GURU_TT_FLOAT) {
-            result = regs[ra].i <= regs[ra+1].f;	// in case of Fixnum, Float
-            regs[ra].tt = result ? GURU_TT_TRUE : GURU_TT_FALSE;
-        }
-    }
-    else if (regs[ra].tt==GURU_TT_FLOAT) {
-        if (regs[ra+1].tt==GURU_TT_FIXNUM) {
-            result = regs[ra].f <= regs[ra+1].i;	// in case of Float, Fixnum
-            regs[ra].tt = result ? GURU_TT_TRUE : GURU_TT_FALSE;
-        }
-        else if (regs[ra+1].tt==GURU_TT_FLOAT) {
-            result = regs[ra].f <= regs[ra+1].f;	// in case of Float, Float
-            regs[ra].tt = result ? GURU_TT_TRUE : GURU_TT_FALSE;
-        }
-#endif
-    }
-    else {    // other case
-    	op_send(vm, code, regs);
-    }
-    mrbc_release(&regs[ra+1]);
+    ncmp(&regs[ra], <=, &regs[ra+1]);
+
     return 0;
 }
 
@@ -1160,41 +1121,16 @@ op_le(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 
   @param  vm    A pointer of VM.
   @param  code  bytecode
-  @param  regs  vm->regs + vm->reg_top
+  @param  regs  vm->regfile + vm->state->reg
   @retval 0  No error.
 */
 __GURU__ int
 op_gt(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 {
     int ra = GETARG_A(code);
-    int result;
 
-    if (regs[ra].tt==GURU_TT_FIXNUM) {
-        if (regs[ra+1].tt==GURU_TT_FIXNUM) {
-            result = regs[ra].i > regs[ra+1].i;	// in case of Fixnum, Fixnum
-            regs[ra].tt = result ? GURU_TT_TRUE : GURU_TT_FALSE;
-        }
-#if GURU_USE_FLOAT
-        else if (regs[ra+1].tt==GURU_TT_FLOAT) {
-            result = regs[ra].i > regs[ra+1].f;	// in case of Fixnum, Float
-            regs[ra].tt = result ? GURU_TT_TRUE : GURU_TT_FALSE;
-        }
-    }
-    else if (regs[ra].tt==GURU_TT_FLOAT) {
-        if (regs[ra+1].tt==GURU_TT_FIXNUM) {
-            result = regs[ra].f > regs[ra+1].i;	// in case of Float, Fixnum
-            regs[ra].tt = result ? GURU_TT_TRUE : GURU_TT_FALSE;
-        }
-        else if (regs[ra+1].tt==GURU_TT_FLOAT) {
-            result = regs[ra].f > regs[ra+1].f;	// in case of Float, Float
-            regs[ra].tt = result ? GURU_TT_TRUE : GURU_TT_FALSE;
-        }
-#endif
-    }
-    else {    // other case
-    	op_send(vm, code, regs);
-    }
-    mrbc_release(&regs[ra+1]);
+    ncmp(&regs[ra], >, &regs[ra+1]);
+
     return 0;
 }
 
@@ -1206,41 +1142,16 @@ op_gt(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 
   @param  vm    A pointer of VM.
   @param  code  bytecode
-  @param  regs  vm->regs + vm->reg_top
+  @param  regs  vm->regfile + vm->state->reg
   @retval 0  No error.
 */
 __GURU__ int
 op_ge(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 {
     int ra = GETARG_A(code);
-    int result;
 
-    if (regs[ra].tt==GURU_TT_FIXNUM) {
-        if (regs[ra+1].tt==GURU_TT_FIXNUM) {
-            result = regs[ra].i >= regs[ra+1].i;	// in case of Fixnum, Fixnum
-            regs[ra].tt = result ? GURU_TT_TRUE : GURU_TT_FALSE;
-        }
-#if GURU_USE_FLOAT
-        else if (regs[ra+1].tt==GURU_TT_FLOAT) {
-            result = regs[ra].i >= regs[ra+1].f;	// in case of Fixnum, Float
-            regs[ra].tt = result ? GURU_TT_TRUE : GURU_TT_FALSE;
-        }
-    }
-    else if (regs[ra].tt==GURU_TT_FLOAT) {
-        if (regs[ra+1].tt==GURU_TT_FIXNUM) {
-            result = regs[ra].f >= regs[ra+1].i;	// in case of Float, Fixnum
-            regs[ra].tt = result ? GURU_TT_TRUE : GURU_TT_FALSE;
-        }
-        else if (regs[ra+1].tt==GURU_TT_FLOAT) {
-            result = regs[ra].f >= regs[ra+1].f;	// in case of Float, Float
-            regs[ra].tt = result ? GURU_TT_TRUE : GURU_TT_FALSE;
-        }
-#endif
-    }
-    else { // other case
-    	op_send(vm, code, regs);
-    }
-    mrbc_release(&regs[ra+1]);
+    ncmp(&regs[ra], >=, &regs[ra+1]);
+
     return 0;
 }
 
@@ -1252,7 +1163,7 @@ op_ge(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 
   @param  vm    A pointer of VM.
   @param  code  bytecode
-  @param  regs  vm->regs + vm->reg_top
+  @param  regs  vm->regfile + vm->state->reg
   @retval 0  No error.
 */
 __GURU__ int
@@ -1265,7 +1176,7 @@ op_string(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     mrbc_object *obj = GET_IREP(vm)->pool[rb];
 
     /* CAUTION: pool_obj->sym - 2. see IREP POOL structure. */
-    int         len = _bin_to_uint16(obj->sym - 2);
+    int         len = _bin_to_uint16(obj->sym - sizeof(uint16_t));
     const char *str = (const char *)obj->sym;			// 20181025
     mrbc_value  ret = mrbc_string_new(str);
 
@@ -1286,7 +1197,7 @@ op_string(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 
   @param  vm    A pointer of VM.
   @param  code  bytecode
-  @param  regs  vm->regs + vm->reg_top
+  @param  regs  vm->regfile + vm->state->reg
   @retval 0  No error.
 */
 __GURU__ int
@@ -1296,17 +1207,17 @@ op_strcat(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     int ra = GETARG_A(code);
     int rb = GETARG_B(code);
 
-    // call "to_s"
-    mrbc_sym sym_id = name2symid("to_s");
-    mrbc_proc *m    = mrbc_get_class_method(regs[ra], sym_id);
-    if (m && IS_C_FUNC(m)){
-        m->func(regs+ra, 0);
-    }
-    m = mrbc_get_class_method(regs[rb], sym_id);
-    if (m && IS_C_FUNC(m)){
-        m->func(regs+rb, 0);
-    }
-    mrbc_value ret = mrbc_string_add(&regs[ra], &regs[rb]);
+    mrbc_value *pa  = &regs[ra];
+    mrbc_value *pb  = &regs[rb];
+
+    mrbc_sym sym_id = name2symid("to_s");			// from global symbol pool
+    mrbc_proc *ma   = mrbc_get_class_method(*pa, sym_id);
+    mrbc_proc *mb   = mrbc_get_class_method(*pb, sym_id);
+
+    if (ma && IS_C_FUNC(ma)) ma->func(pa, 0);
+    if (mb && IS_C_FUNC(mb)) mb->func(pb, 0);
+
+    mrbc_value ret = mrbc_string_add(pa, pb);
 
     _RA_V(ret);
 
@@ -1324,7 +1235,7 @@ op_strcat(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 
   @param  vm    A pointer of VM.
   @param  code  bytecode
-  @param  regs  vm->regs + vm->reg_top
+  @param  regs  vm->regfile + vm->state->reg
   @retval 0  No error.
 */
 __GURU__ int
@@ -1359,7 +1270,7 @@ op_array(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 
   @param  vm    A pointer of VM.
   @param  code  bytecode
-  @param  regs  vm->regs + vm->reg_top
+  @param  regs  vm->regfile + vm->state->reg
   @retval 0  No error.
 */
 __GURU__ int
@@ -1396,7 +1307,7 @@ op_hash(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 
   @param  vm    A pointer of VM.
   @param  code  bytecode
-  @param  regs  vm->regs + vm->reg_top
+  @param  regs  vm->regfile + vm->state->reg
   @retval 0  No error.
 */
 __GURU__ int
@@ -1407,12 +1318,13 @@ op_range(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     int rb = GETARG_B(code);
     int rc = GETARG_C(code);
 
-    mrbc_value ret = mrbc_range_new(&regs[rb], &regs[rb+1], rc);
+    mrbc_value *p  = &regs[rb];
+    mrbc_value ret = mrbc_range_new(p, p+1, rc);
     if (ret.range==NULL) return vm->err = -1;		// ENOMEM
 
     _RA_V(ret);						// release and  reassign
-    mrbc_retain(&regs[rb]);
-    mrbc_retain(&regs[rb+1]);
+    mrbc_retain(p);
+    mrbc_retain(p+1);
 
 #else
     console_na("Range class");
@@ -1428,7 +1340,7 @@ op_range(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 
   @param  vm    A pointer of VM.
   @param  code  bytecode
-  @param  regs  vm->regs + vm->reg_top
+  @param  regs  vm->regfile + vm->state->reg
   @retval 0  No error.
 */
 __GURU__ int
@@ -1458,7 +1370,7 @@ op_lambda(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 
   @param  vm    A pointer of VM.
   @param  code  bytecode
-  @param  regs  vm->regs + vm->reg_top
+  @param  regs  vm->regfile + vm->state->reg
   @retval 0  No error.
 */
 __GURU__ int
@@ -1489,7 +1401,7 @@ op_class(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 
   @param  vm    A pointer of VM.
   @param  code  bytecode
-  @param  regs  vm->regs + vm->reg_top
+  @param  regs  vm->regfile + vm->state->reg
   @retval 0  No error.
 */
 __GURU__ int
@@ -1518,7 +1430,7 @@ op_exec(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 
   @param  vm    A pointer of VM.
   @param  code  bytecode
-  @param  regs  vm->regs + vm->reg_top
+  @param  regs  vm->regfile + vm->state->reg
   @retval 0  No error.
 */
 __GURU__ int
@@ -1576,7 +1488,7 @@ op_method(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 
   @param  vm    A pointer of VM.
   @param  code  bytecode
-  @param  regs  vm->regs + vm->reg_top
+  @param  regs  vm->regfile + vm->state->reg
   @retval 0  No error.
 */
 __GURU__ int
@@ -1598,7 +1510,7 @@ op_tclass(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 
   @param  vm    A pointer of VM.
   @param  code  bytecode
-  @param  regs  vm->regs + vm->reg_top
+  @param  regs  vm->regfile + vm->state->reg
   @retval -1  No error and exit from vm.
 */
 __GURU__ int
