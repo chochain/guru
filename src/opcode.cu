@@ -75,18 +75,17 @@ _get_symid(const uint8_t *p, int n)
 __GURU__ void
 _push_state(mrbc_vm *vm, int argc)
 {
-    mrbc_state *ci  = (mrbc_state *)mrbc_alloc(sizeof(mrbc_state));
 	mrbc_state *top = vm->state;
+    mrbc_state *st  = (mrbc_state *)mrbc_alloc(sizeof(mrbc_state));
 
+    st->reg   = top->reg;			// pass register file
+    st->irep  = top->irep;
+    st->pc 	  = top->pc;
+    st->argc  = argc;				// allocate local stack
+    st->klass = top->klass;
+    st->prev  = top;
 
-    ci->reg   = top->reg;			// pass register file
-    ci->irep  = top->irep;
-    ci->pc 	  = top->pc;
-    ci->argc  = argc;
-    ci->klass = top->klass;
-    ci->prev  = top;
-
-    vm->state = ci;
+    vm->state = st;
 }
 
 //================================================================
@@ -97,27 +96,26 @@ _push_state(mrbc_vm *vm, int argc)
 __GURU__ void
 _pop_state(mrbc_vm *vm, mrbc_value *regs)
 {
-    mrbc_state *ci = vm->state;
+    mrbc_state *st = vm->state;
     
-    vm->state = ci->prev;
+    vm->state = st->prev;
     
-    // clear stacked arguments
-    for (int i = 1; i <= ci->argc; i++) {
+    for (int i = 1; i <= st->argc; i++) {	// clear stacked arguments
         mrbc_release(&regs[i]);
     }
-    mrbc_free(ci);
+    mrbc_free(st);
 }
 
 __GURU__ void
 _vm_proc_call(mrbc_vm *vm, mrbc_value v[], int argc)
 {
-	_push_state(vm, argc);			// check _funcall which is not used
+	_push_state(vm, argc);				// check _funcall which is not used
 
 	vm->state->pc   = 0;
 	vm->state->irep = v[0].proc->irep;	// switch into callee context
-	vm->state->reg  = v;					// shift register file pointer (for local stack)
+	vm->state->reg  = v;				// shift register file pointer (for local stack)
 
-	v[0].proc->refc++;				// CC: 20181027 added to track proc usage
+	v[0].proc->refc++;					// CC: 20181027 added to track proc usage
 }
 
 // Object.new
@@ -152,21 +150,21 @@ _vm_object_new(mrbc_vm *vm, mrbc_value v[], int argc)
 
     // context switch, which is not multi-thread ready
     // TODO: create a vm context object with separate regfile
-    mrbc_state  *ci    = vm->state;
+    mrbc_state  *st    = vm->state;
 
-    uint16_t    pc0    = ci->pc;
-    mrbc_value  *reg0  = ci->reg;
-    mrbc_irep 	*irep0 = ci->irep;
+    uint16_t    pc0    = st->pc;
+    mrbc_value  *reg0  = st->reg;
+    mrbc_irep 	*irep0 = st->irep;
 
-    ci->pc 	 = 0;
-    ci->irep = &irep;
-    ci->reg  = v;		   // new register file (shift for call stack)
+    st->pc 	 = 0;
+    st->irep = &irep;
+    st->reg  = v;		   // new register file (shift for call stack)
 
     while (guru_op(vm)==0); // run til ABORT, or exception
 
-    ci->pc 	 = pc0;
-    ci->reg  = reg0;
-    ci->irep = irep0;
+    st->pc 	 = pc0;
+    st->reg  = reg0;
+    st->irep = irep0;
 
     SET_RETURN(obj);
 }
@@ -525,15 +523,15 @@ op_getupvar(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     int rb = GETARG_B(code);
     int rc = GETARG_C(code);   // UP
 
-    mrbc_state *ci = vm->state;
+    mrbc_state *st = vm->state;
 
     // find callinfo
-    int n = rc * 2 + 1;
+    int n = (rc+1) << 1;
     while (n > 0){
-        ci = ci->prev;
+        st = st->prev;
         n--;
     }
-    mrbc_value *uregs = ci->reg;
+    mrbc_value *uregs = st->reg;
 
     _RA_X(&uregs[rb]);             // ra <= up[rb]
 
@@ -558,17 +556,17 @@ op_setupvar(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     int rb = GETARG_B(code);
     int rc = GETARG_C(code);   				// UP level
 
-    mrbc_state *ci = vm->state;
+    mrbc_state *st = vm->state;
 
     int n = (rc+1) << 1;					// 2 per outer scope level
     while (n > 0){
-        ci = ci->prev;
+        st = st->prev;
         n--;
     }
-    mrbc_value *up_regs = ci->reg;
+    mrbc_value *uregs = st->reg;
 
-    mrbc_release(&up_regs[rb]);
-    up_regs[rb] = regs[ra];                // update outer-scope vars
+    mrbc_release(&uregs[rb]);
+    uregs[rb] = regs[ra];                   // update outer-scope vars
     mrbc_retain(&regs[ra]);
 
     return 0;
@@ -1540,8 +1538,8 @@ op_method(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     mrbc_sym   	sym_id  = _get_symid(irep->sym, rb);
 
     // check same name method
-    mrbc_proc 	*p  = cls->procs;
-    void 		*pp = &cls->procs;
+    mrbc_proc 	*p  = cls->vtbl;
+    void 		*pp = &cls->vtbl;
     while (p != NULL) {
     	if (p->sym_id==sym_id) break;
     	pp = &p->next;
@@ -1562,8 +1560,8 @@ op_method(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 #ifdef GURU_DEBUG
     proc->name  = _get_symbol(irep->sym, rb);
 #endif
-    proc->next   = cls->procs;
-    cls->procs   = proc;
+    proc->next  = cls->vtbl;
+    cls->vtbl   = proc;
 
     regs[ra+1].tt = GURU_TT_EMPTY;
 

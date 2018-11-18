@@ -37,16 +37,16 @@ _vm_begin(mrbc_vm *vm)
     vm->regfile[0].tt  	= GURU_TT_CLASS;		// regfile[0] is self
     vm->regfile[0].cls 	= mrbc_class_object;	// root class
 
-    mrbc_state *ci = (mrbc_state *)mrbc_alloc(sizeof(mrbc_state));
+    mrbc_state *st = (mrbc_state *)mrbc_alloc(sizeof(mrbc_state));
 
-    ci->pc 	  = 0;								// starting IP
-    ci->klass = mrbc_class_object;				// target class
-    ci->reg   = vm->regfile;					// pointer to reg[0]
-    ci->irep  = vm->irep;						// root of irep tree
-    ci->argc  = 0;
-    ci->prev  = NULL;
+    st->pc 	  = 0;								// starting IP
+    st->klass = mrbc_class_object;				// target class
+    st->reg   = vm->regfile;					// pointer to reg[0]
+    st->irep  = vm->irep;						// root of irep tree
+    st->argc  = 0;
+    st->prev  = NULL;
 
-    vm->state = ci;
+    vm->state = st;
     vm->run   = 1;								// TODO: updated by scheduler
     vm->err   = 0;
 }
@@ -192,7 +192,8 @@ guru_dump_regfile(mrbc_vm *vm, int debug)
 {
 	if (debug==0) return;
 
-	uint16_t    opid    = (*(GET_IREP(vm)->iseq + vm->state->pc) >> 24) & 0x7f;
+	uint16_t    pc      = vm->state->pc;
+	uint16_t    opid    = (*(GET_IREP(vm)->iseq + pc) >> 24) & 0x7f;
 	const char 	*opcode = _opcode[GET_OPCODE(opid)];
 	mrbc_value 	*v 	 	= vm->regfile;
 
@@ -201,16 +202,22 @@ guru_dump_regfile(mrbc_vm *vm, int debug)
 		if (v->tt==GURU_TT_EMPTY) continue;
 		last=i;
 	}
-	v = vm->regfile;
+	int lvl=0;
+	mrbc_state *s = vm->state;
+	while (s->prev != NULL) {
+		s = s->prev;
+		lvl++;
+	}
 
+	v = vm->regfile;	// rewind
 	if (debug==1) {
 		int s[8];
 		guru_get_alloc_stat(s);
-		printf("%-4d%-8s%-3d[ ", vm->state->pc, opcode, s[3]);
+		printf("%c%-4d%-8s%-3d[ ", 'a'+lvl, pc, opcode, s[3]);
 	}
 	else if (debug==2) {
 		guru_dump_alloc_stat();
-		printf("%-4d%-8s[ ", vm->state->pc, opcode);
+		printf("%c%-4d%-8s[ ", 'a'+lvl, pc, opcode);
 	}
 	for (int i=0; i<=last; i++, v++) {
 		printf("%2d.%s", i, _vtype[v->tt]);
