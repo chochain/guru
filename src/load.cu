@@ -113,8 +113,8 @@ _load_irep_1(mrbc_irep *irep, const uint8_t **pos)
 
     // allocate memory for child irep's pointers
     if (irep->rlen) {
-        irep->irep_list = (mrbc_irep **)mrbc_alloc(sizeof(mrbc_irep *) * irep->rlen);
-        if (irep->irep_list==NULL) {
+        irep->ilist = (mrbc_irep **)mrbc_alloc(sizeof(mrbc_irep *) * irep->rlen);
+        if (irep->ilist==NULL) {
             return LOAD_FILE_IREP_ERROR_ALLOCATION;
         }
     }
@@ -197,7 +197,7 @@ _load_irep_0(const uint8_t **pos)
     }
     // recursively create the irep linked-list
     for (int i=0; i<irep->rlen; i++) {
-        irep->irep_list[i] = _load_irep_0(pos);
+        irep->ilist[i] = _load_irep_0(pos);
     }
     return irep;
 }

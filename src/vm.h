@@ -28,19 +28,19 @@ extern "C" {
 /*!@brief
   IREP Internal REPresentation
 */
-typedef struct Irep {
-    uint16_t 	nlv;   			//!< # of local variables
-    uint16_t 	nreg;			//!< # of register variables
-    uint16_t 	rlen;			//!< # of child IREP blocks
-    uint16_t 	ilen;			//!< # of irep
-    uint16_t 	plen;			//!< # of objects in pool
-    uint16_t	slen;			//!< # of symbols
+typedef struct RIrep {
+    uint16_t 	 nlv;   		//!< # of local variables
+    uint16_t 	 nreg;			//!< # of register variables
+    uint16_t 	 rlen;			//!< # of child IREP blocks
+    uint16_t 	 ilen;			//!< # of irep
+    uint16_t 	 plen;			//!< # of objects in pool
+    uint16_t	 slen;			//!< # of symbols
 
-    uint32_t    *iseq;			//!< ISEQ (code) BLOCK
-    uint8_t     *sym;			//!< SYMBOL list
+    uint32_t     *iseq;			//!< ISEQ (code) BLOCK
+    uint8_t      *sym;			//!< SYMBOL list
 
-    mrbc_object **pool;    		//!< array of POOL objects pointer.
-    struct Irep **irep_list;	//!< array of child IREP's pointer.
+    mrbc_object  **pool;    	//!< array of POOL objects pointer.
+    struct RIrep **ilist;		//!< array of child IREP's pointer.
 } mrbc_irep;
 
 //================================================================
@@ -49,10 +49,10 @@ typedef struct Irep {
 */
 typedef struct RState {
     uint16_t        pc;
-    uint16_t        argc;     // num of args
+    uint16_t        argc;     	// num of args
     mrbc_class      *klass;
     mrbc_value      *reg;
-    mrbc_irep       *pc_irep;
+    mrbc_irep       *irep;
     struct RState   *prev;
 } mrbc_state;
 
@@ -146,7 +146,7 @@ void _uint32_to_bin(uint32_t l, uint8_t *bin)
     *bin   = l & 0xff;
 }
 
-#define GET_IREP(vm)        ((vm)->state->pc_irep)
+#define GET_IREP(vm)        ((vm)->state->irep)
 #define GET_BYTECODE(vm)	(_bin_to_uint32(GET_IREP(vm)->iseq + (vm)->state->pc))
 
 cudaError_t guru_vm_init(guru_ses *ses);

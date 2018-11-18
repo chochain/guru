@@ -79,12 +79,12 @@ _push_state(mrbc_vm *vm, int argc)
 	mrbc_state *top = vm->state;
 
 
-    ci->reg 	= top->reg;			// pass register file
-    ci->pc_irep = top->pc_irep;
-    ci->pc 		= top->pc;
-    ci->argc 	= argc;
-    ci->klass 	= top->klass;
-    ci->prev 	= top;
+    ci->reg   = top->reg;			// pass register file
+    ci->irep  = top->irep;
+    ci->pc 	  = top->pc;
+    ci->argc  = argc;
+    ci->klass = top->klass;
+    ci->prev  = top;
 
     vm->state = ci;
 }
@@ -113,11 +113,11 @@ _vm_proc_call(mrbc_vm *vm, mrbc_value v[], int argc)
 {
 	_push_state(vm, argc);			// check _funcall which is not used
 
-	vm->state->pc      = 0;
-	vm->state->pc_irep = v[0].proc->irep;		// switch into callee context
-	vm->state->reg     = v;					// shift register file pointer (for local stack)
+	vm->state->pc   = 0;
+	vm->state->irep = v[0].proc->irep;	// switch into callee context
+	vm->state->reg  = v;					// shift register file pointer (for local stack)
 
-	v[0].proc->refc++;					// CC: 20181027 added to track proc usage
+	v[0].proc->refc++;				// CC: 20181027 added to track proc usage
 }
 
 // Object.new
@@ -144,7 +144,7 @@ _vm_object_new(mrbc_vm *vm, mrbc_value v[], int argc)
         code,   			// iseq
         (uint8_t *)sym,  	// ptr_to_sym
         NULL,  				// object pool
-        NULL,  				// irep_list
+        NULL,  				// irep list
     };
     mrbc_release(&v[0]);
     v[0] = obj;
@@ -152,20 +152,20 @@ _vm_object_new(mrbc_vm *vm, mrbc_value v[], int argc)
 
     // context switch, which is not multi-thread ready
     // TODO: create a vm context object with separate regfile
-    mrbc_state  *ci       = vm->state;
-    uint16_t    pc0 	  = ci->pc;
-    mrbc_value* reg0 	  = ci->reg;
-    mrbc_irep 	*pc_irep0 = ci->pc_irep;
+    mrbc_state  *ci    = vm->state;
+    uint16_t    pc0    = ci->pc;
+    mrbc_value* reg0   = ci->reg;
+    mrbc_irep 	*irep0 = ci->irep;
 
-    ci->pc 		= 0;
-    ci->pc_irep = &irep;
-    ci->reg 	= v;		   // new register file (shift for call stack)
+    ci->pc 	 = 0;
+    ci->irep = &irep;
+    ci->reg  = v;		   // new register file (shift for call stack)
 
     while (guru_op(vm)==0); // run til ABORT, or exception
 
-    ci->pc 		= pc0;
-    ci->reg 	= reg0;
-    ci->pc_irep = pc_irep0;
+    ci->pc 	 = pc0;
+    ci->reg  = reg0;
+    ci->irep = irep0;
 
     SET_RETURN(obj);
 }
@@ -698,9 +698,9 @@ op_send(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     else {								// m is a Ruby function
     	_push_state(vm, rc);			// append callinfo list
 
-    	vm->state->pc_irep = m->irep;	// call into target context
-    	vm->state->pc 	   = 0;			// call into target context
-    	vm->state->reg 	   += ra;		// add call stack (new register)
+    	vm->state->irep = m->irep;		// call into target context
+    	vm->state->pc 	= 0;			// call into target context
+    	vm->state->reg 	+= ra;			// add call stack (new register)
     }
 
     return 0;
@@ -723,8 +723,8 @@ op_call(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     _push_state(vm, 0);
 
     // jump to proc
-    vm->state->pc 	   = 0;
-    vm->state->pc_irep = regs[0].proc->irep;
+    vm->state->pc 	= 0;
+    vm->state->irep = regs[0].proc->irep;
 
     return 0;
 }
@@ -1443,7 +1443,7 @@ op_lambda(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     mrbc_proc *prc = (mrbc_proc *)mrbc_proc_alloc("(lambda)");
 
     prc->flag &= ~GURU_PROC_C_FUNC;	// IREP
-    prc->irep = GET_IREP(vm)->irep_list[rb];
+    prc->irep = GET_IREP(vm)->ilist[rb];
 
     _RA_T(GURU_TT_PROC, proc=prc);
 
@@ -1500,14 +1500,14 @@ op_exec(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     int ra = GETARG_A(code);
     int rb = GETARG_Bx(code);
 
-    mrbc_value rcv = regs[ra];					// receiver
+    mrbc_value rcv = regs[ra];						// receiver
 
-    _push_state(vm, 0);						// push call stack
+    _push_state(vm, 0);								// push call stack
 
     vm->state->pc 	 = 0;							// switch context to callee
-    vm->state->pc_irep = vm->irep->irep_list[rb];
+    vm->state->irep  = vm->irep->ilist[rb];			// fetch designated irep
     vm->state->reg 	 += ra;							// shift regfile (for local stack)
-    vm->state->klass 	 = mrbc_get_class_by_object(&rcv);
+    vm->state->klass = mrbc_get_class_by_object(&rcv);
 
     return 0;
 }

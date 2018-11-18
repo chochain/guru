@@ -177,8 +177,8 @@ typedef struct RProc {		// 40-byte
 
     struct RProc *next;
     union {
-        struct Irep *irep;
-        mrbc_func_t func;
+        struct RIrep *irep;
+        mrbc_func_t  func;
     };
 #ifdef GURU_DEBUG
     const char 	 *name;		// for debug; delete soon

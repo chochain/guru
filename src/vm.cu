@@ -39,16 +39,16 @@ _vm_begin(mrbc_vm *vm)
 
     mrbc_state *ci = (mrbc_state *)mrbc_alloc(sizeof(mrbc_state));
 
-    ci->pc 		= 0;							// starting IP
-    ci->klass 	= mrbc_class_object;			// target class
-    ci->reg 	= vm->regfile;					// pointer to reg[0]
-    ci->pc_irep = vm->irep;						// root of irep tree
-    ci->argc    = 0;
-    ci->prev    = NULL;
+    ci->pc 	  = 0;								// starting IP
+    ci->klass = mrbc_class_object;				// target class
+    ci->reg   = vm->regfile;					// pointer to reg[0]
+    ci->irep  = vm->irep;						// root of irep tree
+    ci->argc  = 0;
+    ci->prev  = NULL;
 
-    vm->state   = ci;
-    vm->run   	= 1;							// TODO: updated by scheduler
-    vm->err     = 0;
+    vm->state = ci;
+    vm->run   = 1;								// TODO: updated by scheduler
+    vm->err   = 0;
 }
 
 //================================================================
@@ -104,9 +104,9 @@ _mrbc_free_irep(mrbc_irep *irep)
 
     // release all child ireps.
     for(int i = 0; i < irep->rlen; i++) {
-        _mrbc_free_irep(irep->irep_list[i]);
+        _mrbc_free_irep(irep->ilist[i]);
     }
-    if (irep->rlen) mrbc_free(irep->irep_list);
+    if (irep->rlen) mrbc_free(irep->ilist);
 
     mrbc_free(irep);
 }
@@ -159,7 +159,7 @@ guru_dump_irep(mrbc_irep *irep)
 
 	// dump all children ireps
 	for (int i=0; i<irep->rlen; i++) {
-		guru_dump_irep(irep->irep_list[i]);
+		guru_dump_irep(irep->ilist[i]);
 	}
 }
 
@@ -184,7 +184,7 @@ static const char *_opcode[] = {
     "ABORT"
 };
 
-//(_bin_to_uint32((vm)->pc_irep->iseq + (vm)->pc * 4))
+//(_bin_to_uint32((vm)->irep->iseq + (vm)->pc * 4))
 //		((i) & 0x7f)
 
 __host__ void
