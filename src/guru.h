@@ -130,7 +130,7 @@ typedef struct RObject {			// 16-bytes
 */
 typedef struct RClass {			// 32-byte
     struct RClass 	*super;		// mrbc_class[super]
-    struct RProc  	*procs;		// mrbc_proc[rprocs], linked list
+    struct RProc  	*vtbl;		// mrbc_proc[rprocs], linked list
 #ifdef GURU_DEBUG
     const char    	*name;		// for debug. TODO: remove
 #endif

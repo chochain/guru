@@ -93,7 +93,7 @@ mrbc_get_class_method(mrbc_value rcv, mrbc_sym sym_id)
     mrbc_class *cls = mrbc_get_class_by_object(&rcv);
 
     while (cls != 0) {
-        mrbc_proc *proc = cls->procs;
+        mrbc_proc *proc = cls->vtbl;
         while (proc != 0) {
             if (proc->sym_id == sym_id) {
                 return proc;
@@ -129,7 +129,7 @@ mrbc_define_class(const char *name, mrbc_class *super)
 
     cls->sym_id = sym_id;
     cls->super 	= super;
-    cls->procs 	= 0;
+    cls->vtbl 	= NULL;
 #ifdef GURU_DEBUG
     cls->name 	= name;				// for debug; delete soon.
 #endif
@@ -175,9 +175,9 @@ mrbc_define_method(mrbc_class *cls, const char *name, mrbc_func_t cfunc)
 
     proc->flag  |= GURU_PROC_C_FUNC;  			// c-func
     proc->func 	= cfunc;
-    proc->next 	= cls->procs;
+    proc->next 	= cls->vtbl;
 
-    cls->procs 	= proc;
+    cls->vtbl 	= proc;
 }
 
 // =============== ProcClass
