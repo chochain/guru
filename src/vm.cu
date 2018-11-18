@@ -172,8 +172,8 @@ static const char *_vtype[] = {
 
 static const char *_opcode[] = {
     "NOP ","MOVE","LOADL","LOADI","LOADSYM","LOADNIL","LOADSLF","LOADT",
-    "LOADF","GETG","SETG","","","GETI","SETI","",
-    "","GETC","SETC","","","GETU","SETU","JMP ",
+    "LOADF","GETGBL","SETGBL","","","GETIV","SETIV","",
+    "","GETCONS","SETCONS","","","GETUVAR","SETUVAR","JMP ",
     "JMPIF","JMPNOT","","","","","","",
     "SEND","SENDB","","CALL","","","ENTER","",
     "","RETURN","","BLKPUSH","ADD ","ADDI","SUB ","SUBI",

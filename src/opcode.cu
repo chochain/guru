@@ -153,8 +153,9 @@ _vm_object_new(mrbc_vm *vm, mrbc_value v[], int argc)
     // context switch, which is not multi-thread ready
     // TODO: create a vm context object with separate regfile
     mrbc_state  *ci    = vm->state;
+
     uint16_t    pc0    = ci->pc;
-    mrbc_value* reg0   = ci->reg;
+    mrbc_value  *reg0  = ci->reg;
     mrbc_irep 	*irep0 = ci->irep;
 
     ci->pc 	 = 0;
@@ -555,12 +556,11 @@ op_setupvar(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 {
     int ra = GETARG_A(code);
     int rb = GETARG_B(code);
-    int rc = GETARG_C(code);   // UP
+    int rc = GETARG_C(code);   				// UP level
 
     mrbc_state *ci = vm->state;
 
-    // find callinfo
-    int n = rc * 2 + 1;
+    int n = (rc+1) << 1;					// 2 per outer scope level
     while (n > 0){
         ci = ci->prev;
         n--;
@@ -775,7 +775,7 @@ op_return(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     mrbc_value ret = regs[ra];
 
     mrbc_release(&regs[0]);
-    regs[0] = ret;
+    regs[0]     = ret;
     regs[ra].tt = GURU_TT_EMPTY;
 
     _pop_state(vm, regs);
