@@ -98,6 +98,8 @@ typedef enum {
     GURU_TT_HASH,
 } mrbc_vtype;
 
+#define TT_BOOL(v)		((v) ? GURU_TT_TRUE : GURU_TT_FALSE)
+
 //================================================================
 /*!@brief
   Guru value object.

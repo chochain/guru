@@ -51,13 +51,13 @@
 __GURU__ const char*
 _get_symbol(const uint8_t *p, int n)
 {
-    int cnt = _bin_to_uint32(p);			p += sizeof(uint32_t);
-    if (n >= cnt) return NULL;
+    int max = _bin_to_uint32(p);			p += sizeof(uint32_t);
+    if (n >= max) return NULL;
 
     for (; n>0; n--) {	// advance to n'th symbol
         uint16_t s = _bin_to_uint16(p);		p += sizeof(uint16_t)+s+1;	// symbol len + '\0'
     }
-    return (char *)p+2;  // skip size(2 bytes)
+    return (char *)p + sizeof(uint16_t);  	// skip size(2 bytes)
 }
 
 __GURU__ mrbc_sym
@@ -666,11 +666,11 @@ op_send(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     default: break;
     }
 
-	mrbc_sym  sym_id = _get_symid(GET_IREP(vm)->sym, rb);
-    mrbc_proc *m 	 = (mrbc_proc *)mrbc_get_class_method(rcv, sym_id);
 #ifdef GURU_DEBUG
 	const char *name = _get_symbol(GET_IREP(vm)->sym, rb);
 #endif
+	mrbc_sym  sym_id = _get_symid(GET_IREP(vm)->sym, rb);
+    mrbc_proc *m 	 = (mrbc_proc *)mrbc_get_class_method(rcv, sym_id);
 
     if (m==0) {
     	console_na(name);							// dump error, bail out
@@ -1249,10 +1249,11 @@ op_array(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 
     mrbc_value ret = (mrbc_value)mrbc_array_new(rc);
     mrbc_array *h  = ret.array;
+    mrbc_value *pb = &regs[rb];
     if (h==NULL) return vm->err = -1;	// ENOMEM
 
-    MEMCPY((uint8_t *)h->data, (uint8_t *)&regs[rb], sz);
-    MEMSET((uint8_t *)&regs[rb], 0, sz);
+    MEMCPY((uint8_t *)h->data, (uint8_t *)pb, sz);
+    MEMSET((uint8_t *)pb, 0, sz);
     h->n = rc;
 
     _RA_V(ret);
@@ -1284,9 +1285,9 @@ op_hash(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 
     mrbc_value ret = mrbc_hash_new(rc);
     mrbc_hash  *h  = ret.hash;
+    mrbc_value *p  = &regs[rb];
     if (h==NULL) return vm->err = -1;					// ENOMEM
 
-    mrbc_value  *p = &regs[rb];
     MEMCPY((uint8_t *)h->data, (uint8_t *)p, sz);		// copy k,v pairs
 
     for (int i=0; i<(h->n=(rc<<1)); i++, p++) {
@@ -1318,13 +1319,13 @@ op_range(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     int rb = GETARG_B(code);
     int rc = GETARG_C(code);
 
-    mrbc_value *p  = &regs[rb];
-    mrbc_value ret = mrbc_range_new(p, p+1, rc);
+    mrbc_value *pb = &regs[rb];
+    mrbc_value ret = mrbc_range_new(pb, pb+1, rc);
     if (ret.range==NULL) return vm->err = -1;		// ENOMEM
 
     _RA_V(ret);						// release and  reassign
-    mrbc_retain(p);
-    mrbc_retain(p+1);
+    mrbc_retain(pb);
+    mrbc_retain(pb+1);
 
 #else
     console_na("Range class");
@@ -1380,16 +1381,10 @@ op_class(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     int rb = GETARG_B(code);
 
     mrbc_class *super = (regs[ra+1].tt==GURU_TT_CLASS) ? regs[ra+1].cls : mrbc_class_object;
+    const char *name  = _get_symbol(GET_IREP(vm)->sym, rb);
+    mrbc_class *cls   = (mrbc_class *)mrbc_define_class(name, super);
 
-    mrbc_irep  *cur_irep = GET_IREP(vm);
-    const char *name     = _get_symbol(cur_irep->sym, rb);
-    mrbc_class *cls 	 = (mrbc_class *)mrbc_define_class(name, super);
-
-    mrbc_value ret = {.tt = GURU_TT_CLASS};
-    ret.cls = cls;
-
-    regs[ra] = ret;
-
+    _RA_T(GURU_TT_CLASS, cls=cls);
     return 0;
 }
 
@@ -1467,12 +1462,13 @@ op_method(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     }
 
     // add proc to class
-    proc->flag   &= ~GURU_PROC_C_FUNC;
-    proc->sym_id = sym_id;
 #ifdef GURU_DEBUG
     proc->name  = _get_symbol(irep->sym, rb);
 #endif
+    proc->sym_id= sym_id;
     proc->next  = cls->vtbl;
+    proc->flag  &= ~GURU_PROC_C_FUNC;
+
     cls->vtbl   = proc;
 
     regs[ra+1].tt = GURU_TT_EMPTY;

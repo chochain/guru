@@ -81,18 +81,18 @@ _load_header(const uint8_t **pos)
   0000		n of child irep
 
   0000_0000	n of byte code  (ISEQ BLOCK)
-  ...		byte codes
+  ...		byte codes		(padded to 4-byte align)
 
-  0000_0000	n of pool	(POOL BLOCK)
+  0000_0000	n of pool		(POOL BLOCK)
   (loop n of pool)
   00		type
-  0000	length
-  ...	pool data
+  0000		length
+  ...		pool data
 
-  0000_0000	n of symbol	(SYMS BLOCK)
+  0000_0000	n of symbol		(SYMS BLOCK)
   (loop n of symbol)
-  0000	length
-  ...	symbol data
+  0000		length
+  ...		symbol data
   </pre>
 */
 __GURU__ int
@@ -101,31 +101,30 @@ _load_irep_1(mrbc_irep *irep, const uint8_t **pos)
     const uint8_t *p = *pos + 4;		// skip "IREP"
 
     // nlocals,nregs,rlen
-    irep->nlv  = _bin_to_uint16(p);	p += sizeof(uint16_t);
-    irep->nreg = _bin_to_uint16(p);	p += sizeof(uint16_t);
-    irep->rlen = _bin_to_uint16(p);	p += sizeof(uint16_t);
-    irep->ilen = _bin_to_uint32(p);	p += sizeof(uint32_t);
+    irep->nlv  = _bin_to_uint16(p);	p += sizeof(uint16_t);		// number of local variables
+    irep->nreg = _bin_to_uint16(p);	p += sizeof(uint16_t);		// number of registers used
+    irep->rlen = _bin_to_uint16(p);	p += sizeof(uint16_t);		// number of child IREP blocks
+    irep->ilen = _bin_to_uint32(p);	p += sizeof(uint32_t);		// ISEQ (bytecodes) length
 
     p += ((uint8_t *)irep - p) & 0x03;	// 32-bit align code pointer
 
     irep->iseq = (uint32_t *)p;			p += irep->ilen * sizeof(uint32_t);		// ISEQ (code) block
     irep->plen = _bin_to_uint32(p);		p += sizeof(uint32_t);					// POOL block
 
-    // allocate memory for child irep's pointers
-    if (irep->rlen) {
+    if (irep->rlen) {					// allocate child irep's pointers (later filled by _load_irep_0)
         irep->ilist = (mrbc_irep **)mrbc_alloc(sizeof(mrbc_irep *) * irep->rlen);
         if (irep->ilist==NULL) {
             return LOAD_FILE_IREP_ERROR_ALLOCATION;
         }
     }
-    if (irep->plen) {
-        irep->pool = (mrbc_object**)mrbc_alloc(sizeof(void*) *irep->plen);
+    if (irep->plen) {					// allocate pool of object pointers
+        irep->pool = (mrbc_object**)mrbc_alloc(sizeof(void*) * irep->plen);
         if (irep->pool==NULL) {
             return LOAD_FILE_IREP_ERROR_ALLOCATION;
         }
     }
 
-    for (int i = 0; i < irep->plen; i++) {
+    for (int i = 0; i < irep->plen; i++) {		// build object pool
         int  tt = *p++;
         int  obj_size = _bin_to_uint16(p);	p += sizeof(uint16_t);
         char buf[64+2];
@@ -155,10 +154,10 @@ _load_irep_1(mrbc_irep *irep, const uint8_t **pos)
         } break;
 #endif
         default:
-        	obj->tt = GURU_TT_EMPTY;
+        	obj->tt = GURU_TT_EMPTY;	// other object are not supported yet
         	break;
         }
-        irep->pool[i] = obj;
+        irep->pool[i] = obj;			// stick it into object pool array
         p += obj_size;
     }
 
@@ -190,12 +189,12 @@ _load_irep_0(const uint8_t **pos)
     if (irep==NULL) {
         return NULL;
     }
-    int ret = _load_irep_1(irep, pos);
+    int ret = _load_irep_1(irep, pos);		// populate content of current IREP
     if (ret != NO_ERROR) {
     	mrbc_free(irep);
     	return NULL;
     }
-    // recursively create the irep linked-list
+    // recursively create the child irep tree
     for (int i=0; i<irep->rlen; i++) {
         irep->ilist[i] = _load_irep_0(pos);
     }
