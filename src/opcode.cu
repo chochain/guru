@@ -1354,7 +1354,7 @@ op_lambda(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     mrbc_proc *prc = (mrbc_proc *)mrbc_proc_alloc("(lambda)");
 
     prc->flag &= ~GURU_PROC_C_FUNC;	// IREP
-    prc->irep = GET_IREP(vm)->ilist[rb];
+    prc->irep = GET_IREP(vm)->list[rb];
 
     _RA_T(GURU_TT_PROC, proc=prc);
 
@@ -1410,7 +1410,7 @@ op_exec(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     _push_state(vm, 0);								// push call stack
 
     vm->state->pc 	 = 0;							// switch context to callee
-    vm->state->irep  = vm->irep->ilist[rb];			// fetch designated irep
+    vm->state->irep  = vm->irep->list[rb];			// fetch designated irep
     vm->state->reg 	 += ra;							// shift regfile (for local stack)
     vm->state->klass = mrbc_get_class_by_object(&rcv);
 

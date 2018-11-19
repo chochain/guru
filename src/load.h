@@ -23,6 +23,7 @@ extern "C" {
 #endif
 
 __global__ void  guru_parse_bytecode(mrbc_vm *vm, const uint8_t *ptr);
+__host__   void  guru_h_parse_bytecode(mrbc_vm *vm, const uint8_t *ptr);
 
 #ifdef __cplusplus
 }

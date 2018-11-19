@@ -72,14 +72,14 @@
 /* 0: Byte alignment */
 /* 1: 32bit alignment */
 #define GURU_REQUIRE_32BIT_ALIGNMENT 1
-#define GURU_REQUIRE_64BIT_ALIGNMENT 1
+#define GURU_HOST_PARSER
 
 #define __GURU_CUDA__
 #define GURU_DEBUG
-
-#define BLOCK_MEMORY_SIZE 			(32*1024)
-
+#define BLOCK_MEMORY_SIZE 				(32*1024)
+#define GURU_REQUIRE_64BIT_ALIGNMENT 	1
 #endif
+
 
 
 

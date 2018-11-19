@@ -31,7 +31,7 @@ extern "C" {
 typedef struct RIrep {
     uint16_t 	 nlv;   		//!< # of local variables
     uint16_t 	 nreg;			//!< # of register used
-    uint16_t 	 rlen;			//!< # of child IREP blocks (into ilist below)
+    uint16_t 	 rlen;			//!< # of child IREP blocks (into list below)
     uint16_t 	 ilen;			//!< # of bytecodes (by iseq below)
     uint16_t 	 plen;			//!< # of objects in pool (into pool below)
     uint16_t	 slen;			//!< # of symbols (into sym below)
@@ -40,7 +40,7 @@ typedef struct RIrep {
     uint8_t      *sym;			//!< SYMBOL list
 
     mrbc_object  **pool; 	   	//!< array of POOL objects pointer.
-    struct RIrep **ilist;		//!< array of child IREP's pointer.
+    struct RIrep **list;		//!< array of child IREP's pointer.
 } mrbc_irep;
 
 //================================================================

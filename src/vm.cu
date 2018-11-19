@@ -104,9 +104,9 @@ _mrbc_free_irep(mrbc_irep *irep)
 
     // release all child ireps.
     for(int i = 0; i < irep->rlen; i++) {
-        _mrbc_free_irep(irep->ilist[i]);
+        _mrbc_free_irep(irep->list[i]);
     }
-    if (irep->rlen) mrbc_free(irep->ilist);
+    if (irep->rlen) mrbc_free(irep->list);
 
     mrbc_free(irep);
 }
@@ -114,12 +114,18 @@ _mrbc_free_irep(mrbc_irep *irep)
 __host__ cudaError_t
 guru_vm_init(guru_ses *ses)
 {
+#ifdef GURU_HOST_PARSER
+	mrbc_vm *vm = (mrbc_vm *)malloc(sizeof(mrbc_vm));
+	if (!vm) return cudaErrorMemoryAllocation;
+
+	guru_h_parse_bytecode(vm, ses->req);
+#else
 	mrbc_vm *vm = (mrbc_vm *)guru_malloc(sizeof(mrbc_vm), 1);
 	if (!vm) return cudaErrorMemoryAllocation;
 
 	guru_parse_bytecode<<<1,1>>>(vm, ses->req);		// can also be done on host?
 	cudaDeviceSynchronize();
-
+#endif
 	ses->vm = (uint8_t *)vm;
 
 	if (ses->debug > 0)	guru_dump_irep(vm->irep);
@@ -159,7 +165,7 @@ guru_dump_irep(mrbc_irep *irep)
 
 	// dump all children ireps
 	for (int i=0; i<irep->rlen; i++) {
-		guru_dump_irep(irep->ilist[i]);
+		guru_dump_irep(irep->list[i]);
 	}
 }
 
