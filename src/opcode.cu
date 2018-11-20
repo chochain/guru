@@ -1439,10 +1439,9 @@ op_method(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     	return 0;
     }
 
-    mrbc_class 	*cls 	= regs[ra].cls;
-    mrbc_proc 	*proc   = regs[ra+1].proc;
-    mrbc_irep  	*irep 	= GET_IREP(vm);
-    mrbc_sym   	sym_id  = _get_symid(irep->sym, rb);
+    mrbc_class 	*cls   = regs[ra].cls;
+    mrbc_proc 	*proc  = regs[ra+1].proc;
+    mrbc_sym   	sym_id = _get_symid(GET_IREP(vm)->sym, rb);
 
     // check same name method
     mrbc_proc 	*p  = cls->vtbl;
@@ -1463,7 +1462,7 @@ op_method(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 
     // add proc to class
 #ifdef GURU_DEBUG
-    proc->name  = _get_symbol(irep->sym, rb);
+    proc->name  = _get_symbol(GET_IREP(vm)->sym, rb);
 #endif
     proc->sym_id= sym_id;
     proc->next  = cls->vtbl;

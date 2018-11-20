@@ -43,7 +43,8 @@ typedef struct RIrep {
     struct RIrep **list;		//!< array of child IREP's pointer.
 } mrbc_irep;
 
-typedef struct RIrep2 {
+typedef struct RIrep2 {			// 32-bytes
+    uint32_t	 size;			// size of entire IREP block
     uint16_t 	 nlv;   		//!< # of local variables
     uint16_t 	 nreg;			//!< # of register used
     uint16_t 	 rlen;			//!< # of child IREP blocks (into list below)
@@ -51,10 +52,10 @@ typedef struct RIrep2 {
     uint16_t 	 plen;			//!< # of objects in pool (into pool below)
     uint16_t	 slen;			//!< # of symbols (into sym below)
 
-    uint32_t 	 iseq;			//!< ISEQ (code) BLOCK
-    uint32_t	 sym;			//!< array of SYMBOLs
-    uint32_t     pool; 	   		//!< array of POOL objects pointer.
-    uint32_t 	 list;			//!< array of child IREP's pointer.
+    uint32_t 	 iseq;			//!< offset to ISEQ (code) BLOCK
+    uint32_t	 sym;			//!< offset to array of SYMBOLs
+    uint32_t     pool; 	   		//!< offset to array of POOL objects pointer.
+    uint32_t 	 list;			//!< offset to array of child IREP's pointer.
 } guru_irep;
 
 //================================================================

@@ -115,7 +115,7 @@ __host__ cudaError_t
 guru_vm_init(guru_ses *ses)
 {
 #ifdef GURU_HOST_PARSER
-	guru_vm *vm = (guru_vm *)malloc(sizeof(guru_vm));
+	guru_vm *vm = (guru_vm *)guru_malloc(sizeof(guru_vm), 1);
 	if (!vm) return cudaErrorMemoryAllocation;
 
 	guru_h_parse_bytecode(vm, ses->req);

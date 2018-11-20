@@ -336,19 +336,21 @@ __host__ void
 _h_build_image(uint8_t **pirep, uint8_t *src)
 {
 	guru_irep *irep = (guru_irep *)*pirep;
+	uint8_t   *base = (uint8_t *)irep;
 
     int list_sz = sizeof(uint32_t) * (irep->rlen + (irep->rlen & 1));
     int iseq_sz = sizeof(uint32_t) * (irep->ilen + (irep->ilen & 1));
     int pool_sz = sizeof(uint32_t) * (irep->plen + (irep->plen & 1));
     int sym_sz  = sizeof(uint32_t) * (irep->slen + (irep->slen & 1));
 
-	uint8_t *list = (uint8_t *)irep + sizeof(guru_irep) + ((8 - sizeof(guru_irep)) & 7);
+	uint8_t *list = base + sizeof(guru_irep) + ((8 - sizeof(guru_irep)) & 7);
 	uint8_t *iseq = list + list_sz;
 	uint8_t *pool = iseq + iseq_sz;
 	uint8_t *sym  = pool + pool_sz;
 	uint8_t *tstr = sym  + sym_sz;				// extended string table
 
     memcpy(iseq, src + irep->iseq, iseq_sz);	// copy ISEQ block
+    irep->iseq = (uint32_t)(iseq - base);
 
     uint8_t *p = src + irep->pool;				// build object pool
     for (int i = 0; i < irep->plen; i++) {
@@ -360,20 +362,21 @@ _h_build_image(uint8_t **pirep, uint8_t *src)
         uint32_t *v = (uint32_t *)(pool + i * sizeof(uint32_t));
         switch (tt) {
         case 0: { 	// IREP_TT_STRING
-            *v = (uint32_t)(tstr - (uint8_t *)irep);
-            memcpy(tstr, p, asz);				// string on 4-byte boundary
+            *v = (uint32_t)(tstr - base);
+            memcpy(tstr, p, asz);			// string on 4-byte boundary
             tstr += asz;
         } break;
         case 1: { 	// IREP_TT_FIXNUM
             memcpy((uint8_t *)buf, p, len);
             buf[len] = '\0';
-            *v = atoi(buf)<<2 | 1;				// mark as number
+            *v = atoi(buf)<<2 | 2;			// mark as number
         } break;
 #if GURU_USE_FLOAT
         case 2: { 	// IREP_TT_FLOAT
             memcpy((uint8_t *)buf, p, len);
             buf[len] = '\0';
-            *v = atof(buf)<<2 | 2;				// mark as float
+            *(mrbc_float *)v = atof(buf);
+            *v |= 1;						// mark as float
         } break;
 #endif
         default:
@@ -382,6 +385,7 @@ _h_build_image(uint8_t **pirep, uint8_t *src)
         }
         p += len;
     }
+    irep->pool = (uint32_t)(pool - base);
 
     p = src + irep->sym;					// build symbol table
     for (int i=0; i < irep->slen; i++) {
@@ -389,13 +393,16 @@ _h_build_image(uint8_t **pirep, uint8_t *src)
         int asz = len + ((8 - len) & 7);	// 8-byte alignment
 
         uint32_t *v = (uint32_t *)(sym + i * sizeof(uint32_t));
-        *v = (uint32_t)(tstr - (uint8_t *)irep);
+        *v = (uint32_t)(tstr - base);
 
         memcpy(tstr, p, asz);		// copy raw string to string table
         tstr += asz;
         p    += len;
     }
+    irep->sym = (uint32_t)(sym - base);
+
     // return the adjusted irep pointer
+    irep->size = (uint32_t)(tstr - base);
     *pirep = tstr;
 }
 
@@ -475,14 +482,15 @@ _h_load_irep_0(uint8_t **pirep, const uint8_t **pos)
 {
 	guru_irep *irep = (guru_irep *)*pirep;
 	uint8_t   *src  = (uint8_t *)*pos;
+	uint8_t   *base = (uint8_t *)irep;
 
 	_h_get_irep_size(irep, pos);		// populate metadata of current IREP
     _h_build_image(pirep, src);
 
     // recursively create the child irep tree
-    uint32_t *p = (uint32_t *)((uint8_t *)irep + irep->list);
-    for (int i=0; i<irep->rlen; i++) {
-        p[i] = (uint32_t)((uint8_t *)_h_load_irep_0(pirep, pos) - (uint8_t *)irep);
+    uint32_t *p = (uint32_t *)(base + irep->list);
+    for (int i = 0; i < irep->rlen; i++) {
+        p[i] = (uint32_t)((uint8_t *)_h_load_irep_0(pirep, pos) - base);
     }
     return irep;
 }
@@ -514,7 +522,7 @@ _h_load_irep(guru_vm *vm, const uint8_t **pos)
     p += 4;											// 4 = skip "0000"
 
     int     irep_max_sz = sec_sz * 2;
-    uint8_t *ibuf = (uint8_t *)malloc(irep_max_sz);
+    uint8_t *ibuf = (uint8_t *)guru_malloc(irep_max_sz, 1);
     uint8_t *ipos = ibuf;
     if (!ibuf) return !NO_ERROR;
 
