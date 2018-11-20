@@ -43,6 +43,20 @@ typedef struct RIrep {
     struct RIrep **list;		//!< array of child IREP's pointer.
 } mrbc_irep;
 
+typedef struct RIrep2 {
+    uint16_t 	 nlv;   		//!< # of local variables
+    uint16_t 	 nreg;			//!< # of register used
+    uint16_t 	 rlen;			//!< # of child IREP blocks (into list below)
+    uint16_t 	 ilen;			//!< # of bytecodes (by iseq below)
+    uint16_t 	 plen;			//!< # of objects in pool (into pool below)
+    uint16_t	 slen;			//!< # of symbols (into sym below)
+
+    uint32_t 	 iseq;			//!< ISEQ (code) BLOCK
+    uint32_t	 sym;			//!< array of SYMBOLs
+    uint32_t     pool; 	   		//!< array of POOL objects pointer.
+    uint32_t 	 list;			//!< array of child IREP's pointer.
+} guru_irep;
+
 //================================================================
 /*!@brief
   Call information
@@ -54,7 +68,7 @@ typedef struct RState {
     mrbc_value      *reg;
     mrbc_irep       *irep;
     struct RState   *prev;
-} mrbc_state;
+} mrbc_state, guru_state;
 
 //================================================================
 /*!@brief
@@ -68,6 +82,15 @@ typedef struct VM {
     volatile int8_t run;
     volatile int8_t	err;
 } mrbc_vm;
+
+typedef struct VM2 {
+    guru_irep       *irep;		// pointer to IREP tree
+    guru_state      *state;		// VM state (callinfo) linked list
+    mrbc_value      regfile[MAX_REGS_SIZE];
+
+    volatile int8_t run;
+    volatile int8_t	err;
+} guru_vm;
 
 //================================================================
 /*!@brief

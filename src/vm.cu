@@ -115,7 +115,7 @@ __host__ cudaError_t
 guru_vm_init(guru_ses *ses)
 {
 #ifdef GURU_HOST_PARSER
-	mrbc_vm *vm = (mrbc_vm *)malloc(sizeof(mrbc_vm));
+	guru_vm *vm = (guru_vm *)malloc(sizeof(guru_vm));
 	if (!vm) return cudaErrorMemoryAllocation;
 
 	guru_h_parse_bytecode(vm, ses->req);
@@ -125,11 +125,10 @@ guru_vm_init(guru_ses *ses)
 
 	guru_parse_bytecode<<<1,1>>>(vm, ses->req);		// can also be done on host?
 	cudaDeviceSynchronize();
-#endif
+
 	ses->vm = (uint8_t *)vm;
-
 	if (ses->debug > 0)	guru_dump_irep(vm->irep);
-
+#endif
 	return cudaSuccess;
 }
 
