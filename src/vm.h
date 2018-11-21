@@ -28,7 +28,7 @@ extern "C" {
 /*!@brief
   IREP Internal REPresentation
 */
-typedef struct RIrep {
+typedef struct RIrep1 {
     uint16_t 	 nlv;   		//!< # of local variables
     uint16_t 	 nreg;			//!< # of register used
     uint16_t 	 rlen;			//!< # of child IREP blocks (into list below)
@@ -39,12 +39,11 @@ typedef struct RIrep {
     uint32_t     *iseq;			//!< ISEQ (code) BLOCK
     uint8_t      *sym;			//!< SYMBOL list
 
-    mrbc_object  **pool; 	   	//!< array of POOL objects pointer.
-    struct RIrep **list;		//!< array of child IREP's pointer.
-} mrbc_irep;
+    mrbc_object   **pool; 	   	//!< array of POOL objects pointer.
+    struct RIrep1 **list;		//!< array of child IREP's pointer.
+} mrbc_irep1;
 
-typedef struct RIrep2 {			// 32-bytes
-    uint32_t	 size;			// size of entire IREP block
+typedef struct RIrep {			// 32-bytes
     uint16_t 	 nlv;   		//!< # of local variables
     uint16_t 	 nreg;			//!< # of register used
     uint16_t 	 rlen;			//!< # of child IREP blocks (into list below)
@@ -56,7 +55,8 @@ typedef struct RIrep2 {			// 32-bytes
     uint32_t	 sym;			//!< offset to array of SYMBOLs
     uint32_t     pool; 	   		//!< offset to array of POOL objects pointer.
     uint32_t 	 list;			//!< offset to array of child IREP's pointer.
-} guru_irep;
+    uint32_t	 size;			// size of entire IREP block
+} guru_irep, mrbc_irep;
 
 //================================================================
 /*!@brief
@@ -69,29 +69,29 @@ typedef struct RState {
     mrbc_value      *reg;
     mrbc_irep       *irep;
     struct RState   *prev;
-} mrbc_state, guru_state;
+} guru_state, mrbc_state;
 
 //================================================================
 /*!@brief
   Virtual Machine
 */
-typedef struct VM {
+typedef struct VM1 {
     mrbc_irep       *irep;		// pointer to IREP tree
     mrbc_state      *state;		// VM state (callinfo) linked list
     mrbc_value      regfile[MAX_REGS_SIZE];
 
     volatile int8_t run;
     volatile int8_t	err;
-} mrbc_vm;
+} mrbc_vm1;
 
-typedef struct VM2 {
+typedef struct VM {
     guru_irep       *irep;		// pointer to IREP tree
     guru_state      *state;		// VM state (callinfo) linked list
     mrbc_value      regfile[MAX_REGS_SIZE];
 
     volatile int8_t run;
     volatile int8_t	err;
-} guru_vm;
+} guru_vm, mrbc_vm;
 
 //================================================================
 /*!@brief
@@ -170,14 +170,16 @@ void _uint32_to_bin(uint32_t l, uint8_t *bin)
     *bin   = l & 0xff;
 }
 
-#define GET_IREP(vm)        ((vm)->state->irep)
-#define GET_BYTECODE(vm)	(_bin_to_uint32(GET_IREP(vm)->iseq + (vm)->state->pc))
+#define VM_IREP(vm)      ((vm)->state->irep)
+#define VM_ISEQ(vm)	 	 ((uint32_t *)((uint8_t *)VM_IREP(vm) + VM_IREP(vm)->iseq))
+#define GET_BYTECODE(vm) (_bin_to_uint32(VM_ISEQ(vm) + (vm)->state->pc))
 
 cudaError_t guru_vm_init(guru_ses *ses);
 cudaError_t guru_vm_run(guru_ses *ses);
 
 #ifdef GURU_DEBUG
-void guru_dump_irep(mrbc_irep *irep);
+void guru_dump_irep1(mrbc_irep *irep);
+void guru_dump_irep(guru_irep *irep);
 void guru_dump_regfile(mrbc_vm *vm, int debug);
 #endif
 

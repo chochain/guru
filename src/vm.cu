@@ -96,6 +96,7 @@ _vm_exec(mrbc_vm *vm, int step)
 __GURU__ void
 _mrbc_free_irep(mrbc_irep *irep)
 {
+#if !GURU_HOST_IMAGE
     // release pool.
     for(int i = 0; i < irep->plen; i++) {
         mrbc_free(irep->pool[i]);
@@ -107,27 +108,30 @@ _mrbc_free_irep(mrbc_irep *irep)
         _mrbc_free_irep(irep->list[i]);
     }
     if (irep->rlen) mrbc_free(irep->list);
-
     mrbc_free(irep);
+#endif
 }
 
 __host__ cudaError_t
 guru_vm_init(guru_ses *ses)
 {
-#ifdef GURU_HOST_PARSER
+#if GURU_HOST_IMAGE
 	guru_vm *vm = (guru_vm *)guru_malloc(sizeof(guru_vm), 1);
 	if (!vm) return cudaErrorMemoryAllocation;
 
 	guru_h_parse_bytecode(vm, ses->req);
+	ses->vm = (uint8_t *)vm;
+
+	if (ses->debug > 0)	guru_dump_irep(vm->irep);
 #else
 	mrbc_vm *vm = (mrbc_vm *)guru_malloc(sizeof(mrbc_vm), 1);
 	if (!vm) return cudaErrorMemoryAllocation;
 
-	guru_parse_bytecode<<<1,1>>>(vm, ses->req);		// can also be done on host?
+	guru_parse_bytecode<<<1,1>>>(vm, ses->req);
 	cudaDeviceSynchronize();
 
 	ses->vm = (uint8_t *)vm;
-	if (ses->debug > 0)	guru_dump_irep(vm->irep);
+	if (ses->debug > 0)	guru_dump_irep1(vm->irep);
 #endif
 	return cudaSuccess;
 }
@@ -157,14 +161,28 @@ guru_vm_run(guru_ses *ses)
 
 #ifdef GURU_DEBUG
 __host__ void
-guru_dump_irep(mrbc_irep *irep)
+guru_dump_irep1(mrbc_irep1 *irep)
 {
 	printf("\tnregs=%d, nlocals=%d, pools=%d, syms=%d, reps=%d, ilen=%d\n",
 			irep->nreg, irep->nlv, irep->plen, irep->slen, irep->rlen, irep->ilen);
 
 	// dump all children ireps
 	for (int i=0; i<irep->rlen; i++) {
-		guru_dump_irep(irep->list[i]);
+		guru_dump_irep1(irep->list[i]);
+	}
+}
+
+__host__ void
+guru_dump_irep(guru_irep *irep)
+{
+	printf("\tsize=%d, nreg=%d, nlocal=%d, pools=%d, syms=%d, reps=%d, ilen=%d\n",
+			irep->size, irep->nreg, irep->nlv, irep->plen, irep->slen, irep->rlen, irep->ilen);
+
+	// dump all children ireps
+	uint8_t  *base = (uint8_t *)irep;
+	uint32_t *off  = (uint32_t *)(base + irep->list);
+	for (int i=0; i<irep->rlen; i++, off++) {
+		guru_dump_irep((guru_irep *)(base + *off));
 	}
 }
 
@@ -189,16 +207,17 @@ static const char *_opcode[] = {
     "ABORT"
 };
 
-//(_bin_to_uint32((vm)->irep->iseq + (vm)->pc * 4))
+//(_bin_to_uint32((vm)->state->irep->iseq + (vm)->state->pc * 4))
 //		((i) & 0x7f)
 
 __host__ void
-guru_dump_regfile(mrbc_vm *vm, int debug)
+guru_dump_regfile(mrbc_vm *vm, int debug_level)
 {
-	if (debug==0) return;
+	if (debug_level==0) return;
 
 	uint16_t    pc      = vm->state->pc;
-	uint16_t    opid    = (*(GET_IREP(vm)->iseq + pc) >> 24) & 0x7f;
+	uint32_t    *iseq   = VM_ISEQ(vm);
+	uint16_t    opid    = (*(iseq + pc) >> 24) & 0x7f;
 	const char 	*opcode = _opcode[GET_OPCODE(opid)];
 	mrbc_value 	*v 	 	= vm->regfile;
 
@@ -215,12 +234,12 @@ guru_dump_regfile(mrbc_vm *vm, int debug)
 	}
 
 	v = vm->regfile;	// rewind
-	if (debug==1) {
+	if (debug_level==1) {
 		int s[8];
 		guru_get_alloc_stat(s);
 		printf("%c%-4d%-8s%-3d[ ", 'a'+lvl, pc, opcode, s[3]);
 	}
-	else if (debug==2) {
+	else if (debug_level==2) {
 		guru_dump_alloc_stat();
 		printf("%c%-4d%-8s[ ", 'a'+lvl, pc, opcode);
 	}

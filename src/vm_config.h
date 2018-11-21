@@ -71,8 +71,8 @@
 /* 32it alignment is required */
 /* 0: Byte alignment */
 /* 1: 32bit alignment */
-#define GURU_REQUIRE_32BIT_ALIGNMENT 1
-#define GURU_HOST_PARSER
+#define GURU_REQUIRE_32BIT_ALIGNMENT 	1
+#define GURU_HOST_IMAGE					1
 
 #define __GURU_CUDA__
 #define GURU_DEBUG

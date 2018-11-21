@@ -43,6 +43,7 @@
   "0000"	compiler version
   </pre>
 */
+#if !GURU_HOST_IMAGE
 __GURU__ int
 _load_header(const uint8_t **pos)
 {
@@ -284,6 +285,7 @@ guru_parse_bytecode(mrbc_vm *vm, const uint8_t *ptr)
     }
     __syncthreads();
 }
+#endif
 
 __host__ uint32_t
 bin_to_uint32(const void *s)
@@ -314,7 +316,6 @@ _h_load_header(const uint8_t **pos)
     if (memcmp(p, "RITE0004", 8) != 0) {
         return LOAD_FILE_HEADER_ERROR_VERSION;
     }
-
     /* Ignore CRC */
     /* Ignore size */
 
@@ -361,49 +362,48 @@ _h_build_image(uint8_t **pirep, uint8_t *src)
 
         uint32_t *v = (uint32_t *)(pool + i * sizeof(uint32_t));
         switch (tt) {
-        case 0: { 	// IREP_TT_STRING
+        case 0: { 								// IREP_TT_STRING
             *v = (uint32_t)(tstr - base);
-            memcpy(tstr, p, asz);			// string on 4-byte boundary
+            memcpy(tstr, p, asz);				// string on 4-byte boundary
             tstr += asz;
         } break;
-        case 1: { 	// IREP_TT_FIXNUM
+        case 1: { 								// IREP_TT_FIXNUM
             memcpy((uint8_t *)buf, p, len);
             buf[len] = '\0';
-            *v = atoi(buf)<<2 | 2;			// mark as number
+            *v = atoi(buf)<<1;					// mark as number i.e. LSB=0
         } break;
 #if GURU_USE_FLOAT
-        case 2: { 	// IREP_TT_FLOAT
+        case 2: { 								// IREP_TT_FLOAT
             memcpy((uint8_t *)buf, p, len);
             buf[len] = '\0';
             *(mrbc_float *)v = atof(buf);
-            *v |= 1;						// mark as float
+            *v |= 1;							// mark as float  i.e. LSB=1
         } break;
 #endif
         default:
-        	*v = 0;	// other object are not supported yet
+        	*v = 0;		// other object are not supported yet
         	break;
         }
         p += len;
     }
     irep->pool = (uint32_t)(pool - base);
 
-    p = src + irep->sym;					// build symbol table
+    p = src + irep->sym;						// build symbol table
     for (int i=0; i < irep->slen; i++) {
         int len = bin_to_uint16(p)+1;		p += sizeof(uint16_t);	// symbol_len+'\0'
-        int asz = len + ((8 - len) & 7);	// 8-byte alignment
+        int asz = len + ((8 - len) & 7);		// 8-byte alignment
 
         uint32_t *v = (uint32_t *)(sym + i * sizeof(uint32_t));
         *v = (uint32_t)(tstr - base);
 
-        memcpy(tstr, p, asz);		// copy raw string to string table
+        memcpy(tstr, p, asz);					// copy raw string to string table
         tstr += asz;
         p    += len;
     }
-    irep->sym = (uint32_t)(sym - base);
-
-    // return the adjusted irep pointer
+    irep->sym  = (uint32_t)(sym - base);
     irep->size = (uint32_t)(tstr - base);
-    *pirep = tstr;
+
+    *pirep = tstr;								// return the adjusted irep pointer
 }
 
 //================================================================
@@ -439,7 +439,7 @@ _h_build_image(uint8_t **pirep, uint8_t *src)
 __host__ void
 _h_get_irep_size(guru_irep *irep, const uint8_t **pos)
 {
-    const uint8_t *p = *pos + 4;		// skip "IREP"
+    const uint8_t *p = *pos + 4;			// skip "IREP"
 
     // nlocals,nregs,rlen
     irep->nlv  = bin_to_uint16(p);	p += sizeof(uint16_t);		// number of local variables
@@ -450,22 +450,20 @@ _h_get_irep_size(guru_irep *irep, const uint8_t **pos)
     p += ((uint8_t *)irep - p) & 0x03;							// 32-bit align code pointer
 
     irep->iseq = (uint32_t)(p - *pos);	p += irep->ilen * sizeof(uint32_t);	// ISEQ (code) block
-    irep->plen = bin_to_uint32(p);	p += sizeof(uint32_t);		// POOL block
+    irep->plen = bin_to_uint32(p);		p += sizeof(uint32_t);				// POOL block
 
+    irep->pool = (uint32_t)(p - *pos);										// pool offset
     irep->list = sizeof(guru_irep) + ((8 - sizeof(guru_irep)) & 7);			// irep list offset
-    irep->pool = (uint32_t)(p - *pos);		// pool offset
 
     for (int i = 0; i < irep->plen; i++) {	// scan through pool (so we know the size to allocate)
         int  tt  = *p++;
-        int  len = bin_to_uint16(p);
-        p += sizeof(uint16_t) + len;
+        int  len = bin_to_uint16(p);    p += sizeof(uint16_t) + len;
     }
 
-    irep->slen = bin_to_uint32(p);	p += sizeof(uint32_t);
-    irep->sym  = (uint32_t)(p - *pos);		// symbol offset
+    irep->slen = bin_to_uint32(p);		p += sizeof(uint32_t);
+    irep->sym  = (uint32_t)(p - *pos);										// symbol offset
     for (int i=0; i < irep->slen; i++) {
-        int len = bin_to_uint16(p)+1;		// symbol_len+'\0'
-        p   += sizeof(uint16_t) + len;
+        int len = bin_to_uint16(p)+1;	p += sizeof(uint16_t) + len;	   	// symbol_len+'\0'
     }
     *pos = p;								// position pointer ends here
 }
@@ -484,7 +482,7 @@ _h_load_irep_0(uint8_t **pirep, const uint8_t **pos)
 	uint8_t   *src  = (uint8_t *)*pos;
 	uint8_t   *base = (uint8_t *)irep;
 
-	_h_get_irep_size(irep, pos);		// populate metadata of current IREP
+	_h_get_irep_size(irep, pos);			// populate metadata of current IREP
     _h_build_image(pirep, src);
 
     // recursively create the child irep tree

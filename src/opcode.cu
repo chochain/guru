@@ -49,6 +49,33 @@
   @return	symbol name string
 */
 __GURU__ const char*
+_vm_symbol(guru_vm *vm, int n)
+{
+	guru_irep *irep = VM_IREP(vm);
+	uint32_t  *p    = (uint32_t *)((uint8_t *)irep + irep->sym  + n * sizeof(uint32_t));
+
+	return (const char *)((uint8_t *)irep + *p);
+}
+
+__GURU__ uint32_t*
+_vm_pool(guru_vm *vm, int n)
+{
+	guru_irep *irep = VM_IREP(vm);
+	uint32_t  *p    = (uint32_t *)((uint8_t *)irep + irep->pool + n*sizeof(uint32_t));
+
+	return (uint32_t *)((uint8_t *)irep + *p);
+}
+
+__GURU__ guru_irep*
+_vm_irep_list(guru_vm *vm, int n)
+{
+	guru_irep *irep = VM_IREP(vm);
+	uint32_t  *p    = (uint32_t *)((uint8_t *)irep + irep->list + n*sizeof(uint32_t));
+
+	return (guru_irep *)((uint8_t *)irep + *p);
+}
+
+__GURU__ const char*
 _get_symbol(const uint8_t *p, int n)
 {
     int max = _bin_to_uint32(p);			p += sizeof(uint32_t);
@@ -140,10 +167,17 @@ _vm_object_new(mrbc_vm *vm, mrbc_value v[], int argc)
         2,     				// ilen
         0,     				// plen
         0,					// slen
+#if GURU_HOST_IMAGE
+        0,					// iseq
+        0,					// sym
+        0,					// pool
+        0					// irep list
+#else
         code,   			// iseq
         (uint8_t *)sym,  	// ptr_to_sym
         NULL,  				// object pool
         NULL,  				// irep list
+#endif
     };
     mrbc_release(&v[0]);
     v[0] = obj;
@@ -226,9 +260,18 @@ op_loadl(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     int ra = GETARG_A(code);
     int rb = GETARG_Bx(code);
 
-    mrbc_object *obj = GET_IREP(vm)->pool[rb];
-    
-    _RA_V(*obj);
+    uint32_t *p = _vm_pool(vm, rb);
+    mrbc_object obj;
+
+    if (*p & 1) {
+    	obj.tt = GURU_TT_FLOAT;
+    	obj.f  = *(mrbc_float *)p;
+    }
+    else {
+    	obj.tt = GURU_TT_FIXNUM;
+    	obj.i  = *p>>1;
+    }
+    _RA_V(obj);
 
     return 0;
 }
@@ -255,6 +298,7 @@ op_loadi(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     return 0;
 }
 
+
 //================================================================
 /*!@brief
   Execute OP_LOADSYM
@@ -269,10 +313,13 @@ op_loadi(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 __GURU__ int
 op_loadsym(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 {
-    int ra = GETARG_A(code);
-    int rb = GETARG_Bx(code);
+    int ra  = GETARG_A(code);
+    int rb  = GETARG_Bx(code);
 
-    _RA_T(GURU_TT_SYMBOL, i=_get_symid(GET_IREP(vm)->sym, rb));
+    const char *name = _vm_symbol(vm, rb);
+    int        sid   = name2symid(name);
+
+    _RA_T(GURU_TT_SYMBOL, i=sid);
 
     return 0;
 }
@@ -378,7 +425,10 @@ op_getglobal(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     int ra = GETARG_A(code);
     int rb = GETARG_Bx(code);
 
-    mrbc_value v = global_object_get(_get_symid(GET_IREP(vm)->sym, rb));
+    const char *name = _vm_symbol(vm, rb);
+    int        sid   = name2symid(name);
+    mrbc_value v     = global_object_get(sid);
+
     _RA_V(v);
 
     return 0;
@@ -401,7 +451,8 @@ op_setglobal(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     int ra = GETARG_A(code);
     int rb = GETARG_Bx(code);
 
-    mrbc_sym sym_id = _get_symid(GET_IREP(vm)->sym, rb);
+    const char *name = _vm_symbol(vm, rb);
+    mrbc_sym sym_id  = name2symid(name);
 
     global_object_add(sym_id, regs[ra]);
 
@@ -425,7 +476,7 @@ op_getiv(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     int ra = GETARG_A(code);
     int rb = GETARG_Bx(code);
 
-    const char *name  = _get_symbol(GET_IREP(vm)->sym, rb);
+    const char *name  = _vm_symbol(vm, rb);
     mrbc_sym   sym_id = name2symid(name+1);		// skip '@'
     mrbc_value ret    = mrbc_instance_getiv(&regs[0], sym_id);
 
@@ -451,7 +502,7 @@ op_setiv(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     int ra = GETARG_A(code);
     int rb = GETARG_Bx(code);
 
-    const char *name  = _get_symbol(GET_IREP(vm)->sym, rb);
+    const char *name  = _vm_symbol(vm, rb);
     mrbc_sym   sym_id = name2symid(name+1);	// skip '@'
 
     mrbc_instance_setiv(&regs[0], sym_id, &regs[ra]);
@@ -476,7 +527,8 @@ op_getconst(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     int ra = GETARG_A(code);
     int rb = GETARG_Bx(code);
 
-    mrbc_value v = const_object_get(_get_symid(GET_IREP(vm)->sym, rb));
+    const char *name = _vm_symbol(vm, rb);
+    mrbc_value v     = const_object_get(name2symid(name));
 
     _RA_X(&v);
 
@@ -499,7 +551,8 @@ op_setconst(mrbc_vm *vm, uint32_t code, mrbc_value *regs) {
     int ra = GETARG_A(code);
     int rb = GETARG_Bx(code);
 
-    const_object_add(_get_symid(GET_IREP(vm)->sym, rb), &regs[ra]);
+    const char *name = _vm_symbol(vm, rb);
+    const_object_add(name2symid(name), &regs[ra]);
 
     return 0;
 }
@@ -667,9 +720,9 @@ op_send(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     }
 
 #ifdef GURU_DEBUG
-	const char *name = _get_symbol(GET_IREP(vm)->sym, rb);
+	const char *name = _vm_symbol(vm, rb);
 #endif
-	mrbc_sym  sym_id = _get_symid(GET_IREP(vm)->sym, rb);
+	mrbc_sym  sym_id = name2symid(name);
     mrbc_proc *m 	 = (mrbc_proc *)mrbc_get_class_method(rcv, sym_id);
 
     if (m==0) {
@@ -1173,11 +1226,16 @@ op_string(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 	int ra = GETARG_A(code);
     int rb = GETARG_Bx(code);
 
-    mrbc_object *obj = GET_IREP(vm)->pool[rb];
+#if GURU_HOST_IMAGE
+    uint32_t   *p   = _vm_pool(vm, rb);
+    const char *str = (const char *)((uint8_t *)VM_IREP(vm) + *p);
+#else
+    mrbc_object *obj = VM_IREP(vm)->pool[rb];
 
     /* CAUTION: pool_obj->sym - 2. see IREP POOL structure. */
     int         len = _bin_to_uint16(obj->sym - sizeof(uint16_t));
     const char *str = (const char *)obj->sym;			// 20181025
+#endif
     mrbc_value  ret = mrbc_string_new(str);
 
     if (ret.str==NULL) return vm->err = -1;				// ENOMEM
@@ -1353,8 +1411,8 @@ op_lambda(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 
     mrbc_proc *prc = (mrbc_proc *)mrbc_proc_alloc("(lambda)");
 
+    prc->irep = _vm_irep_list(vm, rb);
     prc->flag &= ~GURU_PROC_C_FUNC;	// IREP
-    prc->irep = GET_IREP(vm)->list[rb];
 
     _RA_T(GURU_TT_PROC, proc=prc);
 
@@ -1381,7 +1439,7 @@ op_class(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     int rb = GETARG_B(code);
 
     mrbc_class *super = (regs[ra+1].tt==GURU_TT_CLASS) ? regs[ra+1].cls : mrbc_class_object;
-    const char *name  = _get_symbol(GET_IREP(vm)->sym, rb);
+    const char *name  = _vm_symbol(vm, rb);
     mrbc_class *cls   = (mrbc_class *)mrbc_define_class(name, super);
 
     _RA_T(GURU_TT_CLASS, cls=cls);
@@ -1405,13 +1463,13 @@ op_exec(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
     int ra = GETARG_A(code);
     int rb = GETARG_Bx(code);
 
-    mrbc_value rcv = regs[ra];						// receiver
+    mrbc_value rcv = regs[ra];							// receiver
 
-    _push_state(vm, 0);								// push call stack
+    _push_state(vm, 0);									// push call stack
 
-    vm->state->pc 	 = 0;							// switch context to callee
-    vm->state->irep  = vm->irep->list[rb];			// fetch designated irep
-    vm->state->reg 	 += ra;							// shift regfile (for local stack)
+    vm->state->irep  = _vm_irep_list(vm, rb);			// fetch designated irep
+    vm->state->pc 	 = 0;								// switch context to callee
+    vm->state->reg 	 += ra;								// shift regfile (for local stack)
     vm->state->klass = mrbc_get_class_by_object(&rcv);
 
     return 0;
@@ -1441,7 +1499,8 @@ op_method(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 
     mrbc_class 	*cls   = regs[ra].cls;
     mrbc_proc 	*proc  = regs[ra+1].proc;
-    mrbc_sym   	sym_id = _get_symid(GET_IREP(vm)->sym, rb);
+    const char  *name  = _vm_symbol(vm, rb);
+    mrbc_sym   	sym_id = name2symid(name);
 
     // check same name method
     mrbc_proc 	*p  = cls->vtbl;
@@ -1462,7 +1521,7 @@ op_method(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
 
     // add proc to class
 #ifdef GURU_DEBUG
-    proc->name  = _get_symbol(GET_IREP(vm)->sym, rb);
+    proc->name  = name;
 #endif
     proc->sym_id= sym_id;
     proc->next  = cls->vtbl;
@@ -1598,6 +1657,4 @@ guru_op(mrbc_vm *vm)
     }
     return ret;
 }
-
-
 
