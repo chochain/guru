@@ -73,7 +73,7 @@ typedef struct VM {
 
 #else // !GURU_HOST_IMAGE
 
-typedef struct RIrep1 {
+typedef struct RIrep {
     uint16_t 	 nlv;   		//!< # of local variables
     uint16_t 	 nreg;			//!< # of register used
     uint16_t 	 rlen;			//!< # of child IREP blocks (into list below)
@@ -84,11 +84,11 @@ typedef struct RIrep1 {
     uint32_t     *iseq;			//!< ISEQ (code) BLOCK
     uint8_t      *sym;			//!< SYMBOL list
 
-    mrbc_object   **pool; 	   	//!< array of POOL objects pointer.
-    struct RIrep1 **list;		//!< array of child IREP's pointer.
+    mrbc_object  **pool; 	   	//!< array of POOL objects pointer.
+    struct RIrep **list;		//!< array of child IREP's pointer.
 } mrbc_irep;
 
-typedef struct RState1 {
+typedef struct RState {
     uint16_t        pc;
     uint16_t        argc;     	// num of args
     mrbc_class      *klass;
@@ -97,7 +97,7 @@ typedef struct RState1 {
     struct RState   *prev;
 } mrbc_state;
 
-typedef struct VM1 {
+typedef struct VM {
     mrbc_irep       *irep;		// pointer to IREP tree
     mrbc_state      *state;		// VM state (callinfo) linked list
     mrbc_value      regfile[MAX_REGS_SIZE];

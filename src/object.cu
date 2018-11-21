@@ -66,9 +66,9 @@
 __GURU__ mrbc_value
 mrbc_send(mrbc_value v[], mrbc_value *rcv, const char *method, int argc, ...)
 {
-    mrbc_value *regs  = v + 2;	     // allocate 2 for stack
-    mrbc_sym   sym_id = name2symid(method);
-    mrbc_proc  *m     = mrbc_get_class_method(*rcv, sym_id);
+    mrbc_value *regs = v + 2;	     // allocate 2 for stack
+    mrbc_sym   sid   = name2symid(method);
+    mrbc_proc  *m    = mrbc_get_class_method(*rcv, sid);
 
     if (m == 0) {
         console_str("No method. vtype=");
@@ -246,10 +246,10 @@ c_object_getiv(mrbc_value v[], int argc)
 __GURU__ void
 c_object_setiv(mrbc_value v[], int argc)
 {
-    const char *name  = _get_callee(NULL);			// CC TODO: another way
-    mrbc_sym   sym_id = name2symid(name);
+    const char *name = _get_callee(NULL);			// CC TODO: another way
+    mrbc_sym   sid   = name2symid(name);
 
-    mrbc_instance_setiv(&v[0], sym_id, &v[1]);
+    mrbc_instance_setiv(&v[0], sid, &v[1]);
 }
 
 //================================================================

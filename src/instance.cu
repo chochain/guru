@@ -24,7 +24,7 @@
   @return		result. It's not necessarily found.
 */
 __GURU__ int
-_bsearch(mrbc_kv *kv, mrbc_sym sym_id)
+_bsearch(mrbc_kv *kv, mrbc_sym sid)
 {
     int left  = 0;
     int right = kv->n - 1;
@@ -33,7 +33,7 @@ _bsearch(mrbc_kv *kv, mrbc_sym sym_id)
     mrbc_kv_data *d = kv->data;
     while (left < right) {
         int mid = (left + right) >> 1; 			// div by 2
-        if ((d+mid)->sym_id < sym_id) {
+        if ((d+mid)->sym_id < sid) {
             left = mid + 1;
         } else {
             right = mid;
@@ -112,21 +112,21 @@ _delete(mrbc_kv *kv)
   @return		mrbc_error_code.
 */
 __GURU__ int
-_set(mrbc_kv *kv, mrbc_sym sym_id, mrbc_value *val)
+_set(mrbc_kv *kv, mrbc_sym sid, mrbc_value *val)
 {
-    int idx = _bsearch(kv, sym_id);
+    int idx = _bsearch(kv, sid);
     mrbc_kv_data *d = kv->data + idx;
     if (idx < 0) {
         idx = 0;
         goto INSERT_VALUE;
     }
     // replace value ?
-    if (d->sym_id == sym_id) {
+    if (d->sym_id == sid) {
         mrbc_release(&d->value);      // CC: was dec_refc 20181101
         d->value = *val;
         return 0;
     }
-    if (d->sym_id < sym_id) idx++;
+    if (d->sym_id < sid) idx++;
 
 INSERT_VALUE:
     if (kv->n >= kv->size) {								// need resize?
@@ -137,7 +137,7 @@ INSERT_VALUE:
         int size = sizeof(mrbc_kv_data) * (kv->n - idx);
         MEMCPY((uint8_t *)(d+1), (const uint8_t *)d, size);
     }
-    d->sym_id = sym_id;
+    d->sym_id = sid;
     d->value  = *val;
     kv->n++;
 
@@ -152,13 +152,13 @@ INSERT_VALUE:
   @return		pointer to mrbc_value or NULL.
 */
 __GURU__ mrbc_value*
-_get(mrbc_kv *kv, mrbc_sym sym_id)
+_get(mrbc_kv *kv, mrbc_sym sid)
 {
-    int idx = _bsearch(kv, sym_id);
+    int idx = _bsearch(kv, sid);
     if (idx < 0) return NULL;
 
     mrbc_kv_data *d = kv->data + idx;
-    if (d->sym_id != sym_id) return NULL;
+    if (d->sym_id != sid) return NULL;
 
     return &d->value;
 }
@@ -213,9 +213,9 @@ mrbc_instance_delete(mrbc_value *v)
   @param  v		pointer to value.
 */
 __GURU__ void
-mrbc_instance_setiv(mrbc_object *obj, mrbc_sym sym_id, mrbc_value *v)
+mrbc_instance_setiv(mrbc_object *obj, mrbc_sym sid, mrbc_value *v)
 {
-    _set(obj->self->ivar, sym_id, v);
+    _set(obj->self->ivar, sid, v);
     mrbc_retain(v);
 }
 
@@ -228,9 +228,9 @@ mrbc_instance_setiv(mrbc_object *obj, mrbc_sym sym_id, mrbc_value *v)
   @return		value.
 */
 __GURU__ mrbc_value
-mrbc_instance_getiv(mrbc_object *obj, mrbc_sym sym_id)
+mrbc_instance_getiv(mrbc_object *obj, mrbc_sym sid)
 {
-    mrbc_value *v = _get(obj->self->ivar, sym_id);
+    mrbc_value *v = _get(obj->self->ivar, sid);
 
     if (!v) return mrbc_nil_value();
 

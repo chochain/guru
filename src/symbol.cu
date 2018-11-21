@@ -31,16 +31,16 @@
 #endif
 
 struct SYM_LIST {
-    uint16_t hash;	//!< hash value, returned by calc_hash().
+    uint16_t hash;			//!< hash value, returned by calc_hash().
 #ifdef GURU_SYMBOL_SEARCH_BTREE
     GURU_SYMBOL_TABLE_INDEX_TYPE left;
     GURU_SYMBOL_TABLE_INDEX_TYPE right;
 #endif
-    const char *cstr;	//!< point to the symbol string.
+    const char *cstr;		//!< point to the symbol string.
 };
 
-__GURU__ struct SYM_LIST sym_list[MAX_SYMBOLS_COUNT];
-__GURU__ int sym_idx;	// point to the last(free) sym_list array.
+__GURU__ int _sym_idx;		// point to the last(free) sym_list array.
+__GURU__ struct SYM_LIST _sym_list[MAX_SYMBOLS_COUNT];
 
 //================================================================
 /*! Calculate hash value.
@@ -69,8 +69,8 @@ _search_index(const char *str)
     uint16_t   hash = _calc_hash(str);
 
 #ifdef GURU_SYMBOL_SEARCH_LINER
-    for(int i = 0; i < sym_idx; i++) {
-        if (sym_list[i].hash==hash && strcmp(str, sym_list[i].cstr)==0) {
+    for(int i = 0; i < _sym_idx; i++) {
+        if (_sym_list[i].hash==hash && strcmp(str, _sym_list[i].cstr)==0) {
             return i;
         }
     }
@@ -80,13 +80,13 @@ _search_index(const char *str)
 #ifdef GURU_SYMBOL_SEARCH_BTREE
     int i = 0;
     do {
-        if (sym_list[i].hash==hash &&
-        		guru_strcmp(str, sym_list[i].cstr)==0) {
+        if (_sym_list[i].hash==hash &&
+        		guru_strcmp(str, _sym_list[i].cstr)==0) {
             return i;
         }
-        i = (hash < sym_list[i].hash)
-        		? sym_list[i].left
-            	: sym_list[i].right;
+        i = (hash < _sym_list[i].hash)
+        		? _sym_list[i].left
+            	: _sym_list[i].right;
     } while (i != 0);
     return -1;
 #endif
@@ -101,40 +101,40 @@ _add_index(const char *str)
     uint16_t hash = _calc_hash(str);
 
     // check overflow.
-    if (sym_idx >= MAX_SYMBOLS_COUNT) {
+    if (_sym_idx >= MAX_SYMBOLS_COUNT) {
     	assert(1==0);
     	return -1;
     }
 
-    int sym_id = sym_idx++;
+    int sid = _sym_idx++;
 
     // append table.
-    sym_list[sym_id].hash = hash;
-    sym_list[sym_id].cstr = str;
+    _sym_list[sid].hash = hash;
+    _sym_list[sid].cstr = str;
 
 #ifdef GURU_SYMBOL_SEARCH_BTREE
     int i = 0;
 
     while (1) {
-        if (hash < sym_list[i].hash) {
+        if (hash < _sym_list[i].hash) {
             // left side
-            if (sym_list[i].left==0) {	// left is empty?
-                sym_list[i].left = sym_id;
+            if (_sym_list[i].left==0) {	// left is empty?
+                _sym_list[i].left = sid;
                 break;
             }
-            i = sym_list[i].left;
+            i = _sym_list[i].left;
         }
         else {
             // right side
-            if (sym_list[i].right==0) {	// right is empty?
-                sym_list[i].right = sym_id;
+            if (_sym_list[i].right==0) {	// right is empty?
+                _sym_list[i].right = sid;
                 break;
             }
-            i = sym_list[i].right;
+            i = _sym_list[i].right;
         }
     }
 #endif
-    return sym_id;
+    return sid;
 }
 
 //================================================================
@@ -147,11 +147,11 @@ _add_index(const char *str)
 __GURU__ mrbc_value
 mrbc_symbol_new(const char *str)
 {
-    mrbc_value v      = {.tt = GURU_TT_SYMBOL};
-    mrbc_sym   sym_id = _search_index(str);
+    mrbc_value v   = {.tt = GURU_TT_SYMBOL};
+    mrbc_sym   sid = _search_index(str);
 
-    if (sym_id >= 0) {
-        v.i = sym_id;
+    if (sid >= 0) {
+        v.i = sid;
         return v;		// already exist.
     }
 
@@ -175,8 +175,8 @@ mrbc_symbol_new(const char *str)
 __GURU__ mrbc_sym
 name2symid(const char *str)
 {
-    mrbc_sym sym_id = _search_index(str);
-    if (sym_id >= 0) return sym_id;
+    mrbc_sym sid = _search_index(str);
+    if (sid >= 0) return sid;
 
     return _add_index(str);
 }
@@ -189,11 +189,11 @@ name2symid(const char *str)
   @retval NULL		Invalid sym_id was given.
 */
 __GURU__ const char*
-symid2name(mrbc_sym sym_id)
+symid2name(mrbc_sym sid)
 {
-    return (sym_id < 0 || sym_id >= sym_idx)
+    return (sid < 0 || sid >= _sym_idx)
     		? NULL
-    		: sym_list[sym_id].cstr;
+    		: _sym_list[sid].cstr;
 }
 
 #if GURU_USE_STRING
@@ -232,9 +232,9 @@ c_to_s(mrbc_value v[], int argc)
 __GURU__ void
 c_all_symbols(mrbc_value v[], int argc)
 {
-    mrbc_value ret = mrbc_array_new(sym_idx);
+    mrbc_value ret = mrbc_array_new(_sym_idx);
 
-    for(int i = 0; i < sym_idx; i++) {
+    for(int i = 0; i < _sym_idx; i++) {
         mrbc_value sym1 = {.tt = GURU_TT_SYMBOL};
         sym1.i = i;
         mrbc_array_push(&ret, &sym1);

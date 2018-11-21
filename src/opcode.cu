@@ -33,14 +33,15 @@
 #include "c_hash.h"
 #endif
 
-#define _RA_X(r)    do { mrbc_release(&regs[ra]); regs[ra] = *(r); mrbc_retain(r);  } while (0)
+//
+// becareful with the following macros, because they release regs[ra] first
+// so, make sure value is kept before the release
+//
+#define _RA_X(r)    do { mrbc_release(&regs[ra]); regs[ra] = *(r); mrbc_retain(r); } while (0)
 #define _RA_V(v)    do { mrbc_release(&regs[ra]); regs[ra] = (v); } while (0)
 #define _RA_T(t, e) do { mrbc_release(&regs[ra]); regs[ra].tt = (t); regs[ra].e; } while (0)
 
-//================================================================
-/*!@brief
-
- */
+#if GURU_HOST_IMAGE
 //================================================================
 /*! get sym[n] from symbol table in irep
 
@@ -48,7 +49,6 @@
   @param  n	n th
   @return	symbol name string
 */
-#if GURU_HOST_IMAGE
 __GURU__ const char*
 _vm_symbol(guru_vm *vm, int n)
 {
@@ -58,7 +58,7 @@ _vm_symbol(guru_vm *vm, int n)
 	return (const char *)((uint8_t *)irep + *p);
 }
 
-__GURU__ int
+__GURU__ mrbc_sym
 _vm_symid(guru_vm *vm, int n)
 {
 	const char *name = _vm_symbol(vm, n);
@@ -318,7 +318,8 @@ op_loadsym(guru_vm *vm, uint32_t code, mrbc_value *regs)
 {
     int ra  = GETARG_A(code);
     int rb  = GETARG_Bx(code);
-    int sid = _vm_symid(vm, rb);
+
+    mrbc_sym sid = _vm_symid(vm, rb);
 
     _RA_T(GURU_TT_SYMBOL, i=sid);
 
@@ -425,8 +426,8 @@ op_getglobal(guru_vm *vm, uint32_t code, mrbc_value *regs)
 {
     int ra  = GETARG_A(code);
     int rb  = GETARG_Bx(code);
-    int sid = _vm_symid(vm, rb);
 
+    mrbc_sym sid = _vm_symid(vm, rb);
     mrbc_value v = global_object_get(sid);
     _RA_V(v);
 
@@ -449,8 +450,8 @@ op_setglobal(guru_vm *vm, uint32_t code, mrbc_value *regs)
 {
     int ra  = GETARG_A(code);
     int rb  = GETARG_Bx(code);
-    int sid = _vm_symid(vm, rb);
 
+    mrbc_sym sid = _vm_symid(vm, rb);
     global_object_add(sid, regs[ra]);
 
     return 0;
@@ -473,9 +474,9 @@ op_getiv(guru_vm *vm, uint32_t code, mrbc_value *regs)
     int ra = GETARG_A(code);
     int rb = GETARG_Bx(code);
 
-    const char *name  = _vm_symbol(vm, rb);
-    mrbc_sym   sym_id = name2symid(name+1);		// skip '@'
-    mrbc_value ret    = mrbc_instance_getiv(&regs[0], sym_id);
+    const char *name = _vm_symbol(vm, rb);
+    mrbc_sym   sid   = name2symid(name+1);		// skip '@'
+    mrbc_value ret   = mrbc_instance_getiv(&regs[0], sid);
 
     _RA_V(ret);
 
@@ -499,10 +500,10 @@ op_setiv(guru_vm *vm, uint32_t code, mrbc_value *regs)
     int ra = GETARG_A(code);
     int rb = GETARG_Bx(code);
 
-    const char *name  = _vm_symbol(vm, rb);
-    mrbc_sym   sym_id = name2symid(name+1);	// skip '@'
+    const char *name = _vm_symbol(vm, rb);
+    mrbc_sym   sid   = name2symid(name+1);	// skip '@'
 
-    mrbc_instance_setiv(&regs[0], sym_id, &regs[ra]);
+    mrbc_instance_setiv(&regs[0], sid, &regs[ra]);
 
     return 0;
 }
@@ -523,9 +524,9 @@ op_getconst(guru_vm *vm, uint32_t code, mrbc_value *regs)
 {
     int ra  = GETARG_A(code);
     int rb  = GETARG_Bx(code);
-    int sid = _vm_symid(vm, rb);
 
-    mrbc_value v = const_object_get(sid);
+    mrbc_sym  sid = _vm_symid(vm, rb);
+    mrbc_value v  = const_object_get(sid);
 
     _RA_X(&v);
 
@@ -547,8 +548,8 @@ __GURU__ int
 op_setconst(guru_vm *vm, uint32_t code, mrbc_value *regs) {
     int ra  = GETARG_A(code);
     int rb  = GETARG_Bx(code);
-    int sid = _vm_symid(vm, rb);
 
+    mrbc_sym sid = _vm_symid(vm, rb);
     const_object_add(sid, &regs[ra]);
 
     return 0;
@@ -1255,9 +1256,9 @@ op_strcat(guru_vm *vm, uint32_t code, mrbc_value *regs)
     mrbc_value *pa  = &regs[ra];
     mrbc_value *pb  = &regs[rb];
 
-    mrbc_sym sym_id = name2symid("to_s");			// from global symbol pool
-    mrbc_proc *ma   = mrbc_get_class_method(*pa, sym_id);
-    mrbc_proc *mb   = mrbc_get_class_method(*pb, sym_id);
+    mrbc_sym sid  = name2symid("to_s");			// from global symbol pool
+    mrbc_proc *ma = mrbc_get_class_method(*pa, sid);
+    mrbc_proc *mb = mrbc_get_class_method(*pb, sid);
 
     if (ma && IS_C_FUNC(ma)) ma->func(pa, 0);
     if (mb && IS_C_FUNC(mb)) mb->func(pb, 0);
@@ -1486,7 +1487,7 @@ op_method(guru_vm *vm, uint32_t code, mrbc_value *regs)
 
     mrbc_class 	*cls   = regs[ra].cls;
     mrbc_proc 	*proc  = regs[ra+1].proc;
-    int   		sid    = _vm_symid(vm, rb);
+    mrbc_sym	sid    = _vm_symid(vm, rb);
 
     // check same name method
     mrbc_proc 	*p  = cls->vtbl;

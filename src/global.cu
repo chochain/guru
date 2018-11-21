@@ -29,19 +29,19 @@ __GURU__ mrbc_globalobject mrbc_global[MAX_GLOBAL_OBJECT_SIZE];
 /* linear search is not efficient! */
 /* TODO: Use binary search */
 __GURU__ int
-_get_idx(mrbc_sym sym_id, mrbc_globaltype gtype)
+_get_idx(mrbc_sym sid, mrbc_globaltype gtype)
 {
     for (int i=0 ; i<global_end ; i++) {
         mrbc_globalobject *obj = &mrbc_global[i];
-        if (obj->sym_id == sym_id && obj->gtype == gtype) return i;
+        if (obj->sym_id == sid && obj->gtype == gtype) return i;
     }
     return -1;
 }
 
 __GURU__ mrbc_value
-_get_obj(mrbc_sym sym_id, mrbc_globaltype gtype)
+_get_obj(mrbc_sym sid, mrbc_globaltype gtype)
 {
-    int index = _get_idx(sym_id, gtype);
+    int index = _get_idx(sid, gtype);
     if (index < 0) mrbc_nil_value();
 
     mrbc_retain(&mrbc_global[index].obj);
@@ -58,9 +58,9 @@ __GURU__ void
 /* add */
 /* TODO: Check reference count */
 __GURU__ void
-global_object_add(mrbc_sym sym_id, mrbc_value v)
+global_object_add(mrbc_sym sid, mrbc_value v)
 {
-    int index = _get_idx(sym_id, GURU_GLOBAL_OBJECT);
+    int index = _get_idx(sid, GURU_GLOBAL_OBJECT);
 
     if (index == -1) {
         index = global_end++;
@@ -70,16 +70,16 @@ global_object_add(mrbc_sym sym_id, mrbc_value v)
         mrbc_release(&(mrbc_global[index].obj));
     }
     mrbc_global[index].gtype  = GURU_GLOBAL_OBJECT;
-    mrbc_global[index].sym_id = sym_id;
+    mrbc_global[index].sym_id = sid;
     mrbc_global[index].obj    = v;
     
     mrbc_retain(&v);
 }
 
 __GURU__ void
-const_object_add(mrbc_sym sym_id, mrbc_object *obj)
+const_object_add(mrbc_sym sid, mrbc_object *obj)
 {
-    int index = _get_idx(sym_id, GURU_CONST_OBJECT);
+    int index = _get_idx(sid, GURU_CONST_OBJECT);
 
     if (index == -1) {
         index = global_end;
@@ -91,7 +91,7 @@ const_object_add(mrbc_sym sym_id, mrbc_object *obj)
         mrbc_release(&(mrbc_global[index].obj));
     }
     mrbc_global[index].gtype  = GURU_CONST_OBJECT;
-    mrbc_global[index].sym_id = sym_id;
+    mrbc_global[index].sym_id = sid;
     mrbc_global[index].obj    = *obj;
 
     mrbc_retain(obj);
@@ -99,9 +99,9 @@ const_object_add(mrbc_sym sym_id, mrbc_object *obj)
 
 /* get */
 __GURU__ mrbc_value
-global_object_get(mrbc_sym sym_id)
+global_object_get(mrbc_sym sid)
 {
-    return _get_obj(sym_id, GURU_GLOBAL_OBJECT);
+    return _get_obj(sid, GURU_GLOBAL_OBJECT);
 }
 
 /* add const */
@@ -112,9 +112,9 @@ __GURU__
 /* TODO: Integrate with get_global_object */
 
 __GURU__
-mrbc_object const_object_get(mrbc_sym sym_id)
+mrbc_object const_object_get(mrbc_sym sid)
 {
-    return _get_obj(sym_id, GURU_CONST_OBJECT);
+    return _get_obj(sid, GURU_CONST_OBJECT);
 }
 
 

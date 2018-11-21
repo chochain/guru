@@ -40,8 +40,8 @@ typedef struct RKeyValue {
 
 __GURU__ mrbc_value mrbc_instance_new(mrbc_class *cls, int size);
 __GURU__ void       mrbc_instance_delete(mrbc_value *v);
-__GURU__ void       mrbc_instance_setiv(mrbc_object *obj, mrbc_sym sym_id, mrbc_value *v);
-__GURU__ mrbc_value mrbc_instance_getiv(mrbc_object *obj, mrbc_sym sym_id);
+__GURU__ void       mrbc_instance_setiv(mrbc_object *obj, mrbc_sym sid, mrbc_value *v);
+__GURU__ mrbc_value mrbc_instance_getiv(mrbc_object *obj, mrbc_sym sid);
 
 #ifdef __cplusplus
 }

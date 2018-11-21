@@ -72,8 +72,7 @@ mrbc_get_class_by_object(mrbc_object *obj)
 __GURU__ mrbc_class*
 mrbc_get_class_by_name(const char *name)
 {
-    mrbc_sym   sym_id = name2symid(name);
-    mrbc_value v      = const_object_get(sym_id);
+    mrbc_value v = const_object_get(name2symid(name));
 
     return (v.tt == GURU_TT_CLASS) ? v.cls : NULL;
 }
@@ -88,14 +87,14 @@ mrbc_get_class_by_name(const char *name)
   @return
 */
 __GURU__ mrbc_proc*
-mrbc_get_class_method(mrbc_value rcv, mrbc_sym sym_id)
+mrbc_get_class_method(mrbc_value rcv, mrbc_sym sid)
 {
     mrbc_class *cls = mrbc_get_class_by_object(&rcv);
 
     while (cls != 0) {
         mrbc_proc *proc = cls->vtbl;
         while (proc != 0) {
-            if (proc->sym_id == sym_id) {
+            if (proc->sym_id == sid) {
                 return proc;
             }
             proc = proc->next;
@@ -125,9 +124,9 @@ mrbc_define_class(const char *name, mrbc_class *super)
     cls = (mrbc_class *)mrbc_alloc(sizeof(mrbc_class));
     if (!cls) return NULL;			// ENOMEM
 
-    mrbc_sym sym_id = name2symid(name);
+    mrbc_sym sid = name2symid(name);
 
-    cls->sym_id = sym_id;
+    cls->sym_id = sid;
     cls->super 	= super;
     cls->vtbl 	= NULL;
 #ifdef GURU_DEBUG
@@ -137,7 +136,7 @@ mrbc_define_class(const char *name, mrbc_class *super)
     // register to global constant.
     mrbc_value v = { .tt = GURU_TT_CLASS };
     v.cls    = cls;
-    const_object_add(sym_id, &v);
+    const_object_add(sid, &v);
 
     return cls;
 }

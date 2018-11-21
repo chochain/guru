@@ -139,8 +139,8 @@ typedef struct RClass {			// 32-byte
     mrbc_sym       	sym_id;		// class name
 } mrbc_class;
 
-#define GURU_PROC_C_FUNC 	0x80
-#define IS_C_FUNC(m)		((m)->flag & GURU_PROC_C_FUNC)
+#define GURU_PROC_C_FUNC 		0x80
+#define IS_C_FUNC(m)			((m)->flag & GURU_PROC_C_FUNC)
 
 #define GURU_OBJECT_HEADER      \
 	unsigned int	refc:16;	\
