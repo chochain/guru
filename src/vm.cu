@@ -119,7 +119,7 @@ guru_vm_init(guru_ses *ses)
 	guru_vm *vm = (guru_vm *)guru_malloc(sizeof(guru_vm), 1);
 	if (!vm) return cudaErrorMemoryAllocation;
 
-	guru_h_parse_bytecode(vm, ses->req);
+	guru_parse_bytecode(vm, ses->req);
 	ses->vm = (uint8_t *)vm;
 
 	if (ses->debug > 0)	guru_dump_irep(vm->irep);
