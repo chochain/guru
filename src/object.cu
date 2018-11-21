@@ -281,14 +281,14 @@ c_object_attr_accessor(mrbc_value v[], int argc)
         mrbc_define_method(v[0].cls, name, (mrbc_func_t)c_object_getiv);
 
         // make string "....=" and define writer method.
-        char *namebuf = (char *)mrbc_alloc(STRLEN(name)+2);
-        if (!namebuf) return;
+        char *buf = (char *)mrbc_alloc(STRLEN(name)+2);
+        if (!buf) return;
         
-        STRCPY(namebuf, name);
-        STRCAT(namebuf, "=");
-        mrbc_symbol_new(namebuf);
-        mrbc_define_method(v[0].cls, namebuf, (mrbc_func_t)c_object_setiv);
-        mrbc_free(namebuf);
+        STRCPY(buf, name);
+        STRCAT(buf, "=");
+        mrbc_symbol_new(buf);
+        mrbc_define_method(v[0].cls, buf, (mrbc_func_t)c_object_setiv);
+        mrbc_free(buf);
     }
 }
 

@@ -845,7 +845,7 @@ op_blkpush(guru_vm *vm, uint32_t code, mrbc_value *regs)
 
     mrbc_value *stack = regs + 1;       // call stack: push 1 mrbc_value
 
-    if (stack[0].tt==GURU_TT_NIL){
+    if (stack[0].tt==GURU_TT_NIL){		// Check leak?
         return vm->err = -1;  			// EYIELD
     }
     _RA_X(stack);                       // ra <= stack[0]
