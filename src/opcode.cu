@@ -61,9 +61,8 @@ __GURU__ uint32_t*
 _vm_pool(guru_vm *vm, int n)
 {
 	guru_irep *irep = VM_IREP(vm);
-	uint32_t  *p    = (uint32_t *)((uint8_t *)irep + irep->pool + n*sizeof(uint32_t));
 
-	return (uint32_t *)((uint8_t *)irep + *p);
+	return (uint32_t *)((uint8_t *)irep + irep->pool + n*sizeof(uint32_t));
 }
 
 __GURU__ guru_irep*
@@ -100,10 +99,10 @@ _get_symid(const uint8_t *p, int n)
 
 */
 __GURU__ void
-_push_state(mrbc_vm *vm, int argc)
+_push_state(guru_vm *vm, int argc)
 {
-	mrbc_state *top = vm->state;
-    mrbc_state *st  = (mrbc_state *)mrbc_alloc(sizeof(mrbc_state));
+	guru_state *top = vm->state;
+    guru_state *st  = (guru_state *)mrbc_alloc(sizeof(guru_state));
 
     st->reg   = top->reg;			// pass register file
     st->irep  = top->irep;
@@ -121,9 +120,9 @@ _push_state(mrbc_vm *vm, int argc)
 
 */
 __GURU__ void
-_pop_state(mrbc_vm *vm, mrbc_value *regs)
+_pop_state(guru_vm *vm, mrbc_value *regs)
 {
-    mrbc_state *st = vm->state;
+    guru_state *st = vm->state;
     
     vm->state = st->prev;
     
@@ -135,7 +134,7 @@ _pop_state(mrbc_vm *vm, mrbc_value *regs)
 }
 
 __GURU__ void
-_vm_proc_call(mrbc_vm *vm, mrbc_value v[], int argc)
+_vm_proc_call(guru_vm *vm, mrbc_value v[], int argc)
 {
 	_push_state(vm, argc);				// check _funcall which is not used
 
@@ -148,51 +147,41 @@ _vm_proc_call(mrbc_vm *vm, mrbc_value v[], int argc)
 
 // Object.new
 __GURU__ void
-_vm_object_new(mrbc_vm *vm, mrbc_value v[], int argc)
+_vm_object_new(guru_vm *vm, mrbc_value v[], int argc)
 {
     mrbc_value obj = mrbc_instance_new(v[0].cls, 0);
+
     char sym[] = "______initialize";
 
-    _uint32_to_bin(1, (uint8_t*)&sym[0]);		// setup symbol table
-    _uint16_to_bin(10,(uint8_t*)&sym[4]);
+    uint32_t  off = sizeof(guru_irep);
+    guru_irep irep[3] = {
+        {
+            0,                  		// size (u32)
+            0, 0, 0, 2, 0, 0,   		// nlv, rreg, rlen, ilen, plen, slen (u16)
+            off, 	        			// iseq (u32)
+            off + 2 * sizeof(uint32_t), // sym  (u32)
+            0, 0						// pool, list
+        }, {}, {}
+    };
+    *(uint32_t *)&irep[1].size = (uint32_t)(MKOPCODE(OP_SEND)|MKARG_A(0)|MKARG_B(0)|MKARG_C(argc));
+    *(uint32_t *)&irep[1].nlv  = (uint32_t)(MKOPCODE(OP_ABORT));
+    *(uint32_t *)&irep[1].rlen = off + 4 * sizeof(uint32_t);
+    MEMCPY((uint8_t *)&irep[1].iseq, (uint8_t *)sym, sizeof(sym)+1);
 
-    uint32_t code[2] = {
-        (uint32_t)(MKOPCODE(OP_SEND) | MKARG_A(0) | MKARG_B(0) | MKARG_C(argc)),
-        (uint32_t)(MKOPCODE(OP_ABORT))
-    };
-    mrbc_irep irep = {
-        0,     				// nlv
-        0,     				// nreg
-        0,     				// rlen
-        2,     				// ilen
-        0,     				// plen
-        0,					// slen
-#if GURU_HOST_IMAGE
-        0,					// iseq
-        0,					// sym
-        0,					// pool
-        0					// irep list
-#else
-        code,   			// iseq
-        (uint8_t *)sym,  	// ptr_to_sym
-        NULL,  				// object pool
-        NULL,  				// irep list
-#endif
-    };
     mrbc_release(&v[0]);
     v[0] = obj;
     mrbc_retain(&obj);
 
     // context switch, which is not multi-thread ready
     // TODO: create a vm context object with separate regfile
-    mrbc_state  *st    = vm->state;
+    guru_state  *st    = vm->state;
 
     uint16_t    pc0    = st->pc;
     mrbc_value  *reg0  = st->reg;
-    mrbc_irep 	*irep0 = st->irep;
+    guru_irep 	*irep0 = st->irep;
 
     st->pc 	 = 0;
-    st->irep = &irep;
+    st->irep = irep;
     st->reg  = v;		   // new register file (shift for call stack)
 
     while (guru_op(vm)==0); // run til ABORT, or exception
@@ -216,7 +205,7 @@ _vm_object_new(mrbc_vm *vm, mrbc_value v[], int argc)
   @retval 0  No error.
 */
 __GURU__ int
-op_nop(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
+op_nop(guru_vm *vm, uint32_t code, mrbc_value *regs)
 {
     return 0;
 }
@@ -233,7 +222,7 @@ op_nop(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
   @retval 0  No error.
 */
 __GURU__ int
-op_move(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
+op_move(guru_vm *vm, uint32_t code, mrbc_value *regs)
 {
     int ra = GETARG_A(code);
     int rb = GETARG_B(code);
@@ -255,7 +244,7 @@ op_move(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
   @retval 0  No error.
 */
 __GURU__ int
-op_loadl(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
+op_loadl(guru_vm *vm, uint32_t code, mrbc_value *regs)
 {
     int ra = GETARG_A(code);
     int rb = GETARG_Bx(code);
@@ -288,7 +277,7 @@ op_loadl(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
   @retval 0  No error.
 */
 __GURU__ int
-op_loadi(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
+op_loadi(guru_vm *vm, uint32_t code, mrbc_value *regs)
 {
     int ra = GETARG_A(code);
     int rb = GETARG_sBx(code);
@@ -311,7 +300,7 @@ op_loadi(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
   @retval 0  No error.
 */
 __GURU__ int
-op_loadsym(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
+op_loadsym(guru_vm *vm, uint32_t code, mrbc_value *regs)
 {
     int ra  = GETARG_A(code);
     int rb  = GETARG_Bx(code);
@@ -336,7 +325,7 @@ op_loadsym(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
   @retval 0  No error.
 */
 __GURU__ int
-op_loadnil(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
+op_loadnil(guru_vm *vm, uint32_t code, mrbc_value *regs)
 {
     int ra = GETARG_A(code);
 
@@ -357,7 +346,7 @@ op_loadnil(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
   @retval 0  No error.
 */
 __GURU__ int
-op_loadself(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
+op_loadself(guru_vm *vm, uint32_t code, mrbc_value *regs)
 {
     int ra = GETARG_A(code);
 
@@ -378,7 +367,7 @@ op_loadself(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
   @retval 0  No error.
 */
 __GURU__ int
-op_loadt(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
+op_loadt(guru_vm *vm, uint32_t code, mrbc_value *regs)
 {
     int ra = GETARG_A(code);
 
@@ -399,7 +388,7 @@ op_loadt(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
   @retval 0  No error.
 */
 __GURU__ int
-op_loadf(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
+op_loadf(guru_vm *vm, uint32_t code, mrbc_value *regs)
 {
     int ra = GETARG_A(code);
 
@@ -420,7 +409,7 @@ op_loadf(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
   @retval 0  No error.
 */
 __GURU__ int
-op_getglobal(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
+op_getglobal(guru_vm *vm, uint32_t code, mrbc_value *regs)
 {
     int ra = GETARG_A(code);
     int rb = GETARG_Bx(code);
@@ -446,7 +435,7 @@ op_getglobal(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
   @retval 0  No error.
 */
 __GURU__ int
-op_setglobal(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
+op_setglobal(guru_vm *vm, uint32_t code, mrbc_value *regs)
 {
     int ra = GETARG_A(code);
     int rb = GETARG_Bx(code);
@@ -471,7 +460,7 @@ op_setglobal(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
   @retval 0  No error.
 */
 __GURU__ int
-op_getiv(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
+op_getiv(guru_vm *vm, uint32_t code, mrbc_value *regs)
 {
     int ra = GETARG_A(code);
     int rb = GETARG_Bx(code);
@@ -497,7 +486,7 @@ op_getiv(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
   @retval 0  No error.
 */
 __GURU__ int
-op_setiv(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
+op_setiv(guru_vm *vm, uint32_t code, mrbc_value *regs)
 {
     int ra = GETARG_A(code);
     int rb = GETARG_Bx(code);
@@ -522,7 +511,7 @@ op_setiv(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
   @retval 0  No error.
 */
 __GURU__ int
-op_getconst(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
+op_getconst(guru_vm *vm, uint32_t code, mrbc_value *regs)
 {
     int ra = GETARG_A(code);
     int rb = GETARG_Bx(code);
@@ -547,7 +536,7 @@ op_getconst(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
   @retval 0  No error.
 */
 __GURU__ int
-op_setconst(mrbc_vm *vm, uint32_t code, mrbc_value *regs) {
+op_setconst(guru_vm *vm, uint32_t code, mrbc_value *regs) {
     int ra = GETARG_A(code);
     int rb = GETARG_Bx(code);
 
@@ -569,13 +558,13 @@ op_setconst(mrbc_vm *vm, uint32_t code, mrbc_value *regs) {
   @retval 0  No error.
 */
 __GURU__ int
-op_getupvar(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
+op_getupvar(guru_vm *vm, uint32_t code, mrbc_value *regs)
 {
     int ra = GETARG_A(code);
     int rb = GETARG_B(code);
     int rc = GETARG_C(code);   		// UP
 
-    mrbc_state *st = vm->state;
+    guru_state *st = vm->state;
 
     int n = (rc+1) << 1;			// depth of call stack
     while (n > 0){					// walk up call stack
@@ -601,13 +590,13 @@ op_getupvar(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
   @retval 0  No error.
 */
 __GURU__ int
-op_setupvar(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
+op_setupvar(guru_vm *vm, uint32_t code, mrbc_value *regs)
 {
     int ra = GETARG_A(code);
     int rb = GETARG_B(code);
     int rc = GETARG_C(code);   				// UP level
 
-    mrbc_state *st = vm->state;
+    guru_state *st = vm->state;
 
     int n = (rc+1) << 1;					// 2 per outer scope level
     while (n > 0){
@@ -635,7 +624,7 @@ op_setupvar(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
   @retval 0  No error.
 */
 __GURU__ int
-op_jmp(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
+op_jmp(guru_vm *vm, uint32_t code, mrbc_value *regs)
 {
     vm->state->pc += GETARG_sBx(code) - 1;
     return 0;
@@ -653,7 +642,7 @@ op_jmp(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
   @retval 0  No error.
 */
 __GURU__ int
-op_jmpif (mrbc_vm *vm, uint32_t code, mrbc_value *regs)
+op_jmpif (guru_vm *vm, uint32_t code, mrbc_value *regs)
 {
     if (regs[GETARG_A(code)].tt > GURU_TT_FALSE) {
         vm->state->pc += GETARG_sBx(code) - 1;
@@ -673,7 +662,7 @@ op_jmpif (mrbc_vm *vm, uint32_t code, mrbc_value *regs)
   @retval 0  No error.
 */
 __GURU__ int
-op_jmpnot(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
+op_jmpnot(guru_vm *vm, uint32_t code, mrbc_value *regs)
 {
     if (regs[GETARG_A(code)].tt <= GURU_TT_FALSE) {
         vm->state->pc += GETARG_sBx(code) - 1;
@@ -694,7 +683,7 @@ op_jmpnot(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
   @retval 0  No error.
 */
 __GURU__ int
-op_send(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
+op_send(guru_vm *vm, uint32_t code, mrbc_value *regs)
 {
     int ra = GETARG_A(code);
     int rb = GETARG_B(code);  // index of method sym
@@ -767,7 +756,7 @@ op_send(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
   @retval 0  No error.
 */
 __GURU__ int
-op_call(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
+op_call(guru_vm *vm, uint32_t code, mrbc_value *regs)
 {
     _push_state(vm, 0);
 
@@ -792,7 +781,7 @@ op_call(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
   @retval 0  No error.
 */
 __GURU__ int
-op_enter(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
+op_enter(guru_vm *vm, uint32_t code, mrbc_value *regs)
 {
     uint32_t enter_param = GETARG_Ax(code);
 
@@ -817,7 +806,7 @@ op_enter(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
   @retval 0  No error.
 */
 __GURU__ int
-op_return(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
+op_return(guru_vm *vm, uint32_t code, mrbc_value *regs)
 {
     // return value
     int ra = GETARG_A(code);
@@ -844,7 +833,7 @@ op_return(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
   @retval 0  No error.
 */
 __GURU__ int
-op_blkpush(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
+op_blkpush(guru_vm *vm, uint32_t code, mrbc_value *regs)
 {
     int ra = GETARG_A(code);
 
@@ -870,7 +859,7 @@ op_blkpush(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
   @retval 0  No error.
 */
 __GURU__ int
-op_add(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
+op_add(guru_vm *vm, uint32_t code, mrbc_value *regs)
 {
     int ra = GETARG_A(code);
     mrbc_value *r0 = &regs[ra];
@@ -911,7 +900,7 @@ op_add(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
   @retval 0  No error.
 */
 __GURU__ int
-op_addi(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
+op_addi(guru_vm *vm, uint32_t code, mrbc_value *regs)
 {
 	int ra = GETARG_A(code);
 	int rc = GETARG_C(code);
@@ -939,7 +928,7 @@ op_addi(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
   @retval 0  No error.
 */
 __GURU__ int
-op_sub(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
+op_sub(guru_vm *vm, uint32_t code, mrbc_value *regs)
 {
     int ra = GETARG_A(code);
 
@@ -980,7 +969,7 @@ op_sub(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
   @retval 0  No error.
 */
 __GURU__ int
-op_subi(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
+op_subi(guru_vm *vm, uint32_t code, mrbc_value *regs)
 {
     int ra = GETARG_A(code);
     int rc = GETARG_C(code);
@@ -1008,7 +997,7 @@ op_subi(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
   @retval 0  No error.
 */
 __GURU__ int
-op_mul(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
+op_mul(guru_vm *vm, uint32_t code, mrbc_value *regs)
 {
     int ra = GETARG_A(code);
     mrbc_value *r0 = &regs[ra];
@@ -1048,7 +1037,7 @@ op_mul(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
   @retval 0  No error.
 */
 __GURU__ int
-op_div(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
+op_div(guru_vm *vm, uint32_t code, mrbc_value *regs)
 {
     int ra = GETARG_A(code);
     mrbc_value *r0 = &regs[ra];
@@ -1088,11 +1077,12 @@ op_div(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
   @retval 0  No error.
 */
 __GURU__ int
-op_eq(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
+op_eq(guru_vm *vm, uint32_t code, mrbc_value *regs)
 {
     int ra = GETARG_A(code);
+    mrbc_vtype tt = TT_BOOL(mrbc_compare(&regs[ra], &regs[ra+1])==0);
 
-    _RA_T(TT_BOOL(mrbc_compare(&regs[ra], &regs[ra+1])==0), i=0);
+    _RA_T(tt, i=0);
 
     mrbc_release(&regs[ra+1]);
 
@@ -1136,7 +1126,7 @@ do {													\
   @retval 0  No error.
 */
 __GURU__ int
-op_lt(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
+op_lt(guru_vm *vm, uint32_t code, mrbc_value *regs)
 {
 	int ra = GETARG_A(code);
 
@@ -1157,7 +1147,7 @@ op_lt(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
   @retval 0  No error.
 */
 __GURU__ int
-op_le(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
+op_le(guru_vm *vm, uint32_t code, mrbc_value *regs)
 {
     int ra = GETARG_A(code);
 
@@ -1178,7 +1168,7 @@ op_le(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
   @retval 0  No error.
 */
 __GURU__ int
-op_gt(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
+op_gt(guru_vm *vm, uint32_t code, mrbc_value *regs)
 {
     int ra = GETARG_A(code);
 
@@ -1199,7 +1189,7 @@ op_gt(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
   @retval 0  No error.
 */
 __GURU__ int
-op_ge(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
+op_ge(guru_vm *vm, uint32_t code, mrbc_value *regs)
 {
     int ra = GETARG_A(code);
 
@@ -1220,23 +1210,15 @@ op_ge(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
   @retval 0  No error.
 */
 __GURU__ int
-op_string(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
+op_string(guru_vm *vm, uint32_t code, mrbc_value *regs)
 {
 #if GURU_USE_STRING
 	int ra = GETARG_A(code);
     int rb = GETARG_Bx(code);
 
-#if GURU_HOST_IMAGE
     uint32_t   *p   = _vm_pool(vm, rb);
     const char *str = (const char *)((uint8_t *)VM_IREP(vm) + *p);
-#else
-    mrbc_object *obj = VM_IREP(vm)->pool[rb];
-
-    /* CAUTION: pool_obj->sym - 2. see IREP POOL structure. */
-    int         len = _bin_to_uint16(obj->sym - sizeof(uint16_t));
-    const char *str = (const char *)obj->sym;			// 20181025
-#endif
-    mrbc_value  ret = mrbc_string_new(str);
+    mrbc_value ret  = mrbc_string_new(str);
 
     if (ret.str==NULL) return vm->err = -1;				// ENOMEM
 
@@ -1259,7 +1241,7 @@ op_string(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
   @retval 0  No error.
 */
 __GURU__ int
-op_strcat(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
+op_strcat(guru_vm *vm, uint32_t code, mrbc_value *regs)
 {
 #if GURU_USE_STRING
     int ra = GETARG_A(code);
@@ -1297,7 +1279,7 @@ op_strcat(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
   @retval 0  No error.
 */
 __GURU__ int
-op_array(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
+op_array(guru_vm *vm, uint32_t code, mrbc_value *regs)
 {
 #if GURU_USE_ARRAY
     int ra = GETARG_A(code);
@@ -1333,7 +1315,7 @@ op_array(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
   @retval 0  No error.
 */
 __GURU__ int
-op_hash(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
+op_hash(guru_vm *vm, uint32_t code, mrbc_value *regs)
 {
 #if GURU_USE_ARRAY
     int ra = GETARG_A(code);
@@ -1370,7 +1352,7 @@ op_hash(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
   @retval 0  No error.
 */
 __GURU__ int
-op_range(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
+op_range(guru_vm *vm, uint32_t code, mrbc_value *regs)
 {
 #if GURU_USE_ARRAY
     int ra = GETARG_A(code);
@@ -1403,7 +1385,7 @@ op_range(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
   @retval 0  No error.
 */
 __GURU__ int
-op_lambda(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
+op_lambda(guru_vm *vm, uint32_t code, mrbc_value *regs)
 {
     int ra = GETARG_A(code);
     int rb = GETARG_b(code);      		// sequence position in irep list
@@ -1433,7 +1415,7 @@ op_lambda(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
   @retval 0  No error.
 */
 __GURU__ int
-op_class(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
+op_class(guru_vm *vm, uint32_t code, mrbc_value *regs)
 {
     int ra = GETARG_A(code);
     int rb = GETARG_B(code);
@@ -1458,7 +1440,7 @@ op_class(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
   @retval 0  No error.
 */
 __GURU__ int
-op_exec(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
+op_exec(guru_vm *vm, uint32_t code, mrbc_value *regs)
 {
     int ra = GETARG_A(code);
     int rb = GETARG_Bx(code);
@@ -1487,7 +1469,7 @@ op_exec(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
   @retval 0  No error.
 */
 __GURU__ int
-op_method(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
+op_method(guru_vm *vm, uint32_t code, mrbc_value *regs)
 {
     int ra = GETARG_A(code);
     int rb = GETARG_B(code);
@@ -1546,7 +1528,7 @@ op_method(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
   @retval 0  No error.
 */
 __GURU__ int
-op_tclass(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
+op_tclass(guru_vm *vm, uint32_t code, mrbc_value *regs)
 {
     int ra = GETARG_A(code);
 
@@ -1568,20 +1550,20 @@ op_tclass(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
   @retval -1  No error and exit from vm.
 */
 __GURU__ int
-op_stop(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
+op_stop(guru_vm *vm, uint32_t code, mrbc_value *regs)
 {
 	vm->run = 0;
     return -1;		// exit guru_op loop
 }
 
 __GURU__ int
-op_abort(mrbc_vm *vm, uint32_t code, mrbc_value *regs)
+op_abort(guru_vm *vm, uint32_t code, mrbc_value *regs)
 {
 	return -1;		// exit guru_op loop
 }
 
 __GURU__ int
-guru_op(mrbc_vm *vm)
+guru_op(guru_vm *vm)
 {
 	uint32_t   code   = GET_BYTECODE(vm);
 	int        opcode = GET_OPCODE(code);

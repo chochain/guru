@@ -28,7 +28,7 @@
   @param  vm  Pointer to VM
 */
 __global__ void
-_vm_begin(mrbc_vm *vm)
+_vm_begin(guru_vm *vm)
 {
 	if (threadIdx.x!=0 || blockIdx.x!=0) return;
 
@@ -37,7 +37,7 @@ _vm_begin(mrbc_vm *vm)
     vm->regfile[0].tt  	= GURU_TT_CLASS;		// regfile[0] is self
     vm->regfile[0].cls 	= mrbc_class_object;	// root class
 
-    mrbc_state *st = (mrbc_state *)mrbc_alloc(sizeof(mrbc_state));
+    guru_state *st = (guru_state *)mrbc_alloc(sizeof(guru_state));
 
     st->pc 	  = 0;								// starting IP
     st->klass = mrbc_class_object;				// target class
@@ -58,7 +58,7 @@ _vm_begin(mrbc_vm *vm)
   @param  vm  Pointer to VM
 */
 __global__ void
-_vm_end(mrbc_vm *vm)
+_vm_end(guru_vm *vm)
 {
 	if (threadIdx.x!=0 || blockIdx.x!=0) return;
 
@@ -80,7 +80,7 @@ _vm_end(mrbc_vm *vm)
   @retval 0  No error.
 */
 __global__ void
-_vm_exec(mrbc_vm *vm, int step)
+_vm_exec(guru_vm *vm, int step)
 {
 	if (threadIdx.x!=0 || blockIdx.x!=0) return;		// TODO: multi-threading
 
@@ -124,7 +124,7 @@ guru_vm_init(guru_ses *ses)
 
 	if (ses->debug > 0)	guru_dump_irep(vm->irep);
 #else
-	mrbc_vm *vm = (mrbc_vm *)guru_malloc(sizeof(mrbc_vm), 1);
+	guru_vm *vm = (mrbc_vm *)guru_malloc(sizeof(mrbc_vm), 1);
 	if (!vm) return cudaErrorMemoryAllocation;
 
 	guru_parse_bytecode<<<1,1>>>(vm, ses->req);
@@ -139,7 +139,7 @@ guru_vm_init(guru_ses *ses)
 __host__ cudaError_t
 guru_vm_run(guru_ses *ses)
 {
-    mrbc_vm *vm = (mrbc_vm *)ses->vm;
+    guru_vm *vm = (guru_vm *)ses->vm;
 	_vm_begin<<<1,1>>>(vm);
 	cudaDeviceSynchronize();
 
@@ -161,7 +161,7 @@ guru_vm_run(guru_ses *ses)
 
 #ifdef GURU_DEBUG
 __host__ void
-guru_dump_irep1(mrbc_irep1 *irep)
+guru_dump_irep1(mrbc_irep *irep)
 {
 	printf("\tnregs=%d, nlocals=%d, pools=%d, syms=%d, reps=%d, ilen=%d\n",
 			irep->nreg, irep->nlv, irep->plen, irep->slen, irep->rlen, irep->ilen);
@@ -211,7 +211,7 @@ static const char *_opcode[] = {
 //		((i) & 0x7f)
 
 __host__ void
-guru_dump_regfile(mrbc_vm *vm, int debug_level)
+guru_dump_regfile(guru_vm *vm, int debug_level)
 {
 	if (debug_level==0) return;
 
@@ -227,7 +227,7 @@ guru_dump_regfile(mrbc_vm *vm, int debug_level)
 		last=i;
 	}
 	int lvl=0;
-	mrbc_state *s = vm->state;
+	guru_state *s = vm->state;
 	while (s->prev != NULL) {
 		s = s->prev;
 		lvl++;

@@ -41,9 +41,10 @@ typedef struct RIrep1 {
 
     mrbc_object   **pool; 	   	//!< array of POOL objects pointer.
     struct RIrep1 **list;		//!< array of child IREP's pointer.
-} mrbc_irep1;
+} mrbc_irep;
 
 typedef struct RIrep {			// 32-bytes
+    uint32_t	 size;			// size of entire IREP block
     uint16_t 	 nlv;   		//!< # of local variables
     uint16_t 	 nreg;			//!< # of register used
     uint16_t 	 rlen;			//!< # of child IREP blocks (into list below)
@@ -55,21 +56,29 @@ typedef struct RIrep {			// 32-bytes
     uint32_t	 sym;			//!< offset to array of SYMBOLs
     uint32_t     pool; 	   		//!< offset to array of POOL objects pointer.
     uint32_t 	 list;			//!< offset to array of child IREP's pointer.
-    uint32_t	 size;			// size of entire IREP block
-} guru_irep, mrbc_irep;
+} guru_irep;
 
 //================================================================
 /*!@brief
   Call information
 */
-typedef struct RState {
+typedef struct RState1 {
     uint16_t        pc;
     uint16_t        argc;     	// num of args
     mrbc_class      *klass;
     mrbc_value      *reg;
     mrbc_irep       *irep;
     struct RState   *prev;
-} guru_state, mrbc_state;
+} mrbc_state;
+
+typedef struct RState {
+    uint16_t        pc;
+    uint16_t        argc;     	// num of args
+    mrbc_class      *klass;
+    mrbc_value      *reg;
+    guru_irep       *irep;
+    struct RState   *prev;
+} guru_state;
 
 //================================================================
 /*!@brief
@@ -82,7 +91,7 @@ typedef struct VM1 {
 
     volatile int8_t run;
     volatile int8_t	err;
-} mrbc_vm1;
+} mrbc_vm;
 
 typedef struct VM {
     guru_irep       *irep;		// pointer to IREP tree
@@ -91,7 +100,7 @@ typedef struct VM {
 
     volatile int8_t run;
     volatile int8_t	err;
-} guru_vm, mrbc_vm;
+} guru_vm;
 
 //================================================================
 /*!@brief
@@ -180,7 +189,7 @@ cudaError_t guru_vm_run(guru_ses *ses);
 #ifdef GURU_DEBUG
 void guru_dump_irep1(mrbc_irep *irep);
 void guru_dump_irep(guru_irep *irep);
-void guru_dump_regfile(mrbc_vm *vm, int debug);
+void guru_dump_regfile(guru_vm *vm, int debug);
 #endif
 
 #ifdef __cplusplus

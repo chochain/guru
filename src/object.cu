@@ -182,7 +182,9 @@ c_object_compare(mrbc_value v[], int argc)
 __GURU__ void
 c_object_equal3(mrbc_value v[], int argc)
 {
-    if (v[0].tt != GURU_TT_CLASS) SET_BOOL_RETURN(mrbc_compare(&v[0], &v[1]));
+	int ret = mrbc_compare(&v[0], &v[1]);
+
+    if (v[0].tt != GURU_TT_CLASS) SET_BOOL_RETURN(ret==0);
     else 						  SET_RETURN(mrbc_send(v+argc, &v[1], "kind_of?", 1, &v[0]));
 }
 
