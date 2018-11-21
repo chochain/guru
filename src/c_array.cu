@@ -225,12 +225,13 @@ _remove(mrbc_value *ary, int idx)
     if (idx < 0) idx = h->n + idx;
     if (idx < 0 || idx >= h->n) return mrbc_nil_value();
 
-    mrbc_value *p = h->data + idx;
+    mrbc_value *p  = h->data + idx;
+    mrbc_value ret = *p;
     if (idx < --h->n) {										// shrink by 1
     	int blksz = sizeof(mrbc_value) * (h->n - idx);
         MEMCPY((uint8_t *)p, (uint8_t *)(p+1), blksz);		// shift forward
     }
-    return *p;
+    return ret;
 }
 
 //================================================================
@@ -383,7 +384,7 @@ mrbc_array_compare(const mrbc_value *v0, const mrbc_value *v1)
 	mrbc_array *h0 = v0->array;
 	mrbc_array *h1 = v1->array;
 	mrbc_value *d0 = h0->data;
-	mrbc_value *d1 = h0->data;
+	mrbc_value *d1 = h1->data;
     for (int i=0; ; i++) {
         if (i >= h0->n || i >= h1->n) break;
 
@@ -535,7 +536,9 @@ c_array_clear(mrbc_value v[], int argc)
 __GURU__ void
 c_array_delete_at(mrbc_value v[], int argc)
 {
-    SET_RETURN(_remove(v, GET_INT_ARG(1)));
+	int n = GET_INT_ARG(1);
+
+    SET_RETURN(_remove(v, n));
 }
 
 //================================================================
