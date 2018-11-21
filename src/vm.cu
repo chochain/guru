@@ -88,7 +88,7 @@ _vm_exec(guru_vm *vm, int step)
 		// add cuda hook here
 	}
 }
-
+#if !GURU_HOST_IMAGE
 //================================================================
 /*!@brief
   release mrbc_irep holds memory
@@ -96,7 +96,6 @@ _vm_exec(guru_vm *vm, int step)
 __GURU__ void
 _mrbc_free_irep(mrbc_irep *irep)
 {
-#if !GURU_HOST_IMAGE
     // release pool.
     for(int i = 0; i < irep->plen; i++) {
         mrbc_free(irep->pool[i]);
@@ -109,8 +108,8 @@ _mrbc_free_irep(mrbc_irep *irep)
     }
     if (irep->rlen) mrbc_free(irep->list);
     mrbc_free(irep);
-#endif
 }
+#endif
 
 __host__ cudaError_t
 guru_vm_init(guru_ses *ses)
@@ -160,32 +159,6 @@ guru_vm_run(guru_ses *ses)
 }
 
 #ifdef GURU_DEBUG
-__host__ void
-guru_dump_irep1(mrbc_irep *irep)
-{
-	printf("\tnregs=%d, nlocals=%d, pools=%d, syms=%d, reps=%d, ilen=%d\n",
-			irep->nreg, irep->nlv, irep->plen, irep->slen, irep->rlen, irep->ilen);
-
-	// dump all children ireps
-	for (int i=0; i<irep->rlen; i++) {
-		guru_dump_irep1(irep->list[i]);
-	}
-}
-
-__host__ void
-guru_dump_irep(guru_irep *irep)
-{
-	printf("\tsize=%d, nreg=%d, nlocal=%d, pools=%d, syms=%d, reps=%d, ilen=%d\n",
-			irep->size, irep->nreg, irep->nlv, irep->plen, irep->slen, irep->rlen, irep->ilen);
-
-	// dump all children ireps
-	uint8_t  *base = (uint8_t *)irep;
-	uint32_t *off  = (uint32_t *)(base + irep->list);
-	for (int i=0; i<irep->rlen; i++, off++) {
-		guru_dump_irep((guru_irep *)(base + *off));
-	}
-}
-
 static const char *_vtype[] = {
 	"___","nil","f  ","t  ","num","flt","sym","cls",
 	"","","","","","","","",
@@ -207,8 +180,20 @@ static const char *_opcode[] = {
     "ABORT"
 };
 
-//(_bin_to_uint32((vm)->state->irep->iseq + (vm)->state->pc * 4))
-//		((i) & 0x7f)
+#if GURU_HOST_IMAGE
+__host__ void
+guru_dump_irep(guru_irep *irep)
+{
+	printf("\tsize=%d, nreg=%d, nlocal=%d, pools=%d, syms=%d, reps=%d, ilen=%d\n",
+			irep->size, irep->nreg, irep->nlv, irep->plen, irep->slen, irep->rlen, irep->ilen);
+
+	// dump all children ireps
+	uint8_t  *base = (uint8_t *)irep;
+	uint32_t *off  = (uint32_t *)(base + irep->list);
+	for (int i=0; i<irep->rlen; i++, off++) {
+		guru_dump_irep((guru_irep *)(base + *off));
+	}
+}
 
 __host__ void
 guru_dump_regfile(guru_vm *vm, int debug_level)
@@ -250,7 +235,61 @@ guru_dump_regfile(guru_vm *vm, int debug_level)
     }
 	printf("]\n");
 }
-#endif
+#else // !GURU_HOST_IMAGE
+__host__ void
+guru_dump_irep(mrbc_irep *irep)
+{
+	printf("\tnregs=%d, nlocals=%d, pools=%d, syms=%d, reps=%d, ilen=%d\n",
+			irep->nreg, irep->nlv, irep->plen, irep->slen, irep->rlen, irep->ilen);
+
+	// dump all children ireps
+	for (int i=0; i<irep->rlen; i++) {
+		guru_dump_irep(irep->list[i]);
+	}
+}
+
+__host__ void
+guru_dump_regfile(mrbc_vm *vm, int debug_level)
+{
+	if (debug_level==0) return;
+
+	uint16_t    pc      = vm->state->pc;
+	uint32_t    *iseq   = vm->state->irep->iseq;
+	uint16_t    opid    = (*(iseq + pc) >> 24) & 0x7f;
+	const char 	*opcode = _opcode[GET_OPCODE(opid)];
+	mrbc_value 	*v 	 	= vm->regfile;
+
+	int last=0;
+	for(int i=0; i<MAX_REGS_SIZE; i++, v++) {
+		if (v->tt==GURU_TT_EMPTY) continue;
+		last=i;
+	}
+	int lvl=0;
+	guru_state *s = vm->state;
+	while (s->prev != NULL) {
+		s = s->prev;
+		lvl++;
+	}
+
+	v = vm->regfile;	// rewind
+	if (debug_level==1) {
+		int s[8];
+		guru_get_alloc_stat(s);
+		printf("%c%-4d%-8s%-3d[ ", 'a'+lvl, pc, opcode, s[3]);
+	}
+	else if (debug_level==2) {
+		guru_dump_alloc_stat();
+		printf("%c%-4d%-8s[ ", 'a'+lvl, pc, opcode);
+	}
+	for (int i=0; i<=last; i++, v++) {
+		printf("%2d.%s", i, _vtype[v->tt]);
+	    if (v->tt >= GURU_TT_OBJECT) printf("_%d", v->self->refc);
+	    printf(" ");
+    }
+	printf("]\n");
+}
+#endif	// GURU_HOST_IMAGE
+#endif 	// GURU_DEBUG
 
 
 

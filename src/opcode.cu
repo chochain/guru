@@ -82,7 +82,8 @@ _vm_irep_list(guru_vm *vm, int n)
 	return (guru_irep *)((uint8_t *)irep + *p);
 }
 
-#else
+#else  // !GURU_HOST_IMAGE
+
 __GURU__ const char*
 _get_symbol(const uint8_t *p, int n)
 {

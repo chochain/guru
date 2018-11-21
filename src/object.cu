@@ -214,17 +214,18 @@ c_object_new(mrbc_value v[], int argc)
   @return	string
 */
 __GURU__ const char*
-_get_callee(mrbc_vm *vm)
+_get_callee(guru_vm *vm)
 {
 #if 0
-    uint32_t code = VM_ISEQ(vm) + vm->state->pc - 1;
+    uint32_t code = *(VM_ISEQ(vm) + vm->state->pc - 1);
 
     int rb = GETARG_B(code);  // index of method sym
 
-    return _get_symbol(VM_SYM(vm), rb);
-#else
-    return "no support";
+    return _vm_symbol(vm, rb);
 #endif
+    console_na("callee");
+
+    return NULL;
 }
 
 //================================================================
@@ -233,7 +234,7 @@ _get_callee(mrbc_vm *vm)
 __GURU__ void
 c_object_getiv(mrbc_value v[], int argc)
 {
-    const char *name = _get_callee(NULL);		// TODO:
+    const char *name = _get_callee(NULL);			// TODO:
     mrbc_sym   sid   = name2symid(name);
 
     SET_RETURN(mrbc_instance_getiv(&v[0], sid));
@@ -245,7 +246,7 @@ c_object_getiv(mrbc_value v[], int argc)
 __GURU__ void
 c_object_setiv(mrbc_value v[], int argc)
 {
-    const char *name  = _get_callee(NULL);				// CC TODO: another way
+    const char *name  = _get_callee(NULL);			// CC TODO: another way
     mrbc_sym   sym_id = name2symid(name);
 
     mrbc_instance_setiv(&v[0], sym_id, &v[1]);
