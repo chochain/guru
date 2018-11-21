@@ -150,23 +150,26 @@ __GURU__ void
 _vm_object_new(guru_vm *vm, mrbc_value v[], int argc)
 {
     mrbc_value obj = mrbc_instance_new(v[0].cls, 0);
-
-    char sym[] = "______initialize";
-
-    uint32_t  off = sizeof(guru_irep);
-    guru_irep irep[3] = {
+    //
+    // build a temp IREP for calling "initialize"
+    // TODO: make the image static
+    //
+    const uint32_t off  = sizeof(guru_irep);
+    const uint32_t sym  = off + 2 * sizeof(uint32_t);
+    const uint32_t stbl = off + 4 * sizeof(uint32_t);
+    guru_irep irep[2] = {
         {
             0,                  		// size (u32)
             0, 0, 0, 2, 0, 0,   		// nlv, rreg, rlen, ilen, plen, slen (u16)
-            off, 	        			// iseq (u32)
-            off + 2 * sizeof(uint32_t), // sym  (u32)
-            0, 0						// pool, list
-        }, {}, {}
+            off, sym, 0, 0   			// iseq (u32), sym (u32), pool, list
+        },
+        {
+        	(MKOPCODE(OP_SEND)|MKARG_A(0)|MKARG_B(0)|MKARG_C(argc)),	// ISEQ block
+        	(MKOPCODE(OP_ABORT)) & 0xffff, (MKOPCODE(OP_ABORT)) >> 16,
+        	stbl & 0xffff, stbl >> 16, 	0xaaaa, 0xaaaa,					// symbol table
+        	0x74696e69, 0x696c6169, 0x0a00657a, 0xaaaaaaaa				// "initialize"
+        }
     };
-    *(uint32_t *)&irep[1].size = (uint32_t)(MKOPCODE(OP_SEND)|MKARG_A(0)|MKARG_B(0)|MKARG_C(argc));
-    *(uint32_t *)&irep[1].nlv  = (uint32_t)(MKOPCODE(OP_ABORT));
-    *(uint32_t *)&irep[1].rlen = off + 4 * sizeof(uint32_t);
-    MEMCPY((uint8_t *)&irep[1].iseq, (uint8_t *)sym, sizeof(sym)+1);
 
     mrbc_release(&v[0]);
     v[0] = obj;
