@@ -45,7 +45,7 @@
 */
 #if GURU_HOST_IMAGE
 
-__host__ uint32_t
+__HOST__ uint32_t
 bin_to_uint32(const void *s)
 {
     uint32_t x = *((uint32_t *)s);
@@ -59,14 +59,14 @@ bin_to_uint32(const void *s)
   @param  s	Pointer of memory.
   @return	16bit unsigned value.
 */
-__host__ uint16_t
+__HOST__ uint16_t
 bin_to_uint16(const void *s)
 {
     uint16_t x = *((uint16_t *)s);
     return (x << 8) | (x >> 8);
 }
 
-__host__ int
+__HOST__ int
 _load_header(const uint8_t **pos)
 {
     const uint8_t *p = *pos;
@@ -91,7 +91,7 @@ _load_header(const uint8_t **pos)
 //
 // building memory image
 //
-__host__ void
+__HOST__ void
 _build_image(uint8_t **pirep, uint8_t *src)
 {
 	guru_irep *irep = (guru_irep *)*pirep;
@@ -194,7 +194,7 @@ _build_image(uint8_t **pirep, uint8_t *src)
   ...		symbol data
   </pre>
 */
-__host__ void
+__HOST__ void
 _get_irep_size(guru_irep *irep, const uint8_t **pos)
 {
     const uint8_t *p = *pos + 4;			// skip "IREP"
@@ -233,7 +233,7 @@ _get_irep_size(guru_irep *irep, const uint8_t **pos)
   @param  pos	A pointer of pointer of IREP section.
   @return       Pointer of allocated mrbc_irep or NULL
 */
-__host__ uint8_t*
+__HOST__ guru_irep*
 _load_irep_0(uint8_t **pirep, const uint8_t **pos)
 {
 	guru_irep *irep = (guru_irep *)*pirep;
@@ -246,9 +246,10 @@ _load_irep_0(uint8_t **pirep, const uint8_t **pos)
     // recursively create the child irep tree
     uint32_t *p = (uint32_t *)(base + irep->list);
     for (int i = 0; i < irep->rlen; i++) {
-        p[i] = (uint32_t)(_load_irep_0(pirep, pos) - base);
+    	guru_irep *irep_n = _load_irep_0(pirep, pos);	// a child irep
+        p[i] = (uint32_t)((uint8_t *)irep_n - base);	// calculate offset
     }
-    return (uint8_t *)irep;
+    return irep;
 }
 
 //================================================================
@@ -266,34 +267,33 @@ _load_irep_0(uint8_t **pirep, const uint8_t **pos)
   "0000"	rite version
   </pre>
 */
-__host__ int
-_load_irep(guru_vm *vm, const uint8_t **pos)
+__HOST__ guru_irep*
+_load_irep(const uint8_t **pos)
 {
     const uint8_t *p = *pos + 4;					// 4 = skip "IREP"
     int   sec_sz = bin_to_uint32(p); p += sizeof(uint32_t);
 
-    if (memcmp(p, "0000", 4) != 0) {				// IREP version
-		return LOAD_FILE_IREP_ERROR_VERSION;
-    }
+    if (memcmp(p, "0000", 4) != 0) return NULL;		// IREP version
     p += 4;											// 4 = skip "0000"
 
     int     irep_max_sz = sec_sz * 2;
     uint8_t *ibuf = (uint8_t *)guru_malloc(irep_max_sz, 1);
     uint8_t *ipos = ibuf;
-    if (!ibuf) return !NO_ERROR;
+    if (!ibuf) return NULL;							//
 
     memset(ibuf, 0xaa, irep_max_sz);
 
-    vm->irep = (guru_irep *)_load_irep_0(&ibuf, &p);// recursively load irep tree
-    if (vm->irep==NULL) {
-        return LOAD_FILE_IREP_ERROR_ALLOCATION;
-    }
+    guru_irep *irep = _load_irep_0(&ibuf, &p);		// recursively load irep tree
+
+    if (irep==NULL) return NULL;					// allocation error
+
     int irep_sz = ibuf - ipos;
     assert(irep_sz <= irep_max_sz);					// verify allocated buffer size
     assert(sec_sz==(p - *pos));						// verify pointer arith.
 
     *pos += sec_sz;
-    return NO_ERROR;
+
+    return irep;
 }
 
 //================================================================
@@ -304,8 +304,8 @@ _load_irep(guru_vm *vm, const uint8_t **pos)
   @param  pos	A pointer of pointer of LVAR section.
   @return int	zero if no error.
 */
-__host__ int
-_load_lvar(guru_vm *vm, const uint8_t **pos)
+__HOST__ int
+_load_lvar(const uint8_t **pos)
 {
     const uint8_t *p = *pos;
 
@@ -326,17 +326,19 @@ _load_lvar(guru_vm *vm, const uint8_t **pos)
   @param  ptr	Pointer to bytecode.
 
 */
-__host__ void
+__HOST__ void
 guru_parse_bytecode(guru_vm *vm, const uint8_t *ptr)
 {
     int ret = _load_header(&ptr);
 
     while (ret==NO_ERROR) {
         if (memcmp(ptr, "IREP", 4)==0) {
-        	ret = _load_irep(vm, &ptr);
+        	ret = (vm->irep = _load_irep(&ptr))==NULL
+        			? LOAD_FILE_IREP_ERROR_ALLOCATION
+        			: NO_ERROR;
         }
         else if (memcmp(ptr, "LVAR", 4)==0) {
-            ret = _load_lvar(vm, &ptr);
+            ret = _load_lvar(&ptr);
         }
         else if (memcmp(ptr, "END\0", 4)==0) {
             break;
@@ -567,7 +569,7 @@ _load_lvar(mrbc_vm *vm, const uint8_t **pos)
   @param  ptr	Pointer to bytecode.
 
 */
-__global__ void
+__GPU__ void
 guru_parse_bytecode(mrbc_vm *vm, const uint8_t *ptr)
 {
 	if (threadIdx.x!=0 || blockIdx.x!=0) return;
