@@ -1,6 +1,8 @@
 /*! @file
   @brief
-  Guru bytecode executor.
+  guru instruction unit
+    1. guru VM, host or cuda image, constructor and dispatcher
+    2. dumpers for regfile and irep tree
 
   <pre>
   Copyright (C) 2015-2018 Kyushu Institute of Technology.
@@ -8,8 +10,13 @@
 
   This file is distributed under BSD 3-Clause License.
 
-  Fetch mruby VM bytecodes, decode and execute.
-
+  initialize VM
+  	  allocate vm cuda memory
+  	  parse mruby bytecodee
+  	  dump irep tree (optional)
+  execute VM
+  	  opcode execution loop (on GPU)
+  	  flush output per single-step (optional)
   </pre>
 */
 #include <stdio.h>
@@ -27,7 +34,7 @@
 
   @param  vm  Pointer to VM
 */
-__global__ void
+__GPU__ void
 _vm_begin(guru_vm *vm)
 {
 	if (threadIdx.x!=0 || blockIdx.x!=0) return;
@@ -57,7 +64,7 @@ _vm_begin(guru_vm *vm)
 
   @param  vm  Pointer to VM
 */
-__global__ void
+__GPU__ void
 _vm_end(guru_vm *vm)
 {
 	if (threadIdx.x!=0 || blockIdx.x!=0) return;
@@ -79,10 +86,10 @@ _vm_end(guru_vm *vm)
   @param  vm    A pointer of VM.
   @retval 0  No error.
 */
-__global__ void
+__GPU__ void
 _vm_exec(guru_vm *vm, int step)
 {
-	if (threadIdx.x!=0 || blockIdx.x!=0) return;		// TODO: multi-threading
+	if (threadIdx.x!=0 || blockIdx.x!=0) return;	// TODO: multi-threading
 
 	while (guru_op(vm)==0 && step==0) {
 		// add cuda hook here
@@ -111,7 +118,7 @@ _mrbc_free_irep(mrbc_irep *irep)
 }
 #endif
 
-__host__ cudaError_t
+__HOST__ cudaError_t
 guru_vm_init(guru_ses *ses)
 {
 #if GURU_HOST_IMAGE
@@ -130,12 +137,12 @@ guru_vm_init(guru_ses *ses)
 	cudaDeviceSynchronize();
 
 	ses->vm = (uint8_t *)vm;
-	if (ses->debug > 0)	guru_dump_irep1(vm->irep);
+	if (ses->debug > 0)	guru_dump_irep(vm->irep);
 #endif
 	return cudaSuccess;
 }
 
-__host__ cudaError_t
+__HOST__ cudaError_t
 guru_vm_run(guru_ses *ses)
 {
     guru_vm *vm = (guru_vm *)ses->vm;
@@ -181,7 +188,7 @@ static const char *_opcode[] = {
 };
 
 #if GURU_HOST_IMAGE
-__host__ void
+__HOST__ void
 guru_dump_irep(guru_irep *irep)
 {
 	printf("\tsize=%d, nreg=%d, nlocal=%d, pools=%d, syms=%d, reps=%d, ilen=%d\n",
@@ -195,7 +202,7 @@ guru_dump_irep(guru_irep *irep)
 	}
 }
 
-__host__ void
+__HOST__ void
 guru_dump_regfile(guru_vm *vm, int debug_level)
 {
 	if (debug_level==0) return;
@@ -236,7 +243,7 @@ guru_dump_regfile(guru_vm *vm, int debug_level)
 	printf("]\n");
 }
 #else // !GURU_HOST_IMAGE
-__host__ void
+__HOST__ void
 guru_dump_irep(mrbc_irep *irep)
 {
 	printf("\tnregs=%d, nlocals=%d, pools=%d, syms=%d, reps=%d, ilen=%d\n",
@@ -248,7 +255,7 @@ guru_dump_irep(mrbc_irep *irep)
 	}
 }
 
-__host__ void
+__HOST__ void
 guru_dump_regfile(mrbc_vm *vm, int debug_level)
 {
 	if (debug_level==0) return;

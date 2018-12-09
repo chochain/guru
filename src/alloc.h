@@ -55,7 +55,7 @@ __GURU__ void  mrbc_free(void *ptr);
 __GURU__ void  mrbc_free_all();
 
 // for statistics or debug. (need #define GURU_DEBUG)
-__global__ void guru_memory_init(void *mem, unsigned int sz);
+__GPU__ void guru_memory_init(void *mem, unsigned int sz);
 
 void *guru_malloc(size_t sz, int mem_type);		// mem_type: 0=>managed, 1=>device
 void guru_get_alloc_stat(int stat[]);

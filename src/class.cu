@@ -168,7 +168,7 @@ mrbc_proc_alloc(const char *name)
 __GURU__ void
 mrbc_define_method(mrbc_class *cls, const char *name, mrbc_func_t cfunc)
 {
-    if (cls==NULL) cls = mrbc_class_object;	// set default to Object.
+    if (cls==NULL) cls = mrbc_class_object;		// set default to Object.
 
     mrbc_proc *proc = mrbc_proc_alloc(name);
 

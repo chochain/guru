@@ -446,7 +446,7 @@ mrbc_free_all()
   @param  *free		returns free memory.
   @param  *fragment	returns memory fragmentation
 */
-__global__ void
+__GPU__ void
 guru_alloc_stat(int v[])
 {
 	if (threadIdx.x!=0 || blockIdx.x!=0) return;
@@ -485,14 +485,14 @@ guru_alloc_stat(int v[])
 	__syncthreads();
 }
 
-__global__ void guru_memory_init(void *ptr, unsigned int sz)
+__GPU__ void guru_memory_init(void *ptr, unsigned int sz)
 {
 	if (threadIdx.x!=0 || blockIdx.x!=0) return;
 
 	_init_mmu(ptr, sz);
 }
 
-__host__ void *
+__HOST__ void *
 guru_malloc(size_t sz, int type)
 {
 	void *mem;
@@ -506,7 +506,7 @@ guru_malloc(size_t sz, int type)
     return mem;
 }
 
-__host__ void
+__HOST__ void
 guru_get_alloc_stat(int stat[])
 {
 	int *v;
@@ -521,7 +521,7 @@ guru_get_alloc_stat(int stat[])
 	cudaFree(v);
 }
 
-__host__ void
+__HOST__ void
 guru_dump_alloc_stat(void)
 {
 	int s[8];

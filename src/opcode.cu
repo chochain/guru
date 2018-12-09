@@ -1,6 +1,6 @@
 /*! @file
   @brief
-  Guru bytecode executor.
+  guru microcode unit
 
   <pre>
   Copyright (C) 2015-2018 Kyushu Institute of Technology.
@@ -8,8 +8,10 @@
 
   This file is distributed under BSD 3-Clause License.
 
-  Fetch mruby VM bytecodes, decode and execute.
-
+  1. VM attribute accessor macros
+  2. internal state management functions
+  3. a list of opcode (microcode) executor, and
+  4. the core opcode dispatcher
   </pre>
 */
 
@@ -678,6 +680,7 @@ op_jmpnot(guru_vm *vm, uint32_t code, mrbc_value *regs)
     }
     return 0;
 }
+
 
 //================================================================
 /*!@brief
@@ -1585,6 +1588,7 @@ guru_op(guru_vm *vm)
     case OP_LOADSELF:   ret = op_loadself  (vm, code, regs); break;
     case OP_LOADT:      ret = op_loadt     (vm, code, regs); break;
     case OP_LOADF:      ret = op_loadf     (vm, code, regs); break;
+    // VARIABLES
     case OP_GETGLOBAL:  ret = op_getglobal (vm, code, regs); break;
     case OP_SETGLOBAL:  ret = op_setglobal (vm, code, regs); break;
     case OP_GETIV:      ret = op_getiv     (vm, code, regs); break;

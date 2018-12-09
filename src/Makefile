@@ -89,16 +89,16 @@ c_string.o: c_string.cu vm_config.h guru.h value.h alloc.h static.h symbol.h \
 						console.h sprintf.h \
 						class.h c_string.h
 						
-c_array.o: c_array.c 	vm_config.h guru.h alloc.h static.h opcode.h object.h \
+c_array.o: c_array.cu 	vm_config.h guru.h alloc.h static.h opcode.h object.h \
 						console.h errorcode.h \
 						class.h c_array.h \
   						c_string.h
 
-c_range.o: c_range.c 	vm_config.h guru.h alloc.h static.h symbol.h class.h \
+c_range.o: c_range.cu 	vm_config.h guru.h alloc.h static.h symbol.h class.h \
 						console.h c_range.h \
 						c_string.h
 
-c_hash.o: c_hash.c 		vm_config.h guru.h alloc.h static.h \
+c_hash.o: c_hash.cu 	vm_config.h guru.h alloc.h static.h \
   						class.h c_hash.h \
   						c_array.h c_string.h 
 

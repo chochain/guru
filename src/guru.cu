@@ -18,7 +18,7 @@ extern "C" __GURU__   void mrbc_init_class();							// class.cu
 extern "C" cudaError_t guru_vm_init(guru_ses *ses);						// vm.cu
 extern "C" cudaError_t guru_vm_run(guru_ses *ses);						// vm.cu
 
-__global__ void
+__GPU__ void
 guru_static_init(void)
 {
 	if (threadIdx.x!=0 || blockIdx.x!=0) return;
@@ -27,7 +27,7 @@ guru_static_init(void)
 	mrbc_init_class();
 }
 
-__host__ uint8_t*
+__HOST__ uint8_t*
 _load_bytecode(const char *rite_fname)
 {
   FILE *fp = fopen(rite_fname, "rb");
@@ -52,7 +52,7 @@ _load_bytecode(const char *rite_fname)
   return req;
 }
 
-__host__ int
+__HOST__ int
 session_init(guru_ses *ses, const char *rite_fname)
 {
 	void *mem = guru_malloc(BLOCK_MEMORY_SIZE, 1);
@@ -86,7 +86,7 @@ session_init(guru_ses *ses, const char *rite_fname)
 	return 0;
 }
 
-__host__ int
+__HOST__ int
 session_start(guru_ses *ses)
 {
 	cudaError_t rst = guru_vm_init(ses);

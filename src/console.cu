@@ -136,7 +136,7 @@ _dump_obj_size(void)
     console_str("\n");
 }
 
-__global__ void
+__GPU__ void
 guru_console_init(uint8_t *buf, size_t sz)
 {
 	if (threadIdx.x!=0 || blockIdx.x !=0) return;
@@ -151,7 +151,7 @@ guru_console_init(uint8_t *buf, size_t sz)
 
 #define NEXTNODE(n)	((guru_print_node *)(node->data + node->size))
 
-__host__ guru_print_node*
+__HOST__ guru_print_node*
 _guru_print_core(guru_print_node *node)
 {
 	uint8_t *fmt[80], *buf[80];		// check buffer overflow
@@ -181,7 +181,7 @@ _guru_print_core(guru_print_node *node)
 	return node;
 }
 
-__host__ void
+__HOST__ void
 guru_console_flush(uint8_t *output_buf)
 {
 	guru_print_node *node = (guru_print_node *)output_buf;

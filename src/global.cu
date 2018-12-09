@@ -50,7 +50,7 @@ _get_obj(mrbc_sym sid, mrbc_globaltype gtype)
 
 //
 __GURU__ void
- mrbc_init_global(void)
+mrbc_init_global(void)
 {
 	global_end = 0;
 }
@@ -105,14 +105,8 @@ global_object_get(mrbc_sym sid)
 }
 
 /* add const */
-/* TODO: Check reference count */
-/* TODO: Integrate with global_add */
-__GURU__
-/* get const */
-/* TODO: Integrate with get_global_object */
-
-__GURU__
-mrbc_object const_object_get(mrbc_sym sid)
+__GURU__ mrbc_object
+const_object_get(mrbc_sym sid)
 {
     return _get_obj(sid, GURU_CONST_OBJECT);
 }

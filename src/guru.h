@@ -22,9 +22,13 @@ extern "C" {
 #ifdef __GURU_CUDA__
 #define __GURU__ 	__device__
 #define __INLINE__	__forceinline__
+#define __HOST__	__host__
+#define __GPU__		__global__
 #else
 #define __GURU__
 #define __INLINE__ 	inline
+#define __HOST__
+#define __GPU__
 #endif
 
 #define MAX_BUFFER_SIZE 4096		// 4K
@@ -106,25 +110,25 @@ typedef enum {
 /*!@brief
   Guru value object.
 */
-typedef struct RObject {			// 16-bytes
+typedef struct RObject {					// 16-bytes
     mrbc_vtype           tt:8;
-    unsigned int		 flag:8;	// reserved
-    unsigned int	 	 size:16;	// reserved, 32-bit aligned
+    unsigned int		 flag:8;			// reserved
+    unsigned int	 	 size:16;			// reserved, 32-bit aligned
     union {
-        mrbc_int         i;			// GURU_TT_FIXNUM, SYMBOL
+        mrbc_int         i;					// GURU_TT_FIXNUM, SYMBOL
 #if GURU_USE_FLOAT
-        mrbc_float       f;			// GURU_TT_FLOAT
+        mrbc_float       f;					// GURU_TT_FLOAT
 #endif
-        struct RClass    *cls;		// GURU_TT_CLASS
-        struct RInstance *self;		// GURU_TT_OBJECT
-        struct RProc     *proc;		// GURU_TT_PROC
-        struct RString   *str;		// GURU_TT_STRING
+        struct RClass    *cls;				// GURU_TT_CLASS
+        struct RInstance *self;				// GURU_TT_OBJECT
+        struct RProc     *proc;				// GURU_TT_PROC
+        struct RString   *str;				// GURU_TT_STRING
 #if GURU_USE_ARRAY
-        struct RArray    *array;	// GURU_TT_ARRAY
-        struct RRange    *range;	// GURU_TT_RANGE
-        struct RHash     *hash;		// GURU_TT_HASH
+        struct RArray    *array;			// GURU_TT_ARRAY
+        struct RRange    *range;			// GURU_TT_RANGE
+        struct RHash     *hash;				// GURU_TT_HASH
 #endif
-        const char       *sym;		// C-string (only loader use.)
+        const char       *sym;				// C-string (only loader use.)
     };
 } mrbc_object, mrbc_value;
 
@@ -132,13 +136,13 @@ typedef struct RObject {			// 16-bytes
 /*!@brief
   Guru class object.
 */
-typedef struct RClass {			// 32-byte
-    struct RClass 	*super;		// mrbc_class[super]
-    struct RProc  	*vtbl;		// mrbc_proc[rprocs], linked list
+typedef struct RClass {						// 32-byte
+    struct RClass 	*super;					// mrbc_class[super]
+    struct RProc  	*vtbl;					// mrbc_proc[rprocs], linked list
 #ifdef GURU_DEBUG
-    const char    	*name;		// for debug. TODO: remove
+    const char    	*name;					// for debug. TODO: remove
 #endif
-    mrbc_sym       	sym_id;		// class name
+    mrbc_sym       	sym_id;					// class name
 } mrbc_class;
 
 #define GURU_PROC_C_FUNC 		0x80
@@ -149,11 +153,11 @@ typedef struct RClass {			// 32-byte
 	mrbc_vtype  	tt:8; 		\
 	unsigned int	flag:8
 
-typedef struct RString {		// 16-byte
-	GURU_OBJECT_HEADER;			// 4-byte
+typedef struct RString {					// 16-byte
+	GURU_OBJECT_HEADER;						// 4-byte
 
-	uint32_t 		size;		//!< string length.
-	uint8_t  		*data;		//!< pointer to allocated buffer.
+	uint32_t 		size;					//!< string length.
+	uint8_t  		*data;					//!< pointer to allocated buffer.
 } mrbc_string;
 
 //================================================================
@@ -176,7 +180,7 @@ typedef struct RInstance {		// 24-byte
 struct Irep;
 typedef void (*mrbc_func_t)(mrbc_object *v, int argc);
 
-typedef struct RProc {		// 40-byte
+typedef struct RProc {			// 40-byte
     GURU_OBJECT_HEADER;
 
     struct RProc *next;
@@ -185,7 +189,7 @@ typedef struct RProc {		// 40-byte
         mrbc_func_t  func;
     };
 #ifdef GURU_DEBUG
-    const char 	 *name;		// for debug; delete soon
+    const char 	 *name;			// for debug; delete soon
 #endif
     mrbc_sym 	 sym_id;
 } mrbc_proc;

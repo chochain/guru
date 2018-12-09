@@ -229,6 +229,3 @@ extern "C" int do_cuda(void) {
 
   return 0;
 }
-
-
-

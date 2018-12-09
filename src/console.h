@@ -37,8 +37,8 @@ __GURU__ void console_str(const char *str);
 __GURU__ void console_float(mrbc_float f);
 __GURU__ void console_na(const char *msg);
 
-__global__ void guru_console_init(uint8_t *buf, size_t sz);
-__host__   void guru_console_flush(uint8_t *output_buf);
+__GPU__ void guru_console_init(uint8_t *buf, size_t sz);
+__HOST__   void guru_console_flush(uint8_t *output_buf);
     
 #ifdef __cplusplus
 }
