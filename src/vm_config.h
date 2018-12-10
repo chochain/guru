@@ -15,9 +15,12 @@
 #ifndef GURU_SRC_VM_CONFIG_H_
 #define GURU_SRC_VM_CONFIG_H_
 
-/* maximum number of VMs */
+/* min, maximum number of VMs */
+#ifndef MIN_VM_COUNT
+#define MIN_VM_COUNT 2
+#endif
 #ifndef MAX_VM_COUNT
-#define MAX_VM_COUNT 1
+#define MAX_VM_COUNT 5
 #endif
 
 /* maximum size of registers, which determine how deep call stack can go */

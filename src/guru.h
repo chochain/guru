@@ -36,8 +36,8 @@ extern "C" {
 typedef struct guru_ses_ {
 	uint8_t  *req;
 	uint8_t  *res;
-	uint8_t  *vm;
-	uint32_t debug;
+	uint8_t  vm_id;
+	uint8_t  debug;
 } guru_ses;
 
 // mrbc types

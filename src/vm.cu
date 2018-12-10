@@ -28,6 +28,8 @@
 #include "load.h"
 #include "vm.h"
 
+static guru_vm *vm_pool[MIN_VM_COUNT];
+
 //================================================================
 /*!@brief
   VM initializer.
@@ -119,49 +121,70 @@ _mrbc_free_irep(mrbc_irep *irep)
 #endif
 
 __HOST__ cudaError_t
+_vm_pool_init(int debug)
+{
+	uint8_t *p  = (uint8_t *)guru_malloc(sizeof(guru_vm) * MIN_VM_COUNT, 1);
+	if (!p) return cudaErrorMemoryAllocation;
+	for (int i=0; i<MIN_VM_COUNT; i++, p+=sizeof(guru_vm)) {
+		vm_pool[i] = (guru_vm *)p;
+	}
+	if (debug) printf("\tnumber of VMs allocated: %d\n", MIN_VM_COUNT);
+
+	return cudaSuccess;
+}
+
+__HOST__ cudaError_t
 guru_vm_init(guru_ses *ses)
 {
 #if GURU_HOST_IMAGE
-	guru_vm *vm = (guru_vm *)guru_malloc(sizeof(guru_vm), 1);
-	if (!vm) return cudaErrorMemoryAllocation;
+	if (vm_pool[1]==NULL) {
+		if (_vm_pool_init(ses->debug)!=cudaSuccess) return cudaErrorMemoryAllocation;
+	}
+	guru_vm *vm = vm_pool[0];			// allocate from the pool
 
 	guru_parse_bytecode(vm, ses->req);
-	ses->vm = (uint8_t *)vm;
-
-	if (ses->debug > 0)	guru_dump_irep(vm->irep);
 #else
-	guru_vm *vm = (mrbc_vm *)guru_malloc(sizeof(mrbc_vm), 1);
+	mrbc_vm *vm = (mrbc_vm *)guru_malloc(sizeof(mrbc_vm), 1);
 	if (!vm) return cudaErrorMemoryAllocation;
 
 	guru_parse_bytecode<<<1,1>>>(vm, ses->req);
 	cudaDeviceSynchronize();
-
-	ses->vm = (uint8_t *)vm;
-	if (ses->debug > 0)	guru_dump_irep(vm->irep);
 #endif
+	ses->vm_id = 0;
+
+	if (ses->debug > 0)	guru_dump_irep(vm->irep);
+
 	return cudaSuccess;
 }
 
 __HOST__ cudaError_t
 guru_vm_run(guru_ses *ses)
 {
-    guru_vm *vm = (guru_vm *)ses->vm;
-	_vm_begin<<<1,1>>>(vm);
+    guru_vm *vm = vm_pool[ses->vm_id];
+
+    _vm_begin<<<MIN_VM_COUNT, 1>>>(vm);
 	cudaDeviceSynchronize();
 
 	do {	// enter the vm loop, potentially with different register files per thread
 		guru_dump_regfile(vm, ses->debug);					// for debugging
 
-		_vm_exec<<<1,1>>>(vm, 1);							// 1: single-step
+		_vm_exec<<<MIN_VM_COUNT, 1>>>(vm, 1);				// 1: single-step
 		cudaDeviceSynchronize();
 
 		// add host hook here
 		guru_console_flush(ses->res);						// dump output buffer
 	} while (vm->run && vm->err==0);
 
-    _vm_end<<<1,1>>>(vm);
+    _vm_end<<<MIN_VM_COUNT, 1>>>(vm);
 	cudaDeviceSynchronize();
 
+	return cudaSuccess;
+}
+
+__HOST__ cudaError_t
+guru_vm_release(guru_ses *ses)
+{
+	// release vm back to pool
 	return cudaSuccess;
 }
 

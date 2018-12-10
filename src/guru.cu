@@ -17,6 +17,7 @@ extern "C" __GURU__   void mrbc_init_class();							// class.cu
 
 extern "C" cudaError_t guru_vm_init(guru_ses *ses);						// vm.cu
 extern "C" cudaError_t guru_vm_run(guru_ses *ses);						// vm.cu
+extern "C" cudaError_t guru_vm_release(guru_ses *ses);					// vm.cu
 
 __GPU__ void
 guru_static_init(void)
@@ -108,6 +109,7 @@ session_start(guru_ses *ses)
 		printf("guru_session completed\n");
 		guru_dump_alloc_stat();
 	}
+	rst = guru_vm_release(ses);
 	return cudaSuccess!=rst;
 }
 

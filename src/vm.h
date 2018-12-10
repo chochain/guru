@@ -186,6 +186,7 @@ void _uint32_to_bin(uint32_t l, uint8_t *bin)
 
 cudaError_t guru_vm_init(guru_ses *ses);
 cudaError_t guru_vm_run(guru_ses *ses);
+cudaError_t guru_vm_release(guru_ses *ses);
 
 #define VM_IREP(vm)      ((vm)->state->irep)
 
