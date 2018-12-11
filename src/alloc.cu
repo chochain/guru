@@ -447,7 +447,7 @@ mrbc_free_all()
   @param  *fragment	returns memory fragmentation
 */
 __GPU__ void
-guru_alloc_stat(int v[])
+_alloc_stat(int v[])
 {
 	if (threadIdx.x!=0 || blockIdx.x!=0) return;
 
@@ -507,12 +507,12 @@ guru_malloc(size_t sz, int type)
 }
 
 __HOST__ void
-guru_get_alloc_stat(int stat[])
+guru_malloc_stat(int stat[])
 {
 	int *v;
 	cudaMallocManaged(&v, 8*sizeof(int));
 
-	guru_alloc_stat<<<1,1>>>(v);
+	_alloc_stat<<<1,1>>>(v);
 	cudaDeviceSynchronize();
 
 	for (int i=0; i<8; i++) {
@@ -525,7 +525,7 @@ __HOST__ void
 guru_dump_alloc_stat(void)
 {
 	int s[8];
-	guru_get_alloc_stat(s);
+	guru_malloc_stat(s);
 
 	printf("\ttotal %d(0x%x)> free=%d(%d), used=%d(%d), nblk=%d, nfrag=%d, %d%% allocated\n",
 				s[0], s[0], s[1], s[2], s[3], s[4], s[5], s[6], (int)(100*(s[4]+1)/s[0]));

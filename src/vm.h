@@ -67,7 +67,9 @@ typedef struct VM {
     guru_state      *state;		// VM state (callinfo) linked list
     mrbc_value      regfile[MAX_REGS_SIZE];
 
+    volatile int8_t used;
     volatile int8_t run;
+    volatile int8_t busy;		// reserved
     volatile int8_t	err;
 } guru_vm;
 

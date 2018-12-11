@@ -58,7 +58,7 @@ __GURU__ void  mrbc_free_all();
 __GPU__ void guru_memory_init(void *mem, unsigned int sz);
 
 void *guru_malloc(size_t sz, int mem_type);		// mem_type: 0=>managed, 1=>device
-void guru_get_alloc_stat(int stat[]);
+void guru_malloc_stat(int stat[]);
 void guru_dump_alloc_stat(void);
 
 #ifdef __cplusplus

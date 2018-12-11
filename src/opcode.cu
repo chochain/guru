@@ -1573,6 +1573,8 @@ op_abort(guru_vm *vm, uint32_t code, mrbc_value *regs)
 __GURU__ int
 guru_op(guru_vm *vm)
 {
+	if (threadIdx.x!=0) return;		// TODO: multi-thread
+
 	uint32_t   code   = GET_BYTECODE(vm);
 	int        opcode = GET_OPCODE(code);
 	mrbc_value *regs  = vm->state->reg;

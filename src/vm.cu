@@ -28,7 +28,8 @@
 #include "load.h"
 #include "vm.h"
 
-static guru_vm *vm_pool[MIN_VM_COUNT];
+int     _vm_pool_ok = 0;
+guru_vm **_vm_pool;
 
 //================================================================
 /*!@brief
@@ -37,9 +38,11 @@ static guru_vm *vm_pool[MIN_VM_COUNT];
   @param  vm  Pointer to VM
 */
 __GPU__ void
-_vm_begin(guru_vm *vm)
+_vm_begin(guru_vm *pool[])
 {
-	if (threadIdx.x!=0 || blockIdx.x!=0) return;
+	guru_vm *vm = pool[blockIdx.x];
+
+	if (threadIdx.x!=0 || vm->used==0) return;
 
     MEMSET((uint8_t *)vm->regfile, 0, sizeof(vm->regfile));	// clean up registers
 
@@ -67,9 +70,11 @@ _vm_begin(guru_vm *vm)
   @param  vm  Pointer to VM
 */
 __GPU__ void
-_vm_end(guru_vm *vm)
+_vm_end(guru_vm *pool[])
 {
-	if (threadIdx.x!=0 || blockIdx.x!=0) return;
+	guru_vm *vm = pool[blockIdx.x];
+
+	if (threadIdx.x!=0 || vm->used==0) return;
 
 #ifndef GURU_DEBUG
 	// clean up register file?						// CC: moved from mrbc_op 20181102
@@ -89,11 +94,11 @@ _vm_end(guru_vm *vm)
   @retval 0  No error.
 */
 __GPU__ void
-_vm_exec(guru_vm *vm, int step)
+_vm_exec(guru_vm *pool[], int step)
 {
-	if (threadIdx.x!=0 || blockIdx.x!=0) return;	// TODO: multi-threading
+	guru_vm *vm = pool[blockIdx.x];
 
-	while (guru_op(vm)==0 && step==0) {
+	while (vm->used && guru_op(vm)==0 && step==0) {	// multi-threading in guru_op
 		// add cuda hook here
 	}
 }
@@ -123,10 +128,13 @@ _mrbc_free_irep(mrbc_irep *irep)
 __HOST__ cudaError_t
 _vm_pool_init(int debug)
 {
-	uint8_t *p  = (uint8_t *)guru_malloc(sizeof(guru_vm) * MIN_VM_COUNT, 1);
-	if (!p) return cudaErrorMemoryAllocation;
-	for (int i=0; i<MIN_VM_COUNT; i++, p+=sizeof(guru_vm)) {
-		vm_pool[i] = (guru_vm *)p;
+	_vm_pool   = (guru_vm **)guru_malloc(sizeof(guru_vm *) * MIN_VM_COUNT, 1);
+	guru_vm *p = (guru_vm *)guru_malloc(sizeof(guru_vm) * MIN_VM_COUNT, 1);
+	if (!_vm_pool || !p) return cudaErrorMemoryAllocation;
+
+	for (int i=0; i<MIN_VM_COUNT; i++, p++) {
+		p->used = p->busy = p->run = 0;
+		_vm_pool[i] = p;
 	}
 	if (debug) printf("\tnumber of VMs allocated: %d\n", MIN_VM_COUNT);
 
@@ -137,10 +145,14 @@ __HOST__ cudaError_t
 guru_vm_init(guru_ses *ses)
 {
 #if GURU_HOST_IMAGE
-	if (vm_pool[1]==NULL) {
+	if (!_vm_pool_ok) {
 		if (_vm_pool_init(ses->debug)!=cudaSuccess) return cudaErrorMemoryAllocation;
+		_vm_pool_ok = 1;
 	}
-	guru_vm *vm = vm_pool[0];			// allocate from the pool
+
+	ses->vm_id = 0;						// assign vm to session
+	guru_vm *vm = _vm_pool[0];			// allocate from the pool
+	vm->used   = 1;
 
 	guru_parse_bytecode(vm, ses->req);
 #else
@@ -150,7 +162,6 @@ guru_vm_init(guru_ses *ses)
 	guru_parse_bytecode<<<1,1>>>(vm, ses->req);
 	cudaDeviceSynchronize();
 #endif
-	ses->vm_id = 0;
 
 	if (ses->debug > 0)	guru_dump_irep(vm->irep);
 
@@ -160,22 +171,22 @@ guru_vm_init(guru_ses *ses)
 __HOST__ cudaError_t
 guru_vm_run(guru_ses *ses)
 {
-    guru_vm *vm = vm_pool[ses->vm_id];
+	guru_vm *vm = _vm_pool[ses->vm_id];
 
-    _vm_begin<<<MIN_VM_COUNT, 1>>>(vm);
+    _vm_begin<<<MIN_VM_COUNT, 1>>>(_vm_pool);
 	cudaDeviceSynchronize();
 
 	do {	// enter the vm loop, potentially with different register files per thread
 		guru_dump_regfile(vm, ses->debug);					// for debugging
 
-		_vm_exec<<<MIN_VM_COUNT, 1>>>(vm, 1);				// 1: single-step
+		_vm_exec<<<MIN_VM_COUNT, 1>>>(_vm_pool, 1);			// 1: single-step
 		cudaDeviceSynchronize();
 
 		// add host hook here
 		guru_console_flush(ses->res);						// dump output buffer
 	} while (vm->run && vm->err==0);
 
-    _vm_end<<<MIN_VM_COUNT, 1>>>(vm);
+    _vm_end<<<MIN_VM_COUNT, 1>>>(_vm_pool);
 	cudaDeviceSynchronize();
 
 	return cudaSuccess;
@@ -251,7 +262,7 @@ guru_dump_regfile(guru_vm *vm, int debug_level)
 	v = vm->regfile;	// rewind
 	if (debug_level==1) {
 		int s[8];
-		guru_get_alloc_stat(s);
+		guru_malloc_stat(s);
 		printf("%c%-4d%-8s%-3d[ ", 'a'+lvl, pc, opcode, s[3]);
 	}
 	else if (debug_level==2) {
@@ -304,7 +315,7 @@ guru_dump_regfile(mrbc_vm *vm, int debug_level)
 	v = vm->regfile;	// rewind
 	if (debug_level==1) {
 		int s[8];
-		guru_get_alloc_stat(s);
+		guru_malloc_stat(s);
 		printf("%c%-4d%-8s%-3d[ ", 'a'+lvl, pc, opcode, s[3]);
 	}
 	else if (debug_level==2) {
