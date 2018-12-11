@@ -42,7 +42,7 @@ _vm_begin(guru_vm *pool[])
 {
 	guru_vm *vm = pool[blockIdx.x];
 
-	if (threadIdx.x!=0 || vm->used==0) return;
+	if (threadIdx.x!=0 || vm->free) return;
 
     MEMSET((uint8_t *)vm->regfile, 0, sizeof(vm->regfile));	// clean up registers
 
@@ -60,6 +60,7 @@ _vm_begin(guru_vm *pool[])
 
     vm->state = st;
     vm->run   = 1;								// TODO: updated by scheduler
+    vm->done  = 0;
     vm->err   = 0;
 }
 
@@ -74,7 +75,7 @@ _vm_end(guru_vm *pool[])
 {
 	guru_vm *vm = pool[blockIdx.x];
 
-	if (threadIdx.x!=0 || vm->used==0) return;
+	if (threadIdx.x!=0 || vm->free) return;
 
 #ifndef GURU_DEBUG
 	// clean up register file?						// CC: moved from mrbc_op 20181102
@@ -98,7 +99,9 @@ _vm_exec(guru_vm *pool[], int step)
 {
 	guru_vm *vm = pool[blockIdx.x];
 
-	while (vm->used && guru_op(vm)==0 && step==0) {	// multi-threading in guru_op
+	if (vm->free) return;
+
+	while (guru_op(vm)==0 && step==0) {		// multi-threading in guru_op
 		// add cuda hook here
 	}
 }
@@ -128,13 +131,13 @@ _mrbc_free_irep(mrbc_irep *irep)
 __HOST__ cudaError_t
 _vm_pool_init(int debug)
 {
-	_vm_pool   = (guru_vm **)guru_malloc(sizeof(guru_vm *) * MIN_VM_COUNT, 1);
-	guru_vm *p = (guru_vm *)guru_malloc(sizeof(guru_vm) * MIN_VM_COUNT, 1);
-	if (!_vm_pool || !p) return cudaErrorMemoryAllocation;
+	_vm_pool    = (guru_vm **)guru_malloc(sizeof(guru_vm *) * MIN_VM_COUNT, 1);
+	guru_vm *vm = (guru_vm *)guru_malloc(sizeof(guru_vm) * MIN_VM_COUNT, 1);
+	if (!_vm_pool || !vm) return cudaErrorMemoryAllocation;
 
-	for (int i=0; i<MIN_VM_COUNT; i++, p++) {
-		p->used = p->busy = p->run = 0;
-		_vm_pool[i] = p;
+	for (int i=0; i<MIN_VM_COUNT; i++, vm++) {
+		vm->free = 1;
+		_vm_pool[i] = vm;
 	}
 	if (debug) printf("\tnumber of VMs allocated: %d\n", MIN_VM_COUNT);
 
@@ -152,7 +155,7 @@ guru_vm_init(guru_ses *ses)
 
 	ses->vm_id = 0;						// assign vm to session
 	guru_vm *vm = _vm_pool[0];			// allocate from the pool
-	vm->used   = 1;
+	vm->free   = 0;
 
 	guru_parse_bytecode(vm, ses->req);
 #else
@@ -177,14 +180,14 @@ guru_vm_run(guru_ses *ses)
 	cudaDeviceSynchronize();
 
 	do {	// enter the vm loop, potentially with different register files per thread
-		guru_dump_regfile(vm, ses->debug);					// for debugging
+		guru_dump_regfile(_vm_pool, ses->debug);			// for debugging
 
 		_vm_exec<<<MIN_VM_COUNT, 1>>>(_vm_pool, 1);			// 1: single-step
 		cudaDeviceSynchronize();
 
 		// add host hook here
 		guru_console_flush(ses->res);						// dump output buffer
-	} while (vm->run && vm->err==0);
+	} while (!vm->done && !vm->err);
 
     _vm_end<<<MIN_VM_COUNT, 1>>>(_vm_pool);
 	cudaDeviceSynchronize();
@@ -237,9 +240,11 @@ guru_dump_irep(guru_irep *irep)
 }
 
 __HOST__ void
-guru_dump_regfile(guru_vm *vm, int debug_level)
+guru_dump_regfile(guru_vm *pool[], int debug_level)
 {
 	if (debug_level==0) return;
+
+	guru_vm *vm = pool[0];
 
 	uint16_t    pc      = vm->state->pc;
 	uint32_t    *iseq   = VM_ISEQ(vm);

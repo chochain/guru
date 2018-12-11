@@ -152,7 +152,7 @@ guru_console_init(uint8_t *buf, size_t sz)
 #define NEXTNODE(n)	((guru_print_node *)(node->data + node->size))
 
 __HOST__ guru_print_node*
-_guru_print_core(guru_print_node *node)
+_guru_host_print(guru_print_node *node)
 {
 	uint8_t *fmt[80], *buf[80];		// check buffer overflow
 	int 	argc;
@@ -173,7 +173,7 @@ _guru_print_core(guru_print_node *node)
 		printf("%s", (char *)fmt);
 		for (int i=0; i<argc; i++) {
 			node = NEXTNODE(node);				// point to next parameter
-			node = _guru_print_core(node);		// recursive call
+			node = _guru_host_print(node);		// recursive call
 		}
 		break;
 	default: printf("not supported: %d", node->tt); break;
@@ -187,7 +187,7 @@ guru_console_flush(uint8_t *output_buf)
 	guru_print_node *node = (guru_print_node *)output_buf;
 
 	while (node->tt != GURU_TT_EMPTY) {			// 0
-		node = _guru_print_core(node);
+		node = _guru_host_print(node);
 		node = NEXTNODE(node);
 	}
 	guru_console_init<<<1,1>>>(output_buf, 0);

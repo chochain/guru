@@ -1560,7 +1560,7 @@ op_tclass(guru_vm *vm, uint32_t code, mrbc_value *regs)
 __GURU__ int
 op_stop(guru_vm *vm, uint32_t code, mrbc_value *regs)
 {
-	vm->run = 0;
+	vm->done = 1;
     return -1;		// exit guru_op loop
 }
 
