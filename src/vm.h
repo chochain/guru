@@ -67,9 +67,9 @@ typedef struct VM {
     guru_state      *state;		// VM state (callinfo) linked list
     mrbc_value      regfile[MAX_REGS_SIZE];
 
-    volatile int8_t free;
-    volatile int8_t run;
-    volatile int8_t done;		// reserved
+    volatile int8_t id;			// allocation control (-1 means free)
+    volatile int8_t run;		// to exit vm loop
+    volatile int8_t step;		// for single-step debug level
     volatile int8_t	err;
 } guru_vm;
 
@@ -189,29 +189,17 @@ void _uint32_to_bin(uint32_t l, uint8_t *bin)
 cudaError_t guru_vm_init(guru_ses *ses);
 cudaError_t guru_vm_run(guru_ses *ses);
 cudaError_t guru_vm_release(guru_ses *ses);
+cudaError_t guru_vm_trace(guru_ses *ses);
 
 #define VM_IREP(vm)      ((vm)->state->irep)
 
 #if GURU_HOST_IMAGE
 #define VM_ISEQ(vm)	 	 ((uint32_t *)((uint8_t *)VM_IREP(vm) + VM_IREP(vm)->iseq))
 #define GET_BYTECODE(vm) (_bin_to_uint32(VM_ISEQ(vm) + (vm)->state->pc))
-
-#ifdef GURU_DEBUG
-	void guru_dump_irep(guru_irep *irep);
-	void guru_dump_regfile(guru_vm *vm_pool[], int debug);
-#endif
-
 #else  // !GURU_HOST_IMAGE
-
 #define VM_ISEQ(vm)	 	 ((uint32_t *)(VM_IREP(vm)->iseq)
 #define GET_BYTECODE(vm) (_bin_to_uint32(VM_ISEQ(vm) + (vm)->state->pc))
-
-#ifdef GURU_DEBUG
-	void guru_dump_irep(mrbc_irep *irep);
-	void guru_dump_regfile(mrbc_vm *vm, int debug);
 #endif
-
-#endif	// GURU_HOST_IMAGE
 
 #ifdef __cplusplus
 }
