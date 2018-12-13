@@ -528,6 +528,6 @@ guru_dump_alloc_stat(void)
 	guru_malloc_stat(s);
 
 	printf("\ttotal %d(0x%x)> free=%d(%d), used=%d(%d), nblk=%d, nfrag=%d, %d%% allocated\n",
-				s[0], s[0], s[1], s[2], s[3], s[4], s[5], s[6], (int)(100*(s[4]+1)/s[0]));
+			s[0], s[0], s[1], s[2], s[3], s[4], s[5], s[6], (int)(100*(s[4]+1)/s[0]));
 }
 #endif

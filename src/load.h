@@ -23,9 +23,11 @@ extern "C" {
 #endif
 
 #if GURU_HOST_IMAGE
-__HOST__   void  guru_parse_bytecode(guru_vm *vm, const uint8_t *ptr);
+__HOST__ void  guru_parse_bytecode(guru_vm *vm, const uint8_t *ptr);
+__HOST__ void  guru_show_irep(guru_irep *irep);
 #else
-__GPU__ void  guru_parse_bytecode(mrbc_vm *vm, const uint8_t *ptr);
+__GPU__  void  guru_parse_bytecode(mrbc_vm *vm, const uint8_t *ptr);
+__HOST__ void  guru_show_irep(mrbc_irep *irep);
 #endif
 
 #ifdef __cplusplus

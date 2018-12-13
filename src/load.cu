@@ -345,6 +345,21 @@ guru_parse_bytecode(guru_vm *vm, const uint8_t *ptr)
         }
     }
 }
+#ifdef GURU_DEBUG
+__HOST__ void
+guru_show_irep(guru_irep *irep)
+{
+	printf("\tsize=%d, nreg=%d, nlocal=%d, pools=%d, syms=%d, reps=%d, ilen=%d\n",
+			irep->size, irep->nreg, irep->nlv, irep->plen, irep->slen, irep->rlen, irep->ilen);
+
+	// dump all children ireps
+	uint8_t  *base = (uint8_t *)irep;
+	uint32_t *off  = (uint32_t *)(base + irep->list);
+	for (int i=0; i<irep->rlen; i++, off++) {
+		guru_show_irep((guru_irep *)(base + *off));
+	}
+}
+#endif
 
 #else	// !GURU_HOST_IMAGE
 
@@ -589,4 +604,17 @@ guru_parse_bytecode(mrbc_vm *vm, const uint8_t *ptr)
     }
     __syncthreads();
 }
+
+__HOST__ void
+guru_show_irep(mrbc_irep *irep)
+{
+	printf("\tnregs=%d, nlocals=%d, pools=%d, syms=%d, reps=%d, ilen=%d\n",
+			irep->nreg, irep->nlv, irep->plen, irep->slen, irep->rlen, irep->ilen);
+
+	// dump all children ireps
+	for (int i=0; i<irep->rlen; i++) {
+		guru_show_irep(irep->list[i]);
+	}
+}
 #endif
+
