@@ -90,12 +90,14 @@ session_init(guru_ses *ses, const char *rite_fname)
 __HOST__ int
 session_start(guru_ses *ses)
 {
+	// TODO: flip session/vm into AppServer style service
+
 	cudaError_t rst = guru_vm_init(ses);
 	if (cudaSuccess != rst) {
 		fprintf(stderr, "ERROR: virtual memory block allocation error!\n");
 		return -1;
 	}
-	if (ses->debug > 0) {
+	if (ses->debug) {
 		printf("guru bytecode loaded\n");
 		guru_dump_alloc_stat();
 	}
@@ -105,7 +107,7 @@ session_start(guru_ses *ses)
     	fprintf(stderr, "\nERR> %s\n", cudaGetErrorString(rst));
     }
 
-	if (ses->debug > 0) {
+	if (ses->debug) {
 		printf("guru_session completed\n");
 		guru_dump_alloc_stat();
 	}

@@ -44,7 +44,7 @@ _vm_begin(guru_vm *pool[])
 
 	if (threadIdx.x!=0 || vm->id < 0) return;	// bail if vm not allocated
 
-    MEMSET((uint8_t *)vm->regfile, 0, sizeof(vm->regfile));	// clean up registers
+	MEMSET((uint8_t *)vm->regfile, 0, sizeof(vm->regfile));	// clean up registers
 
     vm->regfile[0].tt  	= GURU_TT_CLASS;		// regfile[0] is self
     vm->regfile[0].cls 	= mrbc_class_object;	// root class
@@ -130,10 +130,11 @@ _mrbc_free_irep(mrbc_irep *irep)
 __HOST__ cudaError_t
 _vm_pool_init(void)
 {
-	_vm_pool    = (guru_vm **)guru_malloc(sizeof(guru_vm *) * MIN_VM_COUNT, 1);
-	guru_vm *vm = (guru_vm *)guru_malloc(sizeof(guru_vm) * MIN_VM_COUNT, 1);
-	if (!_vm_pool || !vm) return cudaErrorMemoryAllocation;
+	uint8_t *p = (uint8_t *)guru_malloc((sizeof(guru_vm *)+sizeof(guru_vm)) * MIN_VM_COUNT, 1);
+	if (!p) return cudaErrorMemoryAllocation;
 
+	_vm_pool = (guru_vm **)p;
+	guru_vm *vm = (guru_vm *)(p + MIN_VM_COUNT * sizeof(guru_vm*));
 	for (int i=0; i<MIN_VM_COUNT; i++, vm++) {
 		vm->id   = -1;
 #ifdef GURU_DEBUG
@@ -146,21 +147,34 @@ _vm_pool_init(void)
 	return cudaSuccess;
 }
 
+__HOST__ int
+_vm_join(void)
+{
+	guru_vm *vm = _vm_pool[0];
+	for (int i=0; i<MIN_VM_COUNT; i++, vm++) {
+		if (vm->id >=0 && vm->run) return 1;
+	}
+	return 0;
+}
+
 __HOST__ cudaError_t
 guru_vm_init(guru_ses *ses)
 {
 #if GURU_HOST_IMAGE
 	if (!_vm_pool_ok) {
 		if (_vm_pool_init() != cudaSuccess) return cudaErrorMemoryAllocation;
+		if (ses->debug) printf("\tnumber of VMs allocated: %d\n", MIN_VM_COUNT);
 		_vm_pool_ok = 1;
 	}
-	if (ses->debug) printf("\tnumber of VMs allocated: %d\n", MIN_VM_COUNT);
-
-	guru_vm *vm = _vm_pool[0];			// allocate from the pool
-	vm->id      = 0;					// allocated
 	ses->vm_id  = 0;					// assign vm to session
 
-	guru_parse_bytecode(vm, ses->req);
+	guru_vm *vm0 = _vm_pool[0];			// allocate from the pool
+	vm0->id      = 0;					// allocated
+	guru_parse_bytecode(vm0, ses->req);
+
+	guru_vm *vm1 = _vm_pool[1];			// allocate from the pool
+	vm1->id      = 1;					// allocated
+	guru_parse_bytecode(vm1, ses->req);
 #else
 	mrbc_vm *vm = (mrbc_vm *)guru_malloc(sizeof(mrbc_vm), 1);
 	if (!vm) return cudaErrorMemoryAllocation;
@@ -169,20 +183,20 @@ guru_vm_init(guru_ses *ses)
 	cudaDeviceSynchronize();
 #endif
 
-	if (ses->debug)	guru_show_irep(vm->irep);
-
+	if (ses->debug)	{
+		guru_show_irep(vm0->irep);
+		guru_show_irep(vm1->irep);
+	}
 	return cudaSuccess;
 }
 
 __HOST__ cudaError_t
 guru_vm_run(guru_ses *ses)
 {
-	guru_vm *vm = _vm_pool[0];
-
     _vm_begin<<<MIN_VM_COUNT, 1>>>(_vm_pool);
 	cudaDeviceSynchronize();
 
-	do {	// enter the vm loop, potentially with different register files per thread
+	do {	// TODO: flip session/vm centric view into app-server style main loop
 		guru_vm_trace(ses);
 
 		_vm_exec<<<MIN_VM_COUNT, 1>>>(_vm_pool);
@@ -190,7 +204,7 @@ guru_vm_run(guru_ses *ses)
 
 		// add host hook here
 		guru_console_flush(ses->res);					// dump output buffer
-	} while (vm->run && !vm->err);
+	} while (_vm_join());
 
     _vm_end<<<MIN_VM_COUNT, 1>>>(_vm_pool);
 	cudaDeviceSynchronize();
@@ -246,7 +260,7 @@ _show_prefetch(guru_vm *vm)
 
 	int s[8];
 	guru_malloc_stat(s);
-	printf("%c%-4d%-8s%4d", 'a'+lvl, pc, opc, s[3]);
+	printf("%1d%c%-4d%-8s%4d", vm->id, 'A'+lvl, pc, opc, s[3]);
 }
 
 __HOST__ void
@@ -312,11 +326,10 @@ guru_vm_trace(guru_ses *ses)
 
 	for (int i=0; i<MIN_VM_COUNT; i++) {
 		guru_vm *vm = _vm_pool[i];
+		if (vm->id < 0 || !vm->run) continue;
 
-		if (vm->id >=0 && ses->debug > 0) {
-			_show_prefetch(vm);
-			_show_regfile(vm);
-		}
+		_show_prefetch(vm);
+		_show_regfile(vm);
 	}
 	if (ses->debug > 1) guru_dump_alloc_stat();
 

@@ -1573,14 +1573,14 @@ op_abort(guru_vm *vm, uint32_t code, mrbc_value *regs)
 __GURU__ int
 guru_op(guru_vm *vm)
 {
-	if (threadIdx.x!=0) return;		// TODO: multi-thread
+	if (threadIdx.x != 0) return;	// TODO: multi-thread
 
 	uint32_t   code   = GET_BYTECODE(vm);
 	int        opcode = GET_OPCODE(code);
 	mrbc_value *regs  = vm->state->reg;
 	int 	   ret;
 
-    vm->state->pc++;		// advance program counter, ready for next cycle
+    vm->state->pc++;				// advance program counter, ready for next cycle
     switch (opcode) {
     // LOAD,STORE
     case OP_LOADL:      ret = op_loadl     (vm, code, regs); break;
@@ -1639,7 +1639,7 @@ guru_op(guru_vm *vm)
     case OP_TCLASS:     ret = op_tclass    (vm, code, regs); break;
     // EXEC
     case OP_STOP:       ret = op_stop      (vm, code, regs); break;
-    case OP_ABORT:      ret = op_abort     (vm, code, regs); break;  // reuse
+    case OP_ABORT:      ret = op_abort     (vm, code, regs); break;  	// reuse
     case OP_NOP:        ret = op_nop       (vm, code, regs); break;
     default:
     	console_str("?OP=");

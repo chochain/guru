@@ -63,14 +63,14 @@ typedef struct RState {
   Virtual Machine
 */
 typedef struct VM {
+    int8_t 			id;			// allocation control (-1 means free)
+    int8_t 			run;		// to exit vm loop
+    int8_t 			step;		// for single-step debug level
+    int8_t			err;
     guru_irep       *irep;		// pointer to IREP tree
     guru_state      *state;		// VM state (callinfo) linked list
-    mrbc_value      regfile[MAX_REGS_SIZE];
+    mrbc_value  	regfile[MAX_REGS_SIZE];
 
-    volatile int8_t id;			// allocation control (-1 means free)
-    volatile int8_t run;		// to exit vm loop
-    volatile int8_t step;		// for single-step debug level
-    volatile int8_t	err;
 } guru_vm;
 
 #else // !GURU_HOST_IMAGE
