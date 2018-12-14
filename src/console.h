@@ -24,8 +24,9 @@ extern "C" {
 /*! printf tiny (mruby/c) version data container.
 */
 typedef struct print_node {
-    mrbc_vtype  tt :8;
-    mrbc_vtype	fmt:8;
+	uint8_t		id :6;
+    mrbc_vtype  tt :5;
+    mrbc_vtype	fmt:5;
     uint16_t	size;
 	uint8_t		data[];
 } guru_print_node;

@@ -56,6 +56,12 @@
 #define PREV(p) 		((uint8_t *)(p) - (p)->psize)
 #define OFF(p0,p1) 		((uint8_t *)(p1) - (uint8_t *)(p0))
 
+// semaphore
+__GURU__ volatile int   _mutex_mem;
+#define MUTEX_GET		while (_mutex_mem); \
+						atomicAdd((int *)&_mutex_mem, 1)
+#define MUTEX_FREE		atomicSub((int *)&_mutex_mem, 1)
+
 // memory pool
 __GURU__ unsigned int 	_memory_pool_size;
 __GURU__ uint8_t     	*_memory_pool;
@@ -309,6 +315,7 @@ _init_mmu(void *mem, unsigned int size)
     assert(size != 0);
     assert(size < 0x80000000);		// 2G max
 
+    _mutex_mem		  = 0;
     _memory_pool      = (uint8_t *)mem;
     _memory_pool_size = size;
 
@@ -348,10 +355,14 @@ mrbc_alloc(unsigned int size)
     }
 #endif
 
-	int index 			= _get_free_index(alloc_size);
-    free_block *target 	= _mark_used(index);
+	MUTEX_GET;
 
-    _split_free_block(target, alloc_size, 0);
+	int index 			= _get_free_index(alloc_size);
+	free_block *target 	= _mark_used(index);
+
+	_split_free_block(target, alloc_size, 0);
+
+	MUTEX_FREE;
 
 #ifdef GURU_DEBUG
     uint8_t *p = BLOCKDATA(target);
@@ -406,6 +417,8 @@ mrbc_realloc(void *ptr, unsigned int size)
 __GURU__ void
 mrbc_free(void *ptr)
 {
+	MUTEX_GET;
+
     free_block *target = (free_block *)BLOCKHEAD(ptr);	// get block header
     free_block *prev   = (free_block *)PREV(target);
 
@@ -417,6 +430,8 @@ mrbc_free(void *ptr)
     	target = prev;
     }
     _mark_free(target);
+
+    MUTEX_FREE;
 }
 
 //================================================================

@@ -14,24 +14,34 @@
 #include "value.h"
 #include "console.h"
 
-__GURU__ size_t  guru_output_size;
-__GURU__ uint8_t *guru_output;
-__GURU__ uint8_t *guru_output_ptr;	// global output buffer for now, per session later
+__GURU__ size_t  _output_size;
+__GURU__ uint8_t *_output_ptr;		// global output buffer for now, per session later
+__GURU__ uint8_t *_output_buf;
+
+__GURU__ volatile int _mutex_con;
+#define MUTEX_GET	while (_mutex_con);	\
+					atomicAdd((int *)&_mutex_con, 1)
+#define MUTEX_FREE  atomicSub((int *)&_mutex_con, 1)
 
 __GURU__ void
 guru_write(mrbc_vtype tt, mrbc_vtype fmt, size_t sz, uint8_t *buf)
 {
-	guru_print_node *n = (guru_print_node *)guru_output_ptr;
+	if (threadIdx.x!=0) return;		// only thread 0 within a block can write
 
+	MUTEX_GET;
+
+	guru_print_node *n = (guru_print_node *)_output_ptr;
 	MEMCPY((uint8_t *)n->data, buf, sz);
 
+	n->id   = blockIdx.x;			// VM.id
 	n->tt   = tt;
 	n->fmt  = fmt;
 	n->size = sz + (-sz & 0x3);		// 32-bit alignment
 
-	guru_output_ptr = (uint8_t *)n->data + n->size;		// advance pointer to next print block
+	_output_ptr  = (uint8_t *)n->data + n->size;		// advance pointer to next print block
+	*_output_ptr = (uint8_t)GURU_TT_EMPTY;
 
-	*guru_output_ptr = (uint8_t)GURU_TT_EMPTY;
+	MUTEX_FREE;
 }
 
 //================================================================
@@ -139,14 +149,14 @@ _dump_obj_size(void)
 __GPU__ void
 guru_console_init(uint8_t *buf, size_t sz)
 {
-	if (threadIdx.x!=0 || blockIdx.x !=0) return;
+	if (threadIdx.x!=0 || blockIdx.x!=0) return;
 
 	guru_print_node *node = (guru_print_node *)buf;
 	node->tt = GURU_TT_EMPTY;
 
-	guru_output = guru_output_ptr = buf;
+	_output_buf = _output_ptr = buf;
 
-	if (sz) guru_output_size = sz;					// set to new size
+	if (sz) _output_size = sz;					// set to new size
 }
 
 #define NEXTNODE(n)	((guru_print_node *)(node->data + node->size))
@@ -156,6 +166,7 @@ _guru_host_print(guru_print_node *node)
 {
 	uint8_t *fmt[80], *buf[80];		// check buffer overflow
 	int 	argc;
+	printf("<%d>", node->id);
 	switch (node->tt) {
 	case GURU_TT_FIXNUM:
 		printf((node->fmt==GURU_TT_FIXNUM ? "%d" : "%04x"), *((mrbc_int *)node->data));
@@ -178,6 +189,7 @@ _guru_host_print(guru_print_node *node)
 		break;
 	default: printf("not supported: %d", node->tt); break;
 	}
+	printf("</%d>", node->id);
 	return node;
 }
 
