@@ -115,4 +115,6 @@ session_start(guru_ses *ses)
 	return cudaSuccess!=rst;
 }
 
+
+
     

@@ -105,17 +105,8 @@ _vm_exec(guru_vm *pool)
 	guru_vm *vm = pool+blockIdx.x;
 	if (vm->id < 0 || !vm->run) return;		// not allocated yet, or completed
 
-	int v;
-	switch (vm->id) {
-	case 0: v = vm->id; break;
-	case 1: v = vm->id; break;
-	default: v = vm->id;
-	}
-//	grid_group g = this_grid();
-
 	while (guru_op(vm)==0 && vm->step==0) {	// multi-threading in guru_op
 		// add cuda hook here
-		//	g.sync();						// block barrier
 	}
 }
 #if !GURU_HOST_IMAGE
@@ -180,13 +171,13 @@ guru_vm_init(guru_ses *ses)
 	}
 	ses->id  = 0;						// assign vm to session
 
-	guru_vm *vm0 = _vm_pool+0;			// allocate from the pool
-	vm0->id      = 0;					// allocated
-	guru_parse_bytecode(vm0, ses->in);
+	for (int i=0; i<MIN_VM_COUNT; i++) {
+		guru_vm *vm = _vm_pool+i;			// allocate from the pool
+		vm->id      = i;					// allocated
+		guru_parse_bytecode(vm, ses->in);
 
-	guru_vm *vm1 = _vm_pool+1;			// allocate from the pool
-	vm1->id      = 1;					// allocated
-	guru_parse_bytecode(vm1, ses->in);
+		if (ses->debug) guru_show_irep(vm->irep);
+	}
 #else
 	mrbc_vm *vm = (mrbc_vm *)guru_malloc(sizeof(mrbc_vm), 1);
 	if (!vm) return cudaErrorMemoryAllocation;
@@ -194,11 +185,6 @@ guru_vm_init(guru_ses *ses)
 	guru_parse_bytecode<<<1,1>>>(vm, ses->in);
 	cudaDeviceSynchronize();
 #endif
-
-	if (ses->debug)	{
-		guru_show_irep(vm0->irep);
-		guru_show_irep(vm1->irep);
-	}
 	return cudaSuccess;
 }
 
