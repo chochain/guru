@@ -19,16 +19,15 @@ __GURU__ uint8_t *_output_ptr;		// global output buffer for now, per session lat
 __GURU__ uint8_t *_output_buf;
 
 __GURU__ volatile int _mutex_con;
-#define MUTEX_GET	while (_mutex_con);	\
-					atomicAdd((int *)&_mutex_con, 1)
-#define MUTEX_FREE  atomicSub((int *)&_mutex_con, 1)
+#define MUTEX_LOCK	while (atomicCAS((int *)&_mutex_con, 0, 1)!=0)
+#define MUTEX_FREE  atomicExch((int *)&_mutex_con, 0)
 
 __GURU__ void
 guru_write(mrbc_vtype tt, mrbc_vtype fmt, size_t sz, uint8_t *buf)
 {
 	if (threadIdx.x!=0) return;		// only thread 0 within a block can write
 
-	MUTEX_GET;
+	MUTEX_LOCK;
 
 	guru_print_node *n = (guru_print_node *)_output_ptr;
 	MEMCPY((uint8_t *)n->data, buf, sz);
