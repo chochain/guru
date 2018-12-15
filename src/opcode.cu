@@ -728,7 +728,6 @@ op_send(guru_vm *vm, uint32_t code, mrbc_value *regs)
     	console_na(name);							// dump error, bail out
     	return 0;
     }
-
     if (m->flag & GURU_PROC_C_FUNC) {				// m is a C function
         if (m->func==c_proc_call) {
         	_vm_proc_call(vm, regs+ra, rc);
@@ -1573,12 +1572,12 @@ op_abort(guru_vm *vm, uint32_t code, mrbc_value *regs)
 __GURU__ int
 guru_op(guru_vm *vm)
 {
-	if (threadIdx.x != 0) return;	// TODO: multi-thread
+	if (threadIdx.x != 0) return 0;	// TODO: multi-thread
 
 	uint32_t   code   = GET_BYTECODE(vm);
 	int        opcode = GET_OPCODE(code);
 	mrbc_value *regs  = vm->state->reg;
-	int 	   ret;
+	int ret;
 
     vm->state->pc++;				// advance program counter, ready for next cycle
     switch (opcode) {

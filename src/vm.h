@@ -66,7 +66,7 @@ typedef struct VM {
     int8_t 			id;			// allocation control (-1 means free)
     int8_t 			run;		// to exit vm loop
     int8_t 			step;		// for single-step debug level
-    int8_t			err;
+    int8_t			err;		// error code/condition
     guru_irep       *irep;		// pointer to IREP tree
     guru_state      *state;		// VM state (callinfo) linked list
     mrbc_value  	regfile[MAX_REGS_SIZE];

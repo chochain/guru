@@ -29,7 +29,7 @@
 #include "vm.h"
 
 int     _vm_pool_ok = 0;
-guru_vm **_vm_pool;
+guru_vm *_vm_pool;
 
 //================================================================
 /*!@brief
@@ -38,11 +38,17 @@ guru_vm **_vm_pool;
   @param  vm  Pointer to VM
 */
 __GPU__ void
-_vm_begin(guru_vm *pool[])
+_vm_begin(guru_vm *pool)
 {
-	guru_vm *vm = pool[blockIdx.x];
+	guru_vm *vm = pool+blockIdx.x;
 
 	if (threadIdx.x!=0 || vm->id < 0) return;	// bail if vm not allocated
+
+	int v;
+	switch (vm->id) {
+	case 0: v = vm->id; break;
+	case 1: v = vm->id; break;
+	}
 
 	MEMSET((uint8_t *)vm->regfile, 0, sizeof(vm->regfile));	// clean up registers
 
@@ -53,10 +59,10 @@ _vm_begin(guru_vm *pool[])
 
     st->pc 	  = 0;								// starting IP
     st->klass = mrbc_class_object;				// target class
-    st->reg   = vm->regfile;					// pointer to reg[0]
+    st->reg   = vm->regfile;					// point to reg[0]
     st->irep  = vm->irep;						// root of irep tree
     st->argc  = 0;
-    st->prev  = NULL;
+    st->prev  = NULL;							// state linked-list (i.e. call stack)
 
     vm->state = st;
     vm->run   = 1;
@@ -70,9 +76,9 @@ _vm_begin(guru_vm *pool[])
   @param  vm  Pointer to VM
 */
 __GPU__ void
-_vm_end(guru_vm *pool[])
+_vm_end(guru_vm *pool)
 {
-	guru_vm *vm = pool[blockIdx.x];
+	guru_vm *vm = pool+blockIdx.x;
 
 	if (threadIdx.x!=0 || vm->id < 0) return;		// bail if vm not allocated
 
@@ -94,14 +100,22 @@ _vm_end(guru_vm *pool[])
   @retval 0  No error.
 */
 __GPU__ void
-_vm_exec(guru_vm *pool[])
+_vm_exec(guru_vm *pool)
 {
-	guru_vm *vm = pool[blockIdx.x];
-
+	guru_vm *vm = pool+blockIdx.x;
 	if (vm->id < 0 || !vm->run) return;		// not allocated yet, or completed
+
+	int v;
+	switch (vm->id) {
+	case 0: v = vm->id; break;
+	case 1: v = vm->id; break;
+	default: v = vm->id;
+	}
+//	grid_group g = this_grid();
 
 	while (guru_op(vm)==0 && vm->step==0) {	// multi-threading in guru_op
 		// add cuda hook here
+		//	g.sync();						// block barrier
 	}
 }
 #if !GURU_HOST_IMAGE
@@ -127,14 +141,12 @@ _mrbc_free_irep(mrbc_irep *irep)
 }
 #endif
 
-__HOST__ cudaError_t
+__HOST__ int
 _vm_pool_init(void)
 {
-	uint8_t *p = (uint8_t *)guru_malloc((sizeof(guru_vm *)+sizeof(guru_vm)) * MIN_VM_COUNT, 1);
-	if (!p) return cudaErrorMemoryAllocation;
+	guru_vm *vm = _vm_pool = (guru_vm *)guru_malloc(sizeof(guru_vm) * MIN_VM_COUNT, 1);
+	if (!vm) return 0;
 
-	_vm_pool = (guru_vm **)p;
-	guru_vm *vm = (guru_vm *)(p + MIN_VM_COUNT * sizeof(guru_vm*));
 	for (int i=0; i<MIN_VM_COUNT; i++, vm++) {
 		vm->id   = -1;
 #ifdef GURU_DEBUG
@@ -142,15 +154,14 @@ _vm_pool_init(void)
 #else
 		vm->step = 0;
 #endif
-		_vm_pool[i] = vm;
 	}
-	return cudaSuccess;
+	return MIN_VM_COUNT;
 }
 
 __HOST__ int
 _vm_join(void)
 {
-	guru_vm *vm = _vm_pool[0];
+	guru_vm *vm = _vm_pool;
 	for (int i=0; i<MIN_VM_COUNT; i++, vm++) {
 		if (vm->id >=0 && vm->run) return 1;
 	}
@@ -162,24 +173,25 @@ guru_vm_init(guru_ses *ses)
 {
 #if GURU_HOST_IMAGE
 	if (!_vm_pool_ok) {
-		if (_vm_pool_init() != cudaSuccess) return cudaErrorMemoryAllocation;
-		if (ses->debug) printf("\tnumber of VMs allocated: %d\n", MIN_VM_COUNT);
+		int n = _vm_pool_init();
+		if (n==0) return cudaErrorMemoryAllocation;
+		if (ses->debug) printf("\tnumber of VMs allocated: %d\n", n);
 		_vm_pool_ok = 1;
 	}
-	ses->vm_id  = 0;					// assign vm to session
+	ses->id  = 0;						// assign vm to session
 
-	guru_vm *vm0 = _vm_pool[0];			// allocate from the pool
+	guru_vm *vm0 = _vm_pool+0;			// allocate from the pool
 	vm0->id      = 0;					// allocated
-	guru_parse_bytecode(vm0, ses->req);
+	guru_parse_bytecode(vm0, ses->in);
 
-	guru_vm *vm1 = _vm_pool[1];			// allocate from the pool
+	guru_vm *vm1 = _vm_pool+1;			// allocate from the pool
 	vm1->id      = 1;					// allocated
-	guru_parse_bytecode(vm1, ses->req);
+	guru_parse_bytecode(vm1, ses->in);
 #else
 	mrbc_vm *vm = (mrbc_vm *)guru_malloc(sizeof(mrbc_vm), 1);
 	if (!vm) return cudaErrorMemoryAllocation;
 
-	guru_parse_bytecode<<<1,1>>>(vm, ses->req);
+	guru_parse_bytecode<<<1,1>>>(vm, ses->in);
 	cudaDeviceSynchronize();
 #endif
 
@@ -203,7 +215,7 @@ guru_vm_run(guru_ses *ses)
 		cudaDeviceSynchronize();
 
 		// add host hook here
-		guru_console_flush(ses->res);					// dump output buffer
+		guru_console_flush(ses->out);					// dump output buffer
 	} while (_vm_join());
 
     _vm_end<<<MIN_VM_COUNT, 1>>>(_vm_pool);
@@ -257,10 +269,7 @@ _show_prefetch(guru_vm *vm)
 		st = st->prev;
 		lvl++;
 	}
-
-	int s[8];
-	guru_malloc_stat(s);
-	printf("%1d%c%-4d%-8s%4d", vm->id, 'A'+lvl, pc, opc, s[3]);
+	printf("%1d%c%-4d%-8s", vm->id, 'A'+lvl, pc, opc);
 }
 
 __HOST__ void
@@ -324,8 +333,8 @@ guru_vm_trace(guru_ses *ses)
 {
 	if (ses->debug==0) return cudaSuccess;
 
-	for (int i=0; i<MIN_VM_COUNT; i++) {
-		guru_vm *vm = _vm_pool[i];
+	guru_vm *vm = _vm_pool;
+	for (int i=0; i<MIN_VM_COUNT; i++, vm++) {
 		if (vm->id < 0 || !vm->run) continue;
 
 		_show_prefetch(vm);
