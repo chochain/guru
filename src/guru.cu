@@ -61,19 +61,19 @@ session_init(guru_ses *ses, const char *rite_fname)
 		fprintf(stderr, "ERROR: failed to allocate device main memory block!\n");
 		return -1;
 	}
-	uint8_t *req = ses->req = _load_bytecode(rite_fname);
-	if (!req) {
+	uint8_t *in = ses->in = _load_bytecode(rite_fname);
+	if (!in) {
 		fprintf(stderr, "ERROR: bytecode request allocation error!\n");
 		return -2;
 	}
-	uint8_t *res = ses->res = (uint8_t *)guru_malloc(MAX_BUFFER_SIZE, 1);	// allocate output buffer
-	if (!res) {
+	uint8_t *out = ses->out = (uint8_t *)guru_malloc(MAX_BUFFER_SIZE, 1);	// allocate output buffer
+	if (!out) {
 		fprintf(stderr, "ERROR: output buffer allocation error!\n");
 		return -3;
 	}
     guru_memory_init<<<1,1>>>(mem, BLOCK_MEMORY_SIZE);			// setup memory management
 	guru_static_init<<<1,1>>>();								// setup static objects
-    guru_console_init<<<1,1>>>(ses->res, MAX_BUFFER_SIZE);		// initialize output buffer
+    guru_console_init<<<1,1>>>(ses->out, MAX_BUFFER_SIZE);		// initialize output buffer
 
 	int sz0, sz1;
 	cudaDeviceGetLimit((size_t *)&sz0, cudaLimitStackSize);
