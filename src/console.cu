@@ -19,15 +19,13 @@ __GURU__ uint8_t *_output_ptr;		// global output buffer for now, per session lat
 __GURU__ uint8_t *_output_buf;
 
 __GURU__ volatile int _mutex_con;
-#define MUTEX_LOCK	while (atomicCAS((int *)&_mutex_con, 0, 1)!=0)
-#define MUTEX_FREE  atomicExch((int *)&_mutex_con, 0)
 
 __GURU__ void
 guru_write(mrbc_vtype tt, mrbc_vtype fmt, size_t sz, uint8_t *buf)
 {
 	if (threadIdx.x!=0) return;		// only thread 0 within a block can write
 
-	MUTEX_LOCK;
+	MUTEX_LOCK(_mutex_con);
 
 	guru_print_node *n = (guru_print_node *)_output_ptr;
 	MEMCPY((uint8_t *)n->data, buf, sz);
@@ -40,7 +38,7 @@ guru_write(mrbc_vtype tt, mrbc_vtype fmt, size_t sz, uint8_t *buf)
 	_output_ptr  = (uint8_t *)n->data + n->size;		// advance pointer to next print block
 	*_output_ptr = (uint8_t)GURU_TT_EMPTY;
 
-	MUTEX_FREE;
+	MUTEX_FREE(_mutex_con);
 }
 
 //================================================================

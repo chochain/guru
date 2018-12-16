@@ -44,12 +44,6 @@ _vm_begin(guru_vm *pool)
 
 	if (threadIdx.x!=0 || vm->id < 0) return;	// bail if vm not allocated
 
-	int v;
-	switch (vm->id) {
-	case 0: v = vm->id; break;
-	case 1: v = vm->id; break;
-	}
-
 	MEMSET((uint8_t *)vm->regfile, 0, sizeof(vm->regfile));	// clean up registers
 
     vm->regfile[0].tt  	= GURU_TT_CLASS;		// regfile[0] is self
