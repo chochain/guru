@@ -144,7 +144,7 @@ _dump_obj_size(void)
 }
 
 __GPU__ void
-guru_console_init(uint8_t *buf, size_t sz)
+guru_console_init(uint8_t *buf, unsigned int sz)
 {
 	if (threadIdx.x!=0 || blockIdx.x!=0) return;
 
@@ -194,7 +194,6 @@ __HOST__ void
 guru_console_flush(uint8_t *output_buf)
 {
 	guru_print_node *node = (guru_print_node *)output_buf;
-
 	while (node->tt != GURU_TT_EMPTY) {			// 0
 		node = _guru_host_print(node);
 		node = NEXTNODE(node);

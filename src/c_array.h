@@ -43,7 +43,6 @@ __GURU__ int        mrbc_array_compare(const mrbc_value *v1, const mrbc_value *v
 
 __GURU__ void       mrbc_init_class_array();
 
-
 #ifdef __cplusplus
 }
 #endif

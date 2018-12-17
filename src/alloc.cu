@@ -497,7 +497,8 @@ _alloc_stat(int v[])
 	__syncthreads();
 }
 
-__GPU__ void guru_memory_init(void *ptr, unsigned int sz)
+__GPU__ void
+guru_memory_init(void *ptr, unsigned int sz)
 {
 	if (threadIdx.x!=0 || blockIdx.x!=0) return;
 
@@ -539,7 +540,7 @@ guru_dump_alloc_stat(void)
 	int s[8];
 	guru_malloc_stat(s);
 
-	printf("\ttotal %d(0x%x)> free=%d(%d), used=%d(%d), nblk=%d, nfrag=%d, %d%% allocated\n",
+	printf("\tmem=%d(0x%x): free=%d(%d), used=%d(%d), nblk=%d, nfrag=%d, %d%% allocated\n",
 			s[0], s[0], s[1], s[2], s[3], s[4], s[5], s[6], (int)(100*(s[4]+1)/s[0]));
 }
 #endif

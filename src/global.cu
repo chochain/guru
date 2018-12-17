@@ -48,13 +48,6 @@ _get_obj(mrbc_sym sid, mrbc_globaltype gtype)
     return mrbc_global[index].obj;
 }
 
-//
-__GURU__ void
-mrbc_init_global(void)
-{
-	global_end = 0;
-}
-
 /* add */
 /* TODO: Check reference count */
 __GURU__ void
@@ -110,6 +103,15 @@ const_object_get(mrbc_sym sid)
 {
     return _get_obj(sid, GURU_CONST_OBJECT);
 }
+//
+__GPU__ void
+guru_global_init(void)
+{
+	if (blockIdx.x!=0 || threadIdx.x!=0) return;
+
+	global_end = 0;
+}
+
 
 
 

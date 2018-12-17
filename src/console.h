@@ -31,6 +31,8 @@ typedef struct print_node {
 	uint8_t		data[];
 } guru_print_node;
 
+__GPU__  void guru_console_init(uint8_t *buf, unsigned int sz);
+
 __GURU__ void console_char(char c);
 __GURU__ void console_int(mrbc_int i);
 __GURU__ void console_hex(mrbc_int i);
@@ -38,8 +40,7 @@ __GURU__ void console_str(const char *str);
 __GURU__ void console_float(mrbc_float f);
 __GURU__ void console_na(const char *msg);
 
-__GPU__ void guru_console_init(uint8_t *buf, size_t sz);
-__HOST__   void guru_console_flush(uint8_t *output_buf);
+__HOST__ void guru_console_flush(uint8_t *output_buf);
     
 #ifdef __cplusplus
 }

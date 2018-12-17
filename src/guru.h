@@ -12,8 +12,7 @@
 #ifndef GURU_SRC_GURU_H_
 #define GURU_SRC_GURU_H_
 #include "vm_config.h"
-
-#include <stdint.h>					// uint8_t, int32_t, ...
+#include "gurux.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -34,18 +33,6 @@ extern "C" {
 #endif
 
 #define MAX_BUFFER_SIZE 4096		// 4K
-
-typedef struct guru_ses_ {
-	uint8_t  *in;
-	uint8_t  *out;
-	uint8_t  id;
-	uint8_t  debug;
-} guru_ses;
-
-// mrbc types
-typedef int32_t 	mrbc_int;
-typedef float 		mrbc_float;
-typedef int16_t 	mrbc_sym;
 
 //================================================================
 /*!@brief
@@ -196,8 +183,9 @@ typedef struct RProc {			// 40-byte
     mrbc_sym 	 sym_id;
 } mrbc_proc;
 
-int session_init(guru_ses *ses, const char *rite_fname);
-int session_start(guru_ses *ses);
+int guru_system_setup(int trace);
+int session_init(guru_ses *ses, const char *rite_fname, int trace);
+int session_start(guru_ses *ses, int trace);
 
 #ifdef __cplusplus
 }

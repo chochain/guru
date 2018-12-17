@@ -17,10 +17,10 @@
 
 /* min, maximum number of VMs */
 #ifndef MIN_VM_COUNT
-#define MIN_VM_COUNT 2
+#define MIN_VM_COUNT 3
 #endif
 #ifndef MAX_VM_COUNT
-#define MAX_VM_COUNT 5
+#define MAX_VM_COUNT 10
 #endif
 
 /* maximum size of registers, which determine how deep call stack can go */

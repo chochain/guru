@@ -20,8 +20,8 @@
 extern "C" {
 #endif
 
-__GURU__ void        mrbc_init_global(void);
-    
+__GPU__  void 		 guru_global_init(void);
+
 __GURU__ void        global_object_add(mrbc_sym sid, mrbc_value v);
 __GURU__ void        const_object_add(mrbc_sym sid, mrbc_object *obj);
 

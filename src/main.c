@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include "guru.h"
+#include "gurux.h"
 
 #if 0
 #include "../ext/c_ext.h"
@@ -11,13 +11,14 @@ int  do_cuda(void);
 
 int main(int argc, char **argv)
 {
-	guru_ses ses;
+	int trace = *argv[argc-1]=='1' ? 1 : (*argv[argc-1]=='2' ? 2 : 0);
+	int n     = argc - (trace ? 2 : 1);
 
-	ses.debug = argc<3 ? 0 : (*argv[2]=='1' ? 1 : 2);
+	if (guru_system_setup(trace)) return -1;
 
-	if (session_init(&ses, argv[1])!=0) return -1;
-
-	session_start(&ses);
-
-    return 0;
+	guru_ses *ses = malloc(sizeof(ses) * n);
+	for (int i=1; i<=n; i++, ses++) {
+		session_add(ses, argv[i], trace);
+	}
+	return guru_system_run(trace);
 }

@@ -109,6 +109,7 @@ typedef struct VM {
 } mrbc_vm;
 
 #endif // GURU_HOST_IMAGE
+
 //================================================================
 /*!@brief
   Get 32bit value from memory big endian.
@@ -185,11 +186,6 @@ void _uint32_to_bin(uint32_t l, uint8_t *bin)
     *bin++ = (l >> 8) & 0xff;
     *bin   = l & 0xff;
 }
-
-cudaError_t guru_vm_init(guru_ses *ses);
-cudaError_t guru_vm_run(guru_ses *ses);
-cudaError_t guru_vm_release(guru_ses *ses);
-cudaError_t guru_vm_trace(guru_ses *ses);
 
 #define VM_IREP(vm)      ((vm)->state->irep)
 
