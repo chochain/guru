@@ -151,7 +151,8 @@ c_print(mrbc_value v[], int argc)
 //================================================================
 /*! (operator) !
  */
-__GURU__ void c_object_not(mrbc_value v[], int argc)
+__GURU__ void
+c_object_not(mrbc_value v[], int argc)
 {
     SET_FALSE_RETURN();
 }
@@ -336,7 +337,7 @@ c_object_to_s(mrbc_value v[], int argc)
 #endif
 
 __GURU__ void
-mrbc_init_class_object()
+_init_class_object()
 {
     // Class
     mrbc_class *c = mrbc_class_object = mrbc_define_class("Object", NULL);
@@ -376,7 +377,7 @@ c_proc_inspect(mrbc_value v[], int argc)
 #endif
 
 __GURU__ void
-mrbc_init_class_proc()
+_init_class_proc()
 {
     // Class
     mrbc_class *c = mrbc_class_proc = mrbc_define_class("Proc", mrbc_class_object);
@@ -424,7 +425,7 @@ c_nil_to_s(mrbc_value v[], int argc)
 /*! Nil class
  */
 __GURU__ void
-mrbc_init_class_nil()
+_init_class_nil()
 {
     // Class
     mrbc_class *c = mrbc_class_nil = mrbc_define_class("NilClass", mrbc_class_object);
@@ -454,12 +455,12 @@ c_false_to_s(mrbc_value v[], int argc)
 /*! False class
  */
 __GURU__ void
-mrbc_init_class_false()
+_init_class_false()
 {
     // Class
     mrbc_class_false = mrbc_define_class("FalseClass", mrbc_class_object);
     // Methods
-    mrbc_define_method(mrbc_class_false, "!", c_nil_false_not);
+    mrbc_define_method(mrbc_class_false, "!", 		c_nil_false_not);
 #if GURU_USE_STRING
     mrbc_define_method(mrbc_class_false, "inspect", c_false_to_s);
     mrbc_define_method(mrbc_class_false, "to_s",    c_false_to_s);
@@ -481,7 +482,7 @@ c_true_to_s(mrbc_value v[], int argc)
 #endif
 
 __GURU__ void
-mrbc_init_class_true()
+_init_class_true()
 {
     // Class
     mrbc_class_true = mrbc_define_class("TrueClass", mrbc_class_object);
@@ -496,13 +497,13 @@ mrbc_init_class_true()
 // initialize
 
 __GURU__ void
-mrbc_init_class(void)
+_init_all_class(void)
 {
-    mrbc_init_class_object();
-    mrbc_init_class_nil();
-    mrbc_init_class_proc();
-    mrbc_init_class_false();
-    mrbc_init_class_true();
+    _init_class_object();
+    _init_class_nil();
+    _init_class_proc();
+    _init_class_false();
+    _init_class_true();
 
     mrbc_init_class_symbol();
     mrbc_init_class_fixnum();
@@ -521,4 +522,12 @@ mrbc_init_class(void)
     mrbc_init_class_range();
     mrbc_init_class_hash();
 #endif
+}
+
+__GPU__ void
+guru_class_init(void)
+{
+	if (blockIdx.x!=0 || threadIdx.x!=0) return;
+
+	_init_all_class();
 }

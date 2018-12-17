@@ -20,9 +20,8 @@
 extern "C" {
 #endif
 
+__GPU__  void		guru_class_init(void);
 __GURU__ mrbc_value mrbc_send(mrbc_value v[], mrbc_value *rcv, const char *method, int argc, ...);
-
-__GURU__ void mrbc_init_class(void);
 
 #ifdef __cplusplus
 }
