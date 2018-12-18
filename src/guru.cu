@@ -91,7 +91,7 @@ guru_system_run(int trace)
 	}
 	rst = guru_vm_release(_ses_list, trace);
 
-	return cudaSuccess!=rst;
+	return cudaSuccess != rst;
 }
 
 __HOST__ int
@@ -106,7 +106,7 @@ session_add(guru_ses *ses, const char *rite_fname, int trace)
 		return -3;
 	}
 	cudaError_t rst = guru_vm_setup(ses, trace);
-	if (rst!=cudaSuccess) {
+	if (cudaSuccess != rst) {
 		fprintf(stderr, "ERROR: virtual memory block allocation error!\n");
 		return -1;
 	}
@@ -117,4 +117,3 @@ session_add(guru_ses *ses, const char *rite_fname, int trace)
 
 	return rst;
 }
-

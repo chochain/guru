@@ -50,12 +50,12 @@ typedef struct RIrep {			// 32-bytes
 */
 
 typedef struct RState {
-    uint16_t        pc;
+    uint16_t        pc;			// program counter
     uint16_t        argc;     	// num of args
-    mrbc_class      *klass;
-    mrbc_value      *reg;
-    guru_irep       *irep;
-    struct RState   *prev;
+    mrbc_class      *klass;		// current class
+    mrbc_value      *reg;		// pointer to current register (in VM register file)
+    guru_irep       *irep;		// pointer to current irep block
+    struct RState   *prev;		// previous state (call stack)
 } guru_state;
 
 //================================================================
@@ -70,7 +70,6 @@ typedef struct VM {
     guru_irep       *irep;		// pointer to IREP tree
     guru_state      *state;		// VM state (callinfo) linked list
     mrbc_value  	regfile[MAX_REGS_SIZE];
-
 } guru_vm;
 
 #else // !GURU_HOST_IMAGE

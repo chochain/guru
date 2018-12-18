@@ -161,7 +161,7 @@ guru_console_init(uint8_t *buf, unsigned int sz)
 __HOST__ guru_print_node*
 _guru_host_print(guru_print_node *node)
 {
-	uint8_t *fmt[80], *buf[80];		// check buffer overflow
+	uint8_t *fmt[80], *buf[80];					// check buffer overflow
 	int 	argc;
 	printf("<%d>", node->id);
 	switch (node->tt) {
@@ -184,9 +184,9 @@ _guru_host_print(guru_print_node *node)
 			node = _guru_host_print(node);		// recursive call
 		}
 		break;
-	default: printf("not supported: %d", node->tt); break;
+	default: printf("print node type not supported: %d", node->tt); break;
 	}
-	printf("</%d>", node->id);
+	printf("</%d>\n", node->id);
 	return node;
 }
 

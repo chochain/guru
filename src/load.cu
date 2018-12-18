@@ -347,17 +347,25 @@ guru_parse_bytecode(guru_vm *vm, const uint8_t *ptr)
 }
 #ifdef GURU_DEBUG
 __HOST__ void
-guru_show_irep(guru_irep *irep)
+_show_irep(guru_irep *irep, char level, uint32_t idx)
 {
-	printf("\tsize=%d, nreg=%d, nlocal=%d, pools=%d, syms=%d, reps=%d, ilen=%d\n",
+	static char n = 'a';
+	printf("\tirep[%c]=%c%04x: size=%d, nreg=%d, nlocal=%d, pools=%d, syms=%d, reps=%d, ilen=%d\n",
+			n++, level, idx,
 			irep->size, irep->nreg, irep->nlv, irep->plen, irep->slen, irep->rlen, irep->ilen);
 
 	// dump all children ireps
 	uint8_t  *base = (uint8_t *)irep;
 	uint32_t *off  = (uint32_t *)(base + irep->list);
 	for (int i=0; i<irep->rlen; i++, off++) {
-		guru_show_irep((guru_irep *)(base + *off));
+		_show_irep((guru_irep *)(base + *off), level+1, *off);
 	}
+}
+
+__HOST__ void
+guru_show_irep(guru_irep *irep)
+{
+	_show_irep(irep, 'A', 0);
 }
 #endif
 
@@ -613,7 +621,7 @@ guru_show_irep(mrbc_irep *irep)
 
 	// dump all children ireps
 	for (int i=0; i<irep->rlen; i++) {
-		guru_show_irep(irep->list[i]);
+		guru_show_irep(irep->list[i], level+1);
 	}
 }
 #endif

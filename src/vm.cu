@@ -239,46 +239,60 @@ static const char *_opcode[] = {
 };
 
 #if GURU_HOST_IMAGE
+__HOST__ int
+_find_irep(guru_irep *irep0, guru_irep *irep1, int *idx)
+{
+	if (irep0==irep1) return 0;
+	*idx += 1;
+
+	uint8_t  *base = (uint8_t *)irep0;
+	uint32_t *off  = (uint32_t *)(base + irep0->list);
+	for (int i=0; i<irep0->rlen; i++, off++) {
+		if (_find_irep((guru_irep *)(base + *off), irep1, idx)==0) return 0;
+	}
+	return -1;
+}
 
 __HOST__ void
-_show_prefetch(guru_vm *vm)
+_show_decoder(guru_vm *vm)
 {
 	uint16_t    pc    = vm->state->pc;
 	uint32_t    *iseq = VM_ISEQ(vm);
 	uint16_t    opid  = (*(iseq + pc) >> 24) & 0x7f;
 	const char  *opc  = _opcode[GET_OPCODE(opid)];
 
+	int ioff = 0;
+	_find_irep(vm->irep, vm->state->irep, &ioff);
+	printf("%1d%c%-4d%-8s", vm->id, 'a'+ioff, pc, opc);
+
 	int lvl=0;
 	guru_state *st = vm->state;
 	while (st->prev != NULL) {
 		st = st->prev;
-		lvl++;
+		lvl += 2 + st->argc;
 	}
-	printf("%1d%c%-4d%-8s", vm->id, 'a'+lvl, pc, opc);
-}
 
-__HOST__ void
-_show_regfile(guru_vm *vm)
-{
 	mrbc_value *v = vm->regfile;				// scan
 	int last = 0;
 	for(int i=0; i<MAX_REGS_SIZE; i++, v++) {
 		if (v->tt==GURU_TT_EMPTY) continue;
 		last=i;
 	}
+
 	v = vm->regfile;							// rewind
 	printf("[");
 	for (int i=0; i<=last; i++, v++) {
-		printf("%2d.%s", i, _vtype[v->tt]);
-	    if (v->tt >= GURU_TT_OBJECT) printf("_%d", v->self->refc);
-	    printf(" ");
+		printf("%s",_vtype[v->tt]);
+		if (v->tt >= GURU_TT_OBJECT) printf("%d", v->self->refc);
+		else 						 printf(" ");
+	    printf("%c", i==lvl ? '|' : ' ');
     }
 	printf("]\n");
 }
 
 #else // !GURU_HOST_IMAGE
 __HOST__ void
-_show_regfile(mrbc_vm *vm)
+_show_decoder(mrbc_vm *vm)
 {
 	uint16_t    pc    = vm->state->pc;
 	uint32_t    *iseq = vm->state->irep->iseq;
@@ -320,10 +334,7 @@ guru_vm_trace(int level)
 
 	guru_vm *vm = _vm_pool;
 	for (int i=0; i<MIN_VM_COUNT; i++, vm++) {
-		if (vm->id < 0 || !vm->run) continue;
-
-		_show_prefetch(vm);
-		_show_regfile(vm);
+		if (vm->id >= 0 && vm->run) _show_decoder(vm);
 	}
 	if (level > 1) guru_dump_alloc_stat();
 
