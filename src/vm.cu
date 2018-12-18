@@ -181,7 +181,7 @@ guru_vm_setup(guru_ses *ses, int trace)
 	cudaDeviceSynchronize();
 #endif
 	if (trace) {
-		printf("  vm[%d]\n", vm->id);
+		printf("  vm[%d]: %p", vm->id, (void *)vm);
 		guru_show_irep(vm->irep);
 	}
 	return cudaSuccess;
@@ -240,17 +240,17 @@ static const char *_opcode[] = {
 
 #if GURU_HOST_IMAGE
 __HOST__ int
-_find_irep(guru_irep *irep0, guru_irep *irep1, int *idx)
+_find_irep(guru_irep *irep0, guru_irep *irep1, char *idx)
 {
-	if (irep0==irep1) return 0;
-	*idx += 1;
+	if (irep0==irep1) return 1;
 
 	uint8_t  *base = (uint8_t *)irep0;
-	uint32_t *off  = (uint32_t *)(base + irep0->list);
-	for (int i=0; i<irep0->rlen; i++, off++) {
-		if (_find_irep((guru_irep *)(base + *off), irep1, idx)==0) return 0;
+	uint32_t *off  = (uint32_t *)(base + irep0->list);		// child irep offset array
+	for (int i=0; i<irep0->rlen; i++) {
+		*idx += 1;
+		if (_find_irep((guru_irep *)(base + off[i]), irep1, idx)) return 1;
 	}
-	return -1;
+	return 0;		// not found
 }
 
 __HOST__ void
@@ -261,9 +261,9 @@ _show_decoder(guru_vm *vm)
 	uint16_t    opid  = (*(iseq + pc) >> 24) & 0x7f;
 	const char  *opc  = _opcode[GET_OPCODE(opid)];
 
-	int ioff = 0;
-	_find_irep(vm->irep, vm->state->irep, &ioff);
-	printf("%1d%c%-4d%-8s", vm->id, 'a'+ioff, pc, opc);
+	char idx = 'a';
+	if (!_find_irep(vm->irep, vm->state->irep, &idx)) idx='?';
+	printf("%1d%c%-4d%-8s", vm->id, idx, pc, opc);
 
 	int lvl=0;
 	guru_state *st = vm->state;
@@ -334,7 +334,10 @@ guru_vm_trace(int level)
 
 	guru_vm *vm = _vm_pool;
 	for (int i=0; i<MIN_VM_COUNT; i++, vm++) {
-		if (vm->id >= 0 && vm->run) _show_decoder(vm);
+		if (vm->id >= 0 && vm->run) {
+			printf("%p, %p ", (void *)vm->irep, (void *)vm->state->irep);
+			_show_decoder(vm);
+		}
 	}
 	if (level > 1) guru_dump_alloc_stat();
 

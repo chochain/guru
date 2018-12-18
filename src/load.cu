@@ -347,25 +347,26 @@ guru_parse_bytecode(guru_vm *vm, const uint8_t *ptr)
 }
 #ifdef GURU_DEBUG
 __HOST__ void
-_show_irep(guru_irep *irep, char level, uint32_t idx)
+_show_irep(guru_irep *irep, uint32_t ioff, char level, char *idx)
 {
-	static char n = 'a';
 	printf("\tirep[%c]=%c%04x: size=%d, nreg=%d, nlocal=%d, pools=%d, syms=%d, reps=%d, ilen=%d\n",
-			n++, level, idx,
+			*idx, level, ioff,
 			irep->size, irep->nreg, irep->nlv, irep->plen, irep->slen, irep->rlen, irep->ilen);
 
 	// dump all children ireps
 	uint8_t  *base = (uint8_t *)irep;
-	uint32_t *off  = (uint32_t *)(base + irep->list);
-	for (int i=0; i<irep->rlen; i++, off++) {
-		_show_irep((guru_irep *)(base + *off), level+1, *off);
+	uint32_t *off  = (uint32_t *)(base + irep->list);		// pointer to irep offset array
+	for (int i=0; i<irep->rlen; i++) {
+		*idx += 1;
+		_show_irep((guru_irep *)(base + off[i]), off[i], level+1, idx);
 	}
 }
 
 __HOST__ void
 guru_show_irep(guru_irep *irep)
 {
-	_show_irep(irep, 'A', 0);
+	char idx = 'a';
+	_show_irep(irep, 0, 'A', &idx);
 }
 #endif
 
