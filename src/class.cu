@@ -24,6 +24,8 @@
 #include "console.h"
 #include "class.h"
 
+__GURU__ int _mutex_cls;
+
 //================================================================
 /*!@brief
   find class by object
@@ -135,7 +137,7 @@ mrbc_define_class(const char *name, mrbc_class *super)
 
     // register to global constant.
     mrbc_value v = { .tt = GURU_TT_CLASS };
-    v.cls    = cls;
+    v.cls = cls;
     const_object_add(sid, &v);
 
     return cls;
@@ -174,9 +176,13 @@ mrbc_define_method(mrbc_class *cls, const char *name, mrbc_func_t cfunc)
 
     proc->flag  |= GURU_PROC_C_FUNC;  			// c-func
     proc->func 	= cfunc;
-    proc->next 	= cls->vtbl;
 
+    MUTEX_LOCK(_mutex_cls);
+
+    proc->next 	= cls->vtbl;
     cls->vtbl 	= proc;
+
+    MUTEX_FREE(_mutex_cls);
 }
 
 // =============== ProcClass

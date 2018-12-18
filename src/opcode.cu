@@ -35,6 +35,7 @@
 #include "c_hash.h"
 #endif
 
+__GURU__ int _mutex_op;
 //
 // becareful with the following macros, because they release regs[ra] first
 // so, make sure value is kept before the release
@@ -702,6 +703,9 @@ op_send(guru_vm *vm, uint32_t code, mrbc_value *regs)
     int rc = GETARG_C(code);  // number of params
     mrbc_value rcv = regs[ra];
 
+    if (blockIdx.x==0) {
+    	int xx = 1;
+    }
     // Clear block param (needed ?)
     int bidx = ra + rc + 1;
     switch(GET_OPCODE(code)) {
@@ -1491,6 +1495,8 @@ op_method(guru_vm *vm, uint32_t code, mrbc_value *regs)
     mrbc_proc 	*proc  = regs[ra+1].proc;
     mrbc_sym	sid    = _vm_symid(vm, rb);
 
+    MUTEX_LOCK(_mutex_op);
+
     // check same name method
     mrbc_proc 	*p  = cls->vtbl;
     void 		*pp = &cls->vtbl;
@@ -1513,10 +1519,12 @@ op_method(guru_vm *vm, uint32_t code, mrbc_value *regs)
     proc->name  = _vm_symbol(vm, rb);
 #endif
     proc->sym_id= sid;
-    proc->next  = cls->vtbl;
     proc->flag  &= ~GURU_PROC_C_FUNC;
+    proc->next  = cls->vtbl;
 
     cls->vtbl   = proc;
+
+    MUTEX_FREE(_mutex_op);
 
     regs[ra+1].tt = GURU_TT_EMPTY;
 

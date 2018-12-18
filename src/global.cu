@@ -2,6 +2,8 @@
 #include "value.h"
 #include "global.h"
 
+__GURU__ int _mutex_glb;
+
 /*
 
   GLobal objects are stored in 'mrbc_global' array.
@@ -55,6 +57,8 @@ global_object_add(mrbc_sym sid, mrbc_value v)
 {
     int index = _get_idx(sid, GURU_GLOBAL_OBJECT);
 
+    MUTEX_LOCK(_mutex_glb);
+
     if (index == -1) {
         index = global_end++;
         assert(index < MAX_GLOBAL_OBJECT_SIZE);	// maybe raise ex
@@ -65,6 +69,8 @@ global_object_add(mrbc_sym sid, mrbc_value v)
     mrbc_global[index].gtype  = GURU_GLOBAL_OBJECT;
     mrbc_global[index].sym_id = sid;
     mrbc_global[index].obj    = v;
+
+    MUTEX_FREE(_mutex_glb);
     
     mrbc_retain(&v);
 }
@@ -73,6 +79,8 @@ __GURU__ void
 const_object_add(mrbc_sym sid, mrbc_object *obj)
 {
     int index = _get_idx(sid, GURU_CONST_OBJECT);
+
+    MUTEX_LOCK(_mutex_glb);
 
     if (index == -1) {
         index = global_end;
@@ -86,6 +94,8 @@ const_object_add(mrbc_sym sid, mrbc_object *obj)
     mrbc_global[index].gtype  = GURU_CONST_OBJECT;
     mrbc_global[index].sym_id = sid;
     mrbc_global[index].obj    = *obj;
+
+    MUTEX_FREE(_mutex_glb);
 
     mrbc_retain(obj);
 }
