@@ -181,7 +181,7 @@ guru_vm_setup(guru_ses *ses, int trace)
 	cudaDeviceSynchronize();
 #endif
 	if (trace) {
-		printf("  vm[%d]: %p", vm->id, (void *)vm);
+		printf("  vm[%d]: %p\n", vm->id, (void *)vm);
 		guru_show_irep(vm->irep);
 	}
 	return cudaSuccess;
@@ -335,7 +335,11 @@ guru_vm_trace(int level)
 	guru_vm *vm = _vm_pool;
 	for (int i=0; i<MIN_VM_COUNT; i++, vm++) {
 		if (vm->id >= 0 && vm->run) {
-			printf("%p, %p ", (void *)vm->irep, (void *)vm->state->irep);
+			guru_state *st = vm->state;
+			while (st->prev) {
+				printf("%p <-- ", st);
+				st = st->prev;
+			}
 			_show_decoder(vm);
 		}
 	}

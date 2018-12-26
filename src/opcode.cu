@@ -140,7 +140,7 @@ _pop_state(guru_vm *vm, mrbc_value *regs)
     
     vm->state = st->prev;
     
-    mrbc_value *p  = regs+1;				// clear stacked arguments
+    mrbc_value *p  = regs+1;			// clear stacked arguments
     for (int i = 0; i < st->argc; i++) {
         mrbc_release(p++);
     }
@@ -703,9 +703,6 @@ op_send(guru_vm *vm, uint32_t code, mrbc_value *regs)
     int rc = GETARG_C(code);  // number of params
     mrbc_value rcv = regs[ra];
 
-    if (blockIdx.x==0) {
-    	int xx = 1;
-    }
     // Clear block param (needed ?)
     int bidx = ra + rc + 1;
     switch(GET_OPCODE(code)) {
@@ -795,12 +792,12 @@ op_call(guru_vm *vm, uint32_t code, mrbc_value *regs)
 __GURU__ int
 op_enter(guru_vm *vm, uint32_t code, mrbc_value *regs)
 {
-    uint32_t enter_param = GETARG_Ax(code);
+    uint32_t param = GETARG_Ax(code);
 
-    int def_args = (enter_param >> 13) & 0x1f;  // default args
-    int argc     = (enter_param >> 18) & 0x1f;  // given args
+    int arg0 = (param >> 13) & 0x1f;  // default args
+    int argc = (param >> 18) & 0x1f;  // given args
 
-    if (def_args > 0){
+    if (arg0 > 0){
         vm->state->pc += vm->state->argc - argc;
     }
     return 0;

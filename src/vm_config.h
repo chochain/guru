@@ -17,7 +17,7 @@
 
 /* min, maximum number of VMs */
 #ifndef MIN_VM_COUNT
-#define MIN_VM_COUNT 3
+#define MIN_VM_COUNT 2
 #endif
 #ifndef MAX_VM_COUNT
 #define MAX_VM_COUNT 10

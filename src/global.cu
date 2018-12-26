@@ -1,9 +1,6 @@
 #include <assert.h>
 #include "value.h"
 #include "global.h"
-
-__GURU__ int _mutex_glb;
-
 /*
 
   GLobal objects are stored in 'mrbc_global' array.
@@ -15,39 +12,40 @@ __GURU__ int _mutex_glb;
 typedef enum {
     GURU_GLOBAL_OBJECT = 1,
     GURU_CONST_OBJECT,
-} mrbc_globaltype;
+} mrbc_gtype;
 
-typedef struct GLOBAL_OBJECT {
-    mrbc_globaltype gtype : 8;
-    mrbc_sym 		sym_id;
-    mrbc_object 	obj;
-} mrbc_globalobject;
+typedef struct mrbc_gobject_ {
+    mrbc_gtype 	gtype 	:8;
+    mrbc_sym 	sym_id;
+    mrbc_object obj;
+} mrbc_gobject;
 
 // max of global object in mrbc_global[]
-__GURU__ int               global_end;
-__GURU__ mrbc_globalobject mrbc_global[MAX_GLOBAL_OBJECT_SIZE];
+__GURU__ int _mutex_glb;
+__GURU__ int _global_end;
+__GURU__ mrbc_gobject _mrbc_global[MAX_GLOBAL_OBJECT_SIZE];
 
 /* search */
 /* linear search is not efficient! */
 /* TODO: Use binary search */
 __GURU__ int
-_get_idx(mrbc_sym sid, mrbc_globaltype gtype)
+_get_idx(mrbc_sym sid, mrbc_gtype gtype)
 {
-    for (int i=0 ; i<global_end ; i++) {
-        mrbc_globalobject *obj = &mrbc_global[i];
+    for (int i=0 ; i<_global_end ; i++) {
+        mrbc_gobject *obj = &_mrbc_global[i];
         if (obj->sym_id == sid && obj->gtype == gtype) return i;
     }
     return -1;
 }
 
 __GURU__ mrbc_value
-_get_obj(mrbc_sym sid, mrbc_globaltype gtype)
+_get_obj(mrbc_sym sid, mrbc_gtype gtype)
 {
     int index = _get_idx(sid, gtype);
     if (index < 0) mrbc_nil_value();
 
-    mrbc_retain(&mrbc_global[index].obj);
-    return mrbc_global[index].obj;
+    mrbc_retain(&_mrbc_global[index].obj);
+    return _mrbc_global[index].obj;
 }
 
 /* add */
@@ -55,20 +53,20 @@ _get_obj(mrbc_sym sid, mrbc_globaltype gtype)
 __GURU__ void
 global_object_add(mrbc_sym sid, mrbc_value v)
 {
-    int index = _get_idx(sid, GURU_GLOBAL_OBJECT);
+    int idx = _get_idx(sid, GURU_GLOBAL_OBJECT);
 
     MUTEX_LOCK(_mutex_glb);
 
-    if (index == -1) {
-        index = global_end++;
-        assert(index < MAX_GLOBAL_OBJECT_SIZE);	// maybe raise ex
+    if (idx == -1) {
+        idx = _global_end++;
+        assert(idx < MAX_GLOBAL_OBJECT_SIZE);	// maybe raise ex
     }
     else {
-        mrbc_release(&(mrbc_global[index].obj));
+        mrbc_release(&(_mrbc_global[idx].obj));
     }
-    mrbc_global[index].gtype  = GURU_GLOBAL_OBJECT;
-    mrbc_global[index].sym_id = sid;
-    mrbc_global[index].obj    = v;
+    _mrbc_global[idx].gtype  = GURU_GLOBAL_OBJECT;
+    _mrbc_global[idx].sym_id = sid;
+    _mrbc_global[idx].obj    = v;
 
     MUTEX_FREE(_mutex_glb);
     
@@ -78,22 +76,21 @@ global_object_add(mrbc_sym sid, mrbc_value v)
 __GURU__ void
 const_object_add(mrbc_sym sid, mrbc_object *obj)
 {
-    int index = _get_idx(sid, GURU_CONST_OBJECT);
+    int idx = _get_idx(sid, GURU_CONST_OBJECT);
 
     MUTEX_LOCK(_mutex_glb);
 
-    if (index == -1) {
-        index = global_end;
-        global_end++;
-        assert(index < MAX_GLOBAL_OBJECT_SIZE);	// maybe raise ex
+    if (idx == -1) {
+        idx = _global_end++;
+        assert(idx < MAX_GLOBAL_OBJECT_SIZE);	// maybe raise ex
     }
     else {
         // warning: already initialized constant.
-        mrbc_release(&(mrbc_global[index].obj));
+        mrbc_release(&(_mrbc_global[idx].obj));
     }
-    mrbc_global[index].gtype  = GURU_CONST_OBJECT;
-    mrbc_global[index].sym_id = sid;
-    mrbc_global[index].obj    = *obj;
+    _mrbc_global[idx].gtype  = GURU_CONST_OBJECT;
+    _mrbc_global[idx].sym_id = sid;
+    _mrbc_global[idx].obj    = *obj;
 
     MUTEX_FREE(_mutex_glb);
 
@@ -119,7 +116,8 @@ guru_global_init(void)
 {
 	if (blockIdx.x!=0 || threadIdx.x!=0) return;
 
-	global_end = 0;
+	_mutex_glb  = 0;
+	_global_end = 0;
 }
 
 
