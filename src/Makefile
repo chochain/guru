@@ -1,8 +1,8 @@
 #
 # guru  src/Makefile
 #
-CC=cc
-CFLAGS= -Wall -Wpointer-arith -g -c -DGURU_DEBUG
+CC=gcc
+CCFLAGS= -Wall -Wpointer-arith -g -c -DGURU_DEBUG
 NVCC=nvcc
 CUDAFLAGS= -dc
 
@@ -13,7 +13,7 @@ INCDIRS=-I/usr/local/cuda/include -I./src
 SRC =   main.c 
 GURU= 	alloc.cu guru.cu static.cu value.cu global.cu \
 		instance.cu symbol.cu class.cu\
-		console.cu sprintf.cu puts.cu parser.cu \
+		console.cu sprintf.cu puts.cu load.cu \
 		vm.cu opcode.cu object.cu \
 		c_fixnum.cu c_string.cu c_range.cu c_array.cu c_hash.cu
 GEXT=   c_string.h c_range.h c_array.h c_hash.h
@@ -37,14 +37,14 @@ lib: $(OBJS)
 $(LIB): $(OBJS)
 	$(AR) $(ARFLAGS) $@ $?
 
-main.o: main.c
+main.o: main.c gurux.h
 	$(CC) $(CCFLAGS) $<
 
 cuda.o: cuda.cu
 
 alloc.o: alloc.cu       vm_config.h guru.h alloc.h
 
-guru.o: guru.cu         vm_config.h console.h guru.h alloc.h console.h vmi.h
+guru.o: guru.cu         vm_config.h console.h guru.h gurux.h alloc.h console.h vmx.h
 
 static.o: static.cu	    vm_config.h guru.h
 
@@ -61,11 +61,11 @@ symbol.o: symbol.cu 	vm_config.h guru.h alloc.h value.h symbol.h \
 class.o: class.cu	    vm_config.h guru.h value.h alloc.h static.h symbol.h global.h \
 						console.h class.h
 
-parser.o: parser.cu     vm_config.h guru.h alloc.h instance.h \
-						vm.h errorcode.h parser.h
+load.o: load.cu         vm_config.h guru.h alloc.h instance.h \
+						vm.h errorcode.h load.h
 
 vm.o: vm.cu             vm_config.h guru.h alloc.h value.h static.h instance.h \
-						console.h opcode.h vm.h parser.h
+						console.h opcode.h vm.h load.h
 
 console.o: console.cu 	vm_config.h guru.h value.h console.h
 
@@ -88,19 +88,19 @@ c_fixnum.o: c_fixnum.cu vm_config.h guru.h value.h static.h \
 c_string.o: c_string.cu vm_config.h guru.h value.h alloc.h static.h symbol.h \
 						console.h sprintf.h \
 						class.h c_string.h
-						
+
 c_array.o: c_array.cu 	vm_config.h guru.h alloc.h static.h opcode.h object.h \
 						console.h errorcode.h \
 						class.h c_array.h \
-  						c_string.h
+						c_string.h
 
 c_range.o: c_range.cu 	vm_config.h guru.h alloc.h static.h symbol.h class.h \
 						console.h c_range.h \
 						c_string.h
 
 c_hash.o: c_hash.cu 	vm_config.h guru.h alloc.h static.h \
-  						class.h c_hash.h \
-  						c_array.h c_string.h 
+						class.h c_hash.h \
+						c_array.h c_string.h 
 
 clean: 
 	$(RM) -R main.o $(LIB) $(OBJS) *~
