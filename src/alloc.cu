@@ -53,7 +53,7 @@
 #define BLOCK_SLOTS		((L1_BITS + 1) * (1 << L2_BITS))
 
 #define NEXT(p) 		((uint8_t *)(p) + (p)->size)
-#define PREV(p) 		((uint8_t *)(p) - (p)->psize)
+#define PREV(p) 		((uint8_t *)(p) - (p)->poff)
 #define OFF(p0,p1) 		((uint8_t *)(p1) - (uint8_t *)(p0))
 
 // semaphore
@@ -86,6 +86,14 @@ __GURU__ uint16_t 		_l2_map[L1_BITS + 2]; 		// + sentinel
 __GURU__ int
 __nlz16(uint16_t x)
 {
+	int n;
+	asm(
+		"clz.b32 %0, %1;\n\t"
+		"add.u32 %0, %0, -16;\n\t"
+		: "=r"(n) : "r"((uint32_t)x));
+	return n;
+/*
+ * generic code
     if (x==0) return 16;
 
     int n = 1;
@@ -94,6 +102,7 @@ __nlz16(uint16_t x)
     if ((x>>14)==0) { n+=2; x<<=2; }
 
     return n - (x>>15);
+*/
 }
 
 __GURU__ __INLINE__ int
@@ -222,9 +231,9 @@ _merge_blocks(free_block *p0, free_block *p1)
     p0->size += p1->size;
 
     // update block info
-    if (p0->tail==FLAG_NOT_TAIL_BLOCK) {
+    if (p0->tail != FLAG_TAIL_BLOCK) {
         free_block *next = (free_block *)NEXT(p0);
-        next->psize = OFF(p0, next);
+        next->poff = OFF(p0, next);
     }
 #ifdef GURU_DEBUG
     *((uint64_t *)p1) = 0xeeeeeeeeeeeeeeee;
@@ -234,11 +243,11 @@ _merge_blocks(free_block *p0, free_block *p1)
 __GURU__ void
 _merge_with_next(free_block *target)
 {
-	if (target->tail!=FLAG_NOT_TAIL_BLOCK) return;
+	if (target->tail == FLAG_TAIL_BLOCK) return;
 
 	free_block *next = (free_block *)NEXT(target);
 
-	if (next->free!=FLAG_FREE_BLOCK) return;
+	if (next->free != FLAG_FREE_BLOCK) return;
 
 	_remove_index(next);
 	_merge_blocks(target, next);
@@ -262,14 +271,14 @@ _split_free_block(free_block *target, unsigned int size, int merge)
     free_block *next = (free_block *)NEXT(target);					// current next
 
     free->size   = target->size - size;								// carve out the block
-    free->psize  = OFF(target, free);
+    free->poff   = OFF(target, free);
     free->tail   = target->tail;
 
     target->size = size;
-    target->tail = FLAG_NOT_TAIL_BLOCK;
+    target->tail = ~FLAG_TAIL_BLOCK;
 
-    if (free->tail==FLAG_NOT_TAIL_BLOCK) {
-        next->psize = OFF(free, next);
+    if (free->tail != FLAG_TAIL_BLOCK) {
+        next->poff = OFF(free, next);
     }
     if (free != NULL) {
     	if (merge) _merge_with_next(free);
@@ -288,7 +297,7 @@ _mark_used(int index)
     assert(target!=NULL);
 
     // remove free_blocks index
-    target->free      = FLAG_USED_BLOCK;
+    target->free      = ~FLAG_FREE_BLOCK;
     _free_list[index] = target->next;
 
     if (target->next==NULL) {					// top of linked list
@@ -441,7 +450,7 @@ mrbc_free_all()
 {
     used_block *p = (used_block *)_memory_pool;
     while (1) {
-    	if (p->free==FLAG_USED_BLOCK) {
+    	if (p->free != FLAG_FREE_BLOCK) {
     		mrbc_free(BLOCKDATA(p));
     	}
     	if (p->tail==FLAG_TAIL_BLOCK) break;
@@ -475,15 +484,15 @@ _alloc_stat(int v[])
 		}
 		total += p->size;
 		nblk  += 1;
-		if (p->free==FLAG_FREE_BLOCK) {
+		if (p->free == FLAG_FREE_BLOCK) {
 			nfree += 1;
 			free  += p->size;
 		}
-		if (p->free==FLAG_USED_BLOCK) {
+		if (p->free != FLAG_FREE_BLOCK) {
 			nused += 1;
 			used  += p->size;
 		}
-		if (p->tail==FLAG_TAIL_BLOCK) break;
+		if (p->tail == FLAG_TAIL_BLOCK) break;
 		p = (used_block *)NEXT(p);
 	}
 	v[0] = total;
