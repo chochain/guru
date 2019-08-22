@@ -150,7 +150,7 @@ mrbc_proc_alloc(const char *name)
     if (proc) {
         proc->refc   = 1;
         proc->sym_id = name2symid(name);
-        proc->next   = 0;
+        proc->next   = NULL;
 #ifdef GURU_DEBUG
         proc->name   = name;	// for debug; delete soon.
 #endif

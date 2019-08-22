@@ -24,7 +24,7 @@ void *malloc(size){
 	found_block=search_suitable_block(size,fl,sl);
 	remove(found_block);
 
-	if (sizeof(found_block)>size) {ㄙㄙ
+	if (sizeof(found_block)>size) {
 		remaining_block = split(found_block, size);
 		mapping(sizeof(remaining_block),&fl2,&sl2);
 		insert(remaining_block, fl2, sl2);
@@ -42,11 +42,11 @@ void free(block){
 */
 
 #ifndef L1_BITS			// 00000000 00000000 00000000 00000000
-#define L1_BITS 	25	// ~~~~~~~~ ~~~~~~~~ ^^^^^^^^ ^         // 16+9 levels
+#define L1_BITS 	24	// ~~~~~~~~ ~~~~~~~~ ^^^^^^^^           // 16+8 levels
 #define L1_MASK 	((1<<L1_BITS)-1)
 #endif
 #ifndef L2_BITS			// 00000000 00000000 00000000 00000000
-#define L2_BITS 	3	// ~~~~~~~~ ~~~~~~~~           ^^^      // 8 entries
+#define L2_BITS 	4	// ~~~~~~~~ ~~~~~~~~          ^^^^      // 16 entries
 #define L2_MASK 	((1<<L2_BITS)-1)
 #endif
 #ifndef XX_BITS			// 00000000 00000000 00000000 00000000  // smallest blocksize
@@ -59,7 +59,7 @@ void free(block){
 #define MSB_BIT 		31
 
 // free memory block index
-#define BLOCK_SLOTS		(L1_BITS * (1 << L2_BITS))				// 25 * 8
+#define BLOCK_SLOTS		(L1_BITS * (1 << L2_BITS))				// 24 * 16 entries
 
 #define NEXT(p) 		((uint8_t *)(p) + (p)->size)
 #define PREV(p) 		((uint8_t *)(p) - (p)->poff)
@@ -73,21 +73,22 @@ __GURU__ unsigned int 	_memory_pool_size;
 __GURU__ uint8_t     	*_memory_pool;
 
 // free memory bitmap
-__GURU__ uint32_t 		_l1_map;								// use lower 25 bits
-__GURU__ uint8_t 		_l2_map[L1_BITS];						// use all 8 bits (if more digits, use uint16_t)
+__GURU__ uint32_t 		_l1_map;								// use lower 24 bits
+__GURU__ uint16_t 		_l2_map[L1_BITS];						// use all 16 bits
 __GURU__ free_block 	*_free_list[BLOCK_SLOTS];
 
-#define L1_MAP          (_l1_map)
+#define L1_MAP(i)       (_l1_map)
 #define L2_MAP(i)       (_l2_map[L1(i)])
-#define TICK(n)      	(1 << n)
+#define TIC(n)      	(1 << n)
 #define INDEX(l1, l2)   ((l1<<L2_BITS) | l2)
 
-#define GET_L1(i)		(L1_MAP & TICK(L1(i)))
-#define SET_L1(i)		(L1_MAP |= TICK(L1(i)))
-#define CLR_L1(i)	    (L1_MAP &= ~TICK(L1(i)))
-#define GET_L2(i)		(L2_MAP(i) & TICK(L2(i)))
-#define SET_L2(i)	    (L2_MAP(i) |= TICK(L2(i)))
-#define CLR_L2(i)		(L2_MAP(i) &= ~TICK(L2(i)))
+#define GET_L1(i)		(L1_MAP(i) & L1_MASK)
+#define SET_L1(i)		(L1_MAP(i) |= TIC(L1(i)))
+#define CLR_L1(i)	    (L1_MAP(i) &= ~TIC(L1(i)))
+#define GET_L2(i)		(L2_MAP(i) & L2_MASK)
+#define SET_L2(i)	    (L2_MAP(i) |= TIC(L2(i)))
+#define CLR_L2(i)		(L2_MAP(i) &= ~TIC(L2(i)))
+#define SET_MAP(i)      { SET_L1(i); SET_L2(i); }
 #define CLEAR_MAP(i)	{ CLR_L2(i); if (L2_MAP(i)==0) CLR_L1(i); }
 //================================================================
 // Number of leading zeros.
@@ -96,12 +97,23 @@ __fls(uint32_t x)
 {
 	int n;
 	asm(
-		"clz.b32 %0, %1;\n\t"
-		"sub.u32 %0, 31, %0;\n\t"
-		: "=r"(n) : "r"(x));
+		"bfind.u32 %0, %1;\n\t"
+		: "=r"(n) : "r"(x)
+	);
 	return n;
 }
 
+__GURU__ __INLINE__ uint32_t
+__ffs(uint32_t x)
+{
+	int n;
+	asm(
+		"brev.b32 %0, %1\n\t"
+		"bfind.u32 %0, %0;\n\t"
+		: "=r"(n) : "r"(x)
+	);
+	return n;
+}
 //================================================================
 /*! calc f and s, and returns fli,sli of free_blocks
 
@@ -109,7 +121,7 @@ __fls(uint32_t x)
   @retval int		index of free_blocks
 */
 __GURU__ __INLINE__ int
-_get_index(unsigned int alloc_size, int *l1, int *l2)
+__idx(unsigned int alloc_size, int *l1, int *l2)
 {
     *l1 = __fls(alloc_size);	    		   		   // 1st level index
     *l2 = (alloc_size >> (*l1 - XX_BITS)) & L2_MASK;   // 2nd level index (with lower bits)
@@ -117,77 +129,28 @@ _get_index(unsigned int alloc_size, int *l1, int *l2)
     return INDEX(*l1, *l2);
 }
 
-__GURU__ int
-_search(unsigned int alloc_size)
-{
-	int l1, l2;
-    int index = _get_index(alloc_size, &l1, &l2);	   // find free memory block
-
-    if (_free_list[index] != NULL) {
-    	return index;					// allocated before, keep using the same block
-    }
-
-    // no previous block exist, create a new one
-    int avl = _l2_map[l1];			    // check any 2nd level available
-    if (avl) {
-    	l2 = __fls(avl);		// get first available l2 index
-    }
-    else {
-    	avl = _l1_map;            		// go up to 1st level
-        if (avl) {						// allocate new 1st & 2nd level indices
-        	l1 = __fls(avl);			// CC: this might have problem, 20181104 because used is changed
-            l2 = __fls((uint32_t)_l2_map[l1]);
-        }
-        else return -1;					// out of memory
-    }
-    return INDEX(l1, l2);               // index to freelist head
-}
-
 //================================================================
-/*! just remove the free_block *target from index
+/*! wipe the free_block *target from linked list
 
   @param  target	pointer to target block.
 */
 __GURU__ void
-_clear_map(free_block *target)
+__wipe(free_block *target)
 {
-    if (target->prev==NULL) {	// head of linked list?
+    if (target->prev==NULL) {			// head of linked list?
     	int l1, l2;
-        int index = _get_index(target->size, &l1, &l2);
+        int index = __idx(target->size, &l1, &l2);
 
         if ((_free_list[index]=target->next)==NULL) {
-            CLEAR_MAP(index);	// make slot available
+            CLEAR_MAP(index);			// mark as unallocated
         }
     }
-    else {						// link previous to next
+    else {								// link previous to next
         target->prev->next = target->next;
     }
-    if (target->next != NULL) {	// reverse link
+    if (target->next != NULL) {			// reverse link
         target->next->prev = target->prev;
     }
-}
-
-//================================================================
-/*! Mark that block free and register it in the free index table.
-
-  @param  target	Pointer to target block.
-*/
-__GURU__ void
-_mark_free(free_block *target)
-{
-	int l1, l2;
-    int index = _get_index(target->size, &l1, &l2);
-
-    SET_L1(index);							// mark free entries on maps
-    SET_L2(index);
-
-    target->free = FLAG_FREE_BLOCK;
-    target->next = _free_list[index];		// current block
-    target->prev = NULL;
-    if (target->next != NULL) {				// non-end block
-        target->next->prev = target;
-    }
-    _free_list[index] = target;				// keep target as last block
 }
 
 //================================================================
@@ -198,7 +161,7 @@ _mark_free(free_block *target)
   @param  ptr2	pointer to free block 2
 */
 __GURU__ void
-_merge_blocks(free_block *p0, free_block *p1)
+__merge(free_block *p0, free_block *p1)
 {
     assert(p0 < p1);
 
@@ -216,17 +179,129 @@ _merge_blocks(free_block *p0, free_block *p1)
 #endif
 }
 
-__GURU__ void
+__GURU__ free_block*
 _merge_with_next(free_block *target)
 {
-	if (target->tail == FLAG_TAIL_BLOCK) return;
+	if (target->tail == FLAG_TAIL_BLOCK) return target;
 
 	free_block *next = (free_block *)NEXT(target);
 
-	if (next->free != FLAG_FREE_BLOCK) return;
+	if (next->free != FLAG_FREE_BLOCK) return target;
 
-	_clear_map(next);
-	_merge_blocks(target, next);
+	__wipe(next);
+	__merge(target, next);
+
+	return target;
+}
+
+__GURU__ free_block*
+_merge_with_prev(free_block *target)
+{
+	free_block *prev = (free_block *)PREV(target);
+
+	if (prev && prev->free == FLAG_FREE_BLOCK) {			// merge with previous, needed?
+		__wipe(prev);
+		__merge(prev, target);
+		target = prev;
+	}
+	return target;
+}
+
+//================================================================
+/*! Mark that block free and register it in the free index table.
+
+  @param  target	Pointer to target block.
+
+  TODO: check thread safety
+*/
+__GURU__ void
+_mark_free(free_block *target)
+{
+	int l1, l2;
+    int index = __idx(target->size, &l1, &l2);
+
+    int l1x= L1(index);
+    int l2x= L2(index);
+    int t1 = TIC(l1x);
+    int t2 = TIC(l2x);
+    uint32_t m1 = L1_MAP(index);
+    uint16_t m2 = L2_MAP(index);
+
+    SET_MAP(index);							// set free block available ticks
+
+    uint32_t m1x = L1_MAP(index);
+    uint16_t m2x = L2_MAP(index);
+
+    free_block *head = _free_list[index];
+
+    target->free = FLAG_FREE_BLOCK;
+    target->next = head;					// setup linked list
+    target->prev = NULL;
+    if (head) {								// non-end block, add backward link
+    	head->prev = target;
+    }
+
+    _free_list[index] = target;				// new head of the linked list
+}
+
+__GURU__ free_block*
+_mark_used(int index)
+{
+    free_block *target = _free_list[index];
+
+    assert(target!=NULL);
+
+    if (target->next==NULL) {					// top of linked list
+        int l1x= L1(index);
+        int l2x= L2(index);
+        int t1 = TIC(l1x);
+        int t2 = TIC(l2x);
+        uint32_t m1 = L1_MAP(index);
+        uint16_t m2 = L2_MAP(index);
+        CLEAR_MAP(index);						// release the index
+        uint32_t m1x = L1_MAP(index);
+        uint16_t m2x = L2_MAP(index);
+        if ((m1x | m2x)==0) {
+        	_free_list[index] = NULL;
+        }
+    }
+    else {
+        _free_list[index] = target->next;		// follow the linked list
+    	target->next->prev = target->prev;		// 20190819 CC: is this necessary?
+    }
+    target->free = ~FLAG_FREE_BLOCK;
+
+    return target;
+}
+
+//================================================================
+/*! Find index to a free block
+
+  @param  size	size
+  @retval -1	not found
+  @retval index to available _free_list
+*/
+__GURU__ int
+_find_free_block(unsigned int alloc_size)
+{
+	int l1, l2;
+    int index = __idx(alloc_size, &l1, &l2);	   // find free memory block
+
+    if (_free_list[index] != NULL) {
+    	return index;					// allocated before, keep using the same block
+    }
+
+    // no previous block exist, create a new one
+    int avl = _l2_map[l1];			    // check any 2nd level available
+    if (avl) {
+    	l2 = __fls(avl);				// get first available l2 index
+    }
+    else if ((avl = _l1_map)) {			// check if 1st level available
+        l1 = __fls(avl);        		// allocate new 1st & 2nd level indices
+        l2 = __fls(_l2_map[l1]);
+    }
+    else return -1;						// out of memory
+    return INDEX(l1, l2);               // index to freelist head
 }
 
 //================================================================
@@ -238,7 +313,7 @@ _merge_with_next(free_block *target)
   @retval FREE_BLOCK *	pointer to splitted free block.
 */
 __GURU__ void
-_split_free_block(free_block *target, unsigned int size, int merge)
+_split_free_block(free_block *target, unsigned int size)
 {
     if (target->size < (size + sizeof(free_block) + XX_BLOCK)) return; // too small to split 											// too small to split
 
@@ -249,39 +324,15 @@ _split_free_block(free_block *target, unsigned int size, int merge)
     free->size   = target->size - size;								// carve out the block
     free->poff   = OFF(target, free);
     free->tail   = target->tail;
-
-    target->size = size;
-    target->tail = ~FLAG_TAIL_BLOCK;
+    free->free   = FLAG_FREE_BLOCK;
 
     if (free->tail != FLAG_TAIL_BLOCK) {
         next->poff = OFF(free, next);
     }
-    if (free != NULL) {
-    	if (merge) _merge_with_next(free);
-    	_mark_free(free);
-    }
-}
+    _mark_free(free);
 
-/*
- * TODO: refactor into _clear_map()
- */
-__GURU__ free_block*
-_mark_used(int index)
-{
-    free_block *target = _free_list[index];
-
-    assert(target!=NULL);
-
-    if (target->next==NULL) {					// top of linked list
-        CLEAR_MAP(index);						// release the index
-    }
-    else {
-        _free_list[index] = target->next;		// follow the linked list
-    	target->next->prev = target->prev;		// CC: is this needed? 20181104
-    }
-    target->free = ~FLAG_FREE_BLOCK;
-
-    return target;
+    target->size = size;											// reduce size
+    target->tail = ~FLAG_TAIL_BLOCK;
 }
 
 //================================================================
@@ -337,15 +388,14 @@ mrbc_alloc(unsigned int size)
 
 	MUTEX_LOCK(_mutex_mem);
 
-	int index 			= _search(alloc_size);
+	int index 			= _find_free_block(alloc_size);
 	free_block *target 	= _mark_used(index);
 
 #ifdef GURU_DEBUG
-    uint8_t *p = BLOCKDATA(target);
-    for (int i=0; i < (alloc_size - sizeof(used_block)); i++) *p++ = 0xaa;
+    uint32_t *p = (uint32_t*)BLOCKDATA(target);
+    for (int i=0; i < (alloc_size - sizeof(used_block))>>2; i++) *p++ = 0xaaaaaaaa;
 #endif
-
-	_split_free_block(target, alloc_size, 0);
+	_split_free_block(target, alloc_size);
 
 	MUTEX_FREE(_mutex_mem);
 
@@ -373,7 +423,7 @@ mrbc_realloc(void *ptr, unsigned int size)
     }
     if (alloc_size==target->size) return ptr;					// same size, good fit
     if (alloc_size < target->size) {							// a little to big, split if we can
-        _split_free_block((free_block *)target, alloc_size, 1);
+        _split_free_block((free_block *)target, alloc_size);
         return ptr;
     }
 
@@ -401,15 +451,10 @@ mrbc_free(void *ptr)
 	MUTEX_LOCK(_mutex_mem);
 
     free_block *target = (free_block *)BLOCKHEAD(ptr);	// get block header
-    free_block *prev   = (free_block *)PREV(target);
 
-    _merge_with_next(target);
+    target = _merge_with_next(target);
+    target = _merge_with_prev(target);
 
-    if (prev && prev->free == FLAG_FREE_BLOCK) {			// merge with previous, needed?
-    	_clear_map(prev);
-    	_merge_blocks(prev, target);
-    	target = prev;
-    }
     _mark_free(target);
 
     MUTEX_FREE(_mutex_mem);
