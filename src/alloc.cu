@@ -35,7 +35,7 @@
 #define L1_MASK 	((1<<L1_BITS)-1)
 #endif
 #ifndef L2_BITS			// 0000 0000 0000 0000
-#define L2_BITS 	3	//            ~~~
+#define L2_BITS 	4	//            ~~~
 #define L2_MASK 	((1<<L2_BITS)-1)
 #endif
 #ifndef XX_BITS			// 0000 0000 0000 0000
@@ -46,8 +46,8 @@
 #define L1(i) 			(((i) >> L2_BITS) & L1_MASK)
 #define L2(i) 			((i) & L2_MASK)
 #define MSB_BIT 		0x8000
-#define L1_MAP(i)      	(MSB_BIT >> L1(i))
-#define L2_MAP(i)		(MSB_BIT >> L2(i))
+#define L1_TIC(i)      (MSB_BIT >> L1(i))
+#define L2_TIC(i)	   (MSB_BIT >> L2(i))
 
 // free memory block index
 #define BLOCK_SLOTS		((L1_BITS + 1) * (1 << L2_BITS))
@@ -66,17 +66,22 @@ __GURU__ uint8_t     	*_memory_pool;
 __GURU__ free_block 	*_free_list[BLOCK_SLOTS + 1];
 
 // free memory bitmap
-__GURU__ uint16_t 		_l1_map;
+__GURU__ uint32_t 		_l1_map;
 __GURU__ uint16_t 		_l2_map[L1_BITS + 2]; 		// + sentinel
 
-#define GET_L1(i)		(_l1_map & (L1_MAP(i) - 1))
-#define SET_L1(i)		(_l1_map |= L1_MAP(i))
-#define CLR_L1(i)	    (_l1_map &= ~L1_MAP(i))
-#define L2_KEY(i)		(_l2_map[L1(i)])
-#define GET_L2(i)		(L2_KEY(i) & (L2_MAP(i) - 1))
-#define SET_L2(i)	    (L2_KEY(i) |= L2_MAP(i))
-#define CLR_L2(i)		(L2_KEY(i) &= ~L2_MAP(i))
-#define CLEAR_MAP(i)	{ CLR_L2(i); if (L2_KEY(i)==0) CLR_L1(i); }
+#define L1_MAP(i)       (_l1_map)
+#define L2_MAP(i)		(_l2_map[L1(i)])
+
+#define GET_L1(i)		(L1_MAP(i) & L1_MASK)
+#define SET_L1(i)		(L1_MAP(i) |= L1_TIC(i))
+#define CLR_L1(i)	    (L1_MAP(i) &= ~L1_TIC(i))
+
+#define GET_L2(i)		(L2_MAP(i) & L2_MASK)
+#define SET_L2(i)	    (L2_MAP(i) |= L2_TIC(i))
+#define CLR_L2(i)		(L2_MAP(i) &= ~L2_TIC(i))
+
+#define SET_MAP(i)      { SET_L1(i); SET_L2(i); }
+#define CLEAR_MAP(i)	{ CLR_L2(i); if (L2_MAP(i)==0) CLR_L1(i); }
 //================================================================
 /*! Number of leading zeros.
 
@@ -132,7 +137,16 @@ _get_index(unsigned int alloc_size)
     int shift =	l1 + XX_BITS - ((l1==0) ? 0 : 1);
     int l2    = (alloc_size >> shift) & L2_MASK;					// 2nd level index
 
-    return __calc_index(l1, l2);
+    int index = __calc_index(l1, l2);
+
+    int l1x = L1(index);
+    int l2x = L2(index);
+    int l1t = L1_TIC(index);
+    int l2t = L2_TIC(index);
+    int l1m = GET_L1(index);
+    int l2m = GET_L2(index);
+
+    return index;
 }
 
 __GURU__ int
@@ -197,13 +211,19 @@ _mark_free(free_block *target)
     int index = _get_index(target->size) - 1;
 
 #ifdef GURU_DEBUG
+    free_block *blk = _free_list[index];	// debug:
     int l1 = L1(index);  					// debug: (index>>3) & 0xff
     int l2 = L2(index);  					// debug: index & 0x7
-    free_block *blk = _free_list[index];	// debug:
+    int l1t = L1_TIC(index);
+    int l2t = L2_TIC(index);
 #endif
+    int l1m = L1_MAP(index);
+    int l2m = L2_MAP(index);
 
-    SET_L1(index);							// update maps
-    SET_L2(index);
+    SET_MAP(index);							// update maps
+
+    int l1x = L1_MAP(index);
+    int l2x = L2_MAP(index);
 
     target->free = FLAG_FREE_BLOCK;
     target->next = _free_list[index];		// current block
