@@ -31,12 +31,12 @@ extern "C" {
 */
 typedef struct RIrep {			// 32-bytes
     uint32_t	 size;			// size of entire IREP block
-    uint16_t 	 nlv;   		//!< # of local variables
-    uint16_t 	 nreg;			//!< # of register used
-    uint16_t 	 rlen;			//!< # of child IREP blocks (into list below)
-    uint16_t 	 ilen;			//!< # of bytecodes (by iseq below)
-    uint16_t 	 plen;			//!< # of objects in pool (into pool below)
-    uint16_t	 slen;			//!< # of symbols (into sym below)
+    uint32_t 	 nlv	: 16;   //!< # of local variables
+    uint32_t 	 nreg	: 16;	//!< # of register used
+    uint32_t 	 rlen	: 16;	//!< # of child IREP blocks (into list below)
+    uint32_t 	 ilen	: 16;	//!< # of bytecodes (by iseq below)
+    uint32_t 	 plen	: 16;	//!< # of objects in pool (into pool below)
+    uint32_t	 slen	: 16;	//!< # of symbols (into sym below)
 
     uint32_t 	 iseq;			//!< offset to ISEQ (code) BLOCK
     uint32_t	 sym;			//!< offset to array of SYMBOLs
@@ -50,8 +50,8 @@ typedef struct RIrep {			// 32-bytes
 */
 
 typedef struct RState {
-    uint16_t        pc;			// program counter
-    uint16_t        argc;     	// num of args
+    uint32_t        pc   : 16;	// program counter
+    uint32_t        argc : 16;  // num of args
     mrbc_class      *klass;		// current class
     mrbc_value      *reg;		// pointer to current register (in VM register file)
     guru_irep       *irep;		// pointer to current irep block
@@ -63,10 +63,10 @@ typedef struct RState {
   Virtual Machine
 */
 typedef struct VM {
-    int8_t 			id;			// allocation control (-1 means free)
-    int8_t 			run;		// to exit vm loop
-    int8_t 			step;		// for single-step debug level
-    int8_t			err;		// error code/condition
+    uint32_t		id   : 8;	// allocation control (-1 means free)
+    uint32_t		run  : 8;	// to exit vm loop
+    uint32_t		step : 8;	// for single-step debug level
+    uint32_t		err  : 8;	// error code/condition
     guru_irep       *irep;		// pointer to IREP tree
     guru_state      *state;		// VM state (callinfo) linked list
     mrbc_value  	regfile[MAX_REGS_SIZE];

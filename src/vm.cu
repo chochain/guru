@@ -43,7 +43,7 @@ _vm_begin(guru_vm *pool)
 {
 	guru_vm *vm = pool+blockIdx.x;
 
-	if (threadIdx.x!=0 || vm->id < 0) return;	// bail if vm not allocated
+	if (threadIdx.x!=0 || vm->id==0) return;	// bail if vm not allocated
 
 	MEMSET((uint8_t *)vm->regfile, 0, sizeof(vm->regfile));	// clean up registers
 
@@ -75,7 +75,7 @@ _vm_end(guru_vm *pool)
 {
 	guru_vm *vm = pool+blockIdx.x;
 
-	if (threadIdx.x!=0 || vm->id < 0) return;		// bail if vm not allocated
+	if (threadIdx.x!=0 || vm->id==0) return;		// bail if vm not allocated
 
 #ifndef GURU_DEBUG
 	// clean up register file?						// CC: moved from mrbc_op 20181102
@@ -98,7 +98,7 @@ __GPU__ void
 _vm_exec(guru_vm *pool)
 {
 	guru_vm *vm = pool+blockIdx.x;
-	if (vm->id < 0 || !vm->run) return;		// not allocated yet, or completed
+	if (vm->id==0 || !vm->run) return;		// not allocated yet, or completed
 
 	while (guru_op(vm)==0 && vm->step==0) {	// multi-threading in guru_op
 		// add cuda hook here
@@ -131,8 +131,8 @@ __HOST__ int
 _vm_join(void)
 {
 	guru_vm *vm = _vm_pool;
-	for (int i=0; i<MIN_VM_COUNT; i++, vm++) {
-		if (vm->id >=0 && vm->run) return 1;
+	for (int i=1; i<=MIN_VM_COUNT; i++, vm++) {
+		if (vm->id>0 && vm->run) return 1;
 	}
 	return 0;
 }
@@ -143,8 +143,8 @@ _vm_pool_init(void)
 	guru_vm *vm = _vm_pool = (guru_vm *)guru_malloc(sizeof(guru_vm) * MIN_VM_COUNT, 1);
 	if (!vm) return 0;
 
-	for (int i=0; i<MIN_VM_COUNT; i++, vm++) {
-		vm->id   = -1;
+	for (int i=1; i<=MIN_VM_COUNT; i++, vm++) {
+		vm->id   = 0;
 #ifdef GURU_DEBUG
 		vm->step = 1;
 #else
@@ -164,13 +164,13 @@ guru_vm_setup(guru_ses *ses, int trace)
 	}
 	guru_vm *vm = _vm_pool;
 	int i;
-	for (i=0; i<MIN_VM_COUNT; i++, vm++) {
-		if (vm->id < 0) {			// whether vm is been used
+	for (i=1; i<=MIN_VM_COUNT; i++, vm++) {
+		if (vm->id == 0) {			// whether vm is unallocated
 			vm->id = ses->id = i;	// found, assign vm to session
 			break;
 		}
 	}
-	if (i>=MIN_VM_COUNT) return cudaErrorMemoryAllocation;
+	if (i>MIN_VM_COUNT) return cudaErrorMemoryAllocation;
 
 	guru_parse_bytecode(vm, ses->in);
 #else
@@ -334,7 +334,7 @@ guru_vm_trace(int level)
 
 	guru_vm *vm = _vm_pool;
 	for (int i=0; i<MIN_VM_COUNT; i++, vm++) {
-		if (vm->id >= 0 && vm->run) {
+		if (vm->id > 0 && vm->run) {
 			guru_state *st = vm->state;
 			while (st->prev) {
 				printf("%p <-- ", st);

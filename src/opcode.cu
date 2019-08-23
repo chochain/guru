@@ -849,7 +849,7 @@ op_blkpush(guru_vm *vm, uint32_t code, mrbc_value *regs)
     mrbc_value *stack = regs + 1;       // call stack: push 1 mrbc_value
 
     if (stack[0].tt==GURU_TT_NIL){		// Check leak?
-        return vm->err = -1;  			// EYIELD
+        return vm->err = 255;  			// EYIELD
     }
     _RA_X(stack);                       // ra <= stack[0]
 
@@ -1229,7 +1229,7 @@ op_string(guru_vm *vm, uint32_t code, mrbc_value *regs)
     const char *str = (const char *)((uint8_t *)VM_IREP(vm) + *p);
     mrbc_value ret  = mrbc_string_new(str);
 
-    if (ret.str==NULL) return vm->err = -1;				// ENOMEM
+    if (ret.str==NULL) return vm->err = 255;			// ENOMEM
 
     _RA_V(ret);
 #else
@@ -1299,7 +1299,7 @@ op_array(guru_vm *vm, uint32_t code, mrbc_value *regs)
     mrbc_value ret = (mrbc_value)mrbc_array_new(rc);
     mrbc_array *h  = ret.array;
     mrbc_value *pb = &regs[rb];
-    if (h==NULL) return vm->err = -1;	// ENOMEM
+    if (h==NULL) return vm->err = 255;	// ENOMEM
 
     MEMCPY((uint8_t *)h->data, (uint8_t *)pb, sz);
     MEMSET((uint8_t *)pb, 0, sz);
@@ -1335,7 +1335,7 @@ op_hash(guru_vm *vm, uint32_t code, mrbc_value *regs)
     mrbc_value ret = mrbc_hash_new(rc);
     mrbc_hash  *h  = ret.hash;
     mrbc_value *p  = &regs[rb];
-    if (h==NULL) return vm->err = -1;					// ENOMEM
+    if (h==NULL) return vm->err = 255;					// ENOMEM
 
     MEMCPY((uint8_t *)h->data, (uint8_t *)p, sz);		// copy k,v pairs
 
@@ -1370,7 +1370,7 @@ op_range(guru_vm *vm, uint32_t code, mrbc_value *regs)
 
     mrbc_value *pb = &regs[rb];
     mrbc_value ret = mrbc_range_new(pb, pb+1, rc);
-    if (ret.range==NULL) return vm->err = -1;		// ENOMEM
+    if (ret.range==NULL) return vm->err = 255;		// ENOMEM
 
     _RA_V(ret);						// release and  reassign
     mrbc_retain(pb);
