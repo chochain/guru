@@ -43,7 +43,6 @@ void free(block){
 
 #ifndef L1_BITS			// 00000000 00000000 00000000 00000000
 #define L1_BITS 	24	// ~~~~~~~~ ~~~~~~~~ ^^^^^^^^           // 16+8 levels
-#define L1_MASK 	((1<<L1_BITS)-1)
 #endif
 #ifndef L2_BITS			// 00000000 00000000 00000000 00000000
 #define L2_BITS 	4	// ~~~~~~~~ ~~~~~~~~          ^^^^      // 16 entries
@@ -54,9 +53,9 @@ void free(block){
 #define XX_BLOCK	(1 << XX_BITS)
 #endif
 
-#define L1(i) 			(((i) >> L2_BITS) & L1_MASK)
+#define L1(i) 			((i) >> L2_BITS)
 #define L2(i) 			((i) & L2_MASK)
-#define MSB_BIT 		31
+#define MSB_BIT 		31                                      // 32-bit MMU
 
 // free memory block index
 #define BLOCK_SLOTS		(L1_BITS * (1 << L2_BITS))				// 24 * 16 entries
@@ -82,34 +81,30 @@ __GURU__ free_block 	*_free_list[BLOCK_SLOTS];
 #define TIC(n)      	(1 << n)
 #define INDEX(l1, l2)   ((l1<<L2_BITS) | l2)
 
-#define GET_L1(i)		(L1_MAP(i) & L1_MASK)
 #define SET_L1(i)		(L1_MAP(i) |= TIC(L1(i)))
 #define CLR_L1(i)	    (L1_MAP(i) &= ~TIC(L1(i)))
-#define GET_L2(i)		(L2_MAP(i) & L2_MASK)
 #define SET_L2(i)	    (L2_MAP(i) |= TIC(L2(i)))
 #define CLR_L2(i)		(L2_MAP(i) &= ~TIC(L2(i)))
 #define SET_MAP(i)      { SET_L1(i); SET_L2(i); }
 #define CLEAR_MAP(i)	{ CLR_L2(i); if (L2_MAP(i)==0) CLR_L1(i); }
 //================================================================
-// Number of leading zeros.
+// most significant bit that is set
 __GURU__ __INLINE__ uint32_t
 __fls(uint32_t x)
 {
 	int n;
-	asm(
-		"bfind.u32 %0, %1;\n\t"
-		: "=r"(n) : "r"(x)
-	);
+	asm("bfind.u32 %0, %1;\n\t" : "=r"(n) : "r"(x));
 	return n;
 }
 
+// least significant bit that is set
 __GURU__ __INLINE__ uint32_t
 __ffs(uint32_t x)
 {
 	int n;
 	asm(
 		"brev.b32 %0, %1\n\t"
-		"bfind.u32 %0, %0;\n\t"
+		"clz.b32 %0, %0;\n\t"
 		: "=r"(n) : "r"(x)
 	);
 	return n;
@@ -123,8 +118,9 @@ __ffs(uint32_t x)
 __GURU__ __INLINE__ int
 __idx(unsigned int alloc_size, int *l1, int *l2)
 {
-    *l1 = __fls(alloc_size);	    		   		   // 1st level index
-    *l2 = (alloc_size >> (*l1 - XX_BITS)) & L2_MASK;   // 2nd level index (with lower bits)
+	int v = __fls(alloc_size);
+    *l1 = v<(L2_BITS+XX_BITS) ? 0 : v - L2_BITS - XX_BITS;	// 1st level index
+    *l2 = (alloc_size >> (v - XX_BITS)) & L2_MASK;  		// 2nd level index (with lower bits)
 
     return INDEX(*l1, *l2);
 }
@@ -135,7 +131,7 @@ __idx(unsigned int alloc_size, int *l1, int *l2)
   @param  target	pointer to target block.
 */
 __GURU__ void
-__wipe(free_block *target)
+__release(free_block *target)
 {
     if (target->prev==NULL) {			// head of linked list?
     	int l1, l2;
@@ -188,7 +184,7 @@ _merge_with_next(free_block *target)
 
 	if (next->free != FLAG_FREE_BLOCK) return target;
 
-	__wipe(next);
+	__release(next);
 	__merge(target, next);
 
 	return target;
@@ -200,7 +196,7 @@ _merge_with_prev(free_block *target)
 	free_block *prev = (free_block *)PREV(target);
 
 	if (prev && prev->free == FLAG_FREE_BLOCK) {			// merge with previous, needed?
-		__wipe(prev);
+		__release(prev);
 		__merge(prev, target);
 		target = prev;
 	}
@@ -258,10 +254,13 @@ _mark_used(int index)
         int t2 = TIC(l2x);
         uint32_t m1 = L1_MAP(index);
         uint16_t m2 = L2_MAP(index);
+
         CLEAR_MAP(index);						// release the index
+
         uint32_t m1x = L1_MAP(index);
         uint16_t m2x = L2_MAP(index);
-        if ((m1x | m2x)==0) {
+
+        if (L1_MAP(index)==0 && L2_MAP(index)==0) {
         	_free_list[index] = NULL;
         }
     }
@@ -285,11 +284,9 @@ __GURU__ int
 _find_free_block(unsigned int alloc_size)
 {
 	int l1, l2;
-    int index = __idx(alloc_size, &l1, &l2);	   // find free memory block
+    int index = __idx(alloc_size, &l1, &l2);	// find free_list index by size
 
-    if (_free_list[index] != NULL) {
-    	return index;					// allocated before, keep using the same block
-    }
+    if (_free_list[index]) return index;		// free block available, use it
 
     // no previous block exist, create a new one
     int avl = _l2_map[l1];			    // check any 2nd level available
@@ -329,7 +326,7 @@ _split_free_block(free_block *target, unsigned int size)
     if (free->tail != FLAG_TAIL_BLOCK) {
         next->poff = OFF(free, next);
     }
-    _mark_free(free);
+    _mark_free(free);												// add to free_list
 
     target->size = size;											// reduce size
     target->tail = ~FLAG_TAIL_BLOCK;
