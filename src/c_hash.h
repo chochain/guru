@@ -30,9 +30,9 @@ typedef struct RHash {
     //  Needs to be same members and order as RArray.
     GURU_OBJECT_HEADER;
 
-    uint16_t   size;	//!< data buffer size.
-    uint16_t   n;	    //!< # of stored.
-    mrbc_value *data;	//!< pointer to allocated memory.
+    uint32_t   size : 16;	//!< data buffer size.
+    uint32_t   n	: 16;	//!< # of stored.
+    mrbc_value *data;		//!< pointer to allocated memory.
 
     // TODO: and other member for search.
 } mrbc_hash;

@@ -100,9 +100,9 @@ typedef enum {
   Guru value object.
 */
 typedef struct RObject {					// 16-bytes
-    mrbc_vtype           tt:8;
-    unsigned int		 flag:8;			// reserved
-    unsigned int	 	 size:16;			// reserved, 32-bit aligned
+    mrbc_vtype           tt    : 8;
+    unsigned int		 flag  : 8;			// reserved
+    unsigned int	 	 size  : 16;		// reserved, 32-bit aligned
     union {
         mrbc_int         i;					// GURU_TT_FIXNUM, SYMBOL
 #if GURU_USE_FLOAT
@@ -138,9 +138,9 @@ typedef struct RClass {						// 32-byte
 #define IS_C_FUNC(m)			((m)->flag & GURU_PROC_C_FUNC)
 
 #define GURU_OBJECT_HEADER      \
-	unsigned int	refc:16;	\
-	mrbc_vtype  	tt:8; 		\
-	unsigned int	flag:8
+	unsigned int	refc : 16;	\
+	mrbc_vtype  	tt   : 8; 	\
+	unsigned int	flag : 8
 
 typedef struct RString {					// 16-byte
 	GURU_OBJECT_HEADER;						// 4-byte

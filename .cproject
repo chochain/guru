@@ -43,16 +43,11 @@
 							</tool>
 						</toolChain>
 					</folderInfo>
-					<folderInfo id="com.nvidia.cuda.ide.nine_zero.configuration.debug.665767582.1728911038" name="/" resourcePath="orig">
-						<toolChain id="com.nvidia.cuda.tools.toolchain.nine_zero.exe.debug.221962528" name="CUDA Toolkit 10.0" superClass="com.nvidia.cuda.tools.toolchain.nine_zero.exe.debug" unusedChildren="">
-							<tool id="nvcc.compiler.base.1706134320" name="NVCC Compiler" superClass="nvcc.compiler.base.201105002"/>
-							<tool id="nvcc.linker.base.642628003" name="NVCC Linker" superClass="nvcc.linker.base.221237626"/>
-							<tool id="nvcc.archiver.base.580957354" name="NVCC Archiver" superClass="nvcc.archiver.base.452167286"/>
-							<tool id="com.nvidia.host.assembler.1924444059" name="Host Assembler" superClass="com.nvidia.host.assembler.1686401705"/>
-						</toolChain>
-					</folderInfo>
+					<fileInfo id="com.nvidia.cuda.ide.nine_zero.configuration.debug.665767582.1501975725" name="alloc.cu" rcbsApplicability="disable" resourcePath="src/alloc.cu" toolsToInvoke="nvcc.compiler.base.201105002.2031256254">
+						<tool id="nvcc.compiler.base.201105002.2031256254" name="NVCC Compiler" superClass="nvcc.compiler.base.201105002"/>
+					</fileInfo>
 					<sourceEntries>
-						<entry excluding="orig|ext" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
+						<entry excluding="src/alloc.cu|orig|ext" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
 					</sourceEntries>
 				</configuration>
 			</storageModule>
@@ -142,4 +137,5 @@
 			<resource resourceType="PROJECT" workspacePath="/guru"/>
 		</configuration>
 	</storageModule>
+	<storageModule moduleId="org.eclipse.cdt.internal.ui.text.commentOwnerProjectMappings"/>
 </cproject>

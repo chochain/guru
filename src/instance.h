@@ -33,8 +33,8 @@ typedef struct RKeyValueData {
 /*! Define Key-Value handle.
 */
 typedef struct RKeyValue {
-    uint16_t     size;		//!< data buffer size.
-    uint16_t     n;	    	//!< # of stored.
+    uint32_t     size : 16;	//!< data buffer size.
+    uint32_t     n    : 16;	//!< # of stored.
     mrbc_kv_data *data;		//!< pointer to allocated memory.
 } mrbc_kv;
 

@@ -95,7 +95,7 @@ guru_system_run(int trace)
 }
 
 __HOST__ int
-session_add(guru_ses *ses, const char *rite_fname, int trace)
+guru_session_add(guru_ses *ses, const char *rite_fname, int trace)
 {
 	ses->trace = trace;
 	ses->out   = _guru_out;

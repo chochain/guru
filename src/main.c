@@ -18,7 +18,7 @@ int main(int argc, char **argv)
 
 	guru_ses *ses = malloc(sizeof(ses) * n);
 	for (int i=1; i<=n; i++, ses++) {
-		session_add(ses, argv[i], trace);
+		guru_session_add(ses, argv[i], trace);
 	}
 	return guru_system_run(trace);
 }

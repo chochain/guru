@@ -19,10 +19,10 @@ extern "C" {
 #endif
 
 typedef struct guru_ses_ {
-	uint8_t *in;
+	uint8_t *in ;
 	uint8_t *out;
-	uint8_t id;
-	uint8_t trace;
+	uint32_t id    : 16;
+	uint32_t trace : 16;
 	struct guru_ses_ *next;
 } guru_ses;
 
@@ -34,7 +34,7 @@ typedef int16_t 	mrbc_sym;
 int guru_system_setup(int trace);
 int guru_system_run(int trace);
 
-int session_add(guru_ses *ses, const char *rite_fname, int trace);
+int guru_session_add(guru_ses *ses, const char *rite_fname, int trace);
 
 #ifdef __cplusplus
 }
