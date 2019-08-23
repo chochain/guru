@@ -48,17 +48,16 @@ void free(block){
 #define L2_BITS 	4	// ~~~~~~~~ ~~~~~~~~          ^^^^      // 16 entries
 #define L2_MASK 	((1<<L2_BITS)-1)
 #endif
-#ifndef XX_BITS			// 00000000 00000000 00000000 00000000  // smallest blocksize
-#define XX_BITS 	4	// ~~~~~~~~ ~~~~~~~~              ^^^^  // 16-bytes
-#define XX_BLOCK	(1 << XX_BITS)
+#ifndef MN_BITS			// 00000000 00000000 00000000 00000000  // smallest blocksize
+#define MN_BITS 	4	// ~~~~~~~~ ~~~~~~~~              ^^^^  // 16-bytes
+#define MN_BLOCK	(1 << MN_BITS)
+#define BASE_BITS   (L2_BITS+MN_BITS)
 #endif
 
 #define L1(i) 			((i) >> L2_BITS)
 #define L2(i) 			((i) & L2_MASK)
 #define MSB_BIT 		31                                      // 32-bit MMU
-
-// free memory block index
-#define BLOCK_SLOTS		(L1_BITS * (1 << L2_BITS))				// 24 * 16 entries
+#define FL_SLOTS		(L1_BITS * (1 << L2_BITS))				// slots for free_list pointers (24 * 16 entries)
 
 #define NEXT(p) 		((uint8_t *)(p) + (p)->size)
 #define PREV(p) 		((uint8_t *)(p) - (p)->poff)
@@ -74,7 +73,7 @@ __GURU__ uint8_t     	*_memory_pool;
 // free memory bitmap
 __GURU__ uint32_t 		_l1_map;								// use lower 24 bits
 __GURU__ uint16_t 		_l2_map[L1_BITS];						// use all 16 bits
-__GURU__ free_block 	*_free_list[BLOCK_SLOTS];
+__GURU__ free_block 	*_free_list[FL_SLOTS];
 
 #define L1_MAP(i)       (_l1_map)
 #define L2_MAP(i)       (_l2_map[L1(i)])
@@ -103,7 +102,7 @@ __ffs(uint32_t x)
 {
 	int n;
 	asm(
-		"brev.b32 %0, %1\n\t"
+		"brev.b32 %0, %1;\n\t"
 		"clz.b32 %0, %0;\n\t"
 		: "=r"(n) : "r"(x)
 	);
@@ -115,12 +114,14 @@ __ffs(uint32_t x)
   @param  alloc_size	alloc size
   @retval int		index of free_blocks
 */
-__GURU__ __INLINE__ int
+__GURU__ int
 __idx(unsigned int alloc_size, int *l1, int *l2)
 {
 	int v = __fls(alloc_size);
-    *l1 = v<(L2_BITS+XX_BITS) ? 0 : v - L2_BITS - XX_BITS;	// 1st level index
-    *l2 = (alloc_size >> (v - XX_BITS)) & L2_MASK;  		// 2nd level index (with lower bits)
+	int x = __ffs(alloc_size);
+
+    *l1 = v<BASE_BITS ? 0 : v - BASE_BITS;			// 1st level index
+    *l2 = (alloc_size >> (v - MN_BITS)) & L2_MASK;  // 2nd level index (with lower bits)
 
     return INDEX(*l1, *l2);
 }
@@ -141,10 +142,10 @@ __release(free_block *target)
             CLEAR_MAP(index);			// mark as unallocated
         }
     }
-    else {								// link previous to next
+    else {								// down link
         target->prev->next = target->next;
     }
-    if (target->next != NULL) {			// reverse link
+    if (target->next != NULL) {			// up link
         target->next->prev = target->prev;
     }
 }
@@ -166,7 +167,7 @@ __merge(free_block *p0, free_block *p1)
     p0->size += p1->size;
 
     // update block info
-    if (p0->tail != FLAG_TAIL_BLOCK) {
+    if (!p0->tail) {
         free_block *next = (free_block *)NEXT(p0);
         next->poff = OFF(p0, next);
     }
@@ -178,11 +179,11 @@ __merge(free_block *p0, free_block *p1)
 __GURU__ free_block*
 _merge_with_next(free_block *target)
 {
-	if (target->tail == FLAG_TAIL_BLOCK) return target;
+	if (target->tail) return target;
 
 	free_block *next = (free_block *)NEXT(target);
 
-	if (next->free != FLAG_FREE_BLOCK) return target;
+	if (!next->free) return target;
 
 	__release(next);
 	__merge(target, next);
@@ -195,7 +196,7 @@ _merge_with_prev(free_block *target)
 {
 	free_block *prev = (free_block *)PREV(target);
 
-	if (prev && prev->free == FLAG_FREE_BLOCK) {			// merge with previous, needed?
+	if (prev && prev->free) {			// merge with previous, needed?
 		__release(prev);
 		__merge(prev, target);
 		target = prev;
@@ -230,7 +231,7 @@ _mark_free(free_block *target)
 
     free_block *head = _free_list[index];
 
-    target->free = FLAG_FREE_BLOCK;
+    target->free = 1;
     target->next = head;					// setup linked list
     target->prev = NULL;
     if (head) {								// non-end block, add backward link
@@ -268,7 +269,7 @@ _mark_used(int index)
         _free_list[index] = target->next;		// follow the linked list
     	target->next->prev = target->prev;		// 20190819 CC: is this necessary?
     }
-    target->free = ~FLAG_FREE_BLOCK;
+    target->free = 0;
 
     return target;
 }
@@ -312,7 +313,7 @@ _find_free_block(unsigned int alloc_size)
 __GURU__ void
 _split_free_block(free_block *target, unsigned int size)
 {
-    if (target->size < (size + sizeof(free_block) + XX_BLOCK)) return; // too small to split 											// too small to split
+    if (target->size < (size + sizeof(free_block) + MN_BLOCK)) return; // too small to split 											// too small to split
 
     // split block, free
     free_block *free = (free_block *)((uint8_t *)target + size);	// future next block
@@ -321,15 +322,15 @@ _split_free_block(free_block *target, unsigned int size)
     free->size   = target->size - size;								// carve out the block
     free->poff   = OFF(target, free);
     free->tail   = target->tail;
-    free->free   = FLAG_FREE_BLOCK;
+    free->free   = 1;
 
-    if (free->tail != FLAG_TAIL_BLOCK) {
+    if (!free->tail) {
         next->poff = OFF(free, next);
     }
     _mark_free(free);												// add to free_list
 
     target->size = size;											// reduce size
-    target->tail = ~FLAG_TAIL_BLOCK;
+    target->tail = 0;
 }
 
 //================================================================
@@ -349,8 +350,8 @@ _init_mmu(void *mem, unsigned int size)
 
     // initialize entire memory pool as the first block
     free_block *block  = (free_block *)_memory_pool;
-    block->tail = FLAG_TAIL_BLOCK;
-    block->free = FLAG_FREE_BLOCK;
+    block->tail = 1;
+    block->free = 1;
     block->size = _memory_pool_size;
     block->prev = 0;
 
@@ -368,7 +369,7 @@ __GURU__ void*
 mrbc_alloc(unsigned int size)
 {
     // TODO: maximum alloc size
-    //  (1 << (L1_BITS + L2_BITS + XX_BITS)) - alpha
+    //  (1 << (L1_BITS + L2_BITS + MN_BITS)) - alpha
     unsigned int alloc_size = size + sizeof(used_block);
 
 #if GURU_REQUIRE_64BIT_ALIGNMENT
@@ -376,10 +377,10 @@ mrbc_alloc(unsigned int size)
 #endif
     // check minimum alloc size. if need.
 #ifdef GURU_DEBUG
-    assert(alloc_size >= XX_BLOCK);
+    assert(alloc_size >= MN_BLOCK);
 #else
-    if (alloc_size < XX_BLOCK) {
-        alloc_size = XX_BLOCK;
+    if (alloc_size < MN_BLOCK) {
+        alloc_size = MN_BLOCK;
     }
 #endif
 
@@ -467,10 +468,10 @@ mrbc_free_all()
 {
     used_block *p = (used_block *)_memory_pool;
     while (1) {
-    	if (p->free != FLAG_FREE_BLOCK) {
+    	if (!p->free) {
     		mrbc_free(BLOCKDATA(p));
     	}
-    	if (p->tail == FLAG_TAIL_BLOCK) break;
+    	if (p->tail) break;
     	p = (used_block *)NEXT(p);
     }
 }
@@ -501,15 +502,15 @@ _alloc_stat(int v[])
 		}
 		total += p->size;
 		nblk  += 1;
-		if (p->free == FLAG_FREE_BLOCK) {
+		if (p->free) {
 			nfree += 1;
 			free  += p->size;
 		}
-		if (p->free != FLAG_FREE_BLOCK) {
+		if (!p->free) {
 			nused += 1;
 			used  += p->size;
 		}
-		if (p->tail == FLAG_TAIL_BLOCK) break;
+		if (p->tail) break;
 		p = (used_block *)NEXT(p);
 	}
 	v[0] = total;

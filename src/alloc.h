@@ -21,26 +21,21 @@
 extern "C" {
 #endif
 
-// define flags
-#define FLAG_TAIL_BLOCK     1
-#define FLAG_FREE_BLOCK     1
-
-// 31-bit max memory block header
-typedef struct used_block {
-  uint32_t				size:31;    //!< block size, header included
-  uint32_t 				tail:1;     //!< FLAG_TAIL_BLOCK
-  uint32_t				poff:31; 	//!< offset of previous physical block
-  uint32_t 				free:1;     //!< FLAG_FREE_BLOCK
+typedef struct used_block {			// 8-bytes
+  uint32_t				size : 31;  //!< block size, header included (max 2G)
+  uint32_t 				tail : 1;   //!< flag of the tail block
+  uint32_t				poff : 31; 	//!< offset of previous physical block
+  uint32_t 				free : 1;   //!< flag of free block
 } used_block;
 
-typedef struct free_block {
-  uint32_t				size:31;    //!< block size, header included
-  uint32_t 				tail:1;     //!< FLAG_TAIL_BLOCK
-  uint32_t				poff:31; 	//!< offset of previous physical block
-  uint32_t 				free:1;     //!< FLAG_FREE_BLOCK
+typedef struct free_block {			// 16-bytes (i.e. mininum allocation per block)
+  uint32_t				size : 31;
+  uint32_t 				tail : 1;
+  uint32_t				poff : 31;
+  uint32_t 				free : 1;
 
-  struct free_block 	*next;
-  struct free_block 	*prev;
+  struct free_block 	*next;		// pointer to next free block
+  struct free_block 	*prev;		// pointer to previous free block
 } free_block;
 
 #define BLOCKHEAD(p) ((uint8_t *)p - sizeof(used_block))
