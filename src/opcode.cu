@@ -1512,9 +1512,6 @@ op_method(guru_vm *vm, uint32_t code, mrbc_value *regs)
     }
 
     // add proc to class
-#ifdef GURU_DEBUG
-    proc->name  = _vm_symbol(vm, rb);
-#endif
     proc->sym_id= sid;
     proc->flag  &= ~GURU_PROC_C_FUNC;
     proc->next  = cls->vtbl;
