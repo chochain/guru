@@ -31,16 +31,17 @@ extern "C" {
 */
 typedef struct RIrep {			// 32-bytes
     uint32_t	 size;			// size of entire IREP block
-    uint32_t 	 nlv	: 16;   //!< # of local variables
-    uint32_t 	 nreg	: 16;	//!< # of register used
-    uint32_t 	 rlen	: 16;	//!< # of child IREP blocks (into list below)
-    uint32_t 	 ilen	: 16;	//!< # of bytecodes (by iseq below)
+    uint32_t 	 ilen;			//!< # of bytecodes (by iseq below)
+
     uint32_t 	 plen	: 16;	//!< # of objects in pool (into pool below)
     uint32_t	 slen	: 16;	//!< # of symbols (into sym below)
+    uint32_t 	 rlen	: 16;	//!< # of child IREP blocks (into list below)
+    uint32_t 	 nlv	: 8;   	//!< # of local variables
+    uint32_t 	 nreg	: 8;	//!< # of register used
 
     uint32_t 	 iseq;			//!< offset to ISEQ (code) BLOCK
     uint32_t	 sym;			//!< offset to array of SYMBOLs
-    uint32_t     pool; 	   		//!< offset to array of POOL objects pointer.
+    uint32_t     pool; 			//!< offset to array of POOL objects pointer.
     uint32_t 	 list;			//!< offset to array of child IREP's pointer.
 } guru_irep;
 
@@ -52,6 +53,7 @@ typedef struct RIrep {			// 32-bytes
 typedef struct RState {
     uint32_t        pc   : 16;	// program counter
     uint32_t        argc : 16;  // num of args
+
     mrbc_class      *klass;		// current class
     mrbc_value      *reg;		// pointer to current register (in VM register file)
     guru_irep       *irep;		// pointer to current irep block
@@ -67,6 +69,7 @@ typedef struct VM {
     uint32_t		run  : 8;	// to exit vm loop
     uint32_t		step : 8;	// for single-step debug level
     uint32_t		err  : 8;	// error code/condition
+
     guru_irep       *irep;		// pointer to IREP tree
     guru_state      *state;		// VM state (callinfo) linked list
     mrbc_value  	regfile[MAX_REGS_SIZE];

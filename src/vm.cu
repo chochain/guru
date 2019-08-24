@@ -132,7 +132,7 @@ _vm_join(void)
 {
 	guru_vm *vm = _vm_pool;
 	for (int i=1; i<=MIN_VM_COUNT; i++, vm++) {
-		if (vm->id>0 && vm->run) return 1;
+		if (vm->id != 0 && vm->run) return 1;
 	}
 	return 0;
 }
