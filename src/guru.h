@@ -100,9 +100,9 @@ typedef enum {
   Guru value object.
 */
 typedef struct RObject {					// 16-bytes
-    mrbc_vtype           tt    : 8;
-    unsigned int		 flag  : 8;			// reserved
-    unsigned int	 	 size  : 16;		// reserved, 32-bit aligned
+    mrbc_vtype           tt   : 8;			// 8-bit
+    U32				 	 flag : 8;			// reserved
+    U32					 size : 16;			// reserved, 32-bit aligned
     union {
         mrbc_int         i;					// GURU_TT_FIXNUM, SYMBOL
 #if GURU_USE_FLOAT
@@ -125,7 +125,7 @@ typedef struct RObject {					// 16-bytes
 /*!@brief
   Guru class object.
 */
-typedef struct RClass {						// 32-byte
+typedef struct RClass {						// 16-byte
     struct RClass 	*super;					// mrbc_class[super]
     struct RProc  	*vtbl;					// mrbc_proc[rprocs], linked list
 #ifdef GURU_DEBUG
@@ -138,27 +138,27 @@ typedef struct RClass {						// 32-byte
 #define IS_C_FUNC(m)			((m)->flag & GURU_PROC_C_FUNC)
 
 #define GURU_OBJECT_HEADER      \
-	unsigned int	refc : 16;	\
 	mrbc_vtype  	tt   : 8; 	\
-	unsigned int	flag : 8
+	U32				flag : 8;	\
+	U32				refc : 16;
 
-typedef struct RString {					// 16-byte
-	GURU_OBJECT_HEADER;						// 4-byte
+typedef struct RString {		// 12-byte
+	GURU_OBJECT_HEADER;			// 4-byte
 
-	uint32_t 		size;					//!< string length.
-	uint8_t  		*data;					//!< pointer to allocated buffer.
+	U32 size;					//!< string length.
+	U8  *data;					//!< pointer to allocated buffer.
 } mrbc_string;
 
 //================================================================
 /*!@brief
   Guru instance object.
 */
-typedef struct RInstance {		// 24-byte
+typedef struct RInstance {		// 16-byte
     GURU_OBJECT_HEADER;
 
     struct RClass    *cls;
     struct RKeyValue *ivar;
-    uint8_t 		 data[];
+    uint8_t 		 *data;
 } mrbc_instance;
 
 //================================================================
@@ -177,10 +177,7 @@ typedef struct RProc {			// 40-byte
         struct RIrep *irep;
         mrbc_func_t  func;
     };
-#ifdef GURU_DEBUG
-    const char 	 *name;			// for debug; delete soon
-#endif
-    mrbc_sym 	 sym_id;
+    mrbc_sym 	 sym_id;		// u16
 } mrbc_proc;
 
 int guru_system_setup(int trace);

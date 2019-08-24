@@ -363,7 +363,7 @@ _init_mmu(void *mem, unsigned int size)
   @retval NULL	error.
 */
 __GURU__ void*
-mrbc_alloc(unsigned int size)
+mrbc_alloc(U32 size)
 {
     // TODO: maximum alloc size
     //  (1 << (L1_BITS + L2_BITS + XX_BITS)) - alpha
@@ -527,15 +527,15 @@ _alloc_stat(int v[])
 }
 
 __GPU__ void
-guru_memory_init(void *ptr, unsigned int sz)
+guru_memory_init(void *ptr, U32 sz)
 {
 	if (threadIdx.x!=0 || blockIdx.x!=0) return;
 
 	_init_mmu(ptr, sz);
 }
 
-__HOST__ void *
-guru_malloc(size_t sz, int type)
+__HOST__ void*
+guru_malloc(U32 sz, int type)
 {
 	void *mem;
 

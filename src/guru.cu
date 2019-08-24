@@ -12,13 +12,13 @@
 #include "alloc.h"				// guru_malloc
 
 // forward declaration for implementation
-extern "C" __GPU__ void guru_memory_init(void *ptr, unsigned int sz);
+extern "C" __GPU__ void guru_memory_init(void *ptr, U32 sz);
 extern "C" __GPU__ void guru_global_init(void);
 extern "C" __GPU__ void guru_class_init(void);
-extern "C" __GPU__ void guru_console_init(uint8_t *buf, unsigned int sz);
+extern "C" __GPU__ void guru_console_init(U8 *buf, U32 sz);
 
-uint8_t  *_guru_mem;			// guru global memory
-uint8_t  *_guru_out;			// guru output stream
+U8 		 *_guru_mem;			// guru global memory
+U8 		 *_guru_out;			// guru output stream
 guru_ses *_ses_list;			// session linked-list
 
 __HOST__ uint8_t*
@@ -36,7 +36,7 @@ _get_request_bytecode(const char *rite_fname)
   size_t sz = ftell(fp);
   fseek(fp, 0, SEEK_SET);
 
-  uint8_t *req = (uint8_t *)guru_malloc(sz, 1);	// allocate bytecode storage
+  U8 *req = (U8 *)guru_malloc(sz, 1);	// allocate bytecode storage
 
   if (req) {
 	  fread(req, sizeof(char), sz, fp);
@@ -49,12 +49,12 @@ _get_request_bytecode(const char *rite_fname)
 __HOST__ int
 guru_system_setup(int trace)
 {
-	uint8_t *mem = _guru_mem = (uint8_t *)guru_malloc(BLOCK_MEMORY_SIZE, 1);
+	U8 *mem = _guru_mem = (U8*)guru_malloc(BLOCK_MEMORY_SIZE, 1);
 	if (!_guru_mem) {
 		fprintf(stderr, "ERROR: failed to allocate device main memory block!\n");
 		return -1;
 	}
-	uint8_t *out = _guru_out = (uint8_t *)guru_malloc(MAX_BUFFER_SIZE, 1);	// allocate output buffer
+	U8 *out = _guru_out = (U8*)guru_malloc(MAX_BUFFER_SIZE, 1);	// allocate output buffer
 	if (!_guru_out) {
 		fprintf(stderr, "ERROR: output buffer allocation error!\n");
 		return -2;
@@ -100,7 +100,7 @@ guru_session_add(guru_ses *ses, const char *rite_fname, int trace)
 	ses->trace = trace;
 	ses->out   = _guru_out;
 
-	uint8_t *in = ses->in = _get_request_bytecode(rite_fname);
+	U8 *in = ses->in = _get_request_bytecode(rite_fname);
 	if (!in) {
 		fprintf(stderr, "ERROR: bytecode request allocation error!\n");
 		return -3;

@@ -59,21 +59,21 @@ void free(block){
 #define MSB_BIT 		31                                      // 32-bit MMU
 #define FL_SLOTS		(L1_BITS * (1 << L2_BITS))				// slots for free_list pointers (24 * 16 entries)
 
-#define NEXT(p) 		((uint8_t *)(p) + (p)->size)
-#define PREV(p) 		((uint8_t *)(p) - (p)->poff)
-#define OFF(p0,p1) 		((uint8_t *)(p1) - (uint8_t *)(p0))
+#define NEXT(p) 		((U8*)(p) + (p)->size)
+#define PREV(p) 		((U8*)(p) - (p)->poff)
+#define OFF(p0,p1) 		((U8*)(p1) - (U8*)(p0))
 
 // semaphore
-__GURU__ volatile int 	_mutex_mem;
+__GURU__ volatile U32 	_mutex_mem;
 
 // memory pool
-__GURU__ unsigned int 	_memory_pool_size;
-__GURU__ uint8_t     	*_memory_pool;
+__GURU__ U32			_memory_pool_size;
+__GURU__ U8				*_memory_pool;
 
 // free memory bitmap
-__GURU__ uint32_t 		_l1_map;								// use lower 24 bits
-__GURU__ uint16_t 		_l2_map[L1_BITS];						// use all 16 bits
-__GURU__ free_block 	*_free_list[FL_SLOTS];
+__GURU__ U32 			_l1_map;								// use lower 24 bits
+__GURU__ U16 			_l2_map[L1_BITS];						// use all 16 bits
+__GURU__ free_block		*_free_list[FL_SLOTS];
 
 #define L1_MAP(i)       (_l1_map)
 #define L2_MAP(i)       (_l2_map[L1(i)])
@@ -88,19 +88,19 @@ __GURU__ free_block 	*_free_list[FL_SLOTS];
 #define CLEAR_MAP(i)	{ CLR_L2(i); if (L2_MAP(i)==0) CLR_L1(i); }
 //================================================================
 // most significant bit that is set
-__GURU__ __INLINE__ uint32_t
-__fls(uint32_t x)
+__GURU__ __INLINE__ U32
+__fls(U32 x)
 {
-	int n;
+	U32 n;
 	asm("bfind.u32 %0, %1;\n\t" : "=r"(n) : "r"(x));
 	return n;
 }
 
 // least significant bit that is set
-__GURU__ __INLINE__ uint32_t
-__ffs(uint32_t x)
+__GURU__ __INLINE__ U32
+__ffs(U32 x)
 {
-	int n;
+	U32 n;
 	asm(
 		"brev.b32 %0, %1;\n\t"
 		"clz.b32 %0, %0;\n\t"
@@ -114,14 +114,14 @@ __ffs(uint32_t x)
   @param  alloc_size	alloc size
   @retval int		index of free_blocks
 */
-__GURU__ int
-__idx(unsigned int alloc_size, int *l1, int *l2)
+__GURU__ U32
+__idx(U32 sz, U32 *l1, U32 *l2)
 {
-	int v = __fls(alloc_size);
-	int x = __ffs(alloc_size);
+	U32 v = __fls(sz);
+	U32 x = __ffs(sz);
 
     *l1 = v<BASE_BITS ? 0 : v - BASE_BITS;			// 1st level index
-    *l2 = (alloc_size >> (v - MN_BITS)) & L2_MASK;  // 2nd level index (with lower bits)
+    *l2 = (sz >> (v - MN_BITS)) & L2_MASK;  // 2nd level index (with lower bits)
 
     return INDEX(*l1, *l2);
 }
@@ -135,8 +135,8 @@ __GURU__ void
 __release(free_block *target)
 {
     if (target->prev==NULL) {			// head of linked list?
-    	int l1, l2;
-        int index = __idx(target->size, &l1, &l2);
+    	U32 l1, l2;
+        U32 index = __idx(target->size, &l1, &l2);
 
         if ((_free_list[index]=target->next)==NULL) {
             CLEAR_MAP(index);			// mark as unallocated
@@ -172,7 +172,7 @@ __merge(free_block *p0, free_block *p1)
         next->poff = OFF(p0, next);
     }
 #ifdef GURU_DEBUG
-    *((uint64_t *)p1) = 0xeeeeeeeeeeeeeeee;
+    *((U64*)p1) = 0xeeeeeeeeeeeeeeee;
 #endif
 }
 
@@ -214,20 +214,20 @@ _merge_with_prev(free_block *target)
 __GURU__ void
 _mark_free(free_block *target)
 {
-	int l1, l2;
-    int index = __idx(target->size, &l1, &l2);
+	U32 l1, l2;
+    U32 index = __idx(target->size, &l1, &l2);
 
-    int l1x= L1(index);
-    int l2x= L2(index);
-    int t1 = TIC(l1x);
-    int t2 = TIC(l2x);
-    uint32_t m1 = L1_MAP(index);
-    uint16_t m2 = L2_MAP(index);
+    U32 l1x= L1(index);
+    U32 l2x= L2(index);
+    U32 t1 = TIC(l1x);
+    U32 t2 = TIC(l2x);
+    U32 m1 = L1_MAP(index);
+    U16 m2 = L2_MAP(index);
 
     SET_MAP(index);							// set free block available ticks
 
-    uint32_t m1x = L1_MAP(index);
-    uint16_t m2x = L2_MAP(index);
+    U32 m1x = L1_MAP(index);
+    U16 m2x = L2_MAP(index);
 
     free_block *head = _free_list[index];
 
@@ -242,24 +242,24 @@ _mark_free(free_block *target)
 }
 
 __GURU__ free_block*
-_mark_used(int index)
+_mark_used(U32 index)
 {
     free_block *target = _free_list[index];
 
     assert(target!=NULL);
 
     if (target->next==NULL) {					// top of linked list
-        int l1x= L1(index);
-        int l2x= L2(index);
-        int t1 = TIC(l1x);
-        int t2 = TIC(l2x);
-        uint32_t m1 = L1_MAP(index);
-        uint16_t m2 = L2_MAP(index);
+        U32 l1x= L1(index);
+        U32 l2x= L2(index);
+        U32 t1 = TIC(l1x);
+        U32 t2 = TIC(l2x);
+        U32 m1 = L1_MAP(index);
+        U16 m2 = L2_MAP(index);
 
         CLEAR_MAP(index);						// release the index
 
-        uint32_t m1x = L1_MAP(index);
-        uint16_t m2x = L2_MAP(index);
+        U32 m1x = L1_MAP(index);
+        U16 m2x = L2_MAP(index);
 
         if (L1_MAP(index)==0 && L2_MAP(index)==0) {
         	_free_list[index] = NULL;
@@ -281,16 +281,16 @@ _mark_used(int index)
   @retval -1	not found
   @retval index to available _free_list
 */
-__GURU__ int
-_find_free_block(unsigned int alloc_size)
+__GURU__ S32
+_find_free_block(U32 alloc_size)
 {
-	int l1, l2;
-    int index = __idx(alloc_size, &l1, &l2);	// find free_list index by size
+	U32 l1, l2;
+    U32 index = __idx(alloc_size, &l1, &l2);	// find free_list index by size
 
     if (_free_list[index]) return index;		// free block available, use it
 
     // no previous block exist, create a new one
-    int avl = _l2_map[l1];			    // check any 2nd level available
+    U32 avl = _l2_map[l1];			    // check any 2nd level available
     if (avl) {
     	l2 = __fls(avl);				// get first available l2 index
     }
@@ -311,12 +311,12 @@ _find_free_block(unsigned int alloc_size)
   @retval FREE_BLOCK *	pointer to splitted free block.
 */
 __GURU__ void
-_split_free_block(free_block *target, unsigned int size)
+_split_free_block(free_block *target, U32 size)
 {
     if (target->size < (size + sizeof(free_block) + MN_BLOCK)) return; // too small to split 											// too small to split
 
     // split block, free
-    free_block *free = (free_block *)((uint8_t *)target + size);	// future next block
+    free_block *free = (free_block *)((U8*)target + size);	// future next block
     free_block *next = (free_block *)NEXT(target);					// current next
 
     free->size   = target->size - size;								// carve out the block
@@ -340,12 +340,12 @@ _split_free_block(free_block *target, unsigned int size)
   @param  size	size. (max 64KB. see mrbc_memsize_t)
 */
 __GURU__ void
-_init_mmu(void *mem, unsigned int size)
+_init_mmu(void *mem, U32 size)
 {
     assert(size > 0);
 
     _mutex_mem		  = 0;
-    _memory_pool      = (uint8_t *)mem;
+    _memory_pool      = (U8*)mem;
     _memory_pool_size = size;
 
     // initialize entire memory pool as the first block
@@ -366,11 +366,11 @@ _init_mmu(void *mem, unsigned int size)
   @retval NULL	error.
 */
 __GURU__ void*
-mrbc_alloc(unsigned int size)
+mrbc_alloc(U32 size)
 {
     // TODO: maximum alloc size
     //  (1 << (L1_BITS + L2_BITS + MN_BITS)) - alpha
-    unsigned int alloc_size = size + sizeof(used_block);
+    U32 alloc_size = size + sizeof(used_block);
 
 #if GURU_REQUIRE_64BIT_ALIGNMENT
     alloc_size += ((8 - alloc_size) & 7);	// 8-byte align
@@ -386,11 +386,11 @@ mrbc_alloc(unsigned int size)
 
 	MUTEX_LOCK(_mutex_mem);
 
-	int index 			= _find_free_block(alloc_size);
+	U32 index 			= _find_free_block(alloc_size);
 	free_block *target 	= _mark_used(index);
 
 #ifdef GURU_DEBUG
-    uint32_t *p = (uint32_t*)BLOCKDATA(target);
+    U32 *p = (U32*)BLOCKDATA(target);
     for (int i=0; i < (alloc_size - sizeof(used_block))>>2; i++) *p++ = 0xaaaaaaaa;
 #endif
 	_split_free_block(target, alloc_size);
@@ -409,10 +409,10 @@ mrbc_alloc(unsigned int size)
   @retval NULL	error.
 */
 __GURU__ void*
-mrbc_realloc(void *ptr, unsigned int size)
+mrbc_realloc(void *ptr, U32 size)
 {
     used_block *target    = (used_block *)BLOCKHEAD(ptr);
-    int        alloc_size = size + sizeof(free_block);
+    U32        alloc_size = size + sizeof(free_block);
 
     alloc_size += ((8 - alloc_size) & 7);				// CC: 20181030 from 4 to 8-byte align
 
@@ -429,8 +429,8 @@ mrbc_realloc(void *ptr, unsigned int size)
     void *new_ptr = mrbc_alloc(size);
     if (!new_ptr) return NULL;  								// ENOMEM
 
-    uint8_t *d = (uint8_t *)new_ptr;
-    uint8_t *s = (uint8_t *)ptr;
+    U8 *d = (U8*)new_ptr;
+    U8 *s = (U8*)ptr;
     for (int i=0; i < size; i++) *d++=*s++;						// deep copy
 
     mrbc_free(ptr);												// reclaim block
@@ -486,15 +486,15 @@ mrbc_free_all()
   @param  *fragment	returns memory fragmentation
 */
 __GPU__ void
-_alloc_stat(int v[])
+_alloc_stat(U32 v[])
 {
 	if (threadIdx.x!=0 || blockIdx.x!=0) return;
 
-	int total=0, nfree=0, free=0, nused=0, used=0, nblk=0, nfrag=0;
+	U32 total=0, nfree=0, free=0, nused=0, used=0, nblk=0, nfrag=0;
 
 	used_block *p = (used_block *)_memory_pool;
 
-	int flag = p->free;
+	U32 flag = p->free;
 	while (1) {
 		if (flag != p->free) {       // supposed to be merged
 			nfrag++;
@@ -525,15 +525,15 @@ _alloc_stat(int v[])
 }
 
 __GPU__ void
-guru_memory_init(void *ptr, unsigned int sz)
+guru_memory_init(void *ptr, U32 sz)
 {
 	if (threadIdx.x!=0 || blockIdx.x!=0) return;
 
 	_init_mmu(ptr, sz);
 }
 
-__HOST__ void *
-guru_malloc(size_t sz, int type)
+__HOST__ void*
+guru_malloc(U32 sz, U32 type)
 {
 	void *mem;
 
@@ -547,9 +547,9 @@ guru_malloc(size_t sz, int type)
 }
 
 __HOST__ void
-guru_malloc_stat(int stat[])
+guru_malloc_stat(U32 stat[])
 {
-	int *v;
+	U32 *v;
 	cudaMallocManaged(&v, 8*sizeof(int));
 
 	_alloc_stat<<<1,1>>>(v);
@@ -564,7 +564,7 @@ guru_malloc_stat(int stat[])
 __HOST__ void
 guru_dump_alloc_stat(void)
 {
-	int s[8];
+	U32 s[8];
 	guru_malloc_stat(s);
 
 	printf("\tmem=%d(0x%x): free=%d(%d), used=%d(%d), nblk=%d, nfrag=%d, %d%% allocated\n",
