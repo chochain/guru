@@ -28,8 +28,7 @@ typedef struct print_node {
     mrbc_vtype  tt 	 : 5;
     mrbc_vtype	fmt	 : 5;
     U32			size : 16;
-
-    U8			*data;
+    U8			data[];          // different from *data
 } guru_print_node;
 
 __GPU__  void guru_console_init(U8 *buf, U32 sz);

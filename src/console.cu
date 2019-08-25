@@ -14,14 +14,14 @@
 #include "value.h"
 #include "console.h"
 
-__GURU__ size_t  _output_size;
-__GURU__ U8 *_output_ptr;		// global output buffer for now, per session later
-__GURU__ U8 *_output_buf;
+__GURU__ U32 _output_size;
+__GURU__ U8  *_output_ptr;		// global output buffer for now, per session later
+__GURU__ U8  *_output_buf;
 
-__GURU__ volatile int _mutex_con;
+__GURU__ volatile U32 _mutex_con;
 
 __GURU__ void
-guru_write(mrbc_vtype tt, mrbc_vtype fmt, size_t sz, U8 *buf)
+guru_write(mrbc_vtype tt, mrbc_vtype fmt, U32 sz, U8 *buf)
 {
 	if (threadIdx.x!=0) return;		// only thread 0 within a block can write
 
@@ -50,7 +50,7 @@ __GURU__ void
 console_char(U8 c)
 {
 	U8 buf[2] = { c, '\0' };
-	guru_write(GURU_TT_STRING, GURU_TT_EMPTY, 2, (U8 *)buf);
+	guru_write(GURU_TT_STRING, GURU_TT_EMPTY, 2, buf);
 }
 
 __GURU__ void
