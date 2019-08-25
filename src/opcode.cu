@@ -729,7 +729,7 @@ op_send(guru_vm *vm, U32 code, mrbc_value *regs)
     	console_na(name);							// dump error, bail out
     	return 0;
     }
-    if (m->flag & GURU_PROC_C_FUNC) {				// m is a C function
+    if (IS_CFUNC(m)) {					// is m->func a C function
         if (m->func==c_proc_call) {
         	_vm_proc_call(vm, regs+ra, rc);
         }
@@ -743,7 +743,7 @@ op_send(guru_vm *vm, U32 code, mrbc_value *regs)
             }
         }
     }
-    else {								// m is a Ruby function
+    else {								// m->func is a Ruby function (aka IREP)
     	_push_state(vm, rc);			// append callinfo list
 
     	vm->state->irep = m->irep;		// call into target context
@@ -1263,8 +1263,8 @@ op_strcat(guru_vm *vm, U32 code, mrbc_value *regs)
     mrbc_proc *ma = mrbc_get_class_method(*pa, sid);
     mrbc_proc *mb = mrbc_get_class_method(*pb, sid);
 
-    if (ma && IS_C_FUNC(ma)) ma->func(pa, 0);
-    if (mb && IS_C_FUNC(mb)) mb->func(pb, 0);
+    if (ma && IS_CFUNC(ma)) ma->func(pa, 0);
+    if (mb && IS_CFUNC(mb)) mb->func(pb, 0);
 
     mrbc_value ret = mrbc_string_add(pa, pb);
 
@@ -1403,7 +1403,7 @@ op_lambda(guru_vm *vm, U32 code, mrbc_value *regs)
     mrbc_proc *prc = (mrbc_proc *)mrbc_proc_alloc("(lambda)");
 
     prc->irep = _vm_irep_list(vm, rb);
-    prc->flag &= ~GURU_PROC_C_FUNC;	// IREP
+    prc->flag &= ~GURU_CFUNC;           // Ruby IREP
 
     _RA_T(GURU_TT_PROC, proc=prc);
 
@@ -1497,26 +1497,26 @@ op_method(guru_vm *vm, U32 code, mrbc_value *regs)
     // check same name method
     mrbc_proc 	*p  = cls->vtbl;
     void 		*pp = &cls->vtbl;
-    while (p != NULL) {
+    while (p != NULL) {						// walk through vtable
     	if (p->sym_id == sid) break;
     	pp = &p->next;
     	p  = p->next;
     }
     if (p) {	// found?
     	*((mrbc_proc**)pp) = p->next;
-    	if (!IS_C_FUNC(p)) {
-    		mrbc_value v = {.tt = GURU_TT_PROC};
+    	if (!IS_CFUNC(p)) {				// a p->func a Ruby function (aka IREP)
+    		mrbc_value v = { .tt = GURU_TT_PROC };
     		v.proc = p;
     		mrbc_release(&v);
         }
     }
 
     // add proc to class
-    proc->sym_id= sid;
-    proc->flag  &= ~GURU_PROC_C_FUNC;
-    proc->next  = cls->vtbl;
+    proc->sym_id = sid;
+    proc->flag   &= ~GURU_CFUNC;
 
-    cls->vtbl   = proc;
+    proc->next   = cls->vtbl;				// add to top of vtable
+    cls->vtbl    = proc;
 
     MUTEX_FREE(_mutex_op);
 

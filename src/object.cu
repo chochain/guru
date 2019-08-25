@@ -78,7 +78,7 @@ mrbc_send(mrbc_value v[], mrbc_value *rcv, const U8 *method, U32 argc, ...)
         console_str("'\n");
         return mrbc_nil_value();
     }
-    if (!IS_C_FUNC(m)) {
+    if (!IS_CFUNC(m)) {
         console_str("Method is not C function: ");
         console_str(method);
         console_str("\n");
@@ -163,7 +163,7 @@ c_object_not(mrbc_value v[], U32 argc)
 __GURU__ void
 c_object_neq(mrbc_value v[], U32 argc)
 {
-    int t = mrbc_compare(&v[0], &v[1]);
+    S32 t = mrbc_compare(&v[0], &v[1]);
     SET_BOOL_RETURN(t);
 }
 
@@ -173,7 +173,7 @@ c_object_neq(mrbc_value v[], U32 argc)
 __GURU__ void
 c_object_compare(mrbc_value v[], U32 argc)
 {
-    int t = mrbc_compare(&v[0], &v[1]);
+    S32 t = mrbc_compare(&v[0], &v[1]);
     SET_INT_RETURN(t);
 }
 
@@ -183,7 +183,7 @@ c_object_compare(mrbc_value v[], U32 argc)
 __GURU__ void
 c_object_equal3(mrbc_value v[], U32 argc)
 {
-	int ret = mrbc_compare(&v[0], &v[1]);
+	S32 ret = mrbc_compare(&v[0], &v[1]);
 
     if (v[0].tt != GURU_TT_CLASS) SET_BOOL_RETURN(ret==0);
     else 						  SET_RETURN(mrbc_send(v+argc, &v[1], "kind_of?", 1, &v[0]));
@@ -299,16 +299,14 @@ c_object_attr_accessor(mrbc_value v[], U32 argc)
 __GURU__ void
 c_object_kind_of(mrbc_value v[], U32 argc)
 {
-    int result = 0;
     if (v[1].tt != GURU_TT_CLASS) {
-        SET_BOOL_RETURN(result);
+        SET_BOOL_RETURN(0);
         return;
     }
     const mrbc_class *cls = mrbc_get_class_by_object(&v[0]);
 
     do {
-        result = (cls == v[1].cls);
-        if (result) break;
+        if (cls == v[1].cls) break;
 
         cls = cls->super;
     } while (cls != NULL);
@@ -370,7 +368,7 @@ __GURU__ void
 c_proc_inspect(mrbc_value v[], U32 argc)
 {
 	U8 buf[20];
-    const U8 *str = guru_sprintf(buf, "<#Proc:%08x>", (uintptr_t)v->proc);
+    const U8 *str = guru_sprintf(buf, "<#Proc:%08x>", (U32P)v->proc);
 
     SET_RETURN(mrbc_string_new(str));
 }

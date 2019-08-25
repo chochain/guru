@@ -49,7 +49,7 @@ mrbc_get_class_by_object(mrbc_object *obj)
 #endif
     case GURU_TT_SYMBOL:  cls = mrbc_class_symbol;	    break;
 
-    case GURU_TT_OBJECT:  cls = obj->self->cls;     	break;
+    case GURU_TT_OBJECT:  cls = obj->self->cls; 		break;
     case GURU_TT_CLASS:   cls = obj->cls;               break;
     case GURU_TT_PROC:	  cls = mrbc_class_proc;		break;
 #if GURU_USE_STRING
@@ -131,6 +131,7 @@ mrbc_define_class(const U8 *name, mrbc_class *super)
     cls->sym_id = sid;
     cls->super 	= super;
     cls->vtbl 	= NULL;
+    cls->name   = name;
 
     // register to global constant.
     mrbc_value v = { .tt = GURU_TT_CLASS };
@@ -140,15 +141,20 @@ mrbc_define_class(const U8 *name, mrbc_class *super)
     return cls;
 }
 
-__GURU__ mrbc_proc*
+__GURU__ mrbc_proc *
 mrbc_proc_alloc(const U8 *name)
 {
     mrbc_proc *proc = (mrbc_proc *)mrbc_alloc(sizeof(mrbc_proc));
-    if (proc) {
-        proc->refc   = 1;
-        proc->sym_id = name2symid(name);
-        proc->next   = NULL;
-    }
+
+    if (!proc) return NULL;
+
+    proc->tt     = GURU_TT_PROC;
+    proc->flag   = GURU_CFUNC;
+    proc->refc   = 1;
+    proc->sym_id = name2symid(name);
+    proc->next   = NULL;
+    proc->name   = name;
+
     return proc;
 }
 
@@ -168,12 +174,10 @@ mrbc_define_method(mrbc_class *cls, const U8 *name, mrbc_func_t cfunc)
 
     mrbc_proc *proc = mrbc_proc_alloc(name);
 
-    proc->flag  |= GURU_PROC_C_FUNC;  			// c-func
-    proc->func 	= cfunc;
-
     MUTEX_LOCK(_mutex_cls);
 
-    proc->next 	= cls->vtbl;
+    proc->func 	= cfunc;						// set function pointer
+    proc->next 	= cls->vtbl;					// add as the new list head
     cls->vtbl 	= proc;
 
     MUTEX_FREE(_mutex_cls);

@@ -24,8 +24,8 @@ __GURU__ mrbc_class *mrbc_get_class_by_object(mrbc_object *obj);
 __GURU__ mrbc_class *mrbc_get_class_by_name(const U8 *name);
 __GURU__ mrbc_proc  *mrbc_get_class_method(mrbc_value rcv, mrbc_sym sid);
 
-__GURU__ mrbc_class *mrbc_define_class(const U8 *name, mrbc_class *super);
 __GURU__ mrbc_proc  *mrbc_proc_alloc(const U8 *name);
+__GURU__ mrbc_class *mrbc_define_class(const U8 *name, mrbc_class *super);
 __GURU__ void       mrbc_define_method(mrbc_class *cls, const U8 *name, mrbc_func_t cfunc);
 
 // common c-functions
