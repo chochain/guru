@@ -9,37 +9,6 @@
 // TLSF: Two-Level Segregated Fit allocator with O(1) time complexity.
 // Layer 1st(f), 2nd(s) model, smallest block 16-bytes, 16-byte alignment
 // TODO: multiple-pool, thread-safe
-/*
-FLI = min(log2(memory_pool_size), 31)
-void mapping(size_t size, unsigned *fl, unsigned *sl) {
-	// fls() => Find_Last_Set bitmap function
- 	*fl = fls(size);
- 	*sl = ((size ˆ (1<<fl)) >> (*fl - SLI));
-}
-void *malloc(size){
-	int fl, sl, fl2, sl2;
-	void *found_block, *remaining_block;
-
-	mapping(size, &fl, &sl);
-	found_block=search_suitable_block(size,fl,sl);
-	remove(found_block);
-
-	if (sizeof(found_block)>size) {
-		remaining_block = split(found_block, size);
-		mapping(sizeof(remaining_block),&fl2,&sl2);
-		insert(remaining_block, fl2, sl2);
-	}
-	remove(found_block);
-	return found_block;
-}
-void free(block){
-	int fl, sl;
-	void *big_free_block;
-	big_free_block = merge(block);
-	mapping(sizeof(big_free_block), &fl, &sl);
-	insert(big_free_block, fl, sl);
-}
-*/
 
 #ifndef L1_BITS			// 00000000 00000000 00000000 00000000
 #define L1_BITS 	24	// ~~~~~~~~ ~~~~~~~~ ^^^^^^^^           // 16+8 levels
