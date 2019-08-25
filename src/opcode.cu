@@ -16,7 +16,7 @@
 */
 
 #include "alloc.h"
-#include "instance.h"
+#include "store.h"
 #include "static.h"
 #include "symbol.h"
 #include "global.h"
@@ -163,7 +163,7 @@ _vm_proc_call(guru_vm *vm, mrbc_value v[], U32 argc)
 __GURU__ void
 _vm_object_new(guru_vm *vm, mrbc_value v[], U32 argc)
 {
-    mrbc_value obj = mrbc_instance_new(v[0].cls, 0);
+    mrbc_value obj = mrbc_store_new(v[0].cls, 0);
     //
     // build a temp IREP for calling "initialize"
     // TODO: make the image static
@@ -479,7 +479,7 @@ op_getiv(guru_vm *vm, U32 code, mrbc_value *regs)
 
     const U8 *name = _vm_symbol(vm, rb);
     mrbc_sym sid   = name2symid(name+1);		// skip '@'
-    mrbc_value ret   = mrbc_instance_getiv(&regs[0], sid);
+    mrbc_value ret   = mrbc_store_get(&regs[0], sid);
 
     _RA_V(ret);
 
@@ -506,7 +506,7 @@ op_setiv(guru_vm *vm, U32 code, mrbc_value *regs)
     const U8 *name = _vm_symbol(vm, rb);
     mrbc_sym   sid   = name2symid(name+1);	// skip '@'
 
-    mrbc_instance_setiv(&regs[0], sid, &regs[ra]);
+    mrbc_store_set(&regs[0], sid, &regs[ra]);
 
     return 0;
 }

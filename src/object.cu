@@ -19,7 +19,7 @@
 #include "alloc.h"
 #include "static.h"
 #include "symbol.h"
-#include "instance.h"
+#include "store.h"
 #include "global.h"
 #include "vm.h"
 #include "class.h"
@@ -238,7 +238,7 @@ c_object_getiv(mrbc_value v[], U32 argc)
     const U8 *name = _get_callee(NULL);			// TODO:
     mrbc_sym sid   = name2symid(name);
 
-    SET_RETURN(mrbc_instance_getiv(&v[0], sid));
+    SET_RETURN(mrbc_store_get(&v[0], sid));
 }
 
 //================================================================
@@ -250,7 +250,7 @@ c_object_setiv(mrbc_value v[], U32 argc)
     const U8 *name = _get_callee(NULL);			// CC TODO: another way
     mrbc_sym sid   = name2symid(name);
 
-    mrbc_instance_setiv(&v[0], sid, &v[1]);
+    mrbc_store_set(&v[0], sid, &v[1]);
 }
 
 //================================================================

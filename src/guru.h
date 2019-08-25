@@ -109,7 +109,7 @@ typedef struct RObject {					// 16-bytes
         mrbc_float       f;					// GURU_TT_FLOAT
 #endif
         struct RClass    *cls;				// GURU_TT_CLASS
-        struct RInstance *self;				// GURU_TT_OBJECT
+        struct RVar      *self;				// GURU_TT_OBJECT
         struct RProc     *proc;				// GURU_TT_PROC
         struct RString   *str;				// GURU_TT_STRING
 #if GURU_USE_ARRAY
@@ -151,15 +151,15 @@ typedef struct RString {		// 12-byte
 
 //================================================================
 /*!@brief
-  Guru instance object.
+  physical store for Guru object instance.
 */
-typedef struct RInstance {		// 16-byte
+typedef struct RVar {			// 16-byte
     GURU_OBJECT_HEADER;
 
-    struct RClass    *cls;
-    struct RKeyValue *ivar;
-    U8 				 data[];
-} mrbc_instance;
+    struct RClass *cls;
+    struct RStore *ivar;
+    U8 			   data[];		// here pointer, instead of *data pointer to somewhere else
+} mrbc_var;
 
 //================================================================
 /*!@brief

@@ -13,8 +13,8 @@
   </pre>
 */
 
-#ifndef GURU_SRC_INSTANCE_H_
-#define GURU_SRC_INSTANCE_H_
+#ifndef GURU_SRC_STORE_H_
+#define GURU_SRC_STORE_H_
 #include "guru.h"
 
 #ifdef __cplusplus
@@ -22,26 +22,26 @@ extern "C" {
 #endif
 
 //================================================================
-/*! Define Key-Value data.
+/*! Define instance data.
 */
-typedef struct RKeyValueData {
+typedef struct RStoreData {
     mrbc_sym   sym_id;	    //!< symbol ID as key.
     mrbc_value value;	    //!< stored value.
-} mrbc_kv_data;
+} mrbc_store_data;
 
 //================================================================
-/*! Define Key-Value handle.
+/*! Define instance data handle.
 */
-typedef struct RKeyValue {
+typedef struct RStore {
     uint32_t     size : 16;	//!< data buffer size.
     uint32_t     n    : 16;	//!< # of stored.
-    mrbc_kv_data *data;		//!< pointer to allocated memory.
-} mrbc_kv;
+    mrbc_store_data *data;	//!< pointer to allocated memory.
+} mrbc_store;
 
-__GURU__ mrbc_value mrbc_instance_new(mrbc_class *cls, int size);
-__GURU__ void       mrbc_instance_delete(mrbc_value *v);
-__GURU__ void       mrbc_instance_setiv(mrbc_object *obj, mrbc_sym sid, mrbc_value *v);
-__GURU__ mrbc_value mrbc_instance_getiv(mrbc_object *obj, mrbc_sym sid);
+__GURU__ mrbc_value mrbc_store_new(mrbc_class *cls, int size);
+__GURU__ void       mrbc_store_delete(mrbc_value *v);
+__GURU__ void       mrbc_store_set(mrbc_object *obj, mrbc_sym sid, mrbc_value *v);
+__GURU__ mrbc_value mrbc_store_get(mrbc_object *obj, mrbc_sym sid);
 
 #ifdef __cplusplus
 }

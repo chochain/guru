@@ -136,7 +136,7 @@ _dump_obj_size(void)
 	console_str("\nrclass=");
 	console_int(sizeof(RClass));
 	console_str("\ninstance=");
-	console_int(sizeof(RInstance));
+	console_int(sizeof(RVar));
     console_str("\nproc=");
     console_int(sizeof(RProc));
     console_str("\nstring=");

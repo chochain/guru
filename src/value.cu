@@ -24,7 +24,7 @@
 #include "c_hash.h"
 #endif
 
-extern "C" __GURU__ void mrbc_instance_delete(mrbc_value *v);		// instance.cu
+extern "C" __GURU__ void mrbc_store_delete(mrbc_value *v);		// store.cu
 
 //================================================================
 /*! compare
@@ -245,15 +245,15 @@ mrbc_dec_refc(mrbc_value *v)
     if (--v->self->refc > 0) return;		// still used, keep going
 
     switch(v->tt) {
-    case GURU_TT_OBJECT:	mrbc_instance_delete(v);	break;
-    case GURU_TT_PROC:	    mrbc_free(v->proc);			break;
+    case GURU_TT_OBJECT:	mrbc_store_delete(v);	break;
+    case GURU_TT_PROC:	    mrbc_free(v->proc);		break;
 #if GURU_USE_STRING
-    case GURU_TT_STRING:	mrbc_string_delete(v);		break;
+    case GURU_TT_STRING:	mrbc_string_delete(v);	break;
 #endif
 #if GURU_USE_ARRAY
-    case GURU_TT_ARRAY:	    mrbc_array_delete(v);		break;
-    case GURU_TT_RANGE:	    mrbc_range_delete(v);		break;
-    case GURU_TT_HASH:	    mrbc_hash_delete(v);		break;
+    case GURU_TT_ARRAY:	    mrbc_array_delete(v);	break;
+    case GURU_TT_RANGE:	    mrbc_range_delete(v);	break;
+    case GURU_TT_HASH:	    mrbc_hash_delete(v);	break;
 #endif
     default: break;
     }
