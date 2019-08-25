@@ -29,12 +29,12 @@ extern "C" __GURU__ void mrbc_instance_delete(mrbc_value *v);		// instance.cu
 //================================================================
 /*! compare
  */
-__GURU__ int
+__GURU__ S32
 _string_compare(const mrbc_value *v1, const mrbc_value *v2)
 {
 	if (v1->str->size != v2->str->size) return -1;
 
-	return STRCMP((const char *)v1->str->data, (const char *)v2->str->data);
+	return STRCMP((const U8 *)v1->str->data, (const U8 *)v2->str->data);
 }
 
 //================================================================
@@ -46,7 +46,7 @@ _string_compare(const mrbc_value *v1, const mrbc_value *v2)
   @retval plus	v1 >  v2
   @retval minus	v1 <  v2
 */
-__GURU__ int
+__GURU__ S32
 mrbc_compare(const mrbc_value *v1, const mrbc_value *v2)
 {
     if (v1->tt != v2->tt) { 						// mrbc_vtype different
@@ -108,10 +108,10 @@ mrbc_compare(const mrbc_value *v1, const mrbc_value *v2)
   @return	result.
 */
 __GURU__ mrbc_int
-guru_atoi(const char *s, int base)
+guru_atoi(const U8 *s, U32 base)
 {
-    int ret  = 0;
-    int sign = 0;
+    U32 ret  = 0;
+    U32 sign = 0;
 
 REDO:
     switch(*s) {
@@ -120,7 +120,8 @@ REDO:
     case ' ': s++;          goto REDO;
     }
 
-    int ch, n;
+    U8  ch;
+    U32 n;
     while ((ch = *s++) != '\0') {
         if      ('a' <= ch) 			 n = ch - 'a' + 10;
         else if ('A' <= ch) 			 n = ch - 'A' + 10;
@@ -135,7 +136,7 @@ REDO:
 }
 
 __GURU__ mrbc_float
-guru_atof(const char *s)
+guru_atof(const U8 *s)
 {
 #if GURU_USE_FLOAT
     int sign = 1, esign = 1, state=0;
@@ -174,19 +175,19 @@ guru_atof(const char *s)
 }
 
 __GURU__ void
-guru_memcpy(uint8_t *d, const uint8_t *s, size_t sz)
+guru_memcpy(U8 *d, const U8 *s, U32 sz)
 {
     for (int i=0; s && d && i<sz; i++, *d++ = *s++);
 }
 
 __GURU__ void
-guru_memset(uint8_t *d, const uint8_t v,  size_t sz)
+guru_memset(U8 *d, const U8 v,  U32 sz)
 {
     for (int i=0; d && i<sz; i++, *d++ = v);
 }
 
 __GURU__ int
-guru_memcmp(const uint8_t *d, const uint8_t *s, size_t sz)
+guru_memcmp(const U8 *d, const U8 *s, U32 sz)
 {
 	int i = 0;
     for (; s && d && i<sz && *d++==*s++; i++);
@@ -194,8 +195,8 @@ guru_memcmp(const uint8_t *d, const uint8_t *s, size_t sz)
     return i<sz;
 }
 
-__GURU__ size_t
-guru_strlen(const char *str)
+__GURU__ U32
+guru_strlen(const U8 *str)
 {
 	int i = 0;
 	for (i=0; str && str[i]!='\0'; i++);
@@ -203,27 +204,27 @@ guru_strlen(const char *str)
 }
 
 __GURU__ void
-guru_strcpy(const char *s1, const char *s2)
+guru_strcpy(const U8 *s1, const U8 *s2)
 {
-    guru_memcpy((uint8_t *)s1, (uint8_t *)s2, guru_strlen(s1));
+    guru_memcpy((U8 *)s1, (U8 *)s2, guru_strlen(s1));
 }
 
-__GURU__ int
-guru_strcmp(const char *s1, const char *s2)
+__GURU__ S32
+guru_strcmp(const U8 *s1, const U8 *s2)
 {
-    return guru_memcmp((uint8_t *)s1, (uint8_t *)s2, guru_strlen(s1));
+    return guru_memcmp((U8 *)s1, (U8 *)s2, guru_strlen(s1));
 }
 
-__GURU__ char*
-guru_strchr(const char *s, const char c)
+__GURU__ U8*
+guru_strchr(const U8 *s, const U8 c)
 {
     while (s && *s!='\0' && *s!=c) s++;
 
-    return (char *)((*s==c) ? &s : NULL);
+    return (U8 *)((*s==c) ? &s : NULL);
 }
 
-__GURU__ char*
-guru_strcat(char *d, const char *s)
+__GURU__ U8*
+guru_strcat(U8 *d, const U8 *s)
 {
     return d;
 }

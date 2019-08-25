@@ -55,7 +55,7 @@
 
   @example
   // (Fixnum).to_s(16)
-  void c_fixnum_to_s(mrbc_value v[], int argc)
+  void c_fixnum_to_s(mrbc_value v[], U32 argc)
   {
   mrbc_value *recv = &v[1];
   mrbc_value arg1 = mrbc_fixnum_value(16);
@@ -64,7 +64,7 @@
   }
 */
 __GURU__ mrbc_value
-mrbc_send(mrbc_value v[], mrbc_value *rcv, const char *method, int argc, ...)
+mrbc_send(mrbc_value v[], mrbc_value *rcv, const U8 *method, U32 argc, ...)
 {
     mrbc_value *regs = v + 2;	     // allocate 2 for stack
     mrbc_sym   sid   = name2symid(method);
@@ -114,7 +114,7 @@ mrbc_send(mrbc_value v[], mrbc_value *rcv, const char *method, int argc, ...)
 /*! (method) p
  */
 __GURU__ void
-c_p(mrbc_value v[], int argc)
+c_p(mrbc_value v[], U32 argc)
 {
     for (int i = 1; i <= argc; i++) {
         mrbc_p_sub(&v[i]);
@@ -127,7 +127,7 @@ c_p(mrbc_value v[], int argc)
 /*! (method) puts
  */
 __GURU__ void
-c_puts(mrbc_value v[], int argc)
+c_puts(mrbc_value v[], U32 argc)
 {
     if (argc) {
     	for (int i = 1; i <= argc; i++) {
@@ -141,7 +141,7 @@ c_puts(mrbc_value v[], int argc)
 /*! (method) print
  */
 __GURU__ void
-c_print(mrbc_value v[], int argc)
+c_print(mrbc_value v[], U32 argc)
 {
     for (int i = 1; i <= argc; i++) {
         mrbc_print_sub(&v[i]);
@@ -152,7 +152,7 @@ c_print(mrbc_value v[], int argc)
 /*! (operator) !
  */
 __GURU__ void
-c_object_not(mrbc_value v[], int argc)
+c_object_not(mrbc_value v[], U32 argc)
 {
     SET_FALSE_RETURN();
 }
@@ -161,7 +161,7 @@ c_object_not(mrbc_value v[], int argc)
 /*! (operator) !=
  */
 __GURU__ void
-c_object_neq(mrbc_value v[], int argc)
+c_object_neq(mrbc_value v[], U32 argc)
 {
     int t = mrbc_compare(&v[0], &v[1]);
     SET_BOOL_RETURN(t);
@@ -171,7 +171,7 @@ c_object_neq(mrbc_value v[], int argc)
 /*! (operator) <=>
  */
 __GURU__ void
-c_object_compare(mrbc_value v[], int argc)
+c_object_compare(mrbc_value v[], U32 argc)
 {
     int t = mrbc_compare(&v[0], &v[1]);
     SET_INT_RETURN(t);
@@ -181,7 +181,7 @@ c_object_compare(mrbc_value v[], int argc)
 /*! (operator) ===
  */
 __GURU__ void
-c_object_equal3(mrbc_value v[], int argc)
+c_object_equal3(mrbc_value v[], U32 argc)
 {
 	int ret = mrbc_compare(&v[0], &v[1]);
 
@@ -193,7 +193,7 @@ c_object_equal3(mrbc_value v[], int argc)
 /*! (method) class
  */
 __GURU__ void
-c_object_class(mrbc_value v[], int argc)
+c_object_class(mrbc_value v[], U32 argc)
 {
     mrbc_value ret = {.tt = GURU_TT_CLASS };
     ret.cls = mrbc_get_class_by_object(v);
@@ -203,7 +203,7 @@ c_object_class(mrbc_value v[], int argc)
 
 // Object.new
 __GURU__ void
-c_object_new(mrbc_value v[], int argc)
+c_object_new(mrbc_value v[], U32 argc)
 {
 	assert(1==0);			// taken cared in opcode
 }
@@ -214,11 +214,11 @@ c_object_new(mrbc_value v[], int argc)
   @param  vm	Pointer to VM
   @return	string
 */
-__GURU__ const char*
+__GURU__ const U8*
 _get_callee(guru_vm *vm)
 {
 #if 0
-    uint32_t code = *(VM_ISEQ(vm) + vm->state->pc - 1);
+    U32 code = *(VM_ISEQ(vm) + vm->state->pc - 1);
 
     int rb = GETARG_B(code);  // index of method sym
 
@@ -233,10 +233,10 @@ _get_callee(guru_vm *vm)
 /*! (method) instance variable getter
  */
 __GURU__ void
-c_object_getiv(mrbc_value v[], int argc)
+c_object_getiv(mrbc_value v[], U32 argc)
 {
-    const char *name = _get_callee(NULL);			// TODO:
-    mrbc_sym   sid   = name2symid(name);
+    const U8 *name = _get_callee(NULL);			// TODO:
+    mrbc_sym sid   = name2symid(name);
 
     SET_RETURN(mrbc_instance_getiv(&v[0], sid));
 }
@@ -245,10 +245,10 @@ c_object_getiv(mrbc_value v[], int argc)
 /*! (method) instance variable setter
  */
 __GURU__ void
-c_object_setiv(mrbc_value v[], int argc)
+c_object_setiv(mrbc_value v[], U32 argc)
 {
-    const char *name = _get_callee(NULL);			// CC TODO: another way
-    mrbc_sym   sid   = name2symid(name);
+    const U8 *name = _get_callee(NULL);			// CC TODO: another way
+    mrbc_sym sid   = name2symid(name);
 
     mrbc_instance_setiv(&v[0], sid, &v[1]);
 }
@@ -257,13 +257,13 @@ c_object_setiv(mrbc_value v[], int argc)
 /*! (class method) access method 'attr_reader'
  */
 __GURU__ void
-c_object_attr_reader(mrbc_value v[], int argc)
+c_object_attr_reader(mrbc_value v[], U32 argc)
 {
     for (int i = 1; i <= argc; i++) {
         if (v[i].tt != GURU_TT_SYMBOL) continue;	// TypeError raise?
 
         // define reader method
-        const char *name = VSYM(&v[i]);
+        const U8 *name = VSYM(&v[i]);
         mrbc_define_method(v[0].cls, name, (mrbc_func_t)c_object_getiv);
     }
 }
@@ -272,17 +272,17 @@ c_object_attr_reader(mrbc_value v[], int argc)
 /*! (class method) access method 'attr_accessor'
  */
 __GURU__ void
-c_object_attr_accessor(mrbc_value v[], int argc)
+c_object_attr_accessor(mrbc_value v[], U32 argc)
 {
     for (int i = 1; i <= argc; i++) {
         if (v[i].tt != GURU_TT_SYMBOL) continue;	// TypeError raise?
 
         // define reader method
-        char *name = VSYM(&v[i]);
+        U8 *name = VSYM(&v[i]);
         mrbc_define_method(v[0].cls, name, (mrbc_func_t)c_object_getiv);
 
         // make string "....=" and define writer method.
-        char *buf = (char *)mrbc_alloc(STRLEN(name)+2);
+        U8 *buf = (U8 *)mrbc_alloc(STRLEN(name)+2);
         if (!buf) return;
         
         STRCPY(buf, name);
@@ -297,7 +297,7 @@ c_object_attr_accessor(mrbc_value v[], int argc)
 /*! (method) is_a, kind_of
  */
 __GURU__ void
-c_object_kind_of(mrbc_value v[], int argc)
+c_object_kind_of(mrbc_value v[], U32 argc)
 {
     int result = 0;
     if (v[1].tt != GURU_TT_CLASS) {
@@ -319,10 +319,10 @@ c_object_kind_of(mrbc_value v[], int argc)
 /*! (method) to_s
  */
 __GURU__ void
-c_object_to_s(mrbc_value v[], int argc)
+c_object_to_s(mrbc_value v[], U32 argc)
 {
-	const char *str;
-	char buf[20];
+	const U8 *str;
+	U8    buf[20];
 
     switch (v->tt) {
     case GURU_TT_CLASS:
@@ -367,10 +367,10 @@ _init_class_object()
 
 #if GURU_USE_STRING
 __GURU__ void
-c_proc_inspect(mrbc_value v[], int argc)
+c_proc_inspect(mrbc_value v[], U32 argc)
 {
-	char buf[20];
-    const char *str = guru_sprintf(buf, "<#Proc:%08x>", (uintptr_t)v->proc);
+	U8 buf[20];
+    const U8 *str = guru_sprintf(buf, "<#Proc:%08x>", (uintptr_t)v->proc);
 
     SET_RETURN(mrbc_string_new(str));
 }
@@ -396,7 +396,7 @@ _init_class_proc()
 /*! (method) !
  */
 __GURU__ void
-c_nil_false_not(mrbc_value v[], int argc)
+c_nil_false_not(mrbc_value v[], U32 argc)
 {
     v[0].tt = GURU_TT_TRUE;
 }
@@ -406,16 +406,16 @@ c_nil_false_not(mrbc_value v[], int argc)
 /*! (method) inspect
  */
 __GURU__ void
-c_nil_inspect(mrbc_value v[], int argc)
+c_nil_inspect(mrbc_value v[], U32 argc)
 {
-    v[0] = mrbc_string_new((char *)"nil");
+    v[0] = mrbc_string_new("nil");
 }
 
 //================================================================
 /*! (method) to_s
  */
 __GURU__ void
-c_nil_to_s(mrbc_value v[], int argc)
+c_nil_to_s(mrbc_value v[], U32 argc)
 {
     v[0] = mrbc_string_new(NULL);
 }
@@ -445,9 +445,9 @@ _init_class_nil()
 /*! (method) to_s
  */
 __GURU__ void
-c_false_to_s(mrbc_value v[], int argc)
+c_false_to_s(mrbc_value v[], U32 argc)
 {
-    v[0] = mrbc_string_new((char *)"false");
+    v[0] = mrbc_string_new("false");
 }
 #endif
 
@@ -475,9 +475,9 @@ _init_class_false()
 /*! (method) to_s
  */
 __GURU__ void
-c_true_to_s(mrbc_value v[], int argc)
+c_true_to_s(mrbc_value v[], U32 argc)
 {
-    v[0] = mrbc_string_new((char *)"true");
+    v[0] = mrbc_string_new("true");
 }
 #endif
 

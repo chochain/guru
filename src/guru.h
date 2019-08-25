@@ -167,7 +167,7 @@ typedef struct RInstance {		// 16-byte
 */
 /* forward declaration */
 struct Irep;
-typedef void (*mrbc_func_t)(mrbc_object *v, int argc);
+typedef void (*mrbc_func_t)(mrbc_object *v, U32 argc);
 
 typedef struct RProc {			// 40-byte
     GURU_OBJECT_HEADER;

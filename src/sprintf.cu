@@ -29,7 +29,7 @@
   @param  fstr	format string.
 */
 __GURU__ void
-_init(mrbc_printf *pf, char *buf, int sz, const char *fstr)
+_init(mrbc_printf *pf, U8 *buf, U32 sz, const U8 *fstr)
 {
     pf->buf = pf->p = buf;    
     pf->end = buf + sz - 1;
@@ -61,7 +61,7 @@ _size(mrbc_printf *pf)
 __GURU__ int
 _next(mrbc_printf *pf)
 {
-    int ch = -1;
+    U8  ch = '\0';
     pf->fmt = (mrbc_print_fmt){0};
 
     while (_size(pf) && (ch = *pf->fstr) != '\0') {
@@ -95,14 +95,15 @@ PARSE_FLAG:
     }
 
 PARSE_WIDTH:
-    while ((ch = *pf->fstr - '0'), (0 <= ch && ch <= 9)) {	// isdigit()
-        pf->fmt.width = pf->fmt.width * 10 + ch;
+	S32 n;
+    while ((n = *pf->fstr - '0'), (0 <= n && n <= 9)) {	// isdigit()
+        pf->fmt.width = pf->fmt.width * 10 + n;
         pf->fstr++;
     }
     if (*pf->fstr == '.') {
         pf->fstr++;
-        while ((ch = *pf->fstr - '0'), (0 <= ch && ch <= 9)) {
-            pf->fmt.prec = pf->fmt.prec * 10 + ch;
+        while ((n = *pf->fstr - '0'), (0 <= n && n <= 9)) {
+            pf->fmt.prec = pf->fmt.prec * 10 + n;
             pf->fstr++;
         }
     }
@@ -140,20 +141,20 @@ _end(mrbc_printf *pf)
   @param  buf	pointer to output buffer.
   @param  size	buffer size.
 */
-__GURU__ int
+__GURU__ U32
 _resize(mrbc_printf *pf)
 {
-    int sz  = _size(pf);
+    U32 sz  = _size(pf);
 	if (sz > 0) return 1;
 
-    int off = pf->p - pf->buf;					        // current offset
-    int inc = BUF_STEP_SIZE;
+    U32 off = pf->p - pf->buf;					        // current offset
+    U32 inc = BUF_STEP_SIZE;
 	while ((sz + inc) < pf->fmt.width) {
 		inc += BUF_STEP_SIZE;
 	}
 
-	int nsz = (pf->end - pf->buf + 1) + inc;	        // new size
-	char *nbuf = (char *)mrbc_realloc(pf->buf, nsz);	// deep copy
+	U32 nsz = (pf->end - pf->buf + 1) + inc;	        // new size
+	U8  *nbuf = (U8 *)mrbc_realloc(pf->buf, nsz);	// deep copy
 	if (!nbuf) return 0;
 
     pf->buf = nbuf;
@@ -164,7 +165,7 @@ _resize(mrbc_printf *pf)
 }
 
 //================================================================
-/*! sprintf subcontract function for char '%c'
+/*! sprintf subcontract function for U8 '%c'
 
   @param  pf	pointer to mrbc_printf
   @param  ch	output character (ASCII)
@@ -172,15 +173,15 @@ _resize(mrbc_printf *pf)
   @retval -1	buffer full.
   @note		not terminate ('\0') buffer tail.
 */
-__GURU__ int
-__char(mrbc_printf *pf, int ch)
+__GURU__ S32
+__char(mrbc_printf *pf, U8 ch)
 {
     if (pf->fmt.minus) {
         if (_size(pf)) *pf->p++ = ch;
         else return -1;
     }
 
-    int width = pf->fmt.width;
+    U32 width = pf->fmt.width;
     while (--width > 0) {
         if (_size(pf)) *pf->p++ = ' ';
         else return -1;
@@ -204,10 +205,10 @@ __char(mrbc_printf *pf, int ch)
   @retval -1	buffer full.
   @note		not terminate ('\0') buffer tail.
 */
-__GURU__ int
-__bstr(mrbc_printf *pf, const char *str, int len, int pad)
+__GURU__ S32
+__bstr(mrbc_printf *pf, const U8 *str, U32 len, U8 pad)
 {
-    int ret = 0;
+    S32 ret = 0;
 
     if (str == NULL) {
         str = "(null)";
@@ -215,10 +216,10 @@ __bstr(mrbc_printf *pf, const char *str, int len, int pad)
     }
     if (pf->fmt.prec && len > pf->fmt.prec) len = pf->fmt.prec;
 
-    int tw = len;
+    S32 tw = len;
     if (pf->fmt.width > len) tw = pf->fmt.width;
 
-    int remain = _size(pf);
+    U32 remain = _size(pf);
     if (len > remain) {
         len = remain;
         ret = -1;
@@ -228,7 +229,7 @@ __bstr(mrbc_printf *pf, const char *str, int len, int pad)
         ret = -1;
     }
 
-    int n_pad = tw - len;
+    S32 n_pad = tw - len;
 
     if (!pf->fmt.minus) {
         while (n_pad-- > 0) {
@@ -256,9 +257,9 @@ __bstr(mrbc_printf *pf, const char *str, int len, int pad)
 __GURU__ int
 __float(mrbc_printf *pf, double value)
 {
-    char fstr[16];
-    const char *p0 = pf->fstr;
-    char       *p1 = fstr + sizeof(fstr) - 1;
+    U8 fstr[16];
+    const U8 *p0 = pf->fstr;
+    U8       *p1 = fstr + sizeof(fstr) - 1;
 
     *p1 = '\0';
     while ((*--p1 = *--p0) != '%');
@@ -274,7 +275,7 @@ __float(mrbc_printf *pf, double value)
 #endif
 
 //================================================================
-/*! sprintf subcontract function for char '%s'
+/*! sprintf subcontract function for U8 '%s'
 
   @param  pf	pointer to mrbc_printf.
   @param  str	output string.
@@ -283,8 +284,8 @@ __float(mrbc_printf *pf, double value)
   @retval -1	buffer full.
   @note		not terminate ('\0') buffer tail.
 */
-__GURU__ int
-__str(mrbc_printf *pf, const char *str, int pad)
+__GURU__ S32
+__str(mrbc_printf *pf, const U8 *str, U8 pad)
 {
     return __bstr(pf, str, STRLEN(str), pad);
 }
@@ -299,11 +300,11 @@ __str(mrbc_printf *pf, const char *str, int pad)
   @retval -1	buffer full.
   @note		not terminate ('\0') buffer tail.
 */
-__GURU__ int
-__int(mrbc_printf *pf, mrbc_int value, int base)
+__GURU__ S32
+__int(mrbc_printf *pf, mrbc_int value, U32 base)
 {
-    int sign = 0;
-    uint32_t v = value;			// (note) Change this when supporting 64 bit.
+    U32 sign = 0;
+    U32 v = value;			// (note) Change this when supporting 64 bit.
 
     if (pf->fmt.type == 'd' || pf->fmt.type == 'i') {	// signed.
         if (value < 0) {
@@ -320,20 +321,20 @@ __int(mrbc_printf *pf, mrbc_int value, int base)
     }
     pf->fmt.prec = 0;
 
-    int bias_a = (pf->fmt.type == 'X') ? 'A' - 10 : 'a' - 10;
+    U32 bias_a = (pf->fmt.type == 'X') ? 'A' - 10 : 'a' - 10;
 
     // create string to local buffer
-    char buf[64+2];				// int64 + terminate + 1
-    char *p = buf + sizeof(buf) - 1;
+    U8 buf[64+2];				// int64 + terminate + 1
+    U8 *p = buf + sizeof(buf) - 1;
     *p = '\0';
     do {
-        int i = v % base;
+        U32 i = v % base;
         *--p = (i < 10)? i + '0' : i + bias_a;
         v /= base;
     } while (v != 0);
 
     // decide pad character and output sign character
-    int pad;
+    U8 pad;
     if (pf->fmt.zero) {
         pad = '0';
         if (sign) {
@@ -345,7 +346,7 @@ __int(mrbc_printf *pf, mrbc_int value, int base)
         pad = ' ';
         if (sign) *--p = sign;
     }
-    return __str(pf, (const char *)p, pad);
+    return __str(pf, (const U8 *)p, pad);
 }
 
 //================================================================
@@ -353,20 +354,20 @@ __int(mrbc_printf *pf, mrbc_int value, int base)
 
   @param  fstr		format string.
 */
-__GURU__ const char*
-guru_sprintf(char *buf, const char *fstr, ...)
+__GURU__ const U8*
+guru_sprintf(U8 *buf, const U8 *fstr, ...)
 {
     va_list ap;
     va_start(ap, fstr);
 
-    int ret = 0;
+    U32 ret = 0;
     mrbc_printf pf;
 
     _init(&pf, buf, BUF_STEP_SIZE, fstr);
     while (ret==0 && _next(&pf)) {
     	switch(pf.fmt.type) {
         case 'c': ret = __char(&pf, va_arg(ap, int));        	 break;
-        case 's': ret = __str(&pf, va_arg(ap, char *), ' '); 	 break;
+        case 's': ret = __str(&pf, va_arg(ap, U8 *), ' '); 	 break;
         case 'd':
         case 'i':
         case 'u': ret = __int(&pf, va_arg(ap, unsigned int), 10); break;
@@ -394,11 +395,11 @@ guru_sprintf(char *buf, const char *fstr, ...)
     return pf.buf;
 }
 
-__GURU__ const char*
-guru_vprintf(char *buf, const char *fstr, mrbc_value v[], int argc)		// << from c_string.cu
+__GURU__ const U8*
+guru_vprintf(U8 *buf, const U8 *fstr, mrbc_value v[], U32 argc)		// << from c_string.cu
 {
-    int i   = 0;
-    int ret = 0;
+    U32 i   = 0;
+    U32 ret = 0;
     mrbc_printf pf;
 
     _init(&pf, buf, BUF_STEP_SIZE, fstr);

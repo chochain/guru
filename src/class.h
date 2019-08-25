@@ -21,17 +21,17 @@ extern "C" {
 #endif
 
 __GURU__ mrbc_class *mrbc_get_class_by_object(mrbc_object *obj);
-__GURU__ mrbc_class *mrbc_get_class_by_name(const char *name);
+__GURU__ mrbc_class *mrbc_get_class_by_name(const U8 *name);
 __GURU__ mrbc_proc  *mrbc_get_class_method(mrbc_value rcv, mrbc_sym sid);
 
-__GURU__ mrbc_class *mrbc_define_class(const char *name, mrbc_class *super);
-__GURU__ mrbc_proc  *mrbc_proc_alloc(const char *name);
-__GURU__ void       mrbc_define_method(mrbc_class *cls, const char *name, mrbc_func_t cfunc);
+__GURU__ mrbc_class *mrbc_define_class(const U8 *name, mrbc_class *super);
+__GURU__ mrbc_proc  *mrbc_proc_alloc(const U8 *name);
+__GURU__ void       mrbc_define_method(mrbc_class *cls, const U8 *name, mrbc_func_t cfunc);
 
 // common c-functions
-__GURU__ void       c_proc_call(mrbc_value v[], int argc);
-__GURU__ void		c_object_new(mrbc_value v[], int argc);
-__GURU__ void       c_nop(mrbc_value v[], int argc);
+__GURU__ void       c_proc_call(mrbc_value v[], U32 argc);
+__GURU__ void		c_object_new(mrbc_value v[], U32 argc);
+__GURU__ void       c_nop(mrbc_value v[], U32 argc);
 
 #ifdef __cplusplus
 }

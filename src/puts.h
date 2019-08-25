@@ -20,8 +20,8 @@
 extern "C" {
 #endif
 
-__GURU__ int mrbc_print_sub(mrbc_value *v);
-__GURU__ int mrbc_p_sub(mrbc_value *v);
+__GURU__ U32 mrbc_print_sub(mrbc_value *v);
+__GURU__ U32 mrbc_p_sub(mrbc_value *v);
 
 #ifdef __cplusplus
 }

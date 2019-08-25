@@ -29,20 +29,20 @@ extern "C" {
 /*!@brief
   IREP Internal REPresentation
 */
-typedef struct RIrep {			// 32-bytes
-    uint32_t	 size;			// size of entire IREP block
-    uint32_t 	 ilen;			//!< # of bytecodes (by iseq below)
+typedef struct RIrep {	// 32-bytes
+    U32	size;			// size of entire IREP block
+    U32 ilen;			//!< # of bytecodes (by iseq below)
 
-    uint32_t 	 plen	: 16;	//!< # of objects in pool (into pool below)
-    uint32_t	 slen	: 16;	//!< # of symbols (into sym below)
-    uint32_t 	 rlen	: 16;	//!< # of child IREP blocks (into list below)
-    uint32_t 	 nlv	: 8;   	//!< # of local variables
-    uint32_t 	 nreg	: 8;	//!< # of register used
+    U32 plen	: 16;	//!< # of objects in pool (into pool below)
+    U32	slen	: 16;	//!< # of symbols (into sym below)
+    U32 rlen	: 16;	//!< # of child IREP blocks (into list below)
+    U32 nlv		: 8;   	//!< # of local variables
+    U32 nreg	: 8;	//!< # of register used
 
-    uint32_t 	 iseq;			//!< offset to ISEQ (code) BLOCK
-    uint32_t	 sym;			//!< offset to array of SYMBOLs
-    uint32_t     pool; 			//!< offset to array of POOL objects pointer.
-    uint32_t 	 list;			//!< offset to array of child IREP's pointer.
+    U32 iseq;			//!< offset to ISEQ (code) BLOCK
+    U32	sym;			//!< offset to array of SYMBOLs
+    U32 pool; 			//!< offset to array of POOL objects pointer.
+    U32 list;			//!< offset to array of child IREP's pointer.
 } guru_irep;
 
 //================================================================
@@ -51,8 +51,8 @@ typedef struct RIrep {			// 32-bytes
 */
 
 typedef struct RState {
-    uint32_t        pc   : 16;	// program counter
-    uint32_t        argc : 16;  // num of args
+    U32 pc   : 16;	// program counter
+    U32 argc : 16;  // num of args
 
     mrbc_class      *klass;		// current class
     mrbc_value      *reg;		// pointer to current register (in VM register file)
@@ -65,36 +65,36 @@ typedef struct RState {
   Virtual Machine
 */
 typedef struct VM {
-    uint32_t		id   : 8;	// allocation control (-1 means free)
-    uint32_t		run  : 8;	// to exit vm loop
-    uint32_t		step : 8;	// for single-step debug level
-    uint32_t		err  : 8;	// error code/condition
+    U32	id   : 14;			// allocation control (0 means free)
+    U32	step : 1;			// for single-step debug level
+    U32	run  : 1;			// to exit vm loop
+    U32	err  : 16;			// error code/condition
 
-    guru_irep       *irep;		// pointer to IREP tree
-    guru_state      *state;		// VM state (callinfo) linked list
-    mrbc_value  	regfile[MAX_REGS_SIZE];
+    guru_irep  *irep;		// pointer to IREP tree
+    guru_state *state;		// VM state (callinfo) linked list
+    mrbc_value regfile[MAX_REGS_SIZE];
 } guru_vm;
 
 #else // !GURU_HOST_IMAGE
 
 typedef struct RIrep {
-    uint16_t 	 nlv;   		//!< # of local variables
-    uint16_t 	 nreg;			//!< # of register used
-    uint16_t 	 rlen;			//!< # of child IREP blocks (into list below)
-    uint16_t 	 ilen;			//!< # of bytecodes (by iseq below)
-    uint16_t 	 plen;			//!< # of objects in pool (into pool below)
-    uint16_t	 slen;			//!< # of symbols (into sym below)
+    U16 	 nlv;   		//!< # of local variables
+    U16 	 nreg;			//!< # of register used
+    U16 	 rlen;			//!< # of child IREP blocks (into list below)
+    U16 	 ilen;			//!< # of bytecodes (by iseq below)
+    U16 	 plen;			//!< # of objects in pool (into pool below)
+    U16	 	slen;			//!< # of symbols (into sym below)
 
-    uint32_t     *iseq;			//!< ISEQ (code) BLOCK
-    uint8_t      *sym;			//!< SYMBOL list
+    U32     *iseq;			//!< ISEQ (code) BLOCK
+    U8      *sym;			//!< SYMBOL list
 
     mrbc_object  **pool; 	   	//!< array of POOL objects pointer.
     struct RIrep **list;		//!< array of child IREP's pointer.
 } mrbc_irep;
 
 typedef struct RState {
-    uint16_t        pc;
-    uint16_t        argc;     	// num of args
+    U16        pc;
+    U16        argc;     	// num of args
     mrbc_class      *klass;
     mrbc_value      *reg;
     mrbc_irep       *irep;
@@ -119,12 +119,12 @@ typedef struct VM {
   @param  s	Pointer of memory.
   @return	32bit unsigned value.
 */
-__GURU__ __INLINE__
-uint32_t _bin_to_uint32(const void *s)
+__GURU__ __INLINE__ U32
+_bin_to_u32(const void *s)
 {
 #if GURU_REQUIRE_32BIT_ALIGNMENT
-    uint8_t *p = (uint8_t *)s;
-    uint32_t x = *p++;
+    U8 *p = (U8 *)s;
+    U32 x = *p++;
     x <<= 8;
     x |= *p++;
     x <<= 8;
@@ -133,7 +133,7 @@ uint32_t _bin_to_uint32(const void *s)
     x |= *p;
     return x;
 #else
-    uint32_t x = *((uint32_t *)s);
+    U32 x = *((U32 *)s);
     return (x << 24) | ((x & 0xff00) << 8) | ((x >> 8) & 0xff00) | (x >> 24);
 #endif
 }
@@ -145,16 +145,16 @@ uint32_t _bin_to_uint32(const void *s)
   @param  s	Pointer of memory.
   @return	16bit unsigned value.
 */
-__GURU__ __INLINE__
-uint16_t _bin_to_uint16(const void *s)
+__GURU__ __INLINE__ U16
+_bin_to_u16(const void *s)
 {
 #if GURU_REQUIRE_32BIT_ALIGNMENT
-    uint8_t *p = (uint8_t *)s;
-    uint16_t x = *p++ << 8;
+    U8 *p = (U8 *)s;
+    U16 x = *p++ << 8;
     x |= *p;
     return x;
 #else
-    uint16_t x = *((uint16_t *)s);
+    U16 x = *((U16 *)s);
     return (x << 8) | (x >> 8);
 #endif
 }
@@ -164,10 +164,10 @@ uint16_t _bin_to_uint16(const void *s)
 
   @param  s Input value.
   @param  bin Pointer of memory.
-  @return sizeof(uint16_t).
+  @return sizeof(U16).
 */
-__GURU__ __INLINE__
-void _uint16_to_bin(uint16_t s, uint8_t *bin)
+__GURU__ __INLINE__ void
+_u16_to_bin(U16 s, U8 *bin)
 {
     *bin++ = (s >> 8) & 0xff;
     *bin   = s & 0xff;
@@ -178,10 +178,10 @@ void _uint16_to_bin(uint16_t s, uint8_t *bin)
 
   @param  l Input value.
   @param  bin Pointer of memory.
-  @return sizeof(uint32_t).
+  @return sizeof(U32).
 */
-__GURU__ __INLINE__
-void _uint32_to_bin(uint32_t l, uint8_t *bin)
+__GURU__ __INLINE__ void
+_u32_to_bin(U32 l, U8 *bin)
 {
     *bin++ = (l >> 24) & 0xff;
     *bin++ = (l >> 16) & 0xff;
@@ -192,11 +192,11 @@ void _uint32_to_bin(uint32_t l, uint8_t *bin)
 #define VM_IREP(vm)      ((vm)->state->irep)
 
 #if GURU_HOST_IMAGE
-#define VM_ISEQ(vm)	 	 ((uint32_t *)((uint8_t *)VM_IREP(vm) + VM_IREP(vm)->iseq))
-#define GET_BYTECODE(vm) (_bin_to_uint32(VM_ISEQ(vm) + (vm)->state->pc))
+#define VM_ISEQ(vm)	 	 ((U32 *)((U8 *)VM_IREP(vm) + VM_IREP(vm)->iseq))
+#define GET_BYTECODE(vm) (_bin_to_u32(VM_ISEQ(vm) + (vm)->state->pc))
 #else  // !GURU_HOST_IMAGE
-#define VM_ISEQ(vm)	 	 ((uint32_t *)(VM_IREP(vm)->iseq)
-#define GET_BYTECODE(vm) (_bin_to_uint32(VM_ISEQ(vm) + (vm)->state->pc))
+#define VM_ISEQ(vm)	 	 ((U32 *)(VM_IREP(vm)->iseq)
+#define GET_BYTECODE(vm) (_bin_to_u32(VM_ISEQ(vm) + (vm)->state->pc))
 #endif
 
 #ifdef __cplusplus

@@ -27,7 +27,7 @@ __GURU__ mrbc_int
 _shift(mrbc_int x, mrbc_int y)
 {
     // Don't support environments that include padding in int.
-    const int INT_BITS = sizeof(mrbc_int) * CHAR_BIT;
+    const U32 INT_BITS = sizeof(mrbc_int) * CHAR_BIT;
 
     if (y >= INT_BITS)  return 0;
     if (y >= 0)         return x << y;
@@ -40,7 +40,7 @@ _shift(mrbc_int x, mrbc_int y)
 /*! (operator) [] bit reference
  */
 __GURU__ void
-c_fixnum_bitref(mrbc_value v[], int argc)
+c_fixnum_bitref(mrbc_value v[], U32 argc)
 {
     if (0 <= v[1].i && v[1].i < 32) {
         SET_INT_RETURN((v[0].i & (1 << v[1].i)) ? 1 : 0);
@@ -54,7 +54,7 @@ c_fixnum_bitref(mrbc_value v[], int argc)
 /*! (operator) unary -
  */
 __GURU__ void
-c_fixnum_negative(mrbc_value v[], int argc)
+c_fixnum_negative(mrbc_value v[], U32 argc)
 {
     mrbc_int num = GET_INT_ARG(0);
     SET_INT_RETURN(-num);
@@ -64,7 +64,7 @@ c_fixnum_negative(mrbc_value v[], int argc)
 /*! (operator) ** power
  */
 __GURU__ void
-c_fixnum_power(mrbc_value v[], int argc)
+c_fixnum_power(mrbc_value v[], U32 argc)
 {
     if (v[1].tt == GURU_TT_FIXNUM) {
         mrbc_int x = 1;
@@ -88,7 +88,7 @@ c_fixnum_power(mrbc_value v[], int argc)
 /*! (operator) %
  */
 __GURU__ void
-c_fixnum_mod(mrbc_value v[], int argc)
+c_fixnum_mod(mrbc_value v[], U32 argc)
 {
     mrbc_int num = GET_INT_ARG(1);
     SET_INT_RETURN(v->i % num);
@@ -98,7 +98,7 @@ c_fixnum_mod(mrbc_value v[], int argc)
 /*! (operator) &; bit operation AND
  */
 __GURU__ void
-c_fixnum_and(mrbc_value v[], int argc)
+c_fixnum_and(mrbc_value v[], U32 argc)
 {
     mrbc_int num = GET_INT_ARG(1);
     SET_INT_RETURN(v->i & num);
@@ -108,7 +108,7 @@ c_fixnum_and(mrbc_value v[], int argc)
 /*! (operator) |; bit operation OR
  */
 __GURU__ void
-c_fixnum_or(mrbc_value v[], int argc)
+c_fixnum_or(mrbc_value v[], U32 argc)
 {
     mrbc_int num = GET_INT_ARG(1);
     SET_INT_RETURN(v->i | num);
@@ -118,7 +118,7 @@ c_fixnum_or(mrbc_value v[], int argc)
 /*! (operator) ^; bit operation XOR
  */
 __GURU__ void
-c_fixnum_xor(mrbc_value v[], int argc)
+c_fixnum_xor(mrbc_value v[], U32 argc)
 {
     mrbc_int num = GET_INT_ARG(1);
     SET_INT_RETURN(v->i ^ num);
@@ -128,7 +128,7 @@ c_fixnum_xor(mrbc_value v[], int argc)
 /*! (operator) ~; bit operation NOT
  */
 __GURU__ void
-c_fixnum_not(mrbc_value v[], int argc)
+c_fixnum_not(mrbc_value v[], U32 argc)
 {
     mrbc_int num = GET_INT_ARG(0);
     SET_INT_RETURN(~num);
@@ -138,9 +138,9 @@ c_fixnum_not(mrbc_value v[], int argc)
 /*! (operator) <<; bit operation LEFT_SHIFT
  */
 __GURU__ void
-c_fixnum_lshift(mrbc_value v[], int argc)
+c_fixnum_lshift(mrbc_value v[], U32 argc)
 {
-    int num = GET_INT_ARG(1);
+    U32 num = GET_INT_ARG(1);
     SET_INT_RETURN(_shift(v->i, num));
 }
 
@@ -148,9 +148,9 @@ c_fixnum_lshift(mrbc_value v[], int argc)
 /*! (operator) >>; bit operation RIGHT_SHIFT
  */
 __GURU__ void
-c_fixnum_rshift(mrbc_value v[], int argc)
+c_fixnum_rshift(mrbc_value v[], U32 argc)
 {
-    int num = GET_INT_ARG(1);
+    U32 num = GET_INT_ARG(1);
     SET_INT_RETURN(_shift(v->i, -num));
 }
 
@@ -158,7 +158,7 @@ c_fixnum_rshift(mrbc_value v[], int argc)
 /*! (method) abs
  */
 __GURU__ void
-c_fixnum_abs(mrbc_value v[], int argc)
+c_fixnum_abs(mrbc_value v[], U32 argc)
 {
     if (v[0].i < 0) {
         v[0].i = -v[0].i;
@@ -170,7 +170,7 @@ c_fixnum_abs(mrbc_value v[], int argc)
 /*! (method) to_f
  */
 __GURU__ void
-c_fixnum_to_f(mrbc_value v[], int argc)
+c_fixnum_to_f(mrbc_value v[], U32 argc)
 {
     mrbc_float f = GET_INT_ARG(0);
     SET_FLOAT_RETURN(f);
@@ -182,9 +182,9 @@ c_fixnum_to_f(mrbc_value v[], int argc)
 /*! (method) chr
  */
 __GURU__ void
-c_fixnum_chr(mrbc_value v[], int argc)
+c_fixnum_chr(mrbc_value v[], U32 argc)
 {
-    const char buf[2] = { GET_INT_ARG(0), '\0' };
+    const U8 buf[2] = { (U8)GET_INT_ARG(0), '\0' };
 
     SET_RETURN(mrbc_string_new(buf));
 }
@@ -193,14 +193,14 @@ c_fixnum_chr(mrbc_value v[], int argc)
 /*! (method) to_s
  */
 __GURU__ void
-c_fixnum_to_s(mrbc_value v[], int argc)
+c_fixnum_to_s(mrbc_value v[], U32 argc)
 {
-    int base = 10;
+    U32 base = 10;
     if (argc) {
         base = GET_INT_ARG(1);
         if (base < 2 || base > 36) return;	// raise ? ArgumentError
     }
-    char buf[64+2];
+    U8 buf[64+2];
     guru_vprintf(buf, "%d", v, 1);
 
     SET_RETURN(mrbc_string_new(buf));
@@ -242,7 +242,7 @@ mrbc_init_class_fixnum(void)
 /*! (operator) unary -
  */
 __GURU__ void
-c_float_negative(mrbc_value v[], int argc)
+c_float_negative(mrbc_value v[], U32 argc)
 {
     mrbc_float num = GET_FLOAT_ARG(0);
     SET_FLOAT_RETURN(-num);
@@ -253,7 +253,7 @@ c_float_negative(mrbc_value v[], int argc)
 /*! (operator) ** power
  */
 __GURU__ void
-c_float_power(mrbc_value v[], int argc)
+c_float_power(mrbc_value v[], U32 argc)
 {
     mrbc_float n = 0;
     switch (v[1].tt) {
@@ -270,7 +270,7 @@ c_float_power(mrbc_value v[], int argc)
 /*! (method) abs
  */
 __GURU__ void
-c_float_abs(mrbc_value v[], int argc)
+c_float_abs(mrbc_value v[], U32 argc)
 {
     if (v[0].f < 0) {
         v[0].f = -v[0].f;
@@ -281,7 +281,7 @@ c_float_abs(mrbc_value v[], int argc)
 /*! (method) to_i
  */
 __GURU__ void
-c_float_to_i(mrbc_value v[], int argc)
+c_float_to_i(mrbc_value v[], U32 argc)
 {
     mrbc_int i = (mrbc_int)GET_FLOAT_ARG(0);
     SET_INT_RETURN(i);
@@ -292,9 +292,9 @@ c_float_to_i(mrbc_value v[], int argc)
 /*! (method) to_s
  */
 __GURU__ void
-c_float_to_s(mrbc_value v[], int argc)
+c_float_to_s(mrbc_value v[], U32 argc)
 {
-	char buf[64+2];
+	U8 buf[64+2];
     guru_vprintf(buf, "%g", v, argc);
     
     SET_RETURN(mrbc_string_new(buf));

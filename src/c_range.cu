@@ -89,7 +89,7 @@ mrbc_range_compare(const mrbc_value *v1, const mrbc_value *v2)
 /*! (method) ===
  */
 __GURU__ void
-c_range_equal3(mrbc_value v[], int argc)
+c_range_equal3(mrbc_value v[], U32 argc)
 {
     if (v[0].tt == GURU_TT_CLASS) {
         mrbc_value ret = mrbc_send(v+argc, v+1, "kind_of?", 1, v);
@@ -113,7 +113,7 @@ c_range_equal3(mrbc_value v[], int argc)
 /*! (method) first
  */
 __GURU__ void
-c_range_first(mrbc_value v[], int argc)
+c_range_first(mrbc_value v[], U32 argc)
 {
     SET_RETURN(v->range->first);
 }
@@ -122,7 +122,7 @@ c_range_first(mrbc_value v[], int argc)
 /*! (method) last
  */
 __GURU__ void
-c_range_last(mrbc_value v[], int argc)
+c_range_last(mrbc_value v[], U32 argc)
 {
     SET_RETURN(v->range->last);
 }
@@ -131,7 +131,7 @@ c_range_last(mrbc_value v[], int argc)
 /*! (method) exclude_end?
  */
 __GURU__ void
-c_range_exclude_end(mrbc_value v[], int argc)
+c_range_exclude_end(mrbc_value v[], U32 argc)
 {
     SET_BOOL_RETURN(IS_EXCLUDE_END(v[0].range));
 }
@@ -141,7 +141,7 @@ c_range_exclude_end(mrbc_value v[], int argc)
 /*! (method) inspect
  */
 __GURU__ void
-c_range_inspect(mrbc_value v[], int argc)
+c_range_inspect(mrbc_value v[], U32 argc)
 {
     mrbc_value ret = mrbc_string_new(NULL);
     if (!ret.str) {

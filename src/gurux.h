@@ -27,6 +27,8 @@ typedef int32_t     S32;				// single precision float
 typedef int16_t		S16;
 typedef double		F64;
 typedef float       F32;
+typedef uintptr_t   U32P;
+typedef uint8_t     *U8P;
 
 // mrbc types
 typedef S32 		mrbc_int;

@@ -24,11 +24,11 @@ extern "C" {
 /*!@brief
   Define String handle.
 */
-__GURU__ mrbc_value mrbc_string_new(const char *src);
+__GURU__ mrbc_value mrbc_string_new(const U8 *src);
 __GURU__ void       mrbc_string_delete(mrbc_value *str);
 
-__GURU__ int        mrbc_string_append(mrbc_value *s1, const mrbc_value *s2);
-__GURU__ int        mrbc_string_append_cstr(mrbc_value *s1, const char *s2);
+__GURU__ void       mrbc_string_append(mrbc_value *s1, const mrbc_value *s2);
+__GURU__ void       mrbc_string_append_cstr(mrbc_value *s1, const U8 *s2);
 __GURU__ mrbc_value mrbc_string_add(const mrbc_value *s1, const mrbc_value *s2);
 
 __GURU__ void       mrbc_init_class_string(void);

@@ -48,18 +48,18 @@ __GURU__ void       mrbc_dec_refc(mrbc_value *v);
 #define mrbc_bool_value(n)	    ((mrbc_value){.tt = (n)?GURU_TT_TRUE:GURU_TT_FALSE})
 
 #ifdef __GURU_CUDA__
-__GURU__ mrbc_int   guru_atoi(const char *s, int base);
-__GURU__ mrbc_float	guru_atof(const char *s);
+__GURU__ mrbc_int   guru_atoi(const U8 *s, U32 base);
+__GURU__ mrbc_float	guru_atof(const U8 *s);
 
-__GURU__ void    	guru_memcpy(uint8_t *d, const uint8_t *s, size_t sz);
-__GURU__ void    	guru_memset(uint8_t *d, const uint8_t v,  size_t sz);
-__GURU__ int     	guru_memcmp(const uint8_t *d, const uint8_t *s, size_t sz);
+__GURU__ void    	guru_memcpy(U8 *d, const U8 *s, U32 sz);
+__GURU__ void    	guru_memset(U8 *d, const U8 v,  U32 sz);
+__GURU__ S32     	guru_memcmp(const U8 *d, const U8 *s, U32 sz);
 
-__GURU__ size_t  	guru_strlen(const char *s);
-__GURU__ void    	guru_strcpy(const char *s1, const char *s2);
-__GURU__ int     	guru_strcmp(const char *s1, const char *s2);
-__GURU__ char   	*guru_strchr(const char *s, const char c);
-__GURU__ char   	*guru_strcat(char *d, const char *s);
+__GURU__ U32  		guru_strlen(const U8 *s);
+__GURU__ void    	guru_strcpy(const U8 *s1, const U8 *s2);
+__GURU__ S32     	guru_strcmp(const U8 *s1, const U8 *s2);
+__GURU__ U8   		*guru_strchr(const U8 *s, const U8 c);
+__GURU__ U8   		*guru_strcat(U8 *d, const U8 *s);
 
 
 #define ATOI(s)           guru_atoi(s, 10)
@@ -91,9 +91,9 @@ __GURU__ char   	*guru_strcat(char *d, const char *s);
 
 // basic C string functions for mrbc_value
 #define VSTRLEN(v)		((v)->str->size)
-#define VSTR(v)			((char *)(v)->str->data)
+#define VSTR(v)			((U8 *)(v)->str->data)
 #define VSTRCMP(v1, v2) (STRCMP((v1)->str->data, (v2)->str->data))
-#define VSYM(v)			((char *)symid2name((v)->i))
+#define VSYM(v)			((U8 *)symid2name((v)->i))
 
 #ifdef __cplusplus
 }

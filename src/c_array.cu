@@ -62,8 +62,8 @@
 //================================================================
 /*! get size
  */
-__GURU__ int
-_adjust_index(mrbc_array *h, int idx, int inc)
+__GURU__ S32
+_adjust_index(mrbc_array *h, S32 idx, U32 inc)
 {
     if (idx < 0) {
         idx += h->n + inc;
@@ -398,7 +398,7 @@ mrbc_array_compare(const mrbc_value *v0, const mrbc_value *v1)
 /*! method new
  */
 __GURU__ void
-c_array_new(mrbc_value v[], int argc)
+c_array_new(mrbc_value v[], U32 argc)
 {
 	mrbc_value ret;
     if (argc==0) {													// in case of new()
@@ -434,7 +434,7 @@ c_array_new(mrbc_value v[], int argc)
 /*! (operator) +
  */
 __GURU__ void
-c_array_add(mrbc_value v[], int argc)
+c_array_add(mrbc_value v[], U32 argc)
 {
     if (GET_TT_ARG(1) != GURU_TT_ARRAY) {
         console_str("TypeError\n");		// raise?
@@ -466,7 +466,7 @@ c_array_add(mrbc_value v[], int argc)
 /*! (operator) []
  */
 __GURU__ void
-c_array_get(mrbc_value v[], int argc)
+c_array_get(mrbc_value v[], U32 argc)
 {
 	mrbc_value ret;
     if (argc==1 && v[1].tt==GURU_TT_FIXNUM) {			// self[n] -> object | nil
@@ -506,7 +506,7 @@ DONE:
 /*! (operator) []=
  */
 __GURU__ void
-c_array_set(mrbc_value v[], int argc)
+c_array_set(mrbc_value v[], U32 argc)
 {
     if (argc==2 && v[1].tt==GURU_TT_FIXNUM) {	// self[n] = val
         _set(v, v[1].i, &v[2]);		// raise? IndexError or ENOMEM
@@ -525,7 +525,7 @@ c_array_set(mrbc_value v[], int argc)
 /*! (method) clear
  */
 __GURU__ void
-c_array_clear(mrbc_value v[], int argc)
+c_array_clear(mrbc_value v[], U32 argc)
 {
     mrbc_array_clear(v);
 }
@@ -534,7 +534,7 @@ c_array_clear(mrbc_value v[], int argc)
 /*! (method) delete_at
  */
 __GURU__ void
-c_array_delete_at(mrbc_value v[], int argc)
+c_array_delete_at(mrbc_value v[], U32 argc)
 {
 	int n = GET_INT_ARG(1);
 
@@ -545,7 +545,7 @@ c_array_delete_at(mrbc_value v[], int argc)
 /*! (method) empty?
  */
 __GURU__ void
-c_array_empty(mrbc_value v[], int argc)
+c_array_empty(mrbc_value v[], U32 argc)
 {
     SET_BOOL_RETURN(v->array->n==0);
 }
@@ -554,7 +554,7 @@ c_array_empty(mrbc_value v[], int argc)
 /*! (method) size,length,count
  */
 __GURU__ void
-c_array_size(mrbc_value v[], int argc)
+c_array_size(mrbc_value v[], U32 argc)
 {
     SET_INT_RETURN(v->array->n);
 }
@@ -563,7 +563,7 @@ c_array_size(mrbc_value v[], int argc)
 /*! (method) index
  */
 __GURU__ void
-c_array_index(mrbc_value v[], int argc)
+c_array_index(mrbc_value v[], U32 argc)
 {
     mrbc_value *ret = v+1;
     
@@ -581,7 +581,7 @@ c_array_index(mrbc_value v[], int argc)
 //================================================================
 /*! (method) first
  */
-__GURU__ void c_array_first(mrbc_value v[], int argc)
+__GURU__ void c_array_first(mrbc_value v[], U32 argc)
 {
     mrbc_value ret = _get(v, 0);
     mrbc_retain(&ret);
@@ -592,7 +592,7 @@ __GURU__ void c_array_first(mrbc_value v[], int argc)
 /*! (method) last
  */
 __GURU__ void
-c_array_last(mrbc_value v[], int argc)
+c_array_last(mrbc_value v[], U32 argc)
 {
     mrbc_value ret = _get(v, -1);
     mrbc_retain(&ret);
@@ -603,7 +603,7 @@ c_array_last(mrbc_value v[], int argc)
 /*! (method) push
  */
 __GURU__ void
-c_array_push(mrbc_value v[], int argc)
+c_array_push(mrbc_value v[], U32 argc)
 {
     mrbc_array_push(v, v+1);	// raise? ENOMEM
     v[1].tt = GURU_TT_EMPTY;
@@ -613,7 +613,7 @@ c_array_push(mrbc_value v[], int argc)
 /*! (method) pop
  */
 __GURU__ void
-c_array_pop(mrbc_value v[], int argc)
+c_array_pop(mrbc_value v[], U32 argc)
 {
     if (argc==0) {									// pop() -> object | nil
         SET_RETURN(_pop(v));
@@ -630,7 +630,7 @@ c_array_pop(mrbc_value v[], int argc)
 /*! (method) unshift
  */
 __GURU__ void
-c_array_unshift(mrbc_value v[], int argc)
+c_array_unshift(mrbc_value v[], U32 argc)
 {
     _unshift(v, v+1);	// raise? IndexError or ENOMEM
     v[1].tt = GURU_TT_EMPTY;
@@ -640,7 +640,7 @@ c_array_unshift(mrbc_value v[], int argc)
 /*! (method) shift
  */
 __GURU__ void
-c_array_shift(mrbc_value v[], int argc)
+c_array_shift(mrbc_value v[], U32 argc)
 {
     if (argc==0) {									// shift() -> object | nil
         SET_RETURN(_shift(v));
@@ -657,7 +657,7 @@ c_array_shift(mrbc_value v[], int argc)
 /*! (method) dup
  */
 __GURU__ void
-c_array_dup(mrbc_value v[], int argc)
+c_array_dup(mrbc_value v[], U32 argc)
 {
     mrbc_array *h0 = v[0].array;
     mrbc_value ret = mrbc_array_new(h0->n);
@@ -678,7 +678,7 @@ c_array_dup(mrbc_value v[], int argc)
 /*! (method) min
  */
 __GURU__ void
-c_array_min(mrbc_value v[], int argc)
+c_array_min(mrbc_value v[], U32 argc)
 {
     // Subset of Array#min, not support min(n).
 
@@ -696,7 +696,7 @@ c_array_min(mrbc_value v[], int argc)
 /*! (method) max
  */
 __GURU__ void
-c_array_max(mrbc_value v[], int argc)
+c_array_max(mrbc_value v[], U32 argc)
 {
     // Subset of Array#max, not support max(n).
 
@@ -714,7 +714,7 @@ c_array_max(mrbc_value v[], int argc)
 /*! (method) minmax
  */
 __GURU__ void
-c_array_minmax(mrbc_value v[], int argc)
+c_array_minmax(mrbc_value v[], U32 argc)
 {
     // Subset of Array#minmax, not support minmax(n).
 
@@ -738,7 +738,7 @@ c_array_minmax(mrbc_value v[], int argc)
 __GURU__ void
 _rfc(mrbc_value *str, mrbc_value *v)
 {
-	char buf[8];
+	U8 buf[8];
 	guru_sprintf(buf, "^%d_", v->self->refc);
 	mrbc_string_append_cstr(str, buf);
 }
@@ -746,7 +746,7 @@ _rfc(mrbc_value *str, mrbc_value *v)
 /*! (method) inspect
  */
 __GURU__ void
-c_array_inspect(mrbc_value v[], int argc)
+c_array_inspect(mrbc_value v[], U32 argc)
 {
 	mrbc_value ret  = mrbc_string_new("[");
     if (!ret.str) {
@@ -771,31 +771,30 @@ c_array_inspect(mrbc_value v[], int argc)
 /*! (method) join
  */
 __GURU__ void
-c_array_join_1(mrbc_value v[], int argc,
+c_array_join_1(mrbc_value v[], U32 argc,
                     mrbc_value *src, mrbc_value *ret, mrbc_value *separator)
 {
 	mrbc_array *h = src->array;
     if (h->n==0) return;
 
     int i   = 0;
-    int err = 0;
     mrbc_value s1;
-    while (!err) {
+    while (1) {
         if (h->data[i].tt==GURU_TT_ARRAY) {
             c_array_join_1(v, argc, &h->data[i], ret, separator);
         }
         else {
             s1 = mrbc_send(v+argc, &h->data[i], "inspect", 0);
-            err |= mrbc_string_append(ret, &s1);
+            mrbc_string_append(ret, &s1);
             mrbc_release(&s1);					// free locally allocated memory
         }
         if (++i >= h->n) break;					// normal return.
-        err |= mrbc_string_append(ret, separator);
+        mrbc_string_append(ret, separator);
     }
 }
 
 __GURU__ void
-c_array_join(mrbc_value v[], int argc)
+c_array_join(mrbc_value v[], U32 argc)
 {
     mrbc_value ret = mrbc_string_new(NULL);
     if (!ret.str) {

@@ -24,25 +24,25 @@ extern "C" {
 /*! printf tiny (mruby/c) version data container.
  */
 typedef struct RPrintfFormat {
-        char         type;			//!< format char. (e.g. 'd','f','x'...)
-        unsigned int plus  : 1;
-        unsigned int minus : 1;
-        unsigned int space : 1;
-        unsigned int zero  : 1;
-        int          width;			//!< display width. (e.g. %10d as 10)
-        int          prec;		    //!< precision (e.g. %5.2f as 2)
+        U32 type  : 8;			//!< format char. (e.g. 'd','f','x'...)
+        U32 plus  : 1;
+        U32 minus : 1;
+        U32 space : 1;
+        U32 zero  : 1;
+        U32 prec  : 4;		    //!< precision (e.g. %5.2f as 2)
+        U32 width : 16;			//!< display width. (e.g. %10d as 10)
 } mrbc_print_fmt;
 
 typedef struct RPrintf {
     mrbc_print_fmt 	fmt;
-    char       		*buf;		    //!< output buffer.
-    char       		*p;		        //!< output buffer write point.
-    const char 		*end;	    	//!< output buffer end point.
-    const char 		*fstr;	        //!< format string. (e.g. "%d %03x")
+    U8       		*buf;		    //!< output buffer.
+    U8       		*p;		        //!< output buffer write point.
+    const U8 		*end;	    	//!< output buffer end point.
+    const U8 		*fstr;	        //!< format string. (e.g. "%d %03x")
 } mrbc_printf;
 
-__GURU__ const char *guru_sprintf(char *buf, const char *fstr, ...);
-__GURU__ const char *guru_vprintf(char *buf, const char *fstr, mrbc_value v[], int argc);
+__GURU__ const U8 *guru_sprintf(U8 *buf, const U8 *fstr, ...);
+__GURU__ const U8 *guru_vprintf(U8 *buf, const U8 *fstr, mrbc_value v[], U32 argc);
 
 #ifdef __cplusplus
 }

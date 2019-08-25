@@ -15,28 +15,28 @@
 #include "console.h"
 
 __GURU__ size_t  _output_size;
-__GURU__ uint8_t *_output_ptr;		// global output buffer for now, per session later
-__GURU__ uint8_t *_output_buf;
+__GURU__ U8 *_output_ptr;		// global output buffer for now, per session later
+__GURU__ U8 *_output_buf;
 
 __GURU__ volatile int _mutex_con;
 
 __GURU__ void
-guru_write(mrbc_vtype tt, mrbc_vtype fmt, size_t sz, uint8_t *buf)
+guru_write(mrbc_vtype tt, mrbc_vtype fmt, size_t sz, U8 *buf)
 {
 	if (threadIdx.x!=0) return;		// only thread 0 within a block can write
 
 	MUTEX_LOCK(_mutex_con);
 
 	guru_print_node *n = (guru_print_node *)_output_ptr;
-	MEMCPY((uint8_t *)n->data, buf, sz);
+	MEMCPY((U8 *)n->data, buf, sz);
 
 	n->id   = blockIdx.x;			// VM.id
 	n->tt   = tt;
 	n->fmt  = fmt;
 	n->size = sz + (-sz & 0x3);		// 32-bit alignment
 
-	_output_ptr  = (uint8_t *)n->data + n->size;		// advance pointer to next print block
-	*_output_ptr = (uint8_t)GURU_TT_EMPTY;
+	_output_ptr  = (U8 *)n->data + n->size;		// advance pointer to next print block
+	*_output_ptr = (U8)GURU_TT_EMPTY;
 
 	MUTEX_FREE(_mutex_con);
 }
@@ -47,29 +47,29 @@ guru_write(mrbc_vtype tt, mrbc_vtype fmt, size_t sz, uint8_t *buf)
   @param  c	character
 */
 __GURU__ void
-console_char(char c)
+console_char(U8 c)
 {
-	char buf[2] = { c, '\0' };
-	guru_write(GURU_TT_STRING, GURU_TT_EMPTY, 2, (uint8_t *)buf);
+	U8 buf[2] = { c, '\0' };
+	guru_write(GURU_TT_STRING, GURU_TT_EMPTY, 2, (U8 *)buf);
 }
 
 __GURU__ void
 console_int(mrbc_int i)
 {
-	guru_write(GURU_TT_FIXNUM, GURU_TT_FIXNUM, sizeof(mrbc_int), (uint8_t *)&i);
+	guru_write(GURU_TT_FIXNUM, GURU_TT_FIXNUM, sizeof(mrbc_int), (U8 *)&i);
 }
 
 __GURU__ void
 console_hex(mrbc_int i)
 {
-	guru_write(GURU_TT_FIXNUM, GURU_TT_EMPTY, sizeof(mrbc_int), (uint8_t *)&i);
+	guru_write(GURU_TT_FIXNUM, GURU_TT_EMPTY, sizeof(mrbc_int), (U8 *)&i);
 }
 
 #if GURU_USE_FLOAT
 __GURU__ void
 console_float(mrbc_float f)
 {
-	guru_write(GURU_TT_FLOAT, GURU_TT_EMPTY, sizeof(mrbc_float), (uint8_t *)&f);
+	guru_write(GURU_TT_FLOAT, GURU_TT_EMPTY, sizeof(mrbc_float), (U8 *)&f);
 }
 #endif
 
@@ -79,23 +79,23 @@ console_float(mrbc_float f)
   @param str	str
 */
 __GURU__ void
-console_str(const char *str)
+console_str(const U8 *str)
 {
-	guru_write(GURU_TT_STRING, GURU_TT_EMPTY, guru_strlen(str)+1, (uint8_t *)str);
+	guru_write(GURU_TT_STRING, GURU_TT_EMPTY, guru_strlen(str)+1, (U8 *)str);
 }
 
 __GURU__ void
-console_na(const char *msg)
+console_na(const U8 *msg)
 {
     console_str("method not supported: ");
 	console_str(msg);
 	console_str("\n");
 }
 
-__GURU__ char*
-_console_va_arg(char *p)
+__GURU__ U8*
+_console_va_arg(U8 *p)
 {
-    int ch;
+    U8 ch;
     while ((ch = *p) != '\0') {
         p++;
         if (ch == '%') {
@@ -117,10 +117,11 @@ PARSE_FLAG:
     }
 
 PARSE_WIDTH:
-    while ((ch = *p - '0'), (0 <= ch && ch <= 9)) p++;
+    S32 n;
+    while ((n = *p - '0'), (0 <= n & n <= 9)) p++;
     if (*p == '.') {
         p++;
-        while ((ch = *p - '0'), (0 <= ch && ch <= 9)) p++;
+        while ((n = *p - '0'), (0 <= n && n <= 9)) p++;
     }
     if (*p) ch = *p++;
 
@@ -144,7 +145,7 @@ _dump_obj_size(void)
 }
 
 __GPU__ void
-guru_console_init(uint8_t *buf, unsigned int sz)
+guru_console_init(U8 *buf, U32 sz)
 {
 	if (threadIdx.x!=0 || blockIdx.x!=0) return;
 
@@ -161,8 +162,8 @@ guru_console_init(uint8_t *buf, unsigned int sz)
 __HOST__ guru_print_node*
 _guru_host_print(guru_print_node *node)
 {
-	uint8_t *fmt[80], *buf[80];					// check buffer overflow
-	int 	argc;
+	U8  *fmt[80], *buf[80];					// check buffer overflow
+	U32	argc;
 	printf("<%d>", node->id);
 	switch (node->tt) {
 	case GURU_TT_FIXNUM:
@@ -172,12 +173,12 @@ _guru_host_print(guru_print_node *node)
 		printf("%g", *((mrbc_float *)node->data));
 		break;
 	case GURU_TT_STRING:
-		memcpy(buf, (uint8_t *)node->data, node->size);
+		memcpy(buf, (U8 *)node->data, node->size);
 		printf("%s", (char *)buf);
 		break;
 	case GURU_TT_RANGE:							// TODO: va_list needed here
 		argc = (int)node->fmt;
-		memcpy(fmt, (uint8_t *)node->data, node->size);
+		memcpy(fmt, (U8 *)node->data, node->size);
 		printf("%s", (char *)fmt);
 		for (int i=0; i<argc; i++) {
 			node = NEXTNODE(node);				// point to next parameter
@@ -191,7 +192,7 @@ _guru_host_print(guru_print_node *node)
 }
 
 __HOST__ void
-guru_console_flush(uint8_t *output_buf)
+guru_console_flush(U8 *output_buf)
 {
 	guru_print_node *node = (guru_print_node *)output_buf;
 	while (node->tt != GURU_TT_EMPTY) {			// 0

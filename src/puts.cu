@@ -34,11 +34,11 @@
   @retval 0	normal return.
   @retval 1	already output LF.
 */
-__GURU__ int
+__GURU__ U32
 mrbc_print_sub(mrbc_value *v)
 {
     mrbc_value *p;
-    int ret = 0;
+    U32 ret = 0;
 
     switch (v->tt){
     case GURU_TT_EMPTY:	 console_str("(empty)");					break;
@@ -82,7 +82,7 @@ mrbc_print_sub(mrbc_value *v)
         break;
     case GURU_TT_RANGE:
         mrbc_print_sub(&v->range->first);
-        console_str(IS_EXCLUDE_END(v->range) ? "..." : "..");
+        console_str((const U8 *)(IS_EXCLUDE_END(v->range) ? "..." : ".."));
         mrbc_print_sub(&v->range->last);
         break;
     case GURU_TT_HASH:
@@ -108,10 +108,10 @@ mrbc_print_sub(mrbc_value *v)
 //================================================================
 /*! p - sub function
  */
-__GURU__ int
+__GURU__ U32
 mrbc_p_sub(mrbc_value *v)
 {
-	const char *s;
+	const U8   *s;
 	mrbc_value *p;
 
     switch (v->tt){		// only when output different from print_sub

@@ -24,7 +24,7 @@
 #include "console.h"
 #include "class.h"
 
-__GURU__ int _mutex_cls;
+__GURU__ U32 _mutex_cls;
 
 //================================================================
 /*!@brief
@@ -72,7 +72,7 @@ mrbc_get_class_by_object(mrbc_object *obj)
   @return		pointer to class object.
 */
 __GURU__ mrbc_class*
-mrbc_get_class_by_name(const char *name)
+mrbc_get_class_by_name(const U8 *name)
 {
     mrbc_value v = const_object_get(name2symid(name));
 
@@ -115,7 +115,7 @@ mrbc_get_class_method(mrbc_value rcv, mrbc_sym sid)
   @param  super		super class.
 */
 __GURU__ mrbc_class*
-mrbc_define_class(const char *name, mrbc_class *super)
+mrbc_define_class(const U8 *name, mrbc_class *super)
 {
     if (super == NULL) super = mrbc_class_object;  // set default to Object.
 
@@ -131,9 +131,6 @@ mrbc_define_class(const char *name, mrbc_class *super)
     cls->sym_id = sid;
     cls->super 	= super;
     cls->vtbl 	= NULL;
-#ifdef GURU_DEBUG
-    cls->name 	= name;				// for debug; delete soon.
-#endif
 
     // register to global constant.
     mrbc_value v = { .tt = GURU_TT_CLASS };
@@ -144,7 +141,7 @@ mrbc_define_class(const char *name, mrbc_class *super)
 }
 
 __GURU__ mrbc_proc*
-mrbc_proc_alloc(const char *name)
+mrbc_proc_alloc(const U8 *name)
 {
     mrbc_proc *proc = (mrbc_proc *)mrbc_alloc(sizeof(mrbc_proc));
     if (proc) {
@@ -165,7 +162,7 @@ mrbc_proc_alloc(const char *name)
   @param  cfunc		pointer to function.
 */
 __GURU__ void
-mrbc_define_method(mrbc_class *cls, const char *name, mrbc_func_t cfunc)
+mrbc_define_method(mrbc_class *cls, const U8 *name, mrbc_func_t cfunc)
 {
     if (cls==NULL) cls = mrbc_class_object;		// set default to Object.
 
@@ -184,7 +181,7 @@ mrbc_define_method(mrbc_class *cls, const char *name, mrbc_func_t cfunc)
 
 // =============== ProcClass
 __GURU__ void
-c_proc_call(mrbc_value v[], int argc)
+c_proc_call(mrbc_value v[], U32 argc)
 {
 	// not suppose to come here
 	assert(1==0);		// taken care by vm#op_send
@@ -196,7 +193,7 @@ c_proc_call(mrbc_value v[], int argc)
 /*! Nop operator / method
  */
 __GURU__ void
-c_nop(mrbc_value v[], int argc)
+c_nop(mrbc_value v[], U32 argc)
 {
     // nothing to do.
 }

@@ -21,7 +21,7 @@ U8 		 *_guru_mem;			// guru global memory
 U8 		 *_guru_out;			// guru output stream
 guru_ses *_ses_list;			// session linked-list
 
-__HOST__ uint8_t*
+__HOST__ U8*
 _get_request_bytecode(const char *rite_fname)
 {
   FILE *fp = fopen(rite_fname, "rb");

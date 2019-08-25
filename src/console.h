@@ -24,24 +24,24 @@ extern "C" {
 /*! printf tiny (mruby/c) version data container.
 */
 typedef struct print_node {
-	uint32_t	id   : 6;
+	U32			id   : 6;
     mrbc_vtype  tt 	 : 5;
     mrbc_vtype	fmt	 : 5;
-    uint32_t	size : 16;
+    U32			size : 16;
 
-    uint8_t		data[];
+    U8			*data;
 } guru_print_node;
 
-__GPU__  void guru_console_init(uint8_t *buf, unsigned int sz);
+__GPU__  void guru_console_init(U8 *buf, U32 sz);
 
-__GURU__ void console_char(char c);
+__GURU__ void console_char(U8 c);
 __GURU__ void console_int(mrbc_int i);
 __GURU__ void console_hex(mrbc_int i);
-__GURU__ void console_str(const char *str);
+__GURU__ void console_str(const U8 *str);
 __GURU__ void console_float(mrbc_float f);
-__GURU__ void console_na(const char *msg);
+__GURU__ void console_na(const U8 *msg);
 
-__HOST__ void guru_console_flush(uint8_t *output_buf);
+__HOST__ void guru_console_flush(U8 *output_buf);
     
 #ifdef __cplusplus
 }
