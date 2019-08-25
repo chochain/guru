@@ -29,7 +29,7 @@
 #include "vmx.h"
 #include "vm.h"
 
-int     _vm_pool_ok = 0;
+U32     _vm_pool_ok = 0;
 guru_vm *_vm_pool;
 
 //================================================================
@@ -45,7 +45,7 @@ _vm_begin(guru_vm *pool)
 
 	if (threadIdx.x!=0 || vm->id==0) return;	// bail if vm not allocated
 
-	MEMSET((uint8_t *)vm->regfile, 0, sizeof(vm->regfile));	// clean up registers
+	MEMSET((U8 *)vm->regfile, 0, sizeof(vm->regfile));	// clean up registers
 
     vm->regfile[0].tt  	= GURU_TT_CLASS;		// regfile[0] is self
     vm->regfile[0].cls 	= mrbc_class_object;	// root class
@@ -155,7 +155,7 @@ _vm_pool_init(void)
 }
 
 __HOST__ cudaError_t
-guru_vm_setup(guru_ses *ses, int trace)
+guru_vm_setup(guru_ses *ses, U32 trace)
 {
 #if GURU_HOST_IMAGE
 	if (!_vm_pool_ok) {
@@ -188,7 +188,7 @@ guru_vm_setup(guru_ses *ses, int trace)
 }
 
 __HOST__ cudaError_t
-guru_vm_run(guru_ses *ses, int trace)
+guru_vm_run(guru_ses *ses, U32 trace)
 {
     _vm_begin<<<MIN_VM_COUNT, 1>>>(_vm_pool);
 	cudaDeviceSynchronize();
@@ -210,7 +210,7 @@ guru_vm_run(guru_ses *ses, int trace)
 }
 
 __HOST__ cudaError_t
-guru_vm_release(guru_ses *ses, int trace)
+guru_vm_release(guru_ses *ses, U32 trace)
 {
 	// TODO: release vm back to pool
 	return cudaSuccess;
@@ -225,7 +225,7 @@ static const char *_vtype[] = {
 };
 
 static const char *_opcode[] = {
-    "NOP ","MOVE","LOADL","LOADI","LOADSYM","LOADNIL","LOADSLF","LOADT",
+    "NOP ",	"MOVE",	"LOADL","LOADI","LOADSYM","LOADNIL","LOADSLF","LOADT",
     "LOADF","GETGBL","SETGBL","","","GETIV","SETIV","",
     "","GETCONS","SETCONS","","","GETUVAR","SETUVAR","JMP ",
     "JMPIF","JMPNOT","","","","","","",
@@ -240,12 +240,12 @@ static const char *_opcode[] = {
 
 #if GURU_HOST_IMAGE
 __HOST__ int
-_find_irep(guru_irep *irep0, guru_irep *irep1, char *idx)
+_find_irep(guru_irep *irep0, guru_irep *irep1, U8 *idx)
 {
 	if (irep0==irep1) return 1;
 
-	uint8_t  *base = (uint8_t *)irep0;
-	uint32_t *off  = (uint32_t *)(base + irep0->list);		// child irep offset array
+	U8  *base = (U8 *)irep0;
+	U32 *off  = (U32 *)(base + irep0->list);		// child irep offset array
 	for (int i=0; i<irep0->rlen; i++) {
 		*idx += 1;
 		if (_find_irep((guru_irep *)(base + off[i]), irep1, idx)) return 1;
@@ -256,16 +256,16 @@ _find_irep(guru_irep *irep0, guru_irep *irep1, char *idx)
 __HOST__ void
 _show_decoder(guru_vm *vm)
 {
-	uint16_t    pc    = vm->state->pc;
-	uint32_t    *iseq = VM_ISEQ(vm);
-	uint16_t    opid  = (*(iseq + pc) >> 24) & 0x7f;
-	const char  *opc  = _opcode[GET_OPCODE(opid)];
+	U16 pc    = vm->state->pc;
+	U32 *iseq = VM_ISEQ(vm);
+	U16 opid  = (*(iseq + pc) >> 24) & 0x7f;
+	const U8 *opc  = (const U8 *)_opcode[GET_OPCODE(opid)];
 
-	char idx = 'a';
+	U8 idx = 'a';
 	if (!_find_irep(vm->irep, vm->state->irep, &idx)) idx='?';
 	printf("%1d%c%-4d%-8s", vm->id, idx, pc, opc);
 
-	int lvl=0;
+	U32 lvl=0;
 	guru_state *st = vm->state;
 	while (st->prev != NULL) {
 		st = st->prev;
@@ -273,7 +273,7 @@ _show_decoder(guru_vm *vm)
 	}
 
 	mrbc_value *v = vm->regfile;				// scan
-	int last = 0;
+	U32 last = 0;
 	for(int i=0; i<MAX_REGS_SIZE; i++, v++) {
 		if (v->tt==GURU_TT_EMPTY) continue;
 		last=i;
@@ -294,10 +294,10 @@ _show_decoder(guru_vm *vm)
 __HOST__ void
 _show_decoder(mrbc_vm *vm)
 {
-	uint16_t    pc    = vm->state->pc;
-	uint32_t    *iseq = vm->state->irep->iseq;
-	uint16_t    opid  = (*(iseq + pc) >> 24) & 0x7f;
-	const char 	*opc  = _opcode[GET_OPCODE(opid)];
+	U16 pc    = vm->state->pc;
+	U32 *iseq = vm->state->irep->iseq;
+	U16 opid  = (*(iseq + pc) >> 24) & 0x7f;
+	const U8 	*opc  = _opcode[GET_OPCODE(opid)];
 	mrbc_value 	*v 	  = vm->regfile;
 
 	int last=0;
@@ -328,7 +328,7 @@ _show_decoder(mrbc_vm *vm)
 #endif	// GURU_HOST_IMAGE
 
 __HOST__ cudaError_t
-guru_vm_trace(int level)
+guru_vm_trace(U32 level)
 {
 	if (level==0) return cudaSuccess;
 

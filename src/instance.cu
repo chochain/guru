@@ -204,7 +204,6 @@ mrbc_instance_delete(mrbc_value *v)
     mrbc_free(v->self);
 }
 
-
 //================================================================
 /*! instance variable setter
 
@@ -218,7 +217,6 @@ mrbc_instance_setiv(mrbc_object *obj, mrbc_sym sid, mrbc_value *v)
     _set(obj->self->ivar, sid, v);
     mrbc_retain(v);
 }
-
 
 //================================================================
 /*! instance variable getter
@@ -237,13 +235,3 @@ mrbc_instance_getiv(mrbc_object *obj, mrbc_sym sid)
     mrbc_retain(v);
     return *v;
 }
-
-
-
-
-
-
-
-
-
-

@@ -22,10 +22,10 @@
 extern "C" {
 #endif
 
-cudaError_t guru_vm_setup(guru_ses *ses, int trace);
-cudaError_t guru_vm_run(guru_ses *ses, int trace);
-cudaError_t guru_vm_release(guru_ses *ses, int trace);
-cudaError_t guru_vm_trace(int level);
+cudaError_t guru_vm_setup(guru_ses *ses, U32 trace);
+cudaError_t guru_vm_run(guru_ses *ses, U32 trace);
+cudaError_t guru_vm_release(guru_ses *ses, U32 trace);
+cudaError_t guru_vm_trace(U32 level);
 
 #ifdef __cplusplus
 }
