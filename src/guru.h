@@ -129,13 +129,13 @@ typedef struct RClass {						// 16-byte
     struct RClass 	*super;					// mrbc_class[super]
     struct RProc  	*vtbl;					// mrbc_proc[rprocs], linked list
 #ifdef GURU_DEBUG
-    const char    	*name;					// for debug. TODO: remove
+    const U8    	*name;					// for debug. TODO: remove
 #endif
     mrbc_sym       	sym_id;					// class name
 } mrbc_class;
 
-#define GURU_PROC_C_FUNC 		0x80
-#define IS_C_FUNC(m)			((m)->flag & GURU_PROC_C_FUNC)
+#define GURU_CFUNC 	0x80
+#define IS_CFUNC(m)	((m)->flag & GURU_CFUNC)
 
 #define GURU_OBJECT_HEADER      \
 	mrbc_vtype  	tt   : 8; 	\
@@ -158,7 +158,7 @@ typedef struct RInstance {		// 16-byte
 
     struct RClass    *cls;
     struct RKeyValue *ivar;
-    uint8_t 		 *data;
+    U8 				 data[];
 } mrbc_instance;
 
 //================================================================
@@ -177,6 +177,9 @@ typedef struct RProc {			// 40-byte
         struct RIrep *irep;
         mrbc_func_t  func;
     };
+#ifdef GURU_DEBUG
+    const U8     *name;			// for debug. TODO: remove
+#endif
     mrbc_sym 	 sym_id;		// u16
 } mrbc_proc;
 
