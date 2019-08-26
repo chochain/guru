@@ -33,31 +33,15 @@
 #define MAX_CALL_STACK 100
 #endif
 
-/* maximum number of objects */
-#ifndef MAX_OBJECT_COUNT
-#define MAX_OBJECT_COUNT 400
-#endif
-
-/* maximum number of classes */
-#ifndef MAX_CLASS_COUNT
-#define MAX_CLASS_COUNT 20
-#endif
-
 /* maximum number of symbols */
-#ifndef MAX_SYMBOLS_COUNT
-#define MAX_SYMBOLS_COUNT 200
+#ifndef MAX_SYMBOL_COUNT
+#define MAX_SYMBOL_COUNT 200
 #endif
 
 /* maximum size of global objects */
-#ifndef MAX_GLOBAL_OBJECT_SIZE
-#define MAX_GLOBAL_OBJECT_SIZE 20
+#ifndef MAX_GLOBAL_COUNT
+#define MAX_GLOBAL_COUNT 20
 #endif
-
-/* maximum size of consts */
-#ifndef MAX_CONST_COUNT
-#define MAX_CONST_COUNT 20
-#endif
-
 
 /* Configure environment */
 /* 0: NOT USE */
