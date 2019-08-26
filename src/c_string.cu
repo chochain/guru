@@ -78,7 +78,7 @@ _new(const U8P src, U32 len)
 
     assert(h!=NULL);			// out of memory
 #if GURU_REQUIRE_64BIT_ALIGNMENT
-    assert(((U32P)h & 7)==0);
+    assert(((U32A)h & 7)==0);
 #endif
 
     U8P s = (U8P)mrbc_alloc(len);
@@ -87,7 +87,7 @@ _new(const U8P src, U32 len)
         return ret;
     }
 #if GURU_REQUIRE_64BIT_ALIGNMENT
-    assert(((U32P)s & 7)==0);
+    assert(((U32A)s & 7)==0);
 #endif
 
     // deep copy source string
@@ -258,7 +258,7 @@ mrbc_string_append(mrbc_value *v0, const mrbc_value *v1)
 
     assert(s!=NULL);						// out of memory
 #if GURU_REQUIRE_64BIT_ALIGNMENT
-    assert(((U32P)s & 7)==0);
+    assert(((U32A)s & 7)==0);
 #endif
     if (v1->tt==GURU_TT_STRING) {			// append str2
         MEMCPY(s + len0, v1->str->data, len1 + 1);
@@ -288,7 +288,7 @@ mrbc_string_append_cstr(mrbc_value *v0, const U8P v1)
 
     assert(s!=NULL);						// out of memory
 #if GURU_REQUIRE_64BIT_ALIGNMENT
-    assert(((U32P)s & 7)==0);
+    assert(((U32A)s & 7)==0);
 #endif
     MEMCPY(s + len0, v1, len1 + 1);
 

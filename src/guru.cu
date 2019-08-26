@@ -106,11 +106,11 @@ __HOST__ U32
 guru_load(U8 **argv, U32 n, U32 trace)
 {
 	guru_ses *ses = (guru_ses *)malloc(sizeof(guru_ses) * n);
-
 	if (!ses) return 1;			// memory allocation error
 
+	U32  rst;
 	for (U32 i=1; i<=n; i++, ses++) {
-		_session_add(ses, argv[i], trace);
+		if ((rst = _session_add(ses, argv[i], trace))) return rst;
 	}
 	return 0;
 }

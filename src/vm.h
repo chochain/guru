@@ -191,7 +191,7 @@ _u32_to_bin(U32 l, U8P bin)
 #define VM_IREP(vm)      ((vm)->state->irep)
 
 #if GURU_HOST_IMAGE
-#define VM_ISEQ(vm)	 	 ((U32 *)((U8 *)VM_IREP(vm) + VM_IREP(vm)->iseq))
+#define VM_ISEQ(vm)	 	 ((U32 *)U8PADD(VM_IREP(vm), VM_IREP(vm)->iseq))
 #define GET_BYTECODE(vm) (_bin_to_u32(VM_ISEQ(vm) + (vm)->state->pc))
 #else  // !GURU_HOST_IMAGE
 #define VM_ISEQ(vm)	 	 ((U32 *)(VM_IREP(vm)->iseq)

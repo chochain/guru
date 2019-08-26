@@ -56,11 +56,9 @@ __GURU__ U8P
 _vm_symbol(guru_vm *vm, U32 n)
 {
 	guru_irep *irep = VM_IREP(vm);
-	U32  *p = (U32 *)((U8 *)irep + irep->sym  + n * sizeof(U32));
+	U32 *p = (U32 *)U8PADD(irep, irep->sym  + n * sizeof(U32));
 
-	U8P  r  = ((U8 *)irep + *p);
-	U8   *rr= ((U8 *)irep + *p);
-	return ((U8 *)irep + *p);
+	return U8PADD(irep, *p);
 }
 
 __GURU__ mrbc_sym
@@ -75,36 +73,36 @@ _vm_pool(guru_vm *vm, U32 n)
 {
 	guru_irep *irep = VM_IREP(vm);
 
-	return (U32 *)((U8 *)irep + irep->pool + n*sizeof(U32));
+	return (U32 *)U8PADD(irep, irep->pool + n*sizeof(U32));
 }
 
 __GURU__ guru_irep*
 _vm_irep_list(guru_vm *vm, U32 n)
 {
 	guru_irep *irep = VM_IREP(vm);
-	U32  *p    = (U32 *)((U8 *)irep + irep->list + n*sizeof(U32));
+	U32  *p    = (U32 *)U8PADD(irep, irep->list + n*sizeof(U32));
 
-	return (guru_irep *)((U8 *)irep + *p);
+	return (guru_irep *)U8PADD(irep, *p);
 }
 
 #else  // !GURU_HOST_IMAGE
 
-__GURU__ const U8*
-_get_symbol(const U8 *p, U32 n)
+__GURU__ U8P
+_get_symbol(const U8P p, U32 n)
 {
-    U32 max = _bin_to_u32(p);			p += sizeof(U32);
+    U32 max = _bin_to_u32(p);		p += sizeof(U32);
     if (n >= max) return NULL;
 
     for (; n>0; n--) {	// advance to n'th symbol
         U16 s = _bin_to_u16(p);		p += sizeof(U16)+s+1;	// symbol len + '\0'
     }
-    return (U8 *)p + sizeof(U16);  	// skip size(2 bytes)
+    return (U8P)p + sizeof(U16);  	// skip size(2 bytes)
 }
 
 __GURU__ mrbc_sym
-_get_symid(const U8 *p, U32 n)
+_get_symid(const U8P p, U32 n)
 {
-  	const U8 *name = _get_symbol(p, n);
+  	const U8P name = _get_symbol(p, n);
     return name2symid(name);
 }
 #endif
@@ -727,7 +725,7 @@ op_send(guru_vm *vm, U32 code, mrbc_value *regs)
     mrbc_proc *m  = (mrbc_proc *)mrbc_get_proc_by_symid(rcv, sid);
 
     if (m==0) {
-    	const U8 *name = _vm_symbol(vm, rb);
+    	const U8P name = _vm_symbol(vm, rb);
     	console_na(name);							// dump error, bail out
     	return 0;
     }
@@ -1228,7 +1226,7 @@ op_string(guru_vm *vm, U32 code, mrbc_value *regs)
     int rb = GETARG_Bx(code);
 
     U32 *p   = _vm_pool(vm, rb);
-    U8P str  = (U8P)((U8 *)VM_IREP(vm) + *p);
+    U8P str  = (U8P)U8PADD(VM_IREP(vm), *p);
     mrbc_value ret = mrbc_string_new(str);
 
     if (ret.str==NULL) return vm->err = 255;			// ENOMEM

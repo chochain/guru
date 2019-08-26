@@ -293,7 +293,7 @@ c_object_attr_accessor(mrbc_value v[], U32 argc)
         mrbc_define_method(v[0].cls, name, (mrbc_func_t)c_object_getiv);
 
         // make string "....=" and define writer method.
-        U8 *buf = (U8 *)mrbc_alloc(STRLEN(name)+2);
+        U8P buf = (U8P)mrbc_alloc(STRLEN(name)+2);
         if (!buf) return;
         
         STRCPY(buf, name);
@@ -379,7 +379,7 @@ __GURU__ void
 c_proc_inspect(mrbc_value v[], U32 argc)
 {
 	U8  buf[20];
-    U8P str = guru_sprintf(buf, "<#Proc:%08x>", (U32P)v->proc);
+    U8P str = guru_sprintf(buf, "<#Proc:%08x>", v->proc);
 
     SET_RETURN(mrbc_string_new(str));
 }

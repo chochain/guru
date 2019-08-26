@@ -21,8 +21,11 @@ typedef int16_t		S16;
 typedef double		F64;
 typedef float       F32;
 
-typedef uintptr_t   U32P;
+typedef uintptr_t   U32A;
+typedef uint32_t    *U32P;
 typedef uint8_t     *U8P;
+
+#define U8PADD(p, n)	((U8 *)p + n)
 
 U32 guru_setup(U32 trace);
 U32 guru_load(U8 **argv, U32 n, U32 trace);
