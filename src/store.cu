@@ -23,12 +23,12 @@
   @param  sym_id	symbol ID.
   @return		result. It's not necessarily found.
 */
-__GURU__ int
+__GURU__ S32
 _bsearch(mrbc_store *st, mrbc_sym sid)
 {
     int left  = 0;
     int right = st->n - 1;
-    if (right < 0) return -1;
+    if (right<=0) return -1;
 
     mrbc_store_data *d = st->data;
     while (left < right) {
@@ -49,8 +49,8 @@ _bsearch(mrbc_store *st, mrbc_sym sid)
   @param  size	size.
   @return	mrbc_error_code.
 */
-__GURU__ int
-_resize(mrbc_store *st, int size)
+__GURU__ S32
+_resize(mrbc_store *st, U32 size)
 {
     mrbc_store_data *d2 = (mrbc_store_data *) mrbc_realloc(st->data, sizeof(mrbc_store_data) * size);
     if (!d2) return -1;		// ENOMEM
@@ -69,7 +69,7 @@ _resize(mrbc_store *st, int size)
   @return instance store handle
 */
 __GURU__ mrbc_store *
-_new(int size)
+_new(U32 size)
 {
     mrbc_store *st = (mrbc_store *)mrbc_alloc(sizeof(mrbc_store));
     if (!st) return NULL;	// ENOMEM
@@ -111,13 +111,13 @@ _delete(mrbc_store *st)
   @param  set_val	set value.
   @return		mrbc_error_code.
 */
-__GURU__ int
+__GURU__ S32
 _set(mrbc_store *st, mrbc_sym sid, mrbc_value *val)
 {
-    int idx = _bsearch(st, sid);
+    S32 idx = _bsearch(st, sid);
     mrbc_store_data *d = st->data + idx;
     if (idx < 0) {
-        idx = 0;
+    	idx = 0;
         goto INSERT_VALUE;
     }
     // replace value ?
@@ -154,7 +154,7 @@ INSERT_VALUE:
 __GURU__ mrbc_value*
 _get(mrbc_store *st, mrbc_sym sid)
 {
-    int idx = _bsearch(st, sid);
+    S32 idx = _bsearch(st, sid);
     if (idx < 0) return NULL;
 
     mrbc_store_data *d = st->data + idx;
@@ -172,7 +172,7 @@ _get(mrbc_store *st, mrbc_sym sid)
   @return       mrbc_store object.
 */
 __GURU__ mrbc_value
-mrbc_store_new(mrbc_class *cls, int size)
+mrbc_store_new(mrbc_class *cls, U32 size)
 {
     mrbc_value v = {.tt = GURU_TT_OBJECT};
     v.self = (mrbc_var *)mrbc_alloc(sizeof(mrbc_store) + size);

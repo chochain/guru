@@ -38,7 +38,7 @@ typedef struct RStore {
     mrbc_store_data *data;	//!< pointer to allocated memory.
 } mrbc_store;
 
-__GURU__ mrbc_value mrbc_store_new(mrbc_class *cls, int size);
+__GURU__ mrbc_value mrbc_store_new(mrbc_class *cls, U32 size);
 __GURU__ void       mrbc_store_delete(mrbc_value *v);
 __GURU__ void       mrbc_store_set(mrbc_object *obj, mrbc_sym sid, mrbc_value *v);
 __GURU__ mrbc_value mrbc_store_get(mrbc_object *obj, mrbc_sym sid);

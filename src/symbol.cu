@@ -31,7 +31,7 @@
 #endif
 
 struct SYM_LIST {
-    U16 							hash;		//!< hash value, returned by calc_hash().
+    U16								hash;		//!< hash value, returned by calc_hash().
 #ifdef GURU_SYMBOL_SEARCH_BTREE
     GURU_SYMBOL_TABLE_INDEX_TYPE 	left;
     GURU_SYMBOL_TABLE_INDEX_TYPE 	right;
@@ -40,7 +40,7 @@ struct SYM_LIST {
 };
 
 __GURU__ U32 _sym_idx;							// point to the last(free) sym_list array.
-__GURU__ struct SYM_LIST _sym_list[MAX_SYMBOLS_COUNT];
+__GURU__ struct SYM_LIST _sym_list[MAX_SYMBOL_COUNT];
 
 //================================================================
 /*! Calculate hash value.
@@ -63,7 +63,7 @@ _calc_hash(U8P str)
 //================================================================
 /*! search index table
  */
-__GURU__ S32
+__GURU__ U32
 _search_index(const U8P str)
 {
     U16 hash = _calc_hash(str);
@@ -74,26 +74,25 @@ _search_index(const U8P str)
             return i;
         }
     }
-    return -1;
+    return MAX_SYMBOL_COUNT;
 #endif
 
 #ifdef GURU_SYMBOL_SEARCH_BTREE
-    S32 i=0;
+    U32 i=0;
     do {
         if (_sym_list[i].hash==hash &&
         	guru_strcmp(str, _sym_list[i].cstr)==0) {
             return i;
         }
-        i = (hash < _sym_list[i].hash)
-        		? _sym_list[i].left
-            	: _sym_list[i].right;
-    } while (i != 0);
-    return -1;
+        i = (hash < _sym_list[i].hash) ? _sym_list[i].left : _sym_list[i].right;
+    } while (i!=0);
+
+    return MAX_SYMBOL_COUNT;		// not found
 #endif
 }
 
 //================================================================
-/*! add to index table
+/*! add to index table (1-based index, i.e. list[0] is not used)
  */
 __GURU__ S32
 _add_index(const U8P str)
@@ -101,24 +100,18 @@ _add_index(const U8P str)
     U32 hash = _calc_hash(str);
 
     // check overflow.
-    if (_sym_idx >= MAX_SYMBOLS_COUNT) {
-    	assert(1==0);
-    	return -1;
-    }
-
-    U32 sid = _sym_idx++;
+    assert(_sym_idx < MAX_SYMBOL_COUNT);
 
     // append table.
+    U32 sid = _sym_idx++;		// add to next entry
     _sym_list[sid].hash = hash;
     _sym_list[sid].cstr = str;
 
 #ifdef GURU_SYMBOL_SEARCH_BTREE
-    U32 i=0;
-
-    while (1) {
+    for (U32 i=0; ;) {
         if (hash < _sym_list[i].hash) {
             // left side
-            if (_sym_list[i].left==0) {	// left is empty?
+            if (_sym_list[i].left==0) {		// left is empty?
                 _sym_list[i].left = sid;
                 break;
             }
@@ -150,7 +143,7 @@ mrbc_symbol_new(const U8P str)
     mrbc_value v   = {.tt = GURU_TT_SYMBOL};
     mrbc_sym   sid = _search_index(str);
 
-    if (sid >= 0) {
+    if (sid < MAX_SYMBOL_COUNT) {
         v.i = sid;
         return v;		// already exist.
     }
@@ -176,7 +169,7 @@ __GURU__ mrbc_sym
 name2symid(const U8P str)
 {
     mrbc_sym sid = _search_index(str);
-    if (sid >= 0) return sid;
+    if (sid < MAX_SYMBOL_COUNT) return sid;
 
     return _add_index(str);
 }
@@ -191,7 +184,7 @@ name2symid(const U8P str)
 __GURU__ U8P
 symid2name(mrbc_sym sid)
 {
-    return (sid < 0 || sid >= _sym_idx)
+    return (sid >= _sym_idx)
     		? NULL
     		: _sym_list[sid].cstr;
 }
