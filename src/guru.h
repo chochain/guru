@@ -1,13 +1,6 @@
 /*! @file
   @brief
-  Guru value definitions
-
-  <pre>
-  Copyright (C) 2015-2018 Kyushu Institute of Technology.
-  Copyright (C) 2015-2018 Shimane IT Open-Innovation Center.
-
-  This file is distributed under BSD 3-Clause License.
-  </pre>
+  Guru macros and internal class definitions
 */
 #ifndef GURU_SRC_GURU_H_
 #define GURU_SRC_GURU_H_
@@ -94,6 +87,11 @@ typedef enum {
 } mrbc_vtype;
 
 #define TT_BOOL(v)		((v) ? GURU_TT_TRUE : GURU_TT_FALSE)
+
+// guru internal types
+typedef S32 		mrbc_int;
+typedef F32	 		mrbc_float;
+typedef S16 		mrbc_sym;
 
 //================================================================
 /*!@brief
@@ -183,9 +181,17 @@ typedef struct RProc {			// 40-byte
     mrbc_sym 	 sym_id;		// u16
 } mrbc_proc;
 
-int guru_system_setup(int trace);
-int session_init(guru_ses *ses, const char *rite_fname, int trace);
-int session_start(guru_ses *ses, int trace);
+typedef struct guru_ses_ {
+	U8 	*in;
+	U8	*out;
+	U16 id;
+	U16 trace;
+
+	struct guru_ses_ *next;
+} guru_ses;
+
+U32 session_init(guru_ses *ses, U8P rite_fname, U32 trace);
+U32 session_start(guru_ses *ses, U32 trace);
 
 #ifdef __cplusplus
 }

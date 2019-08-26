@@ -1,13 +1,6 @@
 /*! @file
   @brief
-  Guru value definitions
-
-  <pre>
-  Copyright (C) 2015-2018 Kyushu Institute of Technology.
-  Copyright (C) 2015-2018 Shimane IT Open-Innovation Center.
-
-  This file is distributed under BSD 3-Clause License.
-  </pre>
+  GURU external type and interface definitions
 */
 #ifndef GURU_SRC_GURUX_H_
 #define GURU_SRC_GURUX_H_
@@ -27,26 +20,13 @@ typedef int32_t     S32;				// single precision float
 typedef int16_t		S16;
 typedef double		F64;
 typedef float       F32;
+
 typedef uintptr_t   U32P;
 typedef uint8_t     *U8P;
 
-// mrbc types
-typedef S32 		mrbc_int;
-typedef F32	 		mrbc_float;
-typedef S16 		mrbc_sym;
-
-typedef struct guru_ses_ {
-	U8 	*in;
-	U8	*out;
-	U16 id;
-	U16 trace;
-
-	struct guru_ses_ *next;
-} guru_ses;
-
-int guru_system_setup(int trace);
-int guru_system_run(int trace);
-int guru_session_add(guru_ses *ses, const U8P rite_fname, U32 trace);
+U32 guru_setup(U32 trace);
+U32 guru_load(U8 **argv, U32 n, U32 trace);
+U32 guru_run(U32 trace);
 
 #ifdef __cplusplus
 }

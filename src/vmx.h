@@ -16,7 +16,7 @@
 #ifndef GURU_SRC_VMX_H_
 #define GURU_SRC_VMX_H_
 
-#include "gurux.h"
+#include "guru.h"
 
 #ifdef __cplusplus
 extern "C" {

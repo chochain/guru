@@ -46,18 +46,42 @@ _get_request_bytecode(const U8P rite_fname)
   return req;
 }
 
-__HOST__ int
-guru_system_setup(int trace)
+__HOST__ U32
+_session_add(guru_ses *ses, const U8P rite_fname, U32 trace)
+{
+	ses->trace = trace;
+	ses->out   = _guru_out;
+
+	U8P in = ses->in = _get_request_bytecode(rite_fname);
+	if (!in) {
+		fprintf(stderr, "ERROR: bytecode request allocation error!\n");
+		return 3;
+	}
+	cudaError_t rst = guru_vm_setup(ses, trace);
+	if (cudaSuccess != rst) {
+		fprintf(stderr, "ERROR: virtual memory block allocation error!\n");
+		return 1;
+	}
+	if (trace) guru_dump_alloc_stat();
+
+	ses->next = _ses_list;		// add to linked-list
+	_ses_list = ses;
+
+	return rst;
+}
+
+__HOST__ U32
+guru_setup(U32 trace)
 {
 	U8P mem = _guru_mem = (U8P)guru_malloc(BLOCK_MEMORY_SIZE, 1);
 	if (!_guru_mem) {
 		fprintf(stderr, "ERROR: failed to allocate device main memory block!\n");
-		return -1;
+		return 1;
 	}
 	U8P out = _guru_out = (U8P)guru_malloc(MAX_BUFFER_SIZE, 1);	// allocate output buffer
 	if (!_guru_out) {
 		fprintf(stderr, "ERROR: output buffer allocation error!\n");
-		return -2;
+		return 2;
 	}
 	_ses_list = NULL;
 
@@ -66,7 +90,7 @@ guru_system_setup(int trace)
 	guru_class_init<<<1,1>>>();									// setup basic classes
     guru_console_init<<<1,1>>>(out, MAX_BUFFER_SIZE);			// initialize output buffer
 
-    int sz0, sz1;
+    U32 sz0, sz1;
 	cudaDeviceGetLimit((size_t *)&sz0, cudaLimitStackSize);
 	cudaDeviceSetLimit(cudaLimitStackSize, (size_t)sz0*4);
 	cudaDeviceGetLimit((size_t *)&sz1, cudaLimitStackSize);
@@ -78,8 +102,21 @@ guru_system_setup(int trace)
 	return 0;
 }
 
-__HOST__ int
-guru_system_run(int trace)
+__HOST__ U32
+guru_load(U8 **argv, U32 n, U32 trace)
+{
+	guru_ses *ses = (guru_ses *)malloc(sizeof(guru_ses) * n);
+
+	if (!ses) return 1;			// memory allocation error
+
+	for (U32 i=1; i<=n; i++, ses++) {
+		_session_add(ses, argv[i], trace);
+	}
+	return 0;
+}
+
+__HOST__ U32
+guru_run(U32 trace)
 {
 	cudaError_t rst = guru_vm_run(_ses_list, trace);
     if (cudaSuccess != rst) {
@@ -94,26 +131,4 @@ guru_system_run(int trace)
 	return cudaSuccess != rst;
 }
 
-__HOST__ int
-guru_session_add(guru_ses *ses, const U8P rite_fname, U32 trace)
-{
-	ses->trace = trace;
-	ses->out   = _guru_out;
 
-	U8P in = ses->in = _get_request_bytecode(rite_fname);
-	if (!in) {
-		fprintf(stderr, "ERROR: bytecode request allocation error!\n");
-		return -3;
-	}
-	cudaError_t rst = guru_vm_setup(ses, trace);
-	if (cudaSuccess != rst) {
-		fprintf(stderr, "ERROR: virtual memory block allocation error!\n");
-		return -1;
-	}
-	if (trace) guru_dump_alloc_stat();
-
-	ses->next = _ses_list;		// add to linked-list
-	_ses_list = ses;
-
-	return rst;
-}
