@@ -180,7 +180,7 @@ _guru_host_print(guru_print_node *node)
 		argc = (int)node->fmt;
 		memcpy(fmt, (U8 *)node->data, node->size);
 		printf("%s", (char *)fmt);
-		for (int i=0; i<argc; i++) {
+		for (U32 i=0; i<argc; i++) {
 			node = NEXTNODE(node);				// point to next parameter
 			node = _guru_host_print(node);		// recursive call
 		}

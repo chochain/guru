@@ -117,7 +117,7 @@ typedef struct RObject {					// 16-bytes
         struct RRange    *range;			// GURU_TT_RANGE
         struct RHash     *hash;				// GURU_TT_HASH
 #endif
-        const char       *sym;				// C-string (only loader use.)
+        U8P       		 sym;				// C-string (only loader use.)
     };
 } mrbc_object, mrbc_value;
 
@@ -129,7 +129,7 @@ typedef struct RClass {						// 16-byte
     struct RClass 	*super;					// mrbc_class[super]
     struct RProc  	*vtbl;					// mrbc_proc[rprocs], linked list
 #ifdef GURU_DEBUG
-    const U8    	*name;					// for debug. TODO: remove
+    U8P       		name;					// for debug. TODO: remove
 #endif
     mrbc_sym       	sym_id;					// class name
 } mrbc_class;
@@ -146,7 +146,7 @@ typedef struct RString {		// 12-byte
 	GURU_OBJECT_HEADER;			// 4-byte
 
 	U32 size;					//!< string length.
-	U8  *data;					//!< pointer to allocated buffer.
+	U8P data;					//!< pointer to allocated buffer.
 } mrbc_string;
 
 //================================================================
@@ -178,7 +178,7 @@ typedef struct RProc {			// 40-byte
         mrbc_func_t  func;
     };
 #ifdef GURU_DEBUG
-    const U8     *name;			// for debug. TODO: remove
+    U8P     	 name;			// for debug. TODO: remove
 #endif
     mrbc_sym 	 sym_id;		// u16
 } mrbc_proc;

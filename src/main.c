@@ -11,13 +11,13 @@ int  do_cuda(void);
 
 int main(int argc, char **argv)
 {
-	int trace = *argv[argc-1]=='1' ? 1 : (*argv[argc-1]=='2' ? 2 : 0);
-	int n     = argc - (trace ? 2 : 1);
+	U32 trace = *argv[argc-1]=='1' ? 1 : (*argv[argc-1]=='2' ? 2 : 0);
+	U32 n     = argc - (trace ? 2 : 1);
 
 	if (guru_system_setup(trace)) return -1;
 
 	guru_ses *ses = malloc(sizeof(ses) * n);
-	for (int i=1; i<=n; i++, ses++) {
+	for (U32 i=1; i<=n; i++, ses++) {
 		guru_session_add(ses, argv[i], trace);
 	}
 	return guru_system_run(trace);

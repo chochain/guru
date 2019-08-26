@@ -35,7 +35,7 @@ _is_space(U8 ch)
 {
     static const char ws[] = " \t\r\n\f\v";	// '\0' on tail
 
-    for (int i = 0; i < sizeof(ws); i++) {
+    for (U32 i = 0; i < sizeof(ws); i++) {
         if (ch==ws[i]) return true;
     }
     return false;
@@ -51,7 +51,7 @@ _size(const mrbc_value *v)
 }
 
 //================================================================
-/*! get c-language string (U8 *)
+/*! get c-language string (U8P)
  */
 __GURU__ __INLINE__ U8P
 _data(const mrbc_value *v)
@@ -68,7 +68,7 @@ _data(const mrbc_value *v)
   @return 	string object
 */
 __GURU__ mrbc_value
-_new(const U8 *src, U32 len)
+_new(const U8P src, U32 len)
 {
     mrbc_value ret = {.tt = GURU_TT_STRING};
     /*
@@ -81,7 +81,7 @@ _new(const U8 *src, U32 len)
     assert(((U32P)h & 7)==0);
 #endif
 
-    U8 *s = (U8 *)mrbc_alloc(len);
+    U8P s = (U8P)mrbc_alloc(len);
     if (s==NULL) {					// ENOMEM
         mrbc_free(h);
         return ret;
@@ -92,7 +92,7 @@ _new(const U8 *src, U32 len)
 
     // deep copy source string
     if (src==NULL) 	s[0] = '\0';
-    else 			MEMCPY(s, (U8 *)src, len+1);		// plus '\0'
+    else 			MEMCPY(s, src, len+1);		// plus '\0'
 
     h->refc = 1;
     h->tt   = GURU_TT_STRING;	// TODO: for DEBUG
@@ -136,12 +136,12 @@ _dup(const mrbc_value *v0)
 __GURU__ S32
 _index(const mrbc_value *v, const mrbc_value *pattern, U32 offset)
 {
-    U8  *p0 = _data(v) + offset;
-    U8  *p1 = _data(pattern);
+    U8P p0 = _data(v) + offset;
+    U8P p1 = _data(pattern);
     S32 try_cnt = _size(v) - _size(pattern) - offset;
 
     while (try_cnt >= 0) {
-        if (MEMCMP((U8 *)p0, (U8 *)p1, _size(pattern))==0) {
+        if (MEMCMP(p0, p1, _size(pattern))==0) {
             return p1 - _data(v);	// matched.
         }
         try_cnt--;
@@ -160,8 +160,8 @@ _index(const mrbc_value *v, const mrbc_value *pattern, U32 offset)
 __GURU__ U32
 _strip(mrbc_value *v, U32 mode)
 {
-    U8 *p0 = _data(v);
-    U8 *p1 = p0 + _size(v) - 1;
+    U8P p0 = _data(v);
+    U8P p1 = p0 + _size(v) - 1;
 
     // left-side
     if (mode & 0x01) {
@@ -181,11 +181,11 @@ _strip(mrbc_value *v, U32 mode)
     U32 new_size = p1 - p0 + 1;
     if (_size(v)==new_size) return 0;
 
-    U8 *buf = _data(v);
-    if (p0 != buf) MEMCPY((U8 *)buf, (U8 *)p0, new_size);
+    U8P buf = _data(v);
+    if (p0 != buf) MEMCPY(buf, p0, new_size);
     buf[new_size] = '\0';
 
-    v->str->data = (U8 *)mrbc_realloc((U8 *)buf, new_size+1);	// shrink suitable size.
+    v->str->data = (U8P)mrbc_realloc(buf, new_size+1);	// shrink suitable size.
     v->str->size = new_size;
 
     return 1;
@@ -200,8 +200,8 @@ _strip(mrbc_value *v, U32 mode)
 __GURU__ int
 _chomp(mrbc_value *v)
 {
-    U8 *p0 = _data(v);
-    U8 *p1 = p0 + _size(v) - 1;
+    U8P p0 = _data(v);
+    U8P p1 = p0 + _size(v) - 1;
 
     if (*p1=='\n') p1--;
     if (*p1=='\r') p1--;
@@ -209,7 +209,7 @@ _chomp(mrbc_value *v)
     U32 new_size = p1 - p0 + 1;
     if (_size(v)==new_size) return 0;
 
-    U8 *buf = _data(v);
+    U8P buf = _data(v);
     buf[new_size] = '\0';
     v->str->size = new_size;
 
@@ -224,7 +224,7 @@ _chomp(mrbc_value *v)
   @return 	string object
 */
 __GURU__ mrbc_value
-mrbc_string_new(const U8 *src)
+mrbc_string_new(const U8P src)			// cannot use U8P, need lots of casting
 {
     return _new(src, STRLEN(src));
 }
@@ -254,14 +254,14 @@ mrbc_string_append(mrbc_value *v0, const mrbc_value *v1)
     U32 len0 = v0->str->size;
     U32 len1 = (v1->tt==GURU_TT_STRING) ? v1->str->size : 1;
 
-    U8 *s = (U8 *)mrbc_realloc(v0->str->data, len0+len1+1);		// +'\0'
+    U8P s = (U8P)mrbc_realloc(v0->str->data, len0+len1+1);		// +'\0'
 
     assert(s!=NULL);						// out of memory
 #if GURU_REQUIRE_64BIT_ALIGNMENT
     assert(((U32P)s & 7)==0);
 #endif
     if (v1->tt==GURU_TT_STRING) {			// append str2
-        MEMCPY((U8 *)s + len0, v1->str->data, len1 + 1);
+        MEMCPY(s + len0, v1->str->data, len1 + 1);
     }
     else if (v1->tt==GURU_TT_FIXNUM) {
         s[len0]   = v1->i;
@@ -279,18 +279,18 @@ mrbc_string_append(mrbc_value *v0, const mrbc_value *v1)
   @param	mrbc_error_code
 */
 __GURU__ void
-mrbc_string_append_cstr(mrbc_value *v0, const U8 *v1)
+mrbc_string_append_cstr(mrbc_value *v0, const U8P v1)
 {
     U32 len0 = v0->str->size;
     U32 len1 = STRLEN(v1);
 
-    U8 *s = (U8 *)mrbc_realloc(v0->str->data, len0+len1+1);
+    U8P s = (U8P)mrbc_realloc(v0->str->data, len0+len1+1);
 
     assert(s!=NULL);						// out of memory
 #if GURU_REQUIRE_64BIT_ALIGNMENT
     assert(((U32P)s & 7)==0);
 #endif
-    MEMCPY(s + len0, (U8 *)v1, len1 + 1);
+    MEMCPY(s + len0, v1, len1 + 1);
 
     v0->str->size = len0 + len1;
     v0->str->data = s;
@@ -346,9 +346,9 @@ c_string_mul(mrbc_value v[], U32 argc)
     mrbc_value ret = _new(NULL, _size(v) * v[1].i);
     if (ret.str==NULL) return;		// ENOMEM
 
-    U8 *p = (U8 *)ret.str->data;
-    for (int i = 0; i < v[1].i; i++) {
-        MEMCPY((U8 *)p, (U8 *)_data(v), _size(v));
+    U8P p = (U8P)ret.str->data;
+    for (U32 i = 0; i < v[1].i; i++) {
+        MEMCPY(p, (U8P)_data(v), _size(v));
         p += _size(v);
     }
     *p = '\0';
@@ -449,7 +449,7 @@ c_string_slice(mrbc_value v[], U32 argc)
         // min(v2->i, (len-idx))
         if (rlen < 0) goto RETURN_NIL;
 
-        mrbc_value ret = _new((U8 *)v->str->data + idx, rlen);
+        mrbc_value ret = _new((U8P)v->str->data + idx, rlen);
         if (!ret.str) goto RETURN_NIL;		// ENOMEM
 
         SET_RETURN(ret);
@@ -502,11 +502,11 @@ c_string_insert(mrbc_value v[], U32 argc)
         return;
     }
 
-    U8 *str = (U8 *)mrbc_realloc(_data(v), len1 + len2 - len + 1);
+    U8P str = (U8P)mrbc_realloc(_data(v), len1 + len2 - len + 1);
     if (!str) return;
 
     MEMCPY(str + nth + len2, str + nth + len, len1 - nth - len + 1);
-    MEMCPY(str + nth, (U8 *)_data(val), len2);
+    MEMCPY(str + nth, (U8P)_data(val), len2);
     v->str->size = len1 + len2 - len;
 
     v->str->data = str;
@@ -587,12 +587,13 @@ __GURU__ void
 c_string_inspect(mrbc_value v[], U32 argc)
 {
 	const char    *hex = "0123456789ABCDEF";
-    mrbc_value    ret  = mrbc_string_new("\"");
+    mrbc_value    ret  = mrbc_string_new((U8P)"\"");
 
     U8 buf[BUF_SIZE];
-    U8 *p = buf, *s = (U8 *)_data(v);
+    U8P p = buf;
+    U8P s = (U8P)_data(v);
 
-    for (int i=0; i < _size(v); i++, s++) {
+    for (U32 i=0; i < _size(v); i++, s++) {
         if (*s >= ' ' && *s < 0x80) {
         	*p++ = *s;
         }
@@ -639,9 +640,9 @@ c_string_split(mrbc_value v[], U32 argc)
 __GURU__ void
 c_object_sprintf(mrbc_value v[], U32 argc)
 {
-	U8 buf[20];
-	const U8 *str = guru_vprintf(buf, "<#%s:%08x>", v, argc);
-	for (int i=1; i<=argc; i++) {
+	U8  buf[20];
+	U8P str = guru_vprintf(buf, "<#%s:%08x>", v, argc);
+	for (U32 i=1; i<=argc; i++) {
 		mrbc_release(v+i);
 	}
     SET_RETURN(mrbc_string_new(str));
@@ -743,38 +744,38 @@ c_string_to_sym(mrbc_value v[], U32 argc)
 __GURU__ void
 mrbc_init_class_string()
 {
-    mrbc_class *c = mrbc_class_string = mrbc_define_class("String", mrbc_class_object);
+    mrbc_class *c = mrbc_class_string = guru_add_class("String", mrbc_class_object);
 
-    mrbc_define_method(c, "+",		c_string_add);
-    mrbc_define_method(c, "*",		c_string_mul);
-    mrbc_define_method(c, "size",	c_string_size);
-    mrbc_define_method(c, "length",	c_string_size);
-    mrbc_define_method(c, "to_i",	c_string_to_i);
-    mrbc_define_method(c, "to_s",	c_nop);
-    mrbc_define_method(c, "<<",		c_string_append);
-    mrbc_define_method(c, "[]",		c_string_slice);
-    mrbc_define_method(c, "[]=",	c_string_insert);
-    mrbc_define_method(c, "chomp",	c_string_chomp);
-    mrbc_define_method(c, "chomp!",	c_string_chomp_self);
-    mrbc_define_method(c, "dup",	c_string_dup);
-    mrbc_define_method(c, "index",	c_string_index);
-    mrbc_define_method(c, "inspect",c_string_inspect);
-    mrbc_define_method(c, "ord",	c_string_ord);
-    mrbc_define_method(c, "split",	c_string_split);
-    mrbc_define_method(c, "lstrip",	c_string_lstrip);
-    mrbc_define_method(c, "lstrip!",c_string_lstrip_self);
-    mrbc_define_method(c, "rstrip",	c_string_rstrip);
-    mrbc_define_method(c, "rstrip!",c_string_rstrip_self);
-    mrbc_define_method(c, "strip",	c_string_strip);
-    mrbc_define_method(c, "strip!",	c_string_strip_self);
-    mrbc_define_method(c, "to_sym",	c_string_to_sym);
-    mrbc_define_method(c, "intern",	c_string_to_sym);
+    guru_add_proc(c, "+",		c_string_add);
+    guru_add_proc(c, "*",		c_string_mul);
+    guru_add_proc(c, "size",	c_string_size);
+    guru_add_proc(c, "length",	c_string_size);
+    guru_add_proc(c, "to_i",	c_string_to_i);
+    guru_add_proc(c, "to_s",	c_nop);
+    guru_add_proc(c, "<<",		c_string_append);
+    guru_add_proc(c, "[]",		c_string_slice);
+    guru_add_proc(c, "[]=",		c_string_insert);
+    guru_add_proc(c, "chomp",	c_string_chomp);
+    guru_add_proc(c, "chomp!",	c_string_chomp_self);
+    guru_add_proc(c, "dup",		c_string_dup);
+    guru_add_proc(c, "index",	c_string_index);
+    guru_add_proc(c, "inspect",	c_string_inspect);
+    guru_add_proc(c, "ord",		c_string_ord);
+    guru_add_proc(c, "split",	c_string_split);
+    guru_add_proc(c, "lstrip",	c_string_lstrip);
+    guru_add_proc(c, "lstrip!",	c_string_lstrip_self);
+    guru_add_proc(c, "rstrip",	c_string_rstrip);
+    guru_add_proc(c, "rstrip!",	c_string_rstrip_self);
+    guru_add_proc(c, "strip",	c_string_strip);
+    guru_add_proc(c, "strip!",	c_string_strip_self);
+    guru_add_proc(c, "to_sym",	c_string_to_sym);
+    guru_add_proc(c, "intern",	c_string_to_sym);
 #if GURU_USE_FLOAT
-    mrbc_define_method(c, "to_f",	c_string_to_f);
+    guru_add_proc(c, "to_f",	c_string_to_f);
 #endif
 
-    mrbc_define_method(mrbc_class_object, "sprintf",	c_object_sprintf);
-    mrbc_define_method(mrbc_class_object, "printf",		c_object_printf);
+    guru_add_proc(mrbc_class_object, "sprintf",	c_object_sprintf);
+    guru_add_proc(mrbc_class_object, "printf",	c_object_printf);
 }
 
 #endif // GURU_USE_STRING

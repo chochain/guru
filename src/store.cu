@@ -94,7 +94,7 @@ __GURU__ void
 _delete(mrbc_store *st)
 {
     mrbc_store_data *d = st->data;
-    for (int i=0; i<st->n; i++, d++) {		// free logical
+    for (U32 i=0; i<st->n; i++, d++) {		// free logical
         mrbc_release(&d->value);            // CC: was dec_ref 20181101
     }
     st->n = 0;

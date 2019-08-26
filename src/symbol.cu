@@ -36,7 +36,7 @@ struct SYM_LIST {
     GURU_SYMBOL_TABLE_INDEX_TYPE 	left;
     GURU_SYMBOL_TABLE_INDEX_TYPE 	right;
 #endif
-    const U8 						*cstr;		//!< point to the symbol string.
+    U8P 							cstr;		//!< point to the symbol string.
 };
 
 __GURU__ U32 _sym_idx;							// point to the last(free) sym_list array.
@@ -48,10 +48,10 @@ __GURU__ struct SYM_LIST _sym_list[MAX_SYMBOLS_COUNT];
   @param  str		Target string.
   @return uint16_t	Hash value.
 */
-__GURU__ __INLINE__ uint16_t
-_calc_hash(const U8 *str)
+__GURU__ __INLINE__ U32
+_calc_hash(U8P str)
 {
-    uint16_t h = 0;
+    U32 h = 0;
 
     while (*str != '\0') {
         h = h * 37 + *str;
@@ -64,12 +64,12 @@ _calc_hash(const U8 *str)
 /*! search index table
  */
 __GURU__ int
-_search_index(const U8 *str)
+_search_index(const U8P str)
 {
-    uint16_t   hash = _calc_hash(str);
+    U32 hash = _calc_hash(str);
 
 #ifdef GURU_SYMBOL_SEARCH_LINER
-    for(int i = 0; i < _sym_idx; i++) {
+    for (U32 i=0; i < _sym_idx; i++) {
         if (_sym_list[i].hash==hash && strcmp(str, _sym_list[i].cstr)==0) {
             return i;
         }
@@ -95,10 +95,10 @@ _search_index(const U8 *str)
 //================================================================
 /*! add to index table
  */
-__GURU__ int
-_add_index(const U8 *str)
+__GURU__ S32
+_add_index(const U8P str)
 {
-    uint16_t hash = _calc_hash(str);
+    U32 hash = _calc_hash(str);
 
     // check overflow.
     if (_sym_idx >= MAX_SYMBOLS_COUNT) {
@@ -106,14 +106,14 @@ _add_index(const U8 *str)
     	return -1;
     }
 
-    int sid = _sym_idx++;
+    U32 sid = _sym_idx++;
 
     // append table.
     _sym_list[sid].hash = hash;
     _sym_list[sid].cstr = str;
 
 #ifdef GURU_SYMBOL_SEARCH_BTREE
-    int i = 0;
+    U32 i = 0;
 
     while (1) {
         if (hash < _sym_list[i].hash) {
@@ -145,7 +145,7 @@ _add_index(const U8 *str)
   @return 	symbol object
 */
 __GURU__ mrbc_value
-mrbc_symbol_new(const U8 *str)
+mrbc_symbol_new(const U8P str)
 {
     mrbc_value v   = {.tt = GURU_TT_SYMBOL};
     mrbc_sym   sid = _search_index(str);
@@ -156,12 +156,12 @@ mrbc_symbol_new(const U8 *str)
     }
 
     // create symbol object dynamically.
-    int     size = guru_strlen(str) + 1;
-    uint8_t *buf = (uint8_t *)mrbc_alloc(size);
+    U32 size = guru_strlen(str) + 1;
+    U8P buf  = (U8P)mrbc_alloc(size);
     if (buf==NULL) return v;		// ENOMEM raise?
 
-    MEMCPY(buf, (uint8_t *)str, size);
-    v.i = _add_index((const U8 *)buf);
+    MEMCPY(buf, str, size);
+    v.i = _add_index(buf);
 
     return v;
 }
@@ -173,7 +173,7 @@ mrbc_symbol_new(const U8 *str)
   @return mrbc_sym	Symbol value.
 */
 __GURU__ mrbc_sym
-name2symid(const U8 *str)
+name2symid(const U8P str)
 {
     mrbc_sym sid = _search_index(str);
     if (sid >= 0) return sid;
@@ -188,7 +188,7 @@ name2symid(const U8 *str)
   @return const char*	String.
   @retval NULL		Invalid sym_id was given.
 */
-__GURU__ const U8*
+__GURU__ U8P
 symid2name(mrbc_sym sid)
 {
     return (sid < 0 || sid >= _sym_idx)
@@ -198,8 +198,8 @@ symid2name(mrbc_sym sid)
 
 #if GURU_USE_STRING
 // from c_string.cu
-extern "C" __GURU__ mrbc_value mrbc_string_new(const U8 *src);
-extern "C" __GURU__ void       mrbc_string_append_cstr(mrbc_value *s1, const U8 *s2);
+extern "C" __GURU__ mrbc_value mrbc_string_new(const U8P src);
+extern "C" __GURU__ void       mrbc_string_append_cstr(mrbc_value *s1, const U8P s2);
 
 //================================================================
 /*! (method) inspect
@@ -207,7 +207,7 @@ extern "C" __GURU__ void       mrbc_string_append_cstr(mrbc_value *s1, const U8 
 __GURU__ void
 c_inspect(mrbc_value v[], U32 argc)
 {
-    mrbc_value ret = mrbc_string_new(":");
+    mrbc_value ret = mrbc_string_new((U8P)":");
 
     mrbc_string_append_cstr(&ret, symid2name(v[0].i));
 
@@ -234,7 +234,7 @@ c_all_symbols(mrbc_value v[], U32 argc)
 {
     mrbc_value ret = mrbc_array_new(_sym_idx);
 
-    for(int i = 0; i < _sym_idx; i++) {
+    for (U32 i = 0; i < _sym_idx; i++) {
         mrbc_value sym1 = {.tt = GURU_TT_SYMBOL};
         sym1.i = i;
         mrbc_array_push(&ret, &sym1);
@@ -248,17 +248,17 @@ c_all_symbols(mrbc_value v[], U32 argc)
  */
 __GURU__ void mrbc_init_class_symbol()  // << from symbol.cu
 {
-    mrbc_class *c = mrbc_class_symbol = mrbc_define_class("Symbol", mrbc_class_object);
+    mrbc_class *c = mrbc_class_symbol = guru_add_class("Symbol", mrbc_class_object);
 
 #if GURU_USE_ARRAY
-    mrbc_define_method(c, "all_symbols", 	c_all_symbols);
+    guru_add_proc(c, "all_symbols", c_all_symbols);
 #endif
 #if GURU_USE_STRING
-    mrbc_define_method(c, "inspect", 		c_inspect);
-    mrbc_define_method(c, "to_s", 			c_to_s);
-    mrbc_define_method(c, "id2name", 		c_to_s);
+    guru_add_proc(c, "inspect", 	c_inspect);
+    guru_add_proc(c, "to_s", 		c_to_s);
+    guru_add_proc(c, "id2name", 	c_to_s);
 #endif
-    mrbc_define_method(c, "to_sym", 		c_nop);
+    guru_add_proc(c, "to_sym", 		c_nop);
 }
 
 

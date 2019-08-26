@@ -112,7 +112,7 @@ _build_image(uint8_t **pirep, uint8_t *src)
     irep->iseq = (uint32_t)(iseq - base);
 
     uint8_t *p = src + irep->pool;				// build object pool
-    for (int i = 0; i < irep->plen; i++) {
+    for (U32 i = 0; i < irep->plen; i++) {
         int  tt = *p++;
         int  len = bin_to_uint16(p);	p += sizeof(uint16_t);
         int  asz = len + ((8 - len) & 7);
@@ -147,7 +147,7 @@ _build_image(uint8_t **pirep, uint8_t *src)
     irep->pool = (uint32_t)(pool - base);
 
     p = src + irep->sym;						// build symbol table
-    for (int i=0; i < irep->slen; i++) {
+    for (U32 i=0; i < irep->slen; i++) {
         int len = bin_to_uint16(p)+1;		p += sizeof(uint16_t);	// symbol_len+'\0'
         int asz = len + ((8 - len) & 7);		// 8-byte alignment
 
@@ -213,14 +213,14 @@ _get_irep_size(guru_irep *irep, const uint8_t **pos)
     irep->pool = (uint32_t)(p - *pos);										// pool offset
     irep->list = sizeof(guru_irep) + ((8 - sizeof(guru_irep)) & 7);			// irep list offset
 
-    for (int i = 0; i < irep->plen; i++) {	// scan through pool (so we know the size to allocate)
+    for (U32 i = 0; i < irep->plen; i++) {	// scan through pool (so we know the size to allocate)
         int  tt  = *p++;
         int  len = bin_to_uint16(p);    p += sizeof(uint16_t) + len;
     }
 
     irep->slen = bin_to_uint32(p);		p += sizeof(uint32_t);
     irep->sym  = (uint32_t)(p - *pos);										// symbol offset
-    for (int i=0; i < irep->slen; i++) {
+    for (U32 i=0; i < irep->slen; i++) {
         int len = bin_to_uint16(p)+1;	p += sizeof(uint16_t) + len;	   	// symbol_len+'\0'
     }
     *pos = p;								// position pointer ends here
@@ -245,7 +245,7 @@ _load_irep_0(uint8_t **pirep, const uint8_t **pos)
 
     // recursively create the child irep tree
     uint32_t *p = (uint32_t *)(base + irep->list);
-    for (int i = 0; i < irep->rlen; i++) {
+    for (U32 i = 0; i < irep->rlen; i++) {
     	guru_irep *irep_n = _load_irep_0(pirep, pos);	// a child irep
         p[i] = (uint32_t)((uint8_t *)irep_n - base);	// calculate offset
     }
@@ -356,7 +356,7 @@ _show_irep(guru_irep *irep, uint32_t ioff, char level, char *idx)
 	// dump all children ireps
 	uint8_t  *base = (uint8_t *)irep;
 	uint32_t *off  = (uint32_t *)(base + irep->list);		// pointer to irep offset array
-	for (int i=0; i<irep->rlen; i++) {
+	for (U32 i=0; i<irep->rlen; i++) {
 		*idx += 1;
 		_show_irep((guru_irep *)(base + off[i]), off[i], level+1, idx);
 	}
@@ -454,7 +454,7 @@ _load_irep_1(mrbc_irep *irep, const uint8_t **pos)
         }
     }
 
-    for (int i = 0; i < irep->plen; i++) {		// build object pool
+    for (U32 i = 0; i < irep->plen; i++) {		// build object pool
         int  tt = *p++;
         int  obj_size = _bin_to_uint16(p);	p += sizeof(uint16_t);
         char buf[64+2];
@@ -525,7 +525,7 @@ _load_irep_0(const uint8_t **pos)
     	return NULL;
     }
     // recursively create the child irep tree
-    for (int i=0; i<irep->rlen; i++) {
+    for (U32 i=0; i<irep->rlen; i++) {
         irep->list[i] = _load_irep_0(pos);
     }
     return irep;
@@ -621,7 +621,7 @@ guru_show_irep(mrbc_irep *irep)
 			irep->nreg, irep->nlv, irep->plen, irep->slen, irep->rlen, irep->ilen);
 
 	// dump all children ireps
-	for (int i=0; i<irep->rlen; i++) {
+	for (U32 i=0; i<irep->rlen; i++) {
 		guru_show_irep(irep->list[i], level+1);
 	}
 }

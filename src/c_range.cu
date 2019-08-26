@@ -92,7 +92,7 @@ __GURU__ void
 c_range_equal3(mrbc_value v[], U32 argc)
 {
     if (v[0].tt == GURU_TT_CLASS) {
-        mrbc_value ret = mrbc_send(v+argc, v+1, "kind_of?", 1, v);
+        mrbc_value ret = guru_kind_of(v, argc);
         SET_RETURN(ret);
         return;
     }
@@ -149,10 +149,10 @@ c_range_inspect(mrbc_value v[], U32 argc)
         return;
     }
     mrbc_value v1, s1;
-    for (int i = 0; i < 2; i++) {
-        if (i != 0) mrbc_string_append_cstr(&ret, "..");
+    for (U32 i = 0; i < 2; i++) {
+        if (i != 0) mrbc_string_append_cstr(&ret, (U8P)"..");
         v1 = (i == 0) ? v->range->first : v->range->last;
-        s1 = mrbc_send(v+argc, &v1, "inspect", 0);
+        s1 = guru_inspect(v+argc, &v1);
 
         mrbc_string_append(&ret, &s1);
         mrbc_release(&s1);					// free locally allocated memory
@@ -167,15 +167,15 @@ c_range_inspect(mrbc_value v[], U32 argc)
 __GURU__ void
 mrbc_init_class_range()
 {
-    mrbc_class *c = mrbc_class_range = mrbc_define_class("Range", mrbc_class_object);
+    mrbc_class *c = mrbc_class_range = guru_add_class("Range", mrbc_class_object);
 
-    mrbc_define_method(c, "===",          c_range_equal3);
-    mrbc_define_method(c, "first",        c_range_first);
-    mrbc_define_method(c, "last",         c_range_last);
-    mrbc_define_method(c, "exclude_end?", c_range_exclude_end);
+    guru_add_proc(c, "===",          c_range_equal3);
+    guru_add_proc(c, "first",        c_range_first);
+    guru_add_proc(c, "last",         c_range_last);
+    guru_add_proc(c, "exclude_end?", c_range_exclude_end);
 
 #if GURU_USE_STRING
-    mrbc_define_method(c, "inspect",      c_range_inspect);
-    mrbc_define_method(c, "to_s",         c_range_inspect);
+    guru_add_proc(c, "inspect",      c_range_inspect);
+    guru_add_proc(c, "to_s",         c_range_inspect);
 #endif
 }

@@ -17,14 +17,14 @@ extern "C" __GPU__ void guru_global_init(void);
 extern "C" __GPU__ void guru_class_init(void);
 extern "C" __GPU__ void guru_console_init(U8 *buf, U32 sz);
 
-U8 		 *_guru_mem;			// guru global memory
-U8 		 *_guru_out;			// guru output stream
+U8P _guru_mem;			// guru global memory
+U8P _guru_out;			// guru output stream
 guru_ses *_ses_list;			// session linked-list
 
-__HOST__ U8*
-_get_request_bytecode(const char *rite_fname)
+__HOST__ U8P
+_get_request_bytecode(const U8P rite_fname)
 {
-  FILE *fp = fopen(rite_fname, "rb");
+  FILE *fp = fopen((const char *)rite_fname, "rb");
 
   if (!fp) {
     fprintf(stderr, "File not found\n");
@@ -36,7 +36,7 @@ _get_request_bytecode(const char *rite_fname)
   size_t sz = ftell(fp);
   fseek(fp, 0, SEEK_SET);
 
-  U8 *req = (U8 *)guru_malloc(sz, 1);	// allocate bytecode storage
+  U8P req = (U8P)guru_malloc(sz, 1);	// allocate bytecode storage
 
   if (req) {
 	  fread(req, sizeof(char), sz, fp);
@@ -49,12 +49,12 @@ _get_request_bytecode(const char *rite_fname)
 __HOST__ int
 guru_system_setup(int trace)
 {
-	U8 *mem = _guru_mem = (U8*)guru_malloc(BLOCK_MEMORY_SIZE, 1);
+	U8P mem = _guru_mem = (U8P)guru_malloc(BLOCK_MEMORY_SIZE, 1);
 	if (!_guru_mem) {
 		fprintf(stderr, "ERROR: failed to allocate device main memory block!\n");
 		return -1;
 	}
-	U8 *out = _guru_out = (U8*)guru_malloc(MAX_BUFFER_SIZE, 1);	// allocate output buffer
+	U8P out = _guru_out = (U8P)guru_malloc(MAX_BUFFER_SIZE, 1);	// allocate output buffer
 	if (!_guru_out) {
 		fprintf(stderr, "ERROR: output buffer allocation error!\n");
 		return -2;
@@ -95,12 +95,12 @@ guru_system_run(int trace)
 }
 
 __HOST__ int
-guru_session_add(guru_ses *ses, const char *rite_fname, int trace)
+guru_session_add(guru_ses *ses, const U8P rite_fname, U32 trace)
 {
 	ses->trace = trace;
 	ses->out   = _guru_out;
 
-	U8 *in = ses->in = _get_request_bytecode(rite_fname);
+	U8P in = ses->in = _get_request_bytecode(rite_fname);
 	if (!in) {
 		fprintf(stderr, "ERROR: bytecode request allocation error!\n");
 		return -3;

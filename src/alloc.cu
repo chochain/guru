@@ -392,7 +392,7 @@ mrbc_alloc(U32 size)
 
 #ifdef GURU_DEBUG
     uint8_t *p = BLOCKDATA(target);
-    for (int i=0; i < BLOCKSIZE(target); i++) *p++ = 0xaa;
+    for (U32 i=0; i < BLOCKSIZE(target); i++) *p++ = 0xaa;
 #endif
     return BLOCKDATA(target);
 }
@@ -428,7 +428,7 @@ mrbc_realloc(void *ptr, unsigned int size)
 
     uint8_t *d = (uint8_t *)new_ptr;
     uint8_t *s = (uint8_t *)ptr;
-    for (int i=0; i < size; i++) *d++=*s++;						// deep copy
+    for (U32 i=0; i < size; i++) *d++=*s++;						// deep copy
 
     mrbc_free(ptr);												// reclaim block
 
@@ -557,7 +557,7 @@ guru_malloc_stat(int stat[])
 	_alloc_stat<<<1,1>>>(v);
 	cudaDeviceSynchronize();
 
-	for (int i=0; i<8; i++) {
+	for (U32 i=0; i<8; i++) {
 		stat[i] = v[i];
 	}
 	cudaFree(v);

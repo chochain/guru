@@ -66,13 +66,29 @@ mrbc_get_class_by_object(mrbc_object *obj)
 }
 
 //================================================================
+/* methods to add core class/proc for GURU
+ * it uses (const U8 *) for static string
+ */
+__GURU__ mrbc_class*
+guru_add_class(const char *name, mrbc_class *super)
+{
+	return mrbc_define_class((U8P)name, super);
+}
+
+__GURU__ void
+guru_add_proc(mrbc_class *cls, const char *name, mrbc_func_t cfunc)
+{
+	mrbc_define_method(cls, (U8P)name, cfunc);
+}
+
+//================================================================
 /*! get class by name
 
   @param  name		class name.
   @return		pointer to class object.
 */
 __GURU__ mrbc_class*
-mrbc_get_class_by_name(const U8 *name)
+mrbc_get_class_by_name(const U8P name)
 {
     mrbc_value v = const_object_get(name2symid(name));
 
@@ -89,7 +105,7 @@ mrbc_get_class_by_name(const U8 *name)
   @return
 */
 __GURU__ mrbc_proc*
-mrbc_get_class_method(mrbc_value rcv, mrbc_sym sid)
+mrbc_get_proc_by_symid(mrbc_value rcv, mrbc_sym sid)
 {
     mrbc_class *cls = mrbc_get_class_by_object(&rcv);
 
@@ -115,7 +131,7 @@ mrbc_get_class_method(mrbc_value rcv, mrbc_sym sid)
   @param  super		super class.
 */
 __GURU__ mrbc_class*
-mrbc_define_class(const U8 *name, mrbc_class *super)
+mrbc_define_class(const U8P name, mrbc_class *super)
 {
     if (super == NULL) super = mrbc_class_object;  // set default to Object.
 
@@ -142,7 +158,7 @@ mrbc_define_class(const U8 *name, mrbc_class *super)
 }
 
 __GURU__ mrbc_proc *
-mrbc_proc_alloc(const U8 *name)
+mrbc_alloc_proc(const U8P name)
 {
     mrbc_proc *proc = (mrbc_proc *)mrbc_alloc(sizeof(mrbc_proc));
 
@@ -168,11 +184,11 @@ mrbc_proc_alloc(const U8 *name)
   @param  cfunc		pointer to function.
 */
 __GURU__ void
-mrbc_define_method(mrbc_class *cls, const U8 *name, mrbc_func_t cfunc)
+mrbc_define_method(mrbc_class *cls, const U8P name, mrbc_func_t cfunc)
 {
     if (cls==NULL) cls = mrbc_class_object;		// set default to Object.
 
-    mrbc_proc *proc = mrbc_proc_alloc(name);
+    mrbc_proc *proc = mrbc_alloc_proc(name);
 
     MUTEX_LOCK(_mutex_cls);
 

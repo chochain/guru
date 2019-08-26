@@ -82,10 +82,10 @@ typedef struct RIrep {
     U16 	 rlen;			//!< # of child IREP blocks (into list below)
     U16 	 ilen;			//!< # of bytecodes (by iseq below)
     U16 	 plen;			//!< # of objects in pool (into pool below)
-    U16	 	slen;			//!< # of symbols (into sym below)
+    U16	 	 slen;			//!< # of symbols (into sym below)
 
-    U32     *iseq;			//!< ISEQ (code) BLOCK
-    U8      *sym;			//!< SYMBOL list
+    U32P     iseq;			//!< ISEQ (code) BLOCK
+    U8P      sym;			//!< SYMBOL list
 
     mrbc_object  **pool; 	   	//!< array of POOL objects pointer.
     struct RIrep **list;		//!< array of child IREP's pointer.
@@ -105,8 +105,8 @@ typedef struct VM {
     mrbc_state      *state;		// VM state (callinfo) linked list
     mrbc_value      regfile[MAX_REGS_SIZE];
 
-    volatile int8_t run;
-    volatile int8_t	err;
+    volatile U8 	run;
+    volatile U8		err;
 } mrbc_vm;
 
 #endif // GURU_HOST_IMAGE
@@ -122,7 +122,7 @@ __GURU__ __INLINE__ U32
 _bin_to_u32(const void *s)
 {
 #if GURU_REQUIRE_32BIT_ALIGNMENT
-    U8 *p = (U8 *)s;
+    U8P p = (U8P)s;
     U32 x = *p++;
     x <<= 8;
     x |= *p++;
@@ -132,7 +132,7 @@ _bin_to_u32(const void *s)
     x |= *p;
     return x;
 #else
-    U32 x = *((U32 *)s);
+    U32 x = *((U32P)s);
     return (x << 24) | ((x & 0xff00) << 8) | ((x >> 8) & 0xff00) | (x >> 24);
 #endif
 }
@@ -148,12 +148,12 @@ __GURU__ __INLINE__ U16
 _bin_to_u16(const void *s)
 {
 #if GURU_REQUIRE_32BIT_ALIGNMENT
-    U8 *p = (U8 *)s;
+    U8P p = (U8P)s;
     U16 x = *p++ << 8;
     x |= *p;
     return x;
 #else
-    U16 x = *((U16 *)s);
+    U16 x = *((U16P)s);
     return (x << 8) | (x >> 8);
 #endif
 }
@@ -166,7 +166,7 @@ _bin_to_u16(const void *s)
   @return sizeof(U16).
 */
 __GURU__ __INLINE__ void
-_u16_to_bin(U16 s, U8 *bin)
+_u16_to_bin(U16 s, U8P bin)
 {
     *bin++ = (s >> 8) & 0xff;
     *bin   = s & 0xff;
@@ -180,7 +180,7 @@ _u16_to_bin(U16 s, U8 *bin)
   @return sizeof(U32).
 */
 __GURU__ __INLINE__ void
-_u32_to_bin(U32 l, U8 *bin)
+_u32_to_bin(U32 l, U8P bin)
 {
     *bin++ = (l >> 24) & 0xff;
     *bin++ = (l >> 16) & 0xff;

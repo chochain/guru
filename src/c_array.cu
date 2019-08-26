@@ -101,7 +101,7 @@ _set(mrbc_value *ary, int idx, mrbc_value *val)
         mrbc_release(&h->data[ndx]);			// release existing data
     }
     else {
-        for(int i=h->n; i<ndx; i++) {			// lazy fill here, instead of when resized
+        for (U32 i=h->n; i<ndx; i++) {			// lazy fill here, instead of when resized
             h->data[i] = mrbc_nil_value();		// prep newly allocated cells
         }
         h->n = ndx+1;
@@ -152,7 +152,7 @@ _insert(mrbc_value *ary, int idx, mrbc_value *set_val)
     h->n++;
 
     if (size >= h->n) {			// clear empty cells if needed
-        for (int i = h->n-1; i < size; i++) {
+        for (U32 i = h->n-1; i < size; i++) {
             h->data[i] = mrbc_nil_value();
         }
         h->n = size;
@@ -254,7 +254,7 @@ _minmax(mrbc_value *ary, mrbc_value **pp_min_value, mrbc_value **pp_max_value)
     mrbc_value *p_min_value = h->data;
     mrbc_value *p_max_value = h->data;
     mrbc_value *p           = h->data;
-    for (int i = 1; i < h->n; i++, p++) {
+    for (U32 i = 1; i < h->n; i++, p++) {
         if (mrbc_compare(p, p_min_value) < 0) p_min_value = p;
         if (mrbc_compare(p, p_max_value) > 0) p_max_value = p;
     }
@@ -302,7 +302,7 @@ mrbc_array_delete(mrbc_value *ary)
 {
     mrbc_array *h = ary->array;
     mrbc_value *p = h->data;
-    for (int i=0; i < h->n; i++, p++) {
+    for (U32 i=0; i < h->n; i++, p++) {
     	mrbc_release(p);
     }
     mrbc_free(h->data);
@@ -363,7 +363,7 @@ mrbc_array_clear(mrbc_value *ary)
 {
     mrbc_array *h = ary->array;
     mrbc_value *p = h->data;
-    for (int i=0; i < h->n; i++, p++) {
+    for (U32 i=0; i < h->n; i++, p++) {
     	mrbc_release(p);                      // CC: was dec_refc 20181101
     }
     h->n = 0;
@@ -385,7 +385,7 @@ mrbc_array_compare(const mrbc_value *v0, const mrbc_value *v1)
 	mrbc_array *h1 = v1->array;
 	mrbc_value *d0 = h0->data;
 	mrbc_value *d1 = h1->data;
-    for (int i=0; ; i++) {
+    for (U32 i=0; ; i++) {
         if (i >= h0->n || i >= h1->n) break;
 
         int res = mrbc_compare(d0++, d1++);
@@ -418,7 +418,7 @@ c_array_new(mrbc_value v[], U32 argc)
         ret = mrbc_array_new(v[1].i);
         if (ret.array==NULL) return;		// ENOMEM
 
-        for (int i=0; i < v[1].i; i++) {
+        for (U32 i=0; i < v[1].i; i++) {
             mrbc_retain(&v[2]);
             _set(&ret, i, &v[2]);
         }
@@ -454,7 +454,7 @@ c_array_add(mrbc_value v[], U32 argc)
 
     mrbc_value *p = ret.array->data;
     int         n = ret.array->n = h0->n + h1->n;
-    for (int i=0; i<n; i++, p++) {
+    for (U32 i=0; i<n; i++, p++) {
     	mrbc_retain(p);
     }
     mrbc_release(v+1);					// dec_refc v[1], free if not needed
@@ -488,7 +488,7 @@ c_array_get(mrbc_value v[], U32 argc)
         ret = mrbc_array_new(size);
         if (ret.array==NULL) return;		// ENOMEM
 
-        for (int i = 0; i < size; i++) {
+        for (U32 i = 0; i < size; i++) {
             mrbc_value val = _get(v, v[1].i + i);
             mrbc_retain(&val);
             mrbc_array_push(&ret, &val);
@@ -569,7 +569,7 @@ c_array_index(mrbc_value v[], U32 argc)
     
     mrbc_array *h = v->array;
     mrbc_value *p = h->data;
-    for (int i = 0; i < h->n; i++, p++) {
+    for (U32 i = 0; i < h->n; i++, p++) {
         if (mrbc_compare(p, ret)==0) {
             SET_INT_RETURN(i);
             return;
@@ -668,7 +668,7 @@ c_array_dup(mrbc_value v[], U32 argc)
     MEMCPY((uint8_t *)h1->data, (const uint8_t *)h0->data, n*sizeof(mrbc_value));
 
     mrbc_value *p = h1->data;
-    for (int i=0; i<n; i++, p++) {
+    for (U32 i=0; i<n; i++, p++) {
         mrbc_retain(p);
     }
     SET_RETURN(ret);
@@ -748,21 +748,21 @@ _rfc(mrbc_value *str, mrbc_value *v)
 __GURU__ void
 c_array_inspect(mrbc_value v[], U32 argc)
 {
-	mrbc_value ret  = mrbc_string_new("[");
+	mrbc_value ret  = mrbc_string_new((U8P)"[");
     if (!ret.str) {
     	SET_NIL_RETURN();
     	return;
     }
     mrbc_value vi, s1;
     int n = v->array->n;
-    for (int i = 0; i < n; i++) {
-        if (i != 0) mrbc_string_append_cstr(&ret, ", ");
+    for (U32 i = 0; i < n; i++) {
+        if (i != 0) mrbc_string_append_cstr(&ret, (U8P)", ");
         vi = _get(v, i);
-        s1 = mrbc_send(v+argc, &vi, "inspect", 0);
+        s1 = guru_inspect(v+argc, &vi);
         mrbc_string_append(&ret, &s1);
         mrbc_release(&s1);
     }
-    mrbc_string_append_cstr(&ret, "]");
+    mrbc_string_append_cstr(&ret, (U8P)"]");
 
     SET_RETURN(ret);
 }
@@ -784,7 +784,7 @@ c_array_join_1(mrbc_value v[], U32 argc,
             c_array_join_1(v, argc, &h->data[i], ret, separator);
         }
         else {
-            s1 = mrbc_send(v+argc, &h->data[i], "inspect", 0);
+            s1 = guru_inspect(v+argc, &h->data[i]);
             mrbc_string_append(ret, &s1);
             mrbc_release(&s1);					// free locally allocated memory
         }
@@ -802,8 +802,8 @@ c_array_join(mrbc_value v[], U32 argc)
         return;
     }
     mrbc_value separator = (argc==0)
-    		? mrbc_string_new("")
-    		: mrbc_send(v+argc, v+1, "inspect", 0);
+    		? mrbc_string_new((U8P)"")
+    		: guru_inspect(v+argc, v+1);
 
     c_array_join_1(v, argc, v, &ret, &separator);
     mrbc_release(&separator);		            // release locally allocated memory
@@ -818,34 +818,34 @@ c_array_join(mrbc_value v[], U32 argc)
 __GURU__ void
 mrbc_init_class_array()
 {
-    mrbc_class *c = mrbc_class_array = mrbc_define_class("Array", mrbc_class_object);
+    mrbc_class *c = mrbc_class_array = guru_add_class("Array", mrbc_class_object);
 
-    mrbc_define_method(c, "new",       c_array_new);
-    mrbc_define_method(c, "+",         c_array_add);
-    mrbc_define_method(c, "[]",        c_array_get);
-    mrbc_define_method(c, "at",        c_array_get);
-    mrbc_define_method(c, "[]=",       c_array_set);
-    mrbc_define_method(c, "<<",        c_array_push);
-    mrbc_define_method(c, "clear",     c_array_clear);
-    mrbc_define_method(c, "delete_at", c_array_delete_at);
-    mrbc_define_method(c, "empty?",    c_array_empty);
-    mrbc_define_method(c, "size",      c_array_size);
-    mrbc_define_method(c, "length",    c_array_size);
-    mrbc_define_method(c, "count",     c_array_size);
-    mrbc_define_method(c, "index",     c_array_index);
-    mrbc_define_method(c, "first",     c_array_first);
-    mrbc_define_method(c, "last",      c_array_last);
-    mrbc_define_method(c, "push",      c_array_push);
-    mrbc_define_method(c, "pop",       c_array_pop);
-    mrbc_define_method(c, "shift",     c_array_shift);
-    mrbc_define_method(c, "unshift",   c_array_unshift);
-    mrbc_define_method(c, "dup",       c_array_dup);
-    mrbc_define_method(c, "min",       c_array_min);
-    mrbc_define_method(c, "max",       c_array_max);
-    mrbc_define_method(c, "minmax",    c_array_minmax);
+    guru_add_proc(c, "new",       c_array_new);
+    guru_add_proc(c, "+",         c_array_add);
+    guru_add_proc(c, "[]",        c_array_get);
+    guru_add_proc(c, "at",        c_array_get);
+    guru_add_proc(c, "[]=",       c_array_set);
+    guru_add_proc(c, "<<",        c_array_push);
+    guru_add_proc(c, "clear",     c_array_clear);
+    guru_add_proc(c, "delete_at", c_array_delete_at);
+    guru_add_proc(c, "empty?",    c_array_empty);
+    guru_add_proc(c, "size",      c_array_size);
+    guru_add_proc(c, "length",    c_array_size);
+    guru_add_proc(c, "count",     c_array_size);
+    guru_add_proc(c, "index",     c_array_index);
+    guru_add_proc(c, "first",     c_array_first);
+    guru_add_proc(c, "last",      c_array_last);
+    guru_add_proc(c, "push",      c_array_push);
+    guru_add_proc(c, "pop",       c_array_pop);
+    guru_add_proc(c, "shift",     c_array_shift);
+    guru_add_proc(c, "unshift",   c_array_unshift);
+    guru_add_proc(c, "dup",       c_array_dup);
+    guru_add_proc(c, "min",       c_array_min);
+    guru_add_proc(c, "max",       c_array_max);
+    guru_add_proc(c, "minmax",    c_array_minmax);
 #if GURU_USE_STRING
-    mrbc_define_method(c, "inspect",   c_array_inspect);
-    mrbc_define_method(c, "to_s",      c_array_inspect);
-    mrbc_define_method(c, "join",      c_array_join);
+    guru_add_proc(c, "inspect",   c_array_inspect);
+    guru_add_proc(c, "to_s",      c_array_inspect);
+    guru_add_proc(c, "join",      c_array_join);
 #endif
 }

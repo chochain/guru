@@ -177,13 +177,13 @@ guru_atof(const U8 *s)
 __GURU__ void
 guru_memcpy(U8 *d, const U8 *s, U32 sz)
 {
-    for (int i=0; s && d && i<sz; i++, *d++ = *s++);
+    for (U32 i=0; s && d && i<sz; i++, *d++ = *s++);
 }
 
 __GURU__ void
 guru_memset(U8 *d, const U8 v,  U32 sz)
 {
-    for (int i=0; d && i<sz; i++, *d++ = v);
+    for (U32 i=0; d && i<sz; i++, *d++ = v);
 }
 
 __GURU__ int
@@ -198,7 +198,7 @@ guru_memcmp(const U8 *d, const U8 *s, U32 sz)
 __GURU__ U32
 guru_strlen(const U8 *str)
 {
-	int i = 0;
+	U32 i;
 	for (i=0; str && str[i]!='\0'; i++);
     return i;
 }

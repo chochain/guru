@@ -29,10 +29,10 @@
   @param  fstr	format string.
 */
 __GURU__ void
-_init(mrbc_printf *pf, U8 *buf, U32 sz, const U8 *fstr)
+_init(mrbc_printf *pf, U8P buf, U32 sz, const U8P fstr)
 {
     pf->buf = pf->p = buf;    
-    pf->end = buf + sz - 1;
+    pf->end = (U8 *)buf + sz - 1;
     pf->fstr= fstr;
     pf->fmt = (mrbc_print_fmt){0};
 }
@@ -206,12 +206,12 @@ __char(mrbc_printf *pf, U8 ch)
   @note		not terminate ('\0') buffer tail.
 */
 __GURU__ S32
-__bstr(mrbc_printf *pf, const U8 *str, U32 len, U8 pad)
+__bstr(mrbc_printf *pf, U8P str, U32 len, U8 pad)
 {
     S32 ret = 0;
 
     if (str == NULL) {
-        str = "(null)";
+        str = (U8P)"(null)";
         len = 6;
     }
     if (pf->fmt.prec && len > pf->fmt.prec) len = pf->fmt.prec;
@@ -285,7 +285,7 @@ __float(mrbc_printf *pf, double value)
   @note		not terminate ('\0') buffer tail.
 */
 __GURU__ S32
-__str(mrbc_printf *pf, const U8 *str, U8 pad)
+__str(mrbc_printf *pf, const U8P str, U8 pad)
 {
     return __bstr(pf, str, STRLEN(str), pad);
 }
@@ -324,8 +324,8 @@ __int(mrbc_printf *pf, mrbc_int value, U32 base)
     U32 bias_a = (pf->fmt.type == 'X') ? 'A' - 10 : 'a' - 10;
 
     // create string to local buffer
-    U8 buf[64+2];				// int64 + terminate + 1
-    U8 *p = buf + sizeof(buf) - 1;
+    U8  buf[64+2];				// int64 + terminate + 1
+    U8P p = buf + sizeof(buf) - 1;
     *p = '\0';
     do {
         U32 i = v % base;
@@ -346,7 +346,7 @@ __int(mrbc_printf *pf, mrbc_int value, U32 base)
         pad = ' ';
         if (sign) *--p = sign;
     }
-    return __str(pf, (const U8 *)p, pad);
+    return __str(pf, (U8P)p, pad);
 }
 
 //================================================================
@@ -354,8 +354,8 @@ __int(mrbc_printf *pf, mrbc_int value, U32 base)
 
   @param  fstr		format string.
 */
-__GURU__ const U8*
-guru_sprintf(U8 *buf, const U8 *fstr, ...)
+__GURU__ U8P
+guru_sprintf(U8P buf, const U8 *fstr, ...)
 {
     va_list ap;
     va_start(ap, fstr);
@@ -363,7 +363,7 @@ guru_sprintf(U8 *buf, const U8 *fstr, ...)
     U32 ret = 0;
     mrbc_printf pf;
 
-    _init(&pf, buf, BUF_STEP_SIZE, fstr);
+    _init(&pf, buf, BUF_STEP_SIZE, (U8P)fstr);
     while (ret==0 && _next(&pf)) {
     	switch(pf.fmt.type) {
         case 'c': ret = __char(&pf, va_arg(ap, int));        	 break;
@@ -395,14 +395,14 @@ guru_sprintf(U8 *buf, const U8 *fstr, ...)
     return pf.buf;
 }
 
-__GURU__ const U8*
-guru_vprintf(U8 *buf, const U8 *fstr, mrbc_value v[], U32 argc)		// << from c_string.cu
+__GURU__ U8P
+guru_vprintf(U8P buf, const U8 *fstr, mrbc_value v[], U32 argc)		// << from c_string.cu
 {
     U32 i   = 0;
     U32 ret = 0;
     mrbc_printf pf;
 
-    _init(&pf, buf, BUF_STEP_SIZE, fstr);
+    _init(&pf, buf, BUF_STEP_SIZE, (U8P)fstr);
 
     while (ret==0 && _next(&pf)) {
         if (i > argc) {

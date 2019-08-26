@@ -18,10 +18,10 @@
 extern "C" {
 #endif
 
-__GURU__ mrbc_value mrbc_symbol_new(const U8 *str);
-__GURU__ U16        calc_hash(const U8 *str);
-__GURU__ mrbc_sym   name2symid(const U8 *str);
-__GURU__ const U8   *symid2name(mrbc_sym sid);
+__GURU__ mrbc_value mrbc_symbol_new(const U8P str);
+__GURU__ U16        calc_hash(const U8P str);
+__GURU__ mrbc_sym   name2symid(const U8P str);
+__GURU__ U8P        symid2name(mrbc_sym sid);
 
 __GURU__ void mrbc_init_class_symbol();
 

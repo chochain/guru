@@ -52,19 +52,19 @@ __GURU__ U32 _mutex_op;
   @param  n	n th
   @return	symbol name string
 */
-__GURU__ const U8*
+__GURU__ U8P
 _vm_symbol(guru_vm *vm, U32 n)
 {
 	guru_irep *irep = VM_IREP(vm);
 	U32  *p    = (U32 *)((U8 *)irep + irep->sym  + n * sizeof(U32));
 
-	return (const U8 *)((U8 *)irep + *p);
+	return ((U8 *)irep + *p);
 }
 
 __GURU__ mrbc_sym
 _vm_symid(guru_vm *vm, U32 n)
 {
-	const U8 *name = _vm_symbol(vm, n);
+	const U8P name = _vm_symbol(vm, n);
 	return name2symid(name);
 }
 
@@ -141,7 +141,7 @@ _pop_state(guru_vm *vm, mrbc_value *regs)
     vm->state = st->prev;
     
     mrbc_value *p  = regs+1;			// clear stacked arguments
-    for (int i = 0; i < st->argc; i++) {
+    for (U32 i = 0; i < st->argc; i++) {
         mrbc_release(p++);
     }
     mrbc_free(st);
@@ -477,7 +477,7 @@ op_getiv(guru_vm *vm, U32 code, mrbc_value *regs)
     int ra = GETARG_A(code);
     int rb = GETARG_Bx(code);
 
-    const U8 *name = _vm_symbol(vm, rb);
+    const U8P name = _vm_symbol(vm, rb);
     mrbc_sym sid   = name2symid(name+1);		// skip '@'
     mrbc_value ret   = mrbc_store_get(&regs[0], sid);
 
@@ -503,8 +503,8 @@ op_setiv(guru_vm *vm, U32 code, mrbc_value *regs)
     int ra = GETARG_A(code);
     int rb = GETARG_Bx(code);
 
-    const U8 *name = _vm_symbol(vm, rb);
-    mrbc_sym   sid   = name2symid(name+1);	// skip '@'
+    const U8P name = _vm_symbol(vm, rb);
+    mrbc_sym  sid  = name2symid(name+1);	// skip '@'
 
     mrbc_store_set(&regs[0], sid, &regs[ra]);
 
@@ -722,7 +722,7 @@ op_send(guru_vm *vm, U32 code, mrbc_value *regs)
     }
 
 	mrbc_sym  sid = _vm_symid(vm, rb);
-    mrbc_proc *m  = (mrbc_proc *)mrbc_get_class_method(rcv, sid);
+    mrbc_proc *m  = (mrbc_proc *)mrbc_get_proc_by_symid(rcv, sid);
 
     if (m==0) {
     	const U8 *name = _vm_symbol(vm, rb);
@@ -738,7 +738,7 @@ op_send(guru_vm *vm, U32 code, mrbc_value *regs)
         }
         else {
         	m->func(regs+ra, rc);					// call the C-func
-        	for (int i=ra+1; i<=bidx; i++) {		// clean up block parameters
+        	for (U32 i=ra+1; i<=bidx; i++) {		// clean up block parameters
                 mrbc_release(&regs[i]);
             }
         }
@@ -1225,9 +1225,9 @@ op_string(guru_vm *vm, U32 code, mrbc_value *regs)
 	int ra = GETARG_A(code);
     int rb = GETARG_Bx(code);
 
-    U32   *p   = _vm_pool(vm, rb);
-    const U8 *str = (const U8 *)((U8 *)VM_IREP(vm) + *p);
-    mrbc_value ret  = mrbc_string_new(str);
+    U32 *p   = _vm_pool(vm, rb);
+    U8P str  = (U8P)((U8 *)VM_IREP(vm) + *p);
+    mrbc_value ret = mrbc_string_new(str);
 
     if (ret.str==NULL) return vm->err = 255;			// ENOMEM
 
@@ -1259,9 +1259,9 @@ op_strcat(guru_vm *vm, U32 code, mrbc_value *regs)
     mrbc_value *pa  = &regs[ra];
     mrbc_value *pb  = &regs[rb];
 
-    mrbc_sym sid  = name2symid("to_s");			// from global symbol pool
-    mrbc_proc *ma = mrbc_get_class_method(*pa, sid);
-    mrbc_proc *mb = mrbc_get_class_method(*pb, sid);
+    mrbc_sym sid  = name2symid((U8P)"to_s");			// from global symbol pool
+    mrbc_proc *ma = mrbc_get_proc_by_symid(*pa, sid);
+    mrbc_proc *mb = mrbc_get_proc_by_symid(*pb, sid);
 
     if (ma && IS_CFUNC(ma)) ma->func(pa, 0);
     if (mb && IS_CFUNC(mb)) mb->func(pb, 0);
@@ -1339,7 +1339,7 @@ op_hash(guru_vm *vm, U32 code, mrbc_value *regs)
 
     MEMCPY((U8 *)h->data, (U8 *)p, sz);		// copy k,v pairs
 
-    for (int i=0; i<(h->n=(rc<<1)); i++, p++) {
+    for (U32 i=0; i<(h->n=(rc<<1)); i++, p++) {
     	p->tt = GURU_TT_EMPTY;							// clean up call stack
     }
     _RA_V(ret);						                // set return value on stack top
@@ -1400,7 +1400,7 @@ op_lambda(guru_vm *vm, U32 code, mrbc_value *regs)
     int rb = GETARG_b(code);      		// sequence position in irep list
     // int c = GETARG_C(code);    		// TODO: Add flags support for OP_LAMBDA
 
-    mrbc_proc *prc = (mrbc_proc *)mrbc_proc_alloc("(lambda)");
+    mrbc_proc *prc = (mrbc_proc *)mrbc_alloc_proc((U8P)"(lambda)");
 
     prc->irep = _vm_irep_list(vm, rb);
     prc->flag &= ~GURU_CFUNC;           // Ruby IREP
@@ -1430,7 +1430,7 @@ op_class(guru_vm *vm, U32 code, mrbc_value *regs)
     int rb = GETARG_B(code);
 
     mrbc_class *super = (regs[ra+1].tt==GURU_TT_CLASS) ? regs[ra+1].cls : mrbc_class_object;
-    const U8   *name  = _vm_symbol(vm, rb);
+    const U8P  name   = _vm_symbol(vm, rb);
     mrbc_class *cls   = (mrbc_class *)mrbc_define_class(name, super);
 
     _RA_T(GURU_TT_CLASS, cls=cls);

@@ -91,9 +91,9 @@ __GURU__ U8   		*guru_strcat(U8 *d, const U8 *s);
 
 // basic C string functions for mrbc_value
 #define VSTRLEN(v)		((v)->str->size)
-#define VSTR(v)			((U8 *)(v)->str->data)
+#define VSTR(v)			((U8P)(v)->str->data)
 #define VSTRCMP(v1, v2) (STRCMP((v1)->str->data, (v2)->str->data))
-#define VSYM(v)			((U8 *)symid2name((v)->i))
+#define VSYM(v)			((U8P)symid2name((v)->i))
 
 #ifdef __cplusplus
 }

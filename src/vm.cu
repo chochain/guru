@@ -45,7 +45,7 @@ _vm_begin(guru_vm *pool)
 
 	if (threadIdx.x!=0 || vm->id==0) return;	// bail if vm not allocated
 
-	MEMSET((U8 *)vm->regfile, 0, sizeof(vm->regfile));	// clean up registers
+	MEMSET((U8P)vm->regfile, 0, sizeof(vm->regfile));	// clean up registers
 
     vm->regfile[0].tt  	= GURU_TT_CLASS;		// regfile[0] is self
     vm->regfile[0].cls 	= mrbc_class_object;	// root class
@@ -80,7 +80,7 @@ _vm_end(guru_vm *pool)
 #ifndef GURU_DEBUG
 	// clean up register file?						// CC: moved from mrbc_op 20181102
 	mrbc_value *p = vm->regfile;
-	for(int i = 0; i < MAX_REGS_SIZE; i++, p++) {
+	for (U32 i = 0; i < MAX_REGS_SIZE; i++, p++) {
 		mrbc_release(p);
 	}
     mrbc_free_all();
@@ -113,13 +113,13 @@ __GURU__ void
 _mrbc_free_irep(mrbc_irep *irep)
 {
     // release pool.
-    for(int i = 0; i < irep->plen; i++) {
+    for (U32 i = 0; i < irep->plen; i++) {
         mrbc_free(irep->pool[i]);
     }
     if (irep->plen) mrbc_free(irep->pool);
 
     // release all child ireps.
-    for(int i = 0; i < irep->rlen; i++) {
+    for (U32 i = 0; i < irep->rlen; i++) {
         _mrbc_free_irep(irep->list[i]);
     }
     if (irep->rlen) mrbc_free(irep->list);
@@ -131,7 +131,7 @@ __HOST__ int
 _vm_join(void)
 {
 	guru_vm *vm = _vm_pool;
-	for (int i=1; i<=MIN_VM_COUNT; i++, vm++) {
+	for (U32 i=1; i<=MIN_VM_COUNT; i++, vm++) {
 		if (vm->id != 0 && vm->run) return 1;
 	}
 	return 0;
@@ -143,7 +143,7 @@ _vm_pool_init(void)
 	guru_vm *vm = _vm_pool = (guru_vm *)guru_malloc(sizeof(guru_vm) * MIN_VM_COUNT, 1);
 	if (!vm) return 0;
 
-	for (int i=1; i<=MIN_VM_COUNT; i++, vm++) {
+	for (U32 i=1; i<=MIN_VM_COUNT; i++, vm++) {
 		vm->id   = 0;
 #ifdef GURU_DEBUG
 		vm->step = 1;
@@ -163,7 +163,7 @@ guru_vm_setup(guru_ses *ses, U32 trace)
 		if (!_vm_pool_ok) return cudaErrorMemoryAllocation;
 	}
 	guru_vm *vm = _vm_pool;
-	int i;
+	U32 i;
 	for (i=1; i<=MIN_VM_COUNT; i++, vm++) {
 		if (vm->id == 0) {			// whether vm is unallocated
 			vm->id = ses->id = i;	// found, assign vm to session
@@ -240,13 +240,13 @@ static const char *_opcode[] = {
 
 #if GURU_HOST_IMAGE
 __HOST__ int
-_find_irep(guru_irep *irep0, guru_irep *irep1, U8 *idx)
+_find_irep(guru_irep *irep0, guru_irep *irep1, U8P idx)
 {
 	if (irep0==irep1) return 1;
 
-	U8  *base = (U8 *)irep0;
-	U32 *off  = (U32 *)(base + irep0->list);		// child irep offset array
-	for (int i=0; i<irep0->rlen; i++) {
+	U8P  base = (U8P)irep0;
+	U32  *off = (U32 *)(base + irep0->list);		// child irep offset array
+	for (U32 i=0; i<irep0->rlen; i++) {
 		*idx += 1;
 		if (_find_irep((guru_irep *)(base + off[i]), irep1, idx)) return 1;
 	}
@@ -257,9 +257,9 @@ __HOST__ void
 _show_decoder(guru_vm *vm)
 {
 	U16 pc    = vm->state->pc;
-	U32 *iseq = VM_ISEQ(vm);
+	U32 *iseq = (U32 *)VM_ISEQ(vm);
 	U16 opid  = (*(iseq + pc) >> 24) & 0x7f;
-	const U8 *opc  = (const U8 *)_opcode[GET_OPCODE(opid)];
+	U8P opc   = (U8P)_opcode[GET_OPCODE(opid)];
 
 	U8 idx = 'a';
 	if (!_find_irep(vm->irep, vm->state->irep, &idx)) idx='?';
@@ -274,14 +274,14 @@ _show_decoder(guru_vm *vm)
 
 	mrbc_value *v = vm->regfile;				// scan
 	U32 last = 0;
-	for(int i=0; i<MAX_REGS_SIZE; i++, v++) {
+	for (U32 i=0; i<MAX_REGS_SIZE; i++, v++) {
 		if (v->tt==GURU_TT_EMPTY) continue;
 		last=i;
 	}
 
 	v = vm->regfile;							// rewind
 	printf("[");
-	for (int i=0; i<=last; i++, v++) {
+	for (U32 i=0; i<=last; i++, v++) {
 		printf("%s",_vtype[v->tt]);
 		if (v->tt >= GURU_TT_OBJECT) printf("%d", v->self->refc);
 		else 						 printf(" ");
@@ -294,14 +294,14 @@ _show_decoder(guru_vm *vm)
 __HOST__ void
 _show_decoder(mrbc_vm *vm)
 {
-	U16 pc    = vm->state->pc;
-	U32 *iseq = vm->state->irep->iseq;
-	U16 opid  = (*(iseq + pc) >> 24) & 0x7f;
-	const U8 	*opc  = _opcode[GET_OPCODE(opid)];
-	mrbc_value 	*v 	  = vm->regfile;
+	U16  pc   = vm->state->pc;
+	U32P iseq = vm->state->irep->iseq;
+	U16  opid = (*(iseq + pc) >> 24) & 0x7f;
+	const U8P opc  = _opcode[GET_OPCODE(opid)];
+	mrbc_value *v  = vm->regfile;
 
 	int last=0;
-	for(int i=0; i<MAX_REGS_SIZE; i++, v++) {
+	for (U32 i=0; i<MAX_REGS_SIZE; i++, v++) {
 		if (v->tt==GURU_TT_EMPTY) continue;
 		last=i;
 	}
@@ -318,7 +318,7 @@ _show_decoder(mrbc_vm *vm)
 	guru_malloc_stat(s);
 	printf("%c%-4d%-8s%4d[", 'a'+lvl, pc, opc, s[3]);
 
-	for (int i=0; i<=last; i++, v++) {
+	for (U32 i=0; i<=last; i++, v++) {
 		printf("%2d.%s", i, _vtype[v->tt]);
 	    if (v->tt >= GURU_TT_OBJECT) printf("_%d", v->self->refc);
 	    printf(" ");
@@ -333,7 +333,7 @@ guru_vm_trace(U32 level)
 	if (level==0) return cudaSuccess;
 
 	guru_vm *vm = _vm_pool;
-	for (int i=0; i<MIN_VM_COUNT; i++, vm++) {
+	for (U32 i=0; i<MIN_VM_COUNT; i++, vm++) {
 		if (vm->id > 0 && vm->run) {
 			guru_state *st = vm->state;
 			while (st->prev) {

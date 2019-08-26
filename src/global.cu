@@ -31,7 +31,7 @@ __GURU__ mrbc_gobject _mrbc_global[MAX_GLOBAL_OBJECT_SIZE];
 __GURU__ int
 _get_idx(mrbc_sym sid, mrbc_gtype gtype)
 {
-    for (int i=0 ; i<_global_end ; i++) {
+    for (U32 i=0 ; i<_global_end ; i++) {
         mrbc_gobject *obj = &_mrbc_global[i];
         if (obj->sym_id == sid && obj->gtype == gtype) return i;
     }

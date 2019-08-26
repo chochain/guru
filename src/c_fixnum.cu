@@ -70,7 +70,7 @@ c_fixnum_power(mrbc_value v[], U32 argc)
         mrbc_int x = 1;
 
         if (v[1].i < 0) x = 0;
-        for(int i = 0; i < v[1].i; i++) {
+        for (U32 i = 0; i < v[1].i; i++) {
             x *= v[0].i;;
         }
         SET_INT_RETURN(x);
@@ -184,7 +184,7 @@ c_fixnum_to_f(mrbc_value v[], U32 argc)
 __GURU__ void
 c_fixnum_chr(mrbc_value v[], U32 argc)
 {
-    const U8 buf[2] = { (U8)GET_INT_ARG(0), '\0' };
+    U8 buf[2] = { (U8)GET_INT_ARG(0), '\0' };
 
     SET_RETURN(mrbc_string_new(buf));
 }
@@ -211,27 +211,27 @@ __GURU__ void
 mrbc_init_class_fixnum(void)
 {
     // Fixnum
-    mrbc_class *c = mrbc_class_fixnum = mrbc_define_class("Fixnum", mrbc_class_object);
+    mrbc_class *c = mrbc_class_fixnum = guru_add_class("Fixnum", mrbc_class_object);
 
-    mrbc_define_method(c, "[]", 	c_fixnum_bitref);
-    mrbc_define_method(c, "-@", 	c_fixnum_negative);
-    mrbc_define_method(c, "**", 	c_fixnum_power);
-    mrbc_define_method(c, "%", 		c_fixnum_mod);
-    mrbc_define_method(c, "&", 		c_fixnum_and);
-    mrbc_define_method(c, "|", 		c_fixnum_or);
-    mrbc_define_method(c, "^", 		c_fixnum_xor);
-    mrbc_define_method(c, "~", 		c_fixnum_not);
-    mrbc_define_method(c, "<<", 	c_fixnum_lshift);
-    mrbc_define_method(c, ">>", 	c_fixnum_rshift);
-    mrbc_define_method(c, "abs",	c_fixnum_abs);
-    mrbc_define_method(c, "to_i", 	c_nop);
+    guru_add_proc(c, "[]", 		c_fixnum_bitref);
+    guru_add_proc(c, "-@", 		c_fixnum_negative);
+    guru_add_proc(c, "**", 		c_fixnum_power);
+    guru_add_proc(c, "%", 		c_fixnum_mod);
+    guru_add_proc(c, "&", 		c_fixnum_and);
+    guru_add_proc(c, "|", 		c_fixnum_or);
+    guru_add_proc(c, "^", 		c_fixnum_xor);
+    guru_add_proc(c, "~", 		c_fixnum_not);
+    guru_add_proc(c, "<<", 		c_fixnum_lshift);
+    guru_add_proc(c, ">>", 		c_fixnum_rshift);
+    guru_add_proc(c, "abs",		c_fixnum_abs);
+    guru_add_proc(c, "to_i",	c_nop);
 #if GURU_USE_FLOAT
-    mrbc_define_method(c, "to_f", 	c_fixnum_to_f);
+    guru_add_proc(c, "to_f",	c_fixnum_to_f);
 #endif
 #if GURU_USE_STRING
-    mrbc_define_method(c, "chr", 	c_fixnum_chr);
-    mrbc_define_method(c, "inspect",c_fixnum_to_s);
-    mrbc_define_method(c, "to_s", 	c_fixnum_to_s);
+    guru_add_proc(c, "chr", 	c_fixnum_chr);
+    guru_add_proc(c, "inspect",	c_fixnum_to_s);
+    guru_add_proc(c, "to_s", 	c_fixnum_to_s);
 #endif
 }
 
@@ -308,18 +308,18 @@ __GURU__ void
 mrbc_init_class_float(void)
 {
     // Float
-    mrbc_class *c = mrbc_class_float = mrbc_define_class("Float", mrbc_class_object);
+    mrbc_class *c = mrbc_class_float = guru_add_class("Float", mrbc_class_object);
 
-    mrbc_define_method(c, "-@", 		c_float_negative);
+    guru_add_proc(c, "-@", 		c_float_negative);
 #if GURU_USE_MATH
-    mrbc_define_method(c, "**", 		c_float_power);
+    guru_add_proc(c, "**", 		c_float_power);
 #endif
-    mrbc_define_method(c, "abs", 		c_float_abs);
-    mrbc_define_method(c, "to_i", 		c_float_to_i);
-    mrbc_define_method(c, "to_f", 		c_nop);
+    guru_add_proc(c, "abs", 	c_float_abs);
+    guru_add_proc(c, "to_i", 	c_float_to_i);
+    guru_add_proc(c, "to_f", 	c_nop);
 #if GURU_USE_STRING
-    mrbc_define_method(c, "inspect", 	c_float_to_s);
-    mrbc_define_method(c, "to_s", 		c_float_to_s);
+    guru_add_proc(c, "inspect", c_float_to_s);
+    guru_add_proc(c, "to_s", 	c_float_to_s);
 #endif
 }
 

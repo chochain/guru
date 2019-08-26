@@ -46,7 +46,7 @@ typedef struct guru_ses_ {
 
 int guru_system_setup(int trace);
 int guru_system_run(int trace);
-int guru_session_add(guru_ses *ses, const char *rite_fname, int trace);
+int guru_session_add(guru_ses *ses, const U8P rite_fname, U32 trace);
 
 #ifdef __cplusplus
 }

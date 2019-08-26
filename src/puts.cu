@@ -75,7 +75,7 @@ mrbc_print_sub(mrbc_value *v)
 #if GURU_USE_ARRAY
     case GURU_TT_ARRAY:
         p = v->array->data;
-        for (int i = 0; i < v->array->n; i++, p++) {
+        for (U32 i = 0; i < v->array->n; i++, p++) {
             if (i!=0) console_str("\n");
             mrbc_p_sub(p);
         }
@@ -88,7 +88,7 @@ mrbc_print_sub(mrbc_value *v)
     case GURU_TT_HASH:
         console_char('{');
         p = v->hash->data;
-        for (int i=0; i < v->hash->n; i+=2, p+=2) {
+        for (U32 i=0; i < v->hash->n; i+=2, p+=2) {
             if (i!=0) console_str(", ");
         	mrbc_p_sub(p);
             console_str("=>");
@@ -111,8 +111,8 @@ mrbc_print_sub(mrbc_value *v)
 __GURU__ U32
 mrbc_p_sub(mrbc_value *v)
 {
-	const U8   *s;
 	mrbc_value *p;
+	U8P        s;
 
     switch (v->tt){		// only when output different from print_sub
     case GURU_TT_NIL: console_str("nil");		break;
@@ -132,7 +132,7 @@ mrbc_p_sub(mrbc_value *v)
     case GURU_TT_ARRAY:
         console_char('[');
         p = v->array->data;
-        for (int i = 0; i < v->array->n; i++, p++) {
+        for (U32 i = 0; i < v->array->n; i++, p++) {
             if (i!=0) console_str(", ");
             mrbc_p_sub(p);
         }
@@ -143,7 +143,7 @@ mrbc_p_sub(mrbc_value *v)
     case GURU_TT_STRING:
         s = VSTR(v);
         console_char('"');
-        for (int i = 0; i < VSTRLEN(v); i++, s++) {
+        for (U32 i = 0; i < VSTRLEN(v); i++, s++) {
             if (*s>=' ' && *s < 0x80) console_char(*s);
             else 					  console_hex(*s);
         }

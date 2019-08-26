@@ -84,14 +84,14 @@ _search(const mrbc_value v[], const mrbc_value *key)
     int         n = _size(v);
 
 #ifdef GURU_HASH_SEARCH_LINER
-    for (int i=0; i < n; i++, p+=2) {
+    for (U32 i=0; i < n; i++, p+=2) {
         if (mrbc_compare(p, key)==0) return p;
     }
     return NULL;
 #endif
 
 #ifdef GURU_HASH_SEARCH_LINER_ITERATOR
-    for (int i=0; i < n; i++, p+=2) {
+    for (U32 i=0; i < n; i++, p+=2) {
         if (mrbc_compare(p, key)==0) return p;
     }
     return NULL;
@@ -226,7 +226,7 @@ _hash_dup(const mrbc_value *kv)
     mrbc_value *d = _data(&ret);
     mrbc_value *s = _data(kv);
     int        n2 = ret.hash->n = n<<1;		// n pairs (k,v)
-    for (int i=0; i < n2; i++) {
+    for (U32 i=0; i < n2; i++) {
     	mrbc_retain(s);						// one extra ref
     	*d++ = *s++;
     }
@@ -260,7 +260,7 @@ mrbc_hash_compare(const mrbc_value *v0, const mrbc_value *v1)
     if (n0 != _size(v1)) return 1;
 
     mrbc_value *p0 = _data(v0);
-    for (int i = 0; i < n0; i++, p0+=2) {
+    for (U32 i = 0; i < n0; i++, p0+=2) {
         mrbc_value *p1 = _search(v1, p0);		// check key
         if (p1==NULL) return 1;
         if (mrbc_compare(p0+1, p1+1)) return 1;	// check data
@@ -365,7 +365,7 @@ c_hash_has_value(mrbc_value v[], U32 argc)
 {
     mrbc_value *p = _data(v);
     int         n = _size(v);
-    for (int i=0; i<n; i++, p+=2) {
+    for (U32 i=0; i<n; i++, p+=2) {
         if (mrbc_compare(p+1, v+1)==0) {	// value to value
             SET_BOOL_RETURN(1);
             return;
@@ -382,7 +382,7 @@ c_hash_key(mrbc_value v[], U32 argc)
 {
     mrbc_value *p = _data(v);
     int         n = _size(v);
-    for (int i=0; i<n; i++, p+=2) {
+    for (U32 i=0; i<n; i++, p+=2) {
         if (mrbc_compare(p+1, v+1)==0) {
             mrbc_retain(p);
             SET_RETURN(*p);
@@ -402,7 +402,7 @@ c_hash_keys(mrbc_value v[], U32 argc)
     int         n  = _size(v);
     mrbc_value ret = mrbc_array_new(n);
 
-    for (int i=0; i<n; i++, p+=2) {
+    for (U32 i=0; i<n; i++, p+=2) {
         mrbc_array_push(&ret, p);
     }
     SET_RETURN(ret);
@@ -426,7 +426,7 @@ c_hash_merge(mrbc_value v[], U32 argc)		// non-destructive merge
     mrbc_value ret = _hash_dup(v);
     mrbc_value *p  = _data(v+1);
     int         n  = _size(v+1);
-    for (int i=0; i<n; i++, p+=2) {
+    for (U32 i=0; i<n; i++, p+=2) {
         _set(&ret, p, p+1);
         mrbc_retain(p);						// extra ref on incoming kv
         mrbc_retain(p+1);
@@ -442,7 +442,7 @@ c_hash_merge_self(mrbc_value v[], U32 argc)
 {
     mrbc_value *p  = _data(v+1);
     int         n  = _size(v+1);
-    for (int i=0; i<n; i++, p+=2) {
+    for (U32 i=0; i<n; i++, p+=2) {
         _set(v, p, p+1);
         mrbc_retain(p);						// extra ref on incoming kv
         mrbc_retain(p+1);
@@ -459,7 +459,7 @@ c_hash_values(mrbc_value v[], U32 argc)
     int         n  = _size(v);
     mrbc_value ret = mrbc_array_new(n);
 
-    for (int i=0; i<n; i++, p+=2) {
+    for (U32 i=0; i<n; i++, p+=2) {
         mrbc_array_push(&ret, p+1);
     }
     SET_RETURN(ret);
@@ -482,9 +482,9 @@ _hrfc(mrbc_value *str, mrbc_value *v)
 __GURU__ void
 c_hash_inspect(mrbc_value v[], U32 argc)
 {
-    mrbc_value blank = mrbc_string_new("");
-    mrbc_value comma = mrbc_string_new(", ");
-    mrbc_value ret   = mrbc_string_new("{");
+    mrbc_value blank = mrbc_string_new((U8P)"");
+    mrbc_value comma = mrbc_string_new((U8P)", ");
+    mrbc_value ret   = mrbc_string_new((U8P)"{");
     if (!ret.str) {
     	SET_NIL_RETURN();
     	return;
@@ -494,10 +494,10 @@ c_hash_inspect(mrbc_value v[], U32 argc)
     mrbc_value s[3];
     mrbc_value *p = _data(v);
     int         n = _size(v);
-    for (int i=0; i<n; i++, p+=2) {
+    for (U32 i=0; i<n; i++, p+=2) {
     	s[0] = (i==0) ? blank : comma;
-        s[1] = mrbc_send(v+argc, p,   "inspect", 0);		// key
-        s[2] = mrbc_send(v+argc, p+1, "inspect", 0);		// value
+        s[1] = guru_inspect(v+argc, p);			// key
+        s[2] = guru_inspect(v+argc, p+1);		// value
 
         guru_vprintf(buf, "%s%s=>%s", s, 3);
         mrbc_string_append_cstr(&ret, buf);
@@ -505,7 +505,7 @@ c_hash_inspect(mrbc_value v[], U32 argc)
         mrbc_release(&s[1]);								// free locally allocated memory
         mrbc_release(&s[2]);
     }
-    mrbc_string_append_cstr(&ret, "}");
+    mrbc_string_append_cstr(&ret, (U8P)"}");
 
     SET_RETURN(ret);
 }
@@ -517,28 +517,28 @@ c_hash_inspect(mrbc_value v[], U32 argc)
 __GURU__ void
 mrbc_init_class_hash()
 {
-    mrbc_class *c = mrbc_class_hash = mrbc_define_class("Hash", mrbc_class_object);
+    mrbc_class *c = mrbc_class_hash = guru_add_class("Hash", mrbc_class_object);
 
-    mrbc_define_method(c, "new",	    c_hash_new);
-    mrbc_define_method(c, "[]",		    c_hash_get);
-    mrbc_define_method(c, "[]=",	    c_hash_set);
-    mrbc_define_method(c, "clear",	    c_hash_clear);
-    mrbc_define_method(c, "dup",	    c_hash_dup);
-    mrbc_define_method(c, "delete",	    c_hash_delete);
-    mrbc_define_method(c, "empty?",	    c_hash_empty);
-    mrbc_define_method(c, "has_key?",	c_hash_has_key);
-    mrbc_define_method(c, "has_value?",	c_hash_has_value);
-    mrbc_define_method(c, "key",	    c_hash_key);
-    mrbc_define_method(c, "keys",	    c_hash_keys);
-    mrbc_define_method(c, "size",	    c_hash_size);
-    mrbc_define_method(c, "length",	    c_hash_size);
-    mrbc_define_method(c, "count",	    c_hash_size);
-    mrbc_define_method(c, "merge",	    c_hash_merge);
-    mrbc_define_method(c, "merge!",	    c_hash_merge_self);
-    mrbc_define_method(c, "to_h",	    c_nop);
-    mrbc_define_method(c, "values",	    c_hash_values);
+    guru_add_proc(c, "new",	    	c_hash_new);
+    guru_add_proc(c, "[]",			c_hash_get);
+    guru_add_proc(c, "[]=",	    	c_hash_set);
+    guru_add_proc(c, "clear",		c_hash_clear);
+    guru_add_proc(c, "dup",	    	c_hash_dup);
+    guru_add_proc(c, "delete",	    c_hash_delete);
+    guru_add_proc(c, "empty?",	    c_hash_empty);
+    guru_add_proc(c, "has_key?",	c_hash_has_key);
+    guru_add_proc(c, "has_value?",	c_hash_has_value);
+    guru_add_proc(c, "key",	    	c_hash_key);
+    guru_add_proc(c, "keys",	    c_hash_keys);
+    guru_add_proc(c, "size",	    c_hash_size);
+    guru_add_proc(c, "length",	    c_hash_size);
+    guru_add_proc(c, "count",	    c_hash_size);
+    guru_add_proc(c, "merge",	    c_hash_merge);
+    guru_add_proc(c, "merge!",	    c_hash_merge_self);
+    guru_add_proc(c, "to_h",	    c_nop);
+    guru_add_proc(c, "values",	    c_hash_values);
 #if GURU_USE_STRING
-    mrbc_define_method(c, "inspect",	c_hash_inspect);
-    mrbc_define_method(c, "to_s",	    c_hash_inspect);
+    guru_add_proc(c, "inspect",		c_hash_inspect);
+    guru_add_proc(c, "to_s",	    c_hash_inspect);
 #endif
 }

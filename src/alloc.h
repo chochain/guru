@@ -38,8 +38,8 @@ typedef struct free_block {			// 16-bytes (i.e. mininum allocation per block)
   struct free_block 	*prev;		// pointer to previous free block
 } free_block;
 
-#define BLOCKHEAD(p) ((U8 *)p - sizeof(used_block))
-#define BLOCKDATA(p) ((U8 *)p + sizeof(used_block))
+#define BLOCKHEAD(p) ((U8P)p - sizeof(used_block))
+#define BLOCKDATA(p) ((U8P)p + sizeof(used_block))
 #define BLOCKSIZE(p) (p->size - sizeof(used_block))
 
 __GURU__ void *mrbc_alloc(U32 size);
