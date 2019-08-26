@@ -31,16 +31,16 @@ typedef struct print_node {
     U8			data[];          // different from *data
 } guru_print_node;
 
-__GPU__  void guru_console_init(U8 *buf, U32 sz);
+__GPU__  void guru_console_init(U8P buf, U32 sz);
 
-__GURU__ void console_char(U8 c);
 __GURU__ void console_int(mrbc_int i);
 __GURU__ void console_hex(mrbc_int i);
-__GURU__ void console_str(const U8 *str);
 __GURU__ void console_float(mrbc_float f);
+__GURU__ void console_char(U8 c);
+__GURU__ void console_str(const U8 *str);				// instead of U8P, too many static string
 __GURU__ void console_na(const U8 *msg);
 
-__HOST__ void guru_console_flush(U8 *output_buf);
+__HOST__ void guru_console_flush(U8P output_buf);
     
 #ifdef __cplusplus
 }

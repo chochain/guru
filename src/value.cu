@@ -34,7 +34,7 @@ _string_compare(const mrbc_value *v1, const mrbc_value *v2)
 {
 	if (v1->str->size != v2->str->size) return -1;
 
-	return STRCMP((const U8 *)v1->str->data, (const U8 *)v2->str->data);
+	return STRCMP(v1->str->data, v2->str->data);
 }
 
 //================================================================
@@ -108,7 +108,7 @@ mrbc_compare(const mrbc_value *v1, const mrbc_value *v2)
   @return	result.
 */
 __GURU__ mrbc_int
-guru_atoi(const U8 *s, U32 base)
+guru_atoi(U8P s, U32 base)
 {
     U32 ret  = 0;
     U32 sign = 0;
@@ -136,7 +136,7 @@ REDO:
 }
 
 __GURU__ mrbc_float
-guru_atof(const U8 *s)
+guru_atof(U8P s)
 {
 #if GURU_USE_FLOAT
     int sign = 1, esign = 1, state=0;
@@ -175,19 +175,19 @@ guru_atof(const U8 *s)
 }
 
 __GURU__ void
-guru_memcpy(U8 *d, const U8 *s, U32 sz)
+guru_memcpy(U8P d, U8P s, U32 sz)
 {
     for (U32 i=0; s && d && i<sz; i++, *d++ = *s++);
 }
 
 __GURU__ void
-guru_memset(U8 *d, const U8 v,  U32 sz)
+guru_memset(U8P d, U8 v,  U32 sz)
 {
     for (U32 i=0; d && i<sz; i++, *d++ = v);
 }
 
 __GURU__ int
-guru_memcmp(const U8 *d, const U8 *s, U32 sz)
+guru_memcmp(U8P d, U8P s, U32 sz)
 {
 	U32 i;
     for (i=0; s && d && i<sz && *d++==*s++; i++);
@@ -196,7 +196,7 @@ guru_memcmp(const U8 *d, const U8 *s, U32 sz)
 }
 
 __GURU__ U32
-guru_strlen(const U8 *str)
+guru_strlen(const U8P str)
 {
 	U32 i;
 	for (i=0; str && str[i]!='\0'; i++);
@@ -204,27 +204,27 @@ guru_strlen(const U8 *str)
 }
 
 __GURU__ void
-guru_strcpy(const U8 *s1, const U8 *s2)
+guru_strcpy(const U8P s1, const U8P s2)
 {
-    guru_memcpy((U8 *)s1, (U8 *)s2, guru_strlen(s1));
+    guru_memcpy(s1, s2, guru_strlen(s1));
 }
 
 __GURU__ S32
-guru_strcmp(const U8 *s1, const U8 *s2)
+guru_strcmp(const U8P s1, const U8P s2)
 {
-    return guru_memcmp((U8 *)s1, (U8 *)s2, guru_strlen(s1));
+    return guru_memcmp(s1, s2, guru_strlen(s1));
 }
 
-__GURU__ U8*
-guru_strchr(const U8 *s, const U8 c)
+__GURU__ U8P
+guru_strchr(U8P s, const U8 c)
 {
     while (s && *s!='\0' && *s!=c) s++;
 
-    return (U8 *)((*s==c) ? &s : NULL);
+    return (U8P)((*s==c) ? &s : NULL);
 }
 
-__GURU__ U8*
-guru_strcat(U8 *d, const U8 *s)
+__GURU__ U8P
+guru_strcat(U8P d, const U8P s)
 {
     return d;
 }
@@ -286,8 +286,3 @@ mrbc_release(mrbc_value *v)
 
     v->tt = GURU_TT_EMPTY;
 }
-
-
-
-
-

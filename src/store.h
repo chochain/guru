@@ -34,7 +34,7 @@ typedef struct RStoreData {
 */
 typedef struct RStore {
     uint32_t     size : 16;	//!< data buffer size.
-    uint32_t     n    : 16;	//!< # of stored.
+    uint32_t     n    : 16;	//!< # of object stored.
     mrbc_store_data *data;	//!< pointer to allocated memory.
 } mrbc_store;
 

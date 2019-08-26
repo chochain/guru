@@ -135,7 +135,7 @@ INSERT_VALUE:
     d = st->data + idx;
     if (idx < st->n) {										// need more data?
         int size = sizeof(mrbc_store_data) * (st->n - idx);
-        MEMCPY((uint8_t *)(d+1), (const uint8_t *)d, size);
+        MEMCPY((U8P)(d+1), (U8P)d, size);
     }
     d->sym_id = sid;
     d->value  = *val;

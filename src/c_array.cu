@@ -447,8 +447,8 @@ c_array_add(mrbc_value v[], U32 argc)
     mrbc_value ret = mrbc_array_new(h0sz + h1sz);
     if (ret.array==NULL) return;		// ENOMEM
 
-    MEMCPY((uint8_t *)(ret.array->data),        (const uint8_t *)h0->data, h0sz);
-    MEMCPY((uint8_t *)(ret.array->data) + h0sz, (const uint8_t *)h1->data, h1sz);
+    MEMCPY((U8P)(ret.array->data),        (U8P)h0->data, h0sz);
+    MEMCPY((U8P)(ret.array->data) + h0sz, (U8P)h1->data, h1sz);
 
     mrbc_value *p = ret.array->data;
     int         n = ret.array->n = h0->n + h1->n;
@@ -663,7 +663,7 @@ c_array_dup(mrbc_value v[], U32 argc)
     if (!h1) return;		// ENOMEM
 
     int n = h1->n = h0->n;
-    MEMCPY((uint8_t *)h1->data, (const uint8_t *)h0->data, n*sizeof(mrbc_value));
+    MEMCPY((U8P)h1->data, (U8P)h0->data, n*sizeof(mrbc_value));
 
     mrbc_value *p = h1->data;
     for (U32 i=0; i<n; i++, p++) {

@@ -304,7 +304,7 @@ c_object_attr_accessor(mrbc_value v[], U32 argc)
         if (!buf) return;
         
         STRCPY(buf, name);
-        STRCAT(buf, "=");
+        STRCAT(buf, (U8P)"=");
         mrbc_symbol_new(buf);
         mrbc_define_method(v[0].cls, buf, (mrbc_func_t)c_object_setiv);
         mrbc_free(buf);

@@ -536,7 +536,7 @@ guru_dump_alloc_stat(void)
 	U32 s[8];
 	guru_malloc_stat(s);
 
-	printf("\tmem=%d(0x%x): free=%d(%d), used=%d(%d), nblk=%d, nfrag=%d, %d%% allocated\n",
+	printf("\tmem=%d(0x%x): free=%d(0x%x), used=%d(0x%x), nblk=%d, nfrag=%d, %d%% allocated\n",
 			s[0], s[0], s[1], s[2], s[3], s[4], s[5], s[6], (int)(100*(s[4]+1)/s[0]));
 }
 #endif

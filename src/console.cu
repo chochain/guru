@@ -21,21 +21,21 @@ __GURU__ U8  *_output_buf;
 __GURU__ volatile U32 _mutex_con;
 
 __GURU__ void
-guru_write(mrbc_vtype tt, mrbc_vtype fmt, U32 sz, U8 *buf)
+guru_write(mrbc_vtype tt, mrbc_vtype fmt, U32 sz, U8P buf)
 {
 	if (threadIdx.x!=0) return;		// only thread 0 within a block can write
 
 	MUTEX_LOCK(_mutex_con);
 
 	guru_print_node *n = (guru_print_node *)_output_ptr;
-	MEMCPY((U8 *)n->data, buf, sz);
+	MEMCPY((U8P)n->data, buf, sz);
 
 	n->id   = blockIdx.x;			// VM.id
 	n->tt   = tt;
 	n->fmt  = fmt;
 	n->size = sz + (-sz & 0x3);		// 32-bit alignment
 
-	_output_ptr  = (U8 *)n->data + n->size;		// advance pointer to next print block
+	_output_ptr  = U8PADD(n->data, n->size);		// advance pointer to next print block
 	*_output_ptr = (U8)GURU_TT_EMPTY;
 
 	MUTEX_FREE(_mutex_con);
@@ -50,26 +50,26 @@ __GURU__ void
 console_char(U8 c)
 {
 	U8 buf[2] = { c, '\0' };
-	guru_write(GURU_TT_STRING, GURU_TT_EMPTY, 2, buf);
+	guru_write(GURU_TT_STRING, GURU_TT_EMPTY, 2, (U8P)buf);
 }
 
 __GURU__ void
 console_int(mrbc_int i)
 {
-	guru_write(GURU_TT_FIXNUM, GURU_TT_FIXNUM, sizeof(mrbc_int), (U8 *)&i);
+	guru_write(GURU_TT_FIXNUM, GURU_TT_FIXNUM, sizeof(mrbc_int), (U8P)&i);
 }
 
 __GURU__ void
 console_hex(mrbc_int i)
 {
-	guru_write(GURU_TT_FIXNUM, GURU_TT_EMPTY, sizeof(mrbc_int), (U8 *)&i);
+	guru_write(GURU_TT_FIXNUM, GURU_TT_EMPTY, sizeof(mrbc_int), (U8P)&i);
 }
 
 #if GURU_USE_FLOAT
 __GURU__ void
 console_float(mrbc_float f)
 {
-	guru_write(GURU_TT_FLOAT, GURU_TT_EMPTY, sizeof(mrbc_float), (U8 *)&f);
+	guru_write(GURU_TT_FLOAT, GURU_TT_EMPTY, sizeof(mrbc_float), (U8P)&f);
 }
 #endif
 
@@ -81,7 +81,7 @@ console_float(mrbc_float f)
 __GURU__ void
 console_str(const U8 *str)
 {
-	guru_write(GURU_TT_STRING, GURU_TT_EMPTY, guru_strlen(str)+1, (U8 *)str);
+	guru_write(GURU_TT_STRING, GURU_TT_EMPTY, guru_strlen((U8P)str)+1, (U8P)str);
 }
 
 __GURU__ void
@@ -145,7 +145,7 @@ _dump_obj_size(void)
 }
 
 __GPU__ void
-guru_console_init(U8 *buf, U32 sz)
+guru_console_init(U8P buf, U32 sz)
 {
 	if (threadIdx.x!=0 || blockIdx.x!=0) return;
 
@@ -162,7 +162,8 @@ guru_console_init(U8 *buf, U32 sz)
 __HOST__ guru_print_node*
 _guru_host_print(guru_print_node *node)
 {
-	U8  *fmt[80], *buf[80];					// check buffer overflow
+	U8P fmt[80];
+	U8P buf[80];								// check buffer overflow
 	U32	argc;
 	printf("<%d>", node->id);
 	switch (node->tt) {
@@ -173,12 +174,12 @@ _guru_host_print(guru_print_node *node)
 		printf("%g", *((mrbc_float *)node->data));
 		break;
 	case GURU_TT_STRING:
-		memcpy(buf, (U8 *)node->data, node->size);
+		memcpy(buf, (U8P)node->data, node->size);
 		printf("%s", (char *)buf);
 		break;
 	case GURU_TT_RANGE:							// TODO: va_list needed here
 		argc = (int)node->fmt;
-		memcpy(fmt, (U8 *)node->data, node->size);
+		memcpy(fmt, (U8P)node->data, node->size);
 		printf("%s", (char *)fmt);
 		for (U32 i=0; i<argc; i++) {
 			node = NEXTNODE(node);				// point to next parameter
@@ -192,7 +193,7 @@ _guru_host_print(guru_print_node *node)
 }
 
 __HOST__ void
-guru_console_flush(U8 *output_buf)
+guru_console_flush(U8P output_buf)
 {
 	guru_print_node *node = (guru_print_node *)output_buf;
 	while (node->tt != GURU_TT_EMPTY) {			// 0
@@ -202,4 +203,3 @@ guru_console_flush(U8 *output_buf)
 	guru_console_init<<<1,1>>>(output_buf, 0);
 	cudaDeviceSynchronize();
 }
-
