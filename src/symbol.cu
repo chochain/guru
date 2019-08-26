@@ -48,10 +48,10 @@ __GURU__ struct SYM_LIST _sym_list[MAX_SYMBOLS_COUNT];
   @param  str		Target string.
   @return uint16_t	Hash value.
 */
-__GURU__ __INLINE__ U32
+__GURU__ U16
 _calc_hash(U8P str)
 {
-    U32 h = 0;
+    U16 h = 0;
 
     while (*str != '\0') {
         h = h * 37 + *str;
@@ -63,10 +63,10 @@ _calc_hash(U8P str)
 //================================================================
 /*! search index table
  */
-__GURU__ int
+__GURU__ S32
 _search_index(const U8P str)
 {
-    U32 hash = _calc_hash(str);
+    U16 hash = _calc_hash(str);
 
 #ifdef GURU_SYMBOL_SEARCH_LINER
     for (U32 i=0; i < _sym_idx; i++) {
@@ -78,10 +78,10 @@ _search_index(const U8P str)
 #endif
 
 #ifdef GURU_SYMBOL_SEARCH_BTREE
-    int i = 0;
+    S32 i=0;
     do {
         if (_sym_list[i].hash==hash &&
-        		guru_strcmp(str, _sym_list[i].cstr)==0) {
+        	guru_strcmp(str, _sym_list[i].cstr)==0) {
             return i;
         }
         i = (hash < _sym_list[i].hash)
@@ -113,7 +113,7 @@ _add_index(const U8P str)
     _sym_list[sid].cstr = str;
 
 #ifdef GURU_SYMBOL_SEARCH_BTREE
-    U32 i = 0;
+    U32 i=0;
 
     while (1) {
         if (hash < _sym_list[i].hash) {
@@ -234,7 +234,7 @@ c_all_symbols(mrbc_value v[], U32 argc)
 {
     mrbc_value ret = mrbc_array_new(_sym_idx);
 
-    for (U32 i = 0; i < _sym_idx; i++) {
+    for (U32 i=0; i < _sym_idx; i++) {
         mrbc_value sym1 = {.tt = GURU_TT_SYMBOL};
         sym1.i = i;
         mrbc_array_push(&ret, &sym1);

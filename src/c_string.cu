@@ -35,7 +35,7 @@ _is_space(U8 ch)
 {
     static const char ws[] = " \t\r\n\f\v";	// '\0' on tail
 
-    for (U32 i = 0; i < sizeof(ws); i++) {
+    for (U32 i=0; i < sizeof(ws); i++) {
         if (ch==ws[i]) return true;
     }
     return false;

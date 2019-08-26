@@ -80,7 +80,7 @@ _vm_end(guru_vm *pool)
 #ifndef GURU_DEBUG
 	// clean up register file?						// CC: moved from mrbc_op 20181102
 	mrbc_value *p = vm->regfile;
-	for (U32 i = 0; i < MAX_REGS_SIZE; i++, p++) {
+	for (U32 i=0; i < MAX_REGS_SIZE; i++, p++) {
 		mrbc_release(p);
 	}
     mrbc_free_all();
@@ -113,13 +113,13 @@ __GURU__ void
 _mrbc_free_irep(mrbc_irep *irep)
 {
     // release pool.
-    for (U32 i = 0; i < irep->plen; i++) {
+    for (U32 i=0; i < irep->plen; i++) {
         mrbc_free(irep->pool[i]);
     }
     if (irep->plen) mrbc_free(irep->pool);
 
     // release all child ireps.
-    for (U32 i = 0; i < irep->rlen; i++) {
+    for (U32 i=0; i < irep->rlen; i++) {
         _mrbc_free_irep(irep->list[i]);
     }
     if (irep->rlen) mrbc_free(irep->list);

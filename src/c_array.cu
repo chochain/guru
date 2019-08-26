@@ -488,7 +488,7 @@ c_array_get(mrbc_value v[], U32 argc)
         ret = mrbc_array_new(size);
         if (ret.array==NULL) return;		// ENOMEM
 
-        for (U32 i = 0; i < size; i++) {
+        for (U32 i=0; i < size; i++) {
             mrbc_value val = _get(v, v[1].i + i);
             mrbc_retain(&val);
             mrbc_array_push(&ret, &val);
@@ -569,7 +569,7 @@ c_array_index(mrbc_value v[], U32 argc)
     
     mrbc_array *h = v->array;
     mrbc_value *p = h->data;
-    for (U32 i = 0; i < h->n; i++, p++) {
+    for (U32 i=0; i < h->n; i++, p++) {
         if (mrbc_compare(p, ret)==0) {
             SET_INT_RETURN(i);
             return;
@@ -755,7 +755,7 @@ c_array_inspect(mrbc_value v[], U32 argc)
     }
     mrbc_value vi, s1;
     int n = v->array->n;
-    for (U32 i = 0; i < n; i++) {
+    for (U32 i=0; i < n; i++) {
         if (i != 0) mrbc_string_append_cstr(&ret, (U8P)", ");
         vi = _get(v, i);
         s1 = guru_inspect(v+argc, &vi);

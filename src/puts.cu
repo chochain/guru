@@ -75,7 +75,7 @@ mrbc_print_sub(mrbc_value *v)
 #if GURU_USE_ARRAY
     case GURU_TT_ARRAY:
         p = v->array->data;
-        for (U32 i = 0; i < v->array->n; i++, p++) {
+        for (U32 i=0; i < v->array->n; i++, p++) {
             if (i!=0) console_str("\n");
             mrbc_p_sub(p);
         }
@@ -132,7 +132,7 @@ mrbc_p_sub(mrbc_value *v)
     case GURU_TT_ARRAY:
         console_char('[');
         p = v->array->data;
-        for (U32 i = 0; i < v->array->n; i++, p++) {
+        for (U32 i=0; i < v->array->n; i++, p++) {
             if (i!=0) console_str(", ");
             mrbc_p_sub(p);
         }
@@ -143,7 +143,7 @@ mrbc_p_sub(mrbc_value *v)
     case GURU_TT_STRING:
         s = VSTR(v);
         console_char('"');
-        for (U32 i = 0; i < VSTRLEN(v); i++, s++) {
+        for (U32 i=0; i < VSTRLEN(v); i++, s++) {
             if (*s>=' ' && *s < 0x80) console_char(*s);
             else 					  console_hex(*s);
         }

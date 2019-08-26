@@ -56,8 +56,10 @@ __GURU__ U8P
 _vm_symbol(guru_vm *vm, U32 n)
 {
 	guru_irep *irep = VM_IREP(vm);
-	U32  *p    = (U32 *)((U8 *)irep + irep->sym  + n * sizeof(U32));
+	U32  *p = (U32 *)((U8 *)irep + irep->sym  + n * sizeof(U32));
 
+	U8P  r  = ((U8 *)irep + *p);
+	U8   *rr= ((U8 *)irep + *p);
 	return ((U8 *)irep + *p);
 }
 
@@ -141,7 +143,7 @@ _pop_state(guru_vm *vm, mrbc_value *regs)
     vm->state = st->prev;
     
     mrbc_value *p  = regs+1;			// clear stacked arguments
-    for (U32 i = 0; i < st->argc; i++) {
+    for (U32 i=0; i < st->argc; i++) {
         mrbc_release(p++);
     }
     mrbc_free(st);

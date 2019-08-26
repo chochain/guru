@@ -260,7 +260,7 @@ mrbc_hash_compare(const mrbc_value *v0, const mrbc_value *v1)
     if (n0 != _size(v1)) return 1;
 
     mrbc_value *p0 = _data(v0);
-    for (U32 i = 0; i < n0; i++, p0+=2) {
+    for (U32 i=0; i < n0; i++, p0+=2) {
         mrbc_value *p1 = _search(v1, p0);		// check key
         if (p1==NULL) return 1;
         if (mrbc_compare(p0+1, p1+1)) return 1;	// check data

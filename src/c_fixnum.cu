@@ -70,7 +70,7 @@ c_fixnum_power(mrbc_value v[], U32 argc)
         mrbc_int x = 1;
 
         if (v[1].i < 0) x = 0;
-        for (U32 i = 0; i < v[1].i; i++) {
+        for (U32 i=0; i < v[1].i; i++) {
             x *= v[0].i;;
         }
         SET_INT_RETURN(x);

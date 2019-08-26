@@ -149,7 +149,7 @@ c_range_inspect(mrbc_value v[], U32 argc)
         return;
     }
     mrbc_value v1, s1;
-    for (U32 i = 0; i < 2; i++) {
+    for (U32 i=0; i<2; i++) {
         if (i != 0) mrbc_string_append_cstr(&ret, (U8P)"..");
         v1 = (i == 0) ? v->range->first : v->range->last;
         s1 = guru_inspect(v+argc, &v1);

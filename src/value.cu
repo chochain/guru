@@ -189,8 +189,8 @@ guru_memset(U8 *d, const U8 v,  U32 sz)
 __GURU__ int
 guru_memcmp(const U8 *d, const U8 *s, U32 sz)
 {
-	int i = 0;
-    for (; s && d && i<sz && *d++==*s++; i++);
+	U32 i;
+    for (i=0; s && d && i<sz && *d++==*s++; i++);
 
     return i<sz;
 }
