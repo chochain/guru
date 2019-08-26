@@ -70,18 +70,18 @@ _session_add(guru_ses *ses, const U8P rite_fname, U32 trace)
 	return rst;
 }
 
-__HOST__ U32
-guru_setup(U32 trace)
+__HOST__ int
+guru_setup(int trace)
 {
 	U8P mem = _guru_mem = (U8P)guru_malloc(BLOCK_MEMORY_SIZE, 1);
 	if (!_guru_mem) {
 		fprintf(stderr, "ERROR: failed to allocate device main memory block!\n");
-		return 1;
+		return -1;
 	}
 	U8P out = _guru_out = (U8P)guru_malloc(MAX_BUFFER_SIZE, 1);	// allocate output buffer
 	if (!_guru_out) {
 		fprintf(stderr, "ERROR: output buffer allocation error!\n");
-		return 2;
+		return -2;
 	}
 	_ses_list = NULL;
 
@@ -102,21 +102,21 @@ guru_setup(U32 trace)
 	return 0;
 }
 
-__HOST__ U32
-guru_load(U8 **argv, U32 n, U32 trace)
+__HOST__ int
+guru_load(char **argv, int n, int trace)
 {
 	guru_ses *ses = (guru_ses *)malloc(sizeof(guru_ses) * n);
-	if (!ses) return 1;			// memory allocation error
+	if (!ses) return -1;			// memory allocation error
 
-	U32  rst;
+	int rst;
 	for (U32 i=1; i<=n; i++, ses++) {
-		if ((rst = _session_add(ses, argv[i], trace))) return rst;
+		if ((rst = _session_add(ses, (U8P)argv[i], trace))) return rst;
 	}
 	return 0;
 }
 
-__HOST__ U32
-guru_run(U32 trace)
+__HOST__ int
+guru_run(int trace)
 {
 	cudaError_t rst = guru_vm_run(_ses_list, trace);
     if (cudaSuccess != rst) {

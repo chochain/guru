@@ -88,10 +88,28 @@ typedef enum {
 
 #define TT_BOOL(v)		((v) ? GURU_TT_TRUE : GURU_TT_FALSE)
 
+// short notation
+typedef uint64_t    U64;
+typedef uint32_t	U32;
+typedef uint16_t    U16;
+typedef uint8_t		U8;
+
+typedef int32_t     S32;				// signed integer
+typedef int16_t		S16;
+
+typedef double		F64;				// double precision float
+typedef float       F32;				// single precision float
+
+typedef uint32_t    *U32P;
+typedef uint8_t     *U8P;
+typedef uintptr_t   U32A;				// pointer address
+
+#define U8PADD(p, n)	((U8 *)p + n)	// U8 pointer arithmetic
+
 // guru internal types
 typedef S32 		mrbc_int;
 typedef F32	 		mrbc_float;
-typedef S16 		mrbc_sym;
+typedef U32 		mrbc_sym;
 
 //================================================================
 /*!@brief
@@ -124,12 +142,12 @@ typedef struct RObject {					// 16-bytes
   Guru class object.
 */
 typedef struct RClass {						// 16-byte
+    mrbc_sym       	sym_id;					// class name
     struct RClass 	*super;					// mrbc_class[super]
     struct RProc  	*vtbl;					// mrbc_proc[rprocs], linked list
 #ifdef GURU_DEBUG
     U8P       		name;					// for debug. TODO: remove
 #endif
-    mrbc_sym       	sym_id;					// class name
 } mrbc_class;
 
 #define GURU_CFUNC 	0x80
@@ -170,6 +188,7 @@ typedef void (*mrbc_func_t)(mrbc_object *v, U32 argc);
 typedef struct RProc {			// 40-byte
     GURU_OBJECT_HEADER;
 
+    mrbc_sym 	 sym_id;		// u32
     struct RProc *next;
     union {
         struct RIrep *irep;
@@ -178,7 +197,6 @@ typedef struct RProc {			// 40-byte
 #ifdef GURU_DEBUG
     U8P     	 name;			// for debug. TODO: remove
 #endif
-    mrbc_sym 	 sym_id;		// u16
 } mrbc_proc;
 
 typedef struct guru_ses_ {
@@ -190,8 +208,8 @@ typedef struct guru_ses_ {
 	struct guru_ses_ *next;
 } guru_ses;
 
-U32 session_init(guru_ses *ses, U8P rite_fname, U32 trace);
-U32 session_start(guru_ses *ses, U32 trace);
+//U32 session_init(guru_ses *ses, U8P rite_fname, U32 trace);
+//U32 session_start(guru_ses *ses, U32 trace);
 
 #ifdef __cplusplus
 }

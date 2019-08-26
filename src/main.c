@@ -11,8 +11,8 @@ int  do_cuda(void);
 
 int main(int argc, char **argv)
 {
-	U32 trace = *argv[argc-1]=='1' ? 1 : (*argv[argc-1]=='2' ? 2 : 0);
-	U32 n     = argc - (trace ? 2 : 1);
+	int trace = *argv[argc-1]=='1' ? 1 : (*argv[argc-1]=='2' ? 2 : 0);
+	int n     = argc - (trace ? 2 : 1);
 
 	if (guru_setup(trace)) 			return -1;
 	if (guru_load(argv, n, trace)) 	return -2;

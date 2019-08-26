@@ -111,15 +111,15 @@ mrbc_get_proc_by_symid(mrbc_value rcv, mrbc_sym sid)
 
     while (cls != 0) {
         mrbc_proc *proc = cls->vtbl;
-        while (proc != 0) {
+        while (proc != 0) {					// walk the linked list
             if (proc->sym_id == sid) {
                 return proc;
             }
             proc = proc->next;
         }
-        cls = cls->super;
+        cls = cls->super;					// search the super class
     }
-    return 0;
+    return NULL;
 }
 
 //================================================================
