@@ -16,7 +16,6 @@
 #include "guru.h"
 #include "alloc.h"
 #include "static.h"
-#include "class.h"
 
 #include "console.h"
 #include "sprintf.h"
@@ -535,7 +534,6 @@ mrbc_init_class_hash()
     guru_add_proc(c, "count",	    c_hash_size);
     guru_add_proc(c, "merge",	    c_hash_merge);
     guru_add_proc(c, "merge!",	    c_hash_merge_self);
-    guru_add_proc(c, "to_h",	    c_nop);
     guru_add_proc(c, "values",	    c_hash_values);
 #if GURU_USE_STRING
     guru_add_proc(c, "inspect",		c_hash_inspect);

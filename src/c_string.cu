@@ -16,7 +16,6 @@
 #include "alloc.h"
 #include "static.h"
 #include "symbol.h"
-#include "class.h"
 
 #include "console.h"
 #include "sprintf.h"
@@ -751,7 +750,6 @@ mrbc_init_class_string()
     guru_add_proc(c, "size",	c_string_size);
     guru_add_proc(c, "length",	c_string_size);
     guru_add_proc(c, "to_i",	c_string_to_i);
-    guru_add_proc(c, "to_s",	c_nop);
     guru_add_proc(c, "<<",		c_string_append);
     guru_add_proc(c, "[]",		c_string_slice);
     guru_add_proc(c, "[]=",		c_string_insert);

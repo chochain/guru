@@ -23,8 +23,6 @@
 #include "sprintf.h"
 
 #include "opcode.h"
-#include "class.h"
-
 #include "object.h"
 #include "c_array.h"
 #include "c_string.h"

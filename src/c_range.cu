@@ -16,13 +16,12 @@
 #include "guru.h"
 #include "alloc.h"
 #include "static.h"
-#include "class.h"
 #include "symbol.h"
 
 #include "console.h"
 #include "opcode.h"
 
-#include "object.h"		// mrbc_send
+#include "object.h"		// guru_kind_of, guru_inspect
 #include "c_range.h"
 #include "c_string.h"
 

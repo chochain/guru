@@ -1,4 +1,5 @@
 /*! @file
+ *
   @brief
   mruby/c Fixnum and Float class
 
@@ -10,9 +11,9 @@
 
   </pre>
 */
+#include "guru.h"
 #include "value.h"
 #include "static.h"
-#include "class.h"
 #include "c_fixnum.h"
 
 #if GURU_USE_STRING
@@ -224,7 +225,6 @@ mrbc_init_class_fixnum(void)
     guru_add_proc(c, "<<", 		c_fixnum_lshift);
     guru_add_proc(c, ">>", 		c_fixnum_rshift);
     guru_add_proc(c, "abs",		c_fixnum_abs);
-    guru_add_proc(c, "to_i",	c_nop);
 #if GURU_USE_FLOAT
     guru_add_proc(c, "to_f",	c_fixnum_to_f);
 #endif
@@ -316,7 +316,6 @@ mrbc_init_class_float(void)
 #endif
     guru_add_proc(c, "abs", 	c_float_abs);
     guru_add_proc(c, "to_i", 	c_float_to_i);
-    guru_add_proc(c, "to_f", 	c_nop);
 #if GURU_USE_STRING
     guru_add_proc(c, "inspect", c_float_to_s);
     guru_add_proc(c, "to_s", 	c_float_to_s);
