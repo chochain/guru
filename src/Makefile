@@ -56,7 +56,7 @@ global.o: global.cu	    vm_config.h guru.h value.h global.h
 store.o: store.cu vm_config.h guru.h alloc.h value.h store.h
 
 symbol.o: symbol.cu 	vm_config.h guru.h alloc.h value.h symbol.h \
-						static.h class.h c_array.h
+						static.h c_array.h
 
 class.o: class.cu	    vm_config.h guru.h value.h alloc.h static.h symbol.h global.h \
 						console.h class.h
@@ -87,20 +87,18 @@ c_fixnum.o: c_fixnum.cu vm_config.h guru.h value.h static.h \
 
 c_string.o: c_string.cu vm_config.h guru.h value.h alloc.h static.h symbol.h \
 						console.h sprintf.h \
-						class.h c_string.h
+						c_string.h
 
 c_array.o: c_array.cu 	vm_config.h guru.h alloc.h static.h opcode.h object.h \
 						console.h errorcode.h \
-						class.h c_array.h \
-						c_string.h
+						c_array.h c_string.h
 
-c_range.o: c_range.cu 	vm_config.h guru.h alloc.h static.h symbol.h class.h \
-						console.h c_range.h \
-						c_string.h
+c_range.o: c_range.cu 	vm_config.h guru.h alloc.h static.h symbol.h \
+						console.h \
+						c_range.h c_string.h
 
 c_hash.o: c_hash.cu 	vm_config.h guru.h alloc.h static.h \
-						class.h c_hash.h \
-						c_array.h c_string.h 
+						c_hash.h c_array.h c_string.h 
 
 clean: 
 	$(RM) -R main.o $(LIB) $(OBJS) *~

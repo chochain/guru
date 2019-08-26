@@ -15,7 +15,6 @@
 #include "value.h"
 #include "alloc.h"
 #include "static.h"
-#include "class.h"
 #include "symbol.h"
 
 #if GURU_USE_ARRAY
@@ -251,7 +250,6 @@ __GURU__ void mrbc_init_class_symbol()  // << from symbol.cu
     guru_add_proc(c, "to_s", 		c_to_s);
     guru_add_proc(c, "id2name", 	c_to_s);
 #endif
-    guru_add_proc(c, "to_sym", 		c_nop);
 }
 
 
