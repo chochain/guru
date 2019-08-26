@@ -200,16 +200,17 @@ typedef struct RProc {			// 40-byte
 } mrbc_proc;
 
 typedef struct guru_ses_ {
-	U8 	*in;
-	U8	*out;
+	U8P in;
+	U8P out;
 	U16 id;
 	U16 trace;
 
 	struct guru_ses_ *next;
 } guru_ses;
 
-//U32 session_init(guru_ses *ses, U8P rite_fname, U32 trace);
-//U32 session_start(guru_ses *ses, U32 trace);
+// internal methods which uses (const char *) for static string									// in class.cu
+__GURU__ mrbc_class *guru_add_class(const char *name, mrbc_class *super);						// use (char *) for static string
+__GURU__ void       guru_add_proc(mrbc_class *cls, const char *name, mrbc_func_t cfunc);
 
 #ifdef __cplusplus
 }
