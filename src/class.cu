@@ -27,6 +27,22 @@
 __GURU__ U32 _mutex_cls;
 
 //================================================================
+/* methods to add core class/proc for GURU
+ * it uses (const U8 *) for static string
+ */
+__GURU__ mrbc_class*
+guru_add_class(const char *name, mrbc_class *super)
+{
+	return mrbc_define_class((U8P)name, super);
+}
+
+__GURU__ void
+guru_add_proc(mrbc_class *cls, const char *name, mrbc_func_t cfunc)
+{
+	mrbc_define_method(cls, (U8P)name, cfunc);
+}
+
+//================================================================
 /*!@brief
   find class by object
 
@@ -63,22 +79,6 @@ mrbc_get_class_by_object(mrbc_object *obj)
     default:		      cls = mrbc_class_object;	    break;
     }
     return cls;
-}
-
-//================================================================
-/* methods to add core class/proc for GURU
- * it uses (const U8 *) for static string
- */
-__GURU__ mrbc_class*
-guru_add_class(const char *name, mrbc_class *super)
-{
-	return mrbc_define_class((U8P)name, super);
-}
-
-__GURU__ void
-guru_add_proc(mrbc_class *cls, const char *name, mrbc_func_t cfunc)
-{
-	mrbc_define_method(cls, (U8P)name, cfunc);
 }
 
 //================================================================
@@ -198,25 +198,3 @@ mrbc_define_method(mrbc_class *cls, const U8P name, mrbc_func_t cfunc)
 
     MUTEX_FREE(_mutex_cls);
 }
-
-// =============== ProcClass
-__GURU__ void
-c_proc_call(mrbc_value v[], U32 argc)
-{
-	// not suppose to come here
-	assert(1==0);		// taken care by vm#op_send
-}
-
-//================================================================
-// Object class
-//================================================================
-/*! Nop operator / method
- */
-__GURU__ void
-c_nop(mrbc_value v[], U32 argc)
-{
-    // nothing to do.
-}
-
-
-

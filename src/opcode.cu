@@ -24,6 +24,7 @@
 #include "console.h"
 
 #include "opcode.h"
+#include "object.h"
 #include "class.h"
 
 #if GURU_USE_STRING
@@ -36,6 +37,7 @@
 #endif
 
 __GURU__ U32 _mutex_op;
+
 //
 // becareful with the following macros, because they release regs[ra] first
 // so, make sure value is kept before the release

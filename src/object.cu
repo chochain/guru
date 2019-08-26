@@ -120,6 +120,13 @@ mrbc_send(mrbc_value v[], mrbc_value *rcv, const U8P method, U32 argc, ...)
     return ret;
 }
 
+//================================================================
+__GURU__ void
+c_nop(mrbc_value v[], U32 argc)
+{
+	// do nothing
+}
+
 #ifdef GURU_DEBUG
 //================================================================
 /*! (method) p
@@ -374,6 +381,16 @@ _init_class_object()
 #endif
 }
 
+//================================================================
+// ProcClass
+//================================================================
+__GURU__ void
+c_proc_call(mrbc_value v[], U32 argc)
+{
+	// not suppose to come here
+	assert(1==0);		// taken care by vm#op_send
+}
+
 #if GURU_USE_STRING
 __GURU__ void
 c_proc_inspect(mrbc_value v[], U32 argc)
@@ -391,10 +408,10 @@ _init_class_proc()
     // Class
     mrbc_class *c = mrbc_class_proc = guru_add_class("Proc", mrbc_class_object);
     // Methods
-    guru_add_proc(c, "call", (mrbc_func_t)c_proc_call);
+    guru_add_proc(c, "call", 	c_proc_call);
 #if GURU_USE_STRING
-    guru_add_proc(c, "inspect", 	c_proc_inspect);
-    guru_add_proc(c, "to_s", 		c_proc_inspect);
+    guru_add_proc(c, "inspect", c_proc_inspect);
+    guru_add_proc(c, "to_s", 	c_proc_inspect);
 #endif
 }
 
