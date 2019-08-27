@@ -210,7 +210,7 @@ typedef struct guru_ses_ {
 
 // internal methods which uses (const char *) for static string									// in class.cu
 __GURU__ mrbc_class *guru_add_class(const char *name, mrbc_class *super);						// use (char *) for static string
-__GURU__ void       guru_add_proc(mrbc_class *cls, const char *name, mrbc_func_t cfunc);
+__GURU__ mrbc_proc  *guru_add_proc(mrbc_class *cls, const char *name, mrbc_func_t cfunc);
 
 #ifdef __cplusplus
 }

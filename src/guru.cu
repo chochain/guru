@@ -17,12 +17,12 @@ extern "C" __GPU__ void guru_global_init(void);
 extern "C" __GPU__ void guru_class_init(void);
 extern "C" __GPU__ void guru_console_init(U8 *buf, U32 sz);
 
-U8P _guru_mem;			// guru global memory
-U8P _guru_out;			// guru output stream
-guru_ses *_ses_list;			// session linked-list
+U8P _guru_mem;				// guru global memory
+U8P _guru_out;				// guru output stream
+guru_ses *_ses_list = NULL; // session linked-list
 
 __HOST__ U8P
-_get_request_bytecode(const U8P rite_fname)
+_fetch_bytecode(const U8P rite_fname)
 {
   FILE *fp = fopen((const char *)rite_fname, "rb");
 
@@ -44,30 +44,6 @@ _get_request_bytecode(const U8P rite_fname)
   fclose(fp);
 
   return req;
-}
-
-__HOST__ U32
-_session_add(guru_ses *ses, const U8P rite_fname, U32 trace)
-{
-	ses->trace = trace;
-	ses->out   = _guru_out;
-
-	U8P in = ses->in = _get_request_bytecode(rite_fname);
-	if (!in) {
-		fprintf(stderr, "ERROR: bytecode request allocation error!\n");
-		return 3;
-	}
-	cudaError_t rst = guru_vm_setup(ses, trace);
-	if (cudaSuccess != rst) {
-		fprintf(stderr, "ERROR: virtual memory block allocation error!\n");
-		return 1;
-	}
-	if (trace) guru_dump_alloc_stat();
-
-	ses->next = _ses_list;		// add to linked-list
-	_ses_list = ses;
-
-	return rst;
 }
 
 __HOST__ int
@@ -103,22 +79,36 @@ guru_setup(int trace)
 }
 
 __HOST__ int
-guru_load(char **argv, int n, int trace)
+guru_load(char *rite_name, int step, int trace)
 {
-	guru_ses *ses = (guru_ses *)malloc(sizeof(guru_ses) * n);
-	if (!ses) return -1;			// memory allocation error
+	guru_ses *ses = (guru_ses *)malloc(sizeof(guru_ses));
+	if (!ses) return -1;		// memory allocation error
 
-	int rst;
-	for (U32 i=1; i<=n; i++, ses++) {
-		if ((rst = _session_add(ses, (U8P)argv[i], trace))) return rst;
+	ses->trace = trace;
+	ses->out   = _guru_out;
+
+	U8P in = ses->in = _fetch_bytecode((U8P)rite_name);
+	if (!in) {
+		fprintf(stderr, "ERROR: bytecode request allocation error!\n");
+		return -2;
 	}
+	cudaError_t rst = guru_vm_setup(ses, step);
+	if (cudaSuccess != rst) {
+		fprintf(stderr, "ERROR: virtual memory block allocation error!\n");
+		return -3;
+	}
+	if (trace) guru_dump_alloc_stat();
+
+	ses->next = _ses_list;		// add to linked-list
+	_ses_list = ses;
+
 	return 0;
 }
 
 __HOST__ int
 guru_run(int trace)
 {
-	cudaError_t rst = guru_vm_run(_ses_list, trace);
+	cudaError_t rst = guru_vm_run(_ses_list);
     if (cudaSuccess != rst) {
     	fprintf(stderr, "\nERR> %s\n", cudaGetErrorString(rst));
     }
@@ -126,7 +116,7 @@ guru_run(int trace)
 		printf("guru_session completed\n");
 		guru_dump_alloc_stat();
 	}
-	rst = guru_vm_release(_ses_list, trace);
+	rst = guru_vm_release(_ses_list);
 
 	return cudaSuccess != rst;
 }
