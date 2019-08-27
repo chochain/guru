@@ -28,7 +28,7 @@ extern "C" {
 /*!@brief
   IREP Internal REPresentation
 */
-typedef struct RIrep {	// 32-bytes
+typedef struct RIrep {	// 32-byte
     U32	size;			// size of entire IREP block
     U32 ilen;			//!< # of bytecodes (by iseq below)
 
@@ -49,9 +49,9 @@ typedef struct RIrep {	// 32-bytes
   Call information
 */
 
-typedef struct RState {
-    U32 pc   : 16;	// program counter
-    U32 argc : 16;  // num of args
+typedef struct RState {			// 24-byte
+    U32 pc;						// program counter
+    U32 argc;  					// num of args
 
     mrbc_class      *klass;		// current class
     mrbc_value      *reg;		// pointer to current register (in VM register file)
@@ -63,14 +63,15 @@ typedef struct RState {
 /*!@brief
   Virtual Machine
 */
-typedef struct VM {
-    U32	id   : 14;			// allocation control (0 means free)
-    U32	step : 1;			// for single-step debug level
-    U32	run  : 1;			// to exit vm loop
-    U32	err  : 16;			// error code/condition
+typedef struct VM {				// 12 + 32*reg bytes
+    U32	id   : 14;				// allocation control (0 means free)
+    U32	step : 1;				// for single-step debug level
+    U32	run  : 1;				// to exit vm loop
+    U32	err  : 16;				// error code/condition
 
-    guru_irep  *irep;		// pointer to IREP tree
-    guru_state *state;		// VM state (callinfo) linked list
+    guru_irep  *irep;			// pointer to IREP tree
+    guru_state *state;			// VM state (callinfo) linked list
+
     mrbc_value regfile[MAX_REGS_SIZE];
 } guru_vm;
 
@@ -121,16 +122,9 @@ typedef struct VM {
 __GURU__ __INLINE__ U32
 _bin_to_u32(const void *s)
 {
-#if GURU_REQUIRE_32BIT_ALIGNMENT
+#if GURU_32BIT_ALIGN_REQUIRED
     U8P p = (U8P)s;
-    U32 x = *p++;
-    x <<= 8;
-    x |= *p++;
-    x <<= 8;
-    x |= *p++;
-    x <<= 8;
-    x |= *p;
-    return x;
+    return (U32)(p[0]<<24) | (p[1]<<16) |  (p[2]<<8) | p[3];
 #else
     U32 x = *((U32P)s);
     return (x << 24) | ((x & 0xff00) << 8) | ((x >> 8) & 0xff00) | (x >> 24);
@@ -147,11 +141,9 @@ _bin_to_u32(const void *s)
 __GURU__ __INLINE__ U16
 _bin_to_u16(const void *s)
 {
-#if GURU_REQUIRE_32BIT_ALIGNMENT
+#if GURU_32BIT_ALIGN_REQUIRED
     U8P p = (U8P)s;
-    U16 x = *p++ << 8;
-    x |= *p;
-    return x;
+    return (U16)(p[0]<<8) | p[1];
 #else
     U16 x = *((U16P)s);
     return (x << 8) | (x >> 8);

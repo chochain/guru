@@ -341,7 +341,7 @@ mrbc_alloc(U32 size)
     //  (1 << (L1_BITS + L2_BITS + MN_BITS)) - alpha
     U32 alloc_size = size + sizeof(used_block);
 
-#if GURU_REQUIRE_64BIT_ALIGNMENT
+#if GURU_64BIT_ALIGN_REQUIRED
     alloc_size += ((8 - alloc_size) & 7);	// 8-byte align
 #endif
     // check minimum alloc size. if need.

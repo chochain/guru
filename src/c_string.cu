@@ -76,7 +76,7 @@ _new(const U8P src, U32 len)
     mrbc_string *h = (mrbc_string *)mrbc_alloc(sizeof(mrbc_string));
 
     assert(h!=NULL);			// out of memory
-#if GURU_REQUIRE_64BIT_ALIGNMENT
+#if GURU_64BIT_ALIGN_REQUIERD
     assert(((U32A)h & 7)==0);
 #endif
 
@@ -85,7 +85,7 @@ _new(const U8P src, U32 len)
         mrbc_free(h);
         return ret;
     }
-#if GURU_REQUIRE_64BIT_ALIGNMENT
+#if GURU_64BIT_ALIGN_REQUIRED
     assert(((U32A)s & 7)==0);
 #endif
 
@@ -256,7 +256,7 @@ mrbc_string_append(mrbc_value *v0, const mrbc_value *v1)
     U8P s = (U8P)mrbc_realloc(v0->str->data, len0+len1+1);		// +'\0'
 
     assert(s!=NULL);						// out of memory
-#if GURU_REQUIRE_64BIT_ALIGNMENT
+#if GURU_64BIT_ALIGN_REQUIRED
     assert(((U32A)s & 7)==0);
 #endif
     if (v1->tt==GURU_TT_STRING) {			// append str2
@@ -286,7 +286,7 @@ mrbc_string_append_cstr(mrbc_value *v0, const U8P v1)
     U8P s = (U8P)mrbc_realloc(v0->str->data, len0+len1+1);
 
     assert(s!=NULL);						// out of memory
-#if GURU_REQUIRE_64BIT_ALIGNMENT
+#if GURU_64BIT_ALIGN_REQUIRED
     assert(((U32A)s & 7)==0);
 #endif
     MEMCPY(s + len0, v1, len1 + 1);
