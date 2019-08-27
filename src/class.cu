@@ -36,10 +36,10 @@ guru_add_class(const char *name, mrbc_class *super)
 	return mrbc_define_class((U8P)name, super);
 }
 
-__GURU__ void
+__GURU__ mrbc_proc*
 guru_add_proc(mrbc_class *cls, const char *name, mrbc_func_t cfunc)
 {
-	mrbc_define_method(cls, (U8P)name, cfunc);
+	return mrbc_define_method(cls, (U8P)name, cfunc);
 }
 
 //================================================================
@@ -183,12 +183,14 @@ mrbc_alloc_proc(const U8P name)
   @param  name		method name.
   @param  cfunc		pointer to function.
 */
-__GURU__ void
+__GURU__ mrbc_proc*
 mrbc_define_method(mrbc_class *cls, const U8P name, mrbc_func_t cfunc)
 {
     if (cls==NULL) cls = mrbc_class_object;		// set default to Object.
 
     mrbc_proc *proc = mrbc_alloc_proc(name);
+
+    if (!proc) return NULL;
 
     MUTEX_LOCK(_mutex_cls);
 
@@ -197,4 +199,6 @@ mrbc_define_method(mrbc_class *cls, const U8P name, mrbc_func_t cfunc)
     cls->vtbl 	= proc;
 
     MUTEX_FREE(_mutex_cls);
+
+    return proc;
 }
