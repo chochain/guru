@@ -116,9 +116,9 @@ typedef U32 		mrbc_sym;
   Guru value object.
 */
 typedef struct RObject {					// 16-bytes
+    U32					 size : 16;			// 32-bit aligned
     mrbc_vtype           tt   : 8;			// 8-bit
     U32				 	 flag : 8;			// reserved
-    U32					 size : 16;			// reserved, 32-bit aligned
     union {
         mrbc_int         i;					// GURU_TT_FIXNUM, SYMBOL
 #if GURU_USE_FLOAT
@@ -154,14 +154,14 @@ typedef struct RClass {						// 16-byte
 #define IS_CFUNC(m)	((m)->flag & GURU_CFUNC)
 
 #define GURU_OBJECT_HEADER      \
+	U32				refc : 16;	\
 	mrbc_vtype  	tt   : 8; 	\
-	U32				flag : 8;	\
-	U32				refc : 16;
+	U32				flag : 8;
 
 typedef struct RString {		// 12-byte
 	GURU_OBJECT_HEADER;			// 4-byte
 
-	U32 size;					//!< string length.
+	U32 len;					//!< string length.
 	U8P data;					//!< pointer to allocated buffer.
 } mrbc_string;
 

@@ -32,7 +32,7 @@ extern "C" __GURU__ void mrbc_store_delete(mrbc_value *v);		// store.cu
 __GURU__ S32
 _string_compare(const mrbc_value *v1, const mrbc_value *v2)
 {
-	if (v1->str->size != v2->str->size) return -1;
+	if (v1->str->len != v2->str->len) return -1;
 
 	return STRCMP(v1->str->data, v2->str->data);
 }

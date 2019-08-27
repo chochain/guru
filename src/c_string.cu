@@ -46,7 +46,7 @@ _is_space(U8 ch)
 __GURU__ __INLINE__ U32
 _size(const mrbc_value *v)
 {
-    return v->str->size;
+    return v->str->len;
 }
 
 //================================================================
@@ -95,7 +95,7 @@ _new(const U8P src, U32 len)
 
     h->refc = 1;
     h->tt   = GURU_TT_STRING;	// TODO: for DEBUG
-    h->size = len;
+    h->len  = len;
     h->data = s;
 
     ret.str = h;
@@ -116,10 +116,10 @@ _dup(const mrbc_value *v0)
 {
     mrbc_string *h0 = v0->str;
 
-    mrbc_value v1 = _new(NULL, h0->size);		// refc already set to 1
-    if (v1.str==NULL) return v1;							// ENOMEM
+    mrbc_value v1 = _new(NULL, h0->len);		// refc already set to 1
+    if (v1.str==NULL) return v1;				// ENOMEM
 
-    MEMCPY(v1.str->data, h0->data, h0->size + 1);
+    MEMCPY(v1.str->data, h0->data, h0->len + 1);
 
     return v1;
 }
@@ -177,15 +177,15 @@ _strip(mrbc_value *v, U32 mode)
             p1--;
         }
     }
-    U32 new_size = p1 - p0 + 1;
-    if (_size(v)==new_size) return 0;
+    U32 new_len = p1 - p0 + 1;
+    if (_size(v)==new_len) return 0;
 
     U8P buf = _data(v);
-    if (p0 != buf) MEMCPY(buf, p0, new_size);
-    buf[new_size] = '\0';
+    if (p0 != buf) MEMCPY(buf, p0, new_len);
+    buf[new_len] = '\0';
 
-    v->str->data = (U8P)mrbc_realloc(buf, new_size+1);	// shrink suitable size.
-    v->str->size = new_size;
+    v->str->data = (U8P)mrbc_realloc(buf, new_len+1);	// shrink suitable size.
+    v->str->len = new_len;
 
     return 1;
 }
@@ -205,12 +205,12 @@ _chomp(mrbc_value *v)
     if (*p1=='\n') p1--;
     if (*p1=='\r') p1--;
 
-    U32 new_size = p1 - p0 + 1;
-    if (_size(v)==new_size) return 0;
+    U32 new_len = p1 - p0 + 1;
+    if (_size(v)==new_len) return 0;
 
     U8P buf = _data(v);
-    buf[new_size] = '\0';
-    v->str->size = new_size;
+    buf[new_len] = '\0';
+    v->str->len = new_len;
 
     return 1;
 }
@@ -250,8 +250,8 @@ mrbc_string_delete(mrbc_value *v)
 __GURU__ void
 mrbc_string_append(mrbc_value *v0, const mrbc_value *v1)
 {
-    U32 len0 = v0->str->size;
-    U32 len1 = (v1->tt==GURU_TT_STRING) ? v1->str->size : 1;
+    U32 len0 = v0->str->len;
+    U32 len1 = (v1->tt==GURU_TT_STRING) ? v1->str->len : 1;
 
     U8P s = (U8P)mrbc_realloc(v0->str->data, len0+len1+1);		// +'\0'
 
@@ -266,7 +266,7 @@ mrbc_string_append(mrbc_value *v0, const mrbc_value *v1)
         s[len0]   = v1->i;
         s[len0+1] = '\0';
     }
-    v0->str->size = len0 + len1;
+    v0->str->len  = len0 + len1;
     v0->str->data = s;
 }
 
@@ -280,7 +280,7 @@ mrbc_string_append(mrbc_value *v0, const mrbc_value *v1)
 __GURU__ void
 mrbc_string_append_cstr(mrbc_value *v0, const U8P v1)
 {
-    U32 len0 = v0->str->size;
+    U32 len0 = v0->str->len;
     U32 len1 = STRLEN(v1);
 
     U8P s = (U8P)mrbc_realloc(v0->str->data, len0+len1+1);
@@ -291,7 +291,7 @@ mrbc_string_append_cstr(mrbc_value *v0, const U8P v1)
 #endif
     MEMCPY(s + len0, v1, len1 + 1);
 
-    v0->str->size = len0 + len1;
+    v0->str->len  = len0 + len1;
     v0->str->data = s;
 }
 
@@ -309,11 +309,11 @@ mrbc_string_add(const mrbc_value *v1, const mrbc_value *v2)
     mrbc_string *h1 = v1->str;
     mrbc_string *h2 = v2->str;
 
-    mrbc_value  v  = _new(NULL, h1->size + h2->size);
+    mrbc_value  v  = _new(NULL, h1->len + h2->len);
     mrbc_string *s = v.str;
 
-    MEMCPY(s->data,            h1->data, h1->size);
-    MEMCPY(s->data + h1->size, h2->data, h2->size + 1);	// include the '\0'
+    MEMCPY(s->data,           h1->data, h1->len);
+    MEMCPY(s->data + h1->len, h2->data, h2->len + 1);	// include the '\0'
 
     return v;
 }
@@ -414,7 +414,7 @@ c_string_slice(mrbc_value v[], U32 argc)
     mrbc_value *v2 = &v[2];
 
     if (argc==1 && v1->tt==GURU_TT_FIXNUM) {		// slice(n) -> String | nil
-        U32 len = v->str->size;
+        U32 len = v->str->len;
         S32 idx = v1->i;
         S32 ch = -1;
         if (idx >= 0) {
@@ -439,7 +439,7 @@ c_string_slice(mrbc_value v[], U32 argc)
         SET_RETURN(ret);
     }
     else if (argc==2 && v1->tt==GURU_TT_FIXNUM && v2->tt==GURU_TT_FIXNUM) { 	// slice(n, len) -> String | nil
-        U32 len = v->str->size;
+        U32 len = v->str->len;
         S32 idx = v1->i;
         if (idx < 0) idx += len;
         if (idx < 0) goto RETURN_NIL;
@@ -492,8 +492,8 @@ c_string_insert(mrbc_value v[], U32 argc)
         return;
     }
 
-    U32 len1 = v->str->size;
-    U32 len2 = val->str->size;
+    U32 len1 = v->str->len;
+    U32 len2 = val->str->len;
     if (nth < 0) nth = len1 + nth;               // adjust to positive number.
     if (len > len1 - nth) len = len1 - nth;
     if (nth < 0 || nth > len1 || len < 0) {
@@ -506,7 +506,7 @@ c_string_insert(mrbc_value v[], U32 argc)
 
     MEMCPY(str + nth + len2, str + nth + len, len1 - nth - len + 1);
     MEMCPY(str + nth, (U8P)_data(val), len2);
-    v->str->size = len1 + len2 - len;
+    v->str->len = len1 + len2 - len;
 
     v->str->data = str;
 
