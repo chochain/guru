@@ -29,6 +29,8 @@
 #include "vmx.h"
 #include "vm.h"
 
+__HOST__ cudaError_t _vm_trace(U32 level);		// forward
+
 U32     _vm_pool_ok = 0;
 guru_vm *_vm_pool;
 
@@ -144,18 +146,13 @@ _vm_pool_init(void)
 	if (!vm) return 0;
 
 	for (U32 i=1; i<=MIN_VM_COUNT; i++, vm++) {
-		vm->id   = 0;
-#ifdef GURU_DEBUG
-		vm->step = 1;
-#else
-		vm->step = 0;
-#endif
+		vm->id = vm->step = vm->run = vm->err = 0;
 	}
 	return MIN_VM_COUNT;
 }
 
 __HOST__ cudaError_t
-guru_vm_setup(guru_ses *ses, U32 trace)
+guru_vm_setup(guru_ses *ses, U32 step)
 {
 #if GURU_HOST_IMAGE
 	if (!_vm_pool_ok) {
@@ -167,6 +164,7 @@ guru_vm_setup(guru_ses *ses, U32 trace)
 	for (i=1; i<=MIN_VM_COUNT; i++, vm++) {
 		if (vm->id == 0) {			// whether vm is unallocated
 			vm->id = ses->id = i;	// found, assign vm to session
+			vm->step = step;
 			break;
 		}
 	}
@@ -180,7 +178,7 @@ guru_vm_setup(guru_ses *ses, U32 trace)
 	guru_parse_bytecode<<<1,1>>>(vm, ses->in);
 	cudaDeviceSynchronize();
 #endif
-	if (trace) {
+	if (ses->trace) {
 		printf("  vm[%d]: %p\n", vm->id, (void *)vm);
 		guru_show_irep(vm->irep);
 	}
@@ -188,13 +186,13 @@ guru_vm_setup(guru_ses *ses, U32 trace)
 }
 
 __HOST__ cudaError_t
-guru_vm_run(guru_ses *ses, U32 trace)
+guru_vm_run(guru_ses *ses)
 {
     _vm_begin<<<MIN_VM_COUNT, 1>>>(_vm_pool);
 	cudaDeviceSynchronize();
 
 	do {	// TODO: flip session/vm centric view into app-server style main loop
-		guru_vm_trace(trace);
+		_vm_trace(ses->trace);
 
 		_vm_exec<<<MIN_VM_COUNT, 1>>>(_vm_pool);
 		cudaDeviceSynchronize();
@@ -210,7 +208,7 @@ guru_vm_run(guru_ses *ses, U32 trace)
 }
 
 __HOST__ cudaError_t
-guru_vm_release(guru_ses *ses, U32 trace)
+guru_vm_release(guru_ses *ses)
 {
 	// TODO: release vm back to pool
 	return cudaSuccess;
@@ -256,10 +254,10 @@ _find_irep(guru_irep *irep0, guru_irep *irep1, U8P idx)
 __HOST__ void
 _show_decoder(guru_vm *vm)
 {
-	U16 pc    = vm->state->pc;
-	U32 *iseq = (U32 *)VM_ISEQ(vm);
-	U16 opid  = (*(iseq + pc) >> 24) & 0x7f;
-	U8P opc   = (U8P)_opcode[GET_OPCODE(opid)];
+	U16  pc    = vm->state->pc;
+	U32  *iseq = (U32*)VM_ISEQ(vm);
+	U16  opid  = (*(iseq + pc) >> 24) & 0x7f;		// in HOST mode, GET_OPCODE() is DEVICE code
+	U8P  opc   = (U8P)_opcode[GET_OPCODE(opid)];
 
 	U8 idx = 'a';
 	if (!_find_irep(vm->irep, vm->state->irep, &idx)) idx='?';
@@ -328,13 +326,13 @@ _show_decoder(mrbc_vm *vm)
 #endif	// GURU_HOST_IMAGE
 
 __HOST__ cudaError_t
-guru_vm_trace(U32 level)
+_vm_trace(U32 level)
 {
 	if (level==0) return cudaSuccess;
 
 	guru_vm *vm = _vm_pool;
 	for (U32 i=0; i<MIN_VM_COUNT; i++, vm++) {
-		if (vm->id > 0 && vm->run) {
+		if (vm->id > 0 && vm->run && vm->step) {
 			guru_state *st = vm->state;
 			while (st->prev) {
 				printf("%p <-- ", st);
@@ -347,6 +345,8 @@ guru_vm_trace(U32 level)
 
 	return cudaSuccess;
 }
+#else
+__HOST__ cudaError_t _vm_trace(U32 level) { return cudaSuccess; }
 #endif 	// GURU_DEBUG
 
 
