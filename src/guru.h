@@ -113,9 +113,9 @@ typedef U32 		mrbc_sym;
 
 //================================================================
 /*!@brief
-  Guru value object.
+  Guru value and object (use same struct for simplification).
 */
-typedef struct RObject {					// 16-bytes
+typedef struct RObject {					// 8-bytes
     U32					 size : 16;			// 32-bit aligned
     mrbc_vtype           tt   : 8;			// 8-bit
     U32				 	 flag : 8;			// reserved

@@ -58,7 +58,7 @@ __GURU__ U8P
 _vm_symbol(guru_vm *vm, U32 n)
 {
 	guru_irep *irep = VM_IREP(vm);
-	U32 *p = (U32 *)U8PADD(irep, irep->sym  + n * sizeof(U32));
+	U32P p = (U32P)U8PADD(irep, irep->sym  + n * sizeof(U32));
 
 	return U8PADD(irep, *p);
 }
@@ -70,19 +70,19 @@ _vm_symid(guru_vm *vm, U32 n)
 	return name2symid(name);
 }
 
-__GURU__ U32*
+__GURU__ U32P
 _vm_pool(guru_vm *vm, U32 n)
 {
 	guru_irep *irep = VM_IREP(vm);
 
-	return (U32 *)U8PADD(irep, irep->pool + n*sizeof(U32));
+	return (U32P)U8PADD(irep, irep->pool + n*sizeof(U32));
 }
 
 __GURU__ guru_irep*
 _vm_irep_list(guru_vm *vm, U32 n)
 {
 	guru_irep *irep = VM_IREP(vm);
-	U32  *p    = (U32 *)U8PADD(irep, irep->list + n*sizeof(U32));
+	U32P p = (U32P)U8PADD(irep, irep->list + n*sizeof(U32));
 
 	return (guru_irep *)U8PADD(irep, *p);
 }
@@ -268,7 +268,7 @@ op_loadl(guru_vm *vm, U32 code, mrbc_value *regs)
     int ra = GETARG_A(code);
     int rb = GETARG_Bx(code);
 
-    U32 *p = _vm_pool(vm, rb);
+    U32P p = _vm_pool(vm, rb);
     mrbc_object obj;
 
     if (*p & 1) {
@@ -1227,7 +1227,7 @@ op_string(guru_vm *vm, U32 code, mrbc_value *regs)
 	int ra = GETARG_A(code);
     int rb = GETARG_Bx(code);
 
-    U32 *p   = _vm_pool(vm, rb);
+    U32P p   = _vm_pool(vm, rb);
     U8P str  = (U8P)U8PADD(VM_IREP(vm), *p);
     mrbc_value ret = mrbc_string_new(str);
 
@@ -1303,8 +1303,8 @@ op_array(guru_vm *vm, U32 code, mrbc_value *regs)
     mrbc_value *pb = &regs[rb];
     if (h==NULL) return vm->err = 255;	// ENOMEM
 
-    MEMCPY((U8 *)h->data, (U8 *)pb, sz);
-    MEMSET((U8 *)pb, 0, sz);
+    MEMCPY((U8P)h->data, (U8P)pb, sz);
+    MEMSET((U8P)pb, 0, sz);
     h->n = rc;
 
     _RA_V(ret);
@@ -1339,12 +1339,12 @@ op_hash(guru_vm *vm, U32 code, mrbc_value *regs)
     mrbc_value *p  = &regs[rb];
     if (h==NULL) return vm->err = 255;					// ENOMEM
 
-    MEMCPY((U8 *)h->data, (U8 *)p, sz);		// copy k,v pairs
+    MEMCPY((U8P)h->data, (U8P)p, sz);					// copy k,v pairs
 
     for (U32 i=0; i<(h->n=(rc<<1)); i++, p++) {
     	p->tt = GURU_TT_EMPTY;							// clean up call stack
     }
-    _RA_V(ret);						                // set return value on stack top
+    _RA_V(ret);						                	// set return value on stack top
 #else
     console_na("Hash class");
 #endif
@@ -1490,9 +1490,9 @@ op_method(guru_vm *vm, U32 code, mrbc_value *regs)
     	return 0;
     }
 
-    mrbc_class 	*cls   = regs[ra].cls;
-    mrbc_proc 	*proc  = regs[ra+1].proc;
-    mrbc_sym	sid    = _vm_symid(vm, rb);
+    mrbc_class 	*cls  = regs[ra].cls;
+    mrbc_proc 	*prc  = regs[ra+1].proc;
+    mrbc_sym	sid   = _vm_symid(vm, rb);
 
     MUTEX_LOCK(_mutex_op);
 
@@ -1514,11 +1514,11 @@ op_method(guru_vm *vm, U32 code, mrbc_value *regs)
     }
 
     // add proc to class
-    proc->sym_id = sid;
-    proc->flag   &= ~GURU_CFUNC;
+    prc->sym_id = sid;
+    prc->flag   &= ~GURU_CFUNC;
 
-    proc->next   = cls->vtbl;				// add to top of vtable
-    cls->vtbl    = proc;
+    prc->next   = cls->vtbl;				// add to top of vtable
+    cls->vtbl   = prc;
 
     MUTEX_FREE(_mutex_op);
 

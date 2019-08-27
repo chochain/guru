@@ -28,9 +28,9 @@
 #define MSB_BIT 		31                                      // 32-bit MMU
 #define FL_SLOTS		(L1_BITS * (1 << L2_BITS))				// slots for free_list pointers (24 * 16 entries)
 
-#define NEXT(p) 		((U8*)(p) + (p)->size)
-#define PREV(p) 		((U8*)(p) - (p)->poff)
-#define OFF(p0,p1) 		((U8*)(p1) - (U8*)(p0))
+#define NEXT(p) 		((U8P)(p) + (p)->size)
+#define PREV(p) 		((U8P)(p) - (p)->poff)
+#define OFF(p0,p1) 		((U8P)(p1) - (U8P)(p0))
 
 // semaphore
 __GURU__ volatile U32 	_mutex_mem;
@@ -84,7 +84,7 @@ __ffs(U32 x)
   @retval int		index of free_blocks
 */
 __GURU__ U32
-__idx(U32 sz, U32 *l1, U32 *l2)
+__idx(U32 sz, U32P l1, U32P l2)
 {
 	U32 v = __fls(sz);
 	U32 x = __ffs(sz);
@@ -285,7 +285,7 @@ _split_free_block(free_block *target, U32 size)
     if (target->size < (size + sizeof(free_block) + MN_BLOCK)) return; // too small to split 											// too small to split
 
     // split block, free
-    free_block *free = (free_block *)((U8*)target + size);	// future next block
+    free_block *free = (free_block *)U8PADD(target, size);			// future next block
     free_block *next = (free_block *)NEXT(target);					// current next
 
     free->size   = target->size - size;								// carve out the block
@@ -314,7 +314,7 @@ _init_mmu(void *mem, U32 size)
     assert(size > 0);
 
     _mutex_mem		  = 0;
-    _memory_pool      = (U8*)mem;
+    _memory_pool      = (U8P)mem;
     _memory_pool_size = size;
 
     // initialize entire memory pool as the first block
@@ -359,7 +359,7 @@ mrbc_alloc(U32 size)
 	free_block *target 	= _mark_used(index);
 
 #ifdef GURU_DEBUG
-    U32 *p = (U32*)BLOCKDATA(target);
+    U32P p = (U32P)BLOCKDATA(target);
     for (U32 i=0; i < (alloc_size - sizeof(used_block))>>2; i++) *p++ = 0xaaaaaaaa;
 #endif
 	_split_free_block(target, alloc_size);
@@ -518,14 +518,14 @@ guru_malloc(U32 sz, U32 type)
 __HOST__ void
 guru_malloc_stat(U32 stat[])
 {
-	U32 *v;
-	cudaMallocManaged(&v, 8*sizeof(int));
+	U32P v;
+	cudaMallocManaged(&v, 8*sizeof(int));				// allocate host memory
 
 	_alloc_stat<<<1,1>>>(v);
 	cudaDeviceSynchronize();
 
 	for (U32 i=0; i<8; i++) {
-		stat[i] = v[i];
+		stat[i] = v[i];									// mirror stat back from device
 	}
 	cudaFree(v);
 }

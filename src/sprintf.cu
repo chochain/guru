@@ -32,7 +32,7 @@ __GURU__ void
 _init(mrbc_printf *pf, U8P buf, U32 sz, const U8P fstr)
 {
     pf->buf = pf->p = buf;    
-    pf->end = (U8 *)buf + sz - 1;
+    pf->end = buf + sz - 1;
     pf->fstr= fstr;
     pf->fmt = (mrbc_print_fmt){0};
 }
@@ -154,7 +154,7 @@ _resize(mrbc_printf *pf)
 	}
 
 	U32 nsz = (pf->end - pf->buf + 1) + inc;	        // new size
-	U8  *nbuf = (U8 *)mrbc_realloc(pf->buf, nsz);	// deep copy
+	U8P nbuf = (U8P)mrbc_realloc(pf->buf, nsz);	// deep copy
 	if (!nbuf) return 0;
 
     pf->buf = nbuf;
@@ -257,9 +257,9 @@ __bstr(mrbc_printf *pf, U8P str, U32 len, U8 pad)
 __GURU__ int
 __float(mrbc_printf *pf, double value)
 {
-    U8 fstr[16];
-    const U8 *p0 = pf->fstr;
-    U8       *p1 = fstr + sizeof(fstr) - 1;
+    U8  fstr[16];
+    U8P p0 = (U8P)pf->fstr;
+    U8P p1 = fstr + sizeof(fstr) - 1;
 
     *p1 = '\0';
     while ((*--p1 = *--p0) != '%');

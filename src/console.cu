@@ -15,8 +15,8 @@
 #include "console.h"
 
 __GURU__ U32 _output_size;
-__GURU__ U8  *_output_ptr;		// global output buffer for now, per session later
-__GURU__ U8  *_output_buf;
+__GURU__ U8P _output_ptr;		// global output buffer for now, per session later
+__GURU__ U8P _output_buf;
 
 __GURU__ volatile U32 _mutex_con;
 
@@ -92,7 +92,7 @@ console_na(const U8 *msg)
 	console_str("\n");
 }
 
-__GURU__ U8*
+__GURU__ U8P
 _console_va_arg(U8 *p)
 {
     U8 ch;

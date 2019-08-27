@@ -370,7 +370,7 @@ guru_show_irep(guru_irep *irep)
 }
 #endif
 
-#else	// !GURU_HOST_IMAGE
+#else	// !GURU_HOST_IMAGE (i.e. DEVICE_IMAGE)
 
 __GURU__ int
 _load_header(const uint8_t **pos)
