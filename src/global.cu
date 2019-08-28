@@ -12,42 +12,42 @@
 typedef enum {
     GURU_GLOBAL_OBJECT = 1,
     GURU_CONST_OBJECT,
-} mrbc_gtype;
+} _gtype;
 
-typedef struct mrbc_gobject_ {
-    mrbc_sym 	sym_id;
-    mrbc_object obj;
-    mrbc_gtype 	gtype 	:8;
-} mrbc_gobject;
+typedef struct _gobject_ {
+    mrbc_sym 		sym_id;
+    mrbc_object 	obj;
+    _gtype 			gtype 	:8;
+} _gobject;
 
 // max of global object in mrbc_global[]
-__GURU__ U32 _mutex_gobj;
+__GURU__ U32 		_mutex_gobj;
 
-__GURU__ U32 _global_end;
-__GURU__ mrbc_gobject _mrbc_global[MAX_GLOBAL_COUNT];
+__GURU__ U32 		_global_idx;
+__GURU__ _gobject 	_global[MAX_GLOBAL_COUNT];
 
 /* search */
 /* linear search is not efficient! */
 /* TODO: Use binary search */
 __GURU__ U32
-_get_idx(mrbc_sym sid, mrbc_gtype gtype)
+_get_idx(mrbc_sym sid, _gtype gt)
 {
-    for (U32 i=0 ; i < _global_end ; i++) {
-        mrbc_gobject *obj = &_mrbc_global[i];
-        if (obj->sym_id == sid && obj->gtype == gtype) return i;
+    for (U32 i=0; i < _global_idx ; i++) {
+        _gobject *obj = &_global[i];
+        if (obj->sym_id == sid && obj->gtype == gt) return i;
     }
     return MAX_GLOBAL_COUNT;
 }
 
 __GURU__ mrbc_value
-_get_obj(mrbc_sym sid, mrbc_gtype gtype)
+_get_obj(mrbc_sym sid, _gtype gt)
 {
-    U32 index = _get_idx(sid, gtype);
+    U32 idx = _get_idx(sid, gt);
 
-    if (index==MAX_GLOBAL_COUNT) return mrbc_nil_value();
+    if (idx==MAX_GLOBAL_COUNT) return mrbc_nil_value();
 
-    mrbc_retain(&_mrbc_global[index].obj);
-    return _mrbc_global[index].obj;
+    mrbc_retain(&_global[idx].obj);
+    return _global[idx].obj;
 }
 
 /* add */
@@ -60,15 +60,15 @@ global_object_add(mrbc_sym sid, mrbc_value v)
     MUTEX_LOCK(_mutex_gobj);
 
     if (idx < MAX_GLOBAL_COUNT) {
-        mrbc_release(&(_mrbc_global[idx].obj));
+        mrbc_release(&(_global[idx].obj));
      }
     else {
-        idx = ++_global_end;
+        idx = ++_global_idx;
          assert(idx < MAX_GLOBAL_COUNT);	// maybe raise ex
     }
-    _mrbc_global[idx].sym_id = sid;
-    _mrbc_global[idx].obj    = v;
-    _mrbc_global[idx].gtype  = GURU_GLOBAL_OBJECT;
+    _global[idx].sym_id = sid;
+    _global[idx].obj    = v;
+    _global[idx].gtype  = GURU_GLOBAL_OBJECT;
 
     MUTEX_FREE(_mutex_gobj);
     
@@ -84,16 +84,16 @@ const_object_add(mrbc_sym sid, mrbc_object *obj)
 
     if (idx < MAX_GLOBAL_COUNT) {
         // warning: already initialized constant.
-        mrbc_release(&(_mrbc_global[idx].obj));
+        mrbc_release(&(_global[idx].obj));
     }
     else {
-        idx = ++_global_end;
+        idx = ++_global_idx;
         assert(idx < MAX_GLOBAL_COUNT);	// maybe raise ex
     }
 
-    _mrbc_global[idx].sym_id = sid;
-    _mrbc_global[idx].obj    = *obj;
-    _mrbc_global[idx].gtype  = GURU_CONST_OBJECT;
+    _global[idx].sym_id = sid;
+    _global[idx].obj    = *obj;
+    _global[idx].gtype  = GURU_CONST_OBJECT;
 
     MUTEX_FREE(_mutex_gobj);
 
@@ -120,7 +120,7 @@ guru_global_init(void)
 	if (blockIdx.x!=0 || threadIdx.x!=0) return;
 
 	_mutex_gobj = 0;
-	_global_end = 0;
+	_global_idx = 0;
 }
 
 
