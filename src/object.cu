@@ -282,7 +282,7 @@ c_object_attr_reader(mrbc_value v[], U32 argc)
 
         // define reader method
         U8P name = VSYM(&v[i]);
-        mrbc_define_method(v[0].cls, name, (mrbc_func_t)c_object_getiv);
+        mrbc_define_method(v[0].cls, name, c_object_getiv);
     }
 }
 
@@ -297,7 +297,7 @@ c_object_attr_accessor(mrbc_value v[], U32 argc)
 
         // define reader method
         U8P name = VSYM(&v[i]);
-        mrbc_define_method(v[0].cls, name, (mrbc_func_t)c_object_getiv);
+        mrbc_define_method(v[0].cls, name, c_object_getiv);
 
         // make string "....=" and define writer method.
         U8P buf = (U8P)mrbc_alloc(STRLEN(name)+2);
@@ -306,7 +306,7 @@ c_object_attr_accessor(mrbc_value v[], U32 argc)
         STRCPY(buf, name);
         STRCAT(buf, (U8P)"=");
         mrbc_symbol_new(buf);
-        mrbc_define_method(v[0].cls, buf, (mrbc_func_t)c_object_setiv);
+        mrbc_define_method(v[0].cls, buf, c_object_setiv);
         mrbc_free(buf);
     }
 }
@@ -365,9 +365,9 @@ _init_class_object()
     guru_add_proc(c, "!",             	c_object_not);
     guru_add_proc(c, "!=",            	c_object_neq);
     guru_add_proc(c, "<=>",           	c_object_compare);
-    guru_add_proc(c, "===",           	(mrbc_func_t)c_object_equal3);
+    guru_add_proc(c, "===",           	c_object_equal3);
     guru_add_proc(c, "class",         	c_object_class);
-    guru_add_proc(c, "new",           	(mrbc_func_t)c_object_new);
+    guru_add_proc(c, "new",           	c_object_new);
     guru_add_proc(c, "attr_reader",   	c_object_attr_reader);
     guru_add_proc(c, "attr_accessor", 	c_object_attr_accessor);
     guru_add_proc(c, "is_a?",         	c_object_kind_of);
