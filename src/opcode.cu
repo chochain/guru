@@ -192,7 +192,7 @@ _vm_object_new(guru_vm *vm, mrbc_value v[], U32 argc)
     mrbc_retain(&obj);
 
     // context switch, which is not multi-thread ready
-    // TODO: create a vm context object with separate regfile
+    // TODO: create a vm context object with separate regfile, i.e. explore _push_state/_pop_state
     guru_state  *st    = vm->state;
 
     uint16_t    pc0    = st->pc;
@@ -220,7 +220,7 @@ _vm_object_new(guru_vm *vm, mrbc_value v[], U32 argc)
 
   @param  vm    A pointer of VM.
   @param  code  bytecode
-  @param  regs  vm->regfile + vm->state->reg
+  @param  regs  pointer to regfile
   @retval 0  No error.
 */
 __GURU__ int
@@ -237,7 +237,7 @@ op_nop(guru_vm *vm, U32 code, mrbc_value *regs)
 
   @param  vm    A pointer of VM.
   @param  code  bytecode
-  @param  regs  vm->regfile + vm->state->reg
+  @param  regs  pointer to regfile
   @retval 0  No error.
 */
 __GURU__ int
@@ -259,7 +259,7 @@ op_move(guru_vm *vm, U32 code, mrbc_value *regs)
 
   @param  vm    A pointer of VM.
   @param  code  bytecode
-  @param  regs  vm->regfile + vm->state->reg
+  @param  regs  pointer to regfile
   @retval 0  No error.
 */
 __GURU__ int
@@ -292,7 +292,7 @@ op_loadl(guru_vm *vm, U32 code, mrbc_value *regs)
 
   @param  vm    A pointer of VM.
   @param  code  bytecode
-  @param  regs  vm->regfile + vm->state->reg
+  @param  regs  pointer to regfile
   @retval 0  No error.
 */
 __GURU__ int
@@ -315,7 +315,7 @@ op_loadi(guru_vm *vm, U32 code, mrbc_value *regs)
 
   @param  vm    A pointer of VM.
   @param  code  bytecode
-  @param  regs  vm->regfile + vm->state->reg
+  @param  regs  pointer to regfile
   @retval 0  No error.
 */
 __GURU__ int
@@ -339,7 +339,7 @@ op_loadsym(guru_vm *vm, U32 code, mrbc_value *regs)
 
   @param  vm    A pointer of VM.
   @param  code  bytecode
-  @param  regs  vm->regfile + vm->state->reg
+  @param  regs  pointer to regfile
   @retval 0  No error.
 */
 __GURU__ int
@@ -360,7 +360,7 @@ op_loadnil(guru_vm *vm, U32 code, mrbc_value *regs)
 
   @param  vm    A pointer of VM.
   @param  code  bytecode
-  @param  regs  vm->regfile + vm->state->reg
+  @param  regs  pointer to regfile
   @retval 0  No error.
 */
 __GURU__ int
@@ -381,7 +381,7 @@ op_loadself(guru_vm *vm, U32 code, mrbc_value *regs)
 
   @param  vm    A pointer of VM.
   @param  code  bytecode
-  @param  regs  vm->regfile + vm->state->reg
+  @param  regs  pointer to regfile
   @retval 0  No error.
 */
 __GURU__ int
@@ -402,7 +402,7 @@ op_loadt(guru_vm *vm, U32 code, mrbc_value *regs)
 
   @param  vm    A pointer of VM.
   @param  code  bytecode
-  @param  regs  vm->regfile + vm->state->reg
+  @param  regs  pointer to regfile
   @retval 0  No error.
 */
 __GURU__ int
@@ -423,7 +423,7 @@ op_loadf(guru_vm *vm, U32 code, mrbc_value *regs)
 
   @param  vm    A pointer of VM.
   @param  code  bytecode
-  @param  regs  vm->regfile + vm->state->reg
+  @param  regs  pointer to regfile
   @retval 0  No error.
 */
 __GURU__ int
@@ -447,7 +447,7 @@ op_getglobal(guru_vm *vm, U32 code, mrbc_value *regs)
 
   @param  vm    A pointer of VM.
   @param  code  bytecode
-  @param  regs  vm->regfile + vm->state->reg
+  @param  regs  pointer to regfile
   @retval 0  No error.
 */
 __GURU__ int
@@ -470,7 +470,7 @@ op_setglobal(guru_vm *vm, U32 code, mrbc_value *regs)
 
   @param  vm    A pointer of VM.
   @param  code  bytecode
-  @param  regs  vm->regfile + vm->state->reg
+  @param  regs  pointer to regfile
   @retval 0  No error.
 */
 __GURU__ int
@@ -496,7 +496,7 @@ op_getiv(guru_vm *vm, U32 code, mrbc_value *regs)
 
   @param  vm    A pointer of VM.
   @param  code  bytecode
-  @param  regs  vm->regfile + vm->state->reg
+  @param  regs  pointer to regfile
   @retval 0  No error.
 */
 __GURU__ int
@@ -521,7 +521,7 @@ op_setiv(guru_vm *vm, U32 code, mrbc_value *regs)
 
   @param  vm    A pointer of VM.
   @param  code  bytecode
-  @param  regs  vm->regfile + vm->state->reg
+  @param  regs  pointer to regfile
   @retval 0  No error.
 */
 __GURU__ int
@@ -546,7 +546,7 @@ op_getconst(guru_vm *vm, U32 code, mrbc_value *regs)
 
   @param  vm    A pointer of VM.
   @param  code  bytecode
-  @param  regs  vm->regfile + vm->state->reg
+  @param  regs  pointer to regfile
   @retval 0  No error.
 */
 __GURU__ int
@@ -568,7 +568,7 @@ op_setconst(guru_vm *vm, U32 code, mrbc_value *regs) {
 
   @param  vm    A pointer of VM.
   @param  code  bytecode
-  @param  regs  vm->regfile + vm->state->reg
+  @param  regs  pointer to regfile
   @retval 0  No error.
 */
 __GURU__ int
@@ -600,7 +600,7 @@ op_getupvar(guru_vm *vm, U32 code, mrbc_value *regs)
 
   @param  vm    A pointer of VM.
   @param  code  bytecode
-  @param  regs  vm->regfile + vm->state->reg
+  @param  regs  pointer to regfile
   @retval 0  No error.
 */
 __GURU__ int
@@ -634,7 +634,7 @@ op_setupvar(guru_vm *vm, U32 code, mrbc_value *regs)
 
   @param  vm    A pointer of VM.
   @param  code  bytecode
-  @param  regs  vm->regfile + vm->state->reg
+  @param  regs  pointer to regfile
   @retval 0  No error.
 */
 __GURU__ int
@@ -652,7 +652,7 @@ op_jmp(guru_vm *vm, U32 code, mrbc_value *regs)
 
   @param  vm    A pointer of VM.
   @param  code  bytecode
-  @param  regs  vm->regfile + vm->state->reg
+  @param  regs  pointer to regfile
   @retval 0  No error.
 */
 __GURU__ int
@@ -672,7 +672,7 @@ op_jmpif (guru_vm *vm, U32 code, mrbc_value *regs)
 
   @param  vm    A pointer of VM.
   @param  code  bytecode
-  @param  regs  vm->regfile + vm->state->reg
+  @param  regs  pointer to regfile
   @retval 0  No error.
 */
 __GURU__ int
@@ -694,7 +694,7 @@ op_jmpnot(guru_vm *vm, U32 code, mrbc_value *regs)
 
   @param  vm    A pointer of VM.
   @param  code  bytecode
-  @param  regs  vm->regfile + vm->state->reg
+  @param  regs  pointer to regfile
   @retval 0  No error.
 */
 __GURU__ int
@@ -731,17 +731,17 @@ op_send(guru_vm *vm, U32 code, mrbc_value *regs)
     	console_na(name);							// dump error, bail out
     	return 0;
     }
-    if (IS_CFUNC(m)) {					// is m->func a C function
-        if (m->func==c_proc_call) {
-        	_vm_proc_call(vm, regs+ra, rc);
+    if (IS_CFUNC(m)) {
+    	if (m->func==c_proc_call) {		// because VM is not passed to dispatcher, special handling needed for call() and new()
+    		_vm_proc_call(vm, regs+ra, rc);
         }
         else if (m->func==c_object_new) {
         	_vm_object_new(vm, regs+ra, rc);
         }
         else {
         	m->func(regs+ra, rc);					// call the C-func
-        	for (U32 i=ra+1; i<=bidx; i++) {		// clean up block parameters
-                mrbc_release(&regs[i]);
+            for (U32 i=ra+1; i<=bidx; i++) {		// clean up block parameters
+            	mrbc_release(&regs[i]);
             }
         }
     }
@@ -763,7 +763,7 @@ op_send(guru_vm *vm, U32 code, mrbc_value *regs)
 
   @param  vm    A pointer of VM.
   @param  code  bytecode
-  @param  regs  vm->regfile + vm->state->reg
+  @param  regs  pointer to regfile
   @retval 0  No error.
 */
 __GURU__ int
@@ -788,7 +788,7 @@ op_call(guru_vm *vm, U32 code, mrbc_value *regs)
 
   @param  vm    A pointer of VM.
   @param  code  bytecode
-  @param  regs  vm->regfile + vm->state->reg
+  @param  regs  pointer to regfile
   @retval 0  No error.
 */
 __GURU__ int
@@ -813,7 +813,7 @@ op_enter(guru_vm *vm, U32 code, mrbc_value *regs)
 
   @param  vm    A pointer of VM.
   @param  code  bytecode
-  @param  regs  vm->regfile + vm->state->reg
+  @param  regs  pointer to regfile
   @retval 0  No error.
 */
 __GURU__ int
@@ -840,7 +840,7 @@ op_return(guru_vm *vm, U32 code, mrbc_value *regs)
 
   @param  vm    A pointer of VM.
   @param  code  bytecode
-  @param  regs  vm->regfile + vm->state->reg
+  @param  regs  pointer to regfile
   @retval 0  No error.
 */
 __GURU__ int
@@ -866,7 +866,7 @@ op_blkpush(guru_vm *vm, U32 code, mrbc_value *regs)
 
   @param  vm    A pointer of VM.
   @param  code  bytecode
-  @param  regs  vm->regfile + vm->state->reg
+  @param  regs  pointer to regfile
   @retval 0  No error.
 */
 __GURU__ int
@@ -907,7 +907,7 @@ op_add(guru_vm *vm, U32 code, mrbc_value *regs)
 
   @param  vm    A pointer of VM.
   @param  code  bytecode
-  @param  regs  vm->regfile + vm->state->reg
+  @param  regs  pointer to regfile
   @retval 0  No error.
 */
 __GURU__ int
@@ -935,7 +935,7 @@ op_addi(guru_vm *vm, U32 code, mrbc_value *regs)
 
   @param  vm    A pointer of VM.
   @param  code  bytecode
-  @param  regs  vm->regfile + vm->state->reg
+  @param  regs  pointer to regfile
   @retval 0  No error.
 */
 __GURU__ int
@@ -976,7 +976,7 @@ op_sub(guru_vm *vm, U32 code, mrbc_value *regs)
 
   @param  vm    A pointer of VM.
   @param  code  bytecode
-  @param  regs  vm->regfile + vm->state->reg
+  @param  regs  pointer to regfile
   @retval 0  No error.
 */
 __GURU__ int
@@ -1004,7 +1004,7 @@ op_subi(guru_vm *vm, U32 code, mrbc_value *regs)
 
   @param  vm    A pointer of VM.
   @param  code  bytecode
-  @param  regs  vm->regfile + vm->state->reg
+  @param  regs  pointer to regfile
   @retval 0  No error.
 */
 __GURU__ int
@@ -1044,7 +1044,7 @@ op_mul(guru_vm *vm, U32 code, mrbc_value *regs)
 
   @param  vm    A pointer of VM.
   @param  code  bytecode
-  @param  regs  vm->regfile + vm->state->reg
+  @param  regs  pointer to regfile
   @retval 0  No error.
 */
 __GURU__ int
@@ -1084,7 +1084,7 @@ op_div(guru_vm *vm, U32 code, mrbc_value *regs)
 
   @param  vm    A pointer of VM.
   @param  code  bytecode
-  @param  regs  vm->regfile + vm->state->reg
+  @param  regs  pointer to regfile
   @retval 0  No error.
 */
 __GURU__ int
@@ -1133,7 +1133,7 @@ do {													\
 
   @param  vm    A pointer of VM.
   @param  code  bytecode
-  @param  regs  vm->regfile + vm->state->reg
+  @param  regs  pointer to regfile
   @retval 0  No error.
 */
 __GURU__ int
@@ -1154,7 +1154,7 @@ op_lt(guru_vm *vm, U32 code, mrbc_value *regs)
 
   @param  vm    A pointer of VM.
   @param  code  bytecode
-  @param  regs  vm->regfile + vm->state->reg
+  @param  regs  pointer to regfile
   @retval 0  No error.
 */
 __GURU__ U32
@@ -1175,7 +1175,7 @@ op_le(guru_vm *vm, U32 code, mrbc_value *regs)
 
   @param  vm    A pointer of VM.
   @param  code  bytecode
-  @param  regs  vm->regfile + vm->state->reg
+  @param  regs  pointer to regfile
   @retval 0  No error.
 */
 __GURU__ int
@@ -1196,7 +1196,7 @@ op_gt(guru_vm *vm, U32 code, mrbc_value *regs)
 
   @param  vm    A pointer of VM.
   @param  code  bytecode
-  @param  regs  vm->regfile + vm->state->reg
+  @param  regs  pointer to regfile
   @retval 0  No error.
 */
 __GURU__ int
@@ -1217,7 +1217,7 @@ op_ge(guru_vm *vm, U32 code, mrbc_value *regs)
 
   @param  vm    A pointer of VM.
   @param  code  bytecode
-  @param  regs  vm->regfile + vm->state->reg
+  @param  regs  pointer to regfile
   @retval 0  No error.
 */
 __GURU__ int
@@ -1248,7 +1248,7 @@ op_string(guru_vm *vm, U32 code, mrbc_value *regs)
 
   @param  vm    A pointer of VM.
   @param  code  bytecode
-  @param  regs  vm->regfile + vm->state->reg
+  @param  regs  pointer to regfile
   @retval 0  No error.
 */
 __GURU__ int
@@ -1286,7 +1286,7 @@ op_strcat(guru_vm *vm, U32 code, mrbc_value *regs)
 
   @param  vm    A pointer of VM.
   @param  code  bytecode
-  @param  regs  vm->regfile + vm->state->reg
+  @param  regs  pointer to regfile
   @retval 0  No error.
 */
 __GURU__ int
@@ -1322,7 +1322,7 @@ op_array(guru_vm *vm, U32 code, mrbc_value *regs)
 
   @param  vm    A pointer of VM.
   @param  code  bytecode
-  @param  regs  vm->regfile + vm->state->reg
+  @param  regs  pointer to regfile
   @retval 0  No error.
 */
 __GURU__ int
@@ -1359,7 +1359,7 @@ op_hash(guru_vm *vm, U32 code, mrbc_value *regs)
 
   @param  vm    A pointer of VM.
   @param  code  bytecode
-  @param  regs  vm->regfile + vm->state->reg
+  @param  regs  pointer to regfile
   @retval 0  No error.
 */
 __GURU__ int
@@ -1392,7 +1392,7 @@ op_range(guru_vm *vm, U32 code, mrbc_value *regs)
 
   @param  vm    A pointer of VM.
   @param  code  bytecode
-  @param  regs  vm->regfile + vm->state->reg
+  @param  regs  pointer to regfile
   @retval 0  No error.
 */
 __GURU__ int
@@ -1422,7 +1422,7 @@ op_lambda(guru_vm *vm, U32 code, mrbc_value *regs)
 
   @param  vm    A pointer of VM.
   @param  code  bytecode
-  @param  regs  vm->regfile + vm->state->reg
+  @param  regs  pointer to regfile
   @retval 0  No error.
 */
 __GURU__ int
@@ -1447,7 +1447,7 @@ op_class(guru_vm *vm, U32 code, mrbc_value *regs)
 
   @param  vm    A pointer of VM.
   @param  code  bytecode
-  @param  regs  vm->regfile + vm->state->reg
+  @param  regs  pointer to regfile
   @retval 0  No error.
 */
 __GURU__ int
@@ -1476,7 +1476,7 @@ op_exec(guru_vm *vm, U32 code, mrbc_value *regs)
 
   @param  vm    A pointer of VM.
   @param  code  bytecode
-  @param  regs  vm->regfile + vm->state->reg
+  @param  regs  pointer to regfile
   @retval 0  No error.
 */
 __GURU__ int
@@ -1535,7 +1535,7 @@ op_method(guru_vm *vm, U32 code, mrbc_value *regs)
 
   @param  vm    A pointer of VM.
   @param  code  bytecode
-  @param  regs  vm->regfile + vm->state->reg
+  @param  regs  pointer to regfile
   @retval 0  No error.
 */
 __GURU__ int
@@ -1557,7 +1557,7 @@ op_tclass(guru_vm *vm, U32 code, mrbc_value *regs)
 
   @param  vm    A pointer of VM.
   @param  code  bytecode
-  @param  regs  vm->regfile + vm->state->reg
+  @param  regs  pointer to regfile
   @retval -1  No error and exit from vm.
 */
 __GURU__ int
@@ -1573,17 +1573,27 @@ op_abort(guru_vm *vm, U32 code, mrbc_value *regs)
 	return -1;		// exit guru_op loop
 }
 
+//===========================================================================================
+// GURU engine
+//===========================================================================================
 __GURU__ int
 guru_op(guru_vm *vm)
 {
 	if (threadIdx.x != 0) return 0;	// TODO: multi-thread
 
+	//=======================================================================================
+	// GURU instruction unit
+	//=======================================================================================
 	U32 code   = GET_BYTECODE(vm);
 	U32 opcode = GET_OPCODE(code);
 	mrbc_value *regs  = vm->state->reg;
-	int ret;
 
     vm->state->pc++;				// advance program counter, ready for next cycle
+
+    //=======================================================================================
+	// GURU dispatcher unit
+	//=======================================================================================
+	int ret;
     switch (opcode) {
     // LOAD,STORE
     case OP_LOADL:      ret = op_loadl     (vm, code, regs); break;
