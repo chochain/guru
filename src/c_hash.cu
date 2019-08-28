@@ -156,7 +156,7 @@ _remove(mrbc_value *kv, mrbc_value *key)
     mrbc_hash  *h  = kv->hash;
     h->n -= 2;
 
-    MEMCPY((uint8_t *)v, (uint8_t *)(v+2), (uint8_t *)(h->data + h->n) - (uint8_t *)v);
+    MEMCPY(v, (v+2), U8POFF(U8PADD(h->data, h->n), v));
 
     // TODO: re-index hash table if need.
 

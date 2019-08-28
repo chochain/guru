@@ -104,7 +104,8 @@ typedef uint32_t    *U32P;
 typedef uint8_t     *U8P;
 typedef uintptr_t   U32A;				// pointer address
 
-#define U8PADD(p, n)	((U8 *)p + n)	// U8 pointer arithmetic
+#define U8PADD(p, n)	((U8 *)p + n)					// U8 pointer arithmetic
+#define U8POFF(p1, p0)	((U32)((U8 *)p1 - (U8 *)p0))	// pointer offset
 
 // guru internal types
 typedef S32 		mrbc_int;
@@ -185,7 +186,7 @@ typedef struct RVar {			// 16-byte
 struct Irep;
 typedef void (*mrbc_func_t)(mrbc_object *v, U32 argc);
 
-typedef struct RProc {			// 40-byte
+typedef struct RProc {			// 20-byte
     GURU_OBJECT_HEADER;
 
     mrbc_sym 	 sym_id;		// u32
@@ -199,7 +200,7 @@ typedef struct RProc {			// 40-byte
 #endif
 } mrbc_proc;
 
-typedef struct guru_ses_ {
+typedef struct guru_ses_ {		// 16-byte
 	U8P in;
 	U8P out;
 	U16 id;

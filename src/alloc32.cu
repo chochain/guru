@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <assert.h>
 #include "alloc.h"
+#include "sprintf.h"
 
 // TLSF: Two-Level Segregated Fit allocator with O(1) time complexity.
 // Layer 1st(f), 2nd(s) model, smallest block 16-bytes, 16-byte alignment
@@ -463,8 +464,8 @@ _alloc_stat(U32 v[])
 
 	used_block *p = (used_block *)_memory_pool;
 
-	U32 flag = p->free;
-	while (1) {
+	U32 flag = p->free;				// starting block type
+	while (1) {	// walk the memory pool
 		if (flag != p->free) {       // supposed to be merged
 			nfrag++;
 			flag = p->free;
@@ -475,7 +476,7 @@ _alloc_stat(U32 v[])
 			nfree += 1;
 			free  += p->size;
 		}
-		if (!p->free) {
+		else {
 			nused += 1;
 			used  += p->size;
 		}
