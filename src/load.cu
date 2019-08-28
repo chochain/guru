@@ -1,14 +1,6 @@
 /*! @file
   @brief
-  Guru bytecode loader.
-
-  <pre>
-  Copyright (C) 2015-2017 Kyushu Institute of Technology.
-  Copyright (C) 2015-2017 Shimane IT Open-Innovation Center.
-
-  This file is distributed under BSD 3-Clause License.
-
-  </pre>
+  Guru bytecode loader, image built in HOST and passed into GPU
 */
 #include <assert.h>
 #include "vm_config.h"
@@ -25,6 +17,7 @@
 #include "vm.h"
 #include "load.h"
 
+#if GURU_HOST_IMAGE
 //================================================================
 /*!@brief
   Parse header section.
@@ -43,8 +36,6 @@
   "0000"	compiler version
   </pre>
 */
-#if GURU_HOST_IMAGE
-
 __HOST__ U32
 bin_to_u32(const void *s)
 {
@@ -242,7 +233,7 @@ _load_irep_0(U8P *pirep, U8P *pos)
 	U8P base = (U8P)irep;
 
 	_get_irep_size(irep, pos);			// populate metadata of current IREP
-    _build_image(pirep, src);
+    _build_image(pirep, src);			// build IREP image in HOST, push into GPU later
 
     // recursively create the child irep tree
     U32P p = (U32P)U8PADD(base, irep->list);
@@ -345,17 +336,18 @@ guru_parse_bytecode(guru_vm *vm, U8P ptr)
         }
     }
 }
+
 #ifdef GURU_DEBUG
 __HOST__ void
-_show_irep(guru_irep *irep, uint32_t ioff, char level, char *idx)
+_show_irep(guru_irep *irep, U32 ioff, char level, char *idx)
 {
 	printf("\tirep[%c]=%c%04x: size=%d, nreg=%d, nlocal=%d, pools=%d, syms=%d, reps=%d, ilen=%d\n",
 			*idx, level, ioff,
 			irep->size, irep->nreg, irep->nlv, irep->plen, irep->slen, irep->rlen, irep->ilen);
 
 	// dump all children ireps
-	uint8_t  *base = (uint8_t *)irep;
-	uint32_t *off  = (uint32_t *)(base + irep->list);		// pointer to irep offset array
+	U8  *base = (U8 *)irep;
+	U32 *off  = (U32 *)(base + irep->list);		// pointer to irep offset array
 	for (U32 i=0; i<irep->rlen; i++) {
 		*idx += 1;
 		_show_irep((guru_irep *)(base + off[i]), off[i], level+1, idx);
@@ -368,262 +360,7 @@ guru_show_irep(guru_irep *irep)
 	char idx = 'a';
 	_show_irep(irep, 0, 'A', &idx);
 }
-#endif
-
-#else	// !GURU_HOST_IMAGE (i.e. DEVICE_IMAGE)
-
-__GURU__ int
-_load_header(const uint8_t **pos)
-{
-    const uint8_t *p = *pos;
-
-    if (MEMCMP(p, "RITE0004", 8) != 0) {
-        return LOAD_FILE_HEADER_ERROR_VERSION;
-    }
-
-    /* Ignore CRC */
-    /* Ignore size */
-
-    if (MEMCMP(p + 14, "MATZ", 4) != 0) {
-        return LOAD_FILE_HEADER_ERROR_MATZ;
-    }
-    if (MEMCMP(p + 18, "0000", 4) != 0) {
-        return LOAD_FILE_HEADER_ERROR_VERSION;
-    }
-    *pos += 22;
-
-    return NO_ERROR;
-}
-
-//================================================================
-/*!@brief
-  read one irep section.
-
-  @param  vm    A pointer of VM.
-  @param  pos	A pointer of pointer of IREP section.
-  @return       Pointer of allocated mrbc_irep or NULL
-
-  <pre>
-  (loop n of child irep bellow)
-  0000_0000	record size
-  0000		n of local variable
-  0000		n of register
-  0000		n of child irep
-
-  0000_0000	n of byte code  (ISEQ BLOCK)
-  ...		byte codes		(padded to 4-byte align)
-
-  0000_0000	n of pool		(POOL BLOCK)
-  (loop n of pool)
-  00		type
-  0000		length
-  ...		pool data
-
-  0000_0000	n of symbol		(SYMS BLOCK)
-  (loop n of symbol)
-  0000		length
-  ...		symbol data
-  </pre>
-*/
-__GURU__ int
-_load_irep_1(mrbc_irep *irep, const uint8_t **pos)
-{
-    const uint8_t *p = *pos + 4;		// skip "IREP"
-
-    // nlocals,nregs,rlen
-    irep->nlv  = _bin_to_uint16(p);	p += sizeof(uint16_t);		// number of local variables
-    irep->nreg = _bin_to_uint16(p);	p += sizeof(uint16_t);		// number of registers used
-    irep->rlen = _bin_to_uint16(p);	p += sizeof(uint16_t);		// number of child IREP blocks
-    irep->ilen = _bin_to_uint32(p);	p += sizeof(uint32_t);		// ISEQ (bytecodes) length
-
-    p += ((uint8_t *)irep - p) & 0x03;	// 32-bit align code pointer
-
-    irep->iseq = (uint32_t *)p;			p += irep->ilen * sizeof(uint32_t);		// ISEQ (code) block
-    irep->plen = _bin_to_uint32(p);		p += sizeof(uint32_t);					// POOL block
-
-    if (irep->rlen) {					// allocate child irep's pointers (later filled by _load_irep_0)
-        irep->list = (mrbc_irep **)mrbc_alloc(sizeof(mrbc_irep *) * irep->rlen);
-        if (irep->list==NULL) {
-            return LOAD_FILE_IREP_ERROR_ALLOCATION;
-        }
-    }
-    if (irep->plen) {					// allocate pool of object pointers
-        irep->pool = (mrbc_object**)mrbc_alloc(sizeof(void*) * irep->plen);
-        if (irep->pool==NULL) {
-            return LOAD_FILE_IREP_ERROR_ALLOCATION;
-        }
-    }
-
-    for (U32 i=0; i < irep->plen; i++) {		// build object pool
-        int  tt = *p++;
-        int  obj_size = _bin_to_uint16(p);	p += sizeof(uint16_t);
-        char buf[64+2];
-
-        mrbc_object *obj = (mrbc_object *)mrbc_alloc(sizeof(mrbc_object));
-        if (obj==NULL) {
-            return LOAD_FILE_IREP_ERROR_ALLOCATION;
-        }
-        switch (tt) {
-        case 0: { 	// IREP_TT_STRING
-            obj->tt  = GURU_TT_STRING;
-            obj->sym = (char *)p;
-        } break;
-        case 1: { 	// IREP_TT_FIXNUM
-            MEMCPY((uint8_t *)buf, p, obj_size);
-            buf[obj_size] = '\0';
-
-            obj->tt = GURU_TT_FIXNUM;
-            obj->i = (int)ATOI(buf);
-        } break;
-#if GURU_USE_FLOAT
-        case 2: { 	// IREP_TT_FLOAT
-            MEMCPY((uint8_t *)buf, p, obj_size);
-            buf[obj_size] = '\0';
-            obj->tt = GURU_TT_FLOAT;
-            obj->f  = ATOF(buf);
-        } break;
-#endif
-        default:
-        	obj->tt = GURU_TT_EMPTY;	// other object are not supported yet
-        	break;
-        }
-        irep->pool[i] = obj;			// stick it into object pool array
-        p += obj_size;
-    }
-
-    // SYMS BLOCK
-    irep->sym = (uint8_t*)p;
-    int sym_cnt =
-    		irep->slen = _bin_to_uint32(p);	p += sizeof(uint32_t);
-    while (--sym_cnt >= 0) {
-        int len = _bin_to_uint16(p);		p += sizeof(uint16_t)+len+1;    // symbol_len+'\0'
-    }
-    *pos = p;
-
-    return NO_ERROR;
-}
-
-//================================================================
-/*!@brief
-  read all irep section.
-
-  @param  vm    A pointer of VM.
-  @param  pos	A pointer of pointer of IREP section.
-  @return       Pointer of allocated mrbc_irep or NULL
-*/
-__GURU__ mrbc_irep*
-_load_irep_0(const uint8_t **pos)
-{
-    // new irep
-    mrbc_irep *irep = (mrbc_irep *)mrbc_alloc(sizeof(mrbc_irep));
-    if (irep==NULL) {
-        return NULL;
-    }
-    int ret = _load_irep_1(irep, pos);		// populate content of current IREP
-    if (ret != NO_ERROR) {
-    	mrbc_free(irep);
-    	return NULL;
-    }
-    // recursively create the child irep tree
-    for (U32 i=0; i<irep->rlen; i++) {
-        irep->list[i] = _load_irep_0(pos);
-    }
-    return irep;
-}
-
-//================================================================
-/*!@brief
-  Parse IREP section.
-
-  @param  vm    A pointer of VM.
-  @param  pos	A pointer of pointer of IREP section.
-  @return int	zero if no error.
-
-  <pre>
-  Structure
-  "IREP"	section identifier
-  0000_0000	section size
-  "0000"	rite version
-  </pre>
-*/
-__GURU__ int
-_load_irep(mrbc_vm *vm, const uint8_t **pos)
-{
-    const uint8_t *p = *pos + 4;						// 4 = skip "IREP"
-    int   sec_size = _bin_to_uint32(p); p += sizeof(uint32_t);
-
-    if (MEMCMP(p, "0000", 4) != 0) {					// IREP version
-		return LOAD_FILE_IREP_ERROR_VERSION;
-    }
-    p += 4;												// 4 = skip "0000"
-
-    vm->irep = _load_irep_0(&p);						// recursively load irep tree
-    if (vm->irep==NULL) {
-        return LOAD_FILE_IREP_ERROR_ALLOCATION;
-    }
-
-    *pos += sec_size;
-    return NO_ERROR;
-}
-
-//================================================================
-/*!@brief
-  Parse LVAR section.
-
-  @param  vm    A pointer of VM.
-  @param  pos	A pointer of pointer of LVAR section.
-  @return int	zero if no error.
-*/
-__GURU__ int
-_load_lvar(mrbc_vm *vm, const uint8_t **pos)
-{
-    const uint8_t *p = *pos;
-
-    /* size */
-    *pos += _bin_to_uint32(p+sizeof(uint32_t));
-
-    return NO_ERROR;
-}
-
-//================================================================
-/*!@brief
-  Load the VM bytecode.
-
-  @param  vm    Pointer to VM.
-  @param  ptr	Pointer to bytecode.
-
-*/
-__GPU__ void
-guru_parse_bytecode(mrbc_vm *vm, U8P ptr)
-{
-	if (threadIdx.x!=0 || blockIdx.x!=0) return;
-
-    int ret = _load_header(&ptr);
-
-    while (ret==NO_ERROR) {
-        if (MEMCMP(ptr, "IREP", 4)==0) {
-        	ret = _load_irep(vm, &ptr);
-        }
-        else if (MEMCMP(ptr, "LVAR", 4)==0) {
-            ret = _load_lvar(vm, &ptr);
-        }
-        else if (MEMCMP(ptr, "END\0", 4)==0) {
-            break;
-        }
-    }
-    __syncthreads();
-}
-
-__HOST__ void
-guru_show_irep(mrbc_irep *irep)
-{
-	printf("\tnregs=%d, nlocals=%d, pools=%d, syms=%d, reps=%d, ilen=%d\n",
-			irep->nreg, irep->nlv, irep->plen, irep->slen, irep->rlen, irep->ilen);
-
-	// dump all children ireps
-	for (U32 i=0; i<irep->rlen; i++) {
-		guru_show_irep(irep->list[i], level+1);
-	}
-}
-#endif
-
+#else
+__HOST__ void guru_show_irep(guru_irep *irep) {}
+#endif	// GURU_DEBUG
+#endif 	// GURU_HOST_IMAGE

@@ -106,6 +106,7 @@ _vm_exec(guru_vm *pool)
 		// add cuda hook here
 	}
 }
+
 #if !GURU_HOST_IMAGE
 //================================================================
 /*!@brief
@@ -171,17 +172,21 @@ guru_vm_setup(guru_ses *ses, U32 step)
 	if (i>MIN_VM_COUNT) return cudaErrorMemoryAllocation;
 
 	guru_parse_bytecode(vm, ses->in);
-#else
-	mrbc_vm *vm = (mrbc_vm *)guru_malloc(sizeof(mrbc_vm), 1);
-	if (!vm) return cudaErrorMemoryAllocation;
-
-	guru_parse_bytecode<<<1,1>>>(vm, ses->in);
-	cudaDeviceSynchronize();
-#endif
 	if (ses->trace) {
 		printf("  vm[%d]: %p\n", vm->id, (void *)vm);
 		guru_show_irep(vm->irep);
 	}
+#else
+	mrbc_vm *vm = (mrbc_vm *)guru_malloc(sizeof(mrbc_vm), 1);
+	if (!vm) return cudaErrorMemoryAllocation;
+
+	mrbc_parse_bytecode<<<1,1>>>(vm, ses->in);
+	cudaDeviceSynchronize();
+	if (ses->trace) {
+		printf("  vm[%d]: %p\n", vm->id, (void *)vm);
+		mrbc_show_irep(vm->irep);
+	}
+#endif
 	return cudaSuccess;
 }
 
@@ -214,6 +219,9 @@ guru_vm_release(guru_ses *ses)
 	return cudaSuccess;
 }
 
+//========================================================================================
+// the following code is for debugging purpose, turn off GURU_DEBUG for release
+//========================================================================================
 #ifdef GURU_DEBUG
 static const char *_vtype[] = {
 	"___","nil","f  ","t  ","num","flt","sym","cls",
@@ -236,7 +244,6 @@ static const char *_opcode[] = {
     "ABORT"
 };
 
-#if GURU_HOST_IMAGE
 __HOST__ int
 _find_irep(guru_irep *irep0, guru_irep *irep1, U8P idx)
 {
@@ -287,43 +294,6 @@ _show_decoder(guru_vm *vm)
     }
 	printf("]\n");
 }
-
-#else // !GURU_HOST_IMAGE
-__HOST__ void
-_show_decoder(mrbc_vm *vm)
-{
-	U16  pc   = vm->state->pc;
-	U32P iseq = vm->state->irep->iseq;
-	U16  opid = (*(iseq + pc) >> 24) & 0x7f;
-	const U8P opc  = _opcode[GET_OPCODE(opid)];
-	mrbc_value *v  = vm->regfile;
-
-	int last=0;
-	for (U32 i=0; i<MAX_REGS_SIZE; i++, v++) {
-		if (v->tt==GURU_TT_EMPTY) continue;
-		last=i;
-	}
-
-	int lvl=0;
-	guru_state *st = vm->state;
-	while (st->prev != NULL) {
-		st = st->prev;
-		lvl++;
-	}
-
-	v = vm->regfile;	// rewind
-	int s[8];
-	guru_malloc_stat(s);
-	printf("%c%-4d%-8s%4d[", 'a'+lvl, pc, opc, s[3]);
-
-	for (U32 i=0; i<=last; i++, v++) {
-		printf("%2d.%s", i, _vtype[v->tt]);
-	    if (v->tt >= GURU_TT_OBJECT) printf("_%d", v->self->refc);
-	    printf(" ");
-    }
-	printf("]\n");
-}
-#endif	// GURU_HOST_IMAGE
 
 __HOST__ cudaError_t
 _vm_trace(U32 level)

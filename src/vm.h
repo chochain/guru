@@ -23,7 +23,6 @@
 extern "C" {
 #endif
 
-#if GURU_HOST_IMAGE
 //================================================================
 /*!@brief
   IREP Internal REPresentation
@@ -57,7 +56,7 @@ typedef struct RState {			// 24-byte
     mrbc_value      *reg;		// pointer to current register (in VM register file)
     guru_irep       *irep;		// pointer to current irep block
     struct RState   *prev;		// previous state (call stack)
-} guru_state;
+} guru_state;					// VM context
 
 //================================================================
 /*!@brief
@@ -75,9 +74,11 @@ typedef struct VM {				// 12 + 32*reg bytes
     mrbc_value regfile[MAX_REGS_SIZE];
 } guru_vm;
 
-#else // !GURU_HOST_IMAGE
-
-typedef struct RIrep {
+#if !GURU_HOST_IMAGE
+//
+// old MRBC implementation (on HOST with pointers)
+//
+typedef struct XIrep {
     U16 	 nlv;   		//!< # of local variables
     U16 	 nreg;			//!< # of register used
     U16 	 rlen;			//!< # of child IREP blocks (into list below)
@@ -88,30 +89,29 @@ typedef struct RIrep {
     U32P     iseq;			//!< ISEQ (code) BLOCK
     U8P      sym;			//!< SYMBOL list
 
-    mrbc_object  **pool; 	   	//!< array of POOL objects pointer.
-    struct RIrep **list;		//!< array of child IREP's pointer.
+    mrbc_object   **pool; 	//!< array of POOL objects pointer.
+    struct XIrep **list;	//!< array of child IREP's pointer.
 } mrbc_irep;
 
-typedef struct RState {
-    U16        pc;
-    U16        argc;     	// num of args
+typedef struct XState {
+    U16        		pc;
+    U16        		argc;     	// num of args
     mrbc_class      *klass;
     mrbc_value      *reg;
     mrbc_irep       *irep;
-    struct RState   *prev;
+    struct XState  *prev;
 } mrbc_state;
 
-typedef struct VM {
+typedef struct XVM {
     mrbc_irep       *irep;		// pointer to IREP tree
     mrbc_state      *state;		// VM state (callinfo) linked list
     mrbc_value      regfile[MAX_REGS_SIZE];
 
+	U32				id;
     volatile U8 	run;
     volatile U8		err;
 } mrbc_vm;
-
-#endif // GURU_HOST_IMAGE
-
+#endif 	// !GURU_HOST_IMAGE
 //================================================================
 /*!@brief
   Get 32bit value from memory big endian.

@@ -90,7 +90,7 @@ _vm_irep_list(guru_vm *vm, U32 n)
 #else  // !GURU_HOST_IMAGE
 
 __GURU__ U8P
-_get_symbol(const U8P p, U32 n)
+_get_symbol(U8P p, U32 n)
 {
     U32 max = _bin_to_u32(p);		p += sizeof(U32);
     if (n >= max) return NULL;

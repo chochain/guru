@@ -58,21 +58,21 @@ __GURU__ S32     	guru_memcmp(U8P d, U8P s, U32 sz);
 __GURU__ U32  		guru_strlen(const U8P s);
 __GURU__ void    	guru_strcpy(const U8P s1, const U8P s2);
 __GURU__ S32     	guru_strcmp(const U8P s1, const U8P s2);
-__GURU__ U8P		guru_strchr(U8P s, const U8 c);
+__GURU__ U8P		guru_strchr(U8P d, const U8 c);
 __GURU__ U8P		guru_strcat(U8P d, const U8P s);
 
 #define ATOI(s)           guru_atoi(s, 10)
 #define ATOF(s)			  guru_atof(s)
 
-#define MEMCPY(d, s, sz)  guru_memcpy(d, s, sz)
-#define MEMSET(d, v, sz)  guru_memset(d, v, sz)
-#define MEMCMP(d, s, sz)  guru_memcmp(d, s, sz)
+#define MEMCPY(d, s, sz)  guru_memcpy((U8P)d, (U8P)s, (U32)sz)
+#define MEMSET(d, v, sz)  guru_memset((U8P)d, (U8)v,  (U32)sz)
+#define MEMCMP(d, s, sz)  guru_memcmp((U8P)d, (U8P)s, (U32)sz)
 
-#define STRLEN(s)		  guru_strlen(s)
-#define STRCPY(s1, s2)	  guru_strcpy(s1, s2)
-#define STRCMP(s1, s2)    guru_strcmp(s1, s2)
-#define STRCHR(s, c)      guru_strchr(s, c)
-#define STRCAT(d, s)      guru_strcat(d, s)
+#define STRLEN(s)		  guru_strlen((U8P)s)
+#define STRCPY(d, s)	  guru_strcpy((U8P)d, (U8P)s)
+#define STRCMP(d, s)      guru_strcmp((U8P)d, (U8P)s)
+#define STRCHR(d, c)      guru_strchr((U8P)d, (U8)c)
+#define STRCAT(d, s)      guru_strcat((U8P)d, (U8P)s)
 #else
 #define ATOI(s)			  atol(s)
 #define ATOF(s)			  atof(s)
