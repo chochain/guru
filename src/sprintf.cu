@@ -180,9 +180,7 @@ __char(mrbc_printf *pf, U8 ch)
         if (_size(pf)) *pf->p++ = ch;
         else return -1;
     }
-
-    U32 width = pf->fmt.width;
-    while (--width > 0) {
+    for (U32 i=0; i < pf->fmt.width; i++) {
         if (_size(pf)) *pf->p++ = ' ';
         else return -1;
     }
