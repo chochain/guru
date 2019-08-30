@@ -22,6 +22,7 @@ extern "C" {
 
 __GURU__ void guru_puts(mrbc_value *v, U32 argc);
 __GURU__ void guru_p(mrbc_value *v, U32 argc);
+__GURU__ void guru_na(const U8 *msg);
 
 #ifdef __cplusplus
 }

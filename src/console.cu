@@ -92,7 +92,7 @@ console_str(const U8 *str)
 }
 
 __GURU__ void
-console_na(const U8 *msg)
+guru_na(const U8 *msg)
 {
     console_str("method not supported: ");
 	console_str(msg);
