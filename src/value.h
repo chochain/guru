@@ -51,6 +51,8 @@ __GURU__ void mrbc_dec_refc(mrbc_value *v);
 __GURU__ mrbc_int   guru_atoi(U8P s, U32 base);
 __GURU__ mrbc_float	guru_atof(U8P s);
 
+__GURU__ U8P 		guru_i2s(U64 i, U32 base);
+
 __GURU__ void 		guru_memcpy(U8P d, U8P s, U32 sz);
 __GURU__ void    	guru_memset(U8P d, U8  v, U32 sz);
 __GURU__ S32     	guru_memcmp(U8P d, U8P s, U32 sz);
