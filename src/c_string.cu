@@ -10,17 +10,16 @@
 
   </pre>
 */
+#include <stdio.h>
 #include <assert.h>
 
 #include "value.h"
 #include "alloc.h"
 #include "static.h"
 #include "symbol.h"
-
-#include "console.h"
-#include "sprintf.h"
-
 #include "c_string.h"
+
+#include "puts.h"
 
 #if GURU_USE_STRING
 //================================================================
@@ -223,9 +222,9 @@ _chomp(mrbc_value *v)
   @return 	string object
 */
 __GURU__ mrbc_value
-mrbc_string_new(const U8P src)			// cannot use U8P, need lots of casting
+mrbc_string_new(const U8 *src)			// cannot use U8P, need lots of casting
 {
-    return _new(src, STRLEN(src));
+    return _new((U8P)src, STRLEN((U8P)src));
 }
 
 //================================================================
@@ -248,7 +247,7 @@ mrbc_string_delete(mrbc_value *v)
   @param	mrbc_error_code
 */
 __GURU__ void
-mrbc_string_append(mrbc_value *v0, const mrbc_value *v1)
+mrbc_string_append(const mrbc_value *v0, const mrbc_value *v1)
 {
     U32 len0 = v0->str->len;
     U32 len1 = (v1->tt==GURU_TT_STRING) ? v1->str->len : 1;
@@ -278,21 +277,21 @@ mrbc_string_append(mrbc_value *v0, const mrbc_value *v1)
   @param	mrbc_error_code
 */
 __GURU__ void
-mrbc_string_append_cstr(mrbc_value *v0, const U8P v1)
+mrbc_string_append_cstr(const mrbc_value *v0, const U8 *str)
 {
     U32 len0 = v0->str->len;
-    U32 len1 = STRLEN(v1);
+    U32 len1 = STRLEN(str);
 
-    U8P s = (U8P)mrbc_realloc(v0->str->data, len0+len1+1);
+    U8P buf  = (U8P)mrbc_realloc(v0->str->data, len0+len1+1);
 
-    assert(s!=NULL);						// out of memory
+    assert(buf!=NULL);						// out of memory
 #if GURU_64BIT_ALIGN_REQUIRED
-    assert(((U32A)s & 7)==0);
+    assert(((U32A)buf & 7)==0);
 #endif
-    MEMCPY(s + len0, v1, len1 + 1);
+    MEMCPY(buf + len0, v0, len1 + 1);
 
     v0->str->len  = len0 + len1;
-    v0->str->data = s;
+    v0->str->data = buf;
 }
 
 //================================================================
@@ -304,16 +303,16 @@ mrbc_string_append_cstr(mrbc_value *v0, const U8P v1)
   @return	new string as s1 + s2
 */
 __GURU__ mrbc_value
-mrbc_string_add(const mrbc_value *v1, const mrbc_value *v2)
+mrbc_string_add(const mrbc_value *v0, const mrbc_value *v1)
 {
+    mrbc_string *h0 = v0->str;
     mrbc_string *h1 = v1->str;
-    mrbc_string *h2 = v2->str;
 
-    mrbc_value  v  = _new(NULL, h1->len + h2->len);
+    mrbc_value  v  = _new(NULL, h0->len + h1->len);
     mrbc_string *s = v.str;
 
-    MEMCPY(s->data,           h1->data, h1->len);
-    MEMCPY(s->data + h1->len, h2->data, h2->len + 1);	// include the '\0'
+    MEMCPY(s->data,           h0->data, h0->len);
+    MEMCPY(s->data + h0->len, h1->data, h1->len + 1);	// include the '\0'
 
     return v;
 }
@@ -325,7 +324,7 @@ __GURU__ void
 c_string_add(mrbc_value v[], U32 argc)
 {
     if (v[1].tt != GURU_TT_STRING) {
-        console_na("str + other type");
+        guru_na("str + other type");
     }
     else {
     	SET_RETURN(mrbc_string_add(v, v+1));
@@ -339,7 +338,7 @@ __GURU__ void
 c_string_mul(mrbc_value v[], U32 argc)
 {
     if (v[1].tt != GURU_TT_FIXNUM) {
-        console_str("TypeError\n");	// raise?
+        printf("TypeError\n");	// raise?
         return;
     }
     mrbc_value ret = _new(NULL, _size(v) * v[1].i);
@@ -454,7 +453,7 @@ c_string_slice(mrbc_value v[], U32 argc)
         SET_RETURN(ret);
     }
     else {
-    	console_str("Not support such case in String#[].\n");
+    	printf("Not support such case in String#[].\n");
     }
     return;
 
@@ -488,7 +487,7 @@ c_string_insert(mrbc_value v[], U32 argc)
         val = &v[3];
     }
     else {
-        console_na("case of c_string_insert");
+        guru_na("case of c_string_insert");
         return;
     }
 
@@ -497,7 +496,7 @@ c_string_insert(mrbc_value v[], U32 argc)
     if (nth < 0) nth = len1 + nth;               // adjust to positive number.
     if (len > len1 - nth) len = len1 - nth;
     if (nth < 0 || nth > len1 || len < 0) {
-        console_str("IndexError\n");  // raise?
+        printf("IndexError\n");  // raise?
         return;
     }
 
@@ -586,7 +585,7 @@ __GURU__ void
 c_string_inspect(mrbc_value v[], U32 argc)
 {
 	const char    *hex = "0123456789ABCDEF";
-    mrbc_value    ret  = mrbc_string_new((U8P)"\"");
+    mrbc_value    ret  = mrbc_string_new("\"");
 
     U8 buf[BUF_SIZE];
     U8P p = buf;
@@ -630,7 +629,7 @@ c_string_ord(mrbc_value v[], U32 argc)
 __GURU__ void
 c_string_split(mrbc_value v[], U32 argc)
 {
-    console_na("string#split");
+    guru_na("string#split");
 }
 
 //================================================================
@@ -639,12 +638,7 @@ c_string_split(mrbc_value v[], U32 argc)
 __GURU__ void
 c_object_sprintf(mrbc_value v[], U32 argc)
 {
-	U8  buf[20];
-	U8P str = guru_vprintf(buf, "<#%s:%08x>", v, argc);
-	for (U32 i=1; i<=argc; i++) {
-		mrbc_release(v+i);
-	}
-    SET_RETURN(mrbc_string_new(str));
+	guru_na("string#sprintf");
 }
 
 //================================================================
@@ -653,9 +647,7 @@ c_object_sprintf(mrbc_value v[], U32 argc)
 __GURU__ void
 c_object_printf(mrbc_value v[], U32 argc)
 {
-    c_object_sprintf(v, argc);
-    console_str(_data(v));
-    SET_NIL_RETURN();
+	guru_na("string#printf");
 }
 
 //================================================================
