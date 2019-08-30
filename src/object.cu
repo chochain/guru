@@ -33,7 +33,6 @@
 #include "c_fixnum.h"
 
 #if GURU_USE_STRING
-#include "sprintf.h"
 #include "c_string.h"
 #endif
 
@@ -83,17 +82,11 @@ mrbc_send(mrbc_value v[], mrbc_value *rcv, const U8P method, U32 argc, ...)
     mrbc_proc  *m    = mrbc_get_proc_by_symid(*rcv, sid);
 
     if (m == 0) {
-        console_str("No method. vtype=");
-        console_int(rcv->tt);
-        console_str(" method='");
-        console_str(method);
-        console_str("'\n");
+        printf("No method. vtype=%d method='%s'\n", rcv->tt, method);
         return mrbc_nil_value();
     }
     if (!IS_CFUNC(m)) {
-        console_str("Method is not C function: ");
-        console_str(method);
-        console_str("\n");
+        printf("Method '%s' is not a C function\n", method);
         return mrbc_nil_value();
     }
 
@@ -233,7 +226,7 @@ _get_callee(guru_vm *vm)
 
     return _vm_symbol(vm, rb);
 #endif
-    console_na("callee");
+    guru_na("method not supported: callee\n");
 
     return NULL;
 }
@@ -328,18 +321,26 @@ c_object_kind_of(mrbc_value v[], U32 argc)
 __GURU__ void
 c_object_to_s(mrbc_value v[], U32 argc)
 {
-	U8P str;
-	U8  buf[20];
+	mrbc_value ret;
+	U8P name;
 
     switch (v->tt) {
     case GURU_TT_CLASS:
-    	str = symid2name(v->cls->sym_id); 								break;
+    	name = symid2name(v->cls->sym_id);
+    	ret = mrbc_string_new(name);
+    	break;
     case GURU_TT_OBJECT:
-    	str = symid2name(v->self->cls->sym_id);
-    	str = guru_sprintf(buf, "#<%s:%08x>", str, (uintptr_t)v->self); break;
-    default: str = (U8P)""; break;
+    	name = symid2name(v->self->cls->sym_id);
+    	ret  = mrbc_string_new("#<0x");
+    	mrbc_string_append_cstr(&ret, name);
+    	mrbc_string_append_cstr(&ret, guru_i2s((U64)v->self, 16));
+    	mrbc_string_append_cstr(&ret, ">");
+    	break;
+    default:
+    	ret = mrbc_string_new("");
+    	break;
     }
-    SET_RETURN(mrbc_string_new(str));
+    SET_RETURN(ret);
 }
 #endif
 
@@ -386,10 +387,10 @@ c_proc_call(mrbc_value v[], U32 argc)
 __GURU__ void
 c_proc_inspect(mrbc_value v[], U32 argc)
 {
-	U8  buf[20];
-    U8P str = guru_sprintf(buf, "<#Proc:%08x>", v->proc);
+	mrbc_value ret = mrbc_string_new("<#Proc:");
+	mrbc_string_append_cstr(&ret, guru_i2s((U64)v->proc, 16));
 
-    SET_RETURN(mrbc_string_new(str));
+    SET_RETURN(ret);
 }
 #endif
 
@@ -425,7 +426,7 @@ c_nil_false_not(mrbc_value v[], U32 argc)
 __GURU__ void
 c_nil_inspect(mrbc_value v[], U32 argc)
 {
-    v[0] = mrbc_string_new((U8P)"nil");
+    v[0] = mrbc_string_new("nil");
 }
 
 //================================================================
@@ -464,7 +465,7 @@ _init_class_nil()
 __GURU__ void
 c_false_to_s(mrbc_value v[], U32 argc)
 {
-    v[0] = mrbc_string_new((U8P)"false");
+    v[0] = mrbc_string_new("false");
 }
 #endif
 
@@ -494,7 +495,7 @@ _init_class_false()
 __GURU__ void
 c_true_to_s(mrbc_value v[], U32 argc)
 {
-    v[0] = mrbc_string_new((U8P)"true");
+    v[0] = mrbc_string_new("true");
 }
 #endif
 

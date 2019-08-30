@@ -17,8 +17,8 @@
 #include "c_fixnum.h"
 
 #if GURU_USE_STRING
-#include "sprintf.h"
 #include "c_string.h"
+#include "puts.h"
 #endif
 
 //================================================================
@@ -196,13 +196,22 @@ c_fixnum_chr(mrbc_value v[], U32 argc)
 __GURU__ void
 c_fixnum_to_s(mrbc_value v[], U32 argc)
 {
+	U32 i    = GET_INT_ARG(0);
+    U32 bias = 'a' - 10;
     U32 base = 10;
     if (argc) {
         base = GET_INT_ARG(1);
         if (base < 2 || base > 36) return;	// raise ? ArgumentError
     }
-    U8 buf[64+2];
-    guru_vprintf(buf, "%d", v, 1);
+    U8  buf[64+2];				// int64 + terminate + 1
+    U8P p = buf + sizeof(buf) - 1;
+    U32 x;
+    *p = '\0';
+    do {
+        x = i % base;
+        *--p = (x < 10)? x + '0' : x + bias;
+        x /= base;
+    } while (x != 0);
 
     SET_RETURN(mrbc_string_new(buf));
 }
@@ -237,7 +246,6 @@ mrbc_init_class_fixnum(void)
 
 // Float
 #if GURU_USE_FLOAT
-
 //================================================================
 /*! (operator) unary -
  */
@@ -294,10 +302,7 @@ c_float_to_i(mrbc_value v[], U32 argc)
 __GURU__ void
 c_float_to_s(mrbc_value v[], U32 argc)
 {
-	U8 buf[64+2];
-    guru_vprintf(buf, "%g", v, argc);
-    
-    SET_RETURN(mrbc_string_new(buf));
+	guru_na("float#to_s");
 }
 #endif
 

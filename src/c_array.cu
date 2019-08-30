@@ -11,16 +11,16 @@
   </pre>
 */
 
-#include "vm_config.h"
+#include <stdio.h>
 #include <string.h>
 #include <assert.h>
 
+#include "vm_config.h"
 #include "guru.h"
 #include "alloc.h"
 #include "static.h"
 
-#include "console.h"
-#include "sprintf.h"
+#include "puts.h"
 
 #include "opcode.h"
 #include "object.h"
@@ -423,7 +423,7 @@ c_array_new(mrbc_value v[], U32 argc)
     }
     else {
     	ret = mrbc_nil_value();
-        console_str("ArgumentError\n");	// raise?
+        printf("ArgumentError\n");	// raise?
     }
     SET_RETURN(ret);
 }
@@ -435,7 +435,7 @@ __GURU__ void
 c_array_add(mrbc_value v[], U32 argc)
 {
     if (GET_TT_ARG(1) != GURU_TT_ARRAY) {
-        console_str("TypeError\n");		// raise?
+        printf("TypeError\n");		// raise?
         return;
     }
     mrbc_array *h0 = v[0].array;
@@ -493,7 +493,7 @@ c_array_get(mrbc_value v[], U32 argc)
         }
     }
     else {
-        console_na("case of Array#[]");
+        guru_na("case of Array#[]");
     	ret = mrbc_nil_value();
     }
 DONE:
@@ -515,7 +515,7 @@ c_array_set(mrbc_value v[], U32 argc)
         // TODO: not implement yet.
     }
     else {
-        console_na("case of Array#[]=");
+        guru_na("case of Array#[]=");
     }
 }
 
@@ -620,7 +620,7 @@ c_array_pop(mrbc_value v[], U32 argc)
         // TODO: not implement yet.
     }
     else {
-    	console_str("case of Array#pop");
+    	printf("case of Array#pop");
     }
 }
 
@@ -647,7 +647,7 @@ c_array_shift(mrbc_value v[], U32 argc)
         // TODO: not implement yet.
     }
     else {
-    	console_na("case of Array#shift");
+    	guru_na("case of Array#shift");
     }
 }
 
@@ -733,20 +733,13 @@ c_array_minmax(mrbc_value v[], U32 argc)
 }
 
 #if GURU_USE_STRING
-__GURU__ void
-_rfc(mrbc_value *str, mrbc_value *v)
-{
-	U8 buf[8];
-	guru_sprintf(buf, "^%d_", v->self->refc);
-	mrbc_string_append_cstr(str, buf);
-}
 //================================================================
 /*! (method) inspect
  */
 __GURU__ void
 c_array_inspect(mrbc_value v[], U32 argc)
 {
-	mrbc_value ret  = mrbc_string_new((U8P)"[");
+	mrbc_value ret  = mrbc_string_new("[");
     if (!ret.str) {
     	SET_NIL_RETURN();
     	return;
@@ -754,13 +747,13 @@ c_array_inspect(mrbc_value v[], U32 argc)
     mrbc_value vi, s1;
     int n = v->array->n;
     for (U32 i=0; i < n; i++) {
-        if (i != 0) mrbc_string_append_cstr(&ret, (U8P)", ");
+        if (i != 0) mrbc_string_append_cstr(&ret, ", ");
         vi = _get(v, i);
         s1 = guru_inspect(v+argc, &vi);
         mrbc_string_append(&ret, &s1);
         mrbc_release(&s1);
     }
-    mrbc_string_append_cstr(&ret, (U8P)"]");
+    mrbc_string_append_cstr(&ret, "]");
 
     SET_RETURN(ret);
 }
@@ -800,7 +793,7 @@ c_array_join(mrbc_value v[], U32 argc)
         return;
     }
     mrbc_value separator = (argc==0)
-    		? mrbc_string_new((U8P)"")
+    		? mrbc_string_new("")
     		: guru_inspect(v+argc, v+1);
 
     c_array_join_1(v, argc, v, &ret, &separator);

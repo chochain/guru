@@ -14,15 +14,13 @@
   4. the core opcode dispatcher
   </pre>
 */
+#include <stdio.h>
 
 #include "alloc.h"
 #include "store.h"
 #include "static.h"
 #include "symbol.h"
 #include "global.h"
-
-#include "console.h"
-
 #include "opcode.h"
 #include "object.h"
 #include "class.h"
@@ -35,6 +33,8 @@
 #include "c_array.h"
 #include "c_hash.h"
 #endif
+
+#include "puts.h"
 
 __GURU__ U32 _mutex_op;
 
@@ -728,7 +728,7 @@ op_send(guru_vm *vm, U32 code, mrbc_value *regs)
 
     if (m==0) {
     	const U8P name = _vm_symbol(vm, rb);
-    	console_na(name);							// dump error, bail out
+    	guru_na(name);					// dump error, bail out
     	return 0;
     }
     if (IS_CFUNC(m)) {
@@ -883,12 +883,12 @@ op_add(guru_vm *vm, U32 code, mrbc_value *regs)
             r0->tt = GURU_TT_FLOAT;
             r0->f = r0->i + r1->f;
         }
-        else console_na("Fixnum + ?");
+        else guru_na("Fixnum + ?");
     }
     else if (r0->tt==GURU_TT_FLOAT) {
         if      (r1->tt==GURU_TT_FIXNUM) r0->f += r1->i;
         else if (r1->tt==GURU_TT_FLOAT)	 r0->f += r1->f;
-        else console_na("Float + ?");
+        else guru_na("Float + ?");
 #endif
     }
     else {    	// other case
@@ -922,7 +922,7 @@ op_addi(guru_vm *vm, U32 code, mrbc_value *regs)
 #if GURU_USE_FLOAT
     else if (r0->tt==GURU_TT_FLOAT)	r0->f += rc;
 #else
-    else console_na("Float class");
+    else guru_na("Float class");
 #endif
     return 0;
 }
@@ -953,12 +953,12 @@ op_sub(guru_vm *vm, U32 code, mrbc_value *regs)
             r0->tt = GURU_TT_FLOAT;
             r0->f  = r0->i - r1->f;
         }
-        else console_na("Fixnum - ?");
+        else guru_na("Fixnum - ?");
     }
     else if (r0->tt==GURU_TT_FLOAT) {
         if      (r1->tt==GURU_TT_FIXNUM)	r0->f -= r1->i;
         else if (r1->tt==GURU_TT_FLOAT)		r0->f -= r1->f;
-        else console_na("Float - ?");
+        else guru_na("Float - ?");
 #endif
     }
     else {  // other case
@@ -991,7 +991,7 @@ op_subi(guru_vm *vm, U32 code, mrbc_value *regs)
 #if GURU_USE_FLOAT
     else if (r0->tt==GURU_TT_FLOAT) r0->f -= rc;
 #else
-    else console_na("Float class");
+    else guru_na("Float class");
 #endif
     return 0;
 }
@@ -1021,12 +1021,12 @@ op_mul(guru_vm *vm, U32 code, mrbc_value *regs)
             r0->tt = GURU_TT_FLOAT;
             r0->f  = r0->i * r1->f;
         }
-        else console_na("Fixnum * ?");
+        else guru_na("Fixnum * ?");
     }
     else if (r0->tt==GURU_TT_FLOAT) {
         if      (r1->tt==GURU_TT_FIXNUM) r0->f *= r1->i;
         else if (r1->tt==GURU_TT_FLOAT)  r0->f *= r1->f;
-        else console_na("Float * ?");
+        else guru_na("Float * ?");
 #endif
     }
     else {   // other case
@@ -1061,12 +1061,12 @@ op_div(guru_vm *vm, U32 code, mrbc_value *regs)
             r0->tt = GURU_TT_FLOAT;
             r0->f  = r0->i / r1->f;
         }
-        else console_na("Fixnum / ?");
+        else guru_na("Fixnum / ?");
     }
     else if (r0->tt==GURU_TT_FLOAT) {
         if      (r1->tt==GURU_TT_FIXNUM) 	r0->f /= r1->i;
         else if (r1->tt==GURU_TT_FLOAT)		r0->f /= r1->f;
-        else console_na("Float / ?");
+        else guru_na("Float / ?");
 #endif
     }
     else {   // other case
@@ -1235,7 +1235,7 @@ op_string(guru_vm *vm, U32 code, mrbc_value *regs)
 
     _RA_V(ret);
 #else
-    console_na("String class");
+    guru_na("String class");
 #endif
     return 0;
 }
@@ -1273,7 +1273,7 @@ op_strcat(guru_vm *vm, U32 code, mrbc_value *regs)
     _RA_V(ret);
 
 #else
-    console_na("String class");
+    guru_na("String class");
 #endif
     return 0;
 }
@@ -1309,7 +1309,7 @@ op_array(guru_vm *vm, U32 code, mrbc_value *regs)
 
     _RA_V(ret);
 #else
-    console_na("Array class");
+    guru_na("Array class");
 #endif
     return 0;
 }
@@ -1346,7 +1346,7 @@ op_hash(guru_vm *vm, U32 code, mrbc_value *regs)
     }
     _RA_V(ret);						                	// set return value on stack top
 #else
-    console_na("Hash class");
+    guru_na("Hash class");
 #endif
     return 0;
 }
@@ -1379,7 +1379,7 @@ op_range(guru_vm *vm, U32 code, mrbc_value *regs)
     mrbc_retain(pb+1);
 
 #else
-    console_na("Range class");
+    guru_na("Range class");
 #endif
     return 0;
 }
@@ -1486,7 +1486,7 @@ op_method(guru_vm *vm, U32 code, mrbc_value *regs)
     int rb = GETARG_B(code);
 
     if (regs[ra].tt != GURU_TT_CLASS) {
-    	console_str("?op_method");
+    	printf("?op_method");
     	return 0;
     }
 
@@ -1655,9 +1655,7 @@ guru_op(guru_vm *vm)
     case OP_ABORT:      ret = op_abort     (vm, code, regs); break;  	// reuse
     case OP_NOP:        ret = op_nop       (vm, code, regs); break;
     default:
-    	console_str("?OP=");
-    	console_int(opcode);
-    	console_str("\n");
+    	printf("?OP=0x%04x\n", opcode);
     	ret = 0;
     	break;
     }

@@ -5,7 +5,6 @@
 #include <stdio.h>
 #include <assert.h>
 #include "alloc.h"
-#include "sprintf.h"
 
 // TLSF: Two-Level Segregated Fit allocator with O(1) time complexity.
 // Layer 1st(f), 2nd(s) model, smallest block 16-bytes, 16-byte alignment

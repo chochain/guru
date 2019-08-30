@@ -466,30 +466,17 @@ c_hash_values(mrbc_value v[], U32 argc)
 
 #if GURU_USE_STRING
 //================================================================
-/*! (method) inspect
- */
-__GURU__ void
-_hrfc(mrbc_value *str, mrbc_value *v)
-{
-	U8 buf[8];
-	guru_sprintf(buf, "^%d_", v->self->refc);
-	mrbc_string_append_cstr(str, buf);
-}
-
-#define BUF_SIZE 80
-
 __GURU__ void
 c_hash_inspect(mrbc_value v[], U32 argc)
 {
-    mrbc_value blank = mrbc_string_new((U8P)"");
-    mrbc_value comma = mrbc_string_new((U8P)", ");
-    mrbc_value ret   = mrbc_string_new((U8P)"{");
+    mrbc_value blank = mrbc_string_new("");
+    mrbc_value comma = mrbc_string_new(", ");
+    mrbc_value ret   = mrbc_string_new("{");
     if (!ret.str) {
     	SET_NIL_RETURN();
     	return;
     }
 
-    U8 buf[BUF_SIZE];
     mrbc_value s[3];
     mrbc_value *p = _data(v);
     int         n = _size(v);
@@ -498,13 +485,15 @@ c_hash_inspect(mrbc_value v[], U32 argc)
         s[1] = guru_inspect(v+argc, p);			// key
         s[2] = guru_inspect(v+argc, p+1);		// value
 
-        guru_vprintf(buf, "%s%s=>%s", s, 3);
-        mrbc_string_append_cstr(&ret, buf);
+        mrbc_string_append(&ret, &s[0]);
+        mrbc_string_append(&ret, &s[1]);
+        mrbc_string_append_cstr(&ret, "=>");
+        mrbc_string_append(&ret, &s[2]);
 
         mrbc_release(&s[1]);								// free locally allocated memory
         mrbc_release(&s[2]);
     }
-    mrbc_string_append_cstr(&ret, (U8P)"}");
+    mrbc_string_append_cstr(&ret, "}");
 
     SET_RETURN(ret);
 }

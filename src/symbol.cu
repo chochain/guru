@@ -190,8 +190,8 @@ symid2name(mrbc_sym sid)
 
 #if GURU_USE_STRING
 // from c_string.cu
-extern "C" __GURU__ mrbc_value mrbc_string_new(const U8P src);
-extern "C" __GURU__ void       mrbc_string_append_cstr(mrbc_value *s1, const U8P s2);
+extern "C" __GURU__ mrbc_value mrbc_string_new(const U8 *src);
+extern "C" __GURU__ void       mrbc_string_append_cstr(const mrbc_value *s1, const U8 *s2);
 
 //================================================================
 /*! (method) inspect
@@ -199,7 +199,7 @@ extern "C" __GURU__ void       mrbc_string_append_cstr(mrbc_value *s1, const U8P
 __GURU__ void
 c_inspect(mrbc_value v[], U32 argc)
 {
-    mrbc_value ret = mrbc_string_new((U8P)":");
+    mrbc_value ret = mrbc_string_new(":");
 
     mrbc_string_append_cstr(&ret, symid2name(v[0].i));
 
