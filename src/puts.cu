@@ -28,6 +28,8 @@
 #include "c_hash.h"
 #endif
 
+__GURU__ U32 _p(mrbc_value *v);				// forward declaration
+
 //================================================================
 /*! print - sub function
   @param  v	pointer to target value.
@@ -35,7 +37,7 @@
   @retval 1	already output LF.
 */
 __GURU__ U32
-mrbc_print_sub(mrbc_value *v)
+_print(mrbc_value *v)
 {
     mrbc_value *p;
     U32 ret = 0;
@@ -55,14 +57,12 @@ mrbc_print_sub(mrbc_value *v)
     	console_str("#<");
     	console_str(symid2name(mrbc_get_class_by_object(v)->sym_id));
         console_str(":");
-        console_hex((uintptr_t)v->self>>16);
-        console_hex((uintptr_t)v->self&0xffff);
+        console_ptr((void *)v->self);
         console_str(">");
         break;
     case GURU_TT_PROC:
     	console_str("#<Proc:");
-    	console_hex((uintptr_t)v->proc>>16);
-    	console_hex((uintptr_t)v->proc&0xffff);
+    	console_ptr((void *)v->proc);
     	break;
 #if GURU_USE_STRING
     case GURU_TT_STRING:
@@ -77,22 +77,22 @@ mrbc_print_sub(mrbc_value *v)
         p = v->array->data;
         for (U32 i=0; i < v->array->n; i++, p++) {
             if (i!=0) console_str("\n");
-            mrbc_p_sub(p);
+            _p(p);
         }
         break;
     case GURU_TT_RANGE:
-        mrbc_print_sub(&v->range->first);
+        _print(&v->range->first);
         console_str((const U8 *)(IS_EXCLUDE_END(v->range) ? "..." : ".."));
-        mrbc_print_sub(&v->range->last);
+        _print(&v->range->last);
         break;
     case GURU_TT_HASH:
         console_char('{');
         p = v->hash->data;
         for (U32 i=0; i < v->hash->n; i+=2, p+=2) {
             if (i!=0) console_str(", ");
-        	mrbc_p_sub(p);
+        	_p(p);
             console_str("=>");
-            mrbc_p_sub(p+1);
+            _p(p+1);
         }
         console_char('}');
         break;
@@ -109,7 +109,7 @@ mrbc_print_sub(mrbc_value *v)
 /*! p - sub function
  */
 __GURU__ U32
-mrbc_p_sub(mrbc_value *v)
+_p(mrbc_value *v)
 {
 	mrbc_value *p;
 	U8P        s;
@@ -134,7 +134,7 @@ mrbc_p_sub(mrbc_value *v)
         p = v->array->data;
         for (U32 i=0; i < v->array->n; i++, p++) {
             if (i!=0) console_str(", ");
-            mrbc_p_sub(p);
+            _p(p);
         }
         console_char(']');
         break;
@@ -151,9 +151,29 @@ mrbc_p_sub(mrbc_value *v)
         break;
 #endif
     default:
-        mrbc_print_sub(v);
+        _print(v);
         break;
     }
     return 0;
+}
+
+__GURU__ void
+guru_puts(mrbc_value *v, U32 argc)
+{
+    if (argc) {
+    	for (U32 i = 1; i <= argc; i++) {
+    		if (_print(&v[i]) == 0) console_char('\n');
+    	}
+    }
+    else console_char('\n');
+}
+
+__GURU__ void
+guru_p(mrbc_value *v, U32 argc)
+{
+    for (U32 i = 1; i <= argc; i++) {
+        _p(&v[i]);
+        console_char('\n');
+    }
 }
 

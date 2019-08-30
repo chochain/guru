@@ -65,6 +65,13 @@ console_hex(mrbc_int i)
 	guru_write(GURU_TT_FIXNUM, GURU_TT_EMPTY, sizeof(mrbc_int), (U8P)&i);
 }
 
+__GURU__ void
+console_ptr(void *ptr)
+{
+    console_hex((uintptr_t)ptr>>16);
+    console_hex((uintptr_t)ptr&0xffff);
+}
+
 #if GURU_USE_FLOAT
 __GURU__ void
 console_float(mrbc_float f)

@@ -11,6 +11,7 @@
 
   </pre>
 */
+#include <stdio.h>
 #include <assert.h>
 #include <stdarg.h>
 
@@ -134,10 +135,7 @@ c_nop(mrbc_value v[], U32 argc)
 __GURU__ void
 c_p(mrbc_value v[], U32 argc)
 {
-    for (U32 i = 1; i <= argc; i++) {
-        mrbc_p_sub(&v[i]);
-        console_char('\n');
-    }
+	guru_p(v, argc);
 }
 #endif
 
@@ -147,12 +145,7 @@ c_p(mrbc_value v[], U32 argc)
 __GURU__ void
 c_puts(mrbc_value v[], U32 argc)
 {
-    if (argc) {
-    	for (U32 i = 1; i <= argc; i++) {
-    		if (mrbc_print_sub(&v[i]) == 0) console_char('\n');
-    	}
-    }
-    else console_char('\n');
+	guru_puts(v, argc);
 }
 
 //================================================================
@@ -161,9 +154,7 @@ c_puts(mrbc_value v[], U32 argc)
 __GURU__ void
 c_print(mrbc_value v[], U32 argc)
 {
-    for (U32 i = 1; i <= argc; i++) {
-        mrbc_print_sub(&v[i]);
-    }
+	guru_puts(v, argc);
 }
 
 //================================================================
@@ -360,6 +351,9 @@ _init_class_object()
 
     // Methods
     guru_add_proc(c, "initialize",    	c_nop);
+#ifdef GURU_DEBUG
+    guru_add_proc(c, "p", 				c_p);
+#endif
     guru_add_proc(c, "puts",          	c_puts);
     guru_add_proc(c, "print",         	c_print);
     guru_add_proc(c, "!",             	c_object_not);
@@ -375,9 +369,6 @@ _init_class_object()
 #if GURU_USE_STRING
     guru_add_proc(c, "inspect",       	c_object_to_s);
     guru_add_proc(c, "to_s",          	c_object_to_s);
-#endif
-#ifdef GURU_DEBUG
-    guru_add_proc(c, "p", 				c_p);
 #endif
 }
 
