@@ -51,7 +51,7 @@ guru_add_proc(mrbc_class *cls, const char *name, mrbc_func_t cfunc)
   @return pointer to mrbc_class
 */
 __GURU__ mrbc_class*
-mrbc_get_class_by_object(mrbc_object *obj)
+mrbc_get_class_by_object(guru_obj *obj)
 {
     mrbc_class *cls;
 
@@ -90,9 +90,9 @@ mrbc_get_class_by_object(mrbc_object *obj)
 __GURU__ mrbc_class*
 mrbc_get_class_by_name(const U8P name)
 {
-    mrbc_value v = const_object_get(name2symid(name));
+    guru_obj obj = const_object_get(name2symid(name));
 
-    return (v.tt == GURU_TT_CLASS) ? v.cls : NULL;
+    return (obj.tt==GURU_TT_CLASS) ? obj.cls : NULL;
 }
 
 //================================================================

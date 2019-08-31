@@ -266,8 +266,8 @@ op_loadl(guru_vm *vm, U32 code, mrbc_value *regs)
     int ra = GETARG_A(code);
     int rb = GETARG_Bx(code);
 
-    U32P p = _vm_pool(vm, rb);
-    mrbc_object obj;
+    U32P     p = _vm_pool(vm, rb);
+    guru_obj obj;
 
     if (*p & 1) {
     	obj.tt = GURU_TT_FLOAT;
@@ -431,8 +431,9 @@ op_getglobal(guru_vm *vm, U32 code, mrbc_value *regs)
     int rb  = GETARG_Bx(code);
 
     mrbc_sym sid = _vm_symid(vm, rb);
-    mrbc_value v = global_object_get(sid);
-    _RA_V(v);
+    guru_obj obj = global_object_get(sid);
+
+    _RA_V(obj);
 
     return 0;
 }
@@ -455,7 +456,7 @@ op_setglobal(guru_vm *vm, U32 code, mrbc_value *regs)
     int rb  = GETARG_Bx(code);
 
     mrbc_sym sid = _vm_symid(vm, rb);
-    global_object_add(sid, regs[ra]);
+    global_object_add(sid, &regs[ra]);
 
     return 0;
 }
@@ -528,10 +529,10 @@ op_getconst(guru_vm *vm, U32 code, mrbc_value *regs)
     int ra  = GETARG_A(code);
     int rb  = GETARG_Bx(code);
 
-    mrbc_sym  sid = _vm_symid(vm, rb);
-    mrbc_value v  = const_object_get(sid);
+    mrbc_sym sid = _vm_symid(vm, rb);
+    guru_obj obj = const_object_get(sid);
 
-    _RA_X(&v);
+    _RA_V(obj);
 
     return 0;
 }

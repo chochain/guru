@@ -136,7 +136,7 @@ typedef struct RObject {					// 8-bytes
 #endif
         U8P       		 sym;				// C-string (only loader use.)
     };
-} mrbc_object, mrbc_value;
+} mrbc_object, mrbc_value, guru_obj;
 
 //================================================================
 /*!@brief
@@ -184,7 +184,7 @@ typedef struct RVar {			// 16-byte
 */
 /* forward declaration */
 struct Irep;
-typedef void (*mrbc_func_t)(mrbc_object *v, U32 argc);
+typedef void (*mrbc_func_t)(guru_obj *obj, U32 argc);
 
 typedef struct RProc {			// 20-byte
     GURU_OBJECT_HEADER;

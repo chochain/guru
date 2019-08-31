@@ -24,7 +24,7 @@ extern "C" {
 __GURU__ mrbc_class *mrbc_define_class(const U8P name, mrbc_class *super);
 __GURU__ mrbc_proc  *mrbc_define_method(mrbc_class *cls, const U8P name, mrbc_func_t cfunc);
 
-__GURU__ mrbc_class *mrbc_get_class_by_object(mrbc_object *obj);
+__GURU__ mrbc_class *mrbc_get_class_by_object(guru_obj *obj);
 __GURU__ mrbc_class *mrbc_get_class_by_name(const U8P name);									// cannot use U8P, lots of casting
 __GURU__ mrbc_proc  *mrbc_get_proc_by_symid(mrbc_value rcv, mrbc_sym sid);
 

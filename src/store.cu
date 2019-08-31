@@ -212,7 +212,7 @@ mrbc_store_delete(mrbc_value *v)
   @param  v		pointer to value.
 */
 __GURU__ void
-mrbc_store_set(mrbc_object *obj, mrbc_sym sid, mrbc_value *v)
+mrbc_store_set(guru_obj *obj, mrbc_sym sid, mrbc_value *v)
 {
     _set(obj->self->ivar, sid, v);
     mrbc_retain(v);
@@ -225,12 +225,12 @@ mrbc_store_set(mrbc_object *obj, mrbc_sym sid, mrbc_value *v)
   @param  sym_id	key symbol ID.
   @return		value.
 */
-__GURU__ mrbc_value
-mrbc_store_get(mrbc_object *obj, mrbc_sym sid)
+__GURU__ guru_obj
+mrbc_store_get(guru_obj *obj, mrbc_sym sid)
 {
     mrbc_value *v = _get(obj->self->ivar, sid);
 
-    if (!v) return mrbc_nil_value();
+    if (!v) return GURU_NIL_NEW();
 
     mrbc_retain(v);
     return *v;
