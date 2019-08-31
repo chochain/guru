@@ -73,7 +73,7 @@ __GPU__ void guru_memory_init(void *mem, U32 sz);
 
 void *guru_malloc(U32 sz, U32 mem_type);		// mem_type: 0=>managed, 1=>device
 void guru_malloc_stat(U32 stat[]);
-void guru_dump_alloc_stat(void);
+void guru_dump_alloc_stat(U32 trace);
 
 #ifdef __cplusplus
 }
