@@ -77,7 +77,7 @@ __GURU__ GV
 mrbc_send(GV v[], GV *rcv, const U8P method, U32 argc, ...)
 {
     GV *regs = v + 2;	     // allocate 2 for stack
-    guru_sym   sid   = name2symid(method);
+    guru_sym   sid   = name2id(method);
     guru_proc  *m    = mrbc_get_proc_by_symid(*rcv, sid);
 
     if (m == 0) {
@@ -237,7 +237,7 @@ __GURU__ void
 c_object_getiv(GV v[], U32 argc)
 {
     const U8P name = _get_callee(NULL);			// TODO:
-    guru_sym  sid  = name2symid(name);
+    guru_sym  sid  = name2id(name);
 
     SET_RETURN(guru_store_get(&v[0], sid));
 }
@@ -249,7 +249,7 @@ __GURU__ void
 c_object_setiv(GV v[], U32 argc)
 {
     const U8P name = _get_callee(NULL);			// CC TODO: another way
-    guru_sym  sid  = name2symid(name);
+    guru_sym  sid  = name2id(name);
 
     guru_store_set(&v[0], sid, &v[1]);
 }
@@ -264,7 +264,7 @@ c_object_attr_reader(GV v[], U32 argc)
         if (v[i].gt != GT_SYM) continue;	// TypeError raise?
 
         // define reader method
-        U8P name = VSYM(&v[i]);
+        U8P name = id2name(v[i].i);
         mrbc_define_method(v[0].cls, name, c_object_getiv);
     }
 }
@@ -279,7 +279,7 @@ c_object_attr_accessor(GV v[], U32 argc)
         if (v[i].gt != GT_SYM) continue;	// TypeError raise?
 
         // define reader method
-        U8P name = VSYM(&v[i]);
+        U8P name = id2name(v[i].i);
         mrbc_define_method(v[0].cls, name, c_object_getiv);
 
         // make string "....=" and define writer method.
@@ -325,11 +325,11 @@ c_object_to_s(GV v[], U32 argc)
 
     switch (v->gt) {
     case GT_CLASS:
-    	name = symid2name(v->cls->sym_id);
+    	name = id2name(v->cls->sym_id);
     	ret = guru_str_new(name);
     	break;
     case GT_OBJ:
-    	name = symid2name(v->self->cls->sym_id);
+    	name = id2name(v->self->cls->sym_id);
     	ret  = guru_str_new("#<0x");
     	guru_str_append_cstr(&ret, name);
     	guru_str_append_cstr(&ret, guru_i2s((U64)v->self, 16));

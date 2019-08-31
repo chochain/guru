@@ -51,11 +51,11 @@ _print(GV *v)
 #if GURU_USE_FLOAT
     case GT_FLOAT:  console_float(v->f);						break;
 #endif
-    case GT_SYMBOL: console_str(VSYM(v));						break;
-    case GT_CLASS:  console_str(symid2name(v->cls->sym_id));   	break;
+    case GT_SYMBOL: console_str(id2name(v->i));					break;
+    case GT_CLASS:  console_str(id2name(v->cls->sym_id));   	break;
     case GT_OBJ:
     	console_str("#<");
-    	console_str(symid2name(mrbc_get_class_by_object(v)->sym_id));
+    	console_str(id2name(mrbc_get_class_by_object(v)->sym_id));
         console_str(":");
         console_ptr((void *)v->self);
         console_str(">");

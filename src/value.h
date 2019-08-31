@@ -92,7 +92,6 @@ __GURU__ U8P		guru_strcat(U8P d, const U8P s);
 #define VSTRLEN(v)		((v)->str->len)
 #define VSTR(v)			((U8P)(v)->str->data)
 #define VSTRCMP(v1, v2) (STRCMP((v1)->str->data, (v2)->str->data))
-#define VSYM(v)			((U8P)symid2name((v)->i))
 
 #ifdef __cplusplus
 }

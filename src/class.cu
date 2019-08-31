@@ -90,7 +90,7 @@ mrbc_get_class_by_object(guru_obj *obj)
 __GURU__ guru_class*
 mrbc_get_class_by_name(const U8P name)
 {
-    guru_obj obj = const_object_get(name2symid(name));
+    guru_obj obj = const_object_get(name2id(name));
 
     return (obj.gt==GT_CLASS) ? obj.cls : NULL;
 }
@@ -142,7 +142,7 @@ mrbc_define_class(const U8P name, guru_class *super)
     cls = (guru_class *)mrbc_alloc(sizeof(guru_class));
     if (!cls) return NULL;			// ENOMEM
 
-    guru_sym sid = name2symid(name);
+    guru_sym sid = name2id(name);
 
     cls->sym_id = sid;
     cls->super 	= super;
@@ -167,7 +167,7 @@ mrbc_alloc_proc(const U8P name)
     proc->gt     = GT_PROC;
     proc->flag   = GURU_CFUNC;
     proc->refc   = 1;
-    proc->sym_id = name2symid(name);
+    proc->sym_id = name2id(name);
     proc->next   = NULL;
     proc->name   = name;
 

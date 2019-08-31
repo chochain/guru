@@ -65,7 +65,7 @@ __GURU__ guru_sym
 _vm_symid(guru_vm *vm, U32 n)
 {
 	const U8P name = _vm_symbol(vm, n);
-	return name2symid(name);
+	return name2id(name);
 }
 
 __GURU__ U32P
@@ -103,7 +103,7 @@ __GURU__ guru_sym
 _get_symid(const U8P p, U32 n)
 {
   	const U8P name = _get_symbol(p, n);
-    return name2symid(name);
+    return name2id(name);
 }
 #endif
 
@@ -479,7 +479,7 @@ op_getiv(guru_vm *vm, U32 code, GV *regs)
     int rb = GETARG_Bx(code);
 
     const U8P name = _vm_symbol(vm, rb);
-    guru_sym sid   = name2symid(name+1);		// skip '@'
+    guru_sym sid   = name2id(name+1);		// skip '@'
     GV ret   = guru_store_get(&regs[0], sid);
 
     _RA_V(ret);
@@ -505,7 +505,7 @@ op_setiv(guru_vm *vm, U32 code, GV *regs)
     int rb = GETARG_Bx(code);
 
     const U8P name = _vm_symbol(vm, rb);
-    guru_sym  sid  = name2symid(name+1);	// skip '@'
+    guru_sym  sid  = name2id(name+1);	// skip '@'
 
     guru_store_set(&regs[0], sid, &regs[ra]);
 
@@ -1260,7 +1260,7 @@ op_strcat(guru_vm *vm, U32 code, GV *regs)
     GV *pa  = &regs[ra];
     GV *pb  = &regs[rb];
 
-    guru_sym sid  = name2symid((U8P)"to_s");			// from global symbol pool
+    guru_sym sid  = name2id((U8P)"to_s");			// from global symbol pool
     guru_proc *ma = mrbc_get_proc_by_symid(*pa, sid);
     guru_proc *mb = mrbc_get_proc_by_symid(*pb, sid);
 

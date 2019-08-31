@@ -165,7 +165,7 @@ guru_sym_new(const U8P str)
   @return guru_sym	Symbol value.
 */
 __GURU__ guru_sym
-name2symid(const U8P str)
+name2id(const U8P str)
 {
     guru_sym sid = _search_index(str);
     if (sid < MAX_SYMBOL_COUNT) return sid;
@@ -181,7 +181,7 @@ name2symid(const U8P str)
   @retval NULL		Invalid sym_id was given.
 */
 __GURU__ U8P
-symid2name(guru_sym sid)
+id2name(guru_sym sid)
 {
     return (sid >= _sym_idx)
     		? NULL
@@ -201,7 +201,7 @@ c_inspect(GV v[], U32 argc)
 {
     GV ret = guru_str_new(":");
 
-    guru_str_append_cstr(&ret, symid2name(v[0].i));
+    guru_str_append_cstr(&ret, id2name(v[0].i));
 
     SET_RETURN(ret);
 }
@@ -213,7 +213,7 @@ c_inspect(GV v[], U32 argc)
 __GURU__ void
 c_to_s(GV v[], U32 argc)
 {
-    v[0] = guru_str_new(symid2name(v[0].i));
+    v[0] = guru_str_new(id2name(v[0].i));
 }
 #endif
 
