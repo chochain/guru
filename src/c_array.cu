@@ -10,9 +10,6 @@
 
   </pre>
 */
-
-#include <stdio.h>
-#include <string.h>
 #include <assert.h>
 
 #include "vm_config.h"
@@ -20,12 +17,12 @@
 #include "alloc.h"
 #include "static.h"
 
-#include "puts.h"
-
 #include "opcode.h"
 #include "object.h"
 #include "c_array.h"
 #include "c_string.h"
+
+#include "puts.h"
 
 /*
   function summary
@@ -423,7 +420,7 @@ c_array_new(mrbc_value v[], U32 argc)
     }
     else {
     	ret = mrbc_nil_value();
-        printf("ArgumentError\n");	// raise?
+        PRINTF("ArgumentError\n");	// raise?
     }
     SET_RETURN(ret);
 }
@@ -435,7 +432,7 @@ __GURU__ void
 c_array_add(mrbc_value v[], U32 argc)
 {
     if (GET_TT_ARG(1) != GURU_TT_ARRAY) {
-        printf("TypeError\n");		// raise?
+        PRINTF("TypeError\n");		// raise?
         return;
     }
     mrbc_array *h0 = v[0].array;
@@ -620,7 +617,7 @@ c_array_pop(mrbc_value v[], U32 argc)
         // TODO: not implement yet.
     }
     else {
-    	printf("case of Array#pop");
+    	PRINTF("case of Array#pop");
     }
 }
 

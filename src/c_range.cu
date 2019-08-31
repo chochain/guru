@@ -18,12 +18,13 @@
 #include "static.h"
 #include "symbol.h"
 
-#include "console.h"
 #include "opcode.h"
-
 #include "object.h"		// guru_kind_of, guru_inspect
+
 #include "c_range.h"
 #include "c_string.h"
+
+#include "puts.h"
 
 //================================================================
 /*! constructor

@@ -338,7 +338,7 @@ __GURU__ void
 c_string_mul(mrbc_value v[], U32 argc)
 {
     if (v[1].tt != GURU_TT_FIXNUM) {
-        printf("TypeError\n");	// raise?
+        PRINTF("TypeError\n");	// raise?
         return;
     }
     mrbc_value ret = _new(NULL, _size(v) * v[1].i);
@@ -453,7 +453,7 @@ c_string_slice(mrbc_value v[], U32 argc)
         SET_RETURN(ret);
     }
     else {
-    	printf("Not support such case in String#[].\n");
+    	PRINTF("Not support such case in String#[].\n");
     }
     return;
 
@@ -496,7 +496,7 @@ c_string_insert(mrbc_value v[], U32 argc)
     if (nth < 0) nth = len1 + nth;               // adjust to positive number.
     if (len > len1 - nth) len = len1 - nth;
     if (nth < 0 || nth > len1 || len < 0) {
-        printf("IndexError\n");  // raise?
+        PRINTF("IndexError\n");  // raise?
         return;
     }
 

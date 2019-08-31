@@ -47,11 +47,12 @@
 /* 0: NOT USE */
 /* 1: USE */
 
-/* USE String. Support String class */
-#define GURU_USE_FLOAT  1
-#define GURU_USE_STRING 1
-#define GURU_USE_MATH   0
-#define GURU_USE_ARRAY  1
+/* Guru module support */
+#define GURU_USE_CONSOLE	1
+#define GURU_USE_FLOAT  	1
+#define GURU_USE_STRING 	1
+#define GURU_USE_MATH   	0
+#define GURU_USE_ARRAY  	1
 
 /* Hardware dependent flags */
 

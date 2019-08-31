@@ -21,8 +21,8 @@
 #include "global.h"
 #include "static.h"
 
-#include "console.h"
 #include "class.h"
+#include "puts.h"
 
 __GURU__ U32 _mutex_cls;
 

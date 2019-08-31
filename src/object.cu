@@ -11,7 +11,6 @@
 
   </pre>
 */
-#include <stdio.h>
 #include <assert.h>
 #include <stdarg.h>
 
@@ -25,8 +24,6 @@
 #include "vm.h"
 #include "class.h"
 
-#include "console.h"
-#include "puts.h"
 #include "opcode.h"
 #include "object.h"
 
@@ -41,6 +38,8 @@
 #include "c_hash.h"
 #include "c_range.h"
 #endif
+
+#include "puts.h"
 
 __GURU__ mrbc_value
 guru_inspect(mrbc_value v[], mrbc_value *rcv)
@@ -82,11 +81,11 @@ mrbc_send(mrbc_value v[], mrbc_value *rcv, const U8P method, U32 argc, ...)
     mrbc_proc  *m    = mrbc_get_proc_by_symid(*rcv, sid);
 
     if (m == 0) {
-        printf("No method. vtype=%d method='%s'\n", rcv->tt, method);
+        PRINTF("No method. vtype=%d method='%s'\n", rcv->tt, method);
         return mrbc_nil_value();
     }
     if (!IS_CFUNC(m)) {
-        printf("Method '%s' is not a C function\n", method);
+        PRINTF("Method '%s' is not a C function\n", method);
         return mrbc_nil_value();
     }
 

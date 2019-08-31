@@ -17,14 +17,14 @@
 #include "alloc.h"
 #include "static.h"
 
-#include "console.h"
-#include "sprintf.h"
-
 #include "vm.h"
 #include "object.h"
+
 #include "c_hash.h"
 #include "c_array.h"
 #include "c_string.h"
+
+#include "puts.h"
 
 /*
   function summary

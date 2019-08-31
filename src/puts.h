@@ -16,6 +16,16 @@
 
 #include "guru.h"
 
+#if GURU_USE_CONSOLE	// use built-in print functions
+#include "console.h"
+#include "sprintf.h"
+#define PRINTF		guru_printf
+#define VPRINTF		guru_vprintf
+#else					// use CUDA printf function
+#include <stdio.h>
+#define PRINTF		printf
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif

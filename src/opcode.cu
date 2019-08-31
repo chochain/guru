@@ -14,8 +14,6 @@
   4. the core opcode dispatcher
   </pre>
 */
-#include <stdio.h>
-
 #include "alloc.h"
 #include "store.h"
 #include "static.h"
@@ -1486,7 +1484,7 @@ op_method(guru_vm *vm, U32 code, mrbc_value *regs)
     int rb = GETARG_B(code);
 
     if (regs[ra].tt != GURU_TT_CLASS) {
-    	printf("?op_method");
+    	PRINTF("?op_method");
     	return 0;
     }
 
@@ -1655,7 +1653,7 @@ guru_op(guru_vm *vm)
     case OP_ABORT:      ret = op_abort     (vm, code, regs); break;  	// reuse
     case OP_NOP:        ret = op_nop       (vm, code, regs); break;
     default:
-    	printf("?OP=0x%04x\n", opcode);
+    	PRINTF("?OP=0x%04x\n", opcode);
     	ret = 0;
     	break;
     }
