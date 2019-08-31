@@ -21,7 +21,7 @@ __GURU__ U8P _output_buf;
 __GURU__ volatile U32 _mutex_con;
 
 __GURU__ void
-_write(mrbc_vtype tt, mrbc_vtype fmt, U32 sz, U8P buf)
+_write(guru_vtype tt, guru_vtype fmt, U32 sz, U8P buf)
 {
 	if (threadIdx.x!=0) return;		// only thread 0 within a block can write
 
@@ -137,8 +137,8 @@ console_hex(guru_int i)
 __GURU__ void
 console_ptr(void *ptr)
 {
-    console_hex((uintptr_t)ptr>>16);
-    console_hex((uintptr_t)ptr&0xffff);
+    console_hex((U32A)ptr>>16);
+    console_hex((U32A)ptr&0xffff);
 }
 
 #if GURU_USE_FLOAT

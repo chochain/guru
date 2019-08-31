@@ -37,7 +37,7 @@ _string_compare(const GV *v1, const GV *v2)
 __GURU__ S32
 guru_cmp(const GV *v1, const GV *v2)
 {
-    if (v1->tt != v2->tt) { 						// mrbc_vtype different
+    if (v1->tt != v2->tt) { 						// guru_vtype different
 #if GURU_USE_FLOAT
     	guru_float f1, f2;
 

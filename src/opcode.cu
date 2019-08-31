@@ -1090,7 +1090,7 @@ __GURU__ int
 op_eq(guru_vm *vm, U32 code, GV *regs)
 {
     int ra = GETARG_A(code);
-    mrbc_vtype tt = TT_BOOL(guru_cmp(&regs[ra], &regs[ra+1])==0);
+    guru_vtype tt = TT_BOOL(guru_cmp(&regs[ra], &regs[ra+1])==0);
 
     _RA_T(tt, i=0);
 

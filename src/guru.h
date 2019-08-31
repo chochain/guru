@@ -84,7 +84,7 @@ typedef enum {
     GURU_TT_STRING,
     GURU_TT_RANGE,
     GURU_TT_HASH,
-} mrbc_vtype;
+} guru_vtype;
 
 #define TT_BOOL(v)		((v) ? GURU_TT_TRUE : GURU_TT_FALSE)
 
@@ -112,8 +112,6 @@ typedef S32 		guru_int;
 typedef F32	 		guru_float;
 typedef U32 		guru_sym;
 
-#define IS_NUM(v)    ((v) & 0x1)
-
 //================================================================
 /*!@brief
   Guru value and object (use same struct for simplification).
@@ -126,7 +124,7 @@ typedef struct RVal {
 } guru_val;
 
 typedef struct RObject {					// 8-bytes
-    mrbc_vtype           tt   : 8;			// 8-bit
+    guru_vtype           tt   : 8;			// 8-bit
     U32				 	 flag : 8;			// function, memory pool index
     U32					 size : 16;			// 32-bit aligned
     union {
@@ -145,6 +143,8 @@ typedef struct RObject {					// 8-bytes
     };
 } GV, guru_obj;
 
+typedef GV *GVP;
+
 //================================================================
 /*!@brief
   Guru class object.
@@ -162,7 +162,7 @@ typedef struct RClass {						// 16-byte
 #define IS_CFUNC(m)	((m)->flag & GURU_CFUNC)
 
 #define GURU_HDR      			\
-	mrbc_vtype  	tt   : 8; 	\
+	guru_vtype  	tt   : 8; 	\
 	U32				flag : 8;	\
 	U32				refc : 16;
 
