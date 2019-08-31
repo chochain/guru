@@ -267,7 +267,7 @@ _minmax(GV *ary, GV **pp_min_value, GV **pp_max_value)
 __GURU__ GV
 guru_array_new(int size)
 {
-    GV ret = {.tt = GURU_TT_ARRAY};
+    GV ret = {.gt = GT_ARRAY};
     guru_array *h = (guru_array *)mrbc_alloc(sizeof(guru_array));		// handle
     if (!h) return ret;		// ENOMEM
 
@@ -277,7 +277,7 @@ guru_array_new(int size)
         return ret;
     }
     h->refc = 1;			// handle is referenced
-    h->tt 	= GURU_TT_ARRAY;
+    h->gt 	= GT_ARRAY;
     h->size = size;
     h->n  	= 0;
     h->data = data;
@@ -400,7 +400,7 @@ c_array_new(GV v[], U32 argc)
         ret = guru_array_new(0);
         if (ret.array==NULL) return;		// ENOMEM
     }
-    else if (argc==1 && v[1].tt==GURU_TT_FIXNUM && v[1].i >= 0) {	// new(num)
+    else if (argc==1 && v[1].gt==GT_INT && v[1].i >= 0) {	// new(num)
         ret = guru_array_new(v[1].i);
         if (ret.array==NULL) return;		// ENOMEM
 
@@ -409,7 +409,7 @@ c_array_new(GV v[], U32 argc)
             _set(&ret, v[1].i - 1, &nil);
         }
     }
-    else if (argc==2 && v[1].tt==GURU_TT_FIXNUM && v[1].i >= 0) {	// new(num, value)
+    else if (argc==2 && v[1].gt==GT_INT && v[1].i >= 0) {	// new(num, value)
         ret = guru_array_new(v[1].i);
         if (ret.array==NULL) return;		// ENOMEM
 
@@ -431,7 +431,7 @@ c_array_new(GV v[], U32 argc)
 __GURU__ void
 c_array_add(GV v[], U32 argc)
 {
-    if (GET_TT_ARG(1) != GURU_TT_ARRAY) {
+    if (GET_GT_ARG(1) != GT_ARRAY) {
         PRINTF("TypeError\n");		// raise?
         return;
     }
@@ -464,13 +464,13 @@ __GURU__ void
 c_array_get(GV v[], U32 argc)
 {
 	GV ret;
-    if (argc==1 && v[1].tt==GURU_TT_FIXNUM) {			// self[n] -> object | nil
+    if (argc==1 && v[1].gt==GT_INT) {				// self[n] -> object | nil
         ret = _get(v, v[1].i);
         ref_inc(&ret);
     }
     else if (argc==2 &&			 						// self[idx, len] -> Array | nil
-    		v[1].tt==GURU_TT_FIXNUM &&
-    		v[2].tt==GURU_TT_FIXNUM) {
+    		v[1].gt==GT_INT &&
+    		v[2].gt==GT_INT) {
         int len = v->array->n;
         int idx = v[1].i;
         if (idx < 0) idx += len;
@@ -503,12 +503,12 @@ DONE:
 __GURU__ void
 c_array_set(GV v[], U32 argc)
 {
-    if (argc==2 && v[1].tt==GURU_TT_FIXNUM) {	// self[n] = val
+    if (argc==2 && v[1].gt==GT_INT) {		// self[n] = val
         _set(v, v[1].i, &v[2]);		// raise? IndexError or ENOMEM
     }
     else if (argc==3 &&							// self[n, len] = valu
-    		v[1].tt==GURU_TT_FIXNUM &&
-    		v[2].tt==GURU_TT_FIXNUM) {
+    		v[1].gt==GT_INT &&
+    		v[2].gt==GT_INT) {
         // TODO: not implement yet.
     }
     else {
@@ -601,7 +601,7 @@ __GURU__ void
 c_array_push(GV v[], U32 argc)
 {
     guru_array_push(v, v+1);	// raise? ENOMEM
-    v[1].tt = GURU_TT_EMPTY;
+    v[1].gt = GT_EMPTY;
 }
 
 //================================================================
@@ -613,7 +613,7 @@ c_array_pop(GV v[], U32 argc)
     if (argc==0) {									// pop() -> object | nil
         SET_RETURN(_pop(v));
     }
-    else if (argc==1 && v[1].tt==GURU_TT_FIXNUM) {	// pop(n) -> Array | nil
+    else if (argc==1 && v[1].gt==GT_INT) {	// pop(n) -> Array | nil
         // TODO: not implement yet.
     }
     else {
@@ -627,8 +627,8 @@ c_array_pop(GV v[], U32 argc)
 __GURU__ void
 c_array_unshift(GV v[], U32 argc)
 {
-    _unshift(v, v+1);	// raise? IndexError or ENOMEM
-    v[1].tt = GURU_TT_EMPTY;
+    _unshift(v, v+1);								// raise? IndexError or ENOMEM
+    v[1].gt = GT_EMPTY;
 }
 
 //================================================================
@@ -640,7 +640,7 @@ c_array_shift(GV v[], U32 argc)
     if (argc==0) {									// shift() -> object | nil
         SET_RETURN(_shift(v));
     }
-    else if (argc==1 && v[1].tt==GURU_TT_FIXNUM) {	// shift() -> Array | nil
+    else if (argc==1 && v[1].gt==GT_INT) {		// shift() -> Array | nil
         // TODO: not implement yet.
     }
     else {
@@ -768,7 +768,7 @@ c_array_join_1(GV v[], U32 argc,
     int i   = 0;
     GV s1;
     while (1) {
-        if (h->data[i].tt==GURU_TT_ARRAY) {
+        if (h->data[i].gt==GT_ARRAY) {
             c_array_join_1(v, argc, &h->data[i], ret, separator);
         }
         else {

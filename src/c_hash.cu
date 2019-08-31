@@ -186,7 +186,7 @@ _clear(GV *kv)
 __GURU__ GV
 guru_hash_new(int size)
 {
-    GV ret = {.tt = GURU_TT_HASH};
+    GV ret = {.gt = GT_HASH};
     /*
       Allocate handle and data buffer.
     */
@@ -199,7 +199,7 @@ guru_hash_new(int size)
         return ret;
     }
     h->refc = 1;
-    h->tt  	= GURU_TT_HASH;
+    h->gt  	= GT_HASH;
     h->size	= size<<1;
     h->n  	= 0;
     h->data = data;
@@ -304,8 +304,8 @@ c_hash_set(GV v[], U32 argc)
     }
     _set(v, v+1, v+2);		// k + v
 
-    (v+1)->tt = GURU_TT_EMPTY;
-    (v+2)->tt = GURU_TT_EMPTY;
+    (v+1)->gt = GT_EMPTY;
+    (v+2)->gt = GT_EMPTY;
 }
 
 

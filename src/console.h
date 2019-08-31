@@ -25,7 +25,7 @@ extern "C" {
 */
 typedef struct print_node {
 	U32			id   : 6;
-    guru_vtype  tt 	 : 5;
+    guru_vtype  gt 	 : 5;
     guru_vtype	fmt	 : 5;
     U32			size : 16;
     U8			data[];          // different from *data

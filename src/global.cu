@@ -17,7 +17,7 @@ typedef enum {
 typedef struct _gobj_ {
     guru_sym 	sym_id;
     guru_obj 	obj;
-    _gtype 		gtype 	:8;
+    _gtype 		gt	:8;
 } _gobj;
 
 // max of global object in _global[]
@@ -34,7 +34,7 @@ _get_idx(guru_sym sid, _gtype gt)
 {
     for (U32 i=0; i < _global_idx ; i++) {
         _gobj *obj = &_global[i];
-        if (obj->sym_id == sid && obj->gtype == gt) return i;
+        if (obj->sym_id == sid && obj->gt == gt) return i;
     }
     return MAX_GLOBAL_COUNT;
 }
@@ -52,9 +52,9 @@ _get_obj(guru_sym sid, _gtype gt)
 }
 
 __GURU__ void
-_add_obj(guru_sym sid, guru_obj *obj, _gtype tt)
+_add_obj(guru_sym sid, guru_obj *obj, _gtype gt)
 {
-    int idx = _get_idx(sid, tt);
+    int idx = _get_idx(sid, gt);
 
     MUTEX_LOCK(_mutex_gobj);
 
@@ -67,7 +67,7 @@ _add_obj(guru_sym sid, guru_obj *obj, _gtype tt)
     }
     _global[idx].sym_id = sid;
     _global[idx].obj    = *obj;				// deep copy
-    _global[idx].gtype  = tt;
+    _global[idx].gt     = gt;
 
     MUTEX_FREE(_mutex_gobj);
 

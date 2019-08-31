@@ -42,30 +42,30 @@ _print(GV *v)
     GV *p;
     U32 ret = 0;
 
-    switch (v->tt){
-    case GURU_TT_EMPTY:	 console_str("(empty)");					break;
-    case GURU_TT_NIL:					                			break;
-    case GURU_TT_FALSE:	 console_str("false");						break;
-    case GURU_TT_TRUE:	 console_str("true");						break;
-    case GURU_TT_FIXNUM: console_int(v->i);							break;
+    switch (v->gt){
+    case GT_EMPTY:	 console_str("(empty)");					break;
+    case GT_NIL:					                			break;
+    case GT_FALSE:	 console_str("false");						break;
+    case GT_TRUE:	 console_str("true");						break;
+    case GT_INT:     console_int(v->i);							break;
 #if GURU_USE_FLOAT
-    case GURU_TT_FLOAT:  console_float(v->f);						break;
+    case GT_FLOAT:  console_float(v->f);						break;
 #endif
-    case GURU_TT_SYMBOL: console_str(VSYM(v));						break;
-    case GURU_TT_CLASS:  console_str(symid2name(v->cls->sym_id));   break;
-    case GURU_TT_OBJECT:
+    case GT_SYMBOL: console_str(VSYM(v));						break;
+    case GT_CLASS:  console_str(symid2name(v->cls->sym_id));   	break;
+    case GT_OBJ:
     	console_str("#<");
     	console_str(symid2name(mrbc_get_class_by_object(v)->sym_id));
         console_str(":");
         console_ptr((void *)v->self);
         console_str(">");
         break;
-    case GURU_TT_PROC:
+    case GT_PROC:
     	console_str("#<Proc:");
     	console_ptr((void *)v->proc);
     	break;
 #if GURU_USE_STRING
-    case GURU_TT_STRING:
+    case GT_STR:
         console_str(VSTR(v));
         if (VSTRLEN(v) != 0 && VSTR(v)[VSTRLEN(v) - 1]=='\n') {
         	ret = 1;
@@ -73,19 +73,19 @@ _print(GV *v)
         break;
 #endif
 #if GURU_USE_ARRAY
-    case GURU_TT_ARRAY:
+    case GT_ARRAY:
         p = v->array->data;
         for (U32 i=0; i < v->array->n; i++, p++) {
             if (i!=0) console_str("\n");
             _p(p);
         }
         break;
-    case GURU_TT_RANGE:
+    case GT_RANGE:
         _print(&v->range->first);
         console_str((const U8 *)(IS_EXCLUDE_END(v->range) ? "..." : ".."));
         _print(&v->range->last);
         break;
-    case GURU_TT_HASH:
+    case GT_HASH:
         console_char('{');
         p = v->hash->data;
         for (U32 i=0; i < v->hash->n; i+=2, p+=2) {
@@ -99,7 +99,7 @@ _print(GV *v)
 #endif
     default:
     	console_str("?vtype: ");
-    	console_int((guru_int)v->tt);
+    	console_int((guru_int)v->gt);
     	break;
     }
     return ret;
@@ -114,9 +114,9 @@ _p(GV *v)
 	GV *p;
 	U8P        s;
 
-    switch (v->tt){		// only when output different from print_sub
-    case GURU_TT_NIL: console_str("nil");		break;
-    case GURU_TT_SYMBOL:
+    switch (v->gt){		// only when output different from print_sub
+    case GT_NIL: console_str("nil");		break;
+    case GT_SYMBOL:
         s = VSYM(v);
         if (STRCHR(s, ':')) {
         	console_str("\":");
@@ -129,7 +129,7 @@ _p(GV *v)
         }
         break;
 #if GURU_USE_ARRAY
-    case GURU_TT_ARRAY:
+    case GT_ARRAY:
         console_char('[');
         p = v->array->data;
         for (U32 i=0; i < v->array->n; i++, p++) {
@@ -140,7 +140,7 @@ _p(GV *v)
         break;
 #endif
 #if GURU_USE_STRING
-    case GURU_TT_STRING:
+    case GT_STR:
         s = VSTR(v);
         console_char('"');
         for (U32 i=0; i < VSTRLEN(v); i++, s++) {

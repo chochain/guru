@@ -23,21 +23,21 @@ __GURU__ void ref_dec(GV *v);
 __GURU__ void ref_inc(GV *v);
 
 // for C call
-#define SET_RETURN(n)		do { GV nnn = (n); ref_dec(v); v[0] = nnn; 	} while (0)
-#define SET_NIL_RETURN()	do { ref_dec(v); v[0].tt = GURU_TT_NIL;   		 	} while (0)
+#define SET_RETURN(n)		do { GV nnn = (n); ref_dec(v); v[0] = nnn; 			} while (0)
+#define SET_NIL_RETURN()	do { ref_dec(v); v[0].gt = GT_NIL;   		 		} while (0)
 
-#define SET_FALSE_RETURN()	do { ref_dec(v); v[0].tt = GURU_TT_FALSE; 			} while (0)
-#define SET_TRUE_RETURN()	do { ref_dec(v); v[0].tt = GURU_TT_TRUE;  			} while (0)
-#define SET_BOOL_RETURN(n)	do { ref_dec(v); v[0].tt = (n)?GURU_TT_TRUE:GURU_TT_FALSE; } while (0)
+#define SET_FALSE_RETURN()	do { ref_dec(v); v[0].gt = GT_FALSE; 				} while (0)
+#define SET_TRUE_RETURN()	do { ref_dec(v); v[0].gt = GT_TRUE;  				} while (0)
+#define SET_BOOL_RETURN(n)	do { ref_dec(v); v[0].gt = (n)?GT_TRUE:GT_FALSE;	} while (0)
 
 #define SET_INT_RETURN(n)	do { guru_int nnn = (n);					\
-		ref_dec(v); v[0].tt = GURU_TT_FIXNUM; v[0].i = nnn; } while (0)
+		ref_dec(v); v[0].gt = GT_INT; v[0].i = nnn; } while (0)
 #define SET_FLOAT_RETURN(n)	do { guru_float nnn = (n);                  \
-        ref_dec(v); v[0].tt = GURU_TT_FLOAT;  v[0].f = nnn; } while (0)
+        ref_dec(v); v[0].gt = GT_FLOAT;  v[0].f = nnn; } while (0)
 
 // macro to fetch from stack objects
-#define GURU_NIL_NEW()	    	((guru_obj)  {.tt = GURU_TT_NIL})
-#define GET_TT_ARG(n)			(v[(n)].tt)
+#define GURU_NIL_NEW()	    	((guru_obj)  {.gt = GT_NIL})
+#define GET_GT_ARG(n)			(v[(n)].gt)
 #define GET_INT_ARG(n)			(v[(n)].i)
 #define GET_ARY_ARG(n)			(v[(n)])
 #define GET_FLOAT_ARG(n)		(v[(n)].f)

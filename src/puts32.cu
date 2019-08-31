@@ -41,26 +41,26 @@ _print(GV *v)
     GV *p;
     U32 ret = 0;
 
-    switch (v->tt){
-    case GURU_TT_EMPTY:	 PRINTF("(empty)");		break;
-    case GURU_TT_NIL:					    	break;
-    case GURU_TT_FALSE:	 PRINTF("false");		break;
-    case GURU_TT_TRUE:	 PRINTF("true");		break;
-    case GURU_TT_FIXNUM: PRINTF("%d", v->i);	break;
+    switch (v->gt){
+    case GT_EMPTY:	PRINTF("(empty)");		break;
+    case GT_NIL:					    	break;
+    case GT_FALSE:	PRINTF("false");		break;
+    case GT_TRUE:	PRINTF("true");			break;
+    case GT_INT: 	PRINTF("%d", v->i);		break;
 #if GURU_USE_FLOAT
-    case GURU_TT_FLOAT:  PRINTF("%f", v->f);	break;
+    case GT_FLOAT:  PRINTF("%f", v->f);		break;
 #endif
-    case GURU_TT_SYMBOL: PRINTF("%s", VSYM(v));	break;
-    case GURU_TT_CLASS:  PRINTF("%s", symid2name(v->cls->sym_id));   break;
-    case GURU_TT_OBJECT:
+    case GT_SYM: 	PRINTF("%s", VSYM(v));	break;
+    case GT_CLASS:  PRINTF("%s", symid2name(v->cls->sym_id));   break;
+    case GT_OBJ:
     	PRINTF("#<%04d:0x%08x>",
     		symid2name(mrbc_get_class_by_object(v)->sym_id),
     		v->self
     	);
         break;
-    case GURU_TT_PROC: 	PRINTF("#<Proc:0x%08x", v->proc); break;
+    case GT_PROC: 	PRINTF("#<Proc:0x%08x", v->proc); break;
 #if GURU_USE_STRING
-    case GURU_TT_STRING:
+    case GT_STR:
         PRINTF("%s", VSTR(v));
         if (VSTRLEN(v) != 0 && VSTR(v)[VSTRLEN(v) - 1]=='\n') {
         	ret = 1;
@@ -68,19 +68,19 @@ _print(GV *v)
         break;
 #endif
 #if GURU_USE_ARRAY
-    case GURU_TT_ARRAY:
+    case GT_ARRAY:
         p = v->array->data;
         for (U32 i=0; i < v->array->n; i++, p++) {
             if (i!=0) PRINTF("\n");
             _p(p);
         }
         break;
-    case GURU_TT_RANGE:
+    case GT_RANGE:
         _print(&v->range->first);
         PRINTF(IS_EXCLUDE_END(v->range) ? "..." : "..");
         _print(&v->range->last);
         break;
-    case GURU_TT_HASH:
+    case GT_HASH:
         PRINTF("%c", '{');
         p = v->hash->data;
         for (U32 i=0; i < v->hash->n; i+=2, p+=2) {
@@ -92,7 +92,7 @@ _print(GV *v)
         PRINTF("%c", '}');
         break;
 #endif
-    default: PRINTF("?vtype: %d", (int)v->tt); break;
+    default: PRINTF("?vtype: %d", (int)v->gt); break;
     }
     return ret;
 }
@@ -106,14 +106,14 @@ _p(GV *v)
 	GV *p;
 	U8P        s;
 
-    switch (v->tt){		// only when output different from print_sub
-    case GURU_TT_NIL: PRINTF("nil");		break;
-    case GURU_TT_SYMBOL:
+    switch (v->gt){		// only when output different from print_sub
+    case GT_NIL: PRINTF("nil");		break;
+    case GT_SYM:
         s = VSYM(v);
         PRINTF(STRCHR(s, ';') ? "\":%s\"" : ":%s", s);
         break;
 #if GURU_USE_ARRAY
-    case GURU_TT_ARRAY:
+    case GT_ARRAY:
         PRINTF("%c", '[');
         p = v->array->data;
         for (U32 i=0; i < v->array->n; i++, p++) {
@@ -124,7 +124,7 @@ _p(GV *v)
         break;
 #endif
 #if GURU_USE_STRING
-    case GURU_TT_STRING:
+    case GT_STR:
     	PRINTF("\"%s\"", VSTR(v));
     	break;
 #endif

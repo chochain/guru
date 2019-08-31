@@ -38,7 +38,7 @@
 __GURU__ GV
 guru_range_new(GV *first, GV *last, int exclude_end)
 {
-    GV ret = {.tt = GURU_TT_RANGE};
+    GV ret = {.gt = GT_RANGE};
 
     ret.range = (guru_range *)mrbc_alloc(sizeof(guru_range));
     if (!ret.range) return ret;		// ENOMEM
@@ -47,7 +47,7 @@ guru_range_new(GV *first, GV *last, int exclude_end)
     else		     ret.range->flag &= ~EXCLUDE_END;
 
     ret.range->refc  = 1;
-    ret.range->tt    = GURU_TT_STRING;	// TODO: for DEBUG
+    ret.range->gt    = GT_STR;	// TODO: for DEBUG
     ret.range->first = *first;
     ret.range->last  = *last;
 
@@ -91,7 +91,7 @@ guru_range_compare(const GV *v1, const GV *v2)
 __GURU__ void
 c_range_equal3(GV v[], U32 argc)
 {
-    if (v[0].tt == GURU_TT_CLASS) {
+    if (v[0].gt == GT_CLASS) {
         GV ret = guru_kind_of(v, argc);
         SET_RETURN(ret);
         return;

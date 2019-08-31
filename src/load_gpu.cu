@@ -128,27 +128,27 @@ _load_irep_1(mrbc_irep *irep, U8P *pos)
             return LOAD_FILE_IREP_ERROR_ALLOCATION;
         }
         switch (tt) {
-        case 0: { 	// IREP_TT_STRING
-            obj->tt  = GURU_TT_STRING;
+        case 0: { 	// IREP_GT_STRING
+            obj->gt  = GT_STR;
             obj->sym = p;
         } break;
-        case 1: { 	// IREP_TT_FIXNUM
+        case 1: { 	// IREP_GT_FIXNUM
             MEMCPY(buf, p, obj_size);
             buf[obj_size] = '\0';
 
-            obj->tt = GURU_TT_FIXNUM;
+            obj->gt = GT_INT;
             obj->i = (int)ATOI(buf);
         } break;
 #if GURU_USE_FLOAT
-        case 2: { 	// IREP_TT_FLOAT
+        case 2: { 	// IREP_GT_FLOAT
             MEMCPY(buf, p, obj_size);
             buf[obj_size] = '\0';
-            obj->tt = GURU_TT_FLOAT;
+            obj->gt = GT_FLOAT;
             obj->f  = ATOF(buf);
         } break;
 #endif
         default:
-        	obj->tt = GURU_TT_EMPTY;	// other object are not supported yet
+        	obj->gt = GT_EMPTY;	// other object are not supported yet
         	break;
         }
         irep->pool[i] = obj;			// stick it into object pool array
@@ -289,7 +289,7 @@ _show_decoder(mrbc_vm *vm)
 
 	int last=0;
 	for (U32 i=0; i<MAX_REGS_SIZE; i++, v++) {
-		if (v->tt==GURU_TT_EMPTY) continue;
+		if (v->gt==GT_EMPTY) continue;
 		last=i;
 	}
 
@@ -306,8 +306,8 @@ _show_decoder(mrbc_vm *vm)
 	printf("%c%-4d%-8s%4d[", 'a'+lvl, pc, opc, s[3]);
 
 	for (U32 i=0; i<=last; i++, v++) {
-		printf("%2d.%s", i, _vtype[v->tt]);
-	    if (v->tt >= GURU_TT_OBJECT) printf("_%d", v->self->refc);
+		printf("%2d.%s", i, _vtype[v->gt]);
+	    if (v->gt >= GT_OBJ) printf("_%d", v->self->refc);
 	    printf(" ");
     }
 	printf("]\n");

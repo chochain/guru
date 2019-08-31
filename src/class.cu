@@ -55,28 +55,28 @@ mrbc_get_class_by_object(guru_obj *obj)
 {
     guru_class *cls;
 
-    switch (obj->tt) {
-    case GURU_TT_TRUE:	  cls = guru_class_true;		break;
-    case GURU_TT_FALSE:	  cls = guru_class_false; 	    break;
-    case GURU_TT_NIL:	  cls = guru_class_nil;		    break;
-    case GURU_TT_FIXNUM:  cls = guru_class_fixnum;	    break;
+    switch (obj->gt) {
+    case GT_TRUE:	 cls = guru_class_true;		break;
+    case GT_FALSE:	 cls = guru_class_false; 	break;
+    case GT_NIL:	 cls = guru_class_nil;		break;
+    case GT_INT:     cls = guru_class_fixnum;	break;
 #if GURU_USE_FLOAT
-    case GURU_TT_FLOAT:	  cls = guru_class_float; 	    break;
+    case GT_FLOAT:	 cls = guru_class_float; 	break;
 #endif
-    case GURU_TT_SYMBOL:  cls = guru_class_symbol;	    break;
+    case GT_SYM:  	 cls = guru_class_symbol;	break;
 
-    case GURU_TT_OBJECT:  cls = obj->self->cls; 		break;
-    case GURU_TT_CLASS:   cls = obj->cls;               break;
-    case GURU_TT_PROC:	  cls = guru_class_proc;		break;
+    case GT_OBJ:  	 cls = obj->self->cls; 		break;
+    case GT_CLASS:   cls = obj->cls;            break;
+    case GT_PROC:	 cls = guru_class_proc;		break;
 #if GURU_USE_STRING
-    case GURU_TT_STRING:  cls = guru_class_string;	    break;
+    case GT_STR:     cls = guru_class_string;	break;
 #endif
 #if GURU_USE_ARRAY
-    case GURU_TT_ARRAY:   cls = guru_class_array; 	    break;
-    case GURU_TT_RANGE:	  cls = guru_class_range; 	    break;
-    case GURU_TT_HASH:	  cls = guru_class_hash;		break;
+    case GT_ARRAY:   cls = guru_class_array; 	break;
+    case GT_RANGE:	 cls = guru_class_range; 	break;
+    case GT_HASH:	 cls = guru_class_hash;		break;
 #endif
-    default:		      cls = guru_class_object;	    break;
+    default:		 cls = guru_class_object;	break;
     }
     return cls;
 }
@@ -92,7 +92,7 @@ mrbc_get_class_by_name(const U8P name)
 {
     guru_obj obj = const_object_get(name2symid(name));
 
-    return (obj.tt==GURU_TT_CLASS) ? obj.cls : NULL;
+    return (obj.gt==GT_CLASS) ? obj.cls : NULL;
 }
 
 //================================================================
@@ -150,7 +150,7 @@ mrbc_define_class(const U8P name, guru_class *super)
     cls->name   = name;
 
     // register to global constant.
-    GV v = { .tt = GURU_TT_CLASS };
+    GV v = { .gt = GT_CLASS };
     v.cls = cls;
     const_object_add(sid, &v);
 
@@ -164,7 +164,7 @@ mrbc_alloc_proc(const U8P name)
 
     if (!proc) return NULL;
 
-    proc->tt     = GURU_TT_PROC;
+    proc->gt     = GT_PROC;
     proc->flag   = GURU_CFUNC;
     proc->refc   = 1;
     proc->sym_id = name2symid(name);

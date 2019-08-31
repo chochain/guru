@@ -67,7 +67,7 @@ c_fixnum_negative(GV v[], U32 argc)
 __GURU__ void
 c_fixnum_power(GV v[], U32 argc)
 {
-    if (v[1].tt == GURU_TT_FIXNUM) {
+    if (v[1].gt == GT_INT) {
         guru_int x = 1;
 
         if (v[1].i < 0) x = 0;
@@ -78,7 +78,7 @@ c_fixnum_power(GV v[], U32 argc)
     }
 
 #if GURU_USE_FLOAT && GURU_USE_MATH
-    else if (v[1].tt == GURU_TT_FLOAT) {
+    else if (v[1].gt == GT_FLOAT) {
         SET_FLOAT_RETURN(pow(v[0].i, v[1].f));
     }
 #endif
@@ -265,9 +265,9 @@ __GURU__ void
 c_float_power(GV v[], U32 argc)
 {
     guru_float n = 0;
-    switch (v[1].tt) {
-    case GURU_TT_FIXNUM: n = v[1].i;	break;
-    case GURU_TT_FLOAT:	 n = v[1].d;	break;
+    switch (v[1].gt) {
+    case GT_INT: 	n = v[1].i;	break;
+    case GT_FLOAT:	n = v[1].d;	break;
     default: break;
     }
 

@@ -81,7 +81,7 @@ mrbc_send(GV v[], GV *rcv, const U8P method, U32 argc, ...)
     guru_proc  *m    = mrbc_get_proc_by_symid(*rcv, sid);
 
     if (m == 0) {
-        PRINTF("No method. vtype=%d method='%s'\n", rcv->tt, method);
+        PRINTF("No method. vtype=%d method='%s'\n", rcv->gt, method);
         return GURU_NIL_NEW();
     }
     if (!IS_CFUNC(m)) {
@@ -107,7 +107,7 @@ mrbc_send(GV v[], GV *rcv, const U8P method, U32 argc, ...)
 
 #ifdef GURU_DEBUG
     for (U32 i=0; i<=argc+1; i++) {	// not really needed!
-    	regs[i].tt = GURU_TT_EMPTY;	// but, clean up the stack before returning
+    	regs[i].gt = GT_EMPTY;	// but, clean up the stack before returning
     }
 #endif
     return ret;
@@ -186,7 +186,7 @@ c_object_equal3(GV v[], U32 argc)
 {
 	S32 ret = guru_cmp(v, v+1);
 
-    if (v[0].tt != GURU_TT_CLASS) SET_BOOL_RETURN(ret==0);
+    if (v[0].gt != GT_CLASS) SET_BOOL_RETURN(ret==0);
     else 						  SET_RETURN(guru_kind_of(v, argc));
 }
 
@@ -196,7 +196,7 @@ c_object_equal3(GV v[], U32 argc)
 __GURU__ void
 c_object_class(GV v[], U32 argc)
 {
-    GV ret = {.tt = GURU_TT_CLASS };
+    GV ret = {.gt = GT_CLASS };
     ret.cls = mrbc_get_class_by_object(v);
 
     SET_RETURN(ret);
@@ -261,7 +261,7 @@ __GURU__ void
 c_object_attr_reader(GV v[], U32 argc)
 {
     for (U32 i = 1; i <= argc; i++) {
-        if (v[i].tt != GURU_TT_SYMBOL) continue;	// TypeError raise?
+        if (v[i].gt != GT_SYM) continue;	// TypeError raise?
 
         // define reader method
         U8P name = VSYM(&v[i]);
@@ -276,7 +276,7 @@ __GURU__ void
 c_object_attr_accessor(GV v[], U32 argc)
 {
     for (U32 i = 1; i <= argc; i++) {
-        if (v[i].tt != GURU_TT_SYMBOL) continue;	// TypeError raise?
+        if (v[i].gt != GT_SYM) continue;	// TypeError raise?
 
         // define reader method
         U8P name = VSYM(&v[i]);
@@ -300,7 +300,7 @@ c_object_attr_accessor(GV v[], U32 argc)
 __GURU__ void
 c_object_kind_of(GV v[], U32 argc)
 {
-    if (v[1].tt != GURU_TT_CLASS) {
+    if (v[1].gt != GT_CLASS) {
         SET_BOOL_RETURN(0);
         return;
     }
@@ -323,12 +323,12 @@ c_object_to_s(GV v[], U32 argc)
 	GV ret;
 	U8P name;
 
-    switch (v->tt) {
-    case GURU_TT_CLASS:
+    switch (v->gt) {
+    case GT_CLASS:
     	name = symid2name(v->cls->sym_id);
     	ret = guru_str_new(name);
     	break;
-    case GURU_TT_OBJECT:
+    case GT_OBJ:
     	name = symid2name(v->self->cls->sym_id);
     	ret  = guru_str_new("#<0x");
     	guru_str_append_cstr(&ret, name);
@@ -415,7 +415,7 @@ _init_class_proc()
 __GURU__ void
 c_nil_false_not(GV v[], U32 argc)
 {
-    v[0].tt = GURU_TT_TRUE;
+    v[0].gt = GT_TRUE;
 }
 
 #if GURU_USE_STRING

@@ -21,7 +21,7 @@ __GURU__ U8P _output_buf;
 __GURU__ volatile U32 _mutex_con;
 
 __GURU__ void
-_write(guru_vtype tt, guru_vtype fmt, U32 sz, U8P buf)
+_write(guru_vtype gt, guru_vtype fmt, U32 sz, U8P buf)
 {
 	if (threadIdx.x!=0) return;		// only thread 0 within a block can write
 
@@ -31,12 +31,12 @@ _write(guru_vtype tt, guru_vtype fmt, U32 sz, U8P buf)
 	MEMCPY((U8P)n->data, buf, sz);
 
 	n->id   = blockIdx.x;			// VM.id
-	n->tt   = tt;
+	n->gt   = gt;
 	n->fmt  = fmt;
 	n->size = sz + (-sz & 0x3);		// 32-bit alignment
 
 	_output_ptr  = U8PADD(n->data, n->size);		// advance pointer to next print block
-	*_output_ptr = (U8)GURU_TT_EMPTY;
+	*_output_ptr = (U8)GT_EMPTY;
 
 	MUTEX_FREE(_mutex_con);
 }
@@ -100,7 +100,7 @@ guru_console_init(U8P buf, U32 sz)
 	if (threadIdx.x!=0 || blockIdx.x!=0) return;
 
 	guru_print_node *node = (guru_print_node *)buf;
-	node->tt = GURU_TT_EMPTY;
+	node->gt = GT_EMPTY;
 
 	_output_buf = _output_ptr = buf;
 
@@ -119,19 +119,19 @@ __GURU__ void
 console_char(U8 c)
 {
 	U8 buf[2] = { c, '\0' };
-	_write(GURU_TT_STRING, GURU_TT_EMPTY, 2, (U8P)buf);
+	_write(GT_STR, GT_EMPTY, 2, (U8P)buf);
 }
 
 __GURU__ void
 console_int(guru_int i)
 {
-	_write(GURU_TT_FIXNUM, GURU_TT_FIXNUM, sizeof(guru_int), (U8P)&i);
+	_write(GT_INT, GT_INT, sizeof(guru_int), (U8P)&i);
 }
 
 __GURU__ void
 console_hex(guru_int i)
 {
-	_write(GURU_TT_FIXNUM, GURU_TT_EMPTY, sizeof(guru_int), (U8P)&i);
+	_write(GT_INT, GT_EMPTY, sizeof(guru_int), (U8P)&i);
 }
 
 __GURU__ void
@@ -145,7 +145,7 @@ console_ptr(void *ptr)
 __GURU__ void
 console_float(guru_float f)
 {
-	_write(GURU_TT_FLOAT, GURU_TT_EMPTY, sizeof(guru_float), (U8P)&f);
+	_write(GT_FLOAT, GT_EMPTY, sizeof(guru_float), (U8P)&f);
 }
 #endif
 
@@ -157,7 +157,7 @@ console_float(guru_float f)
 __GURU__ void
 console_str(const U8 *str)
 {
-	_write(GURU_TT_STRING, GURU_TT_EMPTY, guru_strlen((U8P)str)+1, (U8P)str);
+	_write(GT_STR, GT_EMPTY, guru_strlen((U8P)str)+1, (U8P)str);
 }
 
 __HOST__ guru_print_node*
@@ -168,18 +168,18 @@ _guru_host_print(guru_print_node *node, U32 trace)
 	U32	argc;
 
 	if (trace) printf("<%d>", node->id);
-	switch (node->tt) {
-	case GURU_TT_FIXNUM:
-		printf((node->fmt==GURU_TT_FIXNUM ? "%d" : "%04x"), *((guru_int *)node->data));
+	switch (node->gt) {
+	case GT_INT:
+		printf((node->fmt==GT_INT ? "%d" : "%04x"), *((guru_int *)node->data));
 		break;
-	case GURU_TT_FLOAT:
+	case GT_FLOAT:
 		printf("%g", *((guru_float *)node->data));
 		break;
-	case GURU_TT_STRING:
+	case GT_STR:
 		memcpy(buf, (U8P)node->data, node->size);
 		printf("%s", (char *)buf);
 		break;
-	case GURU_TT_RANGE:								// TODO: va_list needed here
+	case GT_RANGE:								// TODO: va_list needed here
 		argc = (int)node->fmt;
 		memcpy(fmt, (U8P)node->data, node->size);
 		printf("%s", (char *)fmt);
@@ -188,7 +188,7 @@ _guru_host_print(guru_print_node *node, U32 trace)
 			node = _guru_host_print(node, trace);	// recursive call
 		}
 		break;
-	default: printf("print node type not supported: %d", node->tt); break;
+	default: printf("print node type not supported: %d", node->gt); break;
 	}
 
 	if (trace) printf("</%d>\n", node->id);
@@ -201,7 +201,7 @@ guru_console_flush(U8P output_buf, U32 trace)
 {
 #if GURU_USE_CONSOLE
 	guru_print_node *node = (guru_print_node *)output_buf;
-	while (node->tt != GURU_TT_EMPTY) {			// 0
+	while (node->gt != GT_EMPTY) {			// 0
 		node = _guru_host_print(node, trace);
 		node = NEXTNODE(node);
 	}

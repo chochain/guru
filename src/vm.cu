@@ -50,7 +50,7 @@ _vm_begin(guru_vm *pool)
 
 	MEMSET((U8P)vm->regfile, 0, sizeof(vm->regfile));	// clean up registers
 
-    vm->regfile[0].tt  	= GURU_TT_CLASS;		// regfile[0] is self
+    vm->regfile[0].gt  	= GT_CLASS;		// regfile[0] is self
     vm->regfile[0].cls 	= guru_class_object;	// root class
 
     guru_state *st = (guru_state *)mrbc_alloc(sizeof(guru_state));
@@ -283,15 +283,15 @@ _show_decoder(guru_vm *vm)
 	GV *v = vm->regfile;				// scan
 	U32 last = 0;
 	for (U32 i=0; i<MAX_REGS_SIZE; i++, v++) {
-		if (v->tt==GURU_TT_EMPTY) continue;
+		if (v->gt==GT_EMPTY) continue;
 		last=i;
 	}
 
 	v = vm->regfile;							// rewind
 	printf("[");
 	for (U32 i=0; i<=last; i++, v++) {
-		printf("%s",_vtype[v->tt]);
-		if (v->tt >= GURU_TT_OBJECT) printf("%d", v->self->refc);
+		printf("%s",_vtype[v->gt]);
+		if (v->gt >= GT_OBJ) printf("%d", v->self->refc);
 		else 						 printf(" ");
 	    printf("%c", i==lvl ? '|' : ' ');
     }

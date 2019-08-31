@@ -42,7 +42,7 @@ __GURU__ U32 _mutex_op;
 //
 #define _RA_X(r)    do { ref_clr(&regs[ra]); regs[ra] = *(r); ref_inc(r); } while (0)
 #define _RA_V(v)    do { ref_clr(&regs[ra]); regs[ra] = (v); } while (0)
-#define _RA_T(t, e) do { ref_clr(&regs[ra]); regs[ra].tt = (t); regs[ra].e; } while (0)
+#define _RA_T(t, e) do { ref_clr(&regs[ra]); regs[ra].gt = (t); regs[ra].e; } while (0)
 
 #if GURU_HOST_IMAGE
 //================================================================
@@ -270,11 +270,11 @@ op_loadl(guru_vm *vm, U32 code, GV *regs)
     guru_obj obj;
 
     if (*p & 1) {
-    	obj.tt = GURU_TT_FLOAT;
+    	obj.gt = GT_FLOAT;
     	obj.f  = *(guru_float *)p;
     }
     else {
-    	obj.tt = GURU_TT_FIXNUM;
+    	obj.gt = GT_INT;
     	obj.i  = *p>>1;
     }
     _RA_V(obj);
@@ -299,7 +299,7 @@ op_loadi(guru_vm *vm, U32 code, GV *regs)
     int ra = GETARG_A(code);
     int rb = GETARG_sBx(code);
 
-    _RA_T(GURU_TT_FIXNUM, i=rb);
+    _RA_T(GT_INT, i=rb);
 
     return 0;
 }
@@ -324,7 +324,7 @@ op_loadsym(guru_vm *vm, U32 code, GV *regs)
 
     guru_sym sid = _vm_symid(vm, rb);
 
-    _RA_T(GURU_TT_SYMBOL, i=sid);
+    _RA_T(GT_SYM, i=sid);
 
     return 0;
 }
@@ -345,7 +345,7 @@ op_loadnil(guru_vm *vm, U32 code, GV *regs)
 {
     int ra = GETARG_A(code);
 
-    _RA_T(GURU_TT_NIL, i=0);
+    _RA_T(GT_NIL, i=0);
 
     return 0;
 }
@@ -387,7 +387,7 @@ op_loadt(guru_vm *vm, U32 code, GV *regs)
 {
     int ra = GETARG_A(code);
 
-    _RA_T(GURU_TT_TRUE, i=0);
+    _RA_T(GT_TRUE, i=0);
 
     return 0;
 }
@@ -408,7 +408,7 @@ op_loadf(guru_vm *vm, U32 code, GV *regs)
 {
     int ra = GETARG_A(code);
 
-    _RA_T(GURU_TT_FALSE, i=0);
+    _RA_T(GT_FALSE, i=0);
 
     return 0;
 }
@@ -657,7 +657,7 @@ op_jmp(guru_vm *vm, U32 code, GV *regs)
 __GURU__ int
 op_jmpif (guru_vm *vm, U32 code, GV *regs)
 {
-    if (regs[GETARG_A(code)].tt > GURU_TT_FALSE) {
+    if (regs[GETARG_A(code)].gt > GT_FALSE) {
         vm->state->pc += GETARG_sBx(code) - 1;
     }
     return 0;
@@ -677,7 +677,7 @@ op_jmpif (guru_vm *vm, U32 code, GV *regs)
 __GURU__ int
 op_jmpnot(guru_vm *vm, U32 code, GV *regs)
 {
-    if (regs[GETARG_A(code)].tt <= GURU_TT_FALSE) {
+    if (regs[GETARG_A(code)].gt <= GT_FALSE) {
         vm->state->pc += GETARG_sBx(code) - 1;
     }
     return 0;
@@ -709,10 +709,10 @@ op_send(guru_vm *vm, U32 code, GV *regs)
     switch(GET_OPCODE(code)) {
     case OP_SEND:
         ref_clr(&regs[bidx]);
-        regs[bidx].tt = GURU_TT_NIL;
+        regs[bidx].gt = GT_NIL;
         break;
     case OP_SENDB:						// set Proc object
-        if (regs[bidx].tt != GURU_TT_NIL && regs[bidx].tt != GURU_TT_PROC){
+        if (regs[bidx].gt != GT_NIL && regs[bidx].gt != GT_PROC){
             // TODO: fix the following behavior
             // convert to Proc ?
             // raise exceprion in mruby/c ?
@@ -824,7 +824,7 @@ op_return(guru_vm *vm, U32 code, GV *regs)
 
     ref_clr(&regs[0]);
     regs[0]     = ret;
-    regs[ra].tt = GURU_TT_EMPTY;
+    regs[ra].gt = GT_EMPTY;
 
     _pop_state(vm, regs);
 
@@ -849,7 +849,7 @@ op_blkpush(guru_vm *vm, U32 code, GV *regs)
 
     GV *stack = regs + 1;       // call stack: push 1 GV
 
-    if (stack[0].tt==GURU_TT_NIL){		// Check leak?
+    if (stack[0].gt==GT_NIL){		// Check leak?
         return vm->err = 255;  			// EYIELD
     }
     _RA_X(stack);                       // ra <= stack[0]
@@ -875,18 +875,18 @@ op_add(guru_vm *vm, U32 code, GV *regs)
     GV *r0 = &regs[ra];
     GV *r1 = &regs[ra+1];
 
-    if (r0->tt==GURU_TT_FIXNUM) {
-        if      (r1->tt==GURU_TT_FIXNUM) r0->i += r1->i;
+    if (r0->gt==GT_INT) {
+        if      (r1->gt==GT_INT) r0->i += r1->i;
 #if GURU_USE_FLOAT
-        else if (r1->tt==GURU_TT_FLOAT) {	// in case of Fixnum, Float
-            r0->tt = GURU_TT_FLOAT;
+        else if (r1->gt==GT_FLOAT) {	// in case of Fixnum, Float
+            r0->gt = GT_FLOAT;
             r0->f = r0->i + r1->f;
         }
         else guru_na("Fixnum + ?");
     }
-    else if (r0->tt==GURU_TT_FLOAT) {
-        if      (r1->tt==GURU_TT_FIXNUM) r0->f += r1->i;
-        else if (r1->tt==GURU_TT_FLOAT)	 r0->f += r1->f;
+    else if (r0->gt==GT_FLOAT) {
+        if      (r1->gt==GT_INT) r0->f += r1->i;
+        else if (r1->gt==GT_FLOAT)	 r0->f += r1->f;
         else guru_na("Float + ?");
 #endif
     }
@@ -917,9 +917,9 @@ op_addi(guru_vm *vm, U32 code, GV *regs)
 
     GV *r0 = &regs[ra];
 
-    if (r0->tt==GURU_TT_FIXNUM)     r0->i += rc;
+    if (r0->gt==GT_INT)     r0->i += rc;
 #if GURU_USE_FLOAT
-    else if (r0->tt==GURU_TT_FLOAT)	r0->f += rc;
+    else if (r0->gt==GT_FLOAT)	r0->f += rc;
 #else
     else guru_na("Float class");
 #endif
@@ -945,18 +945,18 @@ op_sub(guru_vm *vm, U32 code, GV *regs)
     GV *r0 = &regs[ra];
     GV *r1 = &regs[ra+1];
 
-    if (r0->tt==GURU_TT_FIXNUM) {
-        if      (r1->tt==GURU_TT_FIXNUM) 	r0->i -= r1->i;
+    if (r0->gt==GT_INT) {
+        if      (r1->gt==GT_INT) 	r0->i -= r1->i;
 #if GURU_USE_FLOAT
-        else if (r1->tt==GURU_TT_FLOAT) {		// in case of Fixnum, Float
-            r0->tt = GURU_TT_FLOAT;
+        else if (r1->gt==GT_FLOAT) {		// in case of Fixnum, Float
+            r0->gt = GT_FLOAT;
             r0->f  = r0->i - r1->f;
         }
         else guru_na("Fixnum - ?");
     }
-    else if (r0->tt==GURU_TT_FLOAT) {
-        if      (r1->tt==GURU_TT_FIXNUM)	r0->f -= r1->i;
-        else if (r1->tt==GURU_TT_FLOAT)		r0->f -= r1->f;
+    else if (r0->gt==GT_FLOAT) {
+        if      (r1->gt==GT_INT)	r0->f -= r1->i;
+        else if (r1->gt==GT_FLOAT)		r0->f -= r1->f;
         else guru_na("Float - ?");
 #endif
     }
@@ -986,9 +986,9 @@ op_subi(guru_vm *vm, U32 code, GV *regs)
 
     GV *r0 = &regs[ra];
 
-    if (r0->tt==GURU_TT_FIXNUM) 	r0->i -= rc;
+    if (r0->gt==GT_INT) 	r0->i -= rc;
 #if GURU_USE_FLOAT
-    else if (r0->tt==GURU_TT_FLOAT) r0->f -= rc;
+    else if (r0->gt==GT_FLOAT) r0->f -= rc;
 #else
     else guru_na("Float class");
 #endif
@@ -1013,18 +1013,18 @@ op_mul(guru_vm *vm, U32 code, GV *regs)
     GV *r0 = &regs[ra];
     GV *r1 = &regs[ra+1];
 
-    if (r0->tt==GURU_TT_FIXNUM) {
-        if      (r1->tt==GURU_TT_FIXNUM) 	r0->i *= r1->i;
+    if (r0->gt==GT_INT) {
+        if      (r1->gt==GT_INT) 	r0->i *= r1->i;
 #if GURU_USE_FLOAT
-        else if (r1->tt==GURU_TT_FLOAT) {	// in case of Fixnum, Float
-            r0->tt = GURU_TT_FLOAT;
+        else if (r1->gt==GT_FLOAT) {	// in case of Fixnum, Float
+            r0->gt = GT_FLOAT;
             r0->f  = r0->i * r1->f;
         }
         else guru_na("Fixnum * ?");
     }
-    else if (r0->tt==GURU_TT_FLOAT) {
-        if      (r1->tt==GURU_TT_FIXNUM) r0->f *= r1->i;
-        else if (r1->tt==GURU_TT_FLOAT)  r0->f *= r1->f;
+    else if (r0->gt==GT_FLOAT) {
+        if      (r1->gt==GT_INT) r0->f *= r1->i;
+        else if (r1->gt==GT_FLOAT)  r0->f *= r1->f;
         else guru_na("Float * ?");
 #endif
     }
@@ -1053,18 +1053,18 @@ op_div(guru_vm *vm, U32 code, GV *regs)
     GV *r0 = &regs[ra];
     GV *r1 = &regs[ra+1];
 
-    if (r0->tt==GURU_TT_FIXNUM) {
-        if      (r1->tt==GURU_TT_FIXNUM) 	r0->i /= r1->i;
+    if (r0->gt==GT_INT) {
+        if      (r1->gt==GT_INT) 	r0->i /= r1->i;
 #if GURU_USE_FLOAT
-        else if (r1->tt==GURU_TT_FLOAT) {		// in case of Fixnum, Float
-            r0->tt = GURU_TT_FLOAT;
+        else if (r1->gt==GT_FLOAT) {		// in case of Fixnum, Float
+            r0->gt = GT_FLOAT;
             r0->f  = r0->i / r1->f;
         }
         else guru_na("Fixnum / ?");
     }
-    else if (r0->tt==GURU_TT_FLOAT) {
-        if      (r1->tt==GURU_TT_FIXNUM) 	r0->f /= r1->i;
-        else if (r1->tt==GURU_TT_FLOAT)		r0->f /= r1->f;
+    else if (r0->gt==GT_FLOAT) {
+        if      (r1->gt==GT_INT) 	r0->f /= r1->i;
+        else if (r1->gt==GT_FLOAT)		r0->f /= r1->f;
         else guru_na("Float / ?");
 #endif
     }
@@ -1090,7 +1090,7 @@ __GURU__ int
 op_eq(guru_vm *vm, U32 code, GV *regs)
 {
     int ra = GETARG_A(code);
-    guru_vtype tt = TT_BOOL(guru_cmp(&regs[ra], &regs[ra+1])==0);
+    guru_vtype tt = GT_BOOL(guru_cmp(&regs[ra], &regs[ra+1])==0);
 
     _RA_T(tt, i=0);
 
@@ -1102,26 +1102,26 @@ op_eq(guru_vm *vm, U32 code, GV *regs)
 // macro for comparators
 #define ncmp(r0, op, r1)								\
 do {													\
-	if ((r0)->tt==GURU_TT_FIXNUM) {						\
-		if ((r1)->tt==GURU_TT_FIXNUM) {					\
-			(r0)->tt = TT_BOOL((r0)->i op (r1)->i);		\
+	if ((r0)->gt==GT_INT) {								\
+		if ((r1)->gt==GT_INT) {							\
+			(r0)->gt = GT_BOOL((r0)->i op (r1)->i);		\
 		}												\
-		else if ((r1)->tt==GURU_TT_FLOAT) {				\
-			(r0)->tt = TT_BOOL((r0)->i op (r1)->f);		\
+		else if ((r1)->gt==GT_FLOAT) {					\
+			(r0)->gt = GT_BOOL((r0)->i op (r1)->f);		\
 		}												\
 	}													\
-	else if ((r0)->tt==GURU_TT_FLOAT) {					\
-		if ((r1)->tt==GURU_TT_FIXNUM) {					\
-			(r0)->tt = TT_BOOL((r0)->f op (r1)->i);		\
+	else if ((r0)->gt==GT_FLOAT) {						\
+		if ((r1)->gt==GT_INT) {							\
+			(r0)->gt = GT_BOOL((r0)->f op (r1)->i);		\
 		}												\
-		else if ((r1)->tt==GURU_TT_FLOAT) {				\
-			(r0)->tt = TT_BOOL((r0)->f op (r1)->f);		\
+		else if ((r1)->gt==GT_FLOAT) {					\
+			(r0)->gt = GT_BOOL((r0)->f op (r1)->f);		\
 		}												\
 	}													\
 	else {												\
 		op_send(vm, code, regs);						\
 	}													\
-    ref_clr(r1);									\
+    ref_clr(r1);										\
 } while (0)
 
 //================================================================
@@ -1341,7 +1341,7 @@ op_hash(guru_vm *vm, U32 code, GV *regs)
     MEMCPY((U8P)h->data, (U8P)p, sz);					// copy k,v pairs
 
     for (U32 i=0; i<(h->n=(rc<<1)); i++, p++) {
-    	p->tt = GURU_TT_EMPTY;							// clean up call stack
+    	p->gt = GT_EMPTY;							// clean up call stack
     }
     _RA_V(ret);						                	// set return value on stack top
 #else
@@ -1406,7 +1406,7 @@ op_lambda(guru_vm *vm, U32 code, GV *regs)
     prc->irep = _vm_irep_list(vm, rb);
     prc->flag &= ~GURU_CFUNC;           // Ruby IREP
 
-    _RA_T(GURU_TT_PROC, proc=prc);
+    _RA_T(GT_PROC, proc=prc);
 
     return 0;
 }
@@ -1430,11 +1430,11 @@ op_class(guru_vm *vm, U32 code, GV *regs)
     int ra = GETARG_A(code);
     int rb = GETARG_B(code);
 
-    guru_class *super = (regs[ra+1].tt==GURU_TT_CLASS) ? regs[ra+1].cls : guru_class_object;
+    guru_class *super = (regs[ra+1].gt==GT_CLASS) ? regs[ra+1].cls : guru_class_object;
     const U8P  name   = _vm_symbol(vm, rb);
     guru_class *cls   = (guru_class *)mrbc_define_class(name, super);
 
-    _RA_T(GURU_TT_CLASS, cls=cls);
+    _RA_T(GT_CLASS, cls=cls);
     return 0;
 }
 
@@ -1484,7 +1484,7 @@ op_method(guru_vm *vm, U32 code, GV *regs)
     int ra = GETARG_A(code);
     int rb = GETARG_B(code);
 
-    if (regs[ra].tt != GURU_TT_CLASS) {
+    if (regs[ra].gt != GT_CLASS) {
     	PRINTF("?op_method");
     	return 0;
     }
@@ -1506,7 +1506,7 @@ op_method(guru_vm *vm, U32 code, GV *regs)
     if (p) {	// found?
     	*((guru_proc**)pp) = p->next;
     	if (!IS_CFUNC(p)) {				// a p->func a Ruby function (aka IREP)
-    		GV v = { .tt = GURU_TT_PROC };
+    		GV v = { .gt = GT_PROC };
     		v.proc = p;
     		ref_clr(&v);
         }
@@ -1521,7 +1521,7 @@ op_method(guru_vm *vm, U32 code, GV *regs)
 
     MUTEX_FREE(_mutex_op);
 
-    regs[ra+1].tt = GURU_TT_EMPTY;
+    regs[ra+1].gt = GT_EMPTY;
 
     return 0;
 }
@@ -1542,7 +1542,7 @@ op_tclass(guru_vm *vm, U32 code, GV *regs)
 {
     int ra = GETARG_A(code);
 
-    _RA_T(GURU_TT_CLASS, cls=vm->state->klass);
+    _RA_T(GT_CLASS, cls=vm->state->klass);
 
     return 0;
 }

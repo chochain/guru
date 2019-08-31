@@ -64,29 +64,29 @@ extern "C" {
 
 typedef enum {
     /* primitive */
-    GURU_TT_EMPTY = 0,							// aka MRB_TT_UNDEF
-    GURU_TT_NIL,								// aka MRB_TT_FREE
+    GT_EMPTY = 0,							// aka MRB_TT_UNDEF
+    GT_NIL,									// aka MRB_TT_FREE
 
-    GURU_TT_FALSE,								// (note) true/false threshold. see op_jmpif
-    GURU_TT_TRUE,
+    GT_FALSE,								// (note) true/false threshold. see op_jmpif
+    GT_TRUE,
 
-    GURU_TT_FIXNUM,								// 0x4
-    GURU_TT_FLOAT,
-    GURU_TT_SYMBOL,
-    GURU_TT_CLASS,
+    GT_INT,									// 0x4
+    GT_FLOAT,
+    GT_SYM,
+    GT_CLASS,
 
-    GURU_TT_HAS_REF = 16,						// 0x10
+    GT_HAS_REF = 16,						// 0x10
 
     /* non-primitive */
-    GURU_TT_OBJECT = GURU_TT_HAS_REF + 4,		// 0x14 or 20
-    GURU_TT_PROC,
-    GURU_TT_ARRAY,
-    GURU_TT_STRING,
-    GURU_TT_RANGE,
-    GURU_TT_HASH,
+    GT_OBJ = GT_HAS_REF + 4,				// 0x14 or 20
+    GT_PROC,
+    GT_ARRAY,
+    GT_STR,
+    GT_RANGE,
+    GT_HASH,
 } guru_vtype;
 
-#define TT_BOOL(v)		((v) ? GURU_TT_TRUE : GURU_TT_FALSE)
+#define GT_BOOL(v)		((v) ? GT_TRUE : GT_FALSE)
 
 // short notation
 typedef uint64_t    U64;
@@ -118,27 +118,27 @@ typedef U32 		guru_sym;
 */
 typedef struct RVal {
     union {
-        guru_int         i;					// GURU_TT_FIXNUM, SYMBOL
-        guru_float       f;					// GURU_TT_FLOAT
+        guru_int         i;					// TT_FIXNUM, SYMBOL
+        guru_float       f;					// TT_FLOAT
     };
 } guru_val;
 
 typedef struct RObject {					// 8-bytes
-    guru_vtype           tt   : 8;			// 8-bit
+    guru_vtype           gt   : 8;			// 8-bit
     U32				 	 flag : 8;			// function, memory pool index
     U32					 size : 16;			// 32-bit aligned
     union {
-        guru_int         i;					// GURU_TT_FIXNUM, SYMBOL
-        guru_float       f;					// GURU_TT_FLOAT
+        guru_int         i;					// TT_FIXNUM, SYMBOL
+        guru_float       f;					// TT_FLOAT
         U8P       		 sym;				// C-string (only loader use.)
-        struct RClass    *cls;				// GURU_TT_CLASS
-        struct RVar      *self;				// GURU_TT_OBJECT
-        struct RProc     *proc;				// GURU_TT_PROC
-        struct RString   *str;				// GURU_TT_STRING
+        struct RClass    *cls;				// TT_CLASS
+        struct RVar      *self;				// TT_OBJECT
+        struct RProc     *proc;				// TT_PROC
+        struct RString   *str;				// TT_STRING
 #if GURU_USE_ARRAY
-        struct RArray    *array;			// GURU_TT_ARRAY
-        struct RRange    *range;			// GURU_TT_RANGE
-        struct RHash     *hash;				// GURU_TT_HASH
+        struct RArray    *array;			// TT_ARRAY
+        struct RRange    *range;			// TT_RANGE
+        struct RHash     *hash;				// TT_HASH
 #endif
     };
 } GV, guru_obj;
@@ -162,7 +162,7 @@ typedef struct RClass {						// 16-byte
 #define IS_CFUNC(m)	((m)->flag & GURU_CFUNC)
 
 #define GURU_HDR      			\
-	guru_vtype  	tt   : 8; 	\
+	guru_vtype  	gt   : 8; 	\
 	U32				flag : 8;	\
 	U32				refc : 16;
 

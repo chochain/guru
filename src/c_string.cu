@@ -68,7 +68,7 @@ _data(const GV *v)
 __GURU__ GV
 _new(const U8P src, U32 len)
 {
-    GV ret = {.tt = GURU_TT_STRING};
+    GV ret = {.gt = GT_STR};
     /*
       Allocate handle and string buffer.
     */
@@ -93,7 +93,7 @@ _new(const U8P src, U32 len)
     else 			MEMCPY(s, src, len+1);		// plus '\0'
 
     h->refc = 1;
-    h->tt   = GURU_TT_STRING;	// TODO: for DEBUG
+    h->gt   = GT_STR;	// TODO: for DEBUG
     h->len  = len;
     h->data = s;
 
@@ -250,7 +250,7 @@ __GURU__ void
 guru_str_append(const GV *v0, const GV *v1)
 {
     U32 len0 = v0->str->len;
-    U32 len1 = (v1->tt==GURU_TT_STRING) ? v1->str->len : 1;
+    U32 len1 = (v1->gt==GT_STR) ? v1->str->len : 1;
 
     U8P s = (U8P)mrbc_realloc(v0->str->data, len0+len1+1);		// +'\0'
 
@@ -258,10 +258,10 @@ guru_str_append(const GV *v0, const GV *v1)
 #if GURU_64BIT_ALIGN_REQUIRED
     assert(((U32A)s & 7)==0);
 #endif
-    if (v1->tt==GURU_TT_STRING) {			// append str2
+    if (v1->gt==GT_STR) {			// append str2
         MEMCPY(s + len0, v1->str->data, len1 + 1);
     }
-    else if (v1->tt==GURU_TT_FIXNUM) {
+    else if (v1->gt==GT_INT) {
         s[len0]   = v1->i;
         s[len0+1] = '\0';
     }
@@ -323,7 +323,7 @@ guru_str_add(const GV *v0, const GV *v1)
 __GURU__ void
 c_string_add(GV v[], U32 argc)
 {
-    if (v[1].tt != GURU_TT_STRING) {
+    if (v[1].gt != GT_STR) {
         guru_na("str + other type");
     }
     else {
@@ -337,7 +337,7 @@ c_string_add(GV v[], U32 argc)
 __GURU__ void
 c_string_mul(GV v[], U32 argc)
 {
-    if (v[1].tt != GURU_TT_FIXNUM) {
+    if (v[1].gt != GT_INT) {
         PRINTF("TypeError\n");	// raise?
         return;
     }
@@ -412,7 +412,7 @@ c_string_slice(GV v[], U32 argc)
     GV *v1 = &v[1];
     GV *v2 = &v[2];
 
-    if (argc==1 && v1->tt==GURU_TT_FIXNUM) {		// slice(n) -> String | nil
+    if (argc==1 && v1->gt==GT_INT) {		// slice(n) -> String | nil
         U32 len = v->str->len;
         S32 idx = v1->i;
         S32 ch = -1;
@@ -437,7 +437,7 @@ c_string_slice(GV v[], U32 argc)
 
         SET_RETURN(ret);
     }
-    else if (argc==2 && v1->tt==GURU_TT_FIXNUM && v2->tt==GURU_TT_FIXNUM) { 	// slice(n, len) -> String | nil
+    else if (argc==2 && v1->gt==GT_INT && v2->gt==GT_INT) { 	// slice(n, len) -> String | nil
         U32 len = v->str->len;
         S32 idx = v1->i;
         if (idx < 0) idx += len;
@@ -472,16 +472,16 @@ c_string_insert(GV v[], U32 argc)
     GV *val;
 
     if (argc==2 &&								// self[n] = val
-        v[1].tt==GURU_TT_FIXNUM &&
-        v[2].tt==GURU_TT_STRING) {
+        v[1].gt==GT_INT &&
+        v[2].gt==GT_STR) {
         nth = v[1].i;
         len = 1;
         val = &v[2];
     }
     else if (argc==3 &&							// self[n, len] = val
-             v[1].tt==GURU_TT_FIXNUM &&
-             v[2].tt==GURU_TT_FIXNUM &&
-             v[3].tt==GURU_TT_STRING) {
+             v[1].gt==GT_INT &&
+             v[2].gt==GT_INT &&
+             v[3].gt==GT_STR) {
         nth = v[1].i;
         len = v[2].i;
         val = &v[3];
@@ -555,7 +555,7 @@ c_string_index(GV v[], U32 argc)
     if (argc==1) {
         offset = 0;
     }
-    else if (argc==2 && v[2].tt==GURU_TT_FIXNUM) {
+    else if (argc==2 && v[2].gt==GT_INT) {
         offset = v[2].i;
         if (offset < 0) offset += _size(v);
         if (offset < 0) goto NIL_RETURN;

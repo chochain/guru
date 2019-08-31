@@ -337,41 +337,41 @@ guru_vprintf(const U8 *fstr, GV v[], U32 argc)		// << from c_string.cu
         }
         switch(pf->fmt.type) {
         case 'c':
-            if (v[i].tt==GURU_TT_FIXNUM) {
+            if (v[i].gt==GT_INT) {
                 ret = __char(pf, v[i].i);
             }
             break;
         case 's':
-            if (v[i].tt==GURU_TT_STRING) {
+            if (v[i].gt==GT_STR) {
                 ret = __str(pf, VSTR(&v[i]), ' ');
             }
-            else if (v[i].tt==GURU_TT_SYMBOL) {
+            else if (v[i].gt==GT_SYM) {
                 ret = __str(pf, VSYM(&v[i]), ' ');
             }
             break;
         case 'd':
         case 'i':
         case 'u':
-            if (v[i].tt==GURU_TT_FIXNUM) {
+            if (v[i].gt==GT_INT) {
                 ret = __int(pf, v[i].i, 10);
 #if GURU_USE_FLOAT
-            } else if (v[i].tt==GURU_TT_FLOAT) {
+            } else if (v[i].gt==GT_FLOAT) {
                 ret = __int(pf, (guru_int)v[i].f, 10);
 #endif
-            } else if (v[i].tt==GURU_TT_STRING) {
+            } else if (v[i].gt==GT_STR) {
                 guru_int ival = ATOI(VSTR(&v[i]));
                 ret = __int(pf, ival, 10);
             }
             break;
         case 'b':
         case 'B':
-            if (v[i].tt==GURU_TT_FIXNUM) {
+            if (v[i].gt==GT_INT) {
                 ret = __int(pf, v[i].i, 2);
             }
             break;
         case 'x':
         case 'X':
-            if (v[i].tt==GURU_TT_FIXNUM) {
+            if (v[i].gt==GT_INT) {
                 ret = __int(pf, v[i].i, 16);
             }
             break;
@@ -381,10 +381,10 @@ guru_vprintf(const U8 *fstr, GV v[], U32 argc)		// << from c_string.cu
         case 'E':
         case 'g':
         case 'G':
-            if (v[i].tt==GURU_TT_FLOAT) {
+            if (v[i].gt==GT_FLOAT) {
                 ret = __float(pf, v[i].f);
             }
-            else if (v[i].tt==GURU_TT_FIXNUM) {
+            else if (v[i].gt==GT_INT) {
             	ret = __float(pf, v[i].i);
             }
             break;

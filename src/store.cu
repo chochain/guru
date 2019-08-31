@@ -174,7 +174,7 @@ _get(mrbc_store *st, guru_sym sid)
 __GURU__ GV
 mrbc_store_new(guru_class *cls, U32 size)
 {
-    GV v = {.tt = GURU_TT_OBJECT};
+    GV v = {.gt = GT_OBJ};
     v.self = (guru_var *)mrbc_alloc(sizeof(mrbc_store) + size);
     if (v.self == NULL) return v;	// ENOMEM
 
@@ -186,7 +186,7 @@ mrbc_store_new(guru_class *cls, U32 size)
     }
 
     v.self->refc = 1;
-    v.self->tt   = GURU_TT_OBJECT;	// for debug only.
+    v.self->gt   = GT_OBJ;	// for debug only.
     v.self->cls  = cls;
 
     return v;
