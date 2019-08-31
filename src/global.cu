@@ -46,7 +46,7 @@ _get_obj(mrbc_sym sid, _gtype gt)
 
     if (idx==MAX_GLOBAL_COUNT) return GURU_NIL_NEW();
 
-    mrbc_retain(&_global[idx].obj);
+    ref_inc(&_global[idx].obj);
 
     return _global[idx].obj;				// pointer to global object
 }
@@ -59,7 +59,7 @@ _add_obj(mrbc_sym sid, guru_obj *obj, _gtype tt)
     MUTEX_LOCK(_mutex_gobj);
 
     if (idx < MAX_GLOBAL_COUNT) {
-        mrbc_release(&(_global[idx].obj));
+        ref_clr(&(_global[idx].obj));
      }
     else {
         idx = ++_global_idx;
@@ -71,7 +71,7 @@ _add_obj(mrbc_sym sid, guru_obj *obj, _gtype tt)
 
     MUTEX_FREE(_mutex_gobj);
 
-    mrbc_retain(obj);
+    ref_inc(obj);
 }
 
 /* add */

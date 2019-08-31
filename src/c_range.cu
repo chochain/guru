@@ -62,8 +62,8 @@ mrbc_range_new(mrbc_value *first, mrbc_value *last, int exclude_end)
 __GURU__ void
 mrbc_range_delete(mrbc_value *v)
 {
-    mrbc_release(&v->range->first);
-    mrbc_release(&v->range->last);
+    ref_clr(&v->range->first);
+    ref_clr(&v->range->last);
 
     mrbc_free(v->range);
 }
@@ -76,10 +76,10 @@ mrbc_range_compare(const mrbc_value *v1, const mrbc_value *v2)
 {
     int res;
 
-    res = mrbc_compare(&v1->range->first, &v2->range->first);
+    res = guru_cmp(&v1->range->first, &v2->range->first);
     if (res != 0) return res;
 
-    res = mrbc_compare(&v1->range->last, &v2->range->last);
+    res = guru_cmp(&v1->range->last, &v2->range->last);
     if (res != 0) return res;
 
     return (int)IS_EXCLUDE_END(v2->range) - (int)IS_EXCLUDE_END(v1->range);
@@ -97,13 +97,13 @@ c_range_equal3(mrbc_value v[], U32 argc)
         return;
     }
 
-    int first = mrbc_compare(&v->range->first, v+1);
+    int first = guru_cmp(&v->range->first, v+1);
     if (first <= 0) {
         SET_FALSE_RETURN();
         return;
     }
 
-    int last = mrbc_compare(v+1, &v->range->last);
+    int last = guru_cmp(v+1, &v->range->last);
     int flag = IS_EXCLUDE_END(v->range) ? (last < 0) : (last <= 0);
 
     SET_BOOL_RETURN(flag);
@@ -155,7 +155,7 @@ c_range_inspect(mrbc_value v[], U32 argc)
         s1 = guru_inspect(v+argc, &v1);
 
         mrbc_string_append(&ret, &s1);
-        mrbc_release(&s1);					// free locally allocated memory
+        ref_clr(&s1);					// free locally allocated memory
     }
     SET_RETURN(ret);
 }

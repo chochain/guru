@@ -16,25 +16,27 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-__GURU__ S32  mrbc_compare(const mrbc_value *v1, const mrbc_value *v2);
-__GURU__ void mrbc_retain(mrbc_value *v);
-__GURU__ void mrbc_release(mrbc_value *v);
-__GURU__ void mrbc_dec_refc(mrbc_value *v);
+__GURU__ S32  guru_cmp(const mrbc_value *v1, const mrbc_value *v2);
+
+__GURU__ void ref_clr(mrbc_value *v);
+__GURU__ void ref_dec(mrbc_value *v);
+__GURU__ void ref_inc(mrbc_value *v);
 
 // for C call
-#define SET_RETURN(n)		do { mrbc_value nnn = (n); mrbc_dec_refc(v); v[0] = nnn; 	} while (0)
-#define SET_NIL_RETURN()	do { mrbc_dec_refc(v); v[0].tt = GURU_TT_NIL;   			} while (0)
+#define SET_RETURN(n)		do { mrbc_value nnn = (n); ref_dec(v); v[0] = nnn; 	} while (0)
+#define SET_NIL_RETURN()	do { ref_dec(v); v[0].tt = GURU_TT_NIL;   		 	} while (0)
 
-#define SET_FALSE_RETURN()	do { mrbc_dec_refc(v); v[0].tt = GURU_TT_FALSE; 			} while (0)
-#define SET_TRUE_RETURN()	do { mrbc_dec_refc(v); v[0].tt = GURU_TT_TRUE;  			} while (0)
-#define SET_BOOL_RETURN(n)	do { mrbc_dec_refc(v); v[0].tt = (n)?GURU_TT_TRUE:GURU_TT_FALSE; } while (0)
+#define SET_FALSE_RETURN()	do { ref_dec(v); v[0].tt = GURU_TT_FALSE; 			} while (0)
+#define SET_TRUE_RETURN()	do { ref_dec(v); v[0].tt = GURU_TT_TRUE;  			} while (0)
+#define SET_BOOL_RETURN(n)	do { ref_dec(v); v[0].tt = (n)?GURU_TT_TRUE:GURU_TT_FALSE; } while (0)
 
 #define SET_INT_RETURN(n)	do { mrbc_int nnn = (n);					\
-		mrbc_dec_refc(v); v[0].tt = GURU_TT_FIXNUM; v[0].i = nnn; } while (0)
+		ref_dec(v); v[0].tt = GURU_TT_FIXNUM; v[0].i = nnn; } while (0)
 #define SET_FLOAT_RETURN(n)	do { mrbc_float nnn = (n);                  \
-        mrbc_dec_refc(v); v[0].tt = GURU_TT_FLOAT;  v[0].f = nnn; } while (0)
+        ref_dec(v); v[0].tt = GURU_TT_FLOAT;  v[0].f = nnn; } while (0)
 
 // macro to fetch from stack objects
+#define GURU_NIL_NEW()	    	((guru_obj)  {.tt = GURU_TT_NIL})
 #define GET_TT_ARG(n)			(v[(n)].tt)
 #define GET_INT_ARG(n)			(v[(n)].i)
 #define GET_ARY_ARG(n)			(v[(n)])
@@ -42,12 +44,6 @@ __GURU__ void mrbc_dec_refc(mrbc_value *v);
 #define GET_STRING_ARG(n)		(v[(n)].string->data)
 
 // macro to create new built-in objects
-#define GURU_NIL_NEW()	    	((guru_obj)  {.tt = GURU_TT_NIL})
-#define mrbc_fixnum_value(n)	((mrbc_value){.tt = GURU_TT_FIXNUM, .i=(n)})
-#define mrbc_float_value(n)	    ((mrbc_value){.tt = GURU_TT_FLOAT,  .f=(n)})
-#define mrbc_true_value()	    ((mrbc_value){.tt = GURU_TT_TRUE})
-#define mrbc_false_value()	    ((mrbc_value){.tt = GURU_TT_FALSE})
-#define mrbc_bool_value(n)	    ((mrbc_value){.tt = (n)?GURU_TT_TRUE:GURU_TT_FALSE})
 
 #ifdef __GURU_CUDA__
 __GURU__ mrbc_int   guru_atoi(U8P s, U32 base);

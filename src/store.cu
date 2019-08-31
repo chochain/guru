@@ -95,7 +95,7 @@ _delete(mrbc_store *st)
 {
     mrbc_store_data *d = st->data;
     for (U32 i=0; i<st->n; i++, d++) {		// free logical
-        mrbc_release(&d->value);            // CC: was dec_ref 20181101
+        ref_clr(&d->value);            // CC: was dec_ref 20181101
     }
     st->n = 0;
 
@@ -122,7 +122,7 @@ _set(mrbc_store *st, mrbc_sym sid, mrbc_value *val)
     }
     // replace value ?
     if (d->sym_id == sid) {
-        mrbc_release(&d->value);      // CC: was dec_refc 20181101
+        ref_clr(&d->value);      // CC: was dec_refc 20181101
         d->value = *val;
         return 0;
     }
@@ -215,7 +215,7 @@ __GURU__ void
 mrbc_store_set(guru_obj *obj, mrbc_sym sid, mrbc_value *v)
 {
     _set(obj->self->ivar, sid, v);
-    mrbc_retain(v);
+    ref_inc(v);
 }
 
 //================================================================
@@ -232,6 +232,6 @@ mrbc_store_get(guru_obj *obj, mrbc_sym sid)
 
     if (!v) return GURU_NIL_NEW();
 
-    mrbc_retain(v);
+    ref_inc(v);
     return *v;
 }

@@ -35,7 +35,7 @@ _string_compare(const mrbc_value *v1, const mrbc_value *v2)
   @retval minus	v1 <  v2
 */
 __GURU__ S32
-mrbc_compare(const mrbc_value *v1, const mrbc_value *v2)
+guru_cmp(const mrbc_value *v1, const mrbc_value *v2)
 {
     if (v1->tt != v2->tt) { 						// mrbc_vtype different
 #if GURU_USE_FLOAT
@@ -156,6 +156,7 @@ guru_atof(U8P s)
     double ret = sign
     		* (v + (f==0 ? 0.0 : f * exp10((double)r)))
     		* (e==0 ? 1.0 : exp10((double)esign * e));
+
     return (mrbc_float)ret;
 #else
     return 0.0;
@@ -241,7 +242,7 @@ guru_strcat(U8P d, const U8P s)
   @param   v     Pointer to target mrbc_value
 */
 __GURU__ void
-mrbc_dec_refc(mrbc_value *v)
+ref_dec(mrbc_value *v)
 {
 	if (!(v->tt & GURU_TT_HAS_REF)) return;
 
@@ -271,7 +272,7 @@ mrbc_dec_refc(mrbc_value *v)
   @param   v     Pointer to mrbc_value
 */
 __GURU__ void
-mrbc_retain(mrbc_value *v)         			// CC: was mrbc_inc_refc() 20181101
+ref_inc(mrbc_value *v)         			// CC: was mrbc_inc_refc() 20181101
 {
 	if (!(v->tt & GURU_TT_HAS_REF)) return;
 
@@ -285,9 +286,8 @@ mrbc_retain(mrbc_value *v)         			// CC: was mrbc_inc_refc() 20181101
   @param   v     Pointer to target mrbc_value
 */
 __GURU__ void
-mrbc_release(mrbc_value *v)
+ref_clr(mrbc_value *v)
 {
-    mrbc_dec_refc(v);
-
+    ref_dec(v);
     v->tt = GURU_TT_EMPTY;
 }

@@ -509,7 +509,7 @@ c_string_insert(mrbc_value v[], U32 argc)
 
     v->str->data = str;
 
-    mrbc_release(v+1);
+    ref_clr(v+1);
 }
 
 //================================================================
@@ -567,12 +567,12 @@ c_string_index(mrbc_value v[], U32 argc)
     index = _index(v, v+1, offset);
     if (index < 0) goto NIL_RETURN;
 
-    mrbc_release(v+1);
+    ref_clr(v+1);
     SET_INT_RETURN(index);
     return;
 
 NIL_RETURN:
-	mrbc_release(v+1);
+	ref_clr(v+1);
     SET_NIL_RETURN();
 }
 

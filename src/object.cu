@@ -90,14 +90,14 @@ mrbc_send(mrbc_value v[], mrbc_value *rcv, const U8P method, U32 argc, ...)
     }
 
     // create call stack.
-    mrbc_release(&regs[0]);
+    ref_clr(&regs[0]);
     regs[0] = *rcv;					// create call stack, start with receiver object
-    mrbc_retain(rcv);
+    ref_inc(rcv);
 
     va_list ap;						// setup calling registers
     va_start(ap, argc);
     for (U32 i = 1; i <= argc+1; i++) {
-    	mrbc_release(&regs[i]);
+    	ref_clr(&regs[i]);
         regs[i] = (i>argc) ? GURU_NIL_NEW() : *va_arg(ap, mrbc_value *);
     }
     va_end(ap);
@@ -164,7 +164,7 @@ c_object_not(mrbc_value v[], U32 argc)
 __GURU__ void
 c_object_neq(mrbc_value v[], U32 argc)
 {
-    S32 t = mrbc_compare(&v[0], &v[1]);
+    S32 t = guru_cmp(&v[0], &v[1]);
     SET_BOOL_RETURN(t);
 }
 
@@ -174,7 +174,7 @@ c_object_neq(mrbc_value v[], U32 argc)
 __GURU__ void
 c_object_compare(mrbc_value v[], U32 argc)
 {
-    S32 t = mrbc_compare(&v[0], &v[1]);
+    S32 t = guru_cmp(&v[0], &v[1]);
     SET_INT_RETURN(t);
 }
 
@@ -184,7 +184,7 @@ c_object_compare(mrbc_value v[], U32 argc)
 __GURU__ void
 c_object_equal3(mrbc_value v[], U32 argc)
 {
-	S32 ret = mrbc_compare(v, v+1);
+	S32 ret = guru_cmp(v, v+1);
 
     if (v[0].tt != GURU_TT_CLASS) SET_BOOL_RETURN(ret==0);
     else 						  SET_RETURN(guru_kind_of(v, argc));

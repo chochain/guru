@@ -84,7 +84,7 @@ _vm_end(guru_vm *pool)
 	// clean up register file?						// CC: moved from mrbc_op 20181102
 	mrbc_value *p = vm->regfile;
 	for (U32 i=0; i < MAX_REGS_SIZE; i++, p++) {
-		mrbc_release(p);
+		ref_clr(p);
 	}
     mrbc_free_all();
 #endif

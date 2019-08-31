@@ -40,9 +40,9 @@ __GURU__ U32 _mutex_op;
 // becareful with the following macros, because they release regs[ra] first
 // so, make sure value is kept before the release
 //
-#define _RA_X(r)    do { mrbc_release(&regs[ra]); regs[ra] = *(r); mrbc_retain(r); } while (0)
-#define _RA_V(v)    do { mrbc_release(&regs[ra]); regs[ra] = (v); } while (0)
-#define _RA_T(t, e) do { mrbc_release(&regs[ra]); regs[ra].tt = (t); regs[ra].e; } while (0)
+#define _RA_X(r)    do { ref_clr(&regs[ra]); regs[ra] = *(r); ref_inc(r); } while (0)
+#define _RA_V(v)    do { ref_clr(&regs[ra]); regs[ra] = (v); } while (0)
+#define _RA_T(t, e) do { ref_clr(&regs[ra]); regs[ra].tt = (t); regs[ra].e; } while (0)
 
 #if GURU_HOST_IMAGE
 //================================================================
@@ -142,7 +142,7 @@ _pop_state(guru_vm *vm, mrbc_value *regs)
     
     mrbc_value *p  = regs+1;			// clear stacked arguments
     for (U32 i=0; i < st->argc; i++) {
-        mrbc_release(p++);
+        ref_clr(p++);
     }
     mrbc_free(st);
 }
@@ -185,9 +185,9 @@ _vm_object_new(guru_vm *vm, mrbc_value v[], U32 argc)
         }
     };
 
-    mrbc_release(&v[0]);
+    ref_clr(&v[0]);
     v[0] = obj;
-    mrbc_retain(&obj);
+    ref_inc(&obj);
 
     // context switch, which is not multi-thread ready
     // TODO: create a vm context object with separate regfile, i.e. explore _push_state/_pop_state
@@ -618,9 +618,9 @@ op_setupvar(guru_vm *vm, U32 code, mrbc_value *regs)
     }
     mrbc_value *uregs = st->reg;
 
-    mrbc_release(&uregs[rb]);
+    ref_clr(&uregs[rb]);
     uregs[rb] = regs[ra];                   // update outer-scope vars
-    mrbc_retain(&regs[ra]);
+    ref_inc(&regs[ra]);
 
     return 0;
 }
@@ -708,7 +708,7 @@ op_send(guru_vm *vm, U32 code, mrbc_value *regs)
     int bidx = ra + rc + 1;
     switch(GET_OPCODE(code)) {
     case OP_SEND:
-        mrbc_release(&regs[bidx]);
+        ref_clr(&regs[bidx]);
         regs[bidx].tt = GURU_TT_NIL;
         break;
     case OP_SENDB:						// set Proc object
@@ -740,7 +740,7 @@ op_send(guru_vm *vm, U32 code, mrbc_value *regs)
         else {
         	m->func(regs+ra, rc);					// call the C-func
             for (U32 i=ra+1; i<=bidx; i++) {		// clean up block parameters
-            	mrbc_release(&regs[i]);
+            	ref_clr(&regs[i]);
             }
         }
     }
@@ -822,7 +822,7 @@ op_return(guru_vm *vm, U32 code, mrbc_value *regs)
     int ra = GETARG_A(code);
     mrbc_value ret = regs[ra];
 
-    mrbc_release(&regs[0]);
+    ref_clr(&regs[0]);
     regs[0]     = ret;
     regs[ra].tt = GURU_TT_EMPTY;
 
@@ -893,7 +893,7 @@ op_add(guru_vm *vm, U32 code, mrbc_value *regs)
     else {    	// other case
     	op_send(vm, code, regs);			// should have already released regs[ra + n], ...
     }
-    mrbc_release(r1);
+    ref_clr(r1);
 
     return 0;
 }
@@ -963,7 +963,7 @@ op_sub(guru_vm *vm, U32 code, mrbc_value *regs)
     else {  // other case
     	op_send(vm, code, regs);
     }
-    mrbc_release(r1);
+    ref_clr(r1);
 	return 0;
 }
 
@@ -1031,7 +1031,7 @@ op_mul(guru_vm *vm, U32 code, mrbc_value *regs)
     else {   // other case
     	op_send(vm, code, regs);
     }
-    mrbc_release(r1);
+    ref_clr(r1);
     return 0;
 }
 
@@ -1071,7 +1071,7 @@ op_div(guru_vm *vm, U32 code, mrbc_value *regs)
     else {   // other case
     	op_send(vm, code, regs);
     }
-    mrbc_release(r1);
+    ref_clr(r1);
     return 0;
 }
 
@@ -1090,11 +1090,11 @@ __GURU__ int
 op_eq(guru_vm *vm, U32 code, mrbc_value *regs)
 {
     int ra = GETARG_A(code);
-    mrbc_vtype tt = TT_BOOL(mrbc_compare(&regs[ra], &regs[ra+1])==0);
+    mrbc_vtype tt = TT_BOOL(guru_cmp(&regs[ra], &regs[ra+1])==0);
 
     _RA_T(tt, i=0);
 
-    mrbc_release(&regs[ra+1]);
+    ref_clr(&regs[ra+1]);
 
     return 0;
 }
@@ -1121,7 +1121,7 @@ do {													\
 	else {												\
 		op_send(vm, code, regs);						\
 	}													\
-    mrbc_release(r1);									\
+    ref_clr(r1);									\
 } while (0)
 
 //================================================================
@@ -1374,8 +1374,8 @@ op_range(guru_vm *vm, U32 code, mrbc_value *regs)
     if (ret.range==NULL) return vm->err = 255;		// ENOMEM
 
     _RA_V(ret);						// release and  reassign
-    mrbc_retain(pb);
-    mrbc_retain(pb+1);
+    ref_inc(pb);
+    ref_inc(pb+1);
 
 #else
     guru_na("Range class");
@@ -1508,7 +1508,7 @@ op_method(guru_vm *vm, U32 code, mrbc_value *regs)
     	if (!IS_CFUNC(p)) {				// a p->func a Ruby function (aka IREP)
     		mrbc_value v = { .tt = GURU_TT_PROC };
     		v.proc = p;
-    		mrbc_release(&v);
+    		ref_clr(&v);
         }
     }
 
