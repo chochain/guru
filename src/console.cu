@@ -21,7 +21,7 @@ __GURU__ U8P _output_buf;
 __GURU__ volatile U32 _mutex_con;
 
 __GURU__ void
-guru_write(mrbc_vtype tt, mrbc_vtype fmt, U32 sz, U8P buf)
+_write(mrbc_vtype tt, mrbc_vtype fmt, U32 sz, U8P buf)
 {
 	if (threadIdx.x!=0) return;		// only thread 0 within a block can write
 
@@ -39,64 +39,6 @@ guru_write(mrbc_vtype tt, mrbc_vtype fmt, U32 sz, U8P buf)
 	*_output_ptr = (U8)GURU_TT_EMPTY;
 
 	MUTEX_FREE(_mutex_con);
-}
-
-//================================================================
-/*! output a character
-
-  @param  c	character
-*/
-__GURU__ void
-console_char(U8 c)
-{
-	U8 buf[2] = { c, '\0' };
-	guru_write(GURU_TT_STRING, GURU_TT_EMPTY, 2, (U8P)buf);
-}
-
-__GURU__ void
-console_int(mrbc_int i)
-{
-	guru_write(GURU_TT_FIXNUM, GURU_TT_FIXNUM, sizeof(mrbc_int), (U8P)&i);
-}
-
-__GURU__ void
-console_hex(mrbc_int i)
-{
-	guru_write(GURU_TT_FIXNUM, GURU_TT_EMPTY, sizeof(mrbc_int), (U8P)&i);
-}
-
-__GURU__ void
-console_ptr(void *ptr)
-{
-    console_hex((uintptr_t)ptr>>16);
-    console_hex((uintptr_t)ptr&0xffff);
-}
-
-#if GURU_USE_FLOAT
-__GURU__ void
-console_float(mrbc_float f)
-{
-	guru_write(GURU_TT_FLOAT, GURU_TT_EMPTY, sizeof(mrbc_float), (U8P)&f);
-}
-#endif
-
-//================================================================
-/*! output string
-
-  @param str	str
-*/
-__GURU__ void
-console_str(const U8 *str)
-{
-	guru_write(GURU_TT_STRING, GURU_TT_EMPTY, guru_strlen((U8P)str)+1, (U8P)str);
-}
-
-__GURU__ void
-guru_na(const U8 *msg)
-{
-    console_str("method not supported: ");
-	console_str(msg);
-	console_str("\n");
 }
 
 __GURU__ U8P
@@ -154,6 +96,7 @@ _dump_obj_size(void)
 __GPU__ void
 guru_console_init(U8P buf, U32 sz)
 {
+#if GURU_USE_CONSOLE
 	if (threadIdx.x!=0 || blockIdx.x!=0) return;
 
 	guru_print_node *node = (guru_print_node *)buf;
@@ -162,17 +105,69 @@ guru_console_init(U8P buf, U32 sz)
 	_output_buf = _output_ptr = buf;
 
 	if (sz) _output_size = sz;					// set to new size
+#endif
 }
 
 #define NEXTNODE(n)	((guru_print_node *)(node->data + node->size))
 
+//================================================================
+/*! output a character
+
+  @param  c	character
+*/
+__GURU__ void
+console_char(U8 c)
+{
+	U8 buf[2] = { c, '\0' };
+	_write(GURU_TT_STRING, GURU_TT_EMPTY, 2, (U8P)buf);
+}
+
+__GURU__ void
+console_int(mrbc_int i)
+{
+	_write(GURU_TT_FIXNUM, GURU_TT_FIXNUM, sizeof(mrbc_int), (U8P)&i);
+}
+
+__GURU__ void
+console_hex(mrbc_int i)
+{
+	_write(GURU_TT_FIXNUM, GURU_TT_EMPTY, sizeof(mrbc_int), (U8P)&i);
+}
+
+__GURU__ void
+console_ptr(void *ptr)
+{
+    console_hex((uintptr_t)ptr>>16);
+    console_hex((uintptr_t)ptr&0xffff);
+}
+
+#if GURU_USE_FLOAT
+__GURU__ void
+console_float(mrbc_float f)
+{
+	_write(GURU_TT_FLOAT, GURU_TT_EMPTY, sizeof(mrbc_float), (U8P)&f);
+}
+#endif
+
+//================================================================
+/*! output string
+
+  @param str	str
+*/
+__GURU__ void
+console_str(const U8 *str)
+{
+	_write(GURU_TT_STRING, GURU_TT_EMPTY, guru_strlen((U8P)str)+1, (U8P)str);
+}
+
 __HOST__ guru_print_node*
-_guru_host_print(guru_print_node *node)
+_guru_host_print(guru_print_node *node, U32 trace)
 {
 	U8P fmt[80];
 	U8P buf[80];								// check buffer overflow
 	U32	argc;
-	printf("<%d>", node->id);
+
+	if (trace) printf("<%d>", node->id);
 	switch (node->tt) {
 	case GURU_TT_FIXNUM:
 		printf((node->fmt==GURU_TT_FIXNUM ? "%d" : "%04x"), *((mrbc_int *)node->data));
@@ -184,29 +179,33 @@ _guru_host_print(guru_print_node *node)
 		memcpy(buf, (U8P)node->data, node->size);
 		printf("%s", (char *)buf);
 		break;
-	case GURU_TT_RANGE:							// TODO: va_list needed here
+	case GURU_TT_RANGE:								// TODO: va_list needed here
 		argc = (int)node->fmt;
 		memcpy(fmt, (U8P)node->data, node->size);
 		printf("%s", (char *)fmt);
 		for (U32 i=0; i<argc; i++) {
-			node = NEXTNODE(node);				// point to next parameter
-			node = _guru_host_print(node);		// recursive call
+			node = NEXTNODE(node);					// point to next parameter
+			node = _guru_host_print(node, trace);	// recursive call
 		}
 		break;
 	default: printf("print node type not supported: %d", node->tt); break;
 	}
-	printf("</%d>\n", node->id);
+
+	if (trace) printf("</%d>\n", node->id);
+
 	return node;
 }
 
 __HOST__ void
-guru_console_flush(U8P output_buf)
+guru_console_flush(U8P output_buf, U32 trace)
 {
+#if GURU_USE_CONSOLE
 	guru_print_node *node = (guru_print_node *)output_buf;
 	while (node->tt != GURU_TT_EMPTY) {			// 0
-		node = _guru_host_print(node);
+		node = _guru_host_print(node, trace);
 		node = NEXTNODE(node);
 	}
 	guru_console_init<<<1,1>>>(output_buf, 0);
 	cudaDeviceSynchronize();
+#endif
 }

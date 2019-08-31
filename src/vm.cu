@@ -28,6 +28,8 @@
 #include "vmx.h"
 #include "vm.h"
 
+#include "puts.h"
+
 __HOST__ cudaError_t _vm_trace(U32 level);		// forward
 
 U32     _vm_pool_ok = 0;
@@ -202,7 +204,7 @@ guru_vm_run(guru_ses *ses)
 		cudaDeviceSynchronize();
 
 		// add host hook here
-//		guru_console_flush(ses->out);					// dump output buffer
+		guru_console_flush(ses->out, ses->trace);	// dump output buffer
 	} while (_vm_join());
 
     _vm_end<<<MIN_VM_COUNT, 1>>>(_vm_pool);

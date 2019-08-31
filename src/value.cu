@@ -1,23 +1,11 @@
-/*! @file
-  @brief
-  Guru value definitions
-
-  <pre>
-  Copyright (C) 2015-2018 Kyushu Institute of Technology.
-  Copyright (C) 2015-2018 Shimane IT Open-Innovation Center.
-
-  This file is distributed under BSD 3-Clause License.
-  </pre>
-*/
-
 #include <assert.h>
 #include "value.h"
 #include "alloc.h"
-#include "console.h"
 
 #if GURU_USE_STRING
 #include "c_string.h"
 #endif
+
 #if GURU_USE_ARRAY
 #include "c_range.h"
 #include "c_array.h"

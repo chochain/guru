@@ -41,7 +41,7 @@ __GURU__ void console_char(U8 c);
 __GURU__ void console_str(const U8 *str);				// instead of U8P, too many static string
 __GURU__ void console_na(const U8 *msg);
 
-__HOST__ void guru_console_flush(U8P output_buf);
+__HOST__ void guru_console_flush(U8P output_buf, U32 trace);
     
 #ifdef __cplusplus
 }
