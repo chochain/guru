@@ -804,7 +804,7 @@ c_array_join(GV v[], U32 argc)
 /*! initialize
  */
 __GURU__ void
-mrbc_init_class_array()
+guru_init_class_array()
 {
     guru_class *c = guru_class_array = guru_add_class("Array", guru_class_object);
 

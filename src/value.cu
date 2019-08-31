@@ -12,7 +12,7 @@
 #include "c_hash.h"
 #endif
 
-extern "C" __GURU__ void mrbc_store_delete(GV *v);		// store.cu
+extern "C" __GURU__ void guru_store_delete(GV *v);		// store.cu
 
 //================================================================
 /*! compare
@@ -251,7 +251,7 @@ ref_dec(GV *v)
     if (--v->self->refc > 0) return;		// still used, keep going
 
     switch(v->gt) {
-    case GT_OBJ:		mrbc_store_delete(v);	break;
+    case GT_OBJ:		guru_store_delete(v);	break;
     case GT_PROC:	    mrbc_free(v->proc);		break;
 #if GURU_USE_STRING
     case GT_STR:		guru_str_delete(v);		break;

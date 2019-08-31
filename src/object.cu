@@ -239,7 +239,7 @@ c_object_getiv(GV v[], U32 argc)
     const U8P name = _get_callee(NULL);			// TODO:
     guru_sym  sid  = name2symid(name);
 
-    SET_RETURN(mrbc_store_get(&v[0], sid));
+    SET_RETURN(guru_store_get(&v[0], sid));
 }
 
 //================================================================
@@ -251,7 +251,7 @@ c_object_setiv(GV v[], U32 argc)
     const U8P name = _get_callee(NULL);			// CC TODO: another way
     guru_sym  sid  = name2symid(name);
 
-    mrbc_store_set(&v[0], sid, &v[1]);
+    guru_store_set(&v[0], sid, &v[1]);
 }
 
 //================================================================
@@ -522,22 +522,22 @@ _init_all_class(void)
     _init_class_false();
     _init_class_true();
 
-    mrbc_init_class_symbol();
-    mrbc_init_class_fixnum();
+    guru_init_class_symbol();
+    guru_init_class_fixnum();
 #if GURU_USE_FLOAT
-    mrbc_init_class_float();
+    guru_init_class_float();
 #if GURU_USE_MATH
-    mrbc_init_class_math();
+    guru_init_class_math();
 #endif
 #endif
     
 #if GURU_USE_STRING
-    mrbc_init_class_string();
+    guru_init_class_string();
 #endif
 #if GURU_USE_ARRAY
-    mrbc_init_class_array();
-    mrbc_init_class_range();
-    mrbc_init_class_hash();
+    guru_init_class_array();
+    guru_init_class_range();
+    guru_init_class_hash();
 #endif
 }
 

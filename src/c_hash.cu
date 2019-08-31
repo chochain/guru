@@ -503,7 +503,7 @@ c_hash_inspect(GV v[], U32 argc)
 /*! initialize
  */
 __GURU__ void
-mrbc_init_class_hash()
+guru_init_class_hash()
 {
     guru_class *c = guru_class_hash = guru_add_class("Hash", guru_class_object);
 

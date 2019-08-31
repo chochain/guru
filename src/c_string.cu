@@ -733,7 +733,7 @@ c_string_to_sym(GV v[], U32 argc)
 /*! initialize
  */
 __GURU__ void
-mrbc_init_class_string()
+guru_init_class_string()
 {
     guru_class *c = guru_class_string = guru_add_class("String", guru_class_object);
 

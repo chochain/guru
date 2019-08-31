@@ -1,6 +1,8 @@
 /*! @file
   @brief
 
+  mrubyc error code - deprecated, use int directly
+
   <pre>
   Copyright (C) 2015 Kyushu Institute of Technology.
   Copyright (C) 2015 Shimane IT Open-Innovation Center.

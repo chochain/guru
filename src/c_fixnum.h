@@ -21,8 +21,8 @@
 extern "C" {
 #endif
 
-__GURU__ void mrbc_init_class_fixnum();
-__GURU__ void mrbc_init_class_float();
+__GURU__ void guru_init_class_fixnum();
+__GURU__ void guru_init_class_float();
 
 #ifdef __cplusplus
 }

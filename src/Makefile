@@ -62,7 +62,7 @@ class.o: class.cu	    vm_config.h guru.h value.h alloc.h static.h symbol.h globa
 						class.h
 
 load.o: load.cu         vm_config.h guru.h alloc.h store.h \
-						vm.h errorcode.h load.h
+						vm.h load.h
 
 vm.o: vm.cu             vm_config.h guru.h alloc.h value.h static.h store.h \
 						opcode.h vm.h load.h
@@ -93,7 +93,7 @@ c_string.o: c_string.cu vm_config.h guru.h value.h alloc.h static.h symbol.h \
 						c_string.h
 
 c_array.o: c_array.cu 	vm_config.h guru.h alloc.h static.h opcode.h object.h \
-						errorcode.h puts.h \
+						puts.h \
 						c_array.h c_string.h
 
 c_range.o: c_range.cu 	vm_config.h guru.h alloc.h static.h symbol.h \

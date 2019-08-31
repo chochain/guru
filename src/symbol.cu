@@ -31,11 +31,11 @@
 
 struct SYM_LIST {
     U16								hash;		//!< hash value, returned by calc_hash().
+    U8P 							cstr;		//!< point to the symbol string.
 #ifdef GURU_SYMBOL_SEARCH_BTREE
     GURU_SYMBOL_TABLE_INDEX_TYPE 	left;
     GURU_SYMBOL_TABLE_INDEX_TYPE 	right;
 #endif
-    U8P 							cstr;		//!< point to the symbol string.
 };
 
 __GURU__ U32 _sym_idx;							// point to the last(free) sym_list array.
@@ -139,12 +139,12 @@ _add_index(const U8P str)
 __GURU__ GV
 guru_sym_new(const U8P str)
 {
-    GV v   = {.gt = GT_SYM};
+    GV v = {.gt = GT_SYM};
     guru_sym   sid = _search_index(str);
 
     if (sid < MAX_SYMBOL_COUNT) {
         v.i = sid;
-        return v;		// already exist.
+        return v;					// already exist.
     }
 
     // create symbol object dynamically.
@@ -190,8 +190,8 @@ symid2name(guru_sym sid)
 
 #if GURU_USE_STRING
 // from c_string.cu
-extern "C" __GURU__ GV guru_str_new(const U8 *src);
-extern "C" __GURU__ void       guru_str_append_cstr(const GV *s1, const U8 *s2);
+extern "C" __GURU__ GV 		guru_str_new(const U8 *src);
+extern "C" __GURU__ void    guru_str_append_cstr(const GV *s1, const U8 *s2);
 
 //================================================================
 /*! (method) inspect
@@ -238,7 +238,7 @@ c_all_symbols(GV v[], U32 argc)
 //================================================================
 /*! initialize
  */
-__GURU__ void mrbc_init_class_symbol()  // << from symbol.cu
+__GURU__ void guru_init_class_symbol()  // << from symbol.cu
 {
     guru_class *c = guru_class_symbol = guru_add_class("Symbol", guru_class_object);
 

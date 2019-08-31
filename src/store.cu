@@ -24,13 +24,13 @@
   @return		result. It's not necessarily found.
 */
 __GURU__ S32
-_bsearch(mrbc_store *st, guru_sym sid)
+_bsearch(guru_store *st, guru_sym sid)
 {
     int left  = 0;
     int right = st->n - 1;
     if (right<=0) return -1;
 
-    mrbc_store_data *d = st->data;
+    guru_store_data *d = st->data;
     while (left < right) {
         int mid = (left + right) >> 1; 			// div by 2
         if ((d+mid)->sym_id < sid) {
@@ -50,9 +50,9 @@ _bsearch(mrbc_store *st, guru_sym sid)
   @return	mrbc_error_code.
 */
 __GURU__ S32
-_resize(mrbc_store *st, U32 size)
+_resize(guru_store *st, U32 size)
 {
-    mrbc_store_data *d2 = (mrbc_store_data *) mrbc_realloc(st->data, sizeof(mrbc_store_data) * size);
+    guru_store_data *d2 = (guru_store_data *) mrbc_realloc(st->data, sizeof(guru_store_data) * size);
     if (!d2) return -1;		// ENOMEM
 
     st->data = d2;
@@ -68,13 +68,13 @@ _resize(mrbc_store *st, U32 size)
   @param  size	initial size.
   @return instance store handle
 */
-__GURU__ mrbc_store *
+__GURU__ guru_store *
 _new(U32 size)
 {
-    mrbc_store *st = (mrbc_store *)mrbc_alloc(sizeof(mrbc_store));
+    guru_store *st = (guru_store *)mrbc_alloc(sizeof(guru_store));
     if (!st) return NULL;	// ENOMEM
 
-    st->data = (mrbc_store_data *)mrbc_alloc(sizeof(mrbc_store_data) * size);
+    st->data = (guru_store_data *)mrbc_alloc(sizeof(guru_store_data) * size);
     if (!st->data) {		// ENOMEM
         mrbc_free(st);
         return NULL;
@@ -91,9 +91,9 @@ _new(U32 size)
   @param  st	pointer to instance store handle.
 */
 __GURU__ void
-_delete(mrbc_store *st)
+_delete(guru_store *st)
 {
-    mrbc_store_data *d = st->data;
+    guru_store_data *d = st->data;
     for (U32 i=0; i<st->n; i++, d++) {		// free logical
         ref_clr(&d->value);            // CC: was dec_ref 20181101
     }
@@ -112,10 +112,10 @@ _delete(mrbc_store *st)
   @return		mrbc_error_code.
 */
 __GURU__ S32
-_set(mrbc_store *st, guru_sym sid, GV *val)
+_set(guru_store *st, guru_sym sid, GV *val)
 {
     S32 idx = _bsearch(st, sid);
-    mrbc_store_data *d = st->data + idx;
+    guru_store_data *d = st->data + idx;
     if (idx < 0) {
     	idx = 0;
         goto INSERT_VALUE;
@@ -134,7 +134,7 @@ INSERT_VALUE:
     }
     d = st->data + idx;
     if (idx < st->n) {										// need more data?
-        int size = sizeof(mrbc_store_data) * (st->n - idx);
+        int size = sizeof(guru_store_data) * (st->n - idx);
         MEMCPY((U8P)(d+1), (U8P)d, size);
     }
     d->sym_id = sid;
@@ -152,30 +152,30 @@ INSERT_VALUE:
   @return		pointer to GV or NULL.
 */
 __GURU__ GV*
-_get(mrbc_store *st, guru_sym sid)
+_get(guru_store *st, guru_sym sid)
 {
     S32 idx = _bsearch(st, sid);
     if (idx < 0) return NULL;
 
-    mrbc_store_data *d = st->data + idx;
+    guru_store_data *d = st->data + idx;
     if (d->sym_id != sid) return NULL;
 
     return &d->value;
 }
 
 //================================================================
-/*! mrbc_store constructor
+/*! guru_store constructor
 
   @param  vm    Pointer to VM.
   @param  cls	Pointer to Class (guru_class).
   @param  size	size of additional data.
-  @return       mrbc_store object.
+  @return       guru_store object.
 */
 __GURU__ GV
-mrbc_store_new(guru_class *cls, U32 size)
+guru_store_new(guru_class *cls, U32 size)
 {
     GV v = {.gt = GT_OBJ};
-    v.self = (guru_var *)mrbc_alloc(sizeof(mrbc_store) + size);
+    v.self = (guru_var *)mrbc_alloc(sizeof(guru_store) + size);
     if (v.self == NULL) return v;	// ENOMEM
 
     v.self->ivar = _new(0);			// allocate internal kv handle
@@ -198,7 +198,7 @@ mrbc_store_new(guru_class *cls, U32 size)
   @param  v	pointer to target value
 */
 __GURU__ void
-mrbc_store_delete(GV *v)
+guru_store_delete(GV *v)
 {
     _delete(v->self->ivar);
     mrbc_free(v->self);
@@ -212,7 +212,7 @@ mrbc_store_delete(GV *v)
   @param  v		pointer to value.
 */
 __GURU__ void
-mrbc_store_set(guru_obj *obj, guru_sym sid, GV *v)
+guru_store_set(guru_obj *obj, guru_sym sid, GV *v)
 {
     _set(obj->self->ivar, sid, v);
     ref_inc(v);
@@ -226,7 +226,7 @@ mrbc_store_set(guru_obj *obj, guru_sym sid, GV *v)
   @return		value.
 */
 __GURU__ guru_obj
-mrbc_store_get(guru_obj *obj, guru_sym sid)
+guru_store_get(guru_obj *obj, guru_sym sid)
 {
     GV *v = _get(obj->self->ivar, sid);
 

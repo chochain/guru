@@ -219,7 +219,7 @@ c_fixnum_to_s(GV v[], U32 argc)
 #endif
 
 __GURU__ void
-mrbc_init_class_fixnum(void)
+guru_init_class_fixnum(void)
 {
     // Fixnum
     guru_class *c = guru_class_fixnum = guru_add_class("Fixnum", guru_class_object);
@@ -311,7 +311,7 @@ c_float_to_s(GV v[], U32 argc)
 /*! initialize class Float
  */
 __GURU__ void
-mrbc_init_class_float(void)
+guru_init_class_float(void)
 {
     // Float
     guru_class *c = guru_class_float = guru_add_class("Float", guru_class_object);

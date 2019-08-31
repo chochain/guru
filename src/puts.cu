@@ -1,6 +1,6 @@
 /*! @file
   @brief
-  Guru Object, Proc, Nil, False and True class and class specific functions.
+  Guru Object, Proc, Nil, False and True class and class specific functions. - deprecated, replaced by puts32.cu
 
   <pre>
   Copyright (C) 2015-2018 Kyushu Institute of Technology.

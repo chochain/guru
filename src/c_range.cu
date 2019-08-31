@@ -165,7 +165,7 @@ c_range_inspect(GV v[], U32 argc)
 /*! initialize
  */
 __GURU__ void
-mrbc_init_class_range()
+guru_init_class_range()
 {
     guru_class *c = guru_class_range = guru_add_class("Range", guru_class_object);
 

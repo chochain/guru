@@ -163,7 +163,7 @@ _vm_proc_call(guru_vm *vm, GV v[], U32 argc)
 __GURU__ void
 _vm_object_new(guru_vm *vm, GV v[], U32 argc)
 {
-    GV obj = mrbc_store_new(v[0].cls, 0);
+    GV obj = guru_store_new(v[0].cls, 0);
     //
     // build a temp IREP for calling "initialize"
     // TODO: make the image static
@@ -480,7 +480,7 @@ op_getiv(guru_vm *vm, U32 code, GV *regs)
 
     const U8P name = _vm_symbol(vm, rb);
     guru_sym sid   = name2symid(name+1);		// skip '@'
-    GV ret   = mrbc_store_get(&regs[0], sid);
+    GV ret   = guru_store_get(&regs[0], sid);
 
     _RA_V(ret);
 
@@ -507,7 +507,7 @@ op_setiv(guru_vm *vm, U32 code, GV *regs)
     const U8P name = _vm_symbol(vm, rb);
     guru_sym  sid  = name2symid(name+1);	// skip '@'
 
-    mrbc_store_set(&regs[0], sid, &regs[ra]);
+    guru_store_set(&regs[0], sid, &regs[ra]);
 
     return 0;
 }

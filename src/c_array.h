@@ -41,7 +41,7 @@ __GURU__ int        guru_array_push(GV *ary, GV *set_val);
 __GURU__ void       guru_array_clear(GV *ary);
 __GURU__ int        guru_array_compare(const GV *v1, const GV *v2);
 
-__GURU__ void       mrbc_init_class_array();
+__GURU__ void       guru_init_class_array();
 
 #ifdef __cplusplus
 }
