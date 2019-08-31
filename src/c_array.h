@@ -31,15 +31,15 @@ typedef struct RArray {
     uint32_t   n    : 16;	//!< # of stored.
     mrbc_value *data;		//!< pointer to allocated memory.
 
-} mrbc_array;
+} guru_array;
 
-__GURU__ mrbc_value mrbc_array_new(int size);
-__GURU__ void       mrbc_array_delete(mrbc_value *ary);
+__GURU__ mrbc_value guru_array_new(int size);
+__GURU__ void       guru_array_delete(mrbc_value *ary);
 
-__GURU__ int		mrbc_array_resize(mrbc_array *h, int size);
-__GURU__ int        mrbc_array_push(mrbc_value *ary, mrbc_value *set_val);
-__GURU__ void       mrbc_array_clear(mrbc_value *ary);
-__GURU__ int        mrbc_array_compare(const mrbc_value *v1, const mrbc_value *v2);
+__GURU__ int		guru_array_resize(guru_array *h, int size);
+__GURU__ int        guru_array_push(mrbc_value *ary, mrbc_value *set_val);
+__GURU__ void       guru_array_clear(mrbc_value *ary);
+__GURU__ int        guru_array_compare(const mrbc_value *v1, const mrbc_value *v2);
 
 __GURU__ void       mrbc_init_class_array();
 

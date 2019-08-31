@@ -1228,7 +1228,7 @@ op_string(guru_vm *vm, U32 code, mrbc_value *regs)
 
     U32P p   = _vm_pool(vm, rb);
     U8P str  = (U8P)U8PADD(VM_IREP(vm), *p);
-    mrbc_value ret = mrbc_string_new(str);
+    mrbc_value ret = guru_str_new(str);
 
     if (ret.str==NULL) return vm->err = 255;			// ENOMEM
 
@@ -1267,7 +1267,7 @@ op_strcat(guru_vm *vm, U32 code, mrbc_value *regs)
     if (ma && IS_CFUNC(ma)) ma->func(pa, 0);
     if (mb && IS_CFUNC(mb)) mb->func(pb, 0);
 
-    mrbc_value ret = mrbc_string_add(pa, pb);
+    mrbc_value ret = guru_str_add(pa, pb);
 
     _RA_V(ret);
 
@@ -1297,8 +1297,8 @@ op_array(guru_vm *vm, U32 code, mrbc_value *regs)
     int rc = GETARG_C(code);
     int sz = sizeof(mrbc_value) * rc;
 
-    mrbc_value ret = (mrbc_value)mrbc_array_new(rc);
-    mrbc_array *h  = ret.array;
+    mrbc_value ret = (mrbc_value)guru_array_new(rc);
+    guru_array *h  = ret.array;
     mrbc_value *pb = &regs[rb];
     if (h==NULL) return vm->err = 255;	// ENOMEM
 
@@ -1333,8 +1333,8 @@ op_hash(guru_vm *vm, U32 code, mrbc_value *regs)
     int rc = GETARG_C(code);
     int sz = sizeof(mrbc_value) * (rc<<1);				// size of k,v pairs
 
-    mrbc_value ret = mrbc_hash_new(rc);
-    mrbc_hash  *h  = ret.hash;
+    mrbc_value ret = guru_hash_new(rc);
+    guru_hash  *h  = ret.hash;
     mrbc_value *p  = &regs[rb];
     if (h==NULL) return vm->err = 255;					// ENOMEM
 
@@ -1370,7 +1370,7 @@ op_range(guru_vm *vm, U32 code, mrbc_value *regs)
     int rc = GETARG_C(code);
 
     mrbc_value *pb = &regs[rb];
-    mrbc_value ret = mrbc_range_new(pb, pb+1, rc);
+    mrbc_value ret = guru_range_new(pb, pb+1, rc);
     if (ret.range==NULL) return vm->err = 255;		// ENOMEM
 
     _RA_V(ret);						// release and  reassign

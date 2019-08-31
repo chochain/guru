@@ -187,7 +187,7 @@ c_fixnum_chr(mrbc_value v[], U32 argc)
 {
     U8 buf[2] = { (U8)GET_INT_ARG(0), '\0' };
 
-    SET_RETURN(mrbc_string_new(buf));
+    SET_RETURN(guru_str_new(buf));
 }
 
 //================================================================
@@ -213,7 +213,7 @@ c_fixnum_to_s(mrbc_value v[], U32 argc)
         x /= base;
     } while (x != 0);
 
-    SET_RETURN(mrbc_string_new(buf));
+    SET_RETURN(guru_str_new(buf));
 }
 #endif
 

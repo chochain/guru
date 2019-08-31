@@ -171,7 +171,7 @@ typedef struct RString {		// 12-byte
 
 	U32 len;					//!< string length.
 	U8P data;					//!< pointer to allocated buffer.
-} mrbc_string;
+} guru_str;
 
 //================================================================
 /*!@brief
@@ -183,7 +183,7 @@ typedef struct RVar {			// 16-byte
     struct RClass *cls;
     struct RStore *ivar;
     U8 			   data[];		// here pointer, instead of *data pointer to somewhere else
-} mrbc_var;
+} guru_var;
 
 //================================================================
 /*!@brief

@@ -36,11 +36,11 @@
   @return		range object.
 */
 __GURU__ mrbc_value
-mrbc_range_new(mrbc_value *first, mrbc_value *last, int exclude_end)
+guru_range_new(mrbc_value *first, mrbc_value *last, int exclude_end)
 {
     mrbc_value ret = {.tt = GURU_TT_RANGE};
 
-    ret.range = (mrbc_range *)mrbc_alloc(sizeof(mrbc_range));
+    ret.range = (guru_range *)mrbc_alloc(sizeof(guru_range));
     if (!ret.range) return ret;		// ENOMEM
 
     if (exclude_end) ret.range->flag |= EXCLUDE_END;
@@ -60,7 +60,7 @@ mrbc_range_new(mrbc_value *first, mrbc_value *last, int exclude_end)
   @param  target 	pointer to range object.
 */
 __GURU__ void
-mrbc_range_delete(mrbc_value *v)
+guru_range_delete(mrbc_value *v)
 {
     ref_clr(&v->range->first);
     ref_clr(&v->range->last);
@@ -72,7 +72,7 @@ mrbc_range_delete(mrbc_value *v)
 /*! compare
  */
 __GURU__ int
-mrbc_range_compare(const mrbc_value *v1, const mrbc_value *v2)
+guru_range_compare(const mrbc_value *v1, const mrbc_value *v2)
 {
     int res;
 
@@ -143,18 +143,18 @@ c_range_exclude_end(mrbc_value v[], U32 argc)
 __GURU__ void
 c_range_inspect(mrbc_value v[], U32 argc)
 {
-    mrbc_value ret = mrbc_string_new(NULL);
+    mrbc_value ret = guru_str_new(NULL);
     if (!ret.str) {
         SET_NIL_RETURN();
         return;
     }
     mrbc_value v1, s1;
     for (U32 i=0; i<2; i++) {
-        if (i != 0) mrbc_string_append_cstr(&ret, (U8P)"..");
+        if (i != 0) guru_str_append_cstr(&ret, (U8P)"..");
         v1 = (i == 0) ? v->range->first : v->range->last;
         s1 = guru_inspect(v+argc, &v1);
 
-        mrbc_string_append(&ret, &s1);
+        guru_str_append(&ret, &s1);
         ref_clr(&s1);					// free locally allocated memory
     }
     SET_RETURN(ret);

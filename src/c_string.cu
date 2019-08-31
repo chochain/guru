@@ -72,7 +72,7 @@ _new(const U8P src, U32 len)
     /*
       Allocate handle and string buffer.
     */
-    mrbc_string *h = (mrbc_string *)mrbc_alloc(sizeof(mrbc_string));
+    guru_str *h = (guru_str *)mrbc_alloc(sizeof(guru_str));
 
     assert(h!=NULL);			// out of memory
 #if GURU_64BIT_ALIGN_REQUIERD
@@ -113,7 +113,7 @@ _new(const U8P src, U32 len)
 __GURU__ mrbc_value
 _dup(const mrbc_value *v0)
 {
-    mrbc_string *h0 = v0->str;
+    guru_str *h0 = v0->str;
 
     mrbc_value v1 = _new(NULL, h0->len);		// refc already set to 1
     if (v1.str==NULL) return v1;				// ENOMEM
@@ -222,7 +222,7 @@ _chomp(mrbc_value *v)
   @return 	string object
 */
 __GURU__ mrbc_value
-mrbc_string_new(const U8 *src)			// cannot use U8P, need lots of casting
+guru_str_new(const U8 *src)			// cannot use U8P, need lots of casting
 {
     return _new((U8P)src, STRLEN((U8P)src));
 }
@@ -233,7 +233,7 @@ mrbc_string_new(const U8 *src)			// cannot use U8P, need lots of casting
   @param  str	pointer to target value
 */
 __GURU__ void
-mrbc_string_delete(mrbc_value *v)
+guru_str_delete(mrbc_value *v)
 {
     mrbc_free(v->str->data);
     mrbc_free(v->str);
@@ -247,7 +247,7 @@ mrbc_string_delete(mrbc_value *v)
   @param	mrbc_error_code
 */
 __GURU__ void
-mrbc_string_append(const mrbc_value *v0, const mrbc_value *v1)
+guru_str_append(const mrbc_value *v0, const mrbc_value *v1)
 {
     U32 len0 = v0->str->len;
     U32 len1 = (v1->tt==GURU_TT_STRING) ? v1->str->len : 1;
@@ -277,7 +277,7 @@ mrbc_string_append(const mrbc_value *v0, const mrbc_value *v1)
   @param	mrbc_error_code
 */
 __GURU__ void
-mrbc_string_append_cstr(const mrbc_value *v0, const U8 *str)
+guru_str_append_cstr(const mrbc_value *v0, const U8 *str)
 {
     U32 len0 = v0->str->len;
     U32 len1 = STRLEN(str);
@@ -303,13 +303,13 @@ mrbc_string_append_cstr(const mrbc_value *v0, const U8 *str)
   @return	new string as s1 + s2
 */
 __GURU__ mrbc_value
-mrbc_string_add(const mrbc_value *v0, const mrbc_value *v1)
+guru_str_add(const mrbc_value *v0, const mrbc_value *v1)
 {
-    mrbc_string *h0 = v0->str;
-    mrbc_string *h1 = v1->str;
+    guru_str *h0 = v0->str;
+    guru_str *h1 = v1->str;
 
     mrbc_value  v  = _new(NULL, h0->len + h1->len);
-    mrbc_string *s = v.str;
+    guru_str *s = v.str;
 
     MEMCPY(s->data,           h0->data, h0->len);
     MEMCPY(s->data + h0->len, h1->data, h1->len + 1);	// include the '\0'
@@ -327,7 +327,7 @@ c_string_add(mrbc_value v[], U32 argc)
         guru_na("str + other type");
     }
     else {
-    	SET_RETURN(mrbc_string_add(v, v+1));
+    	SET_RETURN(guru_str_add(v, v+1));
     }
 }
 
@@ -400,7 +400,7 @@ c_string_to_f(mrbc_value v[], U32 argc)
 __GURU__ void
 c_string_append(mrbc_value v[], U32 argc)
 {
-    mrbc_string_append(v, v+1);
+    guru_str_append(v, v+1);
 }
 
 //================================================================
@@ -585,7 +585,7 @@ __GURU__ void
 c_string_inspect(mrbc_value v[], U32 argc)
 {
 	const char    *hex = "0123456789ABCDEF";
-    mrbc_value    ret  = mrbc_string_new("\"");
+    mrbc_value    ret  = guru_str_new("\"");
 
     U8 buf[BUF_SIZE];
     U8P p = buf;
@@ -603,13 +603,13 @@ c_string_inspect(mrbc_value v[], U32 argc)
         }
     	if ((p-buf) > BUF_SIZE-5) {			// flush buffer
     		*p = '\0';
-    		mrbc_string_append_cstr(&ret, buf);
+    		guru_str_append_cstr(&ret, buf);
     		p = buf;
     	}
     }
     *p++ = '\"';
     *p   = '\0';
-    mrbc_string_append_cstr(&ret, buf);
+    guru_str_append_cstr(&ret, buf);
 
     SET_RETURN(ret);
 }

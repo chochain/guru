@@ -77,9 +77,9 @@ guru_cmp(const mrbc_value *v1, const mrbc_value *v2)
     case GURU_TT_FLOAT:  return -1 + (v1->f==v2->f) + (v1->f > v2->f)*2;	// caution: NaN == NaN is false
 #endif
 #if GURU_USE_ARRAY
-    case GURU_TT_ARRAY:  return mrbc_array_compare(v1, v2);
-    case GURU_TT_RANGE:  return mrbc_range_compare(v1, v2);
-    case GURU_TT_HASH:   return mrbc_hash_compare(v1, v2);
+    case GURU_TT_ARRAY:  return guru_array_compare(v1, v2);
+    case GURU_TT_RANGE:  return guru_range_compare(v1, v2);
+    case GURU_TT_HASH:   return guru_hash_compare(v1, v2);
 #endif
     default:
         return 1;
@@ -254,12 +254,12 @@ ref_dec(mrbc_value *v)
     case GURU_TT_OBJECT:	mrbc_store_delete(v);	break;
     case GURU_TT_PROC:	    mrbc_free(v->proc);		break;
 #if GURU_USE_STRING
-    case GURU_TT_STRING:	mrbc_string_delete(v);	break;
+    case GURU_TT_STRING:	guru_str_delete(v);		break;
 #endif
 #if GURU_USE_ARRAY
-    case GURU_TT_ARRAY:	    mrbc_array_delete(v);	break;
-    case GURU_TT_RANGE:	    mrbc_range_delete(v);	break;
-    case GURU_TT_HASH:	    mrbc_hash_delete(v);	break;
+    case GURU_TT_ARRAY:	    guru_array_delete(v);	break;
+    case GURU_TT_RANGE:	    guru_range_delete(v);	break;
+    case GURU_TT_HASH:	    guru_hash_delete(v);	break;
 #endif
     default: break;
     }

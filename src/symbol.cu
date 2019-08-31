@@ -190,8 +190,8 @@ symid2name(guru_sym sid)
 
 #if GURU_USE_STRING
 // from c_string.cu
-extern "C" __GURU__ mrbc_value mrbc_string_new(const U8 *src);
-extern "C" __GURU__ void       mrbc_string_append_cstr(const mrbc_value *s1, const U8 *s2);
+extern "C" __GURU__ mrbc_value guru_str_new(const U8 *src);
+extern "C" __GURU__ void       guru_str_append_cstr(const mrbc_value *s1, const U8 *s2);
 
 //================================================================
 /*! (method) inspect
@@ -199,9 +199,9 @@ extern "C" __GURU__ void       mrbc_string_append_cstr(const mrbc_value *s1, con
 __GURU__ void
 c_inspect(mrbc_value v[], U32 argc)
 {
-    mrbc_value ret = mrbc_string_new(":");
+    mrbc_value ret = guru_str_new(":");
 
-    mrbc_string_append_cstr(&ret, symid2name(v[0].i));
+    guru_str_append_cstr(&ret, symid2name(v[0].i));
 
     SET_RETURN(ret);
 }
@@ -213,7 +213,7 @@ c_inspect(mrbc_value v[], U32 argc)
 __GURU__ void
 c_to_s(mrbc_value v[], U32 argc)
 {
-    v[0] = mrbc_string_new(symid2name(v[0].i));
+    v[0] = guru_str_new(symid2name(v[0].i));
 }
 #endif
 
@@ -224,12 +224,12 @@ c_to_s(mrbc_value v[], U32 argc)
 __GURU__ void
 c_all_symbols(mrbc_value v[], U32 argc)
 {
-    mrbc_value ret = mrbc_array_new(_sym_idx);
+    mrbc_value ret = guru_array_new(_sym_idx);
 
     for (U32 i=0; i < _sym_idx; i++) {
         mrbc_value sym1 = {.tt = GURU_TT_SYMBOL};
         sym1.i = i;
-        mrbc_array_push(&ret, &sym1);
+        guru_array_push(&ret, &sym1);
     }
     SET_RETURN(ret);
 }

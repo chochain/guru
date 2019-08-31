@@ -28,37 +28,37 @@
   function summary
 
  (constructor)
-    mrbc_array_new
+    guru_array_new
 
  (destructor)
-    mrbc_array_delete
+    guru_array_delete
 
  (setter)
   --[name]-------------[arg]---[ret]-------------------------------------------
-    mrbc_array_set		*T		int
-    mrbc_array_push		*T		int
-    mrbc_array_unshift	*T		int
-    mrbc_array_insert	*T		int
+    guru_array_set		*T		int
+    guru_array_push		*T		int
+    guru_array_unshift	*T		int
+    guru_array_insert	*T		int
 
  (getter)
   --[name]-------------[arg]---[ret]---[note]----------------------------------
-    mrbc_array_get		T		Data remains in the container
-    mrbc_array_pop		T		Data does not remain in the container
-    mrbc_array_shift	T		Data does not remain in the container
-    mrbc_array_remove	T		Data does not remain in the container
+    guru_array_get		T		Data remains in the container
+    guru_array_pop		T		Data does not remain in the container
+    guru_array_shift	T		Data does not remain in the container
+    guru_array_remove	T		Data does not remain in the container
 
  (others)
-    mrbc_array_resize
-    mrbc_array_clear
-    mrbc_array_compare
-    mrbc_array_minmax
+    guru_array_resize
+    guru_array_clear
+    guru_array_compare
+    guru_array_minmax
 */
 
 //================================================================
 /*! get size
  */
 __GURU__ S32
-_adjust_index(mrbc_array *h, S32 idx, U32 inc)
+_adjust_index(guru_array *h, S32 idx, U32 inc)
 {
     if (idx < 0) {
         idx += h->n + inc;
@@ -71,7 +71,7 @@ _adjust_index(mrbc_array *h, S32 idx, U32 inc)
     else if (h->n >= h->size) {
         nsz = h->n + 4;		// pre allocate
     }
-    if (nsz && mrbc_array_resize(h, nsz) != 0) return -1;
+    if (nsz && guru_array_resize(h, nsz) != 0) return -1;
 
     return idx;
 }
@@ -87,7 +87,7 @@ _adjust_index(mrbc_array *h, S32 idx, U32 inc)
 __GURU__ int
 _set(mrbc_value *ary, int idx, mrbc_value *val)
 {
-    mrbc_array *h = ary->array;
+    guru_array *h = ary->array;
 
     int ndx = _adjust_index(h, idx, 0);			// adjust index if needed
     if (ndx<0) return -1;						// allocation error
@@ -115,7 +115,7 @@ _set(mrbc_value *ary, int idx, mrbc_value *val)
 __GURU__ mrbc_value
 _pop(mrbc_value *ary)
 {
-    mrbc_array *h = ary->array;
+    guru_array *h = ary->array;
 
     if (h->n <= 0) return GURU_NIL_NEW();
 
@@ -133,7 +133,7 @@ _pop(mrbc_value *ary)
 __GURU__ int
 _insert(mrbc_value *ary, int idx, mrbc_value *set_val)
 {
-    mrbc_array *h = ary->array;
+    guru_array *h = ary->array;
 
     int size = _adjust_index(h, idx, 1);
     if (size < 0) return -1;
@@ -177,7 +177,7 @@ _unshift(mrbc_value *ary, mrbc_value *set_val)
 __GURU__ mrbc_value
 _shift(mrbc_value *ary)
 {
-    mrbc_array *h = ary->array;
+    guru_array *h = ary->array;
 
     if (h->n <= 0) return GURU_NIL_NEW();
 
@@ -197,7 +197,7 @@ _shift(mrbc_value *ary)
 __GURU__ mrbc_value
 _get(mrbc_value *ary, int idx)
 {
-    mrbc_array *h = ary->array;
+    guru_array *h = ary->array;
 
     if (idx < 0) idx = h->n + idx;
     if (idx < 0 || idx >= h->n) return GURU_NIL_NEW();
@@ -215,7 +215,7 @@ _get(mrbc_value *ary, int idx)
 __GURU__ mrbc_value
 _remove(mrbc_value *ary, int idx)
 {
-    mrbc_array *h = ary->array;
+    guru_array *h = ary->array;
 
     if (idx < 0) idx = h->n + idx;
     if (idx < 0 || idx >= h->n) return GURU_NIL_NEW();
@@ -239,7 +239,7 @@ _remove(mrbc_value *ary, int idx)
 __GURU__ void
 _minmax(mrbc_value *ary, mrbc_value **pp_min_value, mrbc_value **pp_max_value)
 {
-    mrbc_array *h = ary->array;
+    guru_array *h = ary->array;
 
     if (h->n==0) {
         *pp_min_value = NULL;
@@ -265,10 +265,10 @@ _minmax(mrbc_value *ary, mrbc_value **pp_min_value, mrbc_value **pp_max_value)
   @return 	array object
 */
 __GURU__ mrbc_value
-mrbc_array_new(int size)
+guru_array_new(int size)
 {
     mrbc_value ret = {.tt = GURU_TT_ARRAY};
-    mrbc_array *h 	 = (mrbc_array *)mrbc_alloc(sizeof(mrbc_array));		// handle
+    guru_array *h 	 = (guru_array *)mrbc_alloc(sizeof(guru_array));		// handle
     if (!h) return ret;		// ENOMEM
 
     mrbc_value *data = (mrbc_value *)mrbc_alloc(sizeof(mrbc_value) * size);	// buffer
@@ -293,9 +293,9 @@ mrbc_array_new(int size)
   @param  ary	pointer to target value
 */
 __GURU__ void
-mrbc_array_delete(mrbc_value *ary)
+guru_array_delete(mrbc_value *ary)
 {
-    mrbc_array *h = ary->array;
+    guru_array *h = ary->array;
     mrbc_value *p = h->data;
     for (U32 i=0; i < h->n; i++, p++) {
     	ref_clr(p);
@@ -312,7 +312,7 @@ mrbc_array_delete(mrbc_value *ary)
   @return	mrbc_error_code
 */
 __GURU__ int
-mrbc_array_resize(mrbc_array *h, int size)
+guru_array_resize(guru_array *h, int size)
 {
 	assert(size > h->size);
 
@@ -333,13 +333,13 @@ mrbc_array_resize(mrbc_array *h, int size)
   @return		mrbc_error_code
 */
 __GURU__ int
-mrbc_array_push(mrbc_value *ary, mrbc_value *set_val)
+guru_array_push(mrbc_value *ary, mrbc_value *set_val)
 {
-    mrbc_array *h = ary->array;
+    guru_array *h = ary->array;
 
     if (h->n >= h->size) {
         int size = h->size + 6;
-        if (mrbc_array_resize(h, size) != 0) {
+        if (guru_array_resize(h, size) != 0) {
             return -1;
         }
     }
@@ -354,9 +354,9 @@ mrbc_array_push(mrbc_value *ary, mrbc_value *set_val)
   @param  ary		pointer to target value
 */
 __GURU__ void
-mrbc_array_clear(mrbc_value *ary)
+guru_array_clear(mrbc_value *ary)
 {
-    mrbc_array *h = ary->array;
+    guru_array *h = ary->array;
     mrbc_value *p = h->data;
     for (U32 i=0; i < h->n; i++, p++) {
     	ref_clr(p);                      // CC: was dec_refc 20181101
@@ -374,10 +374,10 @@ mrbc_array_clear(mrbc_value *ary)
   @retval minus	v1 <  v2
 */
 __GURU__ int
-mrbc_array_compare(const mrbc_value *v0, const mrbc_value *v1)
+guru_array_compare(const mrbc_value *v0, const mrbc_value *v1)
 {
-	mrbc_array *h0 = v0->array;
-	mrbc_array *h1 = v1->array;
+	guru_array *h0 = v0->array;
+	guru_array *h1 = v1->array;
 	mrbc_value *d0 = h0->data;
 	mrbc_value *d1 = h1->data;
     for (U32 i=0; ; i++) {
@@ -397,11 +397,11 @@ c_array_new(mrbc_value v[], U32 argc)
 {
 	mrbc_value ret;
     if (argc==0) {													// in case of new()
-        ret = mrbc_array_new(0);
+        ret = guru_array_new(0);
         if (ret.array==NULL) return;		// ENOMEM
     }
     else if (argc==1 && v[1].tt==GURU_TT_FIXNUM && v[1].i >= 0) {	// new(num)
-        ret = mrbc_array_new(v[1].i);
+        ret = guru_array_new(v[1].i);
         if (ret.array==NULL) return;		// ENOMEM
 
         mrbc_value nil = GURU_NIL_NEW();
@@ -410,7 +410,7 @@ c_array_new(mrbc_value v[], U32 argc)
         }
     }
     else if (argc==2 && v[1].tt==GURU_TT_FIXNUM && v[1].i >= 0) {	// new(num, value)
-        ret = mrbc_array_new(v[1].i);
+        ret = guru_array_new(v[1].i);
         if (ret.array==NULL) return;		// ENOMEM
 
         for (U32 i=0; i < v[1].i; i++) {
@@ -435,13 +435,13 @@ c_array_add(mrbc_value v[], U32 argc)
         PRINTF("TypeError\n");		// raise?
         return;
     }
-    mrbc_array *h0 = v[0].array;
-    mrbc_array *h1 = v[1].array;
+    guru_array *h0 = v[0].array;
+    guru_array *h1 = v[1].array;
 
     int h0sz = sizeof(mrbc_value) * h0->n;
     int h1sz = sizeof(mrbc_value) * h1->n;
 
-    mrbc_value ret = mrbc_array_new(h0sz + h1sz);
+    mrbc_value ret = guru_array_new(h0sz + h1sz);
     if (ret.array==NULL) return;		// ENOMEM
 
     MEMCPY((U8P)(ret.array->data),        (U8P)h0->data, h0sz);
@@ -480,13 +480,13 @@ c_array_get(mrbc_value v[], U32 argc)
         // min(v[2].i, (len - idx))
         if (size < 0) goto DONE;
 
-        ret = mrbc_array_new(size);
+        ret = guru_array_new(size);
         if (ret.array==NULL) return;		// ENOMEM
 
         for (U32 i=0; i < size; i++) {
             mrbc_value val = _get(v, v[1].i + i);
             ref_inc(&val);
-            mrbc_array_push(&ret, &val);
+            guru_array_push(&ret, &val);
         }
     }
     else {
@@ -522,7 +522,7 @@ c_array_set(mrbc_value v[], U32 argc)
 __GURU__ void
 c_array_clear(mrbc_value v[], U32 argc)
 {
-    mrbc_array_clear(v);
+    guru_array_clear(v);
 }
 
 //================================================================
@@ -562,7 +562,7 @@ c_array_index(mrbc_value v[], U32 argc)
 {
     mrbc_value *ret = v+1;
     
-    mrbc_array *h = v->array;
+    guru_array *h = v->array;
     mrbc_value *p = h->data;
     for (U32 i=0; i < h->n; i++, p++) {
         if (guru_cmp(p, ret)==0) {
@@ -600,7 +600,7 @@ c_array_last(mrbc_value v[], U32 argc)
 __GURU__ void
 c_array_push(mrbc_value v[], U32 argc)
 {
-    mrbc_array_push(v, v+1);	// raise? ENOMEM
+    guru_array_push(v, v+1);	// raise? ENOMEM
     v[1].tt = GURU_TT_EMPTY;
 }
 
@@ -654,9 +654,9 @@ c_array_shift(mrbc_value v[], U32 argc)
 __GURU__ void
 c_array_dup(mrbc_value v[], U32 argc)
 {
-    mrbc_array *h0 = v[0].array;
-    mrbc_value ret = mrbc_array_new(h0->n);
-    mrbc_array *h1 = ret.array;
+    guru_array *h0 = v[0].array;
+    mrbc_value ret = guru_array_new(h0->n);
+    guru_array *h1 = ret.array;
     if (!h1) return;		// ENOMEM
 
     int n = h1->n = h0->n;
@@ -715,7 +715,7 @@ c_array_minmax(mrbc_value v[], U32 argc)
 
     mrbc_value *p_min_value, *p_max_value;
     mrbc_value nil = GURU_NIL_NEW();
-    mrbc_value ret = mrbc_array_new(2);
+    mrbc_value ret = guru_array_new(2);
 
     _minmax(v, &p_min_value, &p_max_value);
     if (p_min_value==NULL) p_min_value = &nil;
@@ -736,7 +736,7 @@ c_array_minmax(mrbc_value v[], U32 argc)
 __GURU__ void
 c_array_inspect(mrbc_value v[], U32 argc)
 {
-	mrbc_value ret  = mrbc_string_new("[");
+	mrbc_value ret  = guru_str_new("[");
     if (!ret.str) {
     	SET_NIL_RETURN();
     	return;
@@ -744,13 +744,13 @@ c_array_inspect(mrbc_value v[], U32 argc)
     mrbc_value vi, s1;
     int n = v->array->n;
     for (U32 i=0; i < n; i++) {
-        if (i != 0) mrbc_string_append_cstr(&ret, ", ");
+        if (i != 0) guru_str_append_cstr(&ret, ", ");
         vi = _get(v, i);
         s1 = guru_inspect(v+argc, &vi);
-        mrbc_string_append(&ret, &s1);
+        guru_str_append(&ret, &s1);
         ref_clr(&s1);
     }
-    mrbc_string_append_cstr(&ret, "]");
+    guru_str_append_cstr(&ret, "]");
 
     SET_RETURN(ret);
 }
@@ -762,7 +762,7 @@ __GURU__ void
 c_array_join_1(mrbc_value v[], U32 argc,
                     mrbc_value *src, mrbc_value *ret, mrbc_value *separator)
 {
-	mrbc_array *h = src->array;
+	guru_array *h = src->array;
     if (h->n==0) return;
 
     int i   = 0;
@@ -773,24 +773,24 @@ c_array_join_1(mrbc_value v[], U32 argc,
         }
         else {
             s1 = guru_inspect(v+argc, &h->data[i]);
-            mrbc_string_append(ret, &s1);
+            guru_str_append(ret, &s1);
             ref_clr(&s1);					// free locally allocated memory
         }
         if (++i >= h->n) break;					// normal return.
-        mrbc_string_append(ret, separator);
+        guru_str_append(ret, separator);
     }
 }
 
 __GURU__ void
 c_array_join(mrbc_value v[], U32 argc)
 {
-    mrbc_value ret = mrbc_string_new(NULL);
+    mrbc_value ret = guru_str_new(NULL);
     if (!ret.str) {
         SET_NIL_RETURN();
         return;
     }
     mrbc_value separator = (argc==0)
-    		? mrbc_string_new("")
+    		? guru_str_new("")
     		: guru_inspect(v+argc, v+1);
 
     c_array_join_1(v, argc, v, &ret, &separator);

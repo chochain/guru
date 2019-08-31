@@ -175,7 +175,7 @@ __GURU__ mrbc_value
 mrbc_store_new(guru_class *cls, U32 size)
 {
     mrbc_value v = {.tt = GURU_TT_OBJECT};
-    v.self = (mrbc_var *)mrbc_alloc(sizeof(mrbc_store) + size);
+    v.self = (guru_var *)mrbc_alloc(sizeof(mrbc_store) + size);
     if (v.self == NULL) return v;	// ENOMEM
 
     v.self->ivar = _new(0);			// allocate internal kv handle

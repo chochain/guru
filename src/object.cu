@@ -326,17 +326,17 @@ c_object_to_s(mrbc_value v[], U32 argc)
     switch (v->tt) {
     case GURU_TT_CLASS:
     	name = symid2name(v->cls->sym_id);
-    	ret = mrbc_string_new(name);
+    	ret = guru_str_new(name);
     	break;
     case GURU_TT_OBJECT:
     	name = symid2name(v->self->cls->sym_id);
-    	ret  = mrbc_string_new("#<0x");
-    	mrbc_string_append_cstr(&ret, name);
-    	mrbc_string_append_cstr(&ret, guru_i2s((U64)v->self, 16));
-    	mrbc_string_append_cstr(&ret, ">");
+    	ret  = guru_str_new("#<0x");
+    	guru_str_append_cstr(&ret, name);
+    	guru_str_append_cstr(&ret, guru_i2s((U64)v->self, 16));
+    	guru_str_append_cstr(&ret, ">");
     	break;
     default:
-    	ret = mrbc_string_new("");
+    	ret = guru_str_new("");
     	break;
     }
     SET_RETURN(ret);
@@ -386,8 +386,8 @@ c_proc_call(mrbc_value v[], U32 argc)
 __GURU__ void
 c_proc_inspect(mrbc_value v[], U32 argc)
 {
-	mrbc_value ret = mrbc_string_new("<#Proc:");
-	mrbc_string_append_cstr(&ret, guru_i2s((U64)v->proc, 16));
+	mrbc_value ret = guru_str_new("<#Proc:");
+	guru_str_append_cstr(&ret, guru_i2s((U64)v->proc, 16));
 
     SET_RETURN(ret);
 }
@@ -425,7 +425,7 @@ c_nil_false_not(mrbc_value v[], U32 argc)
 __GURU__ void
 c_nil_inspect(mrbc_value v[], U32 argc)
 {
-    v[0] = mrbc_string_new("nil");
+    v[0] = guru_str_new("nil");
 }
 
 //================================================================
@@ -434,7 +434,7 @@ c_nil_inspect(mrbc_value v[], U32 argc)
 __GURU__ void
 c_nil_to_s(mrbc_value v[], U32 argc)
 {
-    v[0] = mrbc_string_new(NULL);
+    v[0] = guru_str_new(NULL);
 }
 #endif
 
@@ -464,7 +464,7 @@ _init_class_nil()
 __GURU__ void
 c_false_to_s(mrbc_value v[], U32 argc)
 {
-    v[0] = mrbc_string_new("false");
+    v[0] = guru_str_new("false");
 }
 #endif
 
@@ -494,7 +494,7 @@ _init_class_false()
 __GURU__ void
 c_true_to_s(mrbc_value v[], U32 argc)
 {
-    v[0] = mrbc_string_new("true");
+    v[0] = guru_str_new("true");
 }
 #endif
 

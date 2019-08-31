@@ -3,8 +3,8 @@
 #include "global.h"
 /*
 
-  GLobal objects are stored in 'mrbc_global' array.
-  'mrbc_global' array is decending order by sym_id.
+  GLobal objects are stored in '_global' array.
+  '_global' array is decending order by sym_id.
   In case of searching a global object, binary search is used.
   In case of adding a global object, insertion sort is used.
 
@@ -20,7 +20,7 @@ typedef struct _gobj_ {
     _gtype 		gtype 	:8;
 } _gobj;
 
-// max of global object in mrbc_global[]
+// max of global object in _global[]
 __GURU__ U32 	_mutex_gobj;
 
 __GURU__ U32 	_global_idx;

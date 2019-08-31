@@ -35,11 +35,11 @@ typedef struct RHash {
     mrbc_value *data;		//!< pointer to allocated memory.
 
     // TODO: and other member for search.
-} mrbc_hash;
+} guru_hash;
 
-__GURU__ mrbc_value mrbc_hash_new(int size);
-__GURU__ void       mrbc_hash_delete(mrbc_value *hash);
-__GURU__ int        mrbc_hash_compare(const mrbc_value *v1, const mrbc_value *v2);
+__GURU__ mrbc_value guru_hash_new(int size);
+__GURU__ void       guru_hash_delete(mrbc_value *hash);
+__GURU__ int        guru_hash_compare(const mrbc_value *v1, const mrbc_value *v2);
 
 __GURU__ void       mrbc_init_class_hash();
 
