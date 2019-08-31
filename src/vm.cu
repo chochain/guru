@@ -51,12 +51,12 @@ _vm_begin(guru_vm *pool)
 	MEMSET((U8P)vm->regfile, 0, sizeof(vm->regfile));	// clean up registers
 
     vm->regfile[0].tt  	= GURU_TT_CLASS;		// regfile[0] is self
-    vm->regfile[0].cls 	= mrbc_class_object;	// root class
+    vm->regfile[0].cls 	= guru_class_object;	// root class
 
     guru_state *st = (guru_state *)mrbc_alloc(sizeof(guru_state));
 
     st->pc 	  = 0;								// starting IP
-    st->klass = mrbc_class_object;				// target class
+    st->klass = guru_class_object;				// target class
     st->reg   = vm->regfile;					// point to reg[0]
     st->irep  = vm->irep;						// root of irep tree
     st->argc  = 0;

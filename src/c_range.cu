@@ -167,7 +167,7 @@ c_range_inspect(mrbc_value v[], U32 argc)
 __GURU__ void
 mrbc_init_class_range()
 {
-    mrbc_class *c = mrbc_class_range = guru_add_class("Range", mrbc_class_object);
+    guru_class *c = guru_class_range = guru_add_class("Range", guru_class_object);
 
     guru_add_proc(c, "===",          c_range_equal3);
     guru_add_proc(c, "first",        c_range_first);

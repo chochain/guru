@@ -52,7 +52,7 @@ typedef struct RState {			// 24-byte
     U32 pc;						// program counter
     U32 argc;  					// num of args
 
-    mrbc_class      *klass;		// current class
+    guru_class      *klass;		// current class
     mrbc_value      *reg;		// pointer to current register (in VM register file)
     guru_irep       *irep;		// pointer to current irep block
     struct RState   *prev;		// previous state (call stack)
@@ -96,7 +96,7 @@ typedef struct XIrep {
 typedef struct XState {
     U16        		pc;
     U16        		argc;     	// num of args
-    mrbc_class      *klass;
+    guru_class      *klass;
     mrbc_value      *reg;
     mrbc_irep       *irep;
     struct XState  *prev;

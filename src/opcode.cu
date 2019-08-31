@@ -61,7 +61,7 @@ _vm_symbol(guru_vm *vm, U32 n)
 	return U8PADD(irep, *p);
 }
 
-__GURU__ mrbc_sym
+__GURU__ guru_sym
 _vm_symid(guru_vm *vm, U32 n)
 {
 	const U8P name = _vm_symbol(vm, n);
@@ -99,7 +99,7 @@ _get_symbol(U8P p, U32 n)
     return (U8P)p + sizeof(U16);  	// skip size(2 bytes)
 }
 
-__GURU__ mrbc_sym
+__GURU__ guru_sym
 _get_symid(const U8P p, U32 n)
 {
   	const U8P name = _get_symbol(p, n);
@@ -322,7 +322,7 @@ op_loadsym(guru_vm *vm, U32 code, mrbc_value *regs)
     int ra  = GETARG_A(code);
     int rb  = GETARG_Bx(code);
 
-    mrbc_sym sid = _vm_symid(vm, rb);
+    guru_sym sid = _vm_symid(vm, rb);
 
     _RA_T(GURU_TT_SYMBOL, i=sid);
 
@@ -430,7 +430,7 @@ op_getglobal(guru_vm *vm, U32 code, mrbc_value *regs)
     int ra  = GETARG_A(code);
     int rb  = GETARG_Bx(code);
 
-    mrbc_sym sid = _vm_symid(vm, rb);
+    guru_sym sid = _vm_symid(vm, rb);
     guru_obj obj = global_object_get(sid);
 
     _RA_V(obj);
@@ -455,7 +455,7 @@ op_setglobal(guru_vm *vm, U32 code, mrbc_value *regs)
     int ra  = GETARG_A(code);
     int rb  = GETARG_Bx(code);
 
-    mrbc_sym sid = _vm_symid(vm, rb);
+    guru_sym sid = _vm_symid(vm, rb);
     global_object_add(sid, &regs[ra]);
 
     return 0;
@@ -479,7 +479,7 @@ op_getiv(guru_vm *vm, U32 code, mrbc_value *regs)
     int rb = GETARG_Bx(code);
 
     const U8P name = _vm_symbol(vm, rb);
-    mrbc_sym sid   = name2symid(name+1);		// skip '@'
+    guru_sym sid   = name2symid(name+1);		// skip '@'
     mrbc_value ret   = mrbc_store_get(&regs[0], sid);
 
     _RA_V(ret);
@@ -505,7 +505,7 @@ op_setiv(guru_vm *vm, U32 code, mrbc_value *regs)
     int rb = GETARG_Bx(code);
 
     const U8P name = _vm_symbol(vm, rb);
-    mrbc_sym  sid  = name2symid(name+1);	// skip '@'
+    guru_sym  sid  = name2symid(name+1);	// skip '@'
 
     mrbc_store_set(&regs[0], sid, &regs[ra]);
 
@@ -529,7 +529,7 @@ op_getconst(guru_vm *vm, U32 code, mrbc_value *regs)
     int ra  = GETARG_A(code);
     int rb  = GETARG_Bx(code);
 
-    mrbc_sym sid = _vm_symid(vm, rb);
+    guru_sym sid = _vm_symid(vm, rb);
     guru_obj obj = const_object_get(sid);
 
     _RA_V(obj);
@@ -553,7 +553,7 @@ op_setconst(guru_vm *vm, U32 code, mrbc_value *regs) {
     int ra  = GETARG_A(code);
     int rb  = GETARG_Bx(code);
 
-    mrbc_sym sid = _vm_symid(vm, rb);
+    guru_sym sid = _vm_symid(vm, rb);
     const_object_add(sid, &regs[ra]);
 
     return 0;
@@ -722,8 +722,8 @@ op_send(guru_vm *vm, U32 code, mrbc_value *regs)
     default: break;
     }
 
-	mrbc_sym  sid = _vm_symid(vm, rb);
-    mrbc_proc *m  = (mrbc_proc *)mrbc_get_proc_by_symid(rcv, sid);
+	guru_sym  sid = _vm_symid(vm, rb);
+    guru_proc *m  = (guru_proc *)mrbc_get_proc_by_symid(rcv, sid);
 
     if (m==0) {
     	const U8P name = _vm_symbol(vm, rb);
@@ -1260,9 +1260,9 @@ op_strcat(guru_vm *vm, U32 code, mrbc_value *regs)
     mrbc_value *pa  = &regs[ra];
     mrbc_value *pb  = &regs[rb];
 
-    mrbc_sym sid  = name2symid((U8P)"to_s");			// from global symbol pool
-    mrbc_proc *ma = mrbc_get_proc_by_symid(*pa, sid);
-    mrbc_proc *mb = mrbc_get_proc_by_symid(*pb, sid);
+    guru_sym sid  = name2symid((U8P)"to_s");			// from global symbol pool
+    guru_proc *ma = mrbc_get_proc_by_symid(*pa, sid);
+    guru_proc *mb = mrbc_get_proc_by_symid(*pb, sid);
 
     if (ma && IS_CFUNC(ma)) ma->func(pa, 0);
     if (mb && IS_CFUNC(mb)) mb->func(pb, 0);
@@ -1401,7 +1401,7 @@ op_lambda(guru_vm *vm, U32 code, mrbc_value *regs)
     int rb = GETARG_b(code);      		// sequence position in irep list
     // int c = GETARG_C(code);    		// TODO: Add flags support for OP_LAMBDA
 
-    mrbc_proc *prc = (mrbc_proc *)mrbc_alloc_proc((U8P)"(lambda)");
+    guru_proc *prc = (guru_proc *)mrbc_alloc_proc((U8P)"(lambda)");
 
     prc->irep = _vm_irep_list(vm, rb);
     prc->flag &= ~GURU_CFUNC;           // Ruby IREP
@@ -1430,9 +1430,9 @@ op_class(guru_vm *vm, U32 code, mrbc_value *regs)
     int ra = GETARG_A(code);
     int rb = GETARG_B(code);
 
-    mrbc_class *super = (regs[ra+1].tt==GURU_TT_CLASS) ? regs[ra+1].cls : mrbc_class_object;
+    guru_class *super = (regs[ra+1].tt==GURU_TT_CLASS) ? regs[ra+1].cls : guru_class_object;
     const U8P  name   = _vm_symbol(vm, rb);
-    mrbc_class *cls   = (mrbc_class *)mrbc_define_class(name, super);
+    guru_class *cls   = (guru_class *)mrbc_define_class(name, super);
 
     _RA_T(GURU_TT_CLASS, cls=cls);
     return 0;
@@ -1489,14 +1489,14 @@ op_method(guru_vm *vm, U32 code, mrbc_value *regs)
     	return 0;
     }
 
-    mrbc_class 	*cls  = regs[ra].cls;
-    mrbc_proc 	*prc  = regs[ra+1].proc;
-    mrbc_sym	sid   = _vm_symid(vm, rb);
+    guru_class 	*cls  = regs[ra].cls;
+    guru_proc 	*prc  = regs[ra+1].proc;
+    guru_sym	sid   = _vm_symid(vm, rb);
 
     MUTEX_LOCK(_mutex_op);
 
     // check same name method
-    mrbc_proc 	*p  = cls->vtbl;
+    guru_proc 	*p  = cls->vtbl;
     void 		*pp = &cls->vtbl;
     while (p != NULL) {						// walk through vtable
     	if (p->sym_id == sid) break;
@@ -1504,7 +1504,7 @@ op_method(guru_vm *vm, U32 code, mrbc_value *regs)
     	p  = p->next;
     }
     if (p) {	// found?
-    	*((mrbc_proc**)pp) = p->next;
+    	*((guru_proc**)pp) = p->next;
     	if (!IS_CFUNC(p)) {				// a p->func a Ruby function (aka IREP)
     		mrbc_value v = { .tt = GURU_TT_PROC };
     		v.proc = p;

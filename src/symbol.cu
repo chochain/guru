@@ -137,10 +137,10 @@ _add_index(const U8P str)
   @return 	symbol object
 */
 __GURU__ mrbc_value
-mrbc_symbol_new(const U8P str)
+guru_sym_new(const U8P str)
 {
     mrbc_value v   = {.tt = GURU_TT_SYMBOL};
-    mrbc_sym   sid = _search_index(str);
+    guru_sym   sid = _search_index(str);
 
     if (sid < MAX_SYMBOL_COUNT) {
         v.i = sid;
@@ -162,12 +162,12 @@ mrbc_symbol_new(const U8P str)
 /*! Convert string to symbol value.
 
   @param  str		Target string.
-  @return mrbc_sym	Symbol value.
+  @return guru_sym	Symbol value.
 */
-__GURU__ mrbc_sym
+__GURU__ guru_sym
 name2symid(const U8P str)
 {
-    mrbc_sym sid = _search_index(str);
+    guru_sym sid = _search_index(str);
     if (sid < MAX_SYMBOL_COUNT) return sid;
 
     return _add_index(str);
@@ -176,12 +176,12 @@ name2symid(const U8P str)
 //================================================================
 /*! Convert symbol value to string.
 
-  @param  mrbc_sym	Symbol value.
+  @param  guru_sym	Symbol value.
   @return const char*	String.
   @retval NULL		Invalid sym_id was given.
 */
 __GURU__ U8P
-symid2name(mrbc_sym sid)
+symid2name(guru_sym sid)
 {
     return (sid >= _sym_idx)
     		? NULL
@@ -240,7 +240,7 @@ c_all_symbols(mrbc_value v[], U32 argc)
  */
 __GURU__ void mrbc_init_class_symbol()  // << from symbol.cu
 {
-    mrbc_class *c = mrbc_class_symbol = guru_add_class("Symbol", mrbc_class_object);
+    guru_class *c = guru_class_symbol = guru_add_class("Symbol", guru_class_object);
 
 #if GURU_USE_ARRAY
     guru_add_proc(c, "all_symbols", c_all_symbols);

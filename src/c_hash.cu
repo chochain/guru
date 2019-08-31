@@ -505,7 +505,7 @@ c_hash_inspect(mrbc_value v[], U32 argc)
 __GURU__ void
 mrbc_init_class_hash()
 {
-    mrbc_class *c = mrbc_class_hash = guru_add_class("Hash", mrbc_class_object);
+    guru_class *c = guru_class_hash = guru_add_class("Hash", guru_class_object);
 
     guru_add_proc(c, "new",	    	c_hash_new);
     guru_add_proc(c, "[]",			c_hash_get);

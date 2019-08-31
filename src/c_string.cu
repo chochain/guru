@@ -726,7 +726,7 @@ c_string_strip_self(mrbc_value v[], U32 argc)
 __GURU__ void
 c_string_to_sym(mrbc_value v[], U32 argc)
 {
-    SET_RETURN(mrbc_symbol_new(_data(v)));
+    SET_RETURN(guru_sym_new(_data(v)));
 }
 
 //================================================================
@@ -735,7 +735,7 @@ c_string_to_sym(mrbc_value v[], U32 argc)
 __GURU__ void
 mrbc_init_class_string()
 {
-    mrbc_class *c = mrbc_class_string = guru_add_class("String", mrbc_class_object);
+    guru_class *c = guru_class_string = guru_add_class("String", guru_class_object);
 
     guru_add_proc(c, "+",		c_string_add);
     guru_add_proc(c, "*",		c_string_mul);
@@ -764,8 +764,8 @@ mrbc_init_class_string()
     guru_add_proc(c, "to_f",	c_string_to_f);
 #endif
 
-    guru_add_proc(mrbc_class_object, "sprintf",	c_object_sprintf);
-    guru_add_proc(mrbc_class_object, "printf",	c_object_printf);
+    guru_add_proc(guru_class_object, "sprintf",	c_object_sprintf);
+    guru_add_proc(guru_class_object, "printf",	c_object_printf);
 }
 
 #endif // GURU_USE_STRING

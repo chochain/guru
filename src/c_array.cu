@@ -806,7 +806,7 @@ c_array_join(mrbc_value v[], U32 argc)
 __GURU__ void
 mrbc_init_class_array()
 {
-    mrbc_class *c = mrbc_class_array = guru_add_class("Array", mrbc_class_object);
+    guru_class *c = guru_class_array = guru_add_class("Array", guru_class_object);
 
     guru_add_proc(c, "new",       c_array_new);
     guru_add_proc(c, "+",         c_array_add);

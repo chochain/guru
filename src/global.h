@@ -22,11 +22,11 @@ extern "C" {
 
 __GPU__  void guru_global_init(void);
 
-__GURU__ void global_object_add(mrbc_sym sid, guru_obj *obj);
-__GURU__ void const_object_add(mrbc_sym sid,  guru_obj *obj);
+__GURU__ void global_object_add(guru_sym sid, guru_obj *obj);
+__GURU__ void const_object_add(guru_sym sid,  guru_obj *obj);
 
-__GURU__ guru_obj global_object_get(mrbc_sym sid);
-__GURU__ guru_obj const_object_get(mrbc_sym sid);
+__GURU__ guru_obj global_object_get(guru_sym sid);
+__GURU__ guru_obj const_object_get(guru_sym sid);
     
 #ifdef __cplusplus
 }

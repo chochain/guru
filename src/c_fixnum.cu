@@ -221,7 +221,7 @@ __GURU__ void
 mrbc_init_class_fixnum(void)
 {
     // Fixnum
-    mrbc_class *c = mrbc_class_fixnum = guru_add_class("Fixnum", mrbc_class_object);
+    guru_class *c = guru_class_fixnum = guru_add_class("Fixnum", guru_class_object);
 
     guru_add_proc(c, "[]", 		c_fixnum_bitref);
     guru_add_proc(c, "-@", 		c_fixnum_negative);
@@ -313,7 +313,7 @@ __GURU__ void
 mrbc_init_class_float(void)
 {
     // Float
-    mrbc_class *c = mrbc_class_float = guru_add_class("Float", mrbc_class_object);
+    guru_class *c = guru_class_float = guru_add_class("Float", guru_class_object);
 
     guru_add_proc(c, "-@", 		c_float_negative);
 #if GURU_USE_MATH

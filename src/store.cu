@@ -24,7 +24,7 @@
   @return		result. It's not necessarily found.
 */
 __GURU__ S32
-_bsearch(mrbc_store *st, mrbc_sym sid)
+_bsearch(mrbc_store *st, guru_sym sid)
 {
     int left  = 0;
     int right = st->n - 1;
@@ -112,7 +112,7 @@ _delete(mrbc_store *st)
   @return		mrbc_error_code.
 */
 __GURU__ S32
-_set(mrbc_store *st, mrbc_sym sid, mrbc_value *val)
+_set(mrbc_store *st, guru_sym sid, mrbc_value *val)
 {
     S32 idx = _bsearch(st, sid);
     mrbc_store_data *d = st->data + idx;
@@ -152,7 +152,7 @@ INSERT_VALUE:
   @return		pointer to mrbc_value or NULL.
 */
 __GURU__ mrbc_value*
-_get(mrbc_store *st, mrbc_sym sid)
+_get(mrbc_store *st, guru_sym sid)
 {
     S32 idx = _bsearch(st, sid);
     if (idx < 0) return NULL;
@@ -167,12 +167,12 @@ _get(mrbc_store *st, mrbc_sym sid)
 /*! mrbc_store constructor
 
   @param  vm    Pointer to VM.
-  @param  cls	Pointer to Class (mrbc_class).
+  @param  cls	Pointer to Class (guru_class).
   @param  size	size of additional data.
   @return       mrbc_store object.
 */
 __GURU__ mrbc_value
-mrbc_store_new(mrbc_class *cls, U32 size)
+mrbc_store_new(guru_class *cls, U32 size)
 {
     mrbc_value v = {.tt = GURU_TT_OBJECT};
     v.self = (mrbc_var *)mrbc_alloc(sizeof(mrbc_store) + size);
@@ -212,7 +212,7 @@ mrbc_store_delete(mrbc_value *v)
   @param  v		pointer to value.
 */
 __GURU__ void
-mrbc_store_set(guru_obj *obj, mrbc_sym sid, mrbc_value *v)
+mrbc_store_set(guru_obj *obj, guru_sym sid, mrbc_value *v)
 {
     _set(obj->self->ivar, sid, v);
     ref_inc(v);
@@ -226,7 +226,7 @@ mrbc_store_set(guru_obj *obj, mrbc_sym sid, mrbc_value *v)
   @return		value.
 */
 __GURU__ guru_obj
-mrbc_store_get(guru_obj *obj, mrbc_sym sid)
+mrbc_store_get(guru_obj *obj, guru_sym sid)
 {
     mrbc_value *v = _get(obj->self->ivar, sid);
 

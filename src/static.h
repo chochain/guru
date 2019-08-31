@@ -20,27 +20,27 @@ extern "C" {
 #endif
 
 /* Class Tree */
-extern __GURU__ mrbc_class *mrbc_class_object;
+extern __GURU__ guru_class *guru_class_object;
 
-extern __GURU__ mrbc_class *mrbc_class_false;
-extern __GURU__ mrbc_class *mrbc_class_true;
-extern __GURU__ mrbc_class *mrbc_class_nil;
-extern __GURU__ mrbc_class *mrbc_class_fixnum;
+extern __GURU__ guru_class *guru_class_false;
+extern __GURU__ guru_class *guru_class_true;
+extern __GURU__ guru_class *guru_class_nil;
+extern __GURU__ guru_class *guru_class_fixnum;
 #if GURU_USE_FLOAT
-extern __GURU__ mrbc_class *mrbc_class_float;
-extern __GURU__ mrbc_class *mrbc_class_math;
+extern __GURU__ guru_class *guru_class_float;
+extern __GURU__ guru_class *guru_class_math;
 #endif
-extern __GURU__ mrbc_class *mrbc_class_symbol;
+extern __GURU__ guru_class *guru_class_symbol;
 
-extern __GURU__ mrbc_class *mrbc_class_proc;
+extern __GURU__ guru_class *guru_class_proc;
 
 #if GURU_USE_STRING
-extern __GURU__ mrbc_class *mrbc_class_string;
+extern __GURU__ guru_class *guru_class_string;
 #endif
 #if GURU_USE_ARRAY
-extern __GURU__ mrbc_class *mrbc_class_array;
-extern __GURU__ mrbc_class *mrbc_class_range;
-extern __GURU__ mrbc_class *mrbc_class_hash;
+extern __GURU__ guru_class *guru_class_array;
+extern __GURU__ guru_class *guru_class_range;
+extern __GURU__ guru_class *guru_class_hash;
 #endif
 
 #ifdef __cplusplus

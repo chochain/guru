@@ -77,8 +77,8 @@ __GURU__ mrbc_value
 mrbc_send(mrbc_value v[], mrbc_value *rcv, const U8P method, U32 argc, ...)
 {
     mrbc_value *regs = v + 2;	     // allocate 2 for stack
-    mrbc_sym   sid   = name2symid(method);
-    mrbc_proc  *m    = mrbc_get_proc_by_symid(*rcv, sid);
+    guru_sym   sid   = name2symid(method);
+    guru_proc  *m    = mrbc_get_proc_by_symid(*rcv, sid);
 
     if (m == 0) {
         PRINTF("No method. vtype=%d method='%s'\n", rcv->tt, method);
@@ -237,7 +237,7 @@ __GURU__ void
 c_object_getiv(mrbc_value v[], U32 argc)
 {
     const U8P name = _get_callee(NULL);			// TODO:
-    mrbc_sym  sid  = name2symid(name);
+    guru_sym  sid  = name2symid(name);
 
     SET_RETURN(mrbc_store_get(&v[0], sid));
 }
@@ -249,7 +249,7 @@ __GURU__ void
 c_object_setiv(mrbc_value v[], U32 argc)
 {
     const U8P name = _get_callee(NULL);			// CC TODO: another way
-    mrbc_sym  sid  = name2symid(name);
+    guru_sym  sid  = name2symid(name);
 
     mrbc_store_set(&v[0], sid, &v[1]);
 }
@@ -288,7 +288,7 @@ c_object_attr_accessor(mrbc_value v[], U32 argc)
         
         STRCPY(buf, name);
         STRCAT(buf, (U8P)"=");
-        mrbc_symbol_new(buf);
+        guru_sym_new(buf);
         mrbc_define_method(v[0].cls, buf, c_object_setiv);
         mrbc_free(buf);
     }
@@ -304,7 +304,7 @@ c_object_kind_of(mrbc_value v[], U32 argc)
         SET_BOOL_RETURN(0);
         return;
     }
-    const mrbc_class *cls = mrbc_get_class_by_object(&v[0]);
+    const guru_class *cls = mrbc_get_class_by_object(&v[0]);
 
     do {
         if (cls == v[1].cls) break;
@@ -347,7 +347,7 @@ __GURU__ void
 _init_class_object()
 {
     // Class
-    mrbc_class *c = mrbc_class_object = guru_add_class("Object", NULL);
+    guru_class *c = guru_class_object = guru_add_class("Object", NULL);
 
     // Methods
     guru_add_proc(c, "initialize",    	c_nop);
@@ -397,7 +397,7 @@ __GURU__ void
 _init_class_proc()
 {
     // Class
-    mrbc_class *c = mrbc_class_proc = guru_add_class("Proc", mrbc_class_object);
+    guru_class *c = guru_class_proc = guru_add_class("Proc", guru_class_object);
     // Methods
     guru_add_proc(c, "call", 	c_proc_call);
 #if GURU_USE_STRING
@@ -445,7 +445,7 @@ __GURU__ void
 _init_class_nil()
 {
     // Class
-    mrbc_class *c = mrbc_class_nil = guru_add_class("NilClass", mrbc_class_object);
+    guru_class *c = guru_class_nil = guru_add_class("NilClass", guru_class_object);
     // Methods
     guru_add_proc(c, "!", 			c_nil_false_not);
 #if GURU_USE_STRING
@@ -475,7 +475,7 @@ __GURU__ void
 _init_class_false()
 {
     // Class
-    mrbc_class *c = mrbc_class_false = guru_add_class("FalseClass", mrbc_class_object);
+    guru_class *c = guru_class_false = guru_add_class("FalseClass", guru_class_object);
     // Methods
     guru_add_proc(c, "!", 		c_nil_false_not);
 #if GURU_USE_STRING
@@ -502,11 +502,11 @@ __GURU__ void
 _init_class_true()
 {
     // Class
-    mrbc_class_true = guru_add_class("TrueClass", mrbc_class_object);
+    guru_class_true = guru_add_class("TrueClass", guru_class_object);
     // Methods
 #if GURU_USE_STRING
-    guru_add_proc(mrbc_class_true, "inspect", 	c_true_to_s);
-    guru_add_proc(mrbc_class_true, "to_s", 		c_true_to_s);
+    guru_add_proc(guru_class_true, "inspect", 	c_true_to_s);
+    guru_add_proc(guru_class_true, "to_s", 		c_true_to_s);
 #endif
 }
 

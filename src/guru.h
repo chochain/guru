@@ -110,7 +110,7 @@ typedef uintptr_t   U32A;				// pointer address
 // guru internal types
 typedef S32 		guru_int;
 typedef F32	 		guru_float;
-typedef U32 		mrbc_sym;
+typedef U32 		guru_sym;
 
 #define IS_NUM(v)    ((v) & 0x1)
 
@@ -150,13 +150,13 @@ typedef struct RObject {					// 8-bytes
   Guru class object.
 */
 typedef struct RClass {						// 16-byte
-    mrbc_sym       	sym_id;					// class name
-    struct RClass 	*super;					// mrbc_class[super]
-    struct RProc  	*vtbl;					// mrbc_proc[rprocs], linked list
+    guru_sym       	sym_id;					// class name
+    struct RClass 	*super;					// guru_class[super]
+    struct RProc  	*vtbl;					// guru_proc[rprocs], linked list
 #ifdef GURU_DEBUG
     U8P       		name;					// for debug. TODO: remove
 #endif
-} mrbc_class;
+} guru_class;
 
 #define GURU_CFUNC 	0x80
 #define IS_CFUNC(m)	((m)->flag & GURU_CFUNC)
@@ -191,21 +191,21 @@ typedef struct RVar {			// 16-byte
 */
 /* forward declaration */
 struct Irep;
-typedef void (*mrbc_func_t)(guru_obj *obj, U32 argc);
+typedef void (*guru_fptr)(guru_obj *obj, U32 argc);
 
 typedef struct RProc {			// 20-byte
     GURU_OBJECT_HEADER;
 
-    mrbc_sym 	 sym_id;		// u32
+    guru_sym 	 sym_id;		// u32
     struct RProc *next;
     union {
         struct RIrep *irep;
-        mrbc_func_t  func;
+        guru_fptr  	 func;
     };
 #ifdef GURU_DEBUG
     U8P     	 name;			// for debug. TODO: remove
 #endif
-} mrbc_proc;
+} guru_proc;
 
 typedef struct guru_ses_ {		// 16-byte
 	U8P in;
@@ -217,8 +217,8 @@ typedef struct guru_ses_ {		// 16-byte
 } guru_ses;
 
 // internal methods which uses (const char *) for static string									// in class.cu
-__GURU__ mrbc_class *guru_add_class(const char *name, mrbc_class *super);						// use (char *) for static string
-__GURU__ mrbc_proc  *guru_add_proc(mrbc_class *cls, const char *name, mrbc_func_t cfunc);
+__GURU__ guru_class *guru_add_class(const char *name, guru_class *super);						// use (char *) for static string
+__GURU__ guru_proc  *guru_add_proc(guru_class *cls, const char *name, guru_fptr cfunc);
 
 #ifdef __cplusplus
 }
