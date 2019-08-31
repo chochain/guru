@@ -97,7 +97,7 @@ _set(mrbc_value *ary, int idx, mrbc_value *val)
     }
     else {
         for (U32 i=h->n; i<ndx; i++) {			// lazy fill here, instead of when resized
-            h->data[i] = mrbc_nil_value();		// prep newly allocated cells
+            h->data[i] = GURU_NIL_NEW();		// prep newly allocated cells
         }
         h->n = ndx+1;
     }
@@ -117,7 +117,7 @@ _pop(mrbc_value *ary)
 {
     mrbc_array *h = ary->array;
 
-    if (h->n <= 0) return mrbc_nil_value();
+    if (h->n <= 0) return GURU_NIL_NEW();
 
     return h->data[--h->n];
 }
@@ -148,7 +148,7 @@ _insert(mrbc_value *ary, int idx, mrbc_value *set_val)
 
     if (size >= h->n) {			// clear empty cells if needed
         for (U32 i = h->n-1; i < size; i++) {
-            h->data[i] = mrbc_nil_value();
+            h->data[i] = GURU_NIL_NEW();
         }
         h->n = size;
     }
@@ -179,7 +179,7 @@ _shift(mrbc_value *ary)
 {
     mrbc_array *h = ary->array;
 
-    if (h->n <= 0) return mrbc_nil_value();
+    if (h->n <= 0) return GURU_NIL_NEW();
 
     mrbc_value ret = h->data[0];
     MEMCPY((uint8_t *)h->data, (uint8_t *)(h->data+1), sizeof(mrbc_value)*--h->n);
@@ -200,7 +200,7 @@ _get(mrbc_value *ary, int idx)
     mrbc_array *h = ary->array;
 
     if (idx < 0) idx = h->n + idx;
-    if (idx < 0 || idx >= h->n) return mrbc_nil_value();
+    if (idx < 0 || idx >= h->n) return GURU_NIL_NEW();
 
     return h->data[idx];
 }
@@ -218,7 +218,7 @@ _remove(mrbc_value *ary, int idx)
     mrbc_array *h = ary->array;
 
     if (idx < 0) idx = h->n + idx;
-    if (idx < 0 || idx >= h->n) return mrbc_nil_value();
+    if (idx < 0 || idx >= h->n) return GURU_NIL_NEW();
 
     mrbc_value *p  = h->data + idx;
     mrbc_value ret = *p;
@@ -404,7 +404,7 @@ c_array_new(mrbc_value v[], U32 argc)
         ret = mrbc_array_new(v[1].i);
         if (ret.array==NULL) return;		// ENOMEM
 
-        mrbc_value nil = mrbc_nil_value();
+        mrbc_value nil = GURU_NIL_NEW();
         if (v[1].i > 0) {
             _set(&ret, v[1].i - 1, &nil);
         }
@@ -419,7 +419,7 @@ c_array_new(mrbc_value v[], U32 argc)
         }
     }
     else {
-    	ret = mrbc_nil_value();
+    	ret = GURU_NIL_NEW();
         PRINTF("ArgumentError\n");	// raise?
     }
     SET_RETURN(ret);
@@ -491,7 +491,7 @@ c_array_get(mrbc_value v[], U32 argc)
     }
     else {
         guru_na("case of Array#[]");
-    	ret = mrbc_nil_value();
+    	ret = GURU_NIL_NEW();
     }
 DONE:
     SET_RETURN(ret);
@@ -714,7 +714,7 @@ c_array_minmax(mrbc_value v[], U32 argc)
     // Subset of Array#minmax, not support minmax(n).
 
     mrbc_value *p_min_value, *p_max_value;
-    mrbc_value nil = mrbc_nil_value();
+    mrbc_value nil = GURU_NIL_NEW();
     mrbc_value ret = mrbc_array_new(2);
 
     _minmax(v, &p_min_value, &p_max_value);

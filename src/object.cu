@@ -82,11 +82,11 @@ mrbc_send(mrbc_value v[], mrbc_value *rcv, const U8P method, U32 argc, ...)
 
     if (m == 0) {
         PRINTF("No method. vtype=%d method='%s'\n", rcv->tt, method);
-        return mrbc_nil_value();
+        return GURU_NIL_NEW();
     }
     if (!IS_CFUNC(m)) {
         PRINTF("Method '%s' is not a C function\n", method);
-        return mrbc_nil_value();
+        return GURU_NIL_NEW();
     }
 
     // create call stack.
@@ -98,7 +98,7 @@ mrbc_send(mrbc_value v[], mrbc_value *rcv, const U8P method, U32 argc, ...)
     va_start(ap, argc);
     for (U32 i = 1; i <= argc+1; i++) {
     	mrbc_release(&regs[i]);
-        regs[i] = (i>argc) ? mrbc_nil_value() : *va_arg(ap, mrbc_value *);
+        regs[i] = (i>argc) ? GURU_NIL_NEW() : *va_arg(ap, mrbc_value *);
     }
     va_end(ap);
 
@@ -546,5 +546,8 @@ guru_class_init(void)
 {
 	if (blockIdx.x!=0 || threadIdx.x!=0) return;
 
+	//
+	// TODO: load image into context memory
+	//
 	_init_all_class();
 }

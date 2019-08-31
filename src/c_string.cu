@@ -670,7 +670,7 @@ __GURU__ void
 c_string_lstrip_self(mrbc_value v[], U32 argc)
 {
     if (_strip(v, 0x01)==0) {	// 1: left side only
-        SET_RETURN(mrbc_nil_value());
+        SET_RETURN(GURU_NIL_NEW());
     }
 }
 
@@ -694,7 +694,7 @@ __GURU__ void
 c_string_rstrip_self(mrbc_value v[], U32 argc)
 {
     if (_strip(v, 0x02)==0) {				// 2: right side only
-        SET_RETURN(mrbc_nil_value());			// keep refc
+        SET_RETURN(GURU_NIL_NEW());			// keep refc
     }
 }
 
@@ -716,7 +716,7 @@ __GURU__ void
 c_string_strip_self(mrbc_value v[], U32 argc)
 {
     if (_strip(v, 0x03)==0) {		// 3: left and right
-        SET_RETURN(mrbc_nil_value());	// keep refc
+        SET_RETURN(GURU_NIL_NEW());	// keep refc
     }
 }
 

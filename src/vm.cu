@@ -204,7 +204,9 @@ guru_vm_run(guru_ses *ses)
 		cudaDeviceSynchronize();
 
 		// add host hook here
+#if GURU_USE_CONSOLE
 		guru_console_flush(ses->out, ses->trace);	// dump output buffer
+#endif
 	} while (_vm_join());
 
     _vm_end<<<MIN_VM_COUNT, 1>>>(_vm_pool);

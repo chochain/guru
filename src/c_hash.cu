@@ -135,7 +135,7 @@ _get(mrbc_value *kv, mrbc_value *key)
 {
     mrbc_value *v = _search(kv, key);
 
-    return v ? *(v+1) : mrbc_nil_value();
+    return v ? *(v+1) : GURU_NIL_NEW();
 }
 
 //================================================================
@@ -149,7 +149,7 @@ __GURU__ mrbc_value
 _remove(mrbc_value *kv, mrbc_value *key)
 {
     mrbc_value *v = _search(kv, key);
-    if (v==NULL) return mrbc_nil_value();
+    if (v==NULL) return GURU_NIL_NEW();
 
     mrbc_release(v);						// CC: was dec_refc 20181101
     mrbc_value ret = *(v+1);				// value

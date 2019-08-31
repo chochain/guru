@@ -34,15 +34,17 @@ __GURU__ void mrbc_dec_refc(mrbc_value *v);
 #define SET_FLOAT_RETURN(n)	do { mrbc_float nnn = (n);                  \
         mrbc_dec_refc(v); v[0].tt = GURU_TT_FLOAT;  v[0].f = nnn; } while (0)
 
+// macro to fetch from stack objects
 #define GET_TT_ARG(n)			(v[(n)].tt)
 #define GET_INT_ARG(n)			(v[(n)].i)
 #define GET_ARY_ARG(n)			(v[(n)])
 #define GET_FLOAT_ARG(n)		(v[(n)].f)
 #define GET_STRING_ARG(n)		(v[(n)].string->data)
 
+// macro to create new built-in objects
+#define GURU_NIL_NEW()	    	((guru_obj)  {.tt = GURU_TT_NIL})
 #define mrbc_fixnum_value(n)	((mrbc_value){.tt = GURU_TT_FIXNUM, .i=(n)})
 #define mrbc_float_value(n)	    ((mrbc_value){.tt = GURU_TT_FLOAT,  .f=(n)})
-#define mrbc_nil_value()	    ((mrbc_value){.tt = GURU_TT_NIL})
 #define mrbc_true_value()	    ((mrbc_value){.tt = GURU_TT_TRUE})
 #define mrbc_false_value()	    ((mrbc_value){.tt = GURU_TT_FALSE})
 #define mrbc_bool_value(n)	    ((mrbc_value){.tt = (n)?GURU_TT_TRUE:GURU_TT_FALSE})

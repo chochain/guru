@@ -77,7 +77,7 @@ _print(mrbc_value *v)
         break;
     case GURU_TT_RANGE:
         _print(&v->range->first);
-        PRINTF((U8P)(IS_EXCLUDE_END(v->range) ? "..." : ".."));
+        PRINTF(IS_EXCLUDE_END(v->range) ? "..." : "..");
         _print(&v->range->last);
         break;
     case GURU_TT_HASH:
@@ -110,7 +110,7 @@ _p(mrbc_value *v)
     case GURU_TT_NIL: PRINTF("nil");		break;
     case GURU_TT_SYMBOL:
         s = VSYM(v);
-        PRINTF((U8P)(STRCHR(s, ';') ? "\":%s\"" : ":%s"), s);
+        PRINTF(STRCHR(s, ';') ? "\":%s\"" : ":%s", s);
         break;
 #if GURU_USE_ARRAY
     case GURU_TT_ARRAY:
