@@ -99,7 +99,7 @@ _print(mrbc_value *v)
 #endif
     default:
     	console_str("?vtype: ");
-    	console_int((mrbc_int)v->tt);
+    	console_int((guru_int)v->tt);
     	break;
     }
     return ret;

@@ -360,7 +360,7 @@ c_string_mul(mrbc_value v[], U32 argc)
 __GURU__ void
 c_string_size(mrbc_value v[], U32 argc)
 {
-    mrbc_int size = _size(v);
+    guru_int size = _size(v);
 
     SET_INT_RETURN(size);
 }
@@ -376,7 +376,7 @@ c_string_to_i(mrbc_value v[], U32 argc)
         base = v[1].i;
         if (base < 2 || base > 36) return;	// raise ? ArgumentError
     }
-    mrbc_int i = guru_atoi(_data(v), base);
+    guru_int i = guru_atoi(_data(v), base);
 
     SET_INT_RETURN(i);
 }
@@ -388,7 +388,7 @@ c_string_to_i(mrbc_value v[], U32 argc)
 __GURU__ void
 c_string_to_f(mrbc_value v[], U32 argc)
 {
-    mrbc_float d = ATOF(_data(v));
+    guru_float d = ATOF(_data(v));
 
     SET_FLOAT_RETURN(d);
 }

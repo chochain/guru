@@ -229,7 +229,7 @@ __str(mrbc_printf *pf, U8P str, U8 pad)
   @note		not terminate ('\0') buffer tail.
 */
 __GURU__ S32
-__int(mrbc_printf *pf, mrbc_int value, U32 base)
+__int(mrbc_printf *pf, guru_int value, U32 base)
 {
     U32 sign = 0;
     U32 v = value;			// (note) Change this when supporting 64 bit.
@@ -356,10 +356,10 @@ guru_vprintf(const U8 *fstr, mrbc_value v[], U32 argc)		// << from c_string.cu
                 ret = __int(pf, v[i].i, 10);
 #if GURU_USE_FLOAT
             } else if (v[i].tt==GURU_TT_FLOAT) {
-                ret = __int(pf, (mrbc_int)v[i].f, 10);
+                ret = __int(pf, (guru_int)v[i].f, 10);
 #endif
             } else if (v[i].tt==GURU_TT_STRING) {
-                mrbc_int ival = ATOI(VSTR(&v[i]));
+                guru_int ival = ATOI(VSTR(&v[i]));
                 ret = __int(pf, ival, 10);
             }
             break;

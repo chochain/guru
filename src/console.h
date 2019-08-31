@@ -33,10 +33,10 @@ typedef struct print_node {
 
 __GPU__  void guru_console_init(U8P buf, U32 sz);
 
-__GURU__ void console_int(mrbc_int i);
-__GURU__ void console_hex(mrbc_int i);
+__GURU__ void console_int(guru_int i);
+__GURU__ void console_hex(guru_int i);
 __GURU__ void console_ptr(void *ptr);
-__GURU__ void console_float(mrbc_float f);
+__GURU__ void console_float(guru_float f);
 __GURU__ void console_char(U8 c);
 __GURU__ void console_str(const U8 *str);				// instead of U8P, too many static string
 __GURU__ void console_na(const U8 *msg);

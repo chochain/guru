@@ -123,15 +123,15 @@ console_char(U8 c)
 }
 
 __GURU__ void
-console_int(mrbc_int i)
+console_int(guru_int i)
 {
-	_write(GURU_TT_FIXNUM, GURU_TT_FIXNUM, sizeof(mrbc_int), (U8P)&i);
+	_write(GURU_TT_FIXNUM, GURU_TT_FIXNUM, sizeof(guru_int), (U8P)&i);
 }
 
 __GURU__ void
-console_hex(mrbc_int i)
+console_hex(guru_int i)
 {
-	_write(GURU_TT_FIXNUM, GURU_TT_EMPTY, sizeof(mrbc_int), (U8P)&i);
+	_write(GURU_TT_FIXNUM, GURU_TT_EMPTY, sizeof(guru_int), (U8P)&i);
 }
 
 __GURU__ void
@@ -143,9 +143,9 @@ console_ptr(void *ptr)
 
 #if GURU_USE_FLOAT
 __GURU__ void
-console_float(mrbc_float f)
+console_float(guru_float f)
 {
-	_write(GURU_TT_FLOAT, GURU_TT_EMPTY, sizeof(mrbc_float), (U8P)&f);
+	_write(GURU_TT_FLOAT, GURU_TT_EMPTY, sizeof(guru_float), (U8P)&f);
 }
 #endif
 
@@ -170,10 +170,10 @@ _guru_host_print(guru_print_node *node, U32 trace)
 	if (trace) printf("<%d>", node->id);
 	switch (node->tt) {
 	case GURU_TT_FIXNUM:
-		printf((node->fmt==GURU_TT_FIXNUM ? "%d" : "%04x"), *((mrbc_int *)node->data));
+		printf((node->fmt==GURU_TT_FIXNUM ? "%d" : "%04x"), *((guru_int *)node->data));
 		break;
 	case GURU_TT_FLOAT:
-		printf("%g", *((mrbc_float *)node->data));
+		printf("%g", *((guru_float *)node->data));
 		break;
 	case GURU_TT_STRING:
 		memcpy(buf, (U8P)node->data, node->size);

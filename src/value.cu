@@ -39,7 +39,7 @@ guru_cmp(const mrbc_value *v1, const mrbc_value *v2)
 {
     if (v1->tt != v2->tt) { 						// mrbc_vtype different
 #if GURU_USE_FLOAT
-    	mrbc_float f1, f2;
+    	guru_float f1, f2;
 
         if (v1->tt == GURU_TT_FIXNUM && v2->tt == GURU_TT_FLOAT) {
             f1 = v1->i;
@@ -95,7 +95,7 @@ guru_cmp(const mrbc_value *v1, const mrbc_value *v2)
   @param  base	n base.
   @return	result.
 */
-__GURU__ mrbc_int
+__GURU__ guru_int
 guru_atoi(U8P s, U32 base)
 {
     U32 ret  = 0;
@@ -123,7 +123,7 @@ REDO:
     return (sign) ? -ret : ret;
 }
 
-__GURU__ mrbc_float
+__GURU__ guru_float
 guru_atof(U8P s)
 {
 #if GURU_USE_FLOAT
@@ -157,7 +157,7 @@ guru_atof(U8P s)
     		* (v + (f==0 ? 0.0 : f * exp10((double)r)))
     		* (e==0 ? 1.0 : exp10((double)esign * e));
 
-    return (mrbc_float)ret;
+    return (guru_float)ret;
 #else
     return 0.0;
 #endif

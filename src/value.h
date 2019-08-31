@@ -30,9 +30,9 @@ __GURU__ void ref_inc(mrbc_value *v);
 #define SET_TRUE_RETURN()	do { ref_dec(v); v[0].tt = GURU_TT_TRUE;  			} while (0)
 #define SET_BOOL_RETURN(n)	do { ref_dec(v); v[0].tt = (n)?GURU_TT_TRUE:GURU_TT_FALSE; } while (0)
 
-#define SET_INT_RETURN(n)	do { mrbc_int nnn = (n);					\
+#define SET_INT_RETURN(n)	do { guru_int nnn = (n);					\
 		ref_dec(v); v[0].tt = GURU_TT_FIXNUM; v[0].i = nnn; } while (0)
-#define SET_FLOAT_RETURN(n)	do { mrbc_float nnn = (n);                  \
+#define SET_FLOAT_RETURN(n)	do { guru_float nnn = (n);                  \
         ref_dec(v); v[0].tt = GURU_TT_FLOAT;  v[0].f = nnn; } while (0)
 
 // macro to fetch from stack objects
@@ -46,8 +46,8 @@ __GURU__ void ref_inc(mrbc_value *v);
 // macro to create new built-in objects
 
 #ifdef __GURU_CUDA__
-__GURU__ mrbc_int   guru_atoi(U8P s, U32 base);
-__GURU__ mrbc_float	guru_atof(U8P s);
+__GURU__ guru_int   guru_atoi(U8P s, U32 base);
+__GURU__ guru_float	guru_atof(U8P s);
 
 __GURU__ U8P 		guru_i2s(U64 i, U32 base);
 

@@ -108,23 +108,30 @@ typedef uintptr_t   U32A;				// pointer address
 #define U8POFF(p1, p0)	((U32)((U8 *)p1 - (U8 *)p0))	// pointer offset
 
 // guru internal types
-typedef S32 		mrbc_int;
-typedef F32	 		mrbc_float;
+typedef S32 		guru_int;
+typedef F32	 		guru_float;
 typedef U32 		mrbc_sym;
+
+#define IS_NUM(v)    ((v) & 0x1)
 
 //================================================================
 /*!@brief
   Guru value and object (use same struct for simplification).
 */
+typedef struct RVal {
+    union {
+        guru_int         i;					// GURU_TT_FIXNUM, SYMBOL
+        guru_float       f;					// GURU_TT_FLOAT
+    };
+} guru_val;
+
 typedef struct RObject {					// 8-bytes
     mrbc_vtype           tt   : 8;			// 8-bit
     U32				 	 flag : 8;			// function, memory pool index
     U32					 size : 16;			// 32-bit aligned
     union {
-        mrbc_int         i;					// GURU_TT_FIXNUM, SYMBOL
-#if GURU_USE_FLOAT
-        mrbc_float       f;					// GURU_TT_FLOAT
-#endif
+        guru_int         i;					// GURU_TT_FIXNUM, SYMBOL
+        guru_float       f;					// GURU_TT_FLOAT
         struct RClass    *cls;				// GURU_TT_CLASS
         struct RVar      *self;				// GURU_TT_OBJECT
         struct RProc     *proc;				// GURU_TT_PROC

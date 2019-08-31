@@ -24,11 +24,11 @@
 //================================================================
 /*! x-bit left shift for x
  */
-__GURU__ mrbc_int
-_shift(mrbc_int x, mrbc_int y)
+__GURU__ guru_int
+_shift(guru_int x, guru_int y)
 {
     // Don't support environments that include padding in int.
-    const U32 INT_BITS = sizeof(mrbc_int) * CHAR_BIT;
+    const U32 INT_BITS = sizeof(guru_int) * CHAR_BIT;
 
     if (y >= INT_BITS)  return 0;
     if (y >= 0)         return x << y;
@@ -57,7 +57,7 @@ c_fixnum_bitref(mrbc_value v[], U32 argc)
 __GURU__ void
 c_fixnum_negative(mrbc_value v[], U32 argc)
 {
-    mrbc_int num = GET_INT_ARG(0);
+    guru_int num = GET_INT_ARG(0);
     SET_INT_RETURN(-num);
 }
 
@@ -68,7 +68,7 @@ __GURU__ void
 c_fixnum_power(mrbc_value v[], U32 argc)
 {
     if (v[1].tt == GURU_TT_FIXNUM) {
-        mrbc_int x = 1;
+        guru_int x = 1;
 
         if (v[1].i < 0) x = 0;
         for (U32 i=0; i < v[1].i; i++) {
@@ -91,7 +91,7 @@ c_fixnum_power(mrbc_value v[], U32 argc)
 __GURU__ void
 c_fixnum_mod(mrbc_value v[], U32 argc)
 {
-    mrbc_int num = GET_INT_ARG(1);
+    guru_int num = GET_INT_ARG(1);
     SET_INT_RETURN(v->i % num);
 }
 
@@ -101,7 +101,7 @@ c_fixnum_mod(mrbc_value v[], U32 argc)
 __GURU__ void
 c_fixnum_and(mrbc_value v[], U32 argc)
 {
-    mrbc_int num = GET_INT_ARG(1);
+    guru_int num = GET_INT_ARG(1);
     SET_INT_RETURN(v->i & num);
 }
 
@@ -111,7 +111,7 @@ c_fixnum_and(mrbc_value v[], U32 argc)
 __GURU__ void
 c_fixnum_or(mrbc_value v[], U32 argc)
 {
-    mrbc_int num = GET_INT_ARG(1);
+    guru_int num = GET_INT_ARG(1);
     SET_INT_RETURN(v->i | num);
 }
 
@@ -121,7 +121,7 @@ c_fixnum_or(mrbc_value v[], U32 argc)
 __GURU__ void
 c_fixnum_xor(mrbc_value v[], U32 argc)
 {
-    mrbc_int num = GET_INT_ARG(1);
+    guru_int num = GET_INT_ARG(1);
     SET_INT_RETURN(v->i ^ num);
 }
 
@@ -131,7 +131,7 @@ c_fixnum_xor(mrbc_value v[], U32 argc)
 __GURU__ void
 c_fixnum_not(mrbc_value v[], U32 argc)
 {
-    mrbc_int num = GET_INT_ARG(0);
+    guru_int num = GET_INT_ARG(0);
     SET_INT_RETURN(~num);
 }
 
@@ -173,7 +173,7 @@ c_fixnum_abs(mrbc_value v[], U32 argc)
 __GURU__ void
 c_fixnum_to_f(mrbc_value v[], U32 argc)
 {
-    mrbc_float f = GET_INT_ARG(0);
+    guru_float f = GET_INT_ARG(0);
     SET_FLOAT_RETURN(f);
 }
 #endif
@@ -252,7 +252,7 @@ mrbc_init_class_fixnum(void)
 __GURU__ void
 c_float_negative(mrbc_value v[], U32 argc)
 {
-    mrbc_float num = GET_FLOAT_ARG(0);
+    guru_float num = GET_FLOAT_ARG(0);
     SET_FLOAT_RETURN(-num);
 }
 
@@ -263,7 +263,7 @@ c_float_negative(mrbc_value v[], U32 argc)
 __GURU__ void
 c_float_power(mrbc_value v[], U32 argc)
 {
-    mrbc_float n = 0;
+    guru_float n = 0;
     switch (v[1].tt) {
     case GURU_TT_FIXNUM: n = v[1].i;	break;
     case GURU_TT_FLOAT:	 n = v[1].d;	break;
@@ -291,7 +291,7 @@ c_float_abs(mrbc_value v[], U32 argc)
 __GURU__ void
 c_float_to_i(mrbc_value v[], U32 argc)
 {
-    mrbc_int i = (mrbc_int)GET_FLOAT_ARG(0);
+    guru_int i = (guru_int)GET_FLOAT_ARG(0);
     SET_INT_RETURN(i);
 }
 

@@ -126,7 +126,7 @@ _build_image(U8P *pirep, U8P src)
         case 2: { 								// IREP_TT_FLOAT
             memcpy(buf, p, len);
             buf[len] = '\0';
-            *(mrbc_float *)v = atof(buf);
+            *(guru_float *)v = atof(buf);
             *v |= 1;							// mark as float  i.e. LSB=1
         } break;
 #endif

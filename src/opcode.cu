@@ -271,7 +271,7 @@ op_loadl(guru_vm *vm, U32 code, mrbc_value *regs)
 
     if (*p & 1) {
     	obj.tt = GURU_TT_FLOAT;
-    	obj.f  = *(mrbc_float *)p;
+    	obj.f  = *(guru_float *)p;
     }
     else {
     	obj.tt = GURU_TT_FIXNUM;
