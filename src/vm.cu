@@ -82,7 +82,7 @@ _vm_end(guru_vm *pool)
 
 #ifndef GURU_DEBUG
 	// clean up register file?						// CC: moved from mrbc_op 20181102
-	mrbc_value *p = vm->regfile;
+	GV *p = vm->regfile;
 	for (U32 i=0; i < MAX_REGS_SIZE; i++, p++) {
 		ref_clr(p);
 	}
@@ -280,7 +280,7 @@ _show_decoder(guru_vm *vm)
 		lvl += 2 + st->argc;
 	}
 
-	mrbc_value *v = vm->regfile;				// scan
+	GV *v = vm->regfile;				// scan
 	U32 last = 0;
 	for (U32 i=0; i<MAX_REGS_SIZE; i++, v++) {
 		if (v->tt==GURU_TT_EMPTY) continue;

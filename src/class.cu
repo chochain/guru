@@ -105,7 +105,7 @@ mrbc_get_class_by_name(const U8P name)
   @return
 */
 __GURU__ guru_proc*
-mrbc_get_proc_by_symid(mrbc_value rcv, guru_sym sid)
+mrbc_get_proc_by_symid(GV rcv, guru_sym sid)
 {
     guru_class *cls = mrbc_get_class_by_object(&rcv);
 
@@ -150,7 +150,7 @@ mrbc_define_class(const U8P name, guru_class *super)
     cls->name   = name;
 
     // register to global constant.
-    mrbc_value v = { .tt = GURU_TT_CLASS };
+    GV v = { .tt = GURU_TT_CLASS };
     v.cls = cls;
     const_object_add(sid, &v);
 

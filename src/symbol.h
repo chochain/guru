@@ -18,7 +18,7 @@
 extern "C" {
 #endif
 
-__GURU__ mrbc_value guru_sym_new(const U8P str);
+__GURU__ GV 		guru_sym_new(const U8P str);
 __GURU__ U16        calc_hash(const U8P str);
 __GURU__ guru_sym   name2symid(const U8P str);
 __GURU__ U8P        symid2name(guru_sym sid);

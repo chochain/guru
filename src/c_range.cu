@@ -35,10 +35,10 @@
   @param  flag_exclude	true: exclude the end object, otherwise include.
   @return		range object.
 */
-__GURU__ mrbc_value
-guru_range_new(mrbc_value *first, mrbc_value *last, int exclude_end)
+__GURU__ GV
+guru_range_new(GV *first, GV *last, int exclude_end)
 {
-    mrbc_value ret = {.tt = GURU_TT_RANGE};
+    GV ret = {.tt = GURU_TT_RANGE};
 
     ret.range = (guru_range *)mrbc_alloc(sizeof(guru_range));
     if (!ret.range) return ret;		// ENOMEM
@@ -60,7 +60,7 @@ guru_range_new(mrbc_value *first, mrbc_value *last, int exclude_end)
   @param  target 	pointer to range object.
 */
 __GURU__ void
-guru_range_delete(mrbc_value *v)
+guru_range_delete(GV *v)
 {
     ref_clr(&v->range->first);
     ref_clr(&v->range->last);
@@ -72,7 +72,7 @@ guru_range_delete(mrbc_value *v)
 /*! compare
  */
 __GURU__ int
-guru_range_compare(const mrbc_value *v1, const mrbc_value *v2)
+guru_range_compare(const GV *v1, const GV *v2)
 {
     int res;
 
@@ -89,10 +89,10 @@ guru_range_compare(const mrbc_value *v1, const mrbc_value *v2)
 /*! (method) ===
  */
 __GURU__ void
-c_range_equal3(mrbc_value v[], U32 argc)
+c_range_equal3(GV v[], U32 argc)
 {
     if (v[0].tt == GURU_TT_CLASS) {
-        mrbc_value ret = guru_kind_of(v, argc);
+        GV ret = guru_kind_of(v, argc);
         SET_RETURN(ret);
         return;
     }
@@ -113,7 +113,7 @@ c_range_equal3(mrbc_value v[], U32 argc)
 /*! (method) first
  */
 __GURU__ void
-c_range_first(mrbc_value v[], U32 argc)
+c_range_first(GV v[], U32 argc)
 {
     SET_RETURN(v->range->first);
 }
@@ -122,7 +122,7 @@ c_range_first(mrbc_value v[], U32 argc)
 /*! (method) last
  */
 __GURU__ void
-c_range_last(mrbc_value v[], U32 argc)
+c_range_last(GV v[], U32 argc)
 {
     SET_RETURN(v->range->last);
 }
@@ -131,7 +131,7 @@ c_range_last(mrbc_value v[], U32 argc)
 /*! (method) exclude_end?
  */
 __GURU__ void
-c_range_exclude_end(mrbc_value v[], U32 argc)
+c_range_exclude_end(GV v[], U32 argc)
 {
     SET_BOOL_RETURN(IS_EXCLUDE_END(v[0].range));
 }
@@ -141,14 +141,14 @@ c_range_exclude_end(mrbc_value v[], U32 argc)
 /*! (method) inspect
  */
 __GURU__ void
-c_range_inspect(mrbc_value v[], U32 argc)
+c_range_inspect(GV v[], U32 argc)
 {
-    mrbc_value ret = guru_str_new(NULL);
+    GV ret = guru_str_new(NULL);
     if (!ret.str) {
         SET_NIL_RETURN();
         return;
     }
-    mrbc_value v1, s1;
+    GV v1, s1;
     for (U32 i=0; i<2; i++) {
         if (i != 0) guru_str_append_cstr(&ret, (U8P)"..");
         v1 = (i == 0) ? v->range->first : v->range->last;

@@ -112,7 +112,7 @@ _delete(mrbc_store *st)
   @return		mrbc_error_code.
 */
 __GURU__ S32
-_set(mrbc_store *st, guru_sym sid, mrbc_value *val)
+_set(mrbc_store *st, guru_sym sid, GV *val)
 {
     S32 idx = _bsearch(st, sid);
     mrbc_store_data *d = st->data + idx;
@@ -149,9 +149,9 @@ INSERT_VALUE:
 
   @param  st		pointer to instance store handle.
   @param  sym_id	symbol ID.
-  @return		pointer to mrbc_value or NULL.
+  @return		pointer to GV or NULL.
 */
-__GURU__ mrbc_value*
+__GURU__ GV*
 _get(mrbc_store *st, guru_sym sid)
 {
     S32 idx = _bsearch(st, sid);
@@ -171,10 +171,10 @@ _get(mrbc_store *st, guru_sym sid)
   @param  size	size of additional data.
   @return       mrbc_store object.
 */
-__GURU__ mrbc_value
+__GURU__ GV
 mrbc_store_new(guru_class *cls, U32 size)
 {
-    mrbc_value v = {.tt = GURU_TT_OBJECT};
+    GV v = {.tt = GURU_TT_OBJECT};
     v.self = (guru_var *)mrbc_alloc(sizeof(mrbc_store) + size);
     if (v.self == NULL) return v;	// ENOMEM
 
@@ -198,7 +198,7 @@ mrbc_store_new(guru_class *cls, U32 size)
   @param  v	pointer to target value
 */
 __GURU__ void
-mrbc_store_delete(mrbc_value *v)
+mrbc_store_delete(GV *v)
 {
     _delete(v->self->ivar);
     mrbc_free(v->self);
@@ -212,7 +212,7 @@ mrbc_store_delete(mrbc_value *v)
   @param  v		pointer to value.
 */
 __GURU__ void
-mrbc_store_set(guru_obj *obj, guru_sym sid, mrbc_value *v)
+mrbc_store_set(guru_obj *obj, guru_sym sid, GV *v)
 {
     _set(obj->self->ivar, sid, v);
     ref_inc(v);
@@ -228,7 +228,7 @@ mrbc_store_set(guru_obj *obj, guru_sym sid, mrbc_value *v)
 __GURU__ guru_obj
 mrbc_store_get(guru_obj *obj, guru_sym sid)
 {
-    mrbc_value *v = _get(obj->self->ivar, sid);
+    GV *v = _get(obj->self->ivar, sid);
 
     if (!v) return GURU_NIL_NEW();
 

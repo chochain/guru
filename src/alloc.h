@@ -69,7 +69,7 @@ __GURU__ void *mrbc_realloc(void *ptr, U32 size);
 __GURU__ void  mrbc_free(void *ptr);
 __GURU__ void  mrbc_free_all();
 
-__GPU__ void guru_memory_init(void *mem, U32 sz);
+__GPU__  void guru_memory_init(void *mem, U32 sz);
 
 void *guru_malloc(U32 sz, U32 mem_type);		// mem_type: 0=>managed, 1=>device
 void guru_malloc_stat(U32 stat[]);

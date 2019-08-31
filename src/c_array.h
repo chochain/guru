@@ -25,21 +25,21 @@ extern "C" {
   Define Array handle.
 */
 typedef struct RArray {
-    GURU_OBJECT_HEADER;
+    GURU_HDR;
 
-    uint32_t   size : 16;	//!< data buffer size.
-    uint32_t   n    : 16;	//!< # of stored.
-    mrbc_value *data;		//!< pointer to allocated memory.
+    U32  size : 16;	//!< data buffer size.
+    U32  n    : 16;	//!< # of stored.
+    GV 	 *data;		//!< pointer to allocated memory.
 
 } guru_array;
 
-__GURU__ mrbc_value guru_array_new(int size);
-__GURU__ void       guru_array_delete(mrbc_value *ary);
+__GURU__ GV 		guru_array_new(int size);
+__GURU__ void       guru_array_delete(GV *ary);
 
 __GURU__ int		guru_array_resize(guru_array *h, int size);
-__GURU__ int        guru_array_push(mrbc_value *ary, mrbc_value *set_val);
-__GURU__ void       guru_array_clear(mrbc_value *ary);
-__GURU__ int        guru_array_compare(const mrbc_value *v1, const mrbc_value *v2);
+__GURU__ int        guru_array_push(GV *ary, GV *set_val);
+__GURU__ void       guru_array_clear(GV *ary);
+__GURU__ int        guru_array_compare(const GV *v1, const GV *v2);
 
 __GURU__ void       mrbc_init_class_array();
 

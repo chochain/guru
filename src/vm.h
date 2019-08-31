@@ -53,7 +53,7 @@ typedef struct RState {			// 24-byte
     U32 argc;  					// num of args
 
     guru_class      *klass;		// current class
-    mrbc_value      *reg;		// pointer to current register (in VM register file)
+    GV      *reg;		// pointer to current register (in VM register file)
     guru_irep       *irep;		// pointer to current irep block
     struct RState   *prev;		// previous state (call stack)
 } guru_state;					// VM context
@@ -71,7 +71,7 @@ typedef struct VM {				// 12 + 32*reg bytes
     guru_irep  *irep;			// pointer to IREP tree
     guru_state *state;			// VM state (callinfo) linked list
 
-    mrbc_value regfile[MAX_REGS_SIZE];
+    GV regfile[MAX_REGS_SIZE];
 } guru_vm;
 
 #if !GURU_HOST_IMAGE
@@ -97,7 +97,7 @@ typedef struct XState {
     U16        		pc;
     U16        		argc;     	// num of args
     guru_class      *klass;
-    mrbc_value      *reg;
+    GV      *reg;
     mrbc_irep       *irep;
     struct XState  *prev;
 } mrbc_state;
@@ -105,7 +105,7 @@ typedef struct XState {
 typedef struct XVM {
     mrbc_irep       *irep;		// pointer to IREP tree
     mrbc_state      *state;		// VM state (callinfo) linked list
-    mrbc_value      regfile[MAX_REGS_SIZE];
+    GV      regfile[MAX_REGS_SIZE];
 
 	U32				id;
     volatile U8 	run;

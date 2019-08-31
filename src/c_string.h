@@ -24,11 +24,11 @@ extern "C" {
 /*!@brief
   Define String handle.
 */
-__GURU__ mrbc_value guru_str_new(const U8 *str);				// U8P will require to many casting
-__GURU__ void       guru_str_delete(mrbc_value *s);
-__GURU__ mrbc_value guru_str_add(const mrbc_value *v0, const mrbc_value *v1);
-__GURU__ void       guru_str_append(const mrbc_value *v0, const mrbc_value *v1);
-__GURU__ void       guru_str_append_cstr(const mrbc_value *v0, const U8 *str);
+__GURU__ GV 		guru_str_new(const U8 *str);				// U8P will require to many casting
+__GURU__ void       guru_str_delete(GV *s);
+__GURU__ GV 		guru_str_add(const GV *v0, const GV *v1);
+__GURU__ void       guru_str_append(const GV *v0, const GV *v1);
+__GURU__ void       guru_str_append_cstr(const GV *v0, const U8 *str);
 
 __GURU__ void       mrbc_init_class_string(void);
 

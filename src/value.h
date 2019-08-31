@@ -16,14 +16,14 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-__GURU__ S32  guru_cmp(const mrbc_value *v1, const mrbc_value *v2);
+__GURU__ S32  guru_cmp(const GV *v1, const GV *v2);
 
-__GURU__ void ref_clr(mrbc_value *v);
-__GURU__ void ref_dec(mrbc_value *v);
-__GURU__ void ref_inc(mrbc_value *v);
+__GURU__ void ref_clr(GV *v);
+__GURU__ void ref_dec(GV *v);
+__GURU__ void ref_inc(GV *v);
 
 // for C call
-#define SET_RETURN(n)		do { mrbc_value nnn = (n); ref_dec(v); v[0] = nnn; 	} while (0)
+#define SET_RETURN(n)		do { GV nnn = (n); ref_dec(v); v[0] = nnn; 	} while (0)
 #define SET_NIL_RETURN()	do { ref_dec(v); v[0].tt = GURU_TT_NIL;   		 	} while (0)
 
 #define SET_FALSE_RETURN()	do { ref_dec(v); v[0].tt = GURU_TT_FALSE; 			} while (0)
@@ -88,7 +88,7 @@ __GURU__ U8P		guru_strcat(U8P d, const U8P s);
 #define STRCAT(d, s)      strcat(d, s)
 #endif
 
-// basic C string functions for mrbc_value
+// basic C string functions for GV
 #define VSTRLEN(v)		((v)->str->len)
 #define VSTR(v)			((U8P)(v)->str->data)
 #define VSTRCMP(v1, v2) (STRCMP((v1)->str->data, (v2)->str->data))

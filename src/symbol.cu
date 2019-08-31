@@ -136,10 +136,10 @@ _add_index(const U8P str)
   @param  str	String
   @return 	symbol object
 */
-__GURU__ mrbc_value
+__GURU__ GV
 guru_sym_new(const U8P str)
 {
-    mrbc_value v   = {.tt = GURU_TT_SYMBOL};
+    GV v   = {.tt = GURU_TT_SYMBOL};
     guru_sym   sid = _search_index(str);
 
     if (sid < MAX_SYMBOL_COUNT) {
@@ -190,16 +190,16 @@ symid2name(guru_sym sid)
 
 #if GURU_USE_STRING
 // from c_string.cu
-extern "C" __GURU__ mrbc_value guru_str_new(const U8 *src);
-extern "C" __GURU__ void       guru_str_append_cstr(const mrbc_value *s1, const U8 *s2);
+extern "C" __GURU__ GV guru_str_new(const U8 *src);
+extern "C" __GURU__ void       guru_str_append_cstr(const GV *s1, const U8 *s2);
 
 //================================================================
 /*! (method) inspect
  */
 __GURU__ void
-c_inspect(mrbc_value v[], U32 argc)
+c_inspect(GV v[], U32 argc)
 {
-    mrbc_value ret = guru_str_new(":");
+    GV ret = guru_str_new(":");
 
     guru_str_append_cstr(&ret, symid2name(v[0].i));
 
@@ -211,7 +211,7 @@ c_inspect(mrbc_value v[], U32 argc)
 /*! (method) to_s
  */
 __GURU__ void
-c_to_s(mrbc_value v[], U32 argc)
+c_to_s(GV v[], U32 argc)
 {
     v[0] = guru_str_new(symid2name(v[0].i));
 }
@@ -222,12 +222,12 @@ c_to_s(mrbc_value v[], U32 argc)
 /*! (method) all_symbols
  */
 __GURU__ void
-c_all_symbols(mrbc_value v[], U32 argc)
+c_all_symbols(GV v[], U32 argc)
 {
-    mrbc_value ret = guru_array_new(_sym_idx);
+    GV ret = guru_array_new(_sym_idx);
 
     for (U32 i=0; i < _sym_idx; i++) {
-        mrbc_value sym1 = {.tt = GURU_TT_SYMBOL};
+        GV sym1 = {.tt = GURU_TT_SYMBOL};
         sym1.i = i;
         guru_array_push(&ret, &sym1);
     }

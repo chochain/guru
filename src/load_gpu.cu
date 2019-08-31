@@ -284,8 +284,8 @@ _show_decoder(mrbc_vm *vm)
 	U16  pc   = vm->state->pc;
 	U32P iseq = vm->state->irep->iseq;
 	U16  opid = (*(iseq + pc) >> 24) & 0x7f;
+	GV   *v   = vm->regfile;
 	const U8P opc  = _opcode[GET_OPCODE(opid)];
-	mrbc_value *v  = vm->regfile;
 
 	int last=0;
 	for (U32 i=0; i<MAX_REGS_SIZE; i++, v++) {

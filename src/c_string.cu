@@ -43,7 +43,7 @@ _is_space(U8 ch)
 /*! get size
  */
 __GURU__ __INLINE__ U32
-_size(const mrbc_value *v)
+_size(const GV *v)
 {
     return v->str->len;
 }
@@ -52,7 +52,7 @@ _size(const mrbc_value *v)
 /*! get c-language string (U8P)
  */
 __GURU__ __INLINE__ U8P
-_data(const mrbc_value *v)
+_data(const GV *v)
 {
     return (U8P)v->str->data;
 }
@@ -65,10 +65,10 @@ _data(const mrbc_value *v)
   @param  len	source length
   @return 	string object
 */
-__GURU__ mrbc_value
+__GURU__ GV
 _new(const U8P src, U32 len)
 {
-    mrbc_value ret = {.tt = GURU_TT_STRING};
+    GV ret = {.tt = GURU_TT_STRING};
     /*
       Allocate handle and string buffer.
     */
@@ -110,12 +110,12 @@ _new(const U8P src, U32 len)
   @param  s2	pointer to target value 2
   @return	new string as s1 + s2
 */
-__GURU__ mrbc_value
-_dup(const mrbc_value *v0)
+__GURU__ GV
+_dup(const GV *v0)
 {
     guru_str *h0 = v0->str;
 
-    mrbc_value v1 = _new(NULL, h0->len);		// refc already set to 1
+    GV v1 = _new(NULL, h0->len);		// refc already set to 1
     if (v1.str==NULL) return v1;				// ENOMEM
 
     MEMCPY(v1.str->data, h0->data, h0->len + 1);
@@ -132,7 +132,7 @@ _dup(const mrbc_value *v0)
   @return		position index. or minus value if not found.
 */
 __GURU__ S32
-_index(const mrbc_value *v, const mrbc_value *pattern, U32 offset)
+_index(const GV *v, const GV *pattern, U32 offset)
 {
     U8P p0 = _data(v) + offset;
     U8P p1 = _data(pattern);
@@ -156,7 +156,7 @@ _index(const mrbc_value *v, const mrbc_value *pattern, U32 offset)
   @return	0 when not removed.
 */
 __GURU__ U32
-_strip(mrbc_value *v, U32 mode)
+_strip(GV *v, U32 mode)
 {
     U8P p0 = _data(v);
     U8P p1 = p0 + _size(v) - 1;
@@ -196,7 +196,7 @@ _strip(mrbc_value *v, U32 mode)
   @return	0 when not removed.
 */
 __GURU__ int
-_chomp(mrbc_value *v)
+_chomp(GV *v)
 {
     U8P p0 = _data(v);
     U8P p1 = p0 + _size(v) - 1;
@@ -221,7 +221,7 @@ _chomp(mrbc_value *v)
   @param  src	source string or NULL
   @return 	string object
 */
-__GURU__ mrbc_value
+__GURU__ GV
 guru_str_new(const U8 *src)			// cannot use U8P, need lots of casting
 {
     return _new((U8P)src, STRLEN((U8P)src));
@@ -233,7 +233,7 @@ guru_str_new(const U8 *src)			// cannot use U8P, need lots of casting
   @param  str	pointer to target value
 */
 __GURU__ void
-guru_str_delete(mrbc_value *v)
+guru_str_delete(GV *v)
 {
     mrbc_free(v->str->data);
     mrbc_free(v->str);
@@ -247,7 +247,7 @@ guru_str_delete(mrbc_value *v)
   @param	mrbc_error_code
 */
 __GURU__ void
-guru_str_append(const mrbc_value *v0, const mrbc_value *v1)
+guru_str_append(const GV *v0, const GV *v1)
 {
     U32 len0 = v0->str->len;
     U32 len1 = (v1->tt==GURU_TT_STRING) ? v1->str->len : 1;
@@ -277,7 +277,7 @@ guru_str_append(const mrbc_value *v0, const mrbc_value *v1)
   @param	mrbc_error_code
 */
 __GURU__ void
-guru_str_append_cstr(const mrbc_value *v0, const U8 *str)
+guru_str_append_cstr(const GV *v0, const U8 *str)
 {
     U32 len0 = v0->str->len;
     U32 len1 = STRLEN(str);
@@ -302,13 +302,13 @@ guru_str_append_cstr(const mrbc_value *v0, const U8 *str)
   @param  s2	pointer to target value 2
   @return	new string as s1 + s2
 */
-__GURU__ mrbc_value
-guru_str_add(const mrbc_value *v0, const mrbc_value *v1)
+__GURU__ GV
+guru_str_add(const GV *v0, const GV *v1)
 {
     guru_str *h0 = v0->str;
     guru_str *h1 = v1->str;
 
-    mrbc_value  v  = _new(NULL, h0->len + h1->len);
+    GV  v  = _new(NULL, h0->len + h1->len);
     guru_str *s = v.str;
 
     MEMCPY(s->data,           h0->data, h0->len);
@@ -321,7 +321,7 @@ guru_str_add(const mrbc_value *v0, const mrbc_value *v1)
 /*! (method) +
  */
 __GURU__ void
-c_string_add(mrbc_value v[], U32 argc)
+c_string_add(GV v[], U32 argc)
 {
     if (v[1].tt != GURU_TT_STRING) {
         guru_na("str + other type");
@@ -335,13 +335,13 @@ c_string_add(mrbc_value v[], U32 argc)
 /*! (method) *
  */
 __GURU__ void
-c_string_mul(mrbc_value v[], U32 argc)
+c_string_mul(GV v[], U32 argc)
 {
     if (v[1].tt != GURU_TT_FIXNUM) {
         PRINTF("TypeError\n");	// raise?
         return;
     }
-    mrbc_value ret = _new(NULL, _size(v) * v[1].i);
+    GV ret = _new(NULL, _size(v) * v[1].i);
     if (ret.str==NULL) return;		// ENOMEM
 
     U8P p = (U8P)ret.str->data;
@@ -358,7 +358,7 @@ c_string_mul(mrbc_value v[], U32 argc)
 /*! (method) size, length
  */
 __GURU__ void
-c_string_size(mrbc_value v[], U32 argc)
+c_string_size(GV v[], U32 argc)
 {
     guru_int size = _size(v);
 
@@ -369,7 +369,7 @@ c_string_size(mrbc_value v[], U32 argc)
 /*! (method) to_i
  */
 __GURU__ void
-c_string_to_i(mrbc_value v[], U32 argc)
+c_string_to_i(GV v[], U32 argc)
 {
     U32 base = 10;
     if (argc) {
@@ -386,7 +386,7 @@ c_string_to_i(mrbc_value v[], U32 argc)
 /*! (method) to_f
  */
 __GURU__ void
-c_string_to_f(mrbc_value v[], U32 argc)
+c_string_to_f(GV v[], U32 argc)
 {
     guru_float d = ATOF(_data(v));
 
@@ -398,7 +398,7 @@ c_string_to_f(mrbc_value v[], U32 argc)
 /*! (method) <<
  */
 __GURU__ void
-c_string_append(mrbc_value v[], U32 argc)
+c_string_append(GV v[], U32 argc)
 {
     guru_str_append(v, v+1);
 }
@@ -407,10 +407,10 @@ c_string_append(mrbc_value v[], U32 argc)
 /*! (method) []
  */
 __GURU__ void
-c_string_slice(mrbc_value v[], U32 argc)
+c_string_slice(GV v[], U32 argc)
 {
-    mrbc_value *v1 = &v[1];
-    mrbc_value *v2 = &v[2];
+    GV *v1 = &v[1];
+    GV *v2 = &v[2];
 
     if (argc==1 && v1->tt==GURU_TT_FIXNUM) {		// slice(n) -> String | nil
         U32 len = v->str->len;
@@ -429,7 +429,7 @@ c_string_slice(mrbc_value v[], U32 argc)
         }
         if (ch < 0) goto RETURN_NIL;
 
-        mrbc_value ret = _new(NULL, 1);
+        GV ret = _new(NULL, 1);
         if (!ret.str) goto RETURN_NIL;
 
         ret.str->data[0] = ch;
@@ -447,7 +447,7 @@ c_string_slice(mrbc_value v[], U32 argc)
         // min(v2->i, (len-idx))
         if (rlen < 0) goto RETURN_NIL;
 
-        mrbc_value ret = _new((U8P)v->str->data + idx, rlen);
+        GV ret = _new((U8P)v->str->data + idx, rlen);
         if (!ret.str) goto RETURN_NIL;		// ENOMEM
 
         SET_RETURN(ret);
@@ -465,11 +465,11 @@ RETURN_NIL:
 /*! (method) []=
  */
 __GURU__ void
-c_string_insert(mrbc_value v[], U32 argc)
+c_string_insert(GV v[], U32 argc)
 {
     S32 nth;
     S32 len;
-    mrbc_value *val;
+    GV *val;
 
     if (argc==2 &&								// self[n] = val
         v[1].tt==GURU_TT_FIXNUM &&
@@ -516,9 +516,9 @@ c_string_insert(mrbc_value v[], U32 argc)
 /*! (method) chomp
  */
 __GURU__ void
-c_string_chomp(mrbc_value v[], U32 argc)
+c_string_chomp(GV v[], U32 argc)
 {
-    mrbc_value ret = _dup(v);
+    GV ret = _dup(v);
     _chomp(&ret);
     SET_RETURN(ret);
 }
@@ -527,7 +527,7 @@ c_string_chomp(mrbc_value v[], U32 argc)
 /*! (method) chomp!
  */
 __GURU__ void
-c_string_chomp_self(mrbc_value v[], U32 argc)
+c_string_chomp_self(GV v[], U32 argc)
 {
     if (_chomp(v)==0) {
         SET_NIL_RETURN();
@@ -538,7 +538,7 @@ c_string_chomp_self(mrbc_value v[], U32 argc)
 /*! (method) dup
  */
 __GURU__ void
-c_string_dup(mrbc_value v[], U32 argc)
+c_string_dup(GV v[], U32 argc)
 {
     SET_RETURN(_dup(v));
 }
@@ -547,7 +547,7 @@ c_string_dup(mrbc_value v[], U32 argc)
 /*! (method) index
  */
 __GURU__ void
-c_string_index(mrbc_value v[], U32 argc)
+c_string_index(GV v[], U32 argc)
 {
     S32 index;
     S32 offset;
@@ -582,10 +582,10 @@ NIL_RETURN:
 #define BUF_SIZE 80
 
 __GURU__ void
-c_string_inspect(mrbc_value v[], U32 argc)
+c_string_inspect(GV v[], U32 argc)
 {
 	const char    *hex = "0123456789ABCDEF";
-    mrbc_value    ret  = guru_str_new("\"");
+    GV    ret  = guru_str_new("\"");
 
     U8 buf[BUF_SIZE];
     U8P p = buf;
@@ -618,7 +618,7 @@ c_string_inspect(mrbc_value v[], U32 argc)
 /*! (method) ord
  */
 __GURU__ void
-c_string_ord(mrbc_value v[], U32 argc)
+c_string_ord(GV v[], U32 argc)
 {
     SET_INT_RETURN(_data(v)[0]);
 }
@@ -627,7 +627,7 @@ c_string_ord(mrbc_value v[], U32 argc)
 /*! (method) split
  */
 __GURU__ void
-c_string_split(mrbc_value v[], U32 argc)
+c_string_split(GV v[], U32 argc)
 {
     guru_na("string#split");
 }
@@ -636,7 +636,7 @@ c_string_split(mrbc_value v[], U32 argc)
 /*! (method) sprintf
  */
 __GURU__ void
-c_object_sprintf(mrbc_value v[], U32 argc)
+c_object_sprintf(GV v[], U32 argc)
 {
 	guru_na("string#sprintf");
 }
@@ -645,7 +645,7 @@ c_object_sprintf(mrbc_value v[], U32 argc)
 /*! (method) printf
  */
 __GURU__ void
-c_object_printf(mrbc_value v[], U32 argc)
+c_object_printf(GV v[], U32 argc)
 {
 	guru_na("string#printf");
 }
@@ -654,9 +654,9 @@ c_object_printf(mrbc_value v[], U32 argc)
 /*! (method) lstrip
  */
 __GURU__ void
-c_string_lstrip(mrbc_value v[], U32 argc)
+c_string_lstrip(GV v[], U32 argc)
 {
-    mrbc_value ret = _dup(v);
+    GV ret = _dup(v);
 
     _strip(&ret, 0x01);	// 1: left side only
 
@@ -667,7 +667,7 @@ c_string_lstrip(mrbc_value v[], U32 argc)
 /*! (method) lstrip!
  */
 __GURU__ void
-c_string_lstrip_self(mrbc_value v[], U32 argc)
+c_string_lstrip_self(GV v[], U32 argc)
 {
     if (_strip(v, 0x01)==0) {	// 1: left side only
         SET_RETURN(GURU_NIL_NEW());
@@ -678,9 +678,9 @@ c_string_lstrip_self(mrbc_value v[], U32 argc)
 /*! (method) rstrip
  */
 __GURU__ void
-c_string_rstrip(mrbc_value v[], U32 argc)
+c_string_rstrip(GV v[], U32 argc)
 {
-    mrbc_value ret = _dup(v);
+    GV ret = _dup(v);
 
     _strip(&ret, 0x02);							// 2: right side only
 
@@ -691,7 +691,7 @@ c_string_rstrip(mrbc_value v[], U32 argc)
 /*! (method) rstrip!
  */
 __GURU__ void
-c_string_rstrip_self(mrbc_value v[], U32 argc)
+c_string_rstrip_self(GV v[], U32 argc)
 {
     if (_strip(v, 0x02)==0) {				// 2: right side only
         SET_RETURN(GURU_NIL_NEW());			// keep refc
@@ -702,9 +702,9 @@ c_string_rstrip_self(mrbc_value v[], U32 argc)
 /*! (method) strip
  */
 __GURU__ void
-c_string_strip(mrbc_value v[], U32 argc)
+c_string_strip(GV v[], U32 argc)
 {
-    mrbc_value ret = _dup(v);
+    GV ret = _dup(v);
     _strip(&ret, 0x03);	// 3: left and right
     SET_RETURN(ret);
 }
@@ -713,7 +713,7 @@ c_string_strip(mrbc_value v[], U32 argc)
 /*! (method) strip!
  */
 __GURU__ void
-c_string_strip_self(mrbc_value v[], U32 argc)
+c_string_strip_self(GV v[], U32 argc)
 {
     if (_strip(v, 0x03)==0) {		// 3: left and right
         SET_RETURN(GURU_NIL_NEW());	// keep refc
@@ -724,7 +724,7 @@ c_string_strip_self(mrbc_value v[], U32 argc)
 /*! (method) to_sym
  */
 __GURU__ void
-c_string_to_sym(mrbc_value v[], U32 argc)
+c_string_to_sym(GV v[], U32 argc)
 {
     SET_RETURN(guru_sym_new(_data(v)));
 }

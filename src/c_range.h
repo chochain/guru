@@ -28,16 +28,16 @@ extern "C" {
   Define Range object (same the handles of other objects)
 */
 typedef struct RRange {
-    GURU_OBJECT_HEADER;
+    GURU_HDR;
 
-    mrbc_value first;
-    mrbc_value last;
+    GV first;
+    GV last;
 } guru_range;
 
-__GURU__ mrbc_value guru_range_new(mrbc_value *first, mrbc_value *last, int exclude_end);
+__GURU__ GV guru_range_new(GV *first, GV *last, int exclude_end);
 
-__GURU__ void       guru_range_delete(mrbc_value *v);
-__GURU__ int        guru_range_compare(const mrbc_value *v1, const mrbc_value *v2);
+__GURU__ void       guru_range_delete(GV *v);
+__GURU__ int        guru_range_compare(const GV *v1, const GV *v2);
 
 __GURU__ void       mrbc_init_class_range();
 

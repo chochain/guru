@@ -12,13 +12,13 @@
 #include "c_hash.h"
 #endif
 
-extern "C" __GURU__ void mrbc_store_delete(mrbc_value *v);		// store.cu
+extern "C" __GURU__ void mrbc_store_delete(GV *v);		// store.cu
 
 //================================================================
 /*! compare
  */
 __GURU__ S32
-_string_compare(const mrbc_value *v1, const mrbc_value *v2)
+_string_compare(const GV *v1, const GV *v2)
 {
 	if (v1->str->len != v2->str->len) return -1;
 
@@ -26,16 +26,16 @@ _string_compare(const mrbc_value *v1, const mrbc_value *v2)
 }
 
 //================================================================
-/*! compare two mrbc_values
+/*! compare two GVs
 
-  @param  v1	Pointer to mrbc_value
-  @param  v2	Pointer to another mrbc_value
+  @param  v1	Pointer to GV
+  @param  v2	Pointer to another GV
   @retval 0	v1 == v2
   @retval plus	v1 >  v2
   @retval minus	v1 <  v2
 */
 __GURU__ S32
-guru_cmp(const mrbc_value *v1, const mrbc_value *v2)
+guru_cmp(const GV *v1, const GV *v2)
 {
     if (v1->tt != v2->tt) { 						// mrbc_vtype different
 #if GURU_USE_FLOAT
@@ -239,10 +239,10 @@ guru_strcat(U8P d, const U8P s)
 /*!@brief
   Decrement reference counter
 
-  @param   v     Pointer to target mrbc_value
+  @param   v     Pointer to target GV
 */
 __GURU__ void
-ref_dec(mrbc_value *v)
+ref_dec(GV *v)
 {
 	if (!(v->tt & GURU_TT_HAS_REF)) return;
 
@@ -267,12 +267,12 @@ ref_dec(mrbc_value *v)
 
 //================================================================
 /*!@brief
-  Duplicate mrbc_value
+  Duplicate GV
 
-  @param   v     Pointer to mrbc_value
+  @param   v     Pointer to GV
 */
 __GURU__ void
-ref_inc(mrbc_value *v)         			// CC: was mrbc_inc_refc() 20181101
+ref_inc(GV *v)         			// CC: was mrbc_inc_refc() 20181101
 {
 	if (!(v->tt & GURU_TT_HAS_REF)) return;
 
@@ -283,10 +283,10 @@ ref_inc(mrbc_value *v)         			// CC: was mrbc_inc_refc() 20181101
 /*!@brief
   Release object related memory
 
-  @param   v     Pointer to target mrbc_value
+  @param   v     Pointer to target GV
 */
 __GURU__ void
-ref_clr(mrbc_value *v)
+ref_clr(GV *v)
 {
     ref_dec(v);
     v->tt = GURU_TT_EMPTY;

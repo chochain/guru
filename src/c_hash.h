@@ -28,18 +28,18 @@ extern "C" {
 typedef struct RHash {
     // (NOTE)
     //  Needs to be same members and order as RArray.
-    GURU_OBJECT_HEADER;
+    GURU_HDR;
 
-    uint32_t   size : 16;	//!< data buffer size.
-    uint32_t   n	: 16;	//!< # of stored.
-    mrbc_value *data;		//!< pointer to allocated memory.
+    U32   size 	: 16;	//!< data buffer size.
+    U32   n		: 16;	//!< # of stored.
+    GV    *data;		//!< pointer to allocated memory.
 
     // TODO: and other member for search.
 } guru_hash;
 
-__GURU__ mrbc_value guru_hash_new(int size);
-__GURU__ void       guru_hash_delete(mrbc_value *hash);
-__GURU__ int        guru_hash_compare(const mrbc_value *v1, const mrbc_value *v2);
+__GURU__ GV 		guru_hash_new(int size);
+__GURU__ void       guru_hash_delete(GV *hash);
+__GURU__ int        guru_hash_compare(const GV *v1, const GV *v2);
 
 __GURU__ void       mrbc_init_class_hash();
 

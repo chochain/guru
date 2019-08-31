@@ -134,13 +134,13 @@ _push_state(guru_vm *vm, U32 argc)
 
 */
 __GURU__ void
-_pop_state(guru_vm *vm, mrbc_value *regs)
+_pop_state(guru_vm *vm, GV *regs)
 {
     guru_state *st = vm->state;
     
     vm->state = st->prev;
     
-    mrbc_value *p  = regs+1;			// clear stacked arguments
+    GV *p  = regs+1;			// clear stacked arguments
     for (U32 i=0; i < st->argc; i++) {
         ref_clr(p++);
     }
@@ -148,7 +148,7 @@ _pop_state(guru_vm *vm, mrbc_value *regs)
 }
 
 __GURU__ void
-_vm_proc_call(guru_vm *vm, mrbc_value v[], U32 argc)
+_vm_proc_call(guru_vm *vm, GV v[], U32 argc)
 {
 	_push_state(vm, argc);				// check _funcall which is not used
 
@@ -161,9 +161,9 @@ _vm_proc_call(guru_vm *vm, mrbc_value v[], U32 argc)
 
 // Object.new
 __GURU__ void
-_vm_object_new(guru_vm *vm, mrbc_value v[], U32 argc)
+_vm_object_new(guru_vm *vm, GV v[], U32 argc)
 {
-    mrbc_value obj = mrbc_store_new(v[0].cls, 0);
+    GV obj = mrbc_store_new(v[0].cls, 0);
     //
     // build a temp IREP for calling "initialize"
     // TODO: make the image static
@@ -194,7 +194,7 @@ _vm_object_new(guru_vm *vm, mrbc_value v[], U32 argc)
     guru_state  *st    = vm->state;
 
     uint16_t    pc0    = st->pc;
-    mrbc_value  *reg0  = st->reg;
+    GV  *reg0  = st->reg;
     guru_irep 	*irep0 = st->irep;
 
     st->pc 	 = 0;
@@ -222,7 +222,7 @@ _vm_object_new(guru_vm *vm, mrbc_value v[], U32 argc)
   @retval 0  No error.
 */
 __GURU__ int
-op_nop(guru_vm *vm, U32 code, mrbc_value *regs)
+op_nop(guru_vm *vm, U32 code, GV *regs)
 {
     return 0;
 }
@@ -239,7 +239,7 @@ op_nop(guru_vm *vm, U32 code, mrbc_value *regs)
   @retval 0  No error.
 */
 __GURU__ int
-op_move(guru_vm *vm, U32 code, mrbc_value *regs)
+op_move(guru_vm *vm, U32 code, GV *regs)
 {
     int ra = GETARG_A(code);
     int rb = GETARG_B(code);
@@ -261,7 +261,7 @@ op_move(guru_vm *vm, U32 code, mrbc_value *regs)
   @retval 0  No error.
 */
 __GURU__ int
-op_loadl(guru_vm *vm, U32 code, mrbc_value *regs)
+op_loadl(guru_vm *vm, U32 code, GV *regs)
 {
     int ra = GETARG_A(code);
     int rb = GETARG_Bx(code);
@@ -294,7 +294,7 @@ op_loadl(guru_vm *vm, U32 code, mrbc_value *regs)
   @retval 0  No error.
 */
 __GURU__ int
-op_loadi(guru_vm *vm, U32 code, mrbc_value *regs)
+op_loadi(guru_vm *vm, U32 code, GV *regs)
 {
     int ra = GETARG_A(code);
     int rb = GETARG_sBx(code);
@@ -317,7 +317,7 @@ op_loadi(guru_vm *vm, U32 code, mrbc_value *regs)
   @retval 0  No error.
 */
 __GURU__ int
-op_loadsym(guru_vm *vm, U32 code, mrbc_value *regs)
+op_loadsym(guru_vm *vm, U32 code, GV *regs)
 {
     int ra  = GETARG_A(code);
     int rb  = GETARG_Bx(code);
@@ -341,7 +341,7 @@ op_loadsym(guru_vm *vm, U32 code, mrbc_value *regs)
   @retval 0  No error.
 */
 __GURU__ int
-op_loadnil(guru_vm *vm, U32 code, mrbc_value *regs)
+op_loadnil(guru_vm *vm, U32 code, GV *regs)
 {
     int ra = GETARG_A(code);
 
@@ -362,7 +362,7 @@ op_loadnil(guru_vm *vm, U32 code, mrbc_value *regs)
   @retval 0  No error.
 */
 __GURU__ int
-op_loadself(guru_vm *vm, U32 code, mrbc_value *regs)
+op_loadself(guru_vm *vm, U32 code, GV *regs)
 {
     int ra = GETARG_A(code);
 
@@ -383,7 +383,7 @@ op_loadself(guru_vm *vm, U32 code, mrbc_value *regs)
   @retval 0  No error.
 */
 __GURU__ int
-op_loadt(guru_vm *vm, U32 code, mrbc_value *regs)
+op_loadt(guru_vm *vm, U32 code, GV *regs)
 {
     int ra = GETARG_A(code);
 
@@ -404,7 +404,7 @@ op_loadt(guru_vm *vm, U32 code, mrbc_value *regs)
   @retval 0  No error.
 */
 __GURU__ int
-op_loadf(guru_vm *vm, U32 code, mrbc_value *regs)
+op_loadf(guru_vm *vm, U32 code, GV *regs)
 {
     int ra = GETARG_A(code);
 
@@ -425,7 +425,7 @@ op_loadf(guru_vm *vm, U32 code, mrbc_value *regs)
   @retval 0  No error.
 */
 __GURU__ int
-op_getglobal(guru_vm *vm, U32 code, mrbc_value *regs)
+op_getglobal(guru_vm *vm, U32 code, GV *regs)
 {
     int ra  = GETARG_A(code);
     int rb  = GETARG_Bx(code);
@@ -450,7 +450,7 @@ op_getglobal(guru_vm *vm, U32 code, mrbc_value *regs)
   @retval 0  No error.
 */
 __GURU__ int
-op_setglobal(guru_vm *vm, U32 code, mrbc_value *regs)
+op_setglobal(guru_vm *vm, U32 code, GV *regs)
 {
     int ra  = GETARG_A(code);
     int rb  = GETARG_Bx(code);
@@ -473,14 +473,14 @@ op_setglobal(guru_vm *vm, U32 code, mrbc_value *regs)
   @retval 0  No error.
 */
 __GURU__ int
-op_getiv(guru_vm *vm, U32 code, mrbc_value *regs)
+op_getiv(guru_vm *vm, U32 code, GV *regs)
 {
     int ra = GETARG_A(code);
     int rb = GETARG_Bx(code);
 
     const U8P name = _vm_symbol(vm, rb);
     guru_sym sid   = name2symid(name+1);		// skip '@'
-    mrbc_value ret   = mrbc_store_get(&regs[0], sid);
+    GV ret   = mrbc_store_get(&regs[0], sid);
 
     _RA_V(ret);
 
@@ -499,7 +499,7 @@ op_getiv(guru_vm *vm, U32 code, mrbc_value *regs)
   @retval 0  No error.
 */
 __GURU__ int
-op_setiv(guru_vm *vm, U32 code, mrbc_value *regs)
+op_setiv(guru_vm *vm, U32 code, GV *regs)
 {
     int ra = GETARG_A(code);
     int rb = GETARG_Bx(code);
@@ -524,7 +524,7 @@ op_setiv(guru_vm *vm, U32 code, mrbc_value *regs)
   @retval 0  No error.
 */
 __GURU__ int
-op_getconst(guru_vm *vm, U32 code, mrbc_value *regs)
+op_getconst(guru_vm *vm, U32 code, GV *regs)
 {
     int ra  = GETARG_A(code);
     int rb  = GETARG_Bx(code);
@@ -549,7 +549,7 @@ op_getconst(guru_vm *vm, U32 code, mrbc_value *regs)
   @retval 0  No error.
 */
 __GURU__ int
-op_setconst(guru_vm *vm, U32 code, mrbc_value *regs) {
+op_setconst(guru_vm *vm, U32 code, GV *regs) {
     int ra  = GETARG_A(code);
     int rb  = GETARG_Bx(code);
 
@@ -571,7 +571,7 @@ op_setconst(guru_vm *vm, U32 code, mrbc_value *regs) {
   @retval 0  No error.
 */
 __GURU__ int
-op_getupvar(guru_vm *vm, U32 code, mrbc_value *regs)
+op_getupvar(guru_vm *vm, U32 code, GV *regs)
 {
     int ra = GETARG_A(code);
     int rb = GETARG_B(code);
@@ -584,7 +584,7 @@ op_getupvar(guru_vm *vm, U32 code, mrbc_value *regs)
         st = st->prev;
         n--;
     }
-    mrbc_value *uregs = st->reg;	// outer scope register file
+    GV *uregs = st->reg;	// outer scope register file
 
     _RA_X(&uregs[rb]);             	// ra <= up[rb]
 
@@ -603,7 +603,7 @@ op_getupvar(guru_vm *vm, U32 code, mrbc_value *regs)
   @retval 0  No error.
 */
 __GURU__ int
-op_setupvar(guru_vm *vm, U32 code, mrbc_value *regs)
+op_setupvar(guru_vm *vm, U32 code, GV *regs)
 {
     int ra = GETARG_A(code);
     int rb = GETARG_B(code);
@@ -616,7 +616,7 @@ op_setupvar(guru_vm *vm, U32 code, mrbc_value *regs)
         st = st->prev;
         n--;
     }
-    mrbc_value *uregs = st->reg;
+    GV *uregs = st->reg;
 
     ref_clr(&uregs[rb]);
     uregs[rb] = regs[ra];                   // update outer-scope vars
@@ -637,7 +637,7 @@ op_setupvar(guru_vm *vm, U32 code, mrbc_value *regs)
   @retval 0  No error.
 */
 __GURU__ int
-op_jmp(guru_vm *vm, U32 code, mrbc_value *regs)
+op_jmp(guru_vm *vm, U32 code, GV *regs)
 {
     vm->state->pc += GETARG_sBx(code) - 1;
     return 0;
@@ -655,7 +655,7 @@ op_jmp(guru_vm *vm, U32 code, mrbc_value *regs)
   @retval 0  No error.
 */
 __GURU__ int
-op_jmpif (guru_vm *vm, U32 code, mrbc_value *regs)
+op_jmpif (guru_vm *vm, U32 code, GV *regs)
 {
     if (regs[GETARG_A(code)].tt > GURU_TT_FALSE) {
         vm->state->pc += GETARG_sBx(code) - 1;
@@ -675,7 +675,7 @@ op_jmpif (guru_vm *vm, U32 code, mrbc_value *regs)
   @retval 0  No error.
 */
 __GURU__ int
-op_jmpnot(guru_vm *vm, U32 code, mrbc_value *regs)
+op_jmpnot(guru_vm *vm, U32 code, GV *regs)
 {
     if (regs[GETARG_A(code)].tt <= GURU_TT_FALSE) {
         vm->state->pc += GETARG_sBx(code) - 1;
@@ -697,12 +697,12 @@ op_jmpnot(guru_vm *vm, U32 code, mrbc_value *regs)
   @retval 0  No error.
 */
 __GURU__ int
-op_send(guru_vm *vm, U32 code, mrbc_value *regs)
+op_send(guru_vm *vm, U32 code, GV *regs)
 {
     int ra = GETARG_A(code);
     int rb = GETARG_B(code);  // index of method sym
     int rc = GETARG_C(code);  // number of params
-    mrbc_value rcv = regs[ra];
+    GV rcv = regs[ra];
 
     // Clear block param (needed ?)
     int bidx = ra + rc + 1;
@@ -766,7 +766,7 @@ op_send(guru_vm *vm, U32 code, mrbc_value *regs)
   @retval 0  No error.
 */
 __GURU__ int
-op_call(guru_vm *vm, U32 code, mrbc_value *regs)
+op_call(guru_vm *vm, U32 code, GV *regs)
 {
     _push_state(vm, 0);
 
@@ -791,7 +791,7 @@ op_call(guru_vm *vm, U32 code, mrbc_value *regs)
   @retval 0  No error.
 */
 __GURU__ int
-op_enter(guru_vm *vm, U32 code, mrbc_value *regs)
+op_enter(guru_vm *vm, U32 code, GV *regs)
 {
     U32 param = GETARG_Ax(code);
 
@@ -816,11 +816,11 @@ op_enter(guru_vm *vm, U32 code, mrbc_value *regs)
   @retval 0  No error.
 */
 __GURU__ int
-op_return(guru_vm *vm, U32 code, mrbc_value *regs)
+op_return(guru_vm *vm, U32 code, GV *regs)
 {
     // return value
     int ra = GETARG_A(code);
-    mrbc_value ret = regs[ra];
+    GV ret = regs[ra];
 
     ref_clr(&regs[0]);
     regs[0]     = ret;
@@ -843,11 +843,11 @@ op_return(guru_vm *vm, U32 code, mrbc_value *regs)
   @retval 0  No error.
 */
 __GURU__ int
-op_blkpush(guru_vm *vm, U32 code, mrbc_value *regs)
+op_blkpush(guru_vm *vm, U32 code, GV *regs)
 {
     int ra = GETARG_A(code);
 
-    mrbc_value *stack = regs + 1;       // call stack: push 1 mrbc_value
+    GV *stack = regs + 1;       // call stack: push 1 GV
 
     if (stack[0].tt==GURU_TT_NIL){		// Check leak?
         return vm->err = 255;  			// EYIELD
@@ -869,11 +869,11 @@ op_blkpush(guru_vm *vm, U32 code, mrbc_value *regs)
   @retval 0  No error.
 */
 __GURU__ int
-op_add(guru_vm *vm, U32 code, mrbc_value *regs)
+op_add(guru_vm *vm, U32 code, GV *regs)
 {
     int ra = GETARG_A(code);
-    mrbc_value *r0 = &regs[ra];
-    mrbc_value *r1 = &regs[ra+1];
+    GV *r0 = &regs[ra];
+    GV *r1 = &regs[ra+1];
 
     if (r0->tt==GURU_TT_FIXNUM) {
         if      (r1->tt==GURU_TT_FIXNUM) r0->i += r1->i;
@@ -910,12 +910,12 @@ op_add(guru_vm *vm, U32 code, mrbc_value *regs)
   @retval 0  No error.
 */
 __GURU__ int
-op_addi(guru_vm *vm, U32 code, mrbc_value *regs)
+op_addi(guru_vm *vm, U32 code, GV *regs)
 {
 	int ra = GETARG_A(code);
 	int rc = GETARG_C(code);
 
-    mrbc_value *r0 = &regs[ra];
+    GV *r0 = &regs[ra];
 
     if (r0->tt==GURU_TT_FIXNUM)     r0->i += rc;
 #if GURU_USE_FLOAT
@@ -938,12 +938,12 @@ op_addi(guru_vm *vm, U32 code, mrbc_value *regs)
   @retval 0  No error.
 */
 __GURU__ int
-op_sub(guru_vm *vm, U32 code, mrbc_value *regs)
+op_sub(guru_vm *vm, U32 code, GV *regs)
 {
     int ra = GETARG_A(code);
 
-    mrbc_value *r0 = &regs[ra];
-    mrbc_value *r1 = &regs[ra+1];
+    GV *r0 = &regs[ra];
+    GV *r1 = &regs[ra+1];
 
     if (r0->tt==GURU_TT_FIXNUM) {
         if      (r1->tt==GURU_TT_FIXNUM) 	r0->i -= r1->i;
@@ -979,12 +979,12 @@ op_sub(guru_vm *vm, U32 code, mrbc_value *regs)
   @retval 0  No error.
 */
 __GURU__ int
-op_subi(guru_vm *vm, U32 code, mrbc_value *regs)
+op_subi(guru_vm *vm, U32 code, GV *regs)
 {
     int ra = GETARG_A(code);
     int rc = GETARG_C(code);
 
-    mrbc_value *r0 = &regs[ra];
+    GV *r0 = &regs[ra];
 
     if (r0->tt==GURU_TT_FIXNUM) 	r0->i -= rc;
 #if GURU_USE_FLOAT
@@ -1007,11 +1007,11 @@ op_subi(guru_vm *vm, U32 code, mrbc_value *regs)
   @retval 0  No error.
 */
 __GURU__ int
-op_mul(guru_vm *vm, U32 code, mrbc_value *regs)
+op_mul(guru_vm *vm, U32 code, GV *regs)
 {
     int ra = GETARG_A(code);
-    mrbc_value *r0 = &regs[ra];
-    mrbc_value *r1 = &regs[ra+1];
+    GV *r0 = &regs[ra];
+    GV *r1 = &regs[ra+1];
 
     if (r0->tt==GURU_TT_FIXNUM) {
         if      (r1->tt==GURU_TT_FIXNUM) 	r0->i *= r1->i;
@@ -1047,11 +1047,11 @@ op_mul(guru_vm *vm, U32 code, mrbc_value *regs)
   @retval 0  No error.
 */
 __GURU__ int
-op_div(guru_vm *vm, U32 code, mrbc_value *regs)
+op_div(guru_vm *vm, U32 code, GV *regs)
 {
     int ra = GETARG_A(code);
-    mrbc_value *r0 = &regs[ra];
-    mrbc_value *r1 = &regs[ra+1];
+    GV *r0 = &regs[ra];
+    GV *r1 = &regs[ra+1];
 
     if (r0->tt==GURU_TT_FIXNUM) {
         if      (r1->tt==GURU_TT_FIXNUM) 	r0->i /= r1->i;
@@ -1087,7 +1087,7 @@ op_div(guru_vm *vm, U32 code, mrbc_value *regs)
   @retval 0  No error.
 */
 __GURU__ int
-op_eq(guru_vm *vm, U32 code, mrbc_value *regs)
+op_eq(guru_vm *vm, U32 code, GV *regs)
 {
     int ra = GETARG_A(code);
     mrbc_vtype tt = TT_BOOL(guru_cmp(&regs[ra], &regs[ra+1])==0);
@@ -1136,7 +1136,7 @@ do {													\
   @retval 0  No error.
 */
 __GURU__ int
-op_lt(guru_vm *vm, U32 code, mrbc_value *regs)
+op_lt(guru_vm *vm, U32 code, GV *regs)
 {
 	int ra = GETARG_A(code);
 
@@ -1157,7 +1157,7 @@ op_lt(guru_vm *vm, U32 code, mrbc_value *regs)
   @retval 0  No error.
 */
 __GURU__ U32
-op_le(guru_vm *vm, U32 code, mrbc_value *regs)
+op_le(guru_vm *vm, U32 code, GV *regs)
 {
     int ra = GETARG_A(code);
 
@@ -1178,7 +1178,7 @@ op_le(guru_vm *vm, U32 code, mrbc_value *regs)
   @retval 0  No error.
 */
 __GURU__ int
-op_gt(guru_vm *vm, U32 code, mrbc_value *regs)
+op_gt(guru_vm *vm, U32 code, GV *regs)
 {
     int ra = GETARG_A(code);
 
@@ -1199,7 +1199,7 @@ op_gt(guru_vm *vm, U32 code, mrbc_value *regs)
   @retval 0  No error.
 */
 __GURU__ int
-op_ge(guru_vm *vm, U32 code, mrbc_value *regs)
+op_ge(guru_vm *vm, U32 code, GV *regs)
 {
     int ra = GETARG_A(code);
 
@@ -1220,7 +1220,7 @@ op_ge(guru_vm *vm, U32 code, mrbc_value *regs)
   @retval 0  No error.
 */
 __GURU__ int
-op_string(guru_vm *vm, U32 code, mrbc_value *regs)
+op_string(guru_vm *vm, U32 code, GV *regs)
 {
 #if GURU_USE_STRING
 	int ra = GETARG_A(code);
@@ -1228,7 +1228,7 @@ op_string(guru_vm *vm, U32 code, mrbc_value *regs)
 
     U32P p   = _vm_pool(vm, rb);
     U8P str  = (U8P)U8PADD(VM_IREP(vm), *p);
-    mrbc_value ret = guru_str_new(str);
+    GV ret = guru_str_new(str);
 
     if (ret.str==NULL) return vm->err = 255;			// ENOMEM
 
@@ -1251,14 +1251,14 @@ op_string(guru_vm *vm, U32 code, mrbc_value *regs)
   @retval 0  No error.
 */
 __GURU__ int
-op_strcat(guru_vm *vm, U32 code, mrbc_value *regs)
+op_strcat(guru_vm *vm, U32 code, GV *regs)
 {
 #if GURU_USE_STRING
     int ra = GETARG_A(code);
     int rb = GETARG_B(code);
 
-    mrbc_value *pa  = &regs[ra];
-    mrbc_value *pb  = &regs[rb];
+    GV *pa  = &regs[ra];
+    GV *pb  = &regs[rb];
 
     guru_sym sid  = name2symid((U8P)"to_s");			// from global symbol pool
     guru_proc *ma = mrbc_get_proc_by_symid(*pa, sid);
@@ -1267,7 +1267,7 @@ op_strcat(guru_vm *vm, U32 code, mrbc_value *regs)
     if (ma && IS_CFUNC(ma)) ma->func(pa, 0);
     if (mb && IS_CFUNC(mb)) mb->func(pb, 0);
 
-    mrbc_value ret = guru_str_add(pa, pb);
+    GV ret = guru_str_add(pa, pb);
 
     _RA_V(ret);
 
@@ -1289,17 +1289,17 @@ op_strcat(guru_vm *vm, U32 code, mrbc_value *regs)
   @retval 0  No error.
 */
 __GURU__ int
-op_array(guru_vm *vm, U32 code, mrbc_value *regs)
+op_array(guru_vm *vm, U32 code, GV *regs)
 {
 #if GURU_USE_ARRAY
     int ra = GETARG_A(code);
     int rb = GETARG_B(code);
     int rc = GETARG_C(code);
-    int sz = sizeof(mrbc_value) * rc;
+    int sz = sizeof(GV) * rc;
 
-    mrbc_value ret = (mrbc_value)guru_array_new(rc);
+    GV ret = (GV)guru_array_new(rc);
     guru_array *h  = ret.array;
-    mrbc_value *pb = &regs[rb];
+    GV *pb = &regs[rb];
     if (h==NULL) return vm->err = 255;	// ENOMEM
 
     MEMCPY((U8P)h->data, (U8P)pb, sz);
@@ -1325,17 +1325,17 @@ op_array(guru_vm *vm, U32 code, mrbc_value *regs)
   @retval 0  No error.
 */
 __GURU__ int
-op_hash(guru_vm *vm, U32 code, mrbc_value *regs)
+op_hash(guru_vm *vm, U32 code, GV *regs)
 {
 #if GURU_USE_ARRAY
     int ra = GETARG_A(code);
     int rb = GETARG_B(code);
     int rc = GETARG_C(code);
-    int sz = sizeof(mrbc_value) * (rc<<1);				// size of k,v pairs
+    int sz = sizeof(GV) * (rc<<1);				// size of k,v pairs
 
-    mrbc_value ret = guru_hash_new(rc);
+    GV ret = guru_hash_new(rc);
     guru_hash  *h  = ret.hash;
-    mrbc_value *p  = &regs[rb];
+    GV *p  = &regs[rb];
     if (h==NULL) return vm->err = 255;					// ENOMEM
 
     MEMCPY((U8P)h->data, (U8P)p, sz);					// copy k,v pairs
@@ -1362,15 +1362,15 @@ op_hash(guru_vm *vm, U32 code, mrbc_value *regs)
   @retval 0  No error.
 */
 __GURU__ int
-op_range(guru_vm *vm, U32 code, mrbc_value *regs)
+op_range(guru_vm *vm, U32 code, GV *regs)
 {
 #if GURU_USE_ARRAY
     int ra = GETARG_A(code);
     int rb = GETARG_B(code);
     int rc = GETARG_C(code);
 
-    mrbc_value *pb = &regs[rb];
-    mrbc_value ret = guru_range_new(pb, pb+1, rc);
+    GV *pb = &regs[rb];
+    GV ret = guru_range_new(pb, pb+1, rc);
     if (ret.range==NULL) return vm->err = 255;		// ENOMEM
 
     _RA_V(ret);						// release and  reassign
@@ -1395,7 +1395,7 @@ op_range(guru_vm *vm, U32 code, mrbc_value *regs)
   @retval 0  No error.
 */
 __GURU__ int
-op_lambda(guru_vm *vm, U32 code, mrbc_value *regs)
+op_lambda(guru_vm *vm, U32 code, GV *regs)
 {
     int ra = GETARG_A(code);
     int rb = GETARG_b(code);      		// sequence position in irep list
@@ -1425,7 +1425,7 @@ op_lambda(guru_vm *vm, U32 code, mrbc_value *regs)
   @retval 0  No error.
 */
 __GURU__ int
-op_class(guru_vm *vm, U32 code, mrbc_value *regs)
+op_class(guru_vm *vm, U32 code, GV *regs)
 {
     int ra = GETARG_A(code);
     int rb = GETARG_B(code);
@@ -1450,12 +1450,12 @@ op_class(guru_vm *vm, U32 code, mrbc_value *regs)
   @retval 0  No error.
 */
 __GURU__ int
-op_exec(guru_vm *vm, U32 code, mrbc_value *regs)
+op_exec(guru_vm *vm, U32 code, GV *regs)
 {
     int ra = GETARG_A(code);
     int rb = GETARG_Bx(code);
 
-    mrbc_value rcv = regs[ra];							// receiver
+    GV rcv = regs[ra];							// receiver
 
     _push_state(vm, 0);									// push call stack
 
@@ -1479,7 +1479,7 @@ op_exec(guru_vm *vm, U32 code, mrbc_value *regs)
   @retval 0  No error.
 */
 __GURU__ int
-op_method(guru_vm *vm, U32 code, mrbc_value *regs)
+op_method(guru_vm *vm, U32 code, GV *regs)
 {
     int ra = GETARG_A(code);
     int rb = GETARG_B(code);
@@ -1506,7 +1506,7 @@ op_method(guru_vm *vm, U32 code, mrbc_value *regs)
     if (p) {	// found?
     	*((guru_proc**)pp) = p->next;
     	if (!IS_CFUNC(p)) {				// a p->func a Ruby function (aka IREP)
-    		mrbc_value v = { .tt = GURU_TT_PROC };
+    		GV v = { .tt = GURU_TT_PROC };
     		v.proc = p;
     		ref_clr(&v);
         }
@@ -1538,7 +1538,7 @@ op_method(guru_vm *vm, U32 code, mrbc_value *regs)
   @retval 0  No error.
 */
 __GURU__ int
-op_tclass(guru_vm *vm, U32 code, mrbc_value *regs)
+op_tclass(guru_vm *vm, U32 code, GV *regs)
 {
     int ra = GETARG_A(code);
 
@@ -1560,14 +1560,14 @@ op_tclass(guru_vm *vm, U32 code, mrbc_value *regs)
   @retval -1  No error and exit from vm.
 */
 __GURU__ int
-op_stop(guru_vm *vm, U32 code, mrbc_value *regs)
+op_stop(guru_vm *vm, U32 code, GV *regs)
 {
 	vm->run = 0;
     return -1;		// exit guru_op loop
 }
 
 __GURU__ int
-op_abort(guru_vm *vm, U32 code, mrbc_value *regs)
+op_abort(guru_vm *vm, U32 code, GV *regs)
 {
 	return -1;		// exit guru_op loop
 }
@@ -1585,7 +1585,7 @@ guru_op(guru_vm *vm)
 	//=======================================================================================
 	U32 code   = GET_BYTECODE(vm);
 	U32 opcode = GET_OPCODE(code);
-	mrbc_value *regs  = vm->state->reg;
+	GV  *regs  = vm->state->reg;
 
     vm->state->pc++;				// advance program counter, ready for next cycle
 

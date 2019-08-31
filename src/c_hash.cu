@@ -51,17 +51,17 @@
 /*! get size
  */
 __GURU__ __INLINE__ int
-_size(const mrbc_value *kv) {
+_size(const GV *kv) {
     return kv->hash->n >> 1;
 }
 
-__GURU__ __INLINE__ mrbc_value*
-_data(const mrbc_value *kv) {
+__GURU__ __INLINE__ GV*
+_data(const GV *kv) {
 	return kv->hash->data;
 }
 
 __GURU__ __INLINE__ int
-_resize(mrbc_value *kv, int size)
+_resize(GV *kv, int size)
 {
 	return guru_array_resize(kv->array, size<<1);
 }
@@ -73,13 +73,13 @@ _resize(mrbc_value *kv, int size)
   @param  key	pointer to key value
   @return	pointer to found key or NULL(not found).
 */
-__GURU__ mrbc_value*
-_search(const mrbc_value v[], const mrbc_value *key)
+__GURU__ GV*
+_search(const GV v[], const GV *key)
 {
 #ifndef GURU_HASH_SEARCH_LINER
 #define GURU_HASH_SEARCH_LINER
 #endif
-    mrbc_value *p = v->hash->data;
+    GV *p = v->hash->data;
     int         n = _size(v);
 
 #ifdef GURU_HASH_SEARCH_LINER
@@ -106,9 +106,9 @@ _search(const mrbc_value v[], const mrbc_value *key)
   @return	mrbc_error_code
 */
 __GURU__ int
-_set(mrbc_value *kv, mrbc_value *key, mrbc_value *val)
+_set(GV *kv, GV *key, GV *val)
 {
-    mrbc_value *v = _search(kv, key);
+    GV *v = _search(kv, key);
     int ret = 0;
     if (v==NULL) {				// key not found, create new kv pair
         if ((ret = guru_array_push(kv, key)) != 0) return ret;
@@ -128,12 +128,12 @@ _set(mrbc_value *kv, mrbc_value *key, mrbc_value *val)
 
   @param  hash	pointer to target hash
   @param  key	pointer to key value
-  @return	mrbc_value data at key position or Nil.
+  @return	GV data at key position or Nil.
 */
-__GURU__ mrbc_value
-_get(mrbc_value *kv, mrbc_value *key)
+__GURU__ GV
+_get(GV *kv, GV *key)
 {
-    mrbc_value *v = _search(kv, key);
+    GV *v = _search(kv, key);
 
     return v ? *(v+1) : GURU_NIL_NEW();
 }
@@ -145,14 +145,14 @@ _get(mrbc_value *kv, mrbc_value *key)
   @param  key	pointer to key value
   @return	removed data or Nil
 */
-__GURU__ mrbc_value
-_remove(mrbc_value *kv, mrbc_value *key)
+__GURU__ GV
+_remove(GV *kv, GV *key)
 {
-    mrbc_value *v = _search(kv, key);
+    GV *v = _search(kv, key);
     if (v==NULL) return GURU_NIL_NEW();
 
     ref_clr(v);						// CC: was dec_refc 20181101
-    mrbc_value ret = *(v+1);				// value
+    GV ret = *(v+1);				// value
     guru_hash  *h  = kv->hash;
     h->n -= 2;
 
@@ -169,7 +169,7 @@ _remove(mrbc_value *kv, mrbc_value *key)
   @param  hash	pointer to target hash
 */
 __GURU__ void
-_clear(mrbc_value *kv)
+_clear(GV *kv)
 {
     guru_array_clear(kv);
 
@@ -183,17 +183,17 @@ _clear(mrbc_value *kv)
   @param  size	initial size
   @return 	hash object
 */
-__GURU__ mrbc_value
+__GURU__ GV
 guru_hash_new(int size)
 {
-    mrbc_value ret = {.tt = GURU_TT_HASH};
+    GV ret = {.tt = GURU_TT_HASH};
     /*
       Allocate handle and data buffer.
     */
     guru_hash *h = (guru_hash *)mrbc_alloc(sizeof(guru_hash));
     if (!h) return ret;	// ENOMEM
 
-    mrbc_value *data = (mrbc_value *)mrbc_alloc(sizeof(mrbc_value) * (size<<1));
+    GV *data = (GV *)mrbc_alloc(sizeof(GV) * (size<<1));
     if (!data) {			// ENOMEM
         mrbc_free(h);
         return ret;
@@ -215,15 +215,15 @@ guru_hash_new(int size)
   @param  vm	pointer to VM.
   @param  src	pointer to target hash.
 */
-__GURU__ mrbc_value
-_hash_dup(const mrbc_value *kv)
+__GURU__ GV
+_hash_dup(const GV *kv)
 {
 	int        n   = _size(kv);
-    mrbc_value ret = guru_hash_new(n);
+    GV ret = guru_hash_new(n);
     if (ret.hash==NULL) return ret;			// ENOMEM
 
-    mrbc_value *d = _data(&ret);
-    mrbc_value *s = _data(kv);
+    GV *d = _data(&ret);
+    GV *s = _data(kv);
     int        n2 = ret.hash->n = n<<1;		// n pairs (k,v)
     for (U32 i=0; i < n2; i++) {
     	ref_inc(s);						// one extra ref
@@ -238,7 +238,7 @@ _hash_dup(const mrbc_value *kv)
   @param  hash	pointer to target value
 */
 __GURU__ void
-guru_hash_delete(mrbc_value *kv)
+guru_hash_delete(GV *kv)
 {
     guru_array_delete(kv);		// free content
 }
@@ -247,20 +247,20 @@ guru_hash_delete(mrbc_value *kv)
 //================================================================
 /*! compare
 
-  @param  v1	Pointer to mrbc_value
-  @param  v2	Pointer to another mrbc_value
+  @param  v1	Pointer to GV
+  @param  v2	Pointer to another GV
   @retval 0	v1==v2
   @retval 1	v1 != v2
 */
 __GURU__ int
-guru_hash_compare(const mrbc_value *v0, const mrbc_value *v1)
+guru_hash_compare(const GV *v0, const GV *v1)
 {
 	int n0 = _size(v0);
     if (n0 != _size(v1)) return 1;
 
-    mrbc_value *p0 = _data(v0);
+    GV *p0 = _data(v0);
     for (U32 i=0; i < n0; i++, p0+=2) {
-        mrbc_value *p1 = _search(v1, p0);		// check key
+        GV *p1 = _search(v1, p0);		// check key
         if (p1==NULL) return 1;
         if (guru_cmp(p0+1, p1+1)) return 1;	// check data
     }
@@ -271,7 +271,7 @@ guru_hash_compare(const mrbc_value *v0, const mrbc_value *v1)
 /*! (method) new
  */
 __GURU__ void
-c_hash_new(mrbc_value v[], U32 argc)
+c_hash_new(GV v[], U32 argc)
 {
 	SET_RETURN(guru_hash_new(0));
 }
@@ -280,13 +280,13 @@ c_hash_new(mrbc_value v[], U32 argc)
 /*! (operator) []
  */
 __GURU__ void
-c_hash_get(mrbc_value v[], U32 argc)
+c_hash_get(GV v[], U32 argc)
 {
     if (argc != 1) {
     	assert(argc!=1);
         return;	// raise ArgumentError.
     }
-    mrbc_value ret = _get(v, v+1);
+    GV ret = _get(v, v+1);
     ref_inc(&ret);
 
     SET_RETURN(ret);
@@ -296,7 +296,7 @@ c_hash_get(mrbc_value v[], U32 argc)
 /*! (operator) []=
  */
 __GURU__ void
-c_hash_set(mrbc_value v[], U32 argc)
+c_hash_set(GV v[], U32 argc)
 {
     if (argc != 2) {
     	assert(argc!=2);
@@ -313,7 +313,7 @@ c_hash_set(mrbc_value v[], U32 argc)
 /*! (method) clear
  */
 __GURU__ void
-c_hash_clear(mrbc_value v[], U32 argc)
+c_hash_clear(GV v[], U32 argc)
 {
     _clear(v);
 }
@@ -322,7 +322,7 @@ c_hash_clear(mrbc_value v[], U32 argc)
 /*! (method) dup
  */
 __GURU__ void
-c_hash_dup(mrbc_value v[], U32 argc)
+c_hash_dup(GV v[], U32 argc)
 {
     SET_RETURN(_hash_dup(v));
 }
@@ -331,7 +331,7 @@ c_hash_dup(mrbc_value v[], U32 argc)
 /*! (method) delete
  */
 __GURU__ void
-c_hash_delete(mrbc_value v[], U32 argc)
+c_hash_delete(GV v[], U32 argc)
 {
     // TODO : now, support only delete(key) -> object
     // TODO: re-index hash table if need.
@@ -342,7 +342,7 @@ c_hash_delete(mrbc_value v[], U32 argc)
 /*! (method) empty?
  */
 __GURU__ void
-c_hash_empty(mrbc_value v[], U32 argc)
+c_hash_empty(GV v[], U32 argc)
 {
     SET_BOOL_RETURN(_size(v)==0);
 }
@@ -351,7 +351,7 @@ c_hash_empty(mrbc_value v[], U32 argc)
 /*! (method) has_key?
  */
 __GURU__ void
-c_hash_has_key(mrbc_value v[], U32 argc)
+c_hash_has_key(GV v[], U32 argc)
 {
     SET_BOOL_RETURN(_search(v, v+1)!=NULL);
 }
@@ -360,9 +360,9 @@ c_hash_has_key(mrbc_value v[], U32 argc)
 /*! (method) has_value?
  */
 __GURU__ void
-c_hash_has_value(mrbc_value v[], U32 argc)
+c_hash_has_value(GV v[], U32 argc)
 {
-    mrbc_value *p = _data(v);
+    GV *p = _data(v);
     int         n = _size(v);
     for (U32 i=0; i<n; i++, p+=2) {
         if (guru_cmp(p+1, v+1)==0) {	// value to value
@@ -377,9 +377,9 @@ c_hash_has_value(mrbc_value v[], U32 argc)
 /*! (method) key
  */
 __GURU__ void
-c_hash_key(mrbc_value v[], U32 argc)
+c_hash_key(GV v[], U32 argc)
 {
-    mrbc_value *p = _data(v);
+    GV *p = _data(v);
     int         n = _size(v);
     for (U32 i=0; i<n; i++, p+=2) {
         if (guru_cmp(p+1, v+1)==0) {
@@ -395,11 +395,11 @@ c_hash_key(mrbc_value v[], U32 argc)
 /*! (method) keys
  */
 __GURU__ void
-c_hash_keys(mrbc_value v[], U32 argc)
+c_hash_keys(GV v[], U32 argc)
 {
-    mrbc_value *p  = _data(v);
+    GV *p  = _data(v);
     int         n  = _size(v);
-    mrbc_value ret = guru_array_new(n);
+    GV ret = guru_array_new(n);
 
     for (U32 i=0; i<n; i++, p+=2) {
         guru_array_push(&ret, p);
@@ -411,7 +411,7 @@ c_hash_keys(mrbc_value v[], U32 argc)
 /*! (method) size,length,count
  */
 __GURU__ void
-c_hash_size(mrbc_value v[], U32 argc)
+c_hash_size(GV v[], U32 argc)
 {
     SET_INT_RETURN(_size(v));
 }
@@ -420,10 +420,10 @@ c_hash_size(mrbc_value v[], U32 argc)
 /*! (method) merge
  */
 __GURU__ void
-c_hash_merge(mrbc_value v[], U32 argc)		// non-destructive merge
+c_hash_merge(GV v[], U32 argc)		// non-destructive merge
 {
-    mrbc_value ret = _hash_dup(v);
-    mrbc_value *p  = _data(v+1);
+    GV ret = _hash_dup(v);
+    GV *p  = _data(v+1);
     int         n  = _size(v+1);
     for (U32 i=0; i<n; i++, p+=2) {
         _set(&ret, p, p+1);
@@ -437,9 +437,9 @@ c_hash_merge(mrbc_value v[], U32 argc)		// non-destructive merge
 /*! (method) merge!
  */
 __GURU__ void
-c_hash_merge_self(mrbc_value v[], U32 argc)
+c_hash_merge_self(GV v[], U32 argc)
 {
-    mrbc_value *p  = _data(v+1);
+    GV *p  = _data(v+1);
     int         n  = _size(v+1);
     for (U32 i=0; i<n; i++, p+=2) {
         _set(v, p, p+1);
@@ -452,11 +452,11 @@ c_hash_merge_self(mrbc_value v[], U32 argc)
 /*! (method) values
  */
 __GURU__ void
-c_hash_values(mrbc_value v[], U32 argc)
+c_hash_values(GV v[], U32 argc)
 {
-    mrbc_value *p  = _data(v);
+    GV *p  = _data(v);
     int         n  = _size(v);
-    mrbc_value ret = guru_array_new(n);
+    GV ret = guru_array_new(n);
 
     for (U32 i=0; i<n; i++, p+=2) {
         guru_array_push(&ret, p+1);
@@ -467,18 +467,18 @@ c_hash_values(mrbc_value v[], U32 argc)
 #if GURU_USE_STRING
 //================================================================
 __GURU__ void
-c_hash_inspect(mrbc_value v[], U32 argc)
+c_hash_inspect(GV v[], U32 argc)
 {
-    mrbc_value blank = guru_str_new("");
-    mrbc_value comma = guru_str_new(", ");
-    mrbc_value ret   = guru_str_new("{");
+    GV blank = guru_str_new("");
+    GV comma = guru_str_new(", ");
+    GV ret   = guru_str_new("{");
     if (!ret.str) {
     	SET_NIL_RETURN();
     	return;
     }
 
-    mrbc_value s[3];
-    mrbc_value *p = _data(v);
+    GV s[3];
+    GV *p = _data(v);
     int         n = _size(v);
     for (U32 i=0; i<n; i++, p+=2) {
     	s[0] = (i==0) ? blank : comma;

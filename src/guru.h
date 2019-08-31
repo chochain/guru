@@ -132,6 +132,7 @@ typedef struct RObject {					// 8-bytes
     union {
         guru_int         i;					// GURU_TT_FIXNUM, SYMBOL
         guru_float       f;					// GURU_TT_FLOAT
+        U8P       		 sym;				// C-string (only loader use.)
         struct RClass    *cls;				// GURU_TT_CLASS
         struct RVar      *self;				// GURU_TT_OBJECT
         struct RProc     *proc;				// GURU_TT_PROC
@@ -141,9 +142,8 @@ typedef struct RObject {					// 8-bytes
         struct RRange    *range;			// GURU_TT_RANGE
         struct RHash     *hash;				// GURU_TT_HASH
 #endif
-        U8P       		 sym;				// C-string (only loader use.)
     };
-} mrbc_object, mrbc_value, guru_obj;
+} GV, guru_obj;
 
 //================================================================
 /*!@brief
@@ -161,13 +161,13 @@ typedef struct RClass {						// 16-byte
 #define GURU_CFUNC 	0x80
 #define IS_CFUNC(m)	((m)->flag & GURU_CFUNC)
 
-#define GURU_OBJECT_HEADER      \
+#define GURU_HDR      			\
 	mrbc_vtype  	tt   : 8; 	\
 	U32				flag : 8;	\
 	U32				refc : 16;
 
 typedef struct RString {		// 12-byte
-	GURU_OBJECT_HEADER;			// 4-byte
+	GURU_HDR;					// 4-byte
 
 	U32 len;					//!< string length.
 	U8P data;					//!< pointer to allocated buffer.
@@ -178,7 +178,7 @@ typedef struct RString {		// 12-byte
   physical store for Guru object instance.
 */
 typedef struct RVar {			// 16-byte
-    GURU_OBJECT_HEADER;
+    GURU_HDR;
 
     struct RClass *cls;
     struct RStore *ivar;
@@ -194,7 +194,7 @@ struct Irep;
 typedef void (*guru_fptr)(guru_obj *obj, U32 argc);
 
 typedef struct RProc {			// 20-byte
-    GURU_OBJECT_HEADER;
+    GURU_HDR;
 
     guru_sym 	 sym_id;		// u32
     struct RProc *next;

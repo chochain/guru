@@ -81,7 +81,7 @@ __GURU__ void
 _dump_obj_size(void)
 {
 	console_str("\nvalue=");
-	console_int(sizeof(mrbc_value));
+	console_int(sizeof(GV));
 	console_str("\nrclass=");
 	console_int(sizeof(RClass));
 	console_str("\ninstance=");

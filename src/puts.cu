@@ -28,7 +28,7 @@
 #include "c_hash.h"
 #endif
 
-__GURU__ U32 _p(mrbc_value *v);				// forward declaration
+__GURU__ U32 _p(GV *v);				// forward declaration
 
 //================================================================
 /*! print - sub function
@@ -37,9 +37,9 @@ __GURU__ U32 _p(mrbc_value *v);				// forward declaration
   @retval 1	already output LF.
 */
 __GURU__ U32
-_print(mrbc_value *v)
+_print(GV *v)
 {
-    mrbc_value *p;
+    GV *p;
     U32 ret = 0;
 
     switch (v->tt){
@@ -109,9 +109,9 @@ _print(mrbc_value *v)
 /*! p - sub function
  */
 __GURU__ U32
-_p(mrbc_value *v)
+_p(GV *v)
 {
-	mrbc_value *p;
+	GV *p;
 	U8P        s;
 
     switch (v->tt){		// only when output different from print_sub
@@ -158,7 +158,7 @@ _p(mrbc_value *v)
 }
 
 __GURU__ void
-guru_puts(mrbc_value *v, U32 argc)
+guru_puts(GV *v, U32 argc)
 {
     if (argc) {
     	for (U32 i = 1; i <= argc; i++) {
@@ -169,7 +169,7 @@ guru_puts(mrbc_value *v, U32 argc)
 }
 
 __GURU__ void
-guru_p(mrbc_value *v, U32 argc)
+guru_p(GV *v, U32 argc)
 {
     for (U32 i = 1; i <= argc; i++) {
         _p(&v[i]);
