@@ -38,7 +38,7 @@ int main(int argc, char *argv[])
 	int trace = opt & TRACE_MASK;
 	int step  = (opt & VM_STEP_FLAG) ? 1 : 0;
 
-	if (guru_setup(trace)) 				return -1;
+	if (guru_setup(trace)) return -1;
 	for (int i=n+1; i<argc; i++) {
 		char *fname = argv[i];
 		if (guru_load(fname, step, trace)) 	return -2;

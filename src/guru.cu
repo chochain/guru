@@ -64,16 +64,16 @@ guru_setup(int trace)
 	guru_memory_init<<<1,1>>>(mem, BLOCK_MEMORY_SIZE);			// setup memory management
 	guru_global_init<<<1,1>>>();								// setup static objects
 	guru_class_init<<<1,1>>>();									// setup basic classes
-//    guru_console_init<<<1,1>>>(out, MAX_BUFFER_SIZE);			// initialize output buffer
+	guru_console_init<<<1,1>>>(out, MAX_BUFFER_SIZE);			// initialize output buffer
 
-    U32 sz0, sz1;
+	U32 sz0, sz1;
 	cudaDeviceGetLimit((size_t *)&sz0, cudaLimitStackSize);
 	cudaDeviceSetLimit(cudaLimitStackSize, (size_t)sz0*4);
 	cudaDeviceGetLimit((size_t *)&sz1, cudaLimitStackSize);
 
 	if (trace) {
 		printf("guru session initialized[defaultStackSize %d => %d]\n", sz0, sz1);
-		guru_dump_alloc_stat();
+		guru_dump_alloc_stat(trace);
 	}
 	return 0;
 }
@@ -97,7 +97,7 @@ guru_load(char *rite_name, int step, int trace)
 		fprintf(stderr, "ERROR: virtual memory block allocation error!\n");
 		return -3;
 	}
-	if (trace) guru_dump_alloc_stat();
+	guru_dump_alloc_stat(trace);
 
 	ses->next = _ses_list;		// add to linked-list
 	_ses_list = ses;
@@ -114,7 +114,7 @@ guru_run(int trace)
     }
 	if (trace) {
 		printf("guru_session completed\n");
-		guru_dump_alloc_stat();
+		guru_dump_alloc_stat(trace);
 	}
 	rst = guru_vm_release(_ses_list);
 

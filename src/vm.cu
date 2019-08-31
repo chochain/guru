@@ -23,7 +23,6 @@
 
 #include "alloc.h"
 #include "static.h"
-#include "console.h"
 #include "opcode.h"
 #include "load.h"
 #include "vmx.h"
@@ -311,7 +310,7 @@ _vm_trace(U32 level)
 			_show_decoder(vm);
 		}
 	}
-	if (level > 1) guru_dump_alloc_stat();
+	if (level>1) guru_dump_alloc_stat(level);
 
 	return cudaSuccess;
 }
