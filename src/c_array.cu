@@ -82,7 +82,7 @@ _adjust_index(guru_array *h, S32 idx, U32 inc)
   @param  ary		pointer to target value
   @param  idx		index
   @param  set_val	set value
-  @return			mrbc_error_code
+  @return			error_code
 */
 __GURU__ int
 _set(GV *ary, int idx, GV *val)
@@ -128,7 +128,7 @@ _pop(GV *ary)
   @param  ary		pointer to target value
   @param  idx		index
   @param  set_val	set value
-  @return			mrbc_error_code
+  @return			error_code
 */
 __GURU__ int
 _insert(GV *ary, int idx, GV *set_val)
@@ -160,7 +160,7 @@ _insert(GV *ary, int idx, GV *set_val)
 
   @param  ary		pointer to target value
   @param  set_val	set value
-  @return			mrbc_error_code
+  @return			error_code
 */
 __GURU__ int
 _unshift(GV *ary, GV *set_val)
@@ -309,7 +309,7 @@ guru_array_delete(GV *ary)
 
   @param  ary	pointer to target value
   @param  size	size
-  @return	mrbc_error_code
+  @return	error_code
 */
 __GURU__ int
 guru_array_resize(guru_array *h, int size)
@@ -330,7 +330,7 @@ guru_array_resize(guru_array *h, int size)
 
   @param  ary		pointer to target value
   @param  set_val	set value
-  @return		mrbc_error_code
+  @return			error_code
 */
 __GURU__ int
 guru_array_push(GV *ary, GV *set_val)

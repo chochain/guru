@@ -272,7 +272,7 @@ ref_dec(GV *v)
   @param   v     Pointer to GV
 */
 __GURU__ void
-ref_inc(GV *v)         			// CC: was mrbc_inc_refc() 20181101
+ref_inc(GV *v)
 {
 	if (!(v->gt & GT_HAS_REF)) return;
 

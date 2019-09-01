@@ -162,7 +162,7 @@ _build_image(U8P *pirep, U8P src)
 
   @param  vm    A pointer of VM.
   @param  pos	A pointer of pointer of IREP section.
-  @return       Pointer of allocated mrbc_irep or NULL
+  @return       Pointer of allocated IREP or NULL
 
   <pre>
   (loop n of child irep bellow)
@@ -223,7 +223,7 @@ _get_irep_size(guru_irep *irep, U8P *pos)
 
   @param  vm    A pointer of VM.
   @param  pos	A pointer of pointer of IREP section.
-  @return       Pointer of allocated mrbc_irep or NULL
+  @return       Pointer of allocated IREP or NULL
 */
 __HOST__ guru_irep*
 _load_irep_0(U8P *pirep, U8P *pos)

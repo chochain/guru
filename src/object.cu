@@ -41,18 +41,6 @@
 
 #include "puts.h"
 
-__GURU__ GV
-guru_inspect(GV v[], GV *rcv)
-{
-	return mrbc_send(v, rcv, (U8P)"inspect", 0);
-}
-
-__GURU__ GV
-guru_kind_of(GV v[], U32 argc)		// whether v1 is a kind of v0
-{
-	return mrbc_send(v+argc, v+1, (U8P)"kind_of?", 1, v);
-}
-
 //================================================================
 /*! (BETA) Call any method of the object, but written by C.
 
@@ -68,13 +56,13 @@ guru_kind_of(GV v[], U32 argc)		// whether v1 is a kind of v0
   void c_int_to_s(GV v[], U32 argc)
   {
   GV *recv = &v[1];
-  GV arg1 = mrbc_int_value(16);
-  GV ret = mrbc_send(vm, v, argc, recv, "to_s", 1, &arg1);
+  GV arg1 = guru_int_value(16);
+  GV ret  = _send(vm, v, argc, recv, "to_s", 1, &arg1);
   SET_RETURN(ret);
   }
 */
 __GURU__ GV
-mrbc_send(GV v[], GV *rcv, const U8P method, U32 argc, ...)
+_send(GV v[], GV *rcv, const U8P method, U32 argc, ...)
 {
     GV *regs = v + 2;	     // allocate 2 for stack
     GS   sid   = name2id(method);
@@ -111,6 +99,18 @@ mrbc_send(GV v[], GV *rcv, const U8P method, U32 argc, ...)
     }
 #endif
     return ret;
+}
+
+__GURU__ GV
+guru_inspect(GV v[], GV *rcv)
+{
+	return _send(v, rcv, (U8P)"inspect", 0);
+}
+
+__GURU__ GV
+guru_kind_of(GV v[], U32 argc)		// whether v1 is a kind of v0
+{
+	return _send(v+argc, v+1, (U8P)"kind_of?", 1, v);
 }
 
 //================================================================

@@ -81,7 +81,7 @@ _vm_end(guru_vm *pool)
 	if (threadIdx.x!=0 || vm->id==0) return;		// bail if vm not allocated
 
 #ifndef GURU_DEBUG
-	// clean up register file?						// CC: moved from mrbc_op 20181102
+	// clean up register file
 	GV *p = vm->regfile;
 	for (U32 i=0; i < MAX_REGS_SIZE; i++, p++) {
 		ref_clr(p);
