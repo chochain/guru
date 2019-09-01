@@ -99,7 +99,7 @@ _print(GV *v)
 #endif
     default:
     	console_str("?vtype: ");
-    	console_int((guru_int)v->gt);
+    	console_int((GI)v->gt);
     	break;
     }
     return ret;

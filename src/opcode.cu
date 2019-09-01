@@ -53,7 +53,7 @@ __GURU__ U32 _mutex_op;
   @return	symbol name string
 */
 __GURU__ U8P
-_vm_symbol(guru_vm *vm, U32 n)
+_vm_skey(guru_vm *vm, U32 n)
 {
 	guru_irep *irep = VM_IREP(vm);
 	U32P p = (U32P)U8PADD(irep, irep->sym  + n * sizeof(U32));
@@ -61,15 +61,15 @@ _vm_symbol(guru_vm *vm, U32 n)
 	return U8PADD(irep, *p);
 }
 
-__GURU__ guru_sym
-_vm_symid(guru_vm *vm, U32 n)
+__GURU__ GS
+_vm_sid(guru_vm *vm, U32 n)
 {
-	const U8P name = _vm_symbol(vm, n);
+	const U8P name = _vm_skey(vm, n);
 	return name2id(name);
 }
 
 __GURU__ U32P
-_vm_pool(guru_vm *vm, U32 n)
+_vm_ivar(guru_vm *vm, U32 n)
 {
 	guru_irep *irep = VM_IREP(vm);
 
@@ -99,7 +99,7 @@ _get_symbol(U8P p, U32 n)
     return (U8P)p + sizeof(U16);  	// skip size(2 bytes)
 }
 
-__GURU__ guru_sym
+__GURU__ GS
 _get_symid(const U8P p, U32 n)
 {
   	const U8P name = _get_symbol(p, n);
@@ -266,12 +266,12 @@ op_loadl(guru_vm *vm, U32 code, GV *regs)
     int ra = GETARG_A(code);
     int rb = GETARG_Bx(code);
 
-    U32P     p = _vm_pool(vm, rb);
+    U32P p = _vm_ivar(vm, rb);
     guru_obj obj;
 
     if (*p & 1) {
     	obj.gt = GT_FLOAT;
-    	obj.f  = *(guru_float *)p;
+    	obj.f  = *(GF *)p;
     }
     else {
     	obj.gt = GT_INT;
@@ -322,7 +322,7 @@ op_loadsym(guru_vm *vm, U32 code, GV *regs)
     int ra  = GETARG_A(code);
     int rb  = GETARG_Bx(code);
 
-    guru_sym sid = _vm_symid(vm, rb);
+    GS sid = _vm_sid(vm, rb);
 
     _RA_T(GT_SYM, i=sid);
 
@@ -430,7 +430,7 @@ op_getglobal(guru_vm *vm, U32 code, GV *regs)
     int ra  = GETARG_A(code);
     int rb  = GETARG_Bx(code);
 
-    guru_sym sid = _vm_symid(vm, rb);
+    GS sid = _vm_sid(vm, rb);
     guru_obj obj = global_object_get(sid);
 
     _RA_V(obj);
@@ -455,7 +455,7 @@ op_setglobal(guru_vm *vm, U32 code, GV *regs)
     int ra  = GETARG_A(code);
     int rb  = GETARG_Bx(code);
 
-    guru_sym sid = _vm_symid(vm, rb);
+    GS sid = _vm_sid(vm, rb);
     global_object_add(sid, &regs[ra]);
 
     return 0;
@@ -478,8 +478,8 @@ op_getiv(guru_vm *vm, U32 code, GV *regs)
     int ra = GETARG_A(code);
     int rb = GETARG_Bx(code);
 
-    const U8P name = _vm_symbol(vm, rb);
-    guru_sym sid   = name2id(name+1);		// skip '@'
+    U8P name = _vm_skey(vm, rb);
+    GS sid   = name2id(name+1);					// skip '@'
     GV ret   = guru_store_get(&regs[0], sid);
 
     _RA_V(ret);
@@ -504,8 +504,8 @@ op_setiv(guru_vm *vm, U32 code, GV *regs)
     int ra = GETARG_A(code);
     int rb = GETARG_Bx(code);
 
-    const U8P name = _vm_symbol(vm, rb);
-    guru_sym  sid  = name2id(name+1);	// skip '@'
+    U8P name = _vm_skey(vm, rb);
+    GS  sid  = name2id(name+1);			// skip '@'
 
     guru_store_set(&regs[0], sid, &regs[ra]);
 
@@ -529,7 +529,7 @@ op_getconst(guru_vm *vm, U32 code, GV *regs)
     int ra  = GETARG_A(code);
     int rb  = GETARG_Bx(code);
 
-    guru_sym sid = _vm_symid(vm, rb);
+    GS sid = _vm_sid(vm, rb);
     guru_obj obj = const_object_get(sid);
 
     _RA_V(obj);
@@ -553,7 +553,7 @@ op_setconst(guru_vm *vm, U32 code, GV *regs) {
     int ra  = GETARG_A(code);
     int rb  = GETARG_Bx(code);
 
-    guru_sym sid = _vm_symid(vm, rb);
+    GS sid = _vm_sid(vm, rb);
     const_object_add(sid, &regs[ra]);
 
     return 0;
@@ -722,12 +722,12 @@ op_send(guru_vm *vm, U32 code, GV *regs)
     default: break;
     }
 
-	guru_sym  sid = _vm_symid(vm, rb);
+	GS  sid = _vm_sid(vm, rb);
     guru_proc *m  = (guru_proc *)mrbc_get_proc_by_symid(rcv, sid);
 
     if (m==0) {
-    	const U8P name = _vm_symbol(vm, rb);
-    	guru_na(name);					// dump error, bail out
+    	U8P key = _vm_skey(vm, rb);
+    	guru_na(key);					// dump error, bail out
     	return 0;
     }
     if (IS_CFUNC(m)) {
@@ -1089,8 +1089,8 @@ op_div(guru_vm *vm, U32 code, GV *regs)
 __GURU__ int
 op_eq(guru_vm *vm, U32 code, GV *regs)
 {
-    int ra = GETARG_A(code);
-    guru_vtype tt = GT_BOOL(guru_cmp(&regs[ra], &regs[ra+1])==0);
+    U32 ra = GETARG_A(code);
+    GT  tt = GT_BOOL(guru_cmp(&regs[ra], &regs[ra+1])==0);
 
     _RA_T(tt, i=0);
 
@@ -1226,7 +1226,7 @@ op_string(guru_vm *vm, U32 code, GV *regs)
 	int ra = GETARG_A(code);
     int rb = GETARG_Bx(code);
 
-    U32P p   = _vm_pool(vm, rb);
+    U32P p   = _vm_ivar(vm, rb);
     U8P str  = (U8P)U8PADD(VM_IREP(vm), *p);
     GV ret = guru_str_new(str);
 
@@ -1259,8 +1259,8 @@ op_strcat(guru_vm *vm, U32 code, GV *regs)
 
     GV *pa  = &regs[ra];
     GV *pb  = &regs[rb];
+    GS sid  = name2id((U8P)"to_s");			// from global symbol pool
 
-    guru_sym sid  = name2id((U8P)"to_s");			// from global symbol pool
     guru_proc *ma = mrbc_get_proc_by_symid(*pa, sid);
     guru_proc *mb = mrbc_get_proc_by_symid(*pb, sid);
 
@@ -1431,7 +1431,7 @@ op_class(guru_vm *vm, U32 code, GV *regs)
     int rb = GETARG_B(code);
 
     guru_class *super = (regs[ra+1].gt==GT_CLASS) ? regs[ra+1].cls : guru_class_object;
-    const U8P  name   = _vm_symbol(vm, rb);
+    const U8P  name   = _vm_skey(vm, rb);
     guru_class *cls   = (guru_class *)mrbc_define_class(name, super);
 
     _RA_T(GT_CLASS, cls=cls);
@@ -1491,7 +1491,7 @@ op_method(guru_vm *vm, U32 code, GV *regs)
 
     guru_class 	*cls  = regs[ra].cls;
     guru_proc 	*prc  = regs[ra+1].proc;
-    guru_sym	sid   = _vm_symid(vm, rb);
+    GS			sid   = _vm_sid(vm, rb);
 
     MUTEX_LOCK(_mutex_op);
 

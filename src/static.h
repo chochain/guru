@@ -25,7 +25,7 @@ extern __GURU__ guru_class *guru_class_object;
 extern __GURU__ guru_class *guru_class_false;
 extern __GURU__ guru_class *guru_class_true;
 extern __GURU__ guru_class *guru_class_nil;
-extern __GURU__ guru_class *guru_class_fixnum;
+extern __GURU__ guru_class *guru_class_int;
 #if GURU_USE_FLOAT
 extern __GURU__ guru_class *guru_class_float;
 extern __GURU__ guru_class *guru_class_math;

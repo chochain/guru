@@ -306,7 +306,7 @@ _split_free_block(free_block *target, U32 size)
 /*! initialize
 
   @param  ptr	pointer to free memory block.
-  @param  size	size. (max 64KB. see mrbc_memsize_t)
+  @param  size	size. (max 4G)
 */
 __GURU__ void
 _init_mmu(void *mem, U32 size)
@@ -372,9 +372,9 @@ guru_alloc(U32 size)
 //================================================================
 /*! re-allocate memory
 
-  @param  ptr	Return value of mrbc_raw_alloc()
+  @param  ptr	Return value of raw malloc()
   @param  size	request size
-  @return void * pointer to allocated memory.
+  @return void* pointer to allocated memory.
   @retval NULL	error.
 */
 __GURU__ void*
@@ -409,8 +409,6 @@ guru_realloc(void *ptr, U32 size)
 
 //================================================================
 /*! release memory
-
-  @param  ptr	Return value of mrbc_raw_alloc()
 */
 __GURU__ void
 guru_free(void *ptr)

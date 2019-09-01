@@ -24,7 +24,7 @@
   @return		result. It's not necessarily found.
 */
 __GURU__ S32
-_bsearch(guru_store *st, guru_sym sid)
+_bsearch(guru_store *st, GS sid)
 {
     int left  = 0;
     int right = st->n - 1;
@@ -47,13 +47,13 @@ _bsearch(guru_store *st, guru_sym sid)
 
   @param  st	pointer to instance store handle.
   @param  size	size.
-  @return	mrbc_error_code.
+  @return		0: success, 1: failed
 */
-__GURU__ S32
+__GURU__ U32
 _resize(guru_store *st, U32 size)
 {
     guru_store_data *d2 = (guru_store_data *) guru_realloc(st->data, sizeof(guru_store_data) * size);
-    if (!d2) return -1;		// ENOMEM
+    if (!d2) return 1;		// ENOMEM
 
     st->data = d2;
     st->size = size;
@@ -109,10 +109,10 @@ _delete(guru_store *st)
   @param  st		pointer to instance store handle.
   @param  sym_id	symbol ID.
   @param  set_val	set value.
-  @return		mrbc_error_code.
+  @return			0: success, 1:failed
 */
 __GURU__ S32
-_set(guru_store *st, guru_sym sid, GV *val)
+_set(guru_store *st, GS sid, GV *val)
 {
     S32 idx = _bsearch(st, sid);
     guru_store_data *d = st->data + idx;
@@ -130,7 +130,7 @@ _set(guru_store *st, guru_sym sid, GV *val)
 
 INSERT_VALUE:
     if (st->n >= st->size) {								// need resize?
-        if (_resize(st, st->size + 5) != 0) return -1;		// ENOMEM
+        if (_resize(st, st->size + 5)) return -1;			// ENOMEM
     }
     d = st->data + idx;
     if (idx < st->n) {										// need more data?
@@ -152,7 +152,7 @@ INSERT_VALUE:
   @return		pointer to GV or NULL.
 */
 __GURU__ GV*
-_get(guru_store *st, guru_sym sid)
+_get(guru_store *st, GS sid)
 {
     S32 idx = _bsearch(st, sid);
     if (idx < 0) return NULL;
@@ -212,7 +212,7 @@ guru_store_delete(GV *v)
   @param  v		pointer to value.
 */
 __GURU__ void
-guru_store_set(guru_obj *obj, guru_sym sid, GV *v)
+guru_store_set(guru_obj *obj, GS sid, GV *v)
 {
     _set(obj->self->ivar, sid, v);
     ref_inc(v);
@@ -226,7 +226,7 @@ guru_store_set(guru_obj *obj, guru_sym sid, GV *v)
   @return		value.
 */
 __GURU__ guru_obj
-guru_store_get(guru_obj *obj, guru_sym sid)
+guru_store_get(guru_obj *obj, GS sid)
 {
     GV *v = _get(obj->self->ivar, sid);
 

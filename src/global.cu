@@ -15,7 +15,7 @@ typedef enum {
 } _gtype;
 
 typedef struct _gobj_ {
-    guru_sym 	sym_id;
+    GS 			sym_id;
     guru_obj 	obj;
     _gtype 		gt	:8;
 } _gobj;
@@ -30,7 +30,7 @@ __GURU__ _gobj 	_global[MAX_GLOBAL_COUNT];
 /* linear search is not efficient! */
 /* TODO: Use binary search */
 __GURU__ U32
-_get_idx(guru_sym sid, _gtype gt)
+_get_idx(GS sid, _gtype gt)
 {
     for (U32 i=0; i < _global_idx ; i++) {
         _gobj *obj = &_global[i];
@@ -40,7 +40,7 @@ _get_idx(guru_sym sid, _gtype gt)
 }
 
 __GURU__ guru_obj
-_get_obj(guru_sym sid, _gtype gt)
+_get_obj(GS sid, _gtype gt)
 {
     U32 idx = _get_idx(sid, gt);
 
@@ -52,7 +52,7 @@ _get_obj(guru_sym sid, _gtype gt)
 }
 
 __GURU__ void
-_add_obj(guru_sym sid, guru_obj *obj, _gtype gt)
+_add_obj(GS sid, guru_obj *obj, _gtype gt)
 {
     int idx = _get_idx(sid, gt);
 
@@ -77,27 +77,27 @@ _add_obj(guru_sym sid, guru_obj *obj, _gtype gt)
 /* add */
 /* TODO: Check reference count */
 __GURU__ void
-global_object_add(guru_sym sid, guru_obj *obj)
+global_object_add(GS sid, guru_obj *obj)
 {
     _add_obj(sid, obj, GURU_GLOBAL_OBJECT);
 }
 
 __GURU__ void
-const_object_add(guru_sym sid, guru_obj *obj)
+const_object_add(GS sid, guru_obj *obj)
 {
     _add_obj(sid, obj, GURU_CONST_OBJECT);
 }
 
 /* get */
 __GURU__ guru_obj
-global_object_get(guru_sym sid)
+global_object_get(GS sid)
 {
     return _get_obj(sid, GURU_GLOBAL_OBJECT);
 }
 
 /* add const */
 __GURU__ guru_obj
-const_object_get(guru_sym sid)
+const_object_get(GS sid)
 {
     return _get_obj(sid, GURU_CONST_OBJECT);
 }

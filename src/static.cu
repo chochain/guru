@@ -19,7 +19,7 @@ __GURU__ guru_class *guru_class_object;
 __GURU__ guru_class *guru_class_false;
 __GURU__ guru_class *guru_class_true;
 __GURU__ guru_class *guru_class_nil;
-__GURU__ guru_class *guru_class_fixnum;
+__GURU__ guru_class *guru_class_int;
 __GURU__ guru_class *guru_class_symbol;
 
 /* Proc */

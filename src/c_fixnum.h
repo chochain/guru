@@ -21,7 +21,7 @@
 extern "C" {
 #endif
 
-__GURU__ void guru_init_class_fixnum();
+__GURU__ void guru_init_class_int();
 __GURU__ void guru_init_class_float();
 
 #ifdef __cplusplus

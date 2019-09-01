@@ -21,12 +21,12 @@ extern "C" {
 #endif
 
 __GPU__  void		guru_class_init(void);
-__GURU__ GV mrbc_send(GV v[], GV *rcv, const U8P method, U32 argc, ...);
 
-__GURU__ GV guru_inspect(GV v[], GV *rcv);		// inspect
-__GURU__ GV guru_kind_of(GV v[], U32 argc);				// whether v1 is a kind of v0
+__GURU__ GV 		guru_inspect(GV v[], GV *rcv);				// inspect
+__GURU__ GV 		guru_kind_of(GV v[], U32 argc);				// whether v1 is a kind of v0
 
 __GURU__ void		c_proc_call(GV v[], U32 argc);
+__GURU__ GV 		mrbc_send(GV v[], GV *rcv, const U8P method, U32 argc, ...);
 
 #ifdef __cplusplus
 }

@@ -53,7 +53,7 @@ typedef struct RState {			// 24-byte
     U32 argc;  					// num of args
 
     guru_class      *klass;		// current class
-    GV      *reg;		// pointer to current register (in VM register file)
+    GV      		*reg;		// pointer to current register (in VM register file)
     guru_irep       *irep;		// pointer to current irep block
     struct RState   *prev;		// previous state (call stack)
 } guru_state;					// VM context

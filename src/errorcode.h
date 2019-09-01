@@ -39,7 +39,7 @@ typedef enum {
     E_NOTIMP_ERROR,
     E_FLOATDOMAIN_ERROR,
     E_KEY_ERROR,
-} mrbc_error_code;
+} guru_error_code;
 
 
 /* no error */

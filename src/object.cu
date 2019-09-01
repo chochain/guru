@@ -64,11 +64,11 @@ guru_kind_of(GV v[], U32 argc)		// whether v1 is a kind of v0
   @param  argc		num of params.
 
   @example
-  // (Fixnum).to_s(16)
-  void c_fixnum_to_s(GV v[], U32 argc)
+  // (int).to_s(16)
+  void c_int_to_s(GV v[], U32 argc)
   {
   GV *recv = &v[1];
-  GV arg1 = mrbc_fixnum_value(16);
+  GV arg1 = mrbc_int_value(16);
   GV ret = mrbc_send(vm, v, argc, recv, "to_s", 1, &arg1);
   SET_RETURN(ret);
   }
@@ -77,7 +77,7 @@ __GURU__ GV
 mrbc_send(GV v[], GV *rcv, const U8P method, U32 argc, ...)
 {
     GV *regs = v + 2;	     // allocate 2 for stack
-    guru_sym   sid   = name2id(method);
+    GS   sid   = name2id(method);
     guru_proc  *m    = mrbc_get_proc_by_symid(*rcv, sid);
 
     if (m == 0) {
@@ -237,7 +237,7 @@ __GURU__ void
 c_object_getiv(GV v[], U32 argc)
 {
     const U8P name = _get_callee(NULL);			// TODO:
-    guru_sym  sid  = name2id(name);
+    GS  sid  = name2id(name);
 
     SET_RETURN(guru_store_get(&v[0], sid));
 }
@@ -248,8 +248,8 @@ c_object_getiv(GV v[], U32 argc)
 __GURU__ void
 c_object_setiv(GV v[], U32 argc)
 {
-    const U8P name = _get_callee(NULL);			// CC TODO: another way
-    guru_sym  sid  = name2id(name);
+    U8P name = _get_callee(NULL);			// CC TODO: another way
+    GS  sid  = name2id(name);
 
     guru_store_set(&v[0], sid, &v[1]);
 }
@@ -523,7 +523,7 @@ _init_all_class(void)
     _init_class_true();
 
     guru_init_class_symbol();
-    guru_init_class_fixnum();
+    guru_init_class_int();
 #if GURU_USE_FLOAT
     guru_init_class_float();
 #if GURU_USE_MATH

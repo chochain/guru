@@ -25,23 +25,23 @@ extern "C" {
 /*! Define instance data.
 */
 typedef struct RStoreData {
-    guru_sym   	sym_id;	    //!< symbol ID as key.
-    GV 			value;	    //!< stored value.
+    GS  sym_id;	    		//!< symbol ID as key.
+    GV 	value;	    		//!< stored value.
 } guru_store_data;
 
 //================================================================
 /*! Define instance data handle.
 */
 typedef struct RStore {
-    uint32_t     size : 16;	//!< data buffer size.
-    uint32_t     n    : 16;	//!< # of object stored.
+    U32  size : 16;			//!< data buffer size.
+    U32  n    : 16;			//!< # of object stored.
     guru_store_data *data;	//!< pointer to allocated memory.
 } guru_store;
 
 __GURU__ guru_obj guru_store_new(guru_class *cls, U32 size);
 __GURU__ void     guru_store_delete(GV *v);
-__GURU__ void     guru_store_set(guru_obj *obj, guru_sym sid, GV *v);
-__GURU__ guru_obj guru_store_get(guru_obj *obj, guru_sym sid);
+__GURU__ void     guru_store_set(guru_obj *obj, GS sid, GV *v);
+__GURU__ guru_obj guru_store_get(guru_obj *obj, GS sid);
 
 #ifdef __cplusplus
 }

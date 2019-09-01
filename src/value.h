@@ -23,31 +23,27 @@ __GURU__ void ref_dec(GV *v);
 __GURU__ void ref_inc(GV *v);
 
 // for C call
-#define SET_RETURN(n)		do { GV nnn = (n); ref_dec(v); v[0] = nnn; 			} while (0)
-#define SET_NIL_RETURN()	do { ref_dec(v); v[0].gt = GT_NIL;   		 		} while (0)
+#define SET_RETURN(n)		do { GV __n=(n); ref_dec(v); v[0]=__n; 			} while (0)
+#define SET_NIL_RETURN()	do { ref_dec(v); v[0].gt=GT_NIL;   		 		} while (0)
 
-#define SET_FALSE_RETURN()	do { ref_dec(v); v[0].gt = GT_FALSE; 				} while (0)
-#define SET_TRUE_RETURN()	do { ref_dec(v); v[0].gt = GT_TRUE;  				} while (0)
-#define SET_BOOL_RETURN(n)	do { ref_dec(v); v[0].gt = (n)?GT_TRUE:GT_FALSE;	} while (0)
-
-#define SET_INT_RETURN(n)	do { guru_int nnn = (n);					\
-		ref_dec(v); v[0].gt = GT_INT; v[0].i = nnn; } while (0)
-#define SET_FLOAT_RETURN(n)	do { guru_float nnn = (n);                  \
-        ref_dec(v); v[0].gt = GT_FLOAT;  v[0].f = nnn; } while (0)
+#define SET_FALSE_RETURN()	do { ref_dec(v); v[0].gt=GT_FALSE; 				} while (0)
+#define SET_TRUE_RETURN()	do { ref_dec(v); v[0].gt=GT_TRUE;  				} while (0)
+#define SET_BOOL_RETURN(n)	do { ref_dec(v); v[0].gt=(n)?GT_TRUE:GT_FALSE;	} while (0)
+#define SET_INT_RETURN(n)	do { GI __n=(n); ref_dec(v); v[0].gt=GT_INT;   v[0].i=__n; } while (0)
+#define SET_FLOAT_RETURN(n)	do { GF __n=(n); ref_dec(v); v[0].gt=GT_FLOAT; v[0].f=__n; } while (0)
 
 // macro to fetch from stack objects
-#define GURU_NIL_NEW()	    	((guru_obj)  {.gt = GT_NIL})
-#define GET_GT_ARG(n)			(v[(n)].gt)
-#define GET_INT_ARG(n)			(v[(n)].i)
-#define GET_ARY_ARG(n)			(v[(n)])
-#define GET_FLOAT_ARG(n)		(v[(n)].f)
-#define GET_STRING_ARG(n)		(v[(n)].string->data)
+#define GET_GT_ARG(n)		(v[(n)].gt)
+#define GET_INT_ARG(n)		(v[(n)].i)
+#define GET_FLOAT_ARG(n)	(v[(n)].f)
+#define GET_STRING_ARG(n)	(v[(n)].string->data)
 
 // macro to create new built-in objects
+#define GURU_NIL_NEW()	    ((guru_obj) {.gt = GT_NIL})
 
 #ifdef __GURU_CUDA__
-__GURU__ guru_int   guru_atoi(U8P s, U32 base);
-__GURU__ guru_float	guru_atof(U8P s);
+__GURU__ GI   		guru_atoi(U8P s, U32 base);
+__GURU__ GF			guru_atof(U8P s);
 
 __GURU__ U8P 		guru_i2s(U64 i, U32 base);
 

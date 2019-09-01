@@ -103,7 +103,7 @@ _search(const GV v[], const GV *key)
   @param  hash	pointer to target hash
   @param  key	pointer to key value
   @param  val	pointer to value
-  @return	mrbc_error_code
+  @return		error_code
 */
 __GURU__ int
 _set(GV *kv, GV *key, GV *val)

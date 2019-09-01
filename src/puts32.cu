@@ -50,8 +50,8 @@ _print(GV *v)
 #if GURU_USE_FLOAT
     case GT_FLOAT:  PRINTF("%f", v->f);		break;
 #endif
-    case GT_SYM: 	PRINTF("%s", id2name(v->i));			break;
-    case GT_CLASS:  PRINTF("%s", id2name(v->cls->sym_id));  break;
+    case GT_SYM: 	PRINTF("%s", id2name(v->i));				break;
+    case GT_CLASS:  PRINTF("%s", id2name(v->cls->sym_id));  	break;
     case GT_OBJ:
     	PRINTF("#<%04d:0x%08x>",
     		id2name(mrbc_get_class_by_object(v)->sym_id),
@@ -103,14 +103,14 @@ _print(GV *v)
 __GURU__ U32
 _p(GV *v)
 {
-	GV *p;
-	U8P        s;
+	GV  *p;
+	U8P name;
 
     switch (v->gt){		// only when output different from print_sub
     case GT_NIL: PRINTF("nil");		break;
     case GT_SYM:
-        s = id2name(v->i);
-        PRINTF(STRCHR(s, ';') ? "\":%s\"" : ":%s", s);
+        name = id2name(v->i);
+        PRINTF(STRCHR(name, ';') ? "\":%s\"" : ":%s", name);
         break;
 #if GURU_USE_ARRAY
     case GT_ARRAY:

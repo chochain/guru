@@ -21,25 +21,21 @@
 #include "c_array.h"
 #endif
 
-#if !defined(GURU_SYMBOL_SEARCH_LINER) && !defined(GURU_SYMBOL_SEARCH_BTREE)
-#define GURU_SYMBOL_SEARCH_BTREE
+#if !defined(GS_LINER) && !defined(GS_BTREE)
+#define GS_BTREE
 #endif
 
-#ifndef GURU_SYMBOL_TABLE_INDEX_TYPE
-#define GURU_SYMBOL_TABLE_INDEX_TYPE U16
+struct RTree {
+    U8P cstr;						//!< point to the symbol string.
+#ifdef GS_BTREE						// array-based btree
+    GS 	left;
+    GS 	right;
 #endif
-
-struct SYM_LIST {
-    U16								hash;		//!< hash value, returned by calc_hash().
-    U8P 							cstr;		//!< point to the symbol string.
-#ifdef GURU_SYMBOL_SEARCH_BTREE
-    GURU_SYMBOL_TABLE_INDEX_TYPE 	left;
-    GURU_SYMBOL_TABLE_INDEX_TYPE 	right;
-#endif
+    U16	hash;						//!< hash value, returned by _calc_hash.
 };
 
-__GURU__ U32 _sym_idx;							// point to the last(free) sym_list array.
-__GURU__ struct SYM_LIST _sym_list[MAX_SYMBOL_COUNT];
+__GURU__ U32 			_sym_idx;	// point to the last(free) sym_list array.
+__GURU__ struct RTree 	_sym[MAX_SYMBOL_COUNT];
 
 //================================================================
 /*! Calculate hash value.
@@ -67,27 +63,23 @@ _search_index(const U8P str)
 {
     U16 hash = _calc_hash(str);
 
-#ifdef GURU_SYMBOL_SEARCH_LINER
+#ifdef GS_BTREE
+    U32 i=0;
+    do {
+        if (_sym[i].hash==hash &&
+        	guru_strcmp(str, _sym[i].cstr)==0) {
+            return i;
+        }
+        i = (hash < _sym[i].hash) ? _sym[i].left : _sym[i].right;
+    } while (i!=0);
+#else
     for (U32 i=0; i < _sym_idx; i++) {
-        if (_sym_list[i].hash==hash && strcmp(str, _sym_list[i].cstr)==0) {
+        if (_sym[i].hash==hash && strcmp(str, _sym[i].cstr)==0) {
             return i;
         }
     }
-    return MAX_SYMBOL_COUNT;
 #endif
-
-#ifdef GURU_SYMBOL_SEARCH_BTREE
-    U32 i=0;
-    do {
-        if (_sym_list[i].hash==hash &&
-        	guru_strcmp(str, _sym_list[i].cstr)==0) {
-            return i;
-        }
-        i = (hash < _sym_list[i].hash) ? _sym_list[i].left : _sym_list[i].right;
-    } while (i!=0);
-
     return MAX_SYMBOL_COUNT;		// not found
-#endif
 }
 
 //================================================================
@@ -102,27 +94,27 @@ _add_index(const U8P str)
     assert(_sym_idx < MAX_SYMBOL_COUNT);
 
     // append table.
-    U32 sid = _sym_idx++;		// add to next entry
-    _sym_list[sid].hash = hash;
-    _sym_list[sid].cstr = str;
+    U32 sid = _sym_idx++;				// add to next entry
+    _sym[sid].hash = hash;
+    _sym[sid].cstr = str;
 
-#ifdef GURU_SYMBOL_SEARCH_BTREE
-    for (U32 i=0; ;) {
-        if (hash < _sym_list[i].hash) {
+#ifdef GS_BTREE
+    for (U32 i=0; ;) {					// array-based btree walker
+        if (hash < _sym[i].hash) {
             // left side
-            if (_sym_list[i].left==0) {		// left is empty?
-                _sym_list[i].left = sid;
+            if (_sym[i].left==0) {		// left is empty?
+                _sym[i].left = sid;
                 break;
             }
-            i = _sym_list[i].left;
+            i = _sym[i].left;
         }
         else {
             // right side
-            if (_sym_list[i].right==0) {	// right is empty?
-                _sym_list[i].right = sid;
+            if (_sym[i].right==0) {		// right is empty?
+                _sym[i].right = sid;
                 break;
             }
-            i = _sym_list[i].right;
+            i = _sym[i].right;
         }
     }
 #endif
@@ -139,8 +131,8 @@ _add_index(const U8P str)
 __GURU__ GV
 guru_sym_new(const U8P str)
 {
-    GV v = {.gt = GT_SYM};
-    guru_sym   sid = _search_index(str);
+    GV v   = {.gt = GT_SYM};
+    GS sid = _search_index(str);
 
     if (sid < MAX_SYMBOL_COUNT) {
         v.i = sid;
@@ -162,12 +154,12 @@ guru_sym_new(const U8P str)
 /*! Convert string to symbol value.
 
   @param  str		Target string.
-  @return guru_sym	Symbol value.
+  @return GS	Symbol value.
 */
-__GURU__ guru_sym
+__GURU__ GS
 name2id(const U8P str)
 {
-    guru_sym sid = _search_index(str);
+    GS sid = _search_index(str);
     if (sid < MAX_SYMBOL_COUNT) return sid;
 
     return _add_index(str);
@@ -176,16 +168,14 @@ name2id(const U8P str)
 //================================================================
 /*! Convert symbol value to string.
 
-  @param  guru_sym	Symbol value.
+  @param  GS	Symbol value.
   @return const char*	String.
   @retval NULL		Invalid sym_id was given.
 */
 __GURU__ U8P
-id2name(guru_sym sid)
+id2name(GS sid)
 {
-    return (sid >= _sym_idx)
-    		? NULL
-    		: _sym_list[sid].cstr;
+    return (sid < _sym_idx) ? _sym[sid].cstr : NULL;
 }
 
 #if GURU_USE_STRING
@@ -197,7 +187,7 @@ extern "C" __GURU__ void    guru_str_append_cstr(const GV *s1, const U8 *s2);
 /*! (method) inspect
  */
 __GURU__ void
-c_inspect(GV v[], U32 argc)
+c_sym_inspect(GV v[], U32 argc)
 {
     GV ret = guru_str_new(":");
 
@@ -211,7 +201,7 @@ c_inspect(GV v[], U32 argc)
 /*! (method) to_s
  */
 __GURU__ void
-c_to_s(GV v[], U32 argc)
+c_sym_to_s(GV v[], U32 argc)
 {
     v[0] = guru_str_new(id2name(v[0].i));
 }
@@ -246,9 +236,9 @@ __GURU__ void guru_init_class_symbol()  // << from symbol.cu
     guru_add_proc(c, "all_symbols", c_all_symbols);
 #endif
 #if GURU_USE_STRING
-    guru_add_proc(c, "inspect", 	c_inspect);
-    guru_add_proc(c, "to_s", 		c_to_s);
-    guru_add_proc(c, "id2name", 	c_to_s);
+    guru_add_proc(c, "inspect", 	c_sym_inspect);
+    guru_add_proc(c, "to_s", 		c_sym_to_s);
+    guru_add_proc(c, "id2name", 	c_sym_to_s);
 #endif
 }
 

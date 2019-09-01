@@ -26,7 +26,7 @@
 /*! white space character test
 
   @param  ch	character code.
-  @return	result.
+  @return		result.
 */
 __GURU__ bool
 _is_space(U8 ch)
@@ -244,7 +244,7 @@ guru_str_delete(GV *v)
 
   @param  s1	pointer to target value 1
   @param  s2	pointer to target value 2
-  @param	mrbc_error_code
+  @param	error_code
 */
 __GURU__ void
 guru_str_append(const GV *v0, const GV *v1)
@@ -274,7 +274,6 @@ guru_str_append(const GV *v0, const GV *v1)
 
   @param  s1	pointer to target value 1
   @param  s2	pointer to char (c_str)
-  @param	mrbc_error_code
 */
 __GURU__ void
 guru_str_append_cstr(const GV *v0, const U8 *str)
@@ -360,7 +359,7 @@ c_string_mul(GV v[], U32 argc)
 __GURU__ void
 c_string_size(GV v[], U32 argc)
 {
-    guru_int size = _size(v);
+    GI size = _size(v);
 
     SET_INT_RETURN(size);
 }
@@ -376,7 +375,7 @@ c_string_to_i(GV v[], U32 argc)
         base = v[1].i;
         if (base < 2 || base > 36) return;	// raise ? ArgumentError
     }
-    guru_int i = guru_atoi(_data(v), base);
+    GI i = guru_atoi(_data(v), base);
 
     SET_INT_RETURN(i);
 }
@@ -388,7 +387,7 @@ c_string_to_i(GV v[], U32 argc)
 __GURU__ void
 c_string_to_f(GV v[], U32 argc)
 {
-    guru_float d = ATOF(_data(v));
+    GF d = ATOF(_data(v));
 
     SET_FLOAT_RETURN(d);
 }

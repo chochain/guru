@@ -21,7 +21,7 @@ __GURU__ U8P _output_buf;
 __GURU__ volatile U32 _mutex_con;
 
 __GURU__ void
-_write(guru_vtype gt, guru_vtype fmt, U32 sz, U8P buf)
+_write(GT gt, GT fmt, U32 sz, U8P buf)
 {
 	if (threadIdx.x!=0) return;		// only thread 0 within a block can write
 
@@ -123,15 +123,15 @@ console_char(U8 c)
 }
 
 __GURU__ void
-console_int(guru_int i)
+console_int(GI i)
 {
-	_write(GT_INT, GT_INT, sizeof(guru_int), (U8P)&i);
+	_write(GT_INT, GT_INT, sizeof(GI), (U8P)&i);
 }
 
 __GURU__ void
-console_hex(guru_int i)
+console_hex(GI i)
 {
-	_write(GT_INT, GT_EMPTY, sizeof(guru_int), (U8P)&i);
+	_write(GT_INT, GT_EMPTY, sizeof(GI), (U8P)&i);
 }
 
 __GURU__ void
@@ -143,9 +143,9 @@ console_ptr(void *ptr)
 
 #if GURU_USE_FLOAT
 __GURU__ void
-console_float(guru_float f)
+console_float(GF f)
 {
-	_write(GT_FLOAT, GT_EMPTY, sizeof(guru_float), (U8P)&f);
+	_write(GT_FLOAT, GT_EMPTY, sizeof(GF), (U8P)&f);
 }
 #endif
 
@@ -170,10 +170,10 @@ _guru_host_print(guru_print_node *node, U32 trace)
 	if (trace) printf("<%d>", node->id);
 	switch (node->gt) {
 	case GT_INT:
-		printf((node->fmt==GT_INT ? "%d" : "%04x"), *((guru_int *)node->data));
+		printf((node->fmt==GT_INT ? "%d" : "%04x"), *((GI *)node->data));
 		break;
 	case GT_FLOAT:
-		printf("%g", *((guru_float *)node->data));
+		printf("%g", *((GF *)node->data));
 		break;
 	case GT_STR:
 		memcpy(buf, (U8P)node->data, node->size);
