@@ -202,13 +202,6 @@ c_object_class(GV v[], U32 argc)
     SET_RETURN(ret);
 }
 
-// Object.new
-__GURU__ void
-c_object_new(GV v[], U32 argc)
-{
-	assert(1==0);			// taken cared in opcode
-}
-
 //================================================================
 /*! get callee name
 
@@ -265,7 +258,7 @@ c_object_attr_reader(GV v[], U32 argc)
 
         // define reader method
         U8P name = id2name(v[i].i);
-        mrbc_define_method(v[0].cls, name, c_object_getiv);
+        guru_define_method(v[0].cls, name, c_object_getiv);
     }
 }
 
@@ -280,7 +273,7 @@ c_object_attr_accessor(GV v[], U32 argc)
 
         // define reader method
         U8P name = id2name(v[i].i);
-        mrbc_define_method(v[0].cls, name, c_object_getiv);
+        guru_define_method(v[0].cls, name, c_object_getiv);
 
         // make string "....=" and define writer method.
         U8P buf = (U8P)guru_alloc(STRLEN(name)+2);
@@ -289,7 +282,7 @@ c_object_attr_accessor(GV v[], U32 argc)
         STRCPY(buf, name);
         STRCAT(buf, (U8P)"=");
         guru_sym_new(buf);
-        mrbc_define_method(v[0].cls, buf, c_object_setiv);
+        guru_define_method(v[0].cls, buf, c_object_setiv);
         guru_free(buf);
     }
 }
@@ -342,6 +335,12 @@ c_object_to_s(GV v[], U32 argc)
     SET_RETURN(ret);
 }
 #endif
+
+__GURU__ void
+c_object_new(GV v[], U32 argc)
+{
+	assert(1==0);		// taken cared in opcode handler
+}
 
 __GURU__ void
 _init_class_object()

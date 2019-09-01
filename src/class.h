@@ -21,15 +21,15 @@ extern "C" {
 #endif
 
 // external methods
-__GURU__ guru_class *mrbc_define_class(const U8P name, guru_class *super);
-__GURU__ guru_proc  *mrbc_define_method(guru_class *cls, const U8P name, guru_fptr cfunc);
+__GURU__ guru_class *guru_define_class(const U8P name, guru_class *super);
+__GURU__ guru_proc  *guru_define_method(guru_class *cls, const U8P name, guru_fptr cfunc);
+__GURU__ guru_proc 	*guru_alloc_proc(const U8P name);
 
 __GURU__ guru_class *class_by_obj(guru_obj *obj);
 __GURU__ guru_proc  *proc_by_sid(GV rcv, GS sid);
 
-// cross module c-functions
-__GURU__ guru_proc 	*mrbc_alloc_proc(const U8P name);
-__GURU__ void		c_object_new(GV v[], U32 argc);
+// cross module c-function (a hack)
+__GURU__ void 		c_object_new(GV v[], U32 argc);
 
 #ifdef __cplusplus
 }

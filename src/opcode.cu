@@ -1401,7 +1401,7 @@ op_lambda(guru_vm *vm, U32 code, GV *regs)
     int rb = GETARG_b(code);      		// sequence position in irep list
     // int c = GETARG_C(code);    		// TODO: Add flags support for OP_LAMBDA
 
-    guru_proc *prc = (guru_proc *)mrbc_alloc_proc((U8P)"(lambda)");
+    guru_proc *prc = (guru_proc *)guru_alloc_proc((U8P)"(lambda)");
 
     prc->irep = _vm_irep_list(vm, rb);
     prc->flag &= ~GURU_CFUNC;           // Ruby IREP
@@ -1432,7 +1432,7 @@ op_class(guru_vm *vm, U32 code, GV *regs)
 
     guru_class *super = (regs[ra+1].gt==GT_CLASS) ? regs[ra+1].cls : guru_class_object;
     const U8P  name   = _vm_skey(vm, rb);
-    guru_class *cls   = (guru_class *)mrbc_define_class(name, super);
+    guru_class *cls   = guru_define_class(name, super);
 
     _RA_T(GT_CLASS, cls=cls);
     return 0;

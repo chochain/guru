@@ -33,13 +33,15 @@ __GURU__ U32 _mutex_cls;
 __GURU__ guru_class*
 guru_add_class(const char *name, guru_class *super)
 {
-	return mrbc_define_class((U8P)name, super);
+	// proxy to internal, since char * is often used for constructor
+	return guru_define_class((U8P)name, super);
 }
 
 __GURU__ guru_proc*
 guru_add_proc(guru_class *cls, const char *name, guru_fptr cfunc)
 {
-	return mrbc_define_method(cls, (U8P)name, cfunc);
+	// proxy to internal function, since const char * is used often for constructors
+	return guru_define_method(cls, (U8P)name, cfunc);
 }
 
 //================================================================
@@ -131,7 +133,7 @@ proc_by_sid(GV rcv, GS sid)
   @param  super		super class.
 */
 __GURU__ guru_class*
-mrbc_define_class(const U8P name, guru_class *super)
+guru_define_class(const U8P name, guru_class *super)
 {
     if (super == NULL) super = guru_class_object;  // set default to Object.
 
@@ -158,7 +160,7 @@ mrbc_define_class(const U8P name, guru_class *super)
 }
 
 __GURU__ guru_proc *
-mrbc_alloc_proc(const U8P name)
+guru_alloc_proc(const U8P name)
 {
     guru_proc *proc = (guru_proc *)guru_alloc(sizeof(guru_proc));
 
@@ -184,11 +186,11 @@ mrbc_alloc_proc(const U8P name)
   @param  cfunc		pointer to function.
 */
 __GURU__ guru_proc*
-mrbc_define_method(guru_class *cls, const U8P name, guru_fptr cfunc)
+guru_define_method(guru_class *cls, const U8P name, guru_fptr cfunc)
 {
     if (cls==NULL) cls = guru_class_object;		// set default to Object.
 
-    guru_proc *proc = mrbc_alloc_proc(name);
+    guru_proc *proc = guru_alloc_proc(name);
 
     if (!proc) return NULL;
 
