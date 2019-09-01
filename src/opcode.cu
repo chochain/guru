@@ -723,7 +723,7 @@ op_send(guru_vm *vm, U32 code, GV *regs)
     }
 
 	GS  sid = _vm_sid(vm, rb);
-    guru_proc *m  = (guru_proc *)mrbc_get_proc_by_symid(rcv, sid);
+    guru_proc *m  = (guru_proc *)proc_by_sid(rcv, sid);
 
     if (m==0) {
     	U8P key = _vm_skey(vm, rb);
@@ -1261,8 +1261,8 @@ op_strcat(guru_vm *vm, U32 code, GV *regs)
     GV *pb  = &regs[rb];
     GS sid  = name2id((U8P)"to_s");			// from global symbol pool
 
-    guru_proc *ma = mrbc_get_proc_by_symid(*pa, sid);
-    guru_proc *mb = mrbc_get_proc_by_symid(*pb, sid);
+    guru_proc *ma = proc_by_sid(*pa, sid);
+    guru_proc *mb = proc_by_sid(*pb, sid);
 
     if (ma && IS_CFUNC(ma)) ma->func(pa, 0);
     if (mb && IS_CFUNC(mb)) mb->func(pb, 0);
@@ -1462,7 +1462,7 @@ op_exec(guru_vm *vm, U32 code, GV *regs)
     vm->state->irep  = _vm_irep_list(vm, rb);			// fetch designated irep
     vm->state->pc 	 = 0;								// switch context to callee
     vm->state->reg 	 += ra;								// shift regfile (for local stack)
-    vm->state->klass = mrbc_get_class_by_object(&rcv);
+    vm->state->klass = class_by_obj(&rcv);
 
     return 0;
 }

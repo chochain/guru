@@ -78,7 +78,7 @@ mrbc_send(GV v[], GV *rcv, const U8P method, U32 argc, ...)
 {
     GV *regs = v + 2;	     // allocate 2 for stack
     GS   sid   = name2id(method);
-    guru_proc  *m    = mrbc_get_proc_by_symid(*rcv, sid);
+    guru_proc  *m    = proc_by_sid(*rcv, sid);
 
     if (m == 0) {
         PRINTF("No method. vtype=%d method='%s'\n", rcv->gt, method);
@@ -197,7 +197,7 @@ __GURU__ void
 c_object_class(GV v[], U32 argc)
 {
     GV ret = {.gt = GT_CLASS };
-    ret.cls = mrbc_get_class_by_object(v);
+    ret.cls = class_by_obj(v);
 
     SET_RETURN(ret);
 }
@@ -304,7 +304,7 @@ c_object_kind_of(GV v[], U32 argc)
         SET_BOOL_RETURN(0);
         return;
     }
-    const guru_class *cls = mrbc_get_class_by_object(&v[0]);
+    const guru_class *cls = class_by_obj(&v[0]);
 
     do {
         if (cls == v[1].cls) break;

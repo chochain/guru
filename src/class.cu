@@ -51,7 +51,7 @@ guru_add_proc(guru_class *cls, const char *name, guru_fptr cfunc)
   @return pointer to guru_class
 */
 __GURU__ guru_class*
-mrbc_get_class_by_object(guru_obj *obj)
+class_by_obj(guru_obj *obj)
 {
     guru_class *cls;
 
@@ -88,7 +88,7 @@ mrbc_get_class_by_object(guru_obj *obj)
   @return		pointer to class object.
 */
 __GURU__ guru_class*
-mrbc_get_class_by_name(const U8P name)
+_name2class(const U8P name)
 {
     guru_obj obj = const_object_get(name2id(name));
 
@@ -105,9 +105,9 @@ mrbc_get_class_by_name(const U8P name)
   @return
 */
 __GURU__ guru_proc*
-mrbc_get_proc_by_symid(GV rcv, GS sid)
+proc_by_sid(GV rcv, GS sid)
 {
-    guru_class *cls = mrbc_get_class_by_object(&rcv);
+    guru_class *cls = class_by_obj(&rcv);
 
     while (cls != 0) {
         guru_proc *proc = cls->vtbl;
@@ -135,7 +135,7 @@ mrbc_define_class(const U8P name, guru_class *super)
 {
     if (super == NULL) super = guru_class_object;  // set default to Object.
 
-    guru_class *cls = mrbc_get_class_by_name(name);
+    guru_class *cls = _name2class(name);
     if (cls) return cls;
 
     // create a new class?
