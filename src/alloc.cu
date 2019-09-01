@@ -1,7 +1,7 @@
 /*! @file
 
   @brief
-  mrubyc memory management - deprecated, replaced by alloc32.cu
+  mrbc memory management - deprecated, replaced by alloc32.cu
 
   <pre>
   Copyright (C) 2015-2018 Kyushu Institute of Technology.

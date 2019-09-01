@@ -1,10 +1,9 @@
 /*! @file
   @brief
-  mruby/c Hash class
+  GURU Hash class
 
   <pre>
-  Copyright (C) 2015-2018 Kyushu Institute of Technology.
-  Copyright (C) 2015-2018 Shimane IT Open-Innovation Center.
+  Copyright (C) 2019 GreenII
 
   This file is distributed under BSD 3-Clause License.
 
@@ -490,7 +489,7 @@ c_hash_inspect(GV v[], U32 argc)
         guru_str_append_cstr(&ret, "=>");
         guru_str_append(&ret, &s[2]);
 
-        ref_clr(&s[1]);								// free locally allocated memory
+        ref_clr(&s[1]);							// free locally allocated memory
         ref_clr(&s[2]);
     }
     guru_str_append_cstr(&ret, "}");

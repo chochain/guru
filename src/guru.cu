@@ -3,7 +3,7 @@
   Guru value definitions non-optimized
 
   <pre>
-  Copyright (C) 2018- Greenii
+  Copyright (C) 2019- GreenII
   </pre>
 */
 #include <stdio.h>

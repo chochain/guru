@@ -1,10 +1,9 @@
 /*! @file
   @brief
-  Guru Object, Proc, Nil, False and True class and class specific functions.
+  GURU Object classes i.e. Proc, Nil, False and True class and class specific functions.
 
   <pre>
-  Copyright (C) 2015-2018 Kyushu Institute of Technology.
-  Copyright (C) 2015-2018 Shimane IT Open-Innovation Center.
+  Copyright (C) 2019- GreenII
 
   This file is distributed under BSD 3-Clause License.
 

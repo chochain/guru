@@ -1,6 +1,15 @@
 /*! @file
   @brief
-  guru 32-bit memory management.
+  GURU 32-bit memory management.
+
+  <pre>
+  Copyright (C) 2019 GreenII.
+
+  This file is distributed under BSD 3-Clause License.
+
+  Memory management for objects in GURU.
+
+  </pre>
 */
 #include <stdio.h>
 #include <assert.h>

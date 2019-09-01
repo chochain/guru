@@ -1,3 +1,14 @@
+/*! @file
+  @brief
+  GURU global objects.
+
+  <pre>
+  Copyright (C) 2019- GreenII
+
+  This file is distributed under BSD 3-Clause License.
+
+  </pre>
+*/
 #include <assert.h>
 #include "value.h"
 #include "global.h"

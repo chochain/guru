@@ -1,12 +1,11 @@
 /*! @file
   @brief
+  GURU object class
 
   <pre>
-  Copyright (C) 2015-2018 Kyushu Institute of Technology.
-  Copyright (C) 2015-2018 Shimane IT Open-Innovation Center.
+  Copyright (C) 2019- GreenII
 
   This file is distributed under BSD 3-Clause License.
-
 
   </pre>
 */
@@ -25,7 +24,7 @@ __GPU__  void		guru_class_init(void);
 __GURU__ GV 		guru_inspect(GV v[], GV *rcv);				// inspect
 __GURU__ GV 		guru_kind_of(GV v[], U32 argc);				// whether v1 is a kind of v0
 
-// cross module c-function call (for now, a hack)
+// cross module c-function call (a hack for now)
 __GURU__ void		c_proc_call(GV v[], U32 argc);
 
 #ifdef __cplusplus

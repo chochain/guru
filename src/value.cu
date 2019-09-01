@@ -1,3 +1,13 @@
+/*! @file
+  @brief
+  GURU value and macro definitions
+
+  <pre>
+  Copyright (C) 2019- GreenII
+
+  This file is distributed under BSD 3-Clause License.
+  </pre>
+*/
 #include <assert.h>
 #include "value.h"
 #include "alloc.h"

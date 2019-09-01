@@ -1,10 +1,9 @@
 /*! @file
   @brief
-  mruby/c String object
+  GURU String object
 
   <pre>
-  Copyright (C) 2015-2018 Kyushu Institute of Technology.
-  Copyright (C) 2015-2018 Shimane IT Open-Innovation Center.
+  Copyright (C) 2019 GreenII
 
   This file is distributed under BSD 3-Clause License.
 

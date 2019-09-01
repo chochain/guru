@@ -1,9 +1,9 @@
 /*! @file
   @brief
+  GURU microcode unit (instruction + dispatcher)
 
   <pre>
-  Copyright (C) 2015 Kyushu Institute of Technology.
-  Copyright (C) 2015 Shimane IT Open-Innovation Center.
+  Copyright (C) 2019- GreenII
 
   This file is distributed under BSD 3-Clause License.
 

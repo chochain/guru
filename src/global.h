@@ -1,16 +1,14 @@
 /*! @file
   @brief
-  Manage global objects.
+  GURU global objects.
 
   <pre>
-  Copyright (C) 2015-2018 Kyushu Institute of Technology.
-  Copyright (C) 2015-2018 Shimane IT Open-innovation Center.
+  Copyright (C) 2019- GreenII
 
   This file is distributed under BSD 3-Clause License.
 
   </pre>
 */
-
 #ifndef GURU_SRC_GLOBAL_H_
 #define GURU_SRC_GLOBAL_H_
 

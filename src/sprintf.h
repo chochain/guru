@@ -1,10 +1,11 @@
 /*! @file
   @brief
-  console output module. (not yet input)
+  GURU console output module. (not yet input)
+
+  vm_config.h#GURU_USE_CONSOLE can switch between CUDA or internal implementation
 
   <pre>
-  Copyright (C) 2015-2018 Kyushu Institute of Technology.
-  Copyright (C) 2015-2018 Shimane IT Open-Innovation Center.
+  Copyright (C) 2019 GreenII
 
   This file is distributed under BSD 3-Clause License.
 
@@ -21,7 +22,7 @@ extern "C" {
 #endif
 
 //================================================================
-/*! printf tiny (mruby/c) version data container.
+/*! printf internal version data container.
  */
 typedef struct RPrintFormat {
 	U32 			type  : 8;			//!< format char. (e.g. 'd','f','x'...)

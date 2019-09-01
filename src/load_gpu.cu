@@ -1,6 +1,14 @@
 /*! @file
   @brief
-  Guru bytecode loader. Image built by GPU directly
+  GURU bytecode loader (IREP code parse by CUDA device directly).
+
+  alternatively, load.cu can be used for host built image (then passed into device for execution)
+  <pre>
+  Copyright (C) 2019- Greeni
+
+  This file is distributed under BSD 3-Clause License.
+
+  </pre>
 */
 #include <assert.h>
 #include "vm_config.h"

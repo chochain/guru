@@ -1,16 +1,15 @@
 /*! @file
   @brief
-  Guru bytecode loader.
+  GURU bytecode loader (host load IREP code, build image and copy into CUDA memory).
 
+  alternatively, load_gpu.cu can be used for device image building
   <pre>
-  Copyright (C) 2015 Kyushu Institute of Technology.
-  Copyright (C) 2015 Shimane IT Open-Innovation Center.
+  Copyright (C) 2019- Greeni
 
   This file is distributed under BSD 3-Clause License.
 
   </pre>
 */
-
 #ifndef GURU_SRC_LOAD_H_
 #define GURU_SRC_LOAD_H_
 

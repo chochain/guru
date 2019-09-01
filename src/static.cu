@@ -1,15 +1,13 @@
 /*! @file
   @brief
-  Declare static data.
+  GURU - static data declarations
 
   <pre>
-  Copyright (C) 2015-2016 Kyushu Institute of Technology.
-  Copyright (C) 2015-2016 Shimane IT Open-Innovation Center.
+  Copyright (C) 2019- GreenII
 
   This file is distributed under BSD 3-Clause License.
   </pre>
 */
-
 #include "guru.h"
 
 /* Class Tree */

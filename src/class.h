@@ -1,16 +1,15 @@
 /*! @file
   @brief
+  GURU class building functions
 
   <pre>
-  Copyright (C) 2015-2018 Kyushu Institute of Technology.
-  Copyright (C) 2015-2018 Shimane IT Open-Innovation Center.
+  Copyright (C) 2019- GreenII
 
   This file is distributed under BSD 3-Clause License.
 
 
   </pre>
 */
-
 #ifndef GURU_SRC_CLASS_H_
 #define GURU_SRC_CLASS_H_
 

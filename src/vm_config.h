@@ -1,10 +1,9 @@
 /*! @file
   @brief
-  Global configration of mruby/c VM's
+  GURU - global configration for VM's
 
   <pre>
-  Copyright (C) 2015 Kyushu Institute of Technology.
-  Copyright (C) 2015 Shimane IT Open-Innovation Center.
+  Copyright (C) 2019- GreenII
 
   This file is distributed under BSD 3-Clause License.
 

@@ -1,12 +1,11 @@
 /*! @file
   @brief
-  guru instruction unit
+  GURU instruction unit
     1. guru VM, host or cuda image, constructor and dispatcher
     2. dumpers for regfile and irep tree
 
   <pre>
-  Copyright (C) 2015-2018 Kyushu Institute of Technology.
-  Copyright (C) 2015-2018 Shimane IT Open-Innovation Center.
+  Copyright (C) 2019- GreenII
 
   This file is distributed under BSD 3-Clause License.
 
