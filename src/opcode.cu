@@ -1499,7 +1499,7 @@ op_method(guru_vm *vm, U32 code, GV *regs)
     guru_proc 	*p  = cls->vtbl;
     void 		*pp = &cls->vtbl;
     while (p != NULL) {						// walk through vtable
-    	if (p->sym_id == sid) break;
+    	if (p->sid == sid) break;
     	pp = &p->next;
     	p  = p->next;
     }
@@ -1513,7 +1513,7 @@ op_method(guru_vm *vm, U32 code, GV *regs)
     }
 
     // add proc to class
-    prc->sym_id = sid;
+    prc->sid 	= sid;
     prc->flag   &= ~GURU_CFUNC;
 
     prc->next   = cls->vtbl;				// add to top of vtable

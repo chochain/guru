@@ -19,8 +19,8 @@
 //================================================================
 /*! binary search
 
-  @param  st		pointer to instance store handle.
-  @param  sym_id	symbol ID.
+  @param  st	pointer to instance store handle.
+  @param  sid	symbol ID.
   @return		result. It's not necessarily found.
 */
 __GURU__ S32
@@ -33,7 +33,7 @@ _bsearch(guru_store *st, GS sid)
     guru_store_data *d = st->data;
     while (left < right) {
         int mid = (left + right) >> 1; 			// div by 2
-        if ((d+mid)->sym_id < sid) {
+        if ((d+mid)->sid < sid) {
             left = mid + 1;
         } else {
             right = mid;
@@ -95,7 +95,7 @@ _delete(guru_store *st)
 {
     guru_store_data *d = st->data;
     for (U32 i=0; i<st->n; i++, d++) {		// free logical
-        ref_clr(&d->value);            // CC: was dec_ref 20181101
+        ref_clr(&d->val);            // CC: was dec_ref 20181101
     }
     st->n = 0;
 
@@ -107,7 +107,7 @@ _delete(guru_store *st)
 /*! setter
 
   @param  st		pointer to instance store handle.
-  @param  sym_id	symbol ID.
+  @param  sid	symbol ID.
   @param  set_val	set value.
   @return			0: success, 1:failed
 */
@@ -121,12 +121,12 @@ _set(guru_store *st, GS sid, GV *val)
         goto INSERT_VALUE;
     }
     // replace value ?
-    if (d->sym_id == sid) {
-        ref_clr(&d->value);      // CC: was dec_refc 20181101
-        d->value = *val;
+    if (d->sid == sid) {
+        ref_clr(&d->val);      								// CC: was dec_refc 20181101
+        d->val = *val;
         return 0;
     }
-    if (d->sym_id < sid) idx++;
+    if (d->sid < sid) idx++;
 
 INSERT_VALUE:
     if (st->n >= st->size) {								// need resize?
@@ -137,8 +137,8 @@ INSERT_VALUE:
         int size = sizeof(guru_store_data) * (st->n - idx);
         MEMCPY((U8P)(d+1), (U8P)d, size);
     }
-    d->sym_id = sid;
-    d->value  = *val;
+    d->sid = sid;
+    d->val = *val;
     st->n++;
 
     return 0;
@@ -147,8 +147,8 @@ INSERT_VALUE:
 //================================================================
 /*! getter
 
-  @param  st		pointer to instance store handle.
-  @param  sym_id	symbol ID.
+  @param  st	pointer to instance store handle.
+  @param  sid	symbol ID.
   @return		pointer to GV or NULL.
 */
 __GURU__ GV*
@@ -158,9 +158,9 @@ _get(guru_store *st, GS sid)
     if (idx < 0) return NULL;
 
     guru_store_data *d = st->data + idx;
-    if (d->sym_id != sid) return NULL;
+    if (d->sid != sid) return NULL;
 
-    return &d->value;
+    return &d->val;
 }
 
 //================================================================
@@ -207,8 +207,8 @@ guru_store_delete(GV *v)
 //================================================================
 /*! instance variable setter
 
-  @param  obj		pointer to target.
-  @param  sym_id	key symbol ID.
+  @param  obj	pointer to target.
+  @param  sid	key symbol ID.
   @param  v		pointer to value.
 */
 __GURU__ void
@@ -221,8 +221,8 @@ guru_store_set(guru_obj *obj, GS sid, GV *v)
 //================================================================
 /*! instance variable getter
 
-  @param  obj		pointer to target.
-  @param  sym_id	key symbol ID.
+  @param  obj	pointer to target.
+  @param  sid	key symbol ID.
   @return		value.
 */
 __GURU__ guru_obj

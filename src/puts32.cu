@@ -50,12 +50,12 @@ _print(GV *v)
 #if GURU_USE_FLOAT
     case GT_FLOAT:  PRINTF("%f", v->f);		break;
 #endif
-    case GT_SYM: 	PRINTF("%s", id2name(v->i));				break;
-    case GT_CLASS:  PRINTF("%s", id2name(v->cls->sym_id));  	break;
+    case GT_SYM: 	PRINTF("%s", id2name(v->i));			break;
+    case GT_CLASS:  PRINTF("%s", id2name(v->cls->sid));  	break;
     case GT_OBJ:
     	PRINTF("#<%04d:0x%08x>",
-    		id2name(mrbc_get_class_by_object(v)->sym_id),
-    		v->self
+    		id2name(mrbc_get_class_by_object(v)->sid),
+    		(U32A)v->self
     	);
         break;
     case GT_PROC: 	PRINTF("#<Proc:0x%08x", v->proc); break;

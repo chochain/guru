@@ -325,11 +325,11 @@ c_object_to_s(GV v[], U32 argc)
 
     switch (v->gt) {
     case GT_CLASS:
-    	name = id2name(v->cls->sym_id);
+    	name = id2name(v->cls->sid);
     	ret = guru_str_new(name);
     	break;
     case GT_OBJ:
-    	name = id2name(v->self->cls->sym_id);
+    	name = id2name(v->self->cls->sid);
     	ret  = guru_str_new("#<0x");
     	guru_str_append_cstr(&ret, name);
     	guru_str_append_cstr(&ret, guru_i2s((U64)v->self, 16));

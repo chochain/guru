@@ -4,7 +4,7 @@
 /*
 
   GLobal objects are stored in '_global' array.
-  '_global' array is decending order by sym_id.
+  '_global' array is decending order by sid.
   In case of searching a global object, binary search is used.
   In case of adding a global object, insertion sort is used.
 
@@ -15,7 +15,7 @@ typedef enum {
 } _gtype;
 
 typedef struct _gobj_ {
-    GS 			sym_id;
+    GS 			sid;
     guru_obj 	obj;
     _gtype 		gt	:8;
 } _gobj;
@@ -34,7 +34,7 @@ _get_idx(GS sid, _gtype gt)
 {
     for (U32 i=0; i < _global_idx ; i++) {
         _gobj *obj = &_global[i];
-        if (obj->sym_id == sid && obj->gt == gt) return i;
+        if (obj->sid == sid && obj->gt == gt) return i;
     }
     return MAX_GLOBAL_COUNT;
 }
@@ -65,9 +65,9 @@ _add_obj(GS sid, guru_obj *obj, _gtype gt)
         idx = ++_global_idx;
          assert(idx < MAX_GLOBAL_COUNT);	// maybe raise ex
     }
-    _global[idx].sym_id = sid;
-    _global[idx].obj    = *obj;				// deep copy
-    _global[idx].gt     = gt;
+    _global[idx].sid = sid;
+    _global[idx].obj = *obj;				// deep copy
+    _global[idx].gt  = gt;
 
     MUTEX_FREE(_mutex_gobj);
 

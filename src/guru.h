@@ -142,7 +142,7 @@ typedef struct {							// 8-bytes
   Guru class object.
 */
 typedef struct RClass {			// 16-byte
-    GS       		sym_id;		// class name
+    GS       		sid;		// class name
     struct RClass 	*super;		// guru_class[super]
     struct RProc  	*vtbl;		// guru_proc[rprocs], linked list
 #ifdef GURU_DEBUG
@@ -185,7 +185,7 @@ typedef void (*guru_fptr)(guru_obj *obj, U32 argc);
 
 typedef struct RProc {			// 20-byte
     GURU_HDR;
-    GS 	 			sym_id;		// u32
+    GS 	 			sid;		// u32
     struct RProc 	*next;		// next function in linked list
     union {
         struct RIrep *irep;		// an IREP (Ruby code)

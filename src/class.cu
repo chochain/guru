@@ -101,7 +101,7 @@ mrbc_get_class_by_name(const U8P name)
 
   @param  vm
   @param  recv
-  @param  sym_id
+  @param  sid
   @return
 */
 __GURU__ guru_proc*
@@ -112,7 +112,7 @@ mrbc_get_proc_by_symid(GV rcv, GS sid)
     while (cls != 0) {
         guru_proc *proc = cls->vtbl;
         while (proc != 0) {					// walk the linked list
-            if (proc->sym_id == sid) {
+            if (proc->sid == sid) {
                 return proc;
             }
             proc = proc->next;
@@ -144,7 +144,7 @@ mrbc_define_class(const U8P name, guru_class *super)
 
     GS sid = name2id(name);
 
-    cls->sym_id = sid;
+    cls->sid = sid;
     cls->super 	= super;
     cls->vtbl 	= NULL;
     cls->name   = name;
@@ -167,7 +167,7 @@ mrbc_alloc_proc(const U8P name)
     proc->gt     = GT_PROC;
     proc->flag   = GURU_CFUNC;
     proc->refc   = 1;
-    proc->sym_id = name2id(name);
+    proc->sid    = name2id(name);
     proc->next   = NULL;
     proc->name   = name;
 

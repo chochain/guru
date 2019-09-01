@@ -43,19 +43,19 @@ _print(GV *v)
     U32 ret = 0;
 
     switch (v->gt){
-    case GT_EMPTY:	 console_str("(empty)");					break;
-    case GT_NIL:					                			break;
-    case GT_FALSE:	 console_str("false");						break;
-    case GT_TRUE:	 console_str("true");						break;
-    case GT_INT:     console_int(v->i);							break;
+    case GT_EMPTY:	 console_str("(empty)");			break;
+    case GT_NIL:					                	break;
+    case GT_FALSE:	 console_str("false");				break;
+    case GT_TRUE:	 console_str("true");				break;
+    case GT_INT:     console_int(v->i);					break;
 #if GURU_USE_FLOAT
-    case GT_FLOAT:  console_float(v->f);						break;
+    case GT_FLOAT:  console_float(v->f);				break;
 #endif
-    case GT_SYMBOL: console_str(id2name(v->i));					break;
-    case GT_CLASS:  console_str(id2name(v->cls->sym_id));   	break;
+    case GT_SYMBOL: console_str(id2name(v->i));			break;
+    case GT_CLASS:  console_str(id2name(v->cls->sid));  break;
     case GT_OBJ:
     	console_str("#<");
-    	console_str(id2name(mrbc_get_class_by_object(v)->sym_id));
+    	console_str(id2name(mrbc_get_class_by_object(v)->sid));
         console_str(":");
         console_ptr((void *)v->self);
         console_str(">");
