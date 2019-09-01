@@ -54,7 +54,7 @@ _print(GV *v)
     case GT_CLASS:  PRINTF("%s", id2name(v->cls->sid));  	break;
     case GT_OBJ:
     	PRINTF("#<%04d:0x%08x>",
-    		id2name(mrbc_get_class_by_object(v)->sid),
+    		id2name(class_by_obj(v)->sid),
     		(U32A)v->self
     	);
         break;
@@ -77,7 +77,7 @@ _print(GV *v)
         break;
     case GT_RANGE:
         _print(&v->range->first);
-        PRINTF(IS_EXCLUDE_END(v->range) ? "..." : "..");
+        PRINTF("%s", IS_EXCLUDE_END(v->range) ? "..." : "..");
         _print(&v->range->last);
         break;
     case GT_HASH:
@@ -110,7 +110,7 @@ _p(GV *v)
     case GT_NIL: PRINTF("nil");		break;
     case GT_SYM:
         name = id2name(v->i);
-        PRINTF(STRCHR(name, ';') ? "\":%s\"" : ":%s", name);
+        STRCHR(name, ';') ? PRINTF("\"%s\"", name) : PRINTF("%s", name);
         break;
 #if GURU_USE_ARRAY
     case GT_ARRAY:

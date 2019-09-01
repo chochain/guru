@@ -24,15 +24,15 @@
 //================================================================
 /*! initialize data container.
 
-  @param  pf	pointer to mrbc_printf
+  @param  pf	pointer to guru_print
   @param  buf	pointer to output buffer.
   @param  size	buffer size.
   @param  fstr	format string.
 */
-__GURU__ mrbc_printf *
-_init(mrbc_printf *pf, const U8P buf, U32 sz, const U8 *fstr)
+__GURU__ guru_print *
+_init(guru_print *pf, const U8P buf, U32 sz, const U8 *fstr)
 {
-    pf->fmt = (mrbc_print_fmt){0};
+    pf->fmt = (guru_print_fmt){0};
     pf->fstr= fstr;
     pf->end = buf + sz;			// buf array boundary
     pf->buf = pf->p = buf;		// point at the start of buf
@@ -43,11 +43,11 @@ _init(mrbc_printf *pf, const U8P buf, U32 sz, const U8 *fstr)
 //================================================================
 /*! return string length in buffer
 
-  @param  pf	pointer to mrbc_printf
+  @param  pf	pointer to guru_print
   @return	length
 */
 __GURU__ __INLINE__ S32
-_size(mrbc_printf *pf)
+_size(guru_print *pf)
 {
     return pf->end - pf->p;
 }
@@ -55,10 +55,10 @@ _size(mrbc_printf *pf)
 //================================================================
 /*! terminate ('\0') output buffer.
 
-  @param  pf	pointer to mrbc_printf
+  @param  pf	pointer to guru_print
 */
 __GURU__ __INLINE__ void
-_done(mrbc_printf *pf)
+_done(guru_print *pf)
 {
     *pf->p = '\0';
 }
@@ -66,17 +66,17 @@ _done(mrbc_printf *pf)
 //================================================================
 /*! sprintf subcontract function
 
-  @param  pf	pointer to mrbc_printf
+  @param  pf	pointer to guru_print
   @retval 0	(format string) done.
   @retval 1	found a format identifier.
   @retval -1	buffer full.
   @note		not terminate ('\0') buffer tail.
 */
 __GURU__ int
-_next(mrbc_printf *pf)
+_next(guru_print *pf)
 {
     U8  ch = '\0';
-    pf->fmt = (mrbc_print_fmt){0};
+    pf->fmt = (guru_print_fmt){0};
 
     while (_size(pf) && (ch = *pf->fstr) != '\0') {
         pf->fstr++;
@@ -126,14 +126,14 @@ PARSE_WIDTH:
 //================================================================
 /*! sprintf subcontract function for U8 '%c'
 
-  @param  pf	pointer to mrbc_printf
+  @param  pf	pointer to guru_print
   @param  ch	output character (ASCII)
   @retval 0	done.
   @retval -1	buffer full.
   @note		not terminate ('\0') buffer tail.
 */
 __GURU__ S32
-__char(mrbc_printf *pf, U8 ch)
+__char(guru_print *pf, U8 ch)
 {
     if (pf->fmt.minus) {
         if (_size(pf)) *pf->p++ = ch;
@@ -154,13 +154,13 @@ __char(mrbc_printf *pf, U8 ch)
 //================================================================
 /*! sprintf subcontract function for float(double) '%f'
 
-  @param  pf	pointer to mrbc_printf.
+  @param  pf	pointer to guru_print.
   @param  value	output value.
   @retval 0	done.
   @retval -1	buffer full.
 */
 __GURU__ int
-__float(mrbc_printf *pf, double value)
+__float(guru_print *pf, double value)
 {
     U8  fstr[16];
     U8P p0 = (U8P)pf->fstr;
@@ -182,7 +182,7 @@ __float(mrbc_printf *pf, double value)
 //================================================================
 /*! sprintf subcontract function for U8 '%s'
 
-  @param  pf	pointer to mrbc_printf.
+  @param  pf	pointer to guru_print.
   @param  str	output string.
   @param  pad	padding character.
   @retval 0	done.
@@ -190,7 +190,7 @@ __float(mrbc_printf *pf, double value)
   @note		not terminate ('\0') buffer tail.
 */
 __GURU__ S32
-__str(mrbc_printf *pf, U8P str, U8 pad)
+__str(guru_print *pf, U8P str, U8 pad)
 {
 	U32 len = STRLEN(str);
     S32 ret = 0;
@@ -221,7 +221,7 @@ __str(mrbc_printf *pf, U8P str, U8 pad)
 //================================================================
 /*! sprintf subcontract function for integer '%d' '%x' '%b'
 
-  @param  pf	pointer to mrbc_printf.
+  @param  pf	pointer to guru_print.
   @param  value	output value.
   @param  base	n base.
   @retval 0	done.
@@ -229,7 +229,7 @@ __str(mrbc_printf *pf, U8P str, U8 pad)
   @note		not terminate ('\0') buffer tail.
 */
 __GURU__ S32
-__int(mrbc_printf *pf, GI value, U32 base)
+__int(guru_print *pf, GI value, U32 base)
 {
     U32 sign = 0;
     U32 v = value;			// (note) Change this when supporting 64 bit.
@@ -290,7 +290,7 @@ guru_printf(const U8 *fstr, ...)
     va_start(ap, fstr);
 
     U32 ret = 0;
-    mrbc_printf pa, *pf = _init(&pa, buf, PRINT_BUFSIZE, fstr);
+    guru_print pa, *pf = _init(&pa, buf, PRINT_BUFSIZE, fstr);
 
     while (ret==0 && _next(pf)) {
     	switch(pf->fmt.type) {
@@ -329,7 +329,7 @@ guru_vprintf(const U8 *fstr, GV v[], U32 argc)		// << from c_string.cu
 	U8  buf[PRINT_BUFSIZE];
     U32 i   = 0;
     U32 ret = 0;
-    mrbc_printf pa, *pf = _init(&pa, buf, PRINT_BUFSIZE, fstr);
+    guru_print pa, *pf = _init(&pa, buf, PRINT_BUFSIZE, fstr);
 
     while (ret==0 && _next(pf)) {
         if (i > argc) {

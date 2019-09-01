@@ -55,7 +55,7 @@ _print(GV *v)
     case GT_CLASS:  console_str(id2name(v->cls->sid));  break;
     case GT_OBJ:
     	console_str("#<");
-    	console_str(id2name(mrbc_get_class_by_object(v)->sid));
+    	console_str(id2name(class_by_obj(v)->sid));
         console_str(":");
         console_ptr((void *)v->self);
         console_str(">");
