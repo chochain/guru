@@ -52,7 +52,7 @@ _bsearch(guru_store *st, guru_sym sid)
 __GURU__ S32
 _resize(guru_store *st, U32 size)
 {
-    guru_store_data *d2 = (guru_store_data *) mrbc_realloc(st->data, sizeof(guru_store_data) * size);
+    guru_store_data *d2 = (guru_store_data *) guru_realloc(st->data, sizeof(guru_store_data) * size);
     if (!d2) return -1;		// ENOMEM
 
     st->data = d2;
@@ -71,12 +71,12 @@ _resize(guru_store *st, U32 size)
 __GURU__ guru_store *
 _new(U32 size)
 {
-    guru_store *st = (guru_store *)mrbc_alloc(sizeof(guru_store));
+    guru_store *st = (guru_store *)guru_alloc(sizeof(guru_store));
     if (!st) return NULL;	// ENOMEM
 
-    st->data = (guru_store_data *)mrbc_alloc(sizeof(guru_store_data) * size);
+    st->data = (guru_store_data *)guru_alloc(sizeof(guru_store_data) * size);
     if (!st->data) {		// ENOMEM
-        mrbc_free(st);
+        guru_free(st);
         return NULL;
     }
     st->size = size;
@@ -99,8 +99,8 @@ _delete(guru_store *st)
     }
     st->n = 0;
 
-    mrbc_free(st->data);					// free physical
-    mrbc_free(st);
+    guru_free(st->data);					// free physical
+    guru_free(st);
 }
 
 //================================================================
@@ -174,13 +174,13 @@ _get(guru_store *st, guru_sym sid)
 __GURU__ GV
 guru_store_new(guru_class *cls, U32 size)
 {
-    GV v = {.gt = GT_OBJ};
-    v.self = (guru_var *)mrbc_alloc(sizeof(guru_store) + size);
+    GV v = { .gt = GT_OBJ };
+    v.self = (guru_var *)guru_alloc(sizeof(guru_store));
     if (v.self == NULL) return v;	// ENOMEM
 
     v.self->ivar = _new(0);			// allocate internal kv handle
     if (v.self->ivar == NULL) {		// ENOMEM
-        mrbc_free(v.self);
+        guru_free(v.self);
         v.self = NULL;
         return v;
     }
@@ -201,7 +201,7 @@ __GURU__ void
 guru_store_delete(GV *v)
 {
     _delete(v->self->ivar);
-    mrbc_free(v->self);
+    guru_free(v->self);
 }
 
 //================================================================

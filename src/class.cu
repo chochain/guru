@@ -139,7 +139,7 @@ mrbc_define_class(const U8P name, guru_class *super)
     if (cls) return cls;
 
     // create a new class?
-    cls = (guru_class *)mrbc_alloc(sizeof(guru_class));
+    cls = (guru_class *)guru_alloc(sizeof(guru_class));
     if (!cls) return NULL;			// ENOMEM
 
     guru_sym sid = name2id(name);
@@ -160,7 +160,7 @@ mrbc_define_class(const U8P name, guru_class *super)
 __GURU__ guru_proc *
 mrbc_alloc_proc(const U8P name)
 {
-    guru_proc *proc = (guru_proc *)mrbc_alloc(sizeof(guru_proc));
+    guru_proc *proc = (guru_proc *)guru_alloc(sizeof(guru_proc));
 
     if (!proc) return NULL;
 

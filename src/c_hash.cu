@@ -190,12 +190,12 @@ guru_hash_new(int size)
     /*
       Allocate handle and data buffer.
     */
-    guru_hash *h = (guru_hash *)mrbc_alloc(sizeof(guru_hash));
+    guru_hash *h = (guru_hash *)guru_alloc(sizeof(guru_hash));
     if (!h) return ret;	// ENOMEM
 
-    GV *data = (GV *)mrbc_alloc(sizeof(GV) * (size<<1));
+    GV *data = (GV *)guru_alloc(sizeof(GV) * (size<<1));
     if (!data) {			// ENOMEM
-        mrbc_free(h);
+        guru_free(h);
         return ret;
     }
     h->refc = 1;

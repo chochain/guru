@@ -116,7 +116,7 @@ __GURU__ void
 _push_state(guru_vm *vm, U32 argc)
 {
 	guru_state *top = vm->state;
-    guru_state *st  = (guru_state *)mrbc_alloc(sizeof(guru_state));
+    guru_state *st  = (guru_state *)guru_alloc(sizeof(guru_state));
 
     st->reg   = top->reg;			// pass register file
     st->irep  = top->irep;
@@ -144,7 +144,7 @@ _pop_state(guru_vm *vm, GV *regs)
     for (U32 i=0; i < st->argc; i++) {
         ref_clr(p++);
     }
-    mrbc_free(st);
+    guru_free(st);
 }
 
 __GURU__ void

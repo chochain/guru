@@ -149,7 +149,7 @@ guru_sym_new(const U8P str)
 
     // create symbol object dynamically.
     U32 size = guru_strlen(str) + 1;
-    U8P buf  = (U8P)mrbc_alloc(size);
+    U8P buf  = (U8P)guru_alloc(size);
     if (buf==NULL) return v;		// ENOMEM raise?
 
     MEMCPY(buf, str, size);

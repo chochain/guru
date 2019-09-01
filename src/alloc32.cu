@@ -335,7 +335,7 @@ _init_mmu(void *mem, U32 size)
   @retval NULL	error.
 */
 __GURU__ void*
-mrbc_alloc(U32 size)
+guru_alloc(U32 size)
 {
     // TODO: maximum alloc size
     //  (1 << (L1_BITS + L2_BITS + MN_BITS)) - alpha
@@ -378,7 +378,7 @@ mrbc_alloc(U32 size)
   @retval NULL	error.
 */
 __GURU__ void*
-mrbc_realloc(void *ptr, U32 size)
+guru_realloc(void *ptr, U32 size)
 {
     used_block *target    = (used_block *)BLOCKHEAD(ptr);
     U32        alloc_size = size + sizeof(free_block);
@@ -395,14 +395,14 @@ mrbc_realloc(void *ptr, U32 size)
     }
 
     // not big enough block found, new alloc and deep copy
-    void *new_ptr = mrbc_alloc(size);
+    void *new_ptr = guru_alloc(size);
     if (!new_ptr) return NULL;  								// ENOMEM
 
     U8P d = (U8P)new_ptr;
     U8P s = (U8P)ptr;
     for (U32 i=0; i < size; i++) *d++=*s++;						// deep copy
 
-    mrbc_free(ptr);												// reclaim block
+    guru_free(ptr);												// reclaim block
 
     return new_ptr;
 }
@@ -413,7 +413,7 @@ mrbc_realloc(void *ptr, U32 size)
   @param  ptr	Return value of mrbc_raw_alloc()
 */
 __GURU__ void
-mrbc_free(void *ptr)
+guru_free(void *ptr)
 {
 	MUTEX_LOCK(_mutex_mem);
 
@@ -433,12 +433,12 @@ mrbc_free(void *ptr)
   @param  vm	pointer to VM.
 */
 __GURU__ void
-mrbc_free_all()
+guru_memory_clear()
 {
     used_block *p = (used_block *)_memory_pool;
     while (1) {
     	if (!p->free) {
-    		mrbc_free(BLOCKDATA(p));
+    		guru_free(BLOCKDATA(p));
     	}
     	if (p->tail) break;
     	p = (used_block *)NEXT(p);

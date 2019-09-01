@@ -40,7 +40,7 @@ guru_range_new(GV *first, GV *last, int exclude_end)
 {
     GV ret = {.gt = GT_RANGE};
 
-    ret.range = (guru_range *)mrbc_alloc(sizeof(guru_range));
+    ret.range = (guru_range *)guru_alloc(sizeof(guru_range));
     if (!ret.range) return ret;		// ENOMEM
 
     if (exclude_end) ret.range->flag |= EXCLUDE_END;
@@ -65,7 +65,7 @@ guru_range_delete(GV *v)
     ref_clr(&v->range->first);
     ref_clr(&v->range->last);
 
-    mrbc_free(v->range);
+    guru_free(v->range);
 }
 
 //================================================================

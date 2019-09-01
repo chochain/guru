@@ -106,13 +106,13 @@ _load_irep_1(mrbc_irep *irep, U8P *pos)
     irep->plen = _bin_to_u32(p);	p += sizeof(U32);					// POOL block
 
     if (irep->rlen) {					// allocate child irep's pointers (later filled by _load_irep_0)
-        irep->list = (mrbc_irep **)mrbc_alloc(sizeof(mrbc_irep *) * irep->rlen);
+        irep->list = (mrbc_irep **)guru_alloc(sizeof(mrbc_irep *) * irep->rlen);
         if (irep->list==NULL) {
             return LOAD_FILE_IREP_ERROR_ALLOCATION;
         }
     }
     if (irep->plen) {					// allocate pool of object pointers
-        irep->pool = (mrbc_object**)mrbc_alloc(sizeof(void*) * irep->plen);
+        irep->pool = (mrbc_object**)guru_alloc(sizeof(void*) * irep->plen);
         if (irep->pool==NULL) {
             return LOAD_FILE_IREP_ERROR_ALLOCATION;
         }
@@ -123,7 +123,7 @@ _load_irep_1(mrbc_irep *irep, U8P *pos)
         U32 obj_size = _bin_to_u16(p);	p += sizeof(U16);
         U8  buf[64+2];
 
-        mrbc_object *obj = (mrbc_object *)mrbc_alloc(sizeof(mrbc_object));
+        mrbc_object *obj = (mrbc_object *)guru_alloc(sizeof(mrbc_object));
         if (obj==NULL) {
             return LOAD_FILE_IREP_ERROR_ALLOCATION;
         }
@@ -179,13 +179,13 @@ __GURU__ mrbc_irep*
 _load_irep_0(U8P *pos)
 {
     // new irep
-    mrbc_irep *irep = (mrbc_irep *)mrbc_alloc(sizeof(mrbc_irep));
+    mrbc_irep *irep = (mrbc_irep *)guru_alloc(sizeof(mrbc_irep));
     if (irep==NULL) {
         return NULL;
     }
     int ret = _load_irep_1(irep, pos);		// populate content of current IREP
     if (ret != NO_ERROR) {
-    	mrbc_free(irep);
+    	guru_free(irep);
     	return NULL;
     }
     // recursively create the child irep tree

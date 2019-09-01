@@ -283,14 +283,14 @@ c_object_attr_accessor(GV v[], U32 argc)
         mrbc_define_method(v[0].cls, name, c_object_getiv);
 
         // make string "....=" and define writer method.
-        U8P buf = (U8P)mrbc_alloc(STRLEN(name)+2);
+        U8P buf = (U8P)guru_alloc(STRLEN(name)+2);
         if (!buf) return;
         
         STRCPY(buf, name);
         STRCAT(buf, (U8P)"=");
         guru_sym_new(buf);
         mrbc_define_method(v[0].cls, buf, c_object_setiv);
-        mrbc_free(buf);
+        guru_free(buf);
     }
 }
 

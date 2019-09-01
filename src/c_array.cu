@@ -268,12 +268,12 @@ __GURU__ GV
 guru_array_new(int size)
 {
     GV ret = {.gt = GT_ARRAY};
-    guru_array *h = (guru_array *)mrbc_alloc(sizeof(guru_array));		// handle
+    guru_array *h = (guru_array *)guru_alloc(sizeof(guru_array));		// handle
     if (!h) return ret;		// ENOMEM
 
-    GV *data = (GV *)mrbc_alloc(sizeof(GV) * size);	// buffer
+    GV *data = (GV *)guru_alloc(sizeof(GV) * size);	// buffer
     if (!data) {			// ENOMEM
-        mrbc_free(h);
+        guru_free(h);
         return ret;
     }
     h->refc = 1;			// handle is referenced
@@ -300,8 +300,8 @@ guru_array_delete(GV *ary)
     for (U32 i=0; i < h->n; i++, p++) {
     	ref_clr(p);
     }
-    mrbc_free(h->data);
-    mrbc_free(h);
+    guru_free(h->data);
+    guru_free(h);
 }
 
 //================================================================
@@ -316,7 +316,7 @@ guru_array_resize(guru_array *h, int size)
 {
 	assert(size > h->size);
 
-    GV *d2 = (GV *)mrbc_realloc(h->data, sizeof(GV) * size);
+    GV *d2 = (GV *)guru_realloc(h->data, sizeof(GV) * size);
     if (!d2) return -1;
 
     h->data = d2;			// lazy fill later

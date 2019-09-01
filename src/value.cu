@@ -252,7 +252,7 @@ ref_dec(GV *v)
 
     switch(v->gt) {
     case GT_OBJ:		guru_store_delete(v);	break;
-    case GT_PROC:	    mrbc_free(v->proc);		break;
+    case GT_PROC:	    guru_free(v->proc);		break;
 #if GURU_USE_STRING
     case GT_STR:		guru_str_delete(v);		break;
 #endif

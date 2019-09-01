@@ -53,7 +53,7 @@ _vm_begin(guru_vm *pool)
     vm->regfile[0].gt  	= GT_CLASS;		// regfile[0] is self
     vm->regfile[0].cls 	= guru_class_object;	// root class
 
-    guru_state *st = (guru_state *)mrbc_alloc(sizeof(guru_state));
+    guru_state *st = (guru_state *)guru_alloc(sizeof(guru_state));
 
     st->pc 	  = 0;								// starting IP
     st->klass = guru_class_object;				// target class
@@ -86,7 +86,7 @@ _vm_end(guru_vm *pool)
 	for (U32 i=0; i < MAX_REGS_SIZE; i++, p++) {
 		ref_clr(p);
 	}
-    mrbc_free_all();
+    guru_memory_clear();
 #endif
 }
 
@@ -114,20 +114,20 @@ _vm_exec(guru_vm *pool)
   release mrbc_irep holds memory
 */
 __GURU__ void
-_mrbc_free_irep(mrbc_irep *irep)
+_mrbc_irep_free(mrbc_irep *irep)
 {
     // release pool.
     for (U32 i=0; i < irep->plen; i++) {
-        mrbc_free(irep->pool[i]);
+        guru_free(irep->pool[i]);
     }
-    if (irep->plen) mrbc_free(irep->pool);
+    if (irep->plen) guru_free(irep->pool);
 
     // release all child ireps.
     for (U32 i=0; i < irep->rlen; i++) {
-        _mrbc_free_irep(irep->list[i]);
+        _mrbc_irep_free(irep->list[i]);
     }
-    if (irep->rlen) mrbc_free(irep->list);
-    mrbc_free(irep);
+    if (irep->rlen) guru_free(irep->list);
+    guru_free(irep);
 }
 #endif
 

@@ -25,8 +25,8 @@ extern "C" {
 /*! Define instance data.
 */
 typedef struct RStoreData {
-    guru_sym   sym_id;	    //!< symbol ID as key.
-    GV value;	    //!< stored value.
+    guru_sym   	sym_id;	    //!< symbol ID as key.
+    GV 			value;	    //!< stored value.
 } guru_store_data;
 
 //================================================================
