@@ -59,9 +59,9 @@ typedef struct free_block {			// 16-bytes (i.e. mininum allocation per block)
   struct free_block 	*prev;		// pointer to previous free block
 } free_block;
 
-#define BLOCKHEAD(p) 	((U8P)p - sizeof(used_block))
-#define BLOCKDATA(p) 	((U8P)p + sizeof(used_block))
-#define BLOCKSIZE(p) 	(p->size - sizeof(used_block))
+#define BLOCKHEAD(p) 	U8PSUB(p, sizeof(used_block))
+#define BLOCKDATA(p) 	U8PADD(p, sizeof(used_block))
+#define BLOCKSIZE(p) 	((p)->size - sizeof(used_block))
 
 __GURU__ void 	*guru_alloc(U32 size);
 __GURU__ void 	*guru_realloc(void *ptr, U32 size);

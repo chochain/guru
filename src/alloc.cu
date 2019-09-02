@@ -53,9 +53,8 @@
 // free memory block index
 #define BLOCK_SLOTS		((L1_BITS + 1) * (1 << L2_BITS))
 
-#define NEXT(p) 		((uint8_t *)(p) + (p)->size)
-#define PREV(p) 		((uint8_t *)(p) - (p)->poff)
-#define OFF(p0,p1) 		((uint8_t *)(p1) - (uint8_t *)(p0))
+#define NEXT(p) 		U8PADD(p, p->size)
+#define PREV(p) 		U8PADD(p, -p->poff)
 
 // semaphore
 __GURU__ volatile int 	_mutex_mem;
@@ -254,7 +253,7 @@ _merge_blocks(free_block *p0, free_block *p1)
     // update block info
     if (p0->tail != FLAG_TAIL_BLOCK) {
         free_block *next = (free_block *)NEXT(p0);
-        next->poff = OFF(p0, next);
+        next->poff = U8POFF(p0, next);
     }
 #ifdef GURU_DEBUG
     *((uint64_t *)p1) = 0xeeeeeeeeeeeeeeee;
@@ -292,14 +291,14 @@ _split_free_block(free_block *target, unsigned int size, int merge)
     free_block *next = (free_block *)NEXT(target);					// current next
 
     free->size   = target->size - size;								// carve out the block
-    free->poff   = OFF(target, free);
+    free->poff   = U8POFF(target, free);
     free->tail   = target->tail;
 
     target->size = size;
     target->tail = ~FLAG_TAIL_BLOCK;
 
     if (free->tail != FLAG_TAIL_BLOCK) {
-        next->poff = OFF(free, next);
+        next->poff = U8POFF(free, next);
     }
     if (free != NULL) {
     	if (merge) _merge_with_next(free);

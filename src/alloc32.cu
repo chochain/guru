@@ -32,14 +32,13 @@
 #define BASE_BITS   (L2_BITS+MN_BITS)
 #endif
 
-#define L1(i) 			((i) >> L2_BITS)
-#define L2(i) 			((i) & L2_MASK)
-#define MSB_BIT 		31                                      // 32-bit MMU
-#define FL_SLOTS		(L1_BITS * (1 << L2_BITS))				// slots for free_list pointers (24 * 16 entries)
+#define L1(i) 		((i) >> L2_BITS)
+#define L2(i) 		((i) & L2_MASK)
+#define MSB_BIT 	31                                      // 32-bit MMU
+#define FL_SLOTS	(L1_BITS * (1 << L2_BITS))				// slots for free_list pointers (24 * 16 entries)
 
-#define NEXT(p) 		((U8P)(p) + (p)->size)
-#define PREV(p) 		((U8P)(p) - (p)->poff)
-#define OFF(p0,p1) 		((U8P)(p1) - (U8P)(p0))
+#define NEXT(p) 	U8PADD(p, p->size)
+#define PREV(p) 	U8PSUB(p, p->poff)
 
 // semaphore
 __GURU__ volatile U32 	_mutex_mem;
@@ -147,7 +146,7 @@ __merge(free_block *p0, free_block *p1)
     // update block info
     if (!p0->tail) {
         free_block *next = (free_block *)NEXT(p0);
-        next->poff = OFF(p0, next);
+        next->poff = U8POFF(p0, next);
     }
 #ifdef GURU_DEBUG
     *((U64*)p1) = 0xeeeeeeeeeeeeeeee;
@@ -298,12 +297,12 @@ _split_free_block(free_block *target, U32 size)
     free_block *next = (free_block *)NEXT(target);					// current next
 
     free->size   = target->size - size;								// carve out the block
-    free->poff   = OFF(target, free);
+    free->poff   = U8POFF(target, free);
     free->tail   = target->tail;
     free->free   = 1;
 
     if (!free->tail) {
-        next->poff = OFF(free, next);
+        next->poff = U8POFF(free, next);
     }
     _mark_free(free);												// add to free_list
 
