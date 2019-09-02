@@ -211,7 +211,7 @@ __GURU__ U8P
 _get_callee(guru_vm *vm)
 {
 #if 0
-    U32 code = *(VM_ISEQ(vm) + vm->state->pc - 1);
+    U32 code = *((U32*)VM_ISEQ(vm) + vm->state->pc - 1);
 
     int rb = GETARG_B(code);  // index of method sym
 

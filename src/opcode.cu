@@ -1582,8 +1582,15 @@ guru_op(guru_vm *vm)
 	//=======================================================================================
 	// GURU instruction unit
 	//=======================================================================================
-	U32 code   = GET_BYTECODE(vm);
-	U32 opcode = GET_OPCODE(code);
+	guru_irep *irep = vm->state->irep;
+	U8 * tpt  = (U8 *)irep;
+	U32  iseq = irep->iseq;
+	U8 *  p   = &tpt[iseq];
+	U32 * v   = (U32 *)U8PADD(irep, irep->iseq);
+	U32 code  = *v;
+
+	U32 code0  = GET_BYTECODE(vm);
+	U32 opcode = GET_OPCODE(code0);
 	GV  *regs  = vm->state->reg;
 
     vm->state->pc++;				// advance program counter, ready for next cycle

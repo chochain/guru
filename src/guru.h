@@ -66,10 +66,8 @@ typedef enum {
     /* primitive */
     GT_EMPTY = 0,							// aka MRB_TT_UNDEF
     GT_NIL,									// aka MRB_TT_FREE
-
     GT_FALSE,								// (note) true/false threshold. see op_jmpif
     GT_TRUE,
-
     GT_INT,									// 0x4
     GT_FLOAT,
     GT_SYM,
@@ -96,13 +94,13 @@ typedef uint8_t		U8;
 
 typedef int32_t     S32;				// signed integer
 typedef int16_t		S16;
+typedef uintptr_t   U32A;				// pointer address
 
 typedef double		F64;				// double precision float
 typedef float       F32;				// single precision float
 
 typedef uint32_t    *U32P;
 typedef uint8_t     *U8P;
-typedef uintptr_t   U32A;				// pointer address
 
 //===============================================================================
 // guru simple types (non struct)
@@ -110,8 +108,9 @@ typedef S32			GI;
 typedef F32	 		GF;
 typedef U32 		GS;
 
-#define U8PADD(p, n)	((U8 *)p + n)					// U8 pointer arithmetic
-#define U8POFF(p1, p0)	((U32)((U8 *)p1 - (U8 *)p0))	// pointer offset
+#define U8PADD(p, n)	((U8 *)(p) + (n))					// U8 pointer arithmetic
+#define U8PSUB(p, n)	((U8 *)(p) - (n))
+#define U8POFF(p1, p0)	((U32)((U8 *)(p1) - (U8 *)(p0)))	// pointer offset
 
 //===============================================================================
 /*!@brief
@@ -188,7 +187,7 @@ typedef struct RProc {			// 20-byte
     GS 	 			sid;		// u32
     struct RProc 	*next;		// next function in linked list
     union {
-        struct RIrep *irep;		// an IREP (Ruby code)
+        struct RIrep *irep;		// an IREP (Ruby code), defined in vm.h
         guru_fptr  	 func;		// or a raw C function
     };
 #ifdef GURU_DEBUG

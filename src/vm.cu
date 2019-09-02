@@ -265,6 +265,7 @@ _show_decoder(guru_vm *vm)
 {
 	U16  pc    = vm->state->pc;
 	U32  *iseq = (U32*)VM_ISEQ(vm);
+	U32  code  = *(iseq + pc);
 	U16  opid  = (*(iseq + pc) >> 24) & 0x7f;		// in HOST mode, GET_OPCODE() is DEVICE code
 	U8P  opc   = (U8P)_opcode[GET_OPCODE(opid)];
 

@@ -1,6 +1,6 @@
 /*! @file
   @brief
-  GURU VM prototypes and interfaces
+  GURU VM prototypes and interfaces (using mruby IREP 1.x)
 
   <pre>
   Copyright (C) 2019- GreenII
@@ -26,17 +26,18 @@ extern "C" {
 */
 typedef struct RIrep {	// 32-byte
     U32	size;			// size of entire IREP block
-    U32 ilen;			//!< # of bytecodes (by iseq below)
 
+    U32 ilen;			//!< # of bytecodes (by iseq below)
     U32 plen	: 16;	//!< # of objects in pool (into pool below)
     U32	slen	: 16;	//!< # of symbols (into sym below)
     U32 rlen	: 16;	//!< # of child IREP blocks (into list below)
+
     U32 nlv		: 8;   	//!< # of local variables
     U32 nreg	: 8;	//!< # of register used
 
     U32 iseq;			//!< offset to ISEQ (code) BLOCK
-    U32	sym;			//!< offset to array of SYMBOLs
     U32 pool; 			//!< offset to array of POOL objects pointer.
+    U32	sym;			//!< offset to array of SYMBOLs
     U32 list;			//!< offset to array of child IREP's pointer.
 } guru_irep;
 
@@ -180,10 +181,10 @@ _u32_to_bin(U32 l, U8P bin)
 #define VM_IREP(vm)      ((vm)->state->irep)
 
 #if GURU_HOST_IMAGE
-#define VM_ISEQ(vm)	 	 ((U32P)U8PADD(VM_IREP(vm), VM_IREP(vm)->iseq))
+#define VM_ISEQ(vm)	 	 (U8PADD(VM_IREP(vm), VM_IREP(vm)->iseq))
 #define GET_BYTECODE(vm) (_bin_to_u32(U8PADD(VM_ISEQ(vm), sizeof(U32) * (vm)->state->pc)))
 #else  // !GURU_HOST_IMAGE
-#define VM_ISEQ(vm)	 	 (((U32P)VM_IREP(vm)->iseq)
+#define VM_ISEQ(vm)	 	 (VM_IREP(vm)->iseq)
 #define GET_BYTECODE(vm) (_bin_to_u32(U8PADD(VM_ISEQ(vm), sizeof(U32) * (vm)->state->pc)))
 #endif
 
