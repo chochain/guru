@@ -46,7 +46,6 @@ __GURU__ U32 _mutex_op;
 #if GURU_HOST_IMAGE
 //================================================================
 /*! get sym[n] from symbol table in irep
-
   @param  p	Pointer to IREP SYMS section.
   @param  n	n th
   @return	symbol name string
@@ -79,7 +78,7 @@ __GURU__ guru_irep*
 _vm_irep_list(guru_vm *vm, U32 n)
 {
 	guru_irep *irep = VM_IREP(vm);
-	U32P p = (U32P)U8PADD(irep, irep->list + n*sizeof(U32));
+	U32P p = (U32P)U8PADD(irep, irep->reps + n*sizeof(U32));
 
 	return (guru_irep *)U8PADD(irep, *p);
 }
@@ -262,7 +261,7 @@ op_move(guru_vm *vm, U32 code, GV *regs)
 __GURU__ int
 op_loadl(guru_vm *vm, U32 code, GV *regs)
 {
-    int ra = GETARG_A(code);
+	int ra = GETARG_A(code);
     int rb = GETARG_Bx(code);
 
     U32P p = _vm_ivar(vm, rb);
@@ -365,7 +364,7 @@ op_loadself(guru_vm *vm, U32 code, GV *regs)
 {
     int ra = GETARG_A(code);
 
-    _RA_X(&regs[0]);                   // ra <= vm
+    _RA_X(&regs[0]);                   // ra <= class
 
     return 0;
 }
@@ -1225,8 +1224,8 @@ op_string(guru_vm *vm, U32 code, GV *regs)
 	int ra = GETARG_A(code);
     int rb = GETARG_Bx(code);
 
-    U32P p   = _vm_ivar(vm, rb);
-    U8P str  = (U8P)U8PADD(VM_IREP(vm), *p);
+    U32 * v   = _vm_ivar(vm, rb);
+    U8 * str  = (U8P)U8PADD(VM_IREP(vm), *v);
     GV ret = guru_str_new(str);
 
     if (ret.str==NULL) return vm->err = 255;			// ENOMEM
@@ -1587,10 +1586,10 @@ guru_op(guru_vm *vm)
 	U32  iseq = irep->iseq;
 	U8 *  p   = &tpt[iseq];
 	U32 * v   = (U32 *)U8PADD(irep, irep->iseq);
-	U32 code  = *v;
+	U32 code0 = *v;
 
-	U32 code0  = GET_BYTECODE(vm);
-	U32 opcode = GET_OPCODE(code0);
+	U32 code   = GET_BYTECODE(vm);
+	U32 opcode = GET_OPCODE(code);
 	GV  *regs  = vm->state->reg;
 
     vm->state->pc++;				// advance program counter, ready for next cycle
@@ -1640,6 +1639,7 @@ guru_op(guru_vm *vm)
     case OP_LE:         ret = op_le        (vm, code, regs); break;
     case OP_GT:         ret = op_gt        (vm, code, regs); break;
     case OP_GE:         ret = op_ge        (vm, code, regs); break;
+    // BUILT-IN class (TODO: tensor)
 #if GURU_USE_STRING
     case OP_STRING:     ret = op_string    (vm, code, regs); break;
     case OP_STRCAT:     ret = op_strcat    (vm, code, regs); break;
@@ -1649,13 +1649,13 @@ guru_op(guru_vm *vm)
     case OP_HASH:       ret = op_hash      (vm, code, regs); break;
     case OP_RANGE:      ret = op_range     (vm, code, regs); break;
 #endif
-    // BRANCH
+    // CLASS, PROC (STACK ops)
     case OP_LAMBDA:     ret = op_lambda    (vm, code, regs); break;
     case OP_CLASS:      ret = op_class     (vm, code, regs); break;
     case OP_EXEC:       ret = op_exec      (vm, code, regs); break;
     case OP_METHOD:     ret = op_method    (vm, code, regs); break;
     case OP_TCLASS:     ret = op_tclass    (vm, code, regs); break;
-    // EXEC
+    // CONTROL
     case OP_STOP:       ret = op_stop      (vm, code, regs); break;
     case OP_ABORT:      ret = op_abort     (vm, code, regs); break;  	// reuse
     case OP_NOP:        ret = op_nop       (vm, code, regs); break;

@@ -95,12 +95,12 @@ _build_image(guru_irep *src, U8 * img)
 {
 	// compute CUDA alignment memory block sizes
     U32 irep_sz = sizeof(guru_irep) + ((8 - sizeof(guru_irep)) & 7);	// 8-byte alignment
-    U32 list_sz = sizeof(U32) * (src->rlen + (src->rlen & 1));
+    U32 reps_sz = sizeof(U32) * (src->rlen + (src->rlen & 1));
     U32 pool_sz = sizeof(U32) * (src->plen + (src->plen & 1));
     U32 sym_sz  = sizeof(U32) * (src->slen + (src->slen & 1));
     U32 iseq_sz = sizeof(U32) * (src->ilen + (src->ilen & 1));
     U32 stbl_sz = sizeof(U8P) * sym_sz * 2;								// string table with padded space
-    U32 img_sz  = irep_sz + list_sz + pool_sz + sym_sz + iseq_sz + stbl_sz;
+    U32 img_sz  = irep_sz + reps_sz + pool_sz + sym_sz + iseq_sz + stbl_sz;
 
     guru_irep *tgt = (guru_irep *)guru_malloc(img_sz, 1);				// target CUDA IREP image (managed mem)
     U8 * base = (U8P)tgt;								// keep target image pointer
@@ -110,17 +110,18 @@ _build_image(guru_irep *src, U8 * img)
     memset(tgt, 0xaa, img_sz);
 
     // set CUDA memory pointers, and irep offsets
-	U8 * list = U8PADD(tgt,  irep_sz);
-	U8 * pool = U8PADD(list, list_sz);
+	U8 * reps = U8PADD(tgt,  irep_sz);
+	U8 * pool = U8PADD(reps, reps_sz);
 	U8 * sym  = U8PADD(pool, pool_sz);
 	U8 * iseq = U8PADD(sym,  sym_sz);
 	U8 * stbl = U8PADD(iseq, iseq_sz);					// raw string table pointer
 
-	// start building the CUDA image (with alignment)
+    // start building the CUDA image (with alignment)
     memcpy(tgt, src, irep_sz);							// copy IREP header block
-    U8 * iseq0 = U8PADD(img, src->iseq);
     memcpy(iseq, U8PADD(img, src->iseq), iseq_sz);		// copy ISEQ block
-    tgt->iseq = U8POFF(iseq, tgt);						// update iseq pointer
+
+	tgt->reps = U8POFF(reps, tgt);						// overwrite with new reps offset
+    tgt->iseq = U8POFF(iseq, tgt);						// overwrite with new iseq offset
 
     U8 *  p = U8PADD(img, src->pool);					// point to source object pool
     U32 * v = (U32 *)pool;
@@ -207,11 +208,10 @@ _build_image(guru_irep *src, U8 * img)
 __HOST__ U8P
 _fetch_irep_size(guru_irep *irep, U8P img)						// pos will be advance to next IREP block
 {
-    U8 * p = img;												// local pointer into IREP block
-
-    p += 4 + sizeof(U32) + 4 + sizeof(U32);						// skip headers i.e. IREP,sz,0000,sz
+    U8 * p = img;
 
     // nlocals,nregs,rlen
+    irep->size = bin_to_u32(p); p += sizeof(U32);				// IREP size
     irep->nlv  = bin_to_u16(p);	p += sizeof(U16);				// number of local variables
     irep->nreg = bin_to_u16(p);	p += sizeof(U16);				// number of registers used
     irep->rlen = bin_to_u16(p);	p += sizeof(U16);				// number of child IREP blocks
@@ -221,9 +221,7 @@ _fetch_irep_size(guru_irep *irep, U8P img)						// pos will be advance to next I
 
     irep->iseq = U8POFF(p, img);	p += irep->ilen * sizeof(U32);	// ISEQ (code) block
     irep->plen = bin_to_u32(p);		p += sizeof(U32);				// POOL block
-
     irep->pool = U8POFF(p, img);									// pool offset
-    irep->list = sizeof(guru_irep) + ((8 - sizeof(guru_irep)) & 7);	// irep list offset
 
     for (U32 i=0; i < irep->plen; i++) {	// scan through pool (so we know the size to allocate)
         int  tt  = *p++;										// object type
@@ -257,27 +255,20 @@ _fetch_irep_size(guru_irep *irep, U8P img)						// pos will be advance to next I
 __HOST__ guru_irep *
 _load_irep(U8P *pos)
 {
-    U8 * img= *pos;									// host image
-    U8 * sp = *pos + 4;								// 4 = skip "IREP"
-    U32 sec_sz = bin_to_u32(sp); sp += sizeof(U32);	// size of host IREP image
+    U8 * img = *pos;								// host image
+    U8 * sp  = *pos;								// local pointer
+    guru_irep src;									// temp store for source IREP
 
-    if (memcmp(sp, "0000", 4) != 0) return NULL;	// IREP version
-    sp += 4;										// 4 = skip "0000"
-
-    // compute size for each CUDA IREP block (with alignment)
-    guru_irep src { .size = sec_sz };
-
-	sp = _fetch_irep_size(&src, img);				// populate metadata of current IREP, sp will be advanced to next IREP block
-	assert(sec_sz==U8POFF(sp, img));				// make sure offset is done correctly
+    sp = _fetch_irep_size(&src, img);				// populate metadata of current IREP, sp will be advanced to next IREP block
 	guru_irep *irep = _build_image(&src, img);		// build CUDA image from host image
 
     // recursively create the child irep tree
-    U32 * v = (U32P)U8PADD(irep, irep->list);
+    U32 * v = (U32P)U8PADD(irep, irep->reps);
     for (U32 i=0; i < src.rlen; i++) {
     	guru_irep *irep_n = _load_irep(&sp);		// load a child irep recursively
         v[i] = U8POFF(irep_n, irep);				// calculate offset
     }
-    *pos = sp;
+	*pos = sp;
 
     return irep;
 }
@@ -315,10 +306,14 @@ __HOST__ void
 guru_parse_bytecode(guru_vm *vm, U8P src)
 {
 	U8P *sp = (U8P *)&src;
-    int ret = _check_header(sp);
+	int ret = _check_header(sp);
 
     while (ret==NO_ERROR) {
         if (memcmp(*sp, "IREP", 4)==0) {
+        	*sp += 4 + sizeof(U32);								// skip "IREP", irep_sz
+            if (memcmp(*sp, "0000", 4) != 0) break;				// IREP version
+            *sp += 4;											// skip "0000"
+
         	ret = (vm->irep = _load_irep(sp))==NULL
         			? LOAD_FILE_IREP_ERROR_ALLOCATION
         			: NO_ERROR;
@@ -342,7 +337,7 @@ _show_irep(guru_irep *irep, U32 ioff, char level, char *idx)
 
 	// dump all children ireps
 	U8  *base = (U8 *)irep;
-	U32 *off  = (U32 *)(base + irep->list);		// pointer to irep offset array
+	U32 *off  = (U32 *)U8PADD(base, irep->reps);		// pointer to irep offset array
 	for (U32 i=0; i<irep->rlen; i++) {
 		*idx += 1;
 		_show_irep((guru_irep *)(base + off[i]), off[i], level+1, idx);

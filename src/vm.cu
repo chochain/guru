@@ -252,7 +252,7 @@ _find_irep(guru_irep *irep0, guru_irep *irep1, U8P idx)
 	if (irep0==irep1) return 1;
 
 	U8P  base = (U8P)irep0;
-	U32P off  = (U32P)(base + irep0->list);		// child irep offset array
+	U32P off  = (U32P)U8PADD(base, irep0->reps);		// child irep offset array
 	for (U32 i=0; i<irep0->rlen; i++) {
 		*idx += 1;
 		if (_find_irep((guru_irep *)(base + off[i]), irep1, idx)) return 1;
