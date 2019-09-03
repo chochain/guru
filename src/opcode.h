@@ -26,22 +26,52 @@ extern "C" {
 /* instructions: packed 32 bit      */
 /* -------------------------------  */
 /*     A:B:C:OP = 9: 9: 7: 7        */
-/*      A:Bx:OP =    9:16: 7        */
-/*        Ax:OP =      25: 7        */
-/*   A:Bz:Cz:OP = 9:14: 2: 7        */
+/*      A:Bx:OP = 9:   16: 7        */
+/*   A:Bz:Cz:OP = 9: 14:2: 7        */
+/*        Ax:OP = 25     : 7        */
+typedef struct {
+	union {
+		U16 bx;
+		struct {
+			U16 c : 7, b : 9;
+		};
+		struct {
+			U16 cz: 2, bz: 14;
+		};
+	};
+	U32 a : 9;			// hopefully take up 32-bits total (4-byte)
+} GAR;
+
+typedef struct {		// this does not work (6-byte created)
+	U8 op : 7;
+	union {
+		U16 bx;
+		struct {
+			U16 c : 7, b : 9;
+		};
+		struct {
+			U16 cz: 2, bz: 14;
+		};
+	};
+	U32 a : 9;			// adding this field, create 2 more bytes
+} GOP;
 
 #define GET_OPCODE(i)              ((i) & 0x7f)
+
+// common OPs
 #define GETARG_A(i)                (((i) >> 23) & 0x1ff)
 #define GETARG_B(i)                (((i) >> 14) & 0x1ff)
 #define GETARG_C(i)                (((i) >>  7) & 0x7f)
 #define GETARG_Bx(i)               (((i) >>  7) & 0xffff)
+
 #define GETARG_sBx(i)              (GETARG_Bx(i)-MAXARG_sBx)
+
+// special format for JUMP (25-bit address)
 #define GETARG_Ax(i)               (((i) >>  7) & 0x1ffffff)
+
 #define GETARG_UNPACK_b(i,n1,n2)   ((((i)) >> (7+(n2))) & (((1<<(n1))-1)))
 #define GETARG_UNPACK_c(i,n1,n2)   ((int)((((mrb_code)(i)) >> 7) & (((1<<(n2))-1))))
 #define GETARG_b(i)                GETARG_UNPACK_b(i,14,2)
-//#define GETARG_Bz(i)             GETARG_UNPACK_b(code,14,2)
-#define GETARG_c(i)                GETARG_UNPACK_c(i,14,2)
 
 #define MKOPCODE(op)               ((op & 0x7f)<<24)
 #define MKARG_A(c)                 ((c & 0xff)<<1 | (c & 0x01)>>8)

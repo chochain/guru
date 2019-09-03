@@ -35,10 +35,10 @@ typedef struct RIrep {	// 32-byte
     U32 nlv		: 8;   	//!< # of local variables
     U32 nreg	: 8;	//!< # of register used
 
-    U32 iseq;			//!< offset to ISEQ (code) BLOCK
+    U32 reps;			//!< offset to array of child IREP's pointer.
     U32 pool; 			//!< offset to array of POOL objects pointer.
     U32	sym;			//!< offset to array of SYMBOLs
-    U32 list;			//!< offset to array of child IREP's pointer.
+    U32 iseq;			//!< offset to ISEQ (code) BLOCK
 } guru_irep;
 
 //================================================================
