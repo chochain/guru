@@ -92,20 +92,18 @@ c_range_equal3(GV v[], U32 argc)
 {
     if (v[0].gt == GT_CLASS) {
         GV ret = guru_kind_of(v, argc);
-        SET_RETURN(ret);
-        return;
+        RETURN_VAL(ret);
     }
 
     int first = guru_cmp(&v->range->first, v+1);
     if (first <= 0) {
-        SET_FALSE_RETURN();
-        return;
+        RETURN_FALSE();
     }
 
     int last = guru_cmp(v+1, &v->range->last);
     int flag = IS_EXCLUDE_END(v->range) ? (last < 0) : (last <= 0);
 
-    SET_BOOL_RETURN(flag);
+    RETURN_BOOL(flag);
 }
 
 //================================================================
@@ -114,7 +112,7 @@ c_range_equal3(GV v[], U32 argc)
 __GURU__ void
 c_range_first(GV v[], U32 argc)
 {
-    SET_RETURN(v->range->first);
+    RETURN_VAL(v->range->first);
 }
 
 //================================================================
@@ -123,7 +121,7 @@ c_range_first(GV v[], U32 argc)
 __GURU__ void
 c_range_last(GV v[], U32 argc)
 {
-    SET_RETURN(v->range->last);
+    RETURN_VAL(v->range->last);
 }
 
 //================================================================
@@ -132,7 +130,7 @@ c_range_last(GV v[], U32 argc)
 __GURU__ void
 c_range_exclude_end(GV v[], U32 argc)
 {
-    SET_BOOL_RETURN(IS_EXCLUDE_END(v[0].range));
+    RETURN_BOOL(IS_EXCLUDE_END(v[0].range));
 }
 
 #if GURU_USE_STRING
@@ -144,8 +142,7 @@ c_range_inspect(GV v[], U32 argc)
 {
     GV ret = guru_str_new(NULL);
     if (!ret.str) {
-        SET_NIL_RETURN();
-        return;
+        RETURN_NIL();
     }
     GV v1, s1;
     for (U32 i=0; i<2; i++) {
@@ -156,7 +153,7 @@ c_range_inspect(GV v[], U32 argc)
         guru_str_append(&ret, &s1);
         ref_clr(&s1);					// free locally allocated memory
     }
-    SET_RETURN(ret);
+    RETURN_VAL(ret);
 }
 #endif
 

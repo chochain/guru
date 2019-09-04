@@ -56,10 +56,10 @@ _load_header(U8P *pos)
     /* Ignore CRC */
     /* Ignore size */
 
-    if (MEMCMP(U8PADD(p, 14), "MATZ", 4) != 0) {
+    if (MEMCMP(p + 14, "MATZ", 4) != 0) {
         return LOAD_FILE_HEADER_ERROR_MATZ;
     }
-    if (MEMCMP(U8PADD(p, 18), "0000", 4) != 0) {
+    if (MEMCMP(p + 18, "0000", 4) != 0) {
         return LOAD_FILE_HEADER_ERROR_VERSION;
     }
     *pos += 22;

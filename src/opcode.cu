@@ -39,8 +39,8 @@ __GURU__ U32 _mutex_op;
 // becareful with the following macros, because they release regs[ra] first
 // so, make sure value is kept before the release
 //
-#define _RA_X(r)    do { ref_clr(&regs[ra]); regs[ra] = *(r); ref_inc(r); } while (0)
-#define _RA_V(v)    do { ref_clr(&regs[ra]); regs[ra] = (v); } while (0)
+#define _RA_X(r)    do { ref_clr(&regs[ra]); regs[ra] = *(r); 	ref_inc(r); } while (0)
+#define _RA_V(v)    do { ref_clr(&regs[ra]); regs[ra] = (v); 				} while (0)
 #define _RA_T(t, e) do { ref_clr(&regs[ra]); regs[ra].gt = (t); regs[ra].e; } while (0)
 
 #if GURU_HOST_IMAGE
@@ -205,7 +205,7 @@ _vm_object_new(guru_vm *vm, GV v[], U32 argc)
     st->reg  = reg0;
     st->irep = irep0;
 
-    SET_RETURN(obj);
+    RETURN_VAL(obj);
 }
 
 //================================================================
@@ -1300,8 +1300,8 @@ op_array(guru_vm *vm, U32 code, GV *regs)
     GV *pb = &regs[rb];
     if (h==NULL) return vm->err = 255;	// ENOMEM
 
-    MEMCPY((U8P)h->data, (U8P)pb, sz);
-    MEMSET((U8P)pb, 0, sz);
+    MEMCPY(h->data, pb, sz);
+    MEMSET(pb, 0, sz);
     h->n = rc;
 
     _RA_V(ret);
@@ -1329,7 +1329,7 @@ op_hash(guru_vm *vm, U32 code, GV *regs)
     int ra = GETARG_A(code);
     int rb = GETARG_B(code);
     int rc = GETARG_C(code);
-    int sz = sizeof(GV) * (rc<<1);				// size of k,v pairs
+    int sz = sizeof(GV) * (rc<<1);						// size of k,v pairs
 
     GV ret = guru_hash_new(rc);
     guru_hash  *h  = ret.hash;
@@ -1339,7 +1339,7 @@ op_hash(guru_vm *vm, U32 code, GV *regs)
     MEMCPY((U8P)h->data, (U8P)p, sz);					// copy k,v pairs
 
     for (U32 i=0; i<(h->n=(rc<<1)); i++, p++) {
-    	p->gt = GT_EMPTY;							// clean up call stack
+    	p->gt = GT_EMPTY;								// clean up call stack
     }
     _RA_V(ret);						                	// set return value on stack top
 #else
@@ -1453,7 +1453,7 @@ op_exec(guru_vm *vm, U32 code, GV *regs)
     int ra = GETARG_A(code);
     int rb = GETARG_Bx(code);
 
-    GV rcv = regs[ra];							// receiver
+    GV rcv = regs[ra];									// receiver
 
     _push_state(vm, 0);									// push call stack
 
@@ -1503,7 +1503,7 @@ op_method(guru_vm *vm, U32 code, GV *regs)
     }
     if (p) {	// found?
     	*((guru_proc**)pp) = p->next;
-    	if (!IS_CFUNC(p)) {				// a p->func a Ruby function (aka IREP)
+    	if (!IS_CFUNC(p)) {					// a p->func a Ruby function (aka IREP)
     		GV v = { .gt = GT_PROC };
     		v.proc = p;
     		ref_clr(&v);

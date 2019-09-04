@@ -132,7 +132,7 @@ INSERT_VALUE:
     d = st->data + idx;
     if (idx < st->n) {										// need more data?
         int size = sizeof(guru_store_data) * (st->n - idx);
-        MEMCPY((U8P)(d+1), (U8P)d, size);
+        MEMCPY(d+1, d, size);
     }
     d->sid = sid;
     d->val = *val;

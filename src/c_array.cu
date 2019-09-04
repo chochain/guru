@@ -139,7 +139,7 @@ _insert(GV *ary, int idx, GV *set_val)
 
     if (idx < h->n) {			// move data
     	int blksz = sizeof(GV)*(h->n - idx);
-        MEMCPY((uint8_t *)(h->data + idx + 1),(uint8_t *)(h->data + idx), blksz);	// shift
+        MEMCPY(h->data + idx + 1, h->data + idx, blksz);		// rshift
     }
 
     h->data[idx] = *set_val;	// set data
@@ -181,7 +181,7 @@ _shift(GV *ary)
     if (h->n <= 0) return GURU_NIL_NEW();
 
     GV ret = h->data[0];
-    MEMCPY((uint8_t *)h->data, (uint8_t *)(h->data+1), sizeof(GV)*--h->n);
+    MEMCPY(h->data, h->data + 1, sizeof(GV)*--h->n);		// lshift
 
     return ret;
 }
@@ -223,7 +223,7 @@ _remove(GV *ary, int idx)
     GV ret = *p;
     if (idx < --h->n) {										// shrink by 1
     	int blksz = sizeof(GV) * (h->n - idx);
-        MEMCPY((uint8_t *)p, (uint8_t *)(p+1), blksz);		// shift forward
+        MEMCPY(p, p+1, blksz);								// lshift
     }
     return ret;
 }
@@ -421,7 +421,7 @@ c_array_new(GV v[], U32 argc)
     	ret = GURU_NIL_NEW();
         PRINTF("ArgumentError\n");	// raise?
     }
-    SET_RETURN(ret);
+    RETURN_VAL(ret);
 }
 
 //================================================================
@@ -430,7 +430,7 @@ c_array_new(GV v[], U32 argc)
 __GURU__ void
 c_array_add(GV v[], U32 argc)
 {
-    if (GET_GT_ARG(1) != GT_ARRAY) {
+    if (ARG_GT(1) != GT_ARRAY) {
         PRINTF("TypeError\n");		// raise?
         return;
     }
@@ -443,8 +443,8 @@ c_array_add(GV v[], U32 argc)
     GV ret = guru_array_new(h0sz + h1sz);
     if (ret.array==NULL) return;		// ENOMEM
 
-    MEMCPY((U8P)(ret.array->data),        (U8P)h0->data, h0sz);
-    MEMCPY((U8P)(ret.array->data) + h0sz, (U8P)h1->data, h1sz);
+    MEMCPY(ret.array->data,         h0->data, h0sz);
+    MEMCPY(ret.array->data + h0->n, h1->data, h1sz);
 
     GV *p = ret.array->data;
     int         n = ret.array->n = h0->n + h1->n;
@@ -453,7 +453,7 @@ c_array_add(GV v[], U32 argc)
     }
     ref_clr(v+1);					// dec_refc v[1], free if not needed
 
-    SET_RETURN(ret);
+    RETURN_VAL(ret);
 }
 
 //================================================================
@@ -493,7 +493,7 @@ c_array_get(GV v[], U32 argc)
     	ret = GURU_NIL_NEW();
     }
 DONE:
-    SET_RETURN(ret);
+    RETURN_VAL(ret);
 }
 
 //================================================================
@@ -530,9 +530,9 @@ c_array_clear(GV v[], U32 argc)
 __GURU__ void
 c_array_delete_at(GV v[], U32 argc)
 {
-	int n = GET_INT_ARG(1);
+	int n = ARG_INT(1);
 
-    SET_RETURN(_remove(v, n));
+    RETURN_VAL(_remove(v, n));
 }
 
 //================================================================
@@ -541,7 +541,7 @@ c_array_delete_at(GV v[], U32 argc)
 __GURU__ void
 c_array_empty(GV v[], U32 argc)
 {
-    SET_BOOL_RETURN(v->array->n==0);
+    RETURN_BOOL(v->array->n==0);
 }
 
 //================================================================
@@ -550,7 +550,7 @@ c_array_empty(GV v[], U32 argc)
 __GURU__ void
 c_array_size(GV v[], U32 argc)
 {
-    SET_INT_RETURN(v->array->n);
+    RETURN_INT(v->array->n);
 }
 
 //================================================================
@@ -565,11 +565,10 @@ c_array_index(GV v[], U32 argc)
     GV *p = h->data;
     for (U32 i=0; i < h->n; i++, p++) {
         if (guru_cmp(p, ret)==0) {
-            SET_INT_RETURN(i);
-            return;
+            RETURN_INT(i);
         }
     }
-    SET_NIL_RETURN();
+    RETURN_NIL();
 }
 
 //================================================================
@@ -579,7 +578,7 @@ __GURU__ void c_array_first(GV v[], U32 argc)
 {
     GV ret = _get(v, 0);
     ref_inc(&ret);
-	SET_RETURN(ret);
+	RETURN_VAL(ret);
 }
 
 //================================================================
@@ -590,7 +589,7 @@ c_array_last(GV v[], U32 argc)
 {
     GV ret = _get(v, -1);
     ref_inc(&ret);
-	SET_RETURN(ret);
+	RETURN_VAL(ret);
 }
 
 //================================================================
@@ -610,7 +609,7 @@ __GURU__ void
 c_array_pop(GV v[], U32 argc)
 {
     if (argc==0) {									// pop() -> object | nil
-        SET_RETURN(_pop(v));
+        RETURN_VAL(_pop(v));
     }
     else if (argc==1 && v[1].gt==GT_INT) {	// pop(n) -> Array | nil
         // TODO: not implement yet.
@@ -637,7 +636,7 @@ __GURU__ void
 c_array_shift(GV v[], U32 argc)
 {
     if (argc==0) {									// shift() -> object | nil
-        SET_RETURN(_shift(v));
+        RETURN_VAL(_shift(v));
     }
     else if (argc==1 && v[1].gt==GT_INT) {		// shift() -> Array | nil
         // TODO: not implement yet.
@@ -659,13 +658,13 @@ c_array_dup(GV v[], U32 argc)
     if (!h1) return;		// ENOMEM
 
     int n = h1->n = h0->n;
-    MEMCPY((U8P)h1->data, (U8P)h0->data, n*sizeof(GV));
+    MEMCPY(h1->data, h0->data, n*sizeof(GV));
 
     GV *p = h1->data;
     for (U32 i=0; i<n; i++, p++) {
         ref_inc(p);
     }
-    SET_RETURN(ret);
+    RETURN_VAL(ret);
 }
 
 //================================================================
@@ -679,10 +678,12 @@ c_array_min(GV v[], U32 argc)
     GV *p_min_value, *p_max_value;
 
     _minmax(v, &p_min_value, &p_max_value);
-    if (p_min_value==NULL) SET_NIL_RETURN();
+    if (p_min_value==NULL) {
+    	RETURN_NIL();
+    }
     else {
         ref_inc(p_min_value);
-        SET_RETURN(*p_min_value);
+        RETURN_VAL(*p_min_value);
     }
 }
 
@@ -697,10 +698,12 @@ c_array_max(GV v[], U32 argc)
     GV *p_min_value, *p_max_value;
 
     _minmax(v, &p_min_value, &p_max_value);
-    if (p_max_value==NULL) SET_NIL_RETURN();
+    if (p_max_value==NULL) {
+    	RETURN_NIL();
+    }
     else {
         ref_inc(p_max_value);
-        SET_RETURN(*p_max_value);
+        RETURN_VAL(*p_max_value);
     }
 }
 
@@ -725,7 +728,7 @@ c_array_minmax(GV v[], U32 argc)
     _set(&ret, 0, p_min_value);
     _set(&ret, 1, p_max_value);
 
-    SET_RETURN(ret);
+    RETURN_VAL(ret);
 }
 
 #if GURU_USE_STRING
@@ -737,8 +740,7 @@ c_array_inspect(GV v[], U32 argc)
 {
 	GV ret  = guru_str_new("[");
     if (!ret.str) {
-    	SET_NIL_RETURN();
-    	return;
+    	RETURN_NIL();
     }
     GV vi, s1;
     int n = v->array->n;
@@ -751,7 +753,7 @@ c_array_inspect(GV v[], U32 argc)
     }
     guru_str_append_cstr(&ret, "]");
 
-    SET_RETURN(ret);
+    RETURN_VAL(ret);
 }
 
 //================================================================
@@ -785,8 +787,7 @@ c_array_join(GV v[], U32 argc)
 {
     GV ret = guru_str_new(NULL);
     if (!ret.str) {
-        SET_NIL_RETURN();
-        return;
+        RETURN_NIL();
     }
     GV separator = (argc==0)
     		? guru_str_new("")
@@ -795,7 +796,7 @@ c_array_join(GV v[], U32 argc)
     c_array_join_1(v, argc, v, &ret, &separator);
     ref_clr(&separator);		            // release locally allocated memory
 
-    SET_RETURN(ret);
+    RETURN_VAL(ret);
 }
 #endif
 

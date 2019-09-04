@@ -27,7 +27,7 @@ _write(GT gt, GT fmt, U32 sz, U8P buf)
 	MUTEX_LOCK(_mutex_con);
 
 	guru_print_node *n = (guru_print_node *)_output_ptr;
-	MEMCPY((U8P)n->data, buf, sz);
+	MEMCPY(n->data, buf, sz);
 
 	n->id   = blockIdx.x;			// VM.id
 	n->gt   = gt;

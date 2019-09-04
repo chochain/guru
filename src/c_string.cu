@@ -223,7 +223,7 @@ _chomp(GV *v)
 __GURU__ GV
 guru_str_new(const U8 *src)			// cannot use U8P, need lots of casting
 {
-    return _new((U8P)src, STRLEN((U8P)src));
+    return _new((U8P)src, STRLEN(src));
 }
 
 //================================================================
@@ -325,7 +325,7 @@ c_string_add(GV v[], U32 argc)
         guru_na("str + other type");
     }
     else {
-    	SET_RETURN(guru_str_add(v, v+1));
+    	RETURN_VAL(guru_str_add(v, v+1));
     }
 }
 
@@ -344,12 +344,12 @@ c_string_mul(GV v[], U32 argc)
 
     U8P p = (U8P)ret.str->data;
     for (U32 i = 0; i < v[1].i; i++) {
-        MEMCPY(p, (U8P)_data(v), _size(v));
+        MEMCPY(p, _data(v), _size(v));
         p += _size(v);
     }
     *p = '\0';
 
-    SET_RETURN(ret);
+    RETURN_VAL(ret);
 }
 
 //================================================================
@@ -360,7 +360,7 @@ c_string_size(GV v[], U32 argc)
 {
     GI size = _size(v);
 
-    SET_INT_RETURN(size);
+    RETURN_INT(size);
 }
 
 //================================================================
@@ -376,7 +376,7 @@ c_string_to_i(GV v[], U32 argc)
     }
     GI i = guru_atoi(_data(v), base);
 
-    SET_INT_RETURN(i);
+    RETURN_INT(i);
 }
 
 #if GURU_USE_FLOAT
@@ -388,7 +388,7 @@ c_string_to_f(GV v[], U32 argc)
 {
     GF d = ATOF(_data(v));
 
-    SET_FLOAT_RETURN(d);
+    RETURN_FLOAT(d);
 }
 #endif
 
@@ -425,38 +425,34 @@ c_string_slice(GV v[], U32 argc)
                 ch = *(v->str->data + idx);
             }
         }
-        if (ch < 0) goto RETURN_NIL;
+        if (ch < 0) RETURN_NIL();
 
         GV ret = _new(NULL, 1);
-        if (!ret.str) goto RETURN_NIL;
+        if (!ret.str) RETURN_NIL();
 
         ret.str->data[0] = ch;
         ret.str->data[1] = '\0';
 
-        SET_RETURN(ret);
+        RETURN_VAL(ret);
     }
     else if (argc==2 && v1->gt==GT_INT && v2->gt==GT_INT) { 	// slice(n, len) -> String | nil
         U32 len = v->str->len;
         S32 idx = v1->i;
         if (idx < 0) idx += len;
-        if (idx < 0) goto RETURN_NIL;
+        if (idx < 0) RETURN_NIL();
 
         S32 rlen = (v2->i < (len - idx)) ? v2->i : (len - idx);
         // min(v2->i, (len-idx))
-        if (rlen < 0) goto RETURN_NIL;
+        if (rlen < 0) RETURN_NIL();
 
         GV ret = _new((U8P)v->str->data + idx, rlen);
-        if (!ret.str) goto RETURN_NIL;		// ENOMEM
+        if (!ret.str) RETURN_NIL();		// ENOMEM
 
-        SET_RETURN(ret);
+        RETURN_VAL(ret);
     }
     else {
     	PRINTF("Not support such case in String#[].\n");
     }
-    return;
-
-RETURN_NIL:
-	SET_NIL_RETURN();
 }
 
 //================================================================
@@ -518,7 +514,7 @@ c_string_chomp(GV v[], U32 argc)
 {
     GV ret = _dup(v);
     _chomp(&ret);
-    SET_RETURN(ret);
+    RETURN_VAL(ret);
 }
 
 //================================================================
@@ -528,7 +524,7 @@ __GURU__ void
 c_string_chomp_self(GV v[], U32 argc)
 {
     if (_chomp(v)==0) {
-        SET_NIL_RETURN();
+        RETURN_NIL();
     }
 }
 
@@ -538,7 +534,7 @@ c_string_chomp_self(GV v[], U32 argc)
 __GURU__ void
 c_string_dup(GV v[], U32 argc)
 {
-    SET_RETURN(_dup(v));
+    RETURN_VAL(_dup(v));
 }
 
 //================================================================
@@ -556,22 +552,21 @@ c_string_index(GV v[], U32 argc)
     else if (argc==2 && v[2].gt==GT_INT) {
         offset = v[2].i;
         if (offset < 0) offset += _size(v);
-        if (offset < 0) goto NIL_RETURN;
+        if (offset < 0) goto RST_NIL;
     }
     else {
-        goto NIL_RETURN;	// raise? ArgumentError
+        goto RST_NIL;				// raise? ArgumentError
     }
 
     index = _index(v, v+1, offset);
-    if (index < 0) goto NIL_RETURN;
+    if (index < 0) goto RST_NIL;
 
     ref_clr(v+1);
-    SET_INT_RETURN(index);
-    return;
+    RETURN_INT(index);
 
-NIL_RETURN:
+RST_NIL:
 	ref_clr(v+1);
-    SET_NIL_RETURN();
+    RETURN_NIL();
 }
 
 //================================================================
@@ -609,7 +604,7 @@ c_string_inspect(GV v[], U32 argc)
     *p   = '\0';
     guru_str_append_cstr(&ret, buf);
 
-    SET_RETURN(ret);
+    RETURN_VAL(ret);
 }
 
 //================================================================
@@ -618,7 +613,7 @@ c_string_inspect(GV v[], U32 argc)
 __GURU__ void
 c_string_ord(GV v[], U32 argc)
 {
-    SET_INT_RETURN(_data(v)[0]);
+    RETURN_INT(_data(v)[0]);
 }
 
 //================================================================
@@ -658,7 +653,7 @@ c_string_lstrip(GV v[], U32 argc)
 
     _strip(&ret, 0x01);	// 1: left side only
 
-    SET_RETURN(ret);
+    RETURN_VAL(ret);
 }
 
 //================================================================
@@ -668,7 +663,7 @@ __GURU__ void
 c_string_lstrip_self(GV v[], U32 argc)
 {
     if (_strip(v, 0x01)==0) {	// 1: left side only
-        SET_RETURN(GURU_NIL_NEW());
+        RETURN_VAL(GURU_NIL_NEW());
     }
 }
 
@@ -682,7 +677,7 @@ c_string_rstrip(GV v[], U32 argc)
 
     _strip(&ret, 0x02);							// 2: right side only
 
-    SET_RETURN(ret);
+    RETURN_VAL(ret);
 }
 
 //================================================================
@@ -692,7 +687,7 @@ __GURU__ void
 c_string_rstrip_self(GV v[], U32 argc)
 {
     if (_strip(v, 0x02)==0) {				// 2: right side only
-        SET_RETURN(GURU_NIL_NEW());			// keep refc
+        RETURN_VAL(GURU_NIL_NEW());			// keep refc
     }
 }
 
@@ -704,7 +699,7 @@ c_string_strip(GV v[], U32 argc)
 {
     GV ret = _dup(v);
     _strip(&ret, 0x03);	// 3: left and right
-    SET_RETURN(ret);
+    RETURN_VAL(ret);
 }
 
 //================================================================
@@ -714,7 +709,7 @@ __GURU__ void
 c_string_strip_self(GV v[], U32 argc)
 {
     if (_strip(v, 0x03)==0) {		// 3: left and right
-        SET_RETURN(GURU_NIL_NEW());	// keep refc
+        RETURN_VAL(GURU_NIL_NEW());	// keep refc
     }
 }
 
@@ -724,7 +719,7 @@ c_string_strip_self(GV v[], U32 argc)
 __GURU__ void
 c_string_to_sym(GV v[], U32 argc)
 {
-    SET_RETURN(guru_sym_new(_data(v)));
+    RETURN_VAL(guru_sym_new(_data(v)));
 }
 
 //================================================================

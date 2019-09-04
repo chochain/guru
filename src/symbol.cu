@@ -192,7 +192,7 @@ c_sym_inspect(GV v[], U32 argc)
 
     guru_str_append_cstr(&ret, id2name(v[0].i));
 
-    SET_RETURN(ret);
+    RETURN_VAL(ret);
 }
 
 
@@ -220,7 +220,7 @@ c_all_symbols(GV v[], U32 argc)
         sym1.i = i;
         guru_array_push(&ret, &sym1);
     }
-    SET_RETURN(ret);
+    RETURN_VAL(ret);
 }
 #endif
 

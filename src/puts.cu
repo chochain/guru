@@ -66,8 +66,10 @@ _print(GV *v)
     	break;
 #if GURU_USE_STRING
     case GT_STR:
-        console_str(VSTR(v));
-        if (VSTRLEN(v) != 0 && VSTR(v)[VSTRLEN(v) - 1]=='\n') {
+    	U8P s   = GVSTR(v);
+    	U32 len = STRLEN(s);
+        console_str(s);
+        if (len && s[len-1]=='\n') {
         	ret = 1;
         }
         break;
@@ -141,9 +143,9 @@ _p(GV *v)
 #endif
 #if GURU_USE_STRING
     case GT_STR:
-        s = VSTR(v);
+        s = GVSTR(v);
         console_char('"');
-        for (U32 i=0; i < VSTRLEN(v); i++, s++) {
+        for (U32 i=0; i < STRLEN(s); i++, s++) {
             if (*s>=' ' && *s < 0x80) console_char(*s);
             else 					  console_hex(*s);
         }

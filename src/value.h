@@ -22,20 +22,20 @@ __GURU__ void ref_dec(GV *v);
 __GURU__ void ref_inc(GV *v);
 
 // for C call
-#define SET_RETURN(n)		do { GV __n=(n); ref_dec(v); v[0]=__n; 			} while (0)
-#define SET_NIL_RETURN()	do { ref_dec(v); v[0].gt=GT_NIL;   		 		} while (0)
+#define RETURN_NIL()	do { ref_dec(v); v[0].gt=GT_NIL;   return;		} while (0)
+#define RETURN_FALSE()	do { ref_dec(v); v[0].gt=GT_FALSE; return; 		} while (0)
+#define RETURN_TRUE()	do { ref_dec(v); v[0].gt=GT_TRUE;  return;		} while (0)
 
-#define SET_FALSE_RETURN()	do { ref_dec(v); v[0].gt=GT_FALSE; 				} while (0)
-#define SET_TRUE_RETURN()	do { ref_dec(v); v[0].gt=GT_TRUE;  				} while (0)
-#define SET_BOOL_RETURN(n)	do { ref_dec(v); v[0].gt=(n)?GT_TRUE:GT_FALSE;	} while (0)
-#define SET_INT_RETURN(n)	do { GI __n=(n); ref_dec(v); v[0].gt=GT_INT;   v[0].i=__n; } while (0)
-#define SET_FLOAT_RETURN(n)	do { GF __n=(n); ref_dec(v); v[0].gt=GT_FLOAT; v[0].f=__n; } while (0)
+#define RETURN_VAL(n)	do { GV __n=(n); ref_dec(v); v[0]=__n; return;						} while (0)
+#define RETURN_BOOL(n)	do { ref_dec(v); v[0].gt=(n) ? GT_TRUE : GT_FALSE; return;			} while (0)
+#define RETURN_INT(n)	do { GI __n=(n); ref_dec(v); v[0].gt=GT_INT;   v[0].i=__n; return; 	} while (0)
+#define RETURN_FLOAT(n)	do { GF __n=(n); ref_dec(v); v[0].gt=GT_FLOAT; v[0].f=__n; return; 	} while (0)
 
 // macro to fetch from stack objects
-#define GET_GT_ARG(n)		(v[(n)].gt)
-#define GET_INT_ARG(n)		(v[(n)].i)
-#define GET_FLOAT_ARG(n)	(v[(n)].f)
-#define GET_STRING_ARG(n)	(v[(n)].string->data)
+#define ARG_GT(n)		(v[(n)].gt)
+#define ARG_INT(n)		(v[(n)].i)
+#define ARG_FLOAT(n)	(v[(n)].f)
+#define ARG_STR(n)		(v[(n)].string->data)
 
 // macro to create new built-in objects
 #define GURU_NIL_NEW()	    ((guru_obj) {.gt = GT_NIL})
@@ -59,11 +59,11 @@ __GURU__ U8P		guru_strcat(U8P d, const U8P s);
 #define ATOI(s)           guru_atoi(s, 10)
 #define ATOF(s)			  guru_atof(s)
 
-#define MEMCPY(d, s, sz)  guru_memcpy((U8P)d, (U8P)s, (U32)sz)
-#define MEMSET(d, v, sz)  guru_memset((U8P)d, (U8)v,  (U32)sz)
-#define MEMCMP(d, s, sz)  guru_memcmp((U8P)d, (U8P)s, (U32)sz)
+#define MEMCPY(d, s, sz)  guru_memcpy((U8P)(d), (U8P)(s), (U32)(sz))
+#define MEMSET(d, v, sz)  guru_memset((U8P)(d), (U8)(v),  (U32)(sz))
+#define MEMCMP(d, s, sz)  guru_memcmp((U8P)(d), (U8P)(s), (U32)(sz))
 
-#define STRLEN(s)		  guru_strlen((U8P)s)
+#define STRLEN(s)		  guru_strlen((U8P)(s))
 #define STRCPY(d, s)	  guru_strcpy((U8P)d, (U8P)s)
 #define STRCMP(d, s)      guru_strcmp((U8P)d, (U8P)s)
 #define STRCHR(d, c)      guru_strchr((U8P)d, (U8)c)
@@ -84,9 +84,7 @@ __GURU__ U8P		guru_strcat(U8P d, const U8P s);
 #endif
 
 // basic C string functions for GV
-#define VSTRLEN(v)		((v)->str->len)
-#define VSTR(v)			((U8P)(v)->str->data)
-#define VSTRCMP(v1, v2) (STRCMP((v1)->str->data, (v2)->str->data))
+#define GVSTR(v) ((U8P)(v)->str->data)
 
 #ifdef __cplusplus
 }

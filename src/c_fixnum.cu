@@ -22,9 +22,10 @@
 
 //================================================================
 /*! x-bit left shift for x
+ * TODO: to many branches here => CUDA thread divergence
  */
 __GURU__ GI
-_shift(GI x, GI y)
+_shift(int x, int y)
 {
     // Don't support environments that include padding in int.
     const U32 INT_BITS = sizeof(GI) * CHAR_BIT;
@@ -43,10 +44,10 @@ __GURU__ void
 c_int_bitref(GV v[], U32 argc)
 {
     if (0 <= v[1].i && v[1].i < 32) {
-        SET_INT_RETURN((v[0].i & (1 << v[1].i)) ? 1 : 0);
+        RETURN_INT((v[0].i & (1 << v[1].i)) ? 1 : 0);
     }
     else {
-        SET_INT_RETURN(0);
+        RETURN_INT(0);
     }
 }
 
@@ -56,8 +57,8 @@ c_int_bitref(GV v[], U32 argc)
 __GURU__ void
 c_int_negative(GV v[], U32 argc)
 {
-    GI num = GET_INT_ARG(0);
-    SET_INT_RETURN(-num);
+    GI n = ARG_INT(0);
+    RETURN_INT(-n);
 }
 
 //================================================================
@@ -73,12 +74,12 @@ c_int_power(GV v[], U32 argc)
         for (U32 i=0; i < v[1].i; i++) {
             x *= v[0].i;;
         }
-        SET_INT_RETURN(x);
+        RETURN_INT(x);
     }
 
 #if GURU_USE_FLOAT && GURU_USE_MATH
     else if (v[1].gt == GT_FLOAT) {
-        SET_FLOAT_RETURN(pow(v[0].i, v[1].f));
+        RETURN_FLOAT(pow(v[0].i, v[1].f));
     }
 #endif
 }
@@ -90,8 +91,8 @@ c_int_power(GV v[], U32 argc)
 __GURU__ void
 c_int_mod(GV v[], U32 argc)
 {
-    GI num = GET_INT_ARG(1);
-    SET_INT_RETURN(v->i % num);
+    GI n = ARG_INT(1);
+    RETURN_INT(v->i % n);
 }
 
 //================================================================
@@ -100,8 +101,8 @@ c_int_mod(GV v[], U32 argc)
 __GURU__ void
 c_int_and(GV v[], U32 argc)
 {
-    GI num = GET_INT_ARG(1);
-    SET_INT_RETURN(v->i & num);
+    GI n = ARG_INT(1);
+    RETURN_INT(v->i & n);
 }
 
 //================================================================
@@ -110,8 +111,8 @@ c_int_and(GV v[], U32 argc)
 __GURU__ void
 c_int_or(GV v[], U32 argc)
 {
-    GI num = GET_INT_ARG(1);
-    SET_INT_RETURN(v->i | num);
+    GI n = ARG_INT(1);
+    RETURN_INT(v->i | n);
 }
 
 //================================================================
@@ -120,8 +121,8 @@ c_int_or(GV v[], U32 argc)
 __GURU__ void
 c_int_xor(GV v[], U32 argc)
 {
-    GI num = GET_INT_ARG(1);
-    SET_INT_RETURN(v->i ^ num);
+    GI n = ARG_INT(1);
+    RETURN_INT(v->i ^ n);
 }
 
 //================================================================
@@ -130,8 +131,8 @@ c_int_xor(GV v[], U32 argc)
 __GURU__ void
 c_int_not(GV v[], U32 argc)
 {
-    GI num = GET_INT_ARG(0);
-    SET_INT_RETURN(~num);
+    GI n = ARG_INT(0);
+    RETURN_INT(~n);
 }
 
 //================================================================
@@ -140,8 +141,9 @@ c_int_not(GV v[], U32 argc)
 __GURU__ void
 c_int_lshift(GV v[], U32 argc)
 {
-    U32 num = GET_INT_ARG(1);
-    SET_INT_RETURN(_shift(v->i, num));
+    S32 n = ARG_INT(1);
+    S32 r = _shift(v->i, n);
+    RETURN_INT(_shift(v->i, n));
 }
 
 //================================================================
@@ -150,8 +152,9 @@ c_int_lshift(GV v[], U32 argc)
 __GURU__ void
 c_int_rshift(GV v[], U32 argc)
 {
-    U32 num = GET_INT_ARG(1);
-    SET_INT_RETURN(_shift(v->i, -num));
+    S32 n = ARG_INT(1);
+    S32 r = _shift(v->i, -n);
+    RETURN_INT(_shift(v->i, -n));
 }
 
 //================================================================
@@ -172,8 +175,8 @@ c_int_abs(GV v[], U32 argc)
 __GURU__ void
 c_int_to_f(GV v[], U32 argc)
 {
-    GF f = GET_INT_ARG(0);
-    SET_FLOAT_RETURN(f);
+    GF f = ARG_INT(0);
+    RETURN_FLOAT(f);
 }
 #endif
 
@@ -184,9 +187,9 @@ c_int_to_f(GV v[], U32 argc)
 __GURU__ void
 c_int_chr(GV v[], U32 argc)
 {
-    U8 buf[2] = { (U8)GET_INT_ARG(0), '\0' };
+    U8 buf[2] = { (U8)ARG_INT(0), '\0' };
 
-    SET_RETURN(guru_str_new(buf));
+    RETURN_VAL(guru_str_new(buf));
 }
 
 //================================================================
@@ -195,12 +198,12 @@ c_int_chr(GV v[], U32 argc)
 __GURU__ void
 c_int_to_s(GV v[], U32 argc)
 {
-	U32 i    = GET_INT_ARG(0);
+	U32 i    = ARG_INT(0);
     U32 bias = 'a' - 10;
     U32 base = 10;
 
     if (argc) {
-        base = GET_INT_ARG(1);
+        base = ARG_INT(1);
         if (base < 2 || base > 36) return;	// raise ? ArgumentError
     }
     U8  buf[64+2];				// int64 + terminate + 1
@@ -213,7 +216,7 @@ c_int_to_s(GV v[], U32 argc)
         x /= base;
     } while (x != 0);
 
-    SET_RETURN(guru_str_new(buf));
+    RETURN_VAL(guru_str_new(buf));
 }
 #endif
 
@@ -252,8 +255,8 @@ guru_init_class_int(void)
 __GURU__ void
 c_float_negative(GV v[], U32 argc)
 {
-    GF num = GET_FLOAT_ARG(0);
-    SET_FLOAT_RETURN(-num);
+    GF f = ARG_FLOAT(0);
+    RETURN_FLOAT(-f);
 }
 
 #if GURU_USE_MATH
@@ -270,7 +273,7 @@ c_float_power(GV v[], U32 argc)
     default: break;
     }
 
-    SET_FLOAT_RETURN(pow(v[0].d, n));
+    RETURN_FLOAT(pow(v[0].d, n));
 }
 #endif
 
@@ -291,8 +294,8 @@ c_float_abs(GV v[], U32 argc)
 __GURU__ void
 c_float_to_i(GV v[], U32 argc)
 {
-    GI i = (GI)GET_FLOAT_ARG(0);
-    SET_INT_RETURN(i);
+    GI i = (GI)ARG_FLOAT(0);
+    RETURN_INT(i);
 }
 
 #if GURU_USE_STRING

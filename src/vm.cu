@@ -47,7 +47,7 @@ _vm_begin(guru_vm *pool)
 
 	if (threadIdx.x!=0 || vm->id==0) return;	// bail if vm not allocated
 
-	MEMSET((U8P)vm->regfile, 0, sizeof(vm->regfile));	// clean up registers
+	MEMSET(vm->regfile, 0, sizeof(vm->regfile));	// clean up registers
 
     vm->regfile[0].gt  	= GT_CLASS;		// regfile[0] is self
     vm->regfile[0].cls 	= guru_class_object;	// root class
@@ -321,6 +321,4 @@ _vm_trace(U32 level)
 #else
 __HOST__ cudaError_t _vm_trace(U32 level) { return cudaSuccess; }
 #endif 	// GURU_DEBUG
-
-
 

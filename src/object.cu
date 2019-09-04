@@ -57,7 +57,7 @@
   GV *recv = &v[1];
   GV arg1 = guru_int_value(16);
   GV ret  = _send(vm, v, argc, recv, "to_s", 1, &arg1);
-  SET_RETURN(ret);
+  RETURN_VAL(ret);
   }
 */
 __GURU__ GV
@@ -154,7 +154,7 @@ c_print(GV v[], U32 argc)
 __GURU__ void
 c_object_not(GV v[], U32 argc)
 {
-    SET_FALSE_RETURN();
+    RETURN_FALSE();
 }
 
 //================================================================
@@ -164,7 +164,7 @@ __GURU__ void
 c_object_neq(GV v[], U32 argc)
 {
     S32 t = guru_cmp(&v[0], &v[1]);
-    SET_BOOL_RETURN(t);
+    RETURN_BOOL(t);
 }
 
 //================================================================
@@ -174,7 +174,7 @@ __GURU__ void
 c_object_compare(GV v[], U32 argc)
 {
     S32 t = guru_cmp(&v[0], &v[1]);
-    SET_INT_RETURN(t);
+    RETURN_INT(t);
 }
 
 //================================================================
@@ -185,8 +185,8 @@ c_object_equal3(GV v[], U32 argc)
 {
 	S32 ret = guru_cmp(v, v+1);
 
-    if (v[0].gt != GT_CLASS) SET_BOOL_RETURN(ret==0);
-    else 						  SET_RETURN(guru_kind_of(v, argc));
+    if (v[0].gt != GT_CLASS) RETURN_BOOL(ret==0);
+    else 					 RETURN_VAL(guru_kind_of(v, argc));
 }
 
 //================================================================
@@ -198,7 +198,7 @@ c_object_class(GV v[], U32 argc)
     GV ret = {.gt = GT_CLASS };
     ret.cls = class_by_obj(v);
 
-    SET_RETURN(ret);
+    RETURN_VAL(ret);
 }
 
 //================================================================
@@ -231,7 +231,7 @@ c_object_getiv(GV v[], U32 argc)
     const U8P name = _get_callee(NULL);			// TODO:
     GS  sid  = name2id(name);
 
-    SET_RETURN(guru_store_get(&v[0], sid));
+    RETURN_VAL(guru_store_get(&v[0], sid));
 }
 
 //================================================================
@@ -279,7 +279,7 @@ c_object_attr_accessor(GV v[], U32 argc)
         if (!buf) return;
         
         STRCPY(buf, name);
-        STRCAT(buf, (U8P)"=");
+        STRCAT(buf, "=");
         guru_sym_new(buf);
         guru_define_method(v[0].cls, buf, c_object_setiv);
         guru_free(buf);
@@ -293,8 +293,7 @@ __GURU__ void
 c_object_kind_of(GV v[], U32 argc)
 {
     if (v[1].gt != GT_CLASS) {
-        SET_BOOL_RETURN(0);
-        return;
+        RETURN_BOOL(0);
     }
     const guru_class *cls = class_by_obj(&v[0]);
 
@@ -331,7 +330,7 @@ c_object_to_s(GV v[], U32 argc)
     	ret = guru_str_new("");
     	break;
     }
-    SET_RETURN(ret);
+    RETURN_VAL(ret);
 }
 #endif
 
@@ -387,7 +386,7 @@ c_proc_inspect(GV v[], U32 argc)
 	GV ret = guru_str_new("<#Proc:");
 	guru_str_append_cstr(&ret, guru_i2s((U64)v->proc, 16));
 
-    SET_RETURN(ret);
+    RETURN_VAL(ret);
 }
 #endif
 

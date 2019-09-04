@@ -155,7 +155,7 @@ _remove(GV *kv, GV *key)
     guru_hash  *h  = kv->hash;
     h->n -= 2;
 
-    MEMCPY(v, (v+2), U8POFF(U8PADD(h->data, h->n), v));
+    MEMCPY(v, (v+2), U8POFF(h->data + h->n, v));
 
     // TODO: re-index hash table if need.
 
@@ -272,7 +272,7 @@ guru_hash_compare(const GV *v0, const GV *v1)
 __GURU__ void
 c_hash_new(GV v[], U32 argc)
 {
-	SET_RETURN(guru_hash_new(0));
+	RETURN_VAL(guru_hash_new(0));
 }
 
 //================================================================
@@ -288,7 +288,7 @@ c_hash_get(GV v[], U32 argc)
     GV ret = _get(v, v+1);
     ref_inc(&ret);
 
-    SET_RETURN(ret);
+    RETURN_VAL(ret);
 }
 
 //================================================================
@@ -323,7 +323,7 @@ c_hash_clear(GV v[], U32 argc)
 __GURU__ void
 c_hash_dup(GV v[], U32 argc)
 {
-    SET_RETURN(_hash_dup(v));
+    RETURN_VAL(_hash_dup(v));
 }
 
 //================================================================
@@ -334,7 +334,7 @@ c_hash_delete(GV v[], U32 argc)
 {
     // TODO : now, support only delete(key) -> object
     // TODO: re-index hash table if need.
-	SET_RETURN(_remove(v, v+1));
+	RETURN_VAL(_remove(v, v+1));
 }
 
 //================================================================
@@ -343,7 +343,7 @@ c_hash_delete(GV v[], U32 argc)
 __GURU__ void
 c_hash_empty(GV v[], U32 argc)
 {
-    SET_BOOL_RETURN(_size(v)==0);
+    RETURN_BOOL(_size(v)==0);
 }
 
 //================================================================
@@ -352,7 +352,7 @@ c_hash_empty(GV v[], U32 argc)
 __GURU__ void
 c_hash_has_key(GV v[], U32 argc)
 {
-    SET_BOOL_RETURN(_search(v, v+1)!=NULL);
+    RETURN_BOOL(_search(v, v+1)!=NULL);
 }
 
 //================================================================
@@ -365,11 +365,10 @@ c_hash_has_value(GV v[], U32 argc)
     int         n = _size(v);
     for (U32 i=0; i<n; i++, p+=2) {
         if (guru_cmp(p+1, v+1)==0) {	// value to value
-            SET_BOOL_RETURN(1);
-            return;
+            RETURN_BOOL(1);
         }
     }
-    SET_BOOL_RETURN(0);
+    RETURN_BOOL(0);
 }
 
 //================================================================
@@ -383,11 +382,11 @@ c_hash_key(GV v[], U32 argc)
     for (U32 i=0; i<n; i++, p+=2) {
         if (guru_cmp(p+1, v+1)==0) {
             ref_inc(p);
-            SET_RETURN(*p);
+            RETURN_VAL(*p);
             return;
         }
     }
-    SET_NIL_RETURN();
+    RETURN_NIL();
 }
 
 //================================================================
@@ -403,7 +402,7 @@ c_hash_keys(GV v[], U32 argc)
     for (U32 i=0; i<n; i++, p+=2) {
         guru_array_push(&ret, p);
     }
-    SET_RETURN(ret);
+    RETURN_VAL(ret);
 }
 
 //================================================================
@@ -412,7 +411,7 @@ c_hash_keys(GV v[], U32 argc)
 __GURU__ void
 c_hash_size(GV v[], U32 argc)
 {
-    SET_INT_RETURN(_size(v));
+    RETURN_INT(_size(v));
 }
 
 //================================================================
@@ -429,7 +428,7 @@ c_hash_merge(GV v[], U32 argc)		// non-destructive merge
         ref_inc(p);						// extra ref on incoming kv
         ref_inc(p+1);
     }
-    SET_RETURN(ret);
+    RETURN_VAL(ret);
 }
 
 //================================================================
@@ -460,7 +459,7 @@ c_hash_values(GV v[], U32 argc)
     for (U32 i=0; i<n; i++, p+=2) {
         guru_array_push(&ret, p+1);
     }
-    SET_RETURN(ret);
+    RETURN_VAL(ret);
 }
 
 #if GURU_USE_STRING
@@ -472,8 +471,7 @@ c_hash_inspect(GV v[], U32 argc)
     GV comma = guru_str_new(", ");
     GV ret   = guru_str_new("{");
     if (!ret.str) {
-    	SET_NIL_RETURN();
-    	return;
+    	RETURN_NIL();
     }
 
     GV s[3];
@@ -494,7 +492,7 @@ c_hash_inspect(GV v[], U32 argc)
     }
     guru_str_append_cstr(&ret, "}");
 
-    SET_RETURN(ret);
+    RETURN_VAL(ret);
 }
 #endif
 
