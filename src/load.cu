@@ -327,7 +327,7 @@ guru_parse_bytecode(guru_vm *vm, U8P src)
     }
 }
 
-#ifdef GURU_DEBUG
+#if GURU_DEBUG
 __HOST__ void
 _show_irep(guru_irep *irep, U32 ioff, char level, char *idx)
 {

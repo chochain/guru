@@ -148,7 +148,7 @@ __merge(free_block *p0, free_block *p1)
         free_block *next = (free_block *)NEXT(p0);
         next->poff = U8POFF(p0, next);
     }
-#ifdef GURU_DEBUG
+#if GURU_DEBUG
     *((U64*)p1) = 0xeeeeeeeeeeeeeeee;
 #endif
 }
@@ -353,7 +353,7 @@ guru_alloc(U32 size)
     alloc_size += ((8 - alloc_size) & 7);	// 8-byte align
 #endif
     // check minimum alloc size. if need.
-#ifdef GURU_DEBUG
+#if GURU_DEBUG
     assert(alloc_size >= MN_BLOCK);
 #else
     if (alloc_size < MN_BLOCK) {
@@ -366,7 +366,7 @@ guru_alloc(U32 size)
 	U32 index 			= _find_free_block(alloc_size);
 	free_block *target 	= _mark_used(index);
 
-#ifdef GURU_DEBUG
+#if GURU_DEBUG
     U32P p = (U32P)BLOCKDATA(target);
     for (U32 i=0; i < (alloc_size - sizeof(used_block))>>2; i++) *p++ = 0xaaaaaaaa;
 #endif
@@ -451,7 +451,7 @@ guru_memory_clear()
     }
 }
 
-#ifdef GURU_DEBUG
+#if GURU_DEBUG
 //================================================================
 /*! statistics
 

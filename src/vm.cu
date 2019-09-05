@@ -79,7 +79,7 @@ _vm_end(guru_vm *pool)
 
 	if (threadIdx.x!=0 || vm->id==0) return;		// bail if vm not allocated
 
-#ifndef GURU_DEBUG
+#if !GURU_DEBUG
 	// clean up register file
 	GV *p = vm->regfile;
 	for (U32 i=0; i < MAX_REGS_SIZE; i++, p++) {
@@ -224,7 +224,7 @@ guru_vm_release(guru_ses *ses)
 //========================================================================================
 // the following code is for debugging purpose, turn off GURU_DEBUG for release
 //========================================================================================
-#ifdef GURU_DEBUG
+#if GURU_DEBUG
 static const char *_vtype[] = {
 	"___","nil","f  ","t  ","num","flt","sym","cls",
 	"","","","","","","","",
@@ -291,8 +291,8 @@ _show_decoder(guru_vm *vm)
 	printf("[");
 	for (U32 i=0; i<=last; i++, v++) {
 		printf("%s",_vtype[v->gt]);
-		if (v->gt >= GT_OBJ) printf("%d", v->self->refc);
-		else 						 printf(" ");
+		if (v->gt & GT_HAS_REF) printf("%d", v->self->rc);
+		else 					printf(" ");
 	    printf("%c", i==lvl ? '|' : ' ');
     }
 	printf("]\n");

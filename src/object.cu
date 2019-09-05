@@ -65,7 +65,7 @@ _send(GV v[], GV *rcv, const U8P method, U32 argc, ...)
 {
     GV *regs = v + 2;	     // allocate 2 for stack
     GS   sid   = name2id(method);
-    guru_proc  *m    = proc_by_sid(*rcv, sid);
+    guru_proc  *m    = proc_by_sid(rcv, sid);
 
     if (m == 0) {
         PRINTF("No method. vtype=%d method='%s'\n", rcv->gt, method);
@@ -92,7 +92,7 @@ _send(GV v[], GV *rcv, const U8P method, U32 argc, ...)
     m->func(regs, argc);			// call method
     GV ret = regs[0];		// copy result
 
-#ifdef GURU_DEBUG
+#if GURU_DEBUG
     for (U32 i=0; i<=argc+1; i++) {	// not really needed!
     	regs[i].gt = GT_EMPTY;	// but, clean up the stack before returning
     }
@@ -119,7 +119,7 @@ c_nop(GV v[], U32 argc)
 	// do nothing
 }
 
-#ifdef GURU_DEBUG
+#if GURU_DEBUG
 //================================================================
 /*! (method) p
  */
@@ -348,7 +348,7 @@ _init_class_object()
 
     // Methods
     guru_add_proc(c, "initialize",    	c_nop);
-#ifdef GURU_DEBUG
+#if GURU_DEBUG
     guru_add_proc(c, "p", 				c_p);
 #endif
     guru_add_proc(c, "puts",          	c_puts);

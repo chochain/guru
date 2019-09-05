@@ -106,9 +106,9 @@ _name2class(const U8P name)
   @return
 */
 __GURU__ guru_proc*
-proc_by_sid(GV rcv, GS sid)
+proc_by_sid(GV *rcv, GS sid)
 {
-    guru_class *cls = class_by_obj(&rcv);
+    guru_class *cls = class_by_obj(rcv);
 
     while (cls != 0) {
         guru_proc *proc = cls->vtbl;
@@ -145,11 +145,12 @@ guru_define_class(const U8P name, guru_class *super)
 
     GS sid = name2id(name);
 
-    cls->sid = sid;
+    cls->sid    = sid;
     cls->super 	= super;
     cls->vtbl 	= NULL;
-    cls->name   = name;
-
+#ifdef GURU_DEBUG
+    cls->name   = (char *)name;
+#endif
     // register to global constant.
     GV v = { .gt = GT_CLASS };
     v.cls = cls;
@@ -159,7 +160,7 @@ guru_define_class(const U8P name, guru_class *super)
 }
 
 __GURU__ guru_proc *
-guru_alloc_proc(const U8P name)
+_alloc_proc(guru_class *cls, const U8P name)
 {
     guru_proc *proc = (guru_proc *)guru_alloc(sizeof(guru_proc));
 
@@ -167,11 +168,13 @@ guru_alloc_proc(const U8P name)
 
     proc->gt     = GT_PROC;
     proc->flag   = GURU_CFUNC;
-    proc->refc   = 1;
+    proc->rc     = 1;
     proc->sid    = name2id(name);
     proc->next   = NULL;
-    proc->name   = name;
-
+#ifdef GURU_DEBUG
+    proc->cname  = cls->name;
+    proc->name   = (char *)name;
+#endif
     return proc;
 }
 
@@ -189,7 +192,7 @@ guru_define_method(guru_class *cls, const U8P name, guru_fptr cfunc)
 {
     if (cls==NULL) cls = guru_class_object;		// set default to Object.
 
-    guru_proc *proc = guru_alloc_proc(name);
+    guru_proc *proc = _alloc_proc(cls, name);
 
     if (!proc) return NULL;
 
