@@ -254,11 +254,7 @@ guru_strcat(U8P d, const U8P s)
 __GURU__ void
 ref_dec(GV *v)
 {
-	if (!(v->gt & GT_HAS_REF)) return;
-
-	assert(v->self->refc > 0);
-
-    if (--v->self->refc > 0) return;		// still used, keep going
+    if (v->gt & GT_HAS_REF && --v->self->rc > 0) return;		// still used, keep going
 
     switch(v->gt) {
     case GT_OBJ:		guru_store_delete(v);	break;
@@ -284,9 +280,7 @@ ref_dec(GV *v)
 __GURU__ void
 ref_inc(GV *v)
 {
-	if (!(v->gt & GT_HAS_REF)) return;
-
-	v->self->refc++;
+	if (v->gt & GT_HAS_REF) v->self->rc++;
 }
 
 //================================================================
@@ -298,6 +292,6 @@ ref_inc(GV *v)
 __GURU__ void
 ref_clr(GV *v)
 {
-    ref_dec(v);
     v->gt = GT_EMPTY;
+    v->rc = 0;
 }

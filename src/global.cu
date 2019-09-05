@@ -55,7 +55,7 @@ _get_obj(GS sid, _gtype gt)
 {
     U32 idx = _get_idx(sid, gt);
 
-    if (idx==MAX_GLOBAL_COUNT) return GURU_NIL_NEW();
+    if (idx>=MAX_GLOBAL_COUNT) return GURU_NIL_NEW();
 
     ref_inc(&_global[idx].obj);
 

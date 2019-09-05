@@ -182,9 +182,9 @@ guru_store_new(guru_class *cls, U32 size)
         return v;
     }
 
-    v.self->refc = 1;
-    v.self->gt   = GT_OBJ;	// for debug only.
-    v.self->cls  = cls;
+    v.self->gt  = GT_OBJ;	// for debug only.
+    v.self->rc  = 1;
+    v.self->cls = cls;
 
     return v;
 }

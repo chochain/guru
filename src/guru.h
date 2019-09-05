@@ -116,10 +116,13 @@ typedef U32 		GS;
 /*!@brief
   Guru objects
 */
+#define GURU_HDR  		\
+	GT  	gt   : 8; 	\
+	U32		flag : 8;	\
+	U32		rc   : 16
+
 typedef struct {							// 8-bytes
-    GT           	gt   : 8;				// 8-bit
-    U32				flag : 8;				// function, memory pool index
-    U32				size : 16;				// 32-bit aligned
+	GURU_HDR;								// guru header
     union {
         GI         		 i;					// TT_FIXNUM, SYMBOL
         GF       		 f;					// TT_FLOAT
@@ -144,23 +147,18 @@ typedef struct RClass {			// 16-byte
     GS       		sid;		// class name
     struct RClass 	*super;		// guru_class[super]
     struct RProc  	*vtbl;		// guru_proc[rprocs], linked list
-#ifdef GURU_DEBUG
-    U8P       		name;		// for debug. TODO: remove
+#if GURU_DEBUG
+    char			*name;		// for debug. TODO: remove
 #endif
 } guru_class;
 
 #define GURU_CFUNC 	0x80
 #define IS_CFUNC(m)	((m)->flag & GURU_CFUNC)
 
-#define GURU_HDR  		\
-	GT  	gt   : 8; 	\
-	U32		flag : 8;	\
-	U32		refc : 16;
-
 typedef struct RString {		// 12-byte
 	GURU_HDR;					// 4-byte
-	U32 len;					//!< string length.
-	U8P data;					//!< pointer to allocated buffer.
+	U32 	len;				//!< string length.
+	char 	*data;				//!< pointer to allocated buffer.
 } guru_str;
 
 //================================================================
@@ -190,8 +188,9 @@ typedef struct RProc {			// 20-byte
         struct RIrep *irep;		// an IREP (Ruby code), defined in vm.h
         guru_fptr  	 func;		// or a raw C function
     };
-#ifdef GURU_DEBUG
-    U8P  name;					// for debug. TODO: remove
+#if GURU_DEBUG
+    char			*cname;
+    char  			*name;
 #endif
 } guru_proc;
 

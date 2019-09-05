@@ -315,7 +315,7 @@ _show_decoder(mrbc_vm *vm)
 
 	for (U32 i=0; i<=last; i++, v++) {
 		printf("%2d.%s", i, _vtype[v->gt]);
-	    if (v->gt >= GT_OBJ) printf("_%d", v->self->refc);
+	    if (v->gt & GT_HAS_REF) printf("_%d", v->self->rc);
 	    printf(" ");
     }
 	printf("]\n");

@@ -154,7 +154,7 @@ _vm_proc_call(guru_vm *vm, GV v[], U32 argc)
 	vm->state->irep = v[0].proc->irep;	// switch into callee context
 	vm->state->reg  = v;				// shift register file pointer (for local stack)
 
-	v[0].proc->refc++;					// CC: 20181027 added to track proc usage
+	v[0].proc->rc++;					// CC: 20181027 added to track proc usage
 }
 
 // Object.new
@@ -700,7 +700,7 @@ op_send(guru_vm *vm, U32 code, GV *regs)
     int ra = GETARG_A(code);
     int rb = GETARG_B(code);  // index of method sym
     int rc = GETARG_C(code);  // number of params
-    GV rcv = regs[ra];
+    GV *rcv = &regs[ra];
 
     // Clear block param (needed ?)
     int bidx = ra + rc + 1;
@@ -1255,17 +1255,17 @@ op_strcat(guru_vm *vm, U32 code, GV *regs)
     int ra = GETARG_A(code);
     int rb = GETARG_B(code);
 
-    GV *pa  = &regs[ra];
-    GV *pb  = &regs[rb];
-    GS sid  = name2id((U8P)"to_s");			// from global symbol pool
+    GV *va  = &regs[ra];
+    GV *vb  = &regs[rb];
+    GS sid  = name2id((U8P)"to_s");				// from global symbol pool
 
-    guru_proc *ma = proc_by_sid(*pa, sid);
-    guru_proc *mb = proc_by_sid(*pb, sid);
+    guru_proc *pa = proc_by_sid(va, sid);
+    guru_proc *pb = proc_by_sid(vb, sid);
 
-    if (ma && IS_CFUNC(ma)) ma->func(pa, 0);
-    if (mb && IS_CFUNC(mb)) mb->func(pb, 0);
+    if (pa && IS_CFUNC(pa)) pa->func(va, 0);
+    if (pb && IS_CFUNC(pb)) pb->func(vb, 0);
 
-    GV ret = guru_str_add(pa, pb);
+    GV ret = guru_str_add(va, vb);
 
     _RA_V(ret);
 
@@ -1395,6 +1395,9 @@ op_range(guru_vm *vm, U32 code, GV *regs)
 __GURU__ int
 op_lambda(guru_vm *vm, U32 code, GV *regs)
 {
+    guru_na("OP_LAMBDA");
+	return 0;							// no support for metaprogramming yet
+	/*
     int ra = GETARG_A(code);
     int rb = GETARG_b(code);      		// sequence position in irep list
     // int c = GETARG_C(code);    		// TODO: Add flags support for OP_LAMBDA
@@ -1407,6 +1410,7 @@ op_lambda(guru_vm *vm, U32 code, GV *regs)
     _RA_T(GT_PROC, proc=prc);
 
     return 0;
+    */
 }
 
 //================================================================

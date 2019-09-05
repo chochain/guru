@@ -197,8 +197,8 @@ guru_hash_new(int size)
         guru_free(h);
         return ret;
     }
-    h->refc = 1;
     h->gt  	= GT_HASH;
+    h->rc   = 1;
     h->size	= size<<1;
     h->n  	= 0;
     h->data = data;
