@@ -275,8 +275,8 @@ guru_array_new(int size)
         guru_free(h);
         return ret;
     }
-    h->refc = 1;			// handle is referenced
     h->gt 	= GT_ARRAY;
+    h->rc   = 1;			// handle is referenced
     h->size = size;
     h->n  	= 0;
     h->data = data;
@@ -674,17 +674,14 @@ __GURU__ void
 c_array_min(GV v[], U32 argc)
 {
     // Subset of Array#min, not support min(n).
+    GV *min, *max;
 
-    GV *p_min_value, *p_max_value;
-
-    _minmax(v, &p_min_value, &p_max_value);
-    if (p_min_value==NULL) {
-    	RETURN_NIL();
+    _minmax(v, &min, &max);
+    if (min) {
+        ref_inc(min);
+        RETURN_VAL(*min);
     }
-    else {
-        ref_inc(p_min_value);
-        RETURN_VAL(*p_min_value);
-    }
+    RETURN_NIL();
 }
 
 //================================================================
@@ -694,17 +691,14 @@ __GURU__ void
 c_array_max(GV v[], U32 argc)
 {
     // Subset of Array#max, not support max(n).
+    GV *min, *max;
 
-    GV *p_min_value, *p_max_value;
-
-    _minmax(v, &p_min_value, &p_max_value);
-    if (p_max_value==NULL) {
-    	RETURN_NIL();
+    _minmax(v, &min, &max);
+    if (max) {
+        ref_inc(max);
+        RETURN_VAL(*max);
     }
-    else {
-        ref_inc(p_max_value);
-        RETURN_VAL(*p_max_value);
-    }
+    RETURN_NIL();
 }
 
 //================================================================
@@ -715,18 +709,18 @@ c_array_minmax(GV v[], U32 argc)
 {
     // Subset of Array#minmax, not support minmax(n).
 
-    GV *p_min_value, *p_max_value;
+    GV *min, *max;
     GV nil = GURU_NIL_NEW();
     GV ret = guru_array_new(2);
 
-    _minmax(v, &p_min_value, &p_max_value);
-    if (p_min_value==NULL) p_min_value = &nil;
-    if (p_max_value==NULL) p_max_value = &nil;
+    _minmax(v, &min, &max);
+    if (min==NULL) min = &nil;
+    if (max==NULL) max = &nil;
 
-    ref_inc(p_min_value);
-    ref_inc(p_max_value);
-    _set(&ret, 0, p_min_value);
-    _set(&ret, 1, p_max_value);
+    ref_inc(min);
+    ref_inc(max);
+    _set(&ret, 0, min);
+    _set(&ret, 1, max);
 
     RETURN_VAL(ret);
 }
