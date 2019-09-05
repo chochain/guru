@@ -21,23 +21,6 @@
 #endif
 
 //================================================================
-/*! x-bit left shift for x
- * TODO: to many branches here => CUDA thread divergence
- */
-__GURU__ GI
-_shift(int x, int y)
-{
-    // Don't support environments that include padding in int.
-    const U32 INT_BITS = sizeof(GI) * CHAR_BIT;
-
-    if (y >= INT_BITS)  return 0;
-    if (y >= 0)         return x << y;
-    if (y <= -INT_BITS) return 0;
-
-    return x >> -y;
-}
-
-//================================================================
 /*! (operator) [] bit reference
  */
 __GURU__ void
@@ -141,9 +124,8 @@ c_int_not(GV v[], U32 argc)
 __GURU__ void
 c_int_lshift(GV v[], U32 argc)
 {
-    S32 n = ARG_INT(1);
-    S32 r = _shift(v->i, n);
-    RETURN_INT(_shift(v->i, n));
+    GI n = ARG_INT(1);
+    RETURN_INT(v->i << n);
 }
 
 //================================================================
@@ -152,9 +134,8 @@ c_int_lshift(GV v[], U32 argc)
 __GURU__ void
 c_int_rshift(GV v[], U32 argc)
 {
-    S32 n = ARG_INT(1);
-    S32 r = _shift(v->i, -n);
-    RETURN_INT(_shift(v->i, -n));
+    GI n = ARG_INT(1);
+    RETURN_INT(v->i >> n);
 }
 
 //================================================================
@@ -206,8 +187,8 @@ c_int_to_s(GV v[], U32 argc)
         base = ARG_INT(1);
         if (base < 2 || base > 36) return;	// raise ? ArgumentError
     }
-    U8  buf[64+2];				// int64 + terminate + 1
-    U8P p = buf + sizeof(buf) - 1;
+    U8  buf[64+2];							// int64 + terminate + 1
+    U8P p = buf + sizeof(buf) - 1;			// fill from the tail of the buffer
     U32 x;
     *p = '\0';
     do {
@@ -216,7 +197,7 @@ c_int_to_s(GV v[], U32 argc)
         x /= base;
     } while (x != 0);
 
-    RETURN_VAL(guru_str_new(buf));
+    RETURN_VAL(guru_str_new(p));
 }
 #endif
 
