@@ -189,14 +189,9 @@ guru_hash_new(int size)
     /*
       Allocate handle and data buffer.
     */
-    guru_hash *h = (guru_hash *)guru_alloc(sizeof(guru_hash));
-    if (!h) return ret;	// ENOMEM
+    guru_hash *h    = (guru_hash *)guru_alloc(sizeof(guru_hash));
+    GV        *data = (GV *)guru_alloc(sizeof(GV) * (size<<1));
 
-    GV *data = (GV *)guru_alloc(sizeof(GV) * (size<<1));
-    if (!data) {			// ENOMEM
-        guru_free(h);
-        return ret;
-    }
     h->gt  	= GT_HASH;
     h->rc   = 1;
     h->size	= size<<1;

@@ -72,15 +72,10 @@ _blank(U32 len)
       Allocate handle and string buffer.
     */
     guru_str *h = (guru_str *)guru_alloc(sizeof(guru_str));
-    assert(h != NULL);			// out of memory
+    U8P      s  = (U8P)guru_alloc(len);
 
-    U8P s = (U8P)guru_alloc(len);
-    assert(s != NULL);			// ENOMEM
-
-#if GURU_64BIT_ALIGN_REQUIRED
-    assert(((U32A)h & 7)==0);
-    assert(((U32A)s & 7)==0);
-#endif
+    CHECK_ALIGN((U32A)h);
+    CHECK_ALIGN((U32A)s);
 
     s[0] = '\0';						// empty new string
     h->gt   = GT_STR;					// TODO: for DEBUG
@@ -257,11 +252,7 @@ guru_str_append(const GV *v0, const GV *v1)
 
     U8P s = (U8P)guru_realloc(v0->str->data, len0+len1+1);		// +'\0'
 
-    assert(s!=NULL);						// out of memory
-#if GURU_64BIT_ALIGN_REQUIRED
-    assert(((U32A)s & 7)==0);
-#endif
-    if (v1->gt==GT_STR) {			// append str2
+    if (v1->gt==GT_STR) {					// append str2
         MEMCPY(s + len0, v1->str->data, len1 + 1);
     }
     else if (v1->gt==GT_INT) {
@@ -283,13 +274,10 @@ guru_str_append_cstr(const GV *v0, const U8 *str)
 {
     U32 len0 = v0->str->len;
     U32 len1 = STRLEN(str);
+    U32 sz = len0+len1+1;	sz + (-sz & 7);			// 8-byte aligned
 
-    U8P buf  = (U8P)guru_realloc(v0->str->data, len0+len1+1);
+    U8P buf  = (U8P)guru_realloc(v0->str->data, sz);
 
-    assert(buf!=NULL);						// out of memory
-#if GURU_64BIT_ALIGN_REQUIRED
-    assert(((U32A)buf & 7)==0);
-#endif
     MEMCPY(buf + len0, v0, len1 + 1);
 
     v0->str->len  = len0 + len1;
@@ -499,20 +487,19 @@ c_str_insert(GV v[], U32 argc)
 
     U32 len1 = v->str->len;
     U32 len2 = val->str->len;
-    if (nth < 0) nth = len1 + nth;               // adjust to positive number.
+    if (nth < 0) nth = len1 + nth;               					// adjust to positive number.
     if (len > len1 - nth) len = len1 - nth;
     if (nth < 0 || nth > len1 || len < 0) {
         PRINTF("IndexError\n");  // raise?
         return;
     }
-
-    U8P str = (U8P)guru_realloc(_data(v), len1 + len2 - len + 1);
-    if (!str) return;
+    U32 sz  = len1 + len2 - len + 1;
+    U8P str = (U8P)guru_realloc(_data(v), sz + (-sz & 7));			// 8-byte aligned
 
     MEMCPY(str + nth + len2, str + nth + len, len1 - nth - len + 1);
     MEMCPY(str + nth, (U8P)_data(val), len2);
-    v->str->len = len1 + len2 - len;
 
+    v->str->len  = len1 + len2 - len;
     v->str->data = (char *)str;
 
     ref_clr(v+1);
