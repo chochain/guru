@@ -736,6 +736,7 @@ op_send(guru_vm *vm, U32 code, GV *regs)
         	_vm_object_new(vm, regs+ra, rc);
         }
         else {
+        	printf("%s#%s:\n", m->cname, m->name);
         	m->func(regs+ra, rc);					// call the C-func
             for (U32 i=ra+1; i<=bidx; i++) {		// clean up block parameters
             	ref_clr(&regs[i]);

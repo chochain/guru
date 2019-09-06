@@ -36,7 +36,7 @@ _fetch_bytecode(const U8P rite_fname)
   size_t sz = ftell(fp);
   fseek(fp, 0, SEEK_SET);
 
-  U8P req = (U8P)guru_malloc(sz, 1);	// allocate bytecode storage
+  U8P req = (U8P)guru_malloc(sz, 1);			// allocate bytecode storage
 
   if (req) {
 	  fread(req, sizeof(char), sz, fp);
