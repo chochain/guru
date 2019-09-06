@@ -57,12 +57,13 @@
 /*! get size
  */
 __GURU__ S32
-_adjust_index(guru_array *h, S32 idx, U32 inc)
+_resize(guru_array *h, S32 idx, U32 inc)
 {
     if (idx < 0) {
         idx += h->n + inc;
         assert(idx>=0);
     }
+
     int nsz = 0;
     if (idx >= h->size) {	// need resize?
         nsz = idx + inc;
@@ -88,11 +89,11 @@ _set(GV *ary, int idx, GV *val)
 {
     guru_array *h = ary->array;
 
-    int ndx = _adjust_index(h, idx, 0);			// adjust index if needed
+    int ndx = _resize(h, idx, 0);				// adjust index if needed
     if (ndx<0) return -1;						// allocation error
 
     if (ndx < h->n) {
-        ref_clr(&h->data[ndx]);			// release existing data
+        ref_clr(&h->data[ndx]);					// release existing data
     }
     else {
         for (U32 i=h->n; i<ndx; i++) {			// lazy fill here, instead of when resized
@@ -134,22 +135,22 @@ _insert(GV *ary, int idx, GV *set_val)
 {
     guru_array *h = ary->array;
 
-    int size = _adjust_index(h, idx, 1);
-    if (size < 0) return -1;
+    int sz = _resize(h, idx, 1);
+    if (sz < 0) return -1;
 
-    if (idx < h->n) {			// move data
+    if (idx < h->n) {										// move data
     	int blksz = sizeof(GV)*(h->n - idx);
-        MEMCPY(h->data + idx + 1, h->data + idx, blksz);		// rshift
+        MEMCPY(h->data + idx + 1, h->data + idx, blksz);	// rshift
     }
 
-    h->data[idx] = *set_val;	// set data
+    h->data[idx] = *set_val;								// set data
     h->n++;
 
-    if (size >= h->n) {			// clear empty cells if needed
-        for (U32 i = h->n-1; i < size; i++) {
+    if (sz >= h->n) {		// clear empty cells if needed
+        for (U32 i = h->n-1; i < sz; i++) {
             h->data[i] = GURU_NIL_NEW();
         }
-        h->n = size;
+        h->n = sz;
     }
     return 0;
 }
@@ -264,22 +265,18 @@ _minmax(GV *ary, GV **pp_min_value, GV **pp_max_value)
   @return 		array object
 */
 __GURU__ GV
-guru_array_new(int size)
+guru_array_new(U32 sz)
 {
     GV ret = {.gt = GT_ARRAY};
-    guru_array *h = (guru_array *)guru_alloc(sizeof(guru_array));		// handle
-    if (!h) return ret;		// ENOMEM
 
-    GV *data = (GV *)guru_alloc(sizeof(GV) * size);	// buffer
-    if (!data) {			// ENOMEM
-        guru_free(h);
-        return ret;
-    }
+    guru_array *h   = (guru_array *)guru_alloc(sizeof(guru_array));		// handle
+    void       *ptr = guru_alloc(sizeof(GV) * sz);
+
     h->gt 	= GT_ARRAY;
     h->rc   = 1;			// handle is referenced
-    h->size = size;
+    h->size = sz;
     h->n  	= 0;
-    h->data = data;
+    h->data = (GV *)ptr;
 
     ret.array = h;
 
@@ -311,15 +308,14 @@ guru_array_delete(GV *ary)
   @return	error_code
 */
 __GURU__ int
-guru_array_resize(guru_array *h, int size)
+guru_array_resize(guru_array *h, U32 new_sz)
 {
-	assert(size > h->size);
+	assert(new_sz > h->size);
 
-    GV *d2 = (GV *)guru_realloc(h->data, sizeof(GV) * size);
-    if (!d2) return -1;
+    void *ptr = guru_realloc(h->data, sizeof(GV) * new_sz);
 
-    h->data = d2;			// lazy fill later
-    h->size = size;
+    h->size = new_sz;
+    h->data = (GV *)ptr;			// lazy fill later
 
     return 0;
 }

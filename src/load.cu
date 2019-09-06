@@ -94,15 +94,15 @@ __HOST__ guru_irep *
 _build_image(guru_irep *src, U8 * img)
 {
 	// compute CUDA alignment memory block sizes
-    U32 irep_sz = sizeof(guru_irep) + ((8 - sizeof(guru_irep)) & 7);	// 8-byte alignment
+    U32 irep_sz = sizeof(guru_irep) + (-sizeof(guru_irep) & 7);					// 8-byte alignment
     U32 reps_sz = sizeof(U32) * (src->rlen + (src->rlen & 1));
     U32 pool_sz = sizeof(U32) * (src->plen + (src->plen & 1));
     U32 sym_sz  = sizeof(U32) * (src->slen + (src->slen & 1));
     U32 iseq_sz = sizeof(U32) * (src->ilen + (src->ilen & 1));
-    U32 stbl_sz = sizeof(U8P) * sym_sz * 2;								// string table with padded space
-    U32 img_sz  = irep_sz + reps_sz + pool_sz + sym_sz + iseq_sz + stbl_sz;
+    U32 stbl_sz = sizeof(U8P) * sym_sz * 2;										// string table with padded space
+    U32 img_sz  = irep_sz + reps_sz + pool_sz + sym_sz + iseq_sz + stbl_sz;		// should be 8-byte aligned
 
-    guru_irep *tgt = (guru_irep *)guru_malloc(img_sz, 1);				// target CUDA IREP image (managed mem)
+    guru_irep *tgt = (guru_irep *)guru_malloc(img_sz, 1);						// target CUDA IREP image (managed mem)
     U8 * base = (U8P)tgt;								// keep target image pointer
     if (!tgt) return NULL;
 

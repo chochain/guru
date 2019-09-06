@@ -49,8 +49,7 @@ _bsearch(guru_store *st, GS sid)
 __GURU__ U32
 _resize(guru_store *st, U32 size)
 {
-    guru_store_data *d2 = (guru_store_data *) guru_realloc(st->data, sizeof(guru_store_data) * size);
-    if (!d2) return 1;		// ENOMEM
+    guru_store_data *d2 = (guru_store_data *)guru_realloc(st->data, sizeof(guru_store_data) * size);
 
     st->data = d2;
     st->size = size;
@@ -69,13 +68,8 @@ __GURU__ guru_store *
 _new(U32 size)
 {
     guru_store *st = (guru_store *)guru_alloc(sizeof(guru_store));
-    if (!st) return NULL;	// ENOMEM
 
     st->data = (guru_store_data *)guru_alloc(sizeof(guru_store_data) * size);
-    if (!st->data) {		// ENOMEM
-        guru_free(st);
-        return NULL;
-    }
     st->size = size;
     st->n    = 0;
 
@@ -173,18 +167,11 @@ guru_store_new(guru_class *cls, U32 size)
 {
     GV v = { .gt = GT_OBJ };
     v.self = (guru_var *)guru_alloc(sizeof(guru_store));
-    if (v.self == NULL) return v;	// ENOMEM
 
     v.self->ivar = _new(0);			// allocate internal kv handle
-    if (v.self->ivar == NULL) {		// ENOMEM
-        guru_free(v.self);
-        v.self = NULL;
-        return v;
-    }
-
-    v.self->gt  = GT_OBJ;	// for debug only.
-    v.self->rc  = 1;
-    v.self->cls = cls;
+    v.self->gt   = GT_OBJ;	// for debug only.
+    v.self->rc   = 1;
+    v.self->cls  = cls;
 
     return v;
 }

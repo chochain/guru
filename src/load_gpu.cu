@@ -115,15 +115,9 @@ _load_irep_1(mrbc_irep *irep, U8P *pos)
 
     if (irep->rlen) {					// allocate child irep's pointers (later filled by _load_irep_0)
         irep->list = (mrbc_irep **)guru_alloc(sizeof(mrbc_irep *) * irep->rlen);
-        if (irep->list==NULL) {
-            return LOAD_FILE_IREP_ERROR_ALLOCATION;
-        }
     }
     if (irep->plen) {					// allocate pool of object pointers
         irep->pool = (mrbc_object**)guru_alloc(sizeof(void*) * irep->plen);
-        if (irep->pool==NULL) {
-            return LOAD_FILE_IREP_ERROR_ALLOCATION;
-        }
     }
 
     for (U32 i=0; i < irep->plen; i++) {		// build object pool
@@ -132,9 +126,6 @@ _load_irep_1(mrbc_irep *irep, U8P *pos)
         U8  buf[64+2];
 
         mrbc_object *obj = (mrbc_object *)guru_alloc(sizeof(mrbc_object));
-        if (obj==NULL) {
-            return LOAD_FILE_IREP_ERROR_ALLOCATION;
-        }
         switch (tt) {
         case 0: { 	// IREP_GT_STRING
             obj->gt  = GT_STR;
@@ -188,9 +179,6 @@ _load_irep_0(U8P *pos)
 {
     // new irep
     mrbc_irep *irep = (mrbc_irep *)guru_alloc(sizeof(mrbc_irep));
-    if (irep==NULL) {
-        return NULL;
-    }
     int ret = _load_irep_1(irep, pos);		// populate content of current IREP
     if (ret != NO_ERROR) {
     	guru_free(irep);

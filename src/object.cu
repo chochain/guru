@@ -268,20 +268,23 @@ __GURU__ void
 c_object_attr_accessor(GV v[], U32 argc)
 {
     for (U32 i = 1; i <= argc; i++) {
-        if (v[i].gt != GT_SYM) continue;	// TypeError raise?
+        if (v[i].gt != GT_SYM) continue;				// TypeError raise?
 
         // define reader method
         U8P name = id2name(v[i].i);
         guru_define_method(v[0].cls, name, c_object_getiv);
 
+        U32 sz = STRLEN(name);
+
         // make string "....=" and define writer method.
-        U8P buf = (U8P)guru_alloc(STRLEN(name)+2);
-        if (!buf) return;
+        // TODO: consider using static buffer
+        U8P buf = (U8P)guru_alloc(sz + (-sz & 7));		// 8-byte aligned
         
         STRCPY(buf, name);
         STRCAT(buf, "=");
         guru_sym_new(buf);
         guru_define_method(v[0].cls, buf, c_object_setiv);
+
         guru_free(buf);
     }
 }

@@ -12,17 +12,23 @@ extern "C" {
 #endif
 
 #ifdef __GURU_CUDA__
-#define __GURU__ 		__device__
-#define __INLINE__		__forceinline__
-#define __HOST__		__host__
-#define __GPU__			__global__
-#define MUTEX_LOCK(p)  	while (atomicCAS((int *)&p, 0, 1)!=0)
-#define MUTEX_FREE(p)  	atomicExch((int *)&p, 0)
+
+#define __GURU__ 			__device__
+#define __INLINE__			__forceinline__
+#define __HOST__			__host__
+#define __GPU__				__global__
+#define MUTEX_LOCK(p)  		while (atomicCAS((int *)&p, 0, 1)!=0)
+#define MUTEX_FREE(p)  		atomicExch((int *)&p, 0)
+#define CHECK_ALIGN(sz) 	assert((-(sz)&7)==0)
+#define CHECK_NULL(p)		assert((p))
 #else
+
 #define __GURU__
-#define __INLINE__ 	inline
+#define __INLINE__ 			inline
 #define __HOST__
 #define __GPU__
+#define CHECK_ALIGN(sz) 	assert((-(sz)&3)==0)
+#define CHECK_NULL(p)		assert((p))
 #endif
 
 #define MAX_BUFFER_SIZE 4096		// 4K
@@ -92,12 +98,12 @@ typedef uint32_t	U32;
 typedef uint16_t    U16;
 typedef uint8_t		U8;
 
-typedef int32_t     S32;				// signed integer
+typedef int32_t     S32;					// signed integer
 typedef int16_t		S16;
-typedef uintptr_t   U32A;				// pointer address
+typedef uintptr_t   U32A;					// pointer address
 
-typedef double		F64;				// double precision float
-typedef float       F32;				// single precision float
+typedef double		F64;					// double precision float
+typedef float       F32;					// single precision float
 
 typedef uint32_t    *U32P;
 typedef uint8_t     *U8P;

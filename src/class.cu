@@ -139,12 +139,10 @@ guru_define_class(const U8P name, guru_class *super)
     guru_class *cls = _name2class(name);
     if (cls) return cls;
 
-    // create a new class?
-    cls = (guru_class *)guru_alloc(sizeof(guru_class));
-    if (!cls) return NULL;			// ENOMEM
-
     GS sid = name2id(name);
 
+    // create a new class?
+    cls = (guru_class *)guru_alloc(sizeof(guru_class));
     cls->sid    = sid;
     cls->super 	= super;
     cls->vtbl 	= NULL;
@@ -163,8 +161,6 @@ __GURU__ guru_proc *
 _alloc_proc(guru_class *cls, const U8P name)
 {
     guru_proc *proc = (guru_proc *)guru_alloc(sizeof(guru_proc));
-
-    if (!proc) return NULL;
 
     proc->gt     = GT_PROC;
     proc->flag   = GURU_CFUNC;
