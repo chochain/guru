@@ -38,7 +38,7 @@ typedef struct used_block {			// 4-bytes
 
 typedef struct free_block {			// 4-bytes (+ 4 bytes free space)
   U32 size;   						//
-  U32 poff;							// offset to previous block
+  U32 poff;							// positive offset to previous block
 }
 */
 
@@ -46,7 +46,7 @@ typedef struct used_block {			// 8-bytes
   U32 free : 1;   					//!< flag of free block
   U32 size : 31;  					//!< block size, header included (max 2G)
   U32 tail : 1;   					//!< flag of the tail block
-  U32 poff : 31;  					//!< offset of previous physical block
+  U32 poff : 31;  					//!< positive offset of previous memory block
 } used_block;
 
 typedef struct free_block {			// 16-bytes (i.e. mininum allocation per block)
@@ -63,8 +63,8 @@ typedef struct free_block {			// 16-bytes (i.e. mininum allocation per block)
 #define BLOCKDATA(p) 	U8PADD(p, sizeof(used_block))
 #define BLOCKSIZE(p) 	((p)->size - sizeof(used_block))
 
-__GURU__ void 	*guru_alloc(U32 size);
-__GURU__ void 	*guru_realloc(void *ptr, U32 size);
+__GURU__ void 	*guru_alloc(U32 sz);
+__GURU__ void 	*guru_realloc(void *ptr, U32 sz);
 __GURU__ void  	guru_free(void *ptr);
 
 __GPU__  void 	guru_memory_init(void *mem, U32 sz);

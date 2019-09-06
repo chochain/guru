@@ -253,7 +253,7 @@ _merge_blocks(free_block *p0, free_block *p1)
     // update block info
     if (p0->tail != FLAG_TAIL_BLOCK) {
         free_block *next = (free_block *)NEXT(p0);
-        next->poff = U8POFF(p0, next);
+        next->poff = U8POFF(next, p0);
     }
 #if GURU_DEBUG
     *((uint64_t *)p1) = 0xeeeeeeeeeeeeeeee;
@@ -291,14 +291,14 @@ _split_free_block(free_block *target, unsigned int size, int merge)
     free_block *next = (free_block *)NEXT(target);					// current next
 
     free->size   = target->size - size;								// carve out the block
-    free->poff   = U8POFF(target, free);
+    free->poff   = U8POFF(free, target);
     free->tail   = target->tail;
 
     target->size = size;
     target->tail = ~FLAG_TAIL_BLOCK;
 
     if (free->tail != FLAG_TAIL_BLOCK) {
-        next->poff = U8POFF(free, next);
+        next->poff = U8POFF(next, free);
     }
     if (free != NULL) {
     	if (merge) _merge_with_next(free);
