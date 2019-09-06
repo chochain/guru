@@ -700,7 +700,16 @@ op_send(guru_vm *vm, U32 code, GV *regs)
     int ra = GETARG_A(code);
     int rb = GETARG_B(code);  // index of method sym
     int rc = GETARG_C(code);  // number of params
-    GV *rcv = &regs[ra];
+
+    GV  *rcv = &regs[ra];
+	GS  sid  = _vm_sid(vm, rb);
+    guru_proc *m  = (guru_proc *)proc_by_sid(rcv, sid);
+
+    if (m==0) {
+    	U8P key = _vm_skey(vm, rb);
+    	guru_na(key);					// dump error, bail out
+    	return 0;
+    }
 
     // Clear block param (needed ?)
     int bidx = ra + rc + 1;
@@ -720,14 +729,6 @@ op_send(guru_vm *vm, U32 code, GV *regs)
     default: break;
     }
 
-	GS  sid = _vm_sid(vm, rb);
-    guru_proc *m  = (guru_proc *)proc_by_sid(rcv, sid);
-
-    if (m==0) {
-    	U8P key = _vm_skey(vm, rb);
-    	guru_na(key);					// dump error, bail out
-    	return 0;
-    }
     if (IS_CFUNC(m)) {
     	if (m->func==c_proc_call) {		// because VM is not passed to dispatcher, special handling needed for call() and new()
     		_vm_proc_call(vm, regs+ra, rc);
@@ -1229,8 +1230,6 @@ op_string(guru_vm *vm, U32 code, GV *regs)
     U8 * str  = (U8P)U8PADD(VM_IREP(vm), *v);
     GV ret = guru_str_new(str);
 
-    if (ret.str==NULL) return vm->err = 255;			// ENOMEM
-
     _RA_V(ret);
 #else
     guru_na("String class");
@@ -1293,17 +1292,16 @@ op_array(guru_vm *vm, U32 code, GV *regs)
 #if GURU_USE_ARRAY
     int ra = GETARG_A(code);
     int rb = GETARG_B(code);
-    int rc = GETARG_C(code);
-    int sz = sizeof(GV) * rc;
+    int n  = GETARG_C(code);
+    int sz = sizeof(GV) * n;
 
-    GV ret = (GV)guru_array_new(rc);
+    GV ret = (GV)guru_array_new(n);
     guru_array *h  = ret.array;
     GV *pb = &regs[rb];
-    if (h==NULL) return vm->err = 255;	// ENOMEM
 
     MEMCPY(h->data, pb, sz);
     MEMSET(pb, 0, sz);
-    h->n = rc;
+    h->n = n;
 
     _RA_V(ret);
 #else
@@ -1329,17 +1327,16 @@ op_hash(guru_vm *vm, U32 code, GV *regs)
 #if GURU_USE_ARRAY
     int ra = GETARG_A(code);
     int rb = GETARG_B(code);
-    int rc = GETARG_C(code);
-    int sz = sizeof(GV) * (rc<<1);						// size of k,v pairs
+    int n  = GETARG_C(code);							// entries of hash
+    int sz = sizeof(GV) * (n<<1);						// size of k,v pairs
 
-    GV ret = guru_hash_new(rc);
-    guru_hash  *h  = ret.hash;
     GV *p  = &regs[rb];
-    if (h==NULL) return vm->err = 255;					// ENOMEM
+    GV ret = guru_hash_new(n);
+    guru_hash  *h  = ret.hash;
 
     MEMCPY((U8P)h->data, (U8P)p, sz);					// copy k,v pairs
 
-    for (U32 i=0; i<(h->n=(rc<<1)); i++, p++) {
+    for (U32 i=0; i<(h->n=(n<<1)); i++, p++) {
     	p->gt = GT_EMPTY;								// clean up call stack
     }
     _RA_V(ret);						                	// set return value on stack top
@@ -1366,11 +1363,10 @@ op_range(guru_vm *vm, U32 code, GV *regs)
 #if GURU_USE_ARRAY
     int ra = GETARG_A(code);
     int rb = GETARG_B(code);
-    int rc = GETARG_C(code);
+    int n  = GETARG_C(code);
 
     GV *pb = &regs[rb];
-    GV ret = guru_range_new(pb, pb+1, rc);
-    if (ret.range==NULL) return vm->err = 255;		// ENOMEM
+    GV ret = guru_range_new(pb, pb+1, n);
 
     _RA_V(ret);						// release and  reassign
     ref_inc(pb);

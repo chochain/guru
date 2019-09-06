@@ -222,7 +222,7 @@ _mark_used(U32 index)
 {
     free_block *blk = _free_list[index];
 
-    assert(blk!=NULL);
+    CHECK_NULL(blk);
 
     if (blk->next==NULL) {					// top of linked list
         U32 l1x= L1(index);
@@ -283,7 +283,6 @@ _find_free_block(U32 sz)
 
   @param  blk	pointer to free block
   @param  size	storage size
-  @retval NULL	no split.
 */
 __GURU__ void
 _split_free_block(free_block *blk, U32 sz)
@@ -305,7 +304,7 @@ _split_free_block(free_block *blk, U32 sz)
     }
     _mark_free(free);											// add to free_list
 
-    blk->size = blk_sz;												// reduce size
+    blk->size = sz;												// reduce size
     blk->tail = 0;
 }
 
@@ -339,7 +338,6 @@ _init_mmu(void *mem, U32 size)
 
   @param  size	request storage size.
   @return void* pointer to a guru memory block.
-  @retval NULL	error.
 */
 __GURU__ void*
 guru_alloc(U32 sz)
@@ -371,7 +369,6 @@ guru_alloc(U32 sz)
   @param  ptr	Return value of raw malloc()
   @param  size	request size
   @return void* pointer to allocated memory.
-  @retval NULL	error.
 */
 __GURU__ void*
 guru_realloc(void *ptr, U32 sz)

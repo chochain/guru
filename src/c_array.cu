@@ -56,23 +56,24 @@
 //================================================================
 /*! get size
  */
-__GURU__ S32
-_resize(guru_array *h, S32 idx, U32 inc)
+__GURU__ U32
+_reindex(guru_array *h, S32 idx, U32 inc)
 {
-    if (idx < 0) {
+    if (idx < 0) {					// index from tail of array
         idx += h->n + inc;
         assert(idx>=0);
     }
 
     int nsz = 0;
-    if (idx >= h->size) {	// need resize?
+    if (idx >= h->size) {			// need resize?
         nsz = idx + inc;
     }
     else if (h->n >= h->size) {
-        nsz = h->n + 4;		// pre allocate
+        nsz = h->n + 4;				// pre allocate
     }
-    if (nsz && guru_array_resize(h, nsz) != 0) return -1;
-
+    if (nsz) {
+    	guru_array_resize(h, nsz);
+    }
     return idx;
 }
 
@@ -89,11 +90,10 @@ _set(GV *ary, int idx, GV *val)
 {
     guru_array *h = ary->array;
 
-    int ndx = _resize(h, idx, 0);				// adjust index if needed
-    if (ndx<0) return -1;						// allocation error
+    U32 ndx = _reindex(h, idx, 0);				// adjust index if needed
 
     if (ndx < h->n) {
-        ref_clr(&h->data[ndx]);					// release existing data
+        ref_dec(&h->data[ndx]);					// release existing data
     }
     else {
         for (U32 i=h->n; i<ndx; i++) {			// lazy fill here, instead of when resized
@@ -131,26 +131,25 @@ _pop(GV *ary)
   @return			error_code
 */
 __GURU__ int
-_insert(GV *ary, int idx, GV *set_val)
+_insert(GV *ary, S32 idx, GV *set_val)
 {
     guru_array *h = ary->array;
 
-    int sz = _resize(h, idx, 1);
-    if (sz < 0) return -1;
+    U32 ndx = _reindex(h, idx, 1);
 
-    if (idx < h->n) {										// move data
+    if (ndx < h->n) {										// move data
     	int blksz = sizeof(GV)*(h->n - idx);
-        MEMCPY(h->data + idx + 1, h->data + idx, blksz);	// rshift
+        MEMCPY(h->data + ndx + 1, h->data + ndx, blksz);	// rshift
     }
 
-    h->data[idx] = *set_val;								// set data
+    h->data[ndx] = *set_val;								// set data
     h->n++;
 
-    if (sz >= h->n) {		// clear empty cells if needed
-        for (U32 i = h->n-1; i < sz; i++) {
+    if (ndx >= h->n) {										// clear empty cells
+        for (U32 i = h->n-1; i < ndx; i++) {
             h->data[i] = GURU_NIL_NEW();
         }
-        h->n = sz;
+        h->n = ndx;
     }
     return 0;
 }
@@ -391,13 +390,11 @@ __GURU__ void
 c_array_new(GV v[], U32 argc)
 {
 	GV ret;
-    if (argc==0) {													// in case of new()
+    if (argc==0) {											// in case of new()
         ret = guru_array_new(0);
-        if (ret.array==NULL) return;		// ENOMEM
     }
     else if (argc==1 && v[1].gt==GT_INT && v[1].i >= 0) {	// new(num)
         ret = guru_array_new(v[1].i);
-        if (ret.array==NULL) return;		// ENOMEM
 
         GV nil = GURU_NIL_NEW();
         if (v[1].i > 0) {
@@ -406,8 +403,6 @@ c_array_new(GV v[], U32 argc)
     }
     else if (argc==2 && v[1].gt==GT_INT && v[1].i >= 0) {	// new(num, value)
         ret = guru_array_new(v[1].i);
-        if (ret.array==NULL) return;		// ENOMEM
-
         for (U32 i=0; i < v[1].i; i++) {
             ref_inc(&v[2]);
             _set(&ret, i, &v[2]);
@@ -703,11 +698,9 @@ c_array_max(GV v[], U32 argc)
 __GURU__ void
 c_array_minmax(GV v[], U32 argc)
 {
-    // Subset of Array#minmax, not support minmax(n).
-
-    GV *min, *max;
     GV nil = GURU_NIL_NEW();
     GV ret = guru_array_new(2);
+    GV *min, *max;
 
     _minmax(v, &min, &max);
     if (min==NULL) min = &nil;
@@ -751,7 +744,7 @@ c_array_inspect(GV v[], U32 argc)
  */
 __GURU__ void
 c_array_join_1(GV v[], U32 argc,
-                    GV *src, GV *ret, GV *separator)
+                    GV *src, GV *ret, GV *sep)
 {
 	guru_array *h = src->array;
     if (h->n==0) return;
@@ -760,15 +753,15 @@ c_array_join_1(GV v[], U32 argc,
     GV s1;
     while (1) {
         if (h->data[i].gt==GT_ARRAY) {
-            c_array_join_1(v, argc, &h->data[i], ret, separator);
+            c_array_join_1(v, argc, &h->data[i], ret, sep);
         }
         else {
             s1 = guru_inspect(v+argc, &h->data[i]);
             guru_str_append(ret, &s1);
             ref_clr(&s1);					// free locally allocated memory
         }
-        if (++i >= h->n) break;					// normal return.
-        guru_str_append(ret, separator);
+        if (++i >= h->n) break;				// normal return.
+        guru_str_append(ret, sep);
     }
 }
 
@@ -776,15 +769,12 @@ __GURU__ void
 c_array_join(GV v[], U32 argc)
 {
     GV ret = guru_str_new(NULL);
-    if (!ret.str) {
-        RETURN_NIL();
-    }
-    GV separator = (argc==0)
+    GV sep = (argc==0)						// separator
     		? guru_str_new("")
     		: guru_inspect(v+argc, v+1);
 
-    c_array_join_1(v, argc, v, &ret, &separator);
-    ref_clr(&separator);		            // release locally allocated memory
+    c_array_join_1(v, argc, v, &ret, &sep);
+    ref_clr(&sep);		            		// release locally allocated memory
 
     RETURN_VAL(ret);
 }

@@ -190,8 +190,6 @@ guru_define_method(guru_class *cls, const U8P name, guru_fptr cfunc)
 
     guru_proc *proc = _alloc_proc(cls, name);
 
-    if (!proc) return NULL;
-
     MUTEX_LOCK(_mutex_cls);
 
     proc->func 	= cfunc;						// set function pointer

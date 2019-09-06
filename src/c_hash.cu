@@ -212,13 +212,12 @@ guru_hash_new(int size)
 __GURU__ GV
 _hash_dup(const GV *kv)
 {
-	int        n   = _size(kv);
-    GV ret = guru_hash_new(n);
-    if (ret.hash==NULL) return ret;			// ENOMEM
+	int n   = _size(kv);
+    GV  ret = guru_hash_new(n);
 
-    GV *d = _data(&ret);
-    GV *s = _data(kv);
-    int        n2 = ret.hash->n = n<<1;		// n pairs (k,v)
+    GV  *d  = _data(&ret);
+    GV  *s  = _data(kv);
+    U32 n2  = ret.hash->n = n<<1;		// n pairs (k,v)
     for (U32 i=0; i < n2; i++) {
     	ref_inc(s);						// one extra ref
     	*d++ = *s++;
@@ -250,15 +249,15 @@ __GURU__ int
 guru_hash_compare(const GV *v0, const GV *v1)
 {
 	int n0 = _size(v0);
-    if (n0 != _size(v1)) return 1;
+    if (n0 != _size(v1)) 			return 1;	// size different
 
     GV *p0 = _data(v0);
-    for (U32 i=0; i < n0; i++, p0+=2) {
-        GV *p1 = _search(v1, p0);		// check key
-        if (p1==NULL) return 1;
-        if (guru_cmp(p0+1, p1+1)) return 1;	// check data
+    for (U32 i=0; i < n0; i++, p0+=2) {			// walk the hash element by element
+        GV *p1 = _search(v1, p0);				// check key
+        if (p1==NULL) 				return 1;	// no key found
+        if (guru_cmp(p0+1, p1+1)) 	return 1;	// compare data
     }
-    return 0;
+    return 0;									// matched
 }
 
 //================================================================
