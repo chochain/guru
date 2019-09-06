@@ -314,7 +314,7 @@ _mark_used(int index)
 {
     free_block *target = _free_list[index];
 
-    assert(target!=NULL);
+    CHECK_NULL(target);
 
     // remove free_blocks index
     target->free      = ~FLAG_FREE_BLOCK;
