@@ -251,10 +251,13 @@ guru_strcat(U8P d, const U8P s)
 
   @param   v     Pointer to target GV
 */
-__GURU__ void
+__GURU__ GV *
 ref_dec(GV *v)
 {
-    if (v->gt & GT_HAS_REF && --v->self->rc > 0) return;		// still used, keep going
+    if ((v->gt & GT_HAS_REF)==0) return v;	// simple objects
+
+    CHECK_NULL(v->rc);						// is referenced?
+    if (--v->rc > 0) 			 return v;	// still used, keep going
 
     switch(v->gt) {
     case GT_OBJ:		guru_store_delete(v);	break;
@@ -269,6 +272,7 @@ ref_dec(GV *v)
 #endif
     default: break;
     }
+    return v;
 }
 
 //================================================================
@@ -277,10 +281,12 @@ ref_dec(GV *v)
 
   @param   v     Pointer to GV
 */
-__GURU__ void
+__GURU__ GV *
 ref_inc(GV *v)
 {
-	if (v->gt & GT_HAS_REF) v->self->rc++;
+	if (v->gt & GT_HAS_REF) v->rc++;
+
+	return v;
 }
 
 //================================================================

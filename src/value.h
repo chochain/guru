@@ -18,18 +18,18 @@ extern "C" {
 __GURU__ S32  guru_cmp(const GV *v1, const GV *v2);
 
 __GURU__ void ref_clr(GV *v);
-__GURU__ void ref_dec(GV *v);
-__GURU__ void ref_inc(GV *v);
+__GURU__ GV *ref_dec(GV *v);
+__GURU__ GV *ref_inc(GV *v);
 
 // for C call
-#define RETURN_NIL()	do { ref_dec(v); v[0].gt=GT_NIL;   return;		} while (0)
-#define RETURN_FALSE()	do { ref_dec(v); v[0].gt=GT_FALSE; return; 		} while (0)
-#define RETURN_TRUE()	do { ref_dec(v); v[0].gt=GT_TRUE;  return;		} while (0)
-
-#define RETURN_VAL(n)	do { GV __n=(n); ref_dec(v); v[0]=__n; return;						} while (0)
-#define RETURN_BOOL(n)	do { ref_dec(v); v[0].gt=(n) ? GT_TRUE : GT_FALSE; return;			} while (0)
-#define RETURN_INT(n)	do { GI __n=(n); ref_dec(v); v[0].gt=GT_INT;   v[0].i=__n; return; 	} while (0)
-#define RETURN_FLOAT(n)	do { GF __n=(n); ref_dec(v); v[0].gt=GT_FLOAT; v[0].f=__n; return; 	} while (0)
+#define RETURN_NIL()	{ ref_dec(v); v->gt=GT_NIL;   return; }
+#define RETURN_FALSE()	{ ref_dec(v); v->gt=GT_FALSE; return; }
+#define RETURN_TRUE()	{ ref_dec(v); v->gt=GT_TRUE;  return; }
+#define RETURN_VAL(n)	{ ref_dec(v); *v=(n); 		  return; }
+     
+#define RETURN_BOOL(n)	{ ref_dec(v); v->gt=(n)?GT_TRUE:GT_FALSE;   return; }
+#define RETURN_INT(n)	{ ref_dec(v); v->gt=GT_INT;   v->i=(GI)(n); return; }
+#define RETURN_FLOAT(n)	{ ref_dec(v); v->gt=GT_FLOAT; v->f=(GF)(n); return; }
 
 // macro to fetch from stack objects
 #define ARG_GT(n)		(v[(n)].gt)

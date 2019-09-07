@@ -64,8 +64,8 @@ __GURU__ GV
 _send(GV v[], GV *rcv, const U8P method, U32 argc, ...)
 {
     GV *regs = v + 2;	     // allocate 2 for stack
-    GS   sid   = name2id(method);
-    guru_proc  *m    = proc_by_sid(rcv, sid);
+    GS   sid = name2id(method);
+    guru_proc *m = proc_by_sid(rcv, sid);	// method of receiver object
 
     if (m == 0) {
         PRINTF("No method. vtype=%d method='%s'\n", rcv->gt, method);
@@ -183,10 +183,13 @@ c_object_compare(GV v[], U32 argc)
 __GURU__ void
 c_object_equal3(GV v[], U32 argc)
 {
-	S32 ret = guru_cmp(v, v+1);
-
-    if (v[0].gt != GT_CLASS) RETURN_BOOL(ret==0);
-    else 					 RETURN_VAL(guru_kind_of(v, argc));
+    if (v[0].gt != GT_CLASS) {
+    	RETURN_BOOL(guru_cmp(v, v+1)==0);
+    }
+    else {
+    	GV ret = guru_kind_of(v, argc);
+    	RETURN_VAL(ret);
+    }
 }
 
 //================================================================
