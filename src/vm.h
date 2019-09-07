@@ -45,16 +45,35 @@ typedef struct RIrep {	// 32-byte
 /*!@brief
   Call information
 */
-
 typedef struct RState {			// 24-byte
     U32 pc;						// program counter
     U32 argc;  					// num of args
 
     guru_class      *klass;		// current class
-    GV      		*reg;		// pointer to current register (in VM register file)
+    GV      		*regs;		// pointer to current register (in VM register file)
     guru_irep       *irep;		// pointer to current irep block
     struct RState   *prev;		// previous state (call stack)
 } guru_state;					// VM context
+
+//================================================================
+/* instructions: packed 32 bit      */
+/* -------------------------------  */
+/*     A:B:C:OP = 9: 9: 7: 7        */
+/*      A:Bx:OP = 9:   16: 7        */
+/*   A:Bz:Cz:OP = 9: 14:2: 7        */
+/*        Ax:OP = 25     : 7        */
+typedef struct {
+	union {
+		U16 bx;
+		struct {
+			U16 c : 7, b : 9;
+		};
+		struct {
+			U16 cz: 2, bz: 14;
+		};
+	};
+	U32 a : 9;			// hopefully take up 32-bits total (4-byte)
+} GAR;
 
 //================================================================
 /*!@brief
@@ -65,11 +84,15 @@ typedef struct VM {				// 12 + 32*reg bytes
     U32	step : 1;				// for single-step debug level
     U32	run  : 1;				// to exit vm loop
     U32	err  : 16;				// error code/condition
+    U32 bytecode;				// cached bytecode
+    U32 op;						// cached opcode
+    U32 opn;					// cached operands
+    GAR *ar;
 
     guru_irep  *irep;			// pointer to IREP tree
     guru_state *state;			// VM state (callinfo) linked list
 
-    GV regfile[MAX_REGS_SIZE];
+    GV regfile[MAX_REGS_SIZE];	// TODO: change to a pointer
 } guru_vm;
 
 #if !GURU_HOST_IMAGE
@@ -178,14 +201,17 @@ _u32_to_bin(U32 l, U8P bin)
     *bin   = l & 0xff;
 }
 
-#define VM_IREP(vm)      ((vm)->state->irep)
+#define VM_IREP(vm)    	((vm)->state->irep)
+#define VM_SYM(vm,n)	(U8PADD(VM_IREP(vm), *(U32*)U8PADD(VM_IREP(vm), VM_IREP(vm)->sym  + n*sizeof(U32))))
+#define VM_VAR(vm,n)	((U32P)U8PADD(VM_IREP(vm), *(U32*)U8PADD(VM_IREP(vm), VM_IREP(vm)->pool + n*sizeof(U32))))
+#define VM_REPS(vm,n)	((guru_irep*)U8PADD(VM_IREP(vm), *(U32*)U8PADD(VM_IREP(vm), VM_IREP(vm)->reps + n*sizeof(U32))))
 
 #if GURU_HOST_IMAGE
 #define VM_ISEQ(vm)	 	 (U8PADD(VM_IREP(vm), VM_IREP(vm)->iseq))
-#define GET_BYTECODE(vm) (_bin_to_u32(U8PADD(VM_ISEQ(vm), sizeof(U32) * (vm)->state->pc)))
+#define VM_BYTECODE(vm) (_bin_to_u32(U8PADD(VM_ISEQ(vm), sizeof(U32) * (vm)->state->pc)))
 #else  // !GURU_HOST_IMAGE
 #define VM_ISEQ(vm)	 	 (VM_IREP(vm)->iseq)
-#define GET_BYTECODE(vm) (_bin_to_u32(U8PADD(VM_ISEQ(vm), sizeof(U32) * (vm)->state->pc)))
+#define VM_BYTECODE(vm) (bin_to_u32(U8PADD(VM_ISEQ(vm), sizeof(U32) * (vm)->state->pc)))
 #endif
 
 #ifdef __cplusplus

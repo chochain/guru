@@ -14,7 +14,7 @@ SRC =   main.c
 GURU= 	alloc.cu guru.cu static.cu value.cu global.cu \
 		store.cu symbol.cu class.cu\
         puts32.cu load.cu \
-		vm.cu opcode.cu object.cu \
+		vm.cu opcode.cu state.cu object.cu \
 		c_fixnum.cu c_string.cu c_range.cu c_array.cu c_hash.cu
 GEXT=   c_string.h c_range.h c_array.h c_hash.h
 CUDA=   cuda.cu
@@ -63,6 +63,9 @@ class.o: class.cu	    vm_config.h guru.h value.h alloc.h static.h symbol.h globa
 
 load.o: load.cu         vm_config.h guru.h alloc.h store.h \
 						vm.h load.h
+
+state.o: state.cu		vm_config.h guru.h symbol.h \ 
+						vm.h state.h
 
 vm.o: vm.cu             vm_config.h guru.h alloc.h value.h static.h store.h \
 						opcode.h vm.h load.h

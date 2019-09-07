@@ -48,15 +48,16 @@ _vm_begin(guru_vm *pool)
 	if (threadIdx.x!=0 || vm->id==0) return;	// bail if vm not allocated
 
 	MEMSET(vm->regfile, 0, sizeof(vm->regfile));	// clean up registers
-
-    vm->regfile[0].gt  	= GT_CLASS;		// regfile[0] is self
+/*
+ *  CC:20190907 removed per object class
+    vm->regfile[0].gt  	= GT_CLASS;				// regfile[0] is self
     vm->regfile[0].cls 	= guru_class_object;	// root class
-
+ */
     guru_state *st = (guru_state *)guru_alloc(sizeof(guru_state));
 
     st->pc 	  = 0;								// starting IP
     st->klass = guru_class_object;				// target class
-    st->reg   = vm->regfile;					// point to reg[0]
+    st->regs  = vm->regfile;					// point to reg[0]
     st->irep  = vm->irep;						// root of irep tree
     st->argc  = 0;
     st->prev  = NULL;							// state linked-list (i.e. call stack)
@@ -226,10 +227,9 @@ guru_vm_release(guru_ses *ses)
 //========================================================================================
 #if GURU_DEBUG
 static const char *_vtype[] = {
-	"___","nil","f  ","t  ","num","flt","sym","cls",
-	"","","","","","","","",
-	"","","","","obj","prc","ary","str",
-	"rng","hsh"
+	"___","nil","f  ","t  ","num","flt","sym","cls",	// 0x0
+	"","","","","","","","",							// 0x8
+	"obj","prc","ary","str","rng","hsh"					// 0x10
 };
 
 static const char *_opcode[] = {
@@ -261,6 +261,44 @@ _find_irep(guru_irep *irep0, guru_irep *irep1, U8P idx)
 }
 
 __HOST__ void
+_show_regfile(guru_vm *vm, U32 lvl)
+{
+	U32 last = 0;
+	GV  *v   = vm->regfile;
+	for (U32 i=0; i<MAX_REGS_SIZE; i++, v++) {
+		if (v->gt==GT_EMPTY) continue;
+		last=i;
+	}
+
+	printf("[");
+	v = vm->regfile;
+	for (U32 i=0; i<=last; i++, v++) {
+		printf("%s",_vtype[v->gt]);
+		if (v->gt & GT_HAS_REF) printf("%d", v->rc);
+		else 					printf(" ");
+	    printf("%c", i==lvl ? '|' : ' ');
+    }
+	printf("]");
+}
+
+__HOST__ void
+_show_func(guru_vm *vm, GAR *ar, GV *regs)
+{
+	U32 ra = ar->a;
+	U32 rb = ar->b;
+	U32 rc = ar->c;
+
+    guru_class *cls  = (guru_class *)&regs[0];
+	U8 *fname = VM_SYM(vm, rb);
+
+	printf(" %s#%s", cls->name, fname);
+//    if (IS_CFUNC(m) && m->func !=c_proc_call && m->func != c_object_new) {
+//        printf("%s#%s:\n", m->cname, m->name);
+//        //printf(regs+ra, rc);					// call the C-func
+//    }
+}
+
+__HOST__ void
 _show_decoder(guru_vm *vm)
 {
 	U16  pc    = vm->state->pc;
@@ -280,22 +318,13 @@ _show_decoder(guru_vm *vm)
 		lvl += 2 + st->argc;
 	}
 
-	GV *v = vm->regfile;				// scan
-	U32 last = 0;
-	for (U32 i=0; i<MAX_REGS_SIZE; i++, v++) {
-		if (v->gt==GT_EMPTY) continue;
-		last=i;
-	}
+	_show_regfile(vm, lvl);
 
-	v = vm->regfile;							// rewind
-	printf("[");
-	for (U32 i=0; i<=last; i++, v++) {
-		printf("%s",_vtype[v->gt]);
-		if (v->gt & GT_HAS_REF) printf("%d", v->self->rc);
-		else 					printf(" ");
-	    printf("%c", i==lvl ? '|' : ' ');
-    }
-	printf("]\n");
+	if (opid==OP_SEND) {
+		U32 ar = code >> 7;
+		_show_func(vm, (GAR *)&ar, (GV *)&vm->regfile);
+	}
+	printf("\n");
 }
 
 __HOST__ cudaError_t

@@ -29,7 +29,7 @@ vm_state_push(guru_vm *vm, U32 argc)
 	guru_state *top = vm->state;
     guru_state *st  = (guru_state *)guru_alloc(sizeof(guru_state));
 
-    st->reg   = top->reg;			// pass register file
+    st->regs  = top->regs;			// pass register file
     st->irep  = top->irep;
     st->pc 	  = top->pc;
     st->argc  = argc;				// allocate local stack
@@ -65,9 +65,7 @@ vm_proc_call(guru_vm *vm, GV v[], U32 argc)
 
 	vm->state->pc   = 0;
 	vm->state->irep = v[0].proc->irep;	// switch into callee context
-	vm->state->reg  = v;				// shift register file pointer (for local stack)
-
-	v[0].proc->rc++;					// CC: 20181027 added to track proc usage
+	vm->state->regs = v;				// shift register file pointer (for local stack)
 }
 
 // Object.new
@@ -105,19 +103,19 @@ vm_object_new(guru_vm *vm, GV v[], U32 argc)
     guru_state  *st = vm->state;
 
     U16 pc0    = st->pc;
-    GV  *reg0  = st->reg;
+    GV  *reg0  = st->regs;
     guru_irep *irep0 = st->irep;
 
     st->pc 	 = 0;
     st->irep = irep;
-    st->reg  = v;		   // new register file (shift for call stack)
+    st->regs = v;		   // new register file (shift for call stack)
 
     // start a VM
     // TODO: enter into a VM run queue (also a suspended queue)
     while (guru_op(vm)==0); // run til ABORT, or exception
 
     st->pc 	 = pc0;
-    st->reg  = reg0;
+    st->regs = reg0;
     st->irep = irep0;
 
     RETURN_VAL(obj);
