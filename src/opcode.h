@@ -23,39 +23,6 @@ extern "C" {
 #define MAXARG_Bx                   (0xffff)
 #define MAXARG_sBx                  (MAXARG_Bx>>1)
     
-/* instructions: packed 32 bit      */
-/* -------------------------------  */
-/*     A:B:C:OP = 9: 9: 7: 7        */
-/*      A:Bx:OP = 9:   16: 7        */
-/*   A:Bz:Cz:OP = 9: 14:2: 7        */
-/*        Ax:OP = 25     : 7        */
-typedef struct {
-	union {
-		U16 bx;
-		struct {
-			U16 c : 7, b : 9;
-		};
-		struct {
-			U16 cz: 2, bz: 14;
-		};
-	};
-	U32 a : 9;			// hopefully take up 32-bits total (4-byte)
-} GAR;
-
-typedef struct {		// this does not work (6-byte created)
-	U8 op : 7;
-	union {
-		U16 bx;
-		struct {
-			U16 c : 7, b : 9;
-		};
-		struct {
-			U16 cz: 2, bz: 14;
-		};
-	};
-	U32 a : 9;			// adding this field, create 2 more bytes
-} GOP;
-
 #define GET_OPCODE(i)              ((i) & 0x7f)
 
 // common OPs
@@ -110,6 +77,7 @@ enum OPCODE {
     OP_LOADSELF, /*  A       R(A) := self                                    */
     OP_LOADT,    /*  A       R(A) := true                                    */
     OP_LOADF,    /*  A       R(A) := false                                   */
+
     // 0x09
     OP_GETGLOBAL ,/* A Bx    R(A) := getglobal(Syms(Bx))                     */
     OP_SETGLOBAL, /* A Bx    setglobal(Syms(Bx), R(A))                       */
@@ -125,6 +93,7 @@ enum OPCODE {
     OP_SETMCNST,  /**A Bx    R(A+1)::Syms(Bx) := R(A)                        */
     OP_GETUPVAR,  /* A B C   R(A) := uvget(B,C)                              */
     OP_SETUPVAR,  /* A B C   uvset(B,C,R(A))                                 */
+
     // 0x17
     OP_JMP,       /* sBx     pc+=sBx                                         */
     OP_JMPIF,     /* A sBx   if R(A) pc+=sBx                                 */
@@ -136,6 +105,7 @@ enum OPCODE {
     OP_RAISE,     /**A       raise(R(A))                                     */
     OP_EPUSH,     /**Bx      ensure_push(SEQ[Bx])                            */
     OP_EPOP,      /**A       A.times{ensure_pop().call}                      */
+
     // 0x20
     OP_SEND,      /* A B C   R(A) := call(R(A),Syms(B),R(A+1),...,R(A+C))    */
     OP_SENDB,     /* A B C   R(A) := call(R(A),Syms(B),R(A+1),...,R(A+C),&R(A+C+1))*/
@@ -149,6 +119,7 @@ enum OPCODE {
     OP_RETURN,    /* A B     return R(A) (B=normal,in-block return/break)    */
     OP_TAILCALL,  /**A B C   return call(R(A),Syms(B),*R(C))                 */
     OP_BLKPUSH,   /* A Bx    R(A) := block (16=6:1:5:4)                      */
+
     // 0x2c
     OP_ADD,       /* A B C   R(A) := R(A)+R(A+1) (Syms[B]=:+,C=1)            */
     OP_ADDI,      /* A B C   R(A) := R(A)+C (Syms[B]=:+)                     */
@@ -161,6 +132,7 @@ enum OPCODE {
     OP_LE,        /* A B C   R(A) := R(A)<=R(A+1) (Syms[B]=:<=,C=1)          */
     OP_GT,        /* A B C   R(A) := R(A)>R(A+1)  (Syms[B]=:>,C=1)           */
     OP_GE,        /* A B C   R(A) := R(A)>=R(A+1) (Syms[B]=:>=,C=1)          */
+
     // 0x37
     OP_ARRAY,     /* A B C   R(A) := ary_new(R(B),R(B+1)..R(B+C))            */
     OP_ARYCAT,    /**A B     ary_cat(R(A),R(B))                              */
@@ -175,6 +147,7 @@ enum OPCODE {
     OP_HASH,      /* A B C   R(A) := hash_new(R(B),R(B+1)..R(B+C))           */
     OP_LAMBDA,    /* A Bz Cz R(A) := lambda(SEQ[Bz],Cz)                      */
     OP_RANGE,     /* A B C   R(A) := range_new(R(B),R(B+1),C)                */
+
     // 0x42
     OP_OCLASS,    /**A       R(A) := ::Object                                */
     OP_CLASS,     /* A B     R(A) := newclass(R(A),Syms(B),R(A+1))           */
@@ -184,6 +157,7 @@ enum OPCODE {
     OP_SCLASS,    /**A B     R(A) := R(B).singleton_class                    */
     OP_TCLASS,    /* A       R(A) := target_class                            */
     OP_DEBUG,     /**A B C   print R(A),R(B),R(C)                            */
+
     // 0x4a
     OP_STOP,      /*         stop VM                                         */
     OP_ERR,       /**Bx      raise RuntimeError with message Lit(Bx)         */
