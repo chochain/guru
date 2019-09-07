@@ -39,9 +39,12 @@ __GURU__ U32 _mutex_op;
 // becareful with the following macros, because they release regs[ra] first
 // so, make sure value is kept before the release
 //
-#define _RA_X(r)    do { ref_clr(&regs[ra]); regs[ra] = *(r); 	ref_inc(r); } while (0)
-#define _RA_V(v)    do { ref_clr(&regs[ra]); regs[ra] = (v); 				} while (0)
-#define _RA_T(t, e) do { ref_clr(&regs[ra]); regs[ra].gt = (t); regs[ra].e; } while (0)
+#define _RA(v)      	(ref_dec(&regs[ra]), regs[ra]=(v), 0)
+#define _RA_X(r)    	(ref_dec(&regs[ra]), regs[ra]=*(r), ref_inc(r), 0)
+#define _RA_T(t, e) 	(ref_dec(&regs[ra]), regs[ra].gt=(t), regs[ra].e, 0)
+#define _REGMOVE(dst, src, n) {		\
+	GV *d = dst, *s = src;			\
+	for (U32 i=0; i<(n); i++, ref_inc(s), *d++=*s, s->gt=GT_EMPTY, s++); }
 
 #if GURU_HOST_IMAGE
 //================================================================
@@ -239,12 +242,10 @@ op_nop(guru_vm *vm, U32 code, GV *regs)
 __GURU__ int
 op_move(guru_vm *vm, U32 code, GV *regs)
 {
-    int ra = GETARG_A(code);
-    int rb = GETARG_B(code);
+    U32 ra = GETARG_A(code);
+    U32 rb = GETARG_B(code);
 
-    _RA_X(&regs[rb]);                  // swap ra <= rb
-
-    return 0;
+    return _RA(regs[rb]);                  	// [ra] <= [rb]
 }
 
 //================================================================
@@ -261,8 +262,8 @@ op_move(guru_vm *vm, U32 code, GV *regs)
 __GURU__ int
 op_loadl(guru_vm *vm, U32 code, GV *regs)
 {
-	int ra = GETARG_A(code);
-    int rb = GETARG_Bx(code);
+	U32 ra = GETARG_A(code);
+    U32 rb = GETARG_Bx(code);
 
     U32P p = _vm_ivar(vm, rb);
     guru_obj obj;
@@ -275,9 +276,7 @@ op_loadl(guru_vm *vm, U32 code, GV *regs)
     	obj.gt = GT_INT;
     	obj.i  = *p>>1;
     }
-    _RA_V(obj);
-
-    return 0;
+    return _RA(obj);
 }
 
 //================================================================
@@ -294,12 +293,10 @@ op_loadl(guru_vm *vm, U32 code, GV *regs)
 __GURU__ int
 op_loadi(guru_vm *vm, U32 code, GV *regs)
 {
-    int ra = GETARG_A(code);
-    int rb = GETARG_sBx(code);
+    U32 ra = GETARG_A(code);
+    U32 rb = GETARG_sBx(code);
 
-    _RA_T(GT_INT, i=rb);
-
-    return 0;
+    return _RA_T(GT_INT, i=rb);
 }
 
 
@@ -317,14 +314,12 @@ op_loadi(guru_vm *vm, U32 code, GV *regs)
 __GURU__ int
 op_loadsym(guru_vm *vm, U32 code, GV *regs)
 {
-    int ra  = GETARG_A(code);
-    int rb  = GETARG_Bx(code);
+    U32 ra  = GETARG_A(code);
+    U32 rb  = GETARG_Bx(code);
 
     GS sid = _vm_sid(vm, rb);
 
-    _RA_T(GT_SYM, i=sid);
-
-    return 0;
+    return _RA_T(GT_SYM, i=sid);
 }
 
 //================================================================
@@ -341,11 +336,9 @@ op_loadsym(guru_vm *vm, U32 code, GV *regs)
 __GURU__ int
 op_loadnil(guru_vm *vm, U32 code, GV *regs)
 {
-    int ra = GETARG_A(code);
+    U32 ra = GETARG_A(code);
 
-    _RA_T(GT_NIL, i=0);
-
-    return 0;
+    return _RA_T(GT_NIL, i=0);
 }
 
 //================================================================
@@ -362,11 +355,9 @@ op_loadnil(guru_vm *vm, U32 code, GV *regs)
 __GURU__ int
 op_loadself(guru_vm *vm, U32 code, GV *regs)
 {
-    int ra = GETARG_A(code);
+    U32 ra   = GETARG_A(code);
 
-    _RA_X(&regs[0]);                   // ra <= class
-
-    return 0;
+    return _RA(regs[0]);                   	// [ra] <= class
 }
 
 //================================================================
@@ -383,11 +374,9 @@ op_loadself(guru_vm *vm, U32 code, GV *regs)
 __GURU__ int
 op_loadt(guru_vm *vm, U32 code, GV *regs)
 {
-    int ra = GETARG_A(code);
+    U32 ra = GETARG_A(code);
 
-    _RA_T(GT_TRUE, i=0);
-
-    return 0;
+    return _RA_T(GT_TRUE, i=0);
 }
 
 //================================================================
@@ -404,11 +393,9 @@ op_loadt(guru_vm *vm, U32 code, GV *regs)
 __GURU__ int
 op_loadf(guru_vm *vm, U32 code, GV *regs)
 {
-    int ra = GETARG_A(code);
+    U32 ra = GETARG_A(code);
 
-    _RA_T(GT_FALSE, i=0);
-
-    return 0;
+    return _RA_T(GT_FALSE, i=0);
 }
 
 //================================================================
@@ -425,15 +412,13 @@ op_loadf(guru_vm *vm, U32 code, GV *regs)
 __GURU__ int
 op_getglobal(guru_vm *vm, U32 code, GV *regs)
 {
-    int ra  = GETARG_A(code);
-    int rb  = GETARG_Bx(code);
+    U32 ra  = GETARG_A(code);
+    U32 rb  = GETARG_Bx(code);
 
     GS sid = _vm_sid(vm, rb);
     guru_obj obj = global_object_get(sid);
 
-    _RA_V(obj);
-
-    return 0;
+    return _RA(obj);
 }
 
 //================================================================
@@ -450,8 +435,8 @@ op_getglobal(guru_vm *vm, U32 code, GV *regs)
 __GURU__ int
 op_setglobal(guru_vm *vm, U32 code, GV *regs)
 {
-    int ra  = GETARG_A(code);
-    int rb  = GETARG_Bx(code);
+    U32 ra  = GETARG_A(code);
+    U32 rb  = GETARG_Bx(code);
 
     GS sid = _vm_sid(vm, rb);
     global_object_add(sid, &regs[ra]);
@@ -473,16 +458,14 @@ op_setglobal(guru_vm *vm, U32 code, GV *regs)
 __GURU__ int
 op_getiv(guru_vm *vm, U32 code, GV *regs)
 {
-    int ra = GETARG_A(code);
-    int rb = GETARG_Bx(code);
+    U32 ra = GETARG_A(code);
+    U32 rb = GETARG_Bx(code);
 
     U8P name = _vm_skey(vm, rb);
     GS sid   = name2id(name+1);					// skip '@'
     GV ret   = guru_store_get(&regs[0], sid);
 
-    _RA_V(ret);
-
-    return 0;
+    return _RA(ret);
 }
 
 //================================================================
@@ -499,8 +482,8 @@ op_getiv(guru_vm *vm, U32 code, GV *regs)
 __GURU__ int
 op_setiv(guru_vm *vm, U32 code, GV *regs)
 {
-    int ra = GETARG_A(code);
-    int rb = GETARG_Bx(code);
+    U32 ra = GETARG_A(code);
+    U32 rb = GETARG_Bx(code);
 
     U8P name = _vm_skey(vm, rb);
     GS  sid  = name2id(name+1);			// skip '@'
@@ -524,15 +507,13 @@ op_setiv(guru_vm *vm, U32 code, GV *regs)
 __GURU__ int
 op_getconst(guru_vm *vm, U32 code, GV *regs)
 {
-    int ra  = GETARG_A(code);
-    int rb  = GETARG_Bx(code);
+    U32 ra  = GETARG_A(code);
+    U32 rb  = GETARG_Bx(code);
 
     GS sid = _vm_sid(vm, rb);
     guru_obj obj = const_object_get(sid);
 
-    _RA_V(obj);
-
-    return 0;
+    return _RA(obj);
 }
 
 //================================================================
@@ -548,8 +529,8 @@ op_getconst(guru_vm *vm, U32 code, GV *regs)
 */
 __GURU__ int
 op_setconst(guru_vm *vm, U32 code, GV *regs) {
-    int ra  = GETARG_A(code);
-    int rb  = GETARG_Bx(code);
+    U32 ra  = GETARG_A(code);
+    U32 rb  = GETARG_Bx(code);
 
     GS sid = _vm_sid(vm, rb);
     const_object_add(sid, &regs[ra]);
@@ -571,22 +552,20 @@ op_setconst(guru_vm *vm, U32 code, GV *regs) {
 __GURU__ int
 op_getupvar(guru_vm *vm, U32 code, GV *regs)
 {
-    int ra = GETARG_A(code);
-    int rb = GETARG_B(code);
-    int rc = GETARG_C(code);   		// UP
+    U32 ra = GETARG_A(code);
+    U32 rb = GETARG_B(code);
+    U32 rc = GETARG_C(code);   		// UP
 
     guru_state *st = vm->state;
 
-    int n = (rc+1) << 1;			// depth of call stack
+    U32 n = (rc+1) << 1;			// depth of call stack
     while (n > 0){					// walk up call stack
         st = st->prev;
         n--;
     }
-    GV *uregs = st->reg;	// outer scope register file
+    GV *uregs = st->reg;			// outer scope register file
 
-    _RA_X(&uregs[rb]);             	// ra <= up[rb]
-
-    return 0;
+    return _RA(uregs[rb]);          // ra <= up[rb]
 }
 
 //================================================================
@@ -603,13 +582,13 @@ op_getupvar(guru_vm *vm, U32 code, GV *regs)
 __GURU__ int
 op_setupvar(guru_vm *vm, U32 code, GV *regs)
 {
-    int ra = GETARG_A(code);
-    int rb = GETARG_B(code);
-    int rc = GETARG_C(code);   				// UP level
+    U32 ra = GETARG_A(code);
+    U32 rb = GETARG_B(code);
+    U32 rc = GETARG_C(code);   				// UP level
 
     guru_state *st = vm->state;
 
-    int n = (rc+1) << 1;					// 2 per outer scope level
+    U32 n = (rc+1) << 1;					// 2 per outer scope level
     while (n > 0){
         st = st->prev;
         n--;
@@ -697,14 +676,14 @@ op_jmpnot(guru_vm *vm, U32 code, GV *regs)
 __GURU__ int
 op_send(guru_vm *vm, U32 code, GV *regs)
 {
-    int ra = GETARG_A(code);
-    int rb = GETARG_B(code);  // index of method sym
-    int rc = GETARG_C(code);  // number of params
+    U32 ra = GETARG_A(code);
+    U32 rb = GETARG_B(code);  			// index of method sym
+    U32 rc = GETARG_C(code);  			// number of params
 
-    GV  *rcv = &regs[ra];
-	GS  sid  = _vm_sid(vm, rb);
-    guru_proc *m  = (guru_proc *)proc_by_sid(rcv, sid);
+    GV  *rcv = &regs[ra];				// receiver object
+	GS  sid  = _vm_sid(vm, rb);			// function sid
 
+	guru_proc *m = (guru_proc *)proc_by_sid(rcv, sid);
     if (m==0) {
     	U8P key = _vm_skey(vm, rb);
     	guru_na(key);					// dump error, bail out
@@ -712,7 +691,7 @@ op_send(guru_vm *vm, U32 code, GV *regs)
     }
 
     // Clear block param (needed ?)
-    int bidx = ra + rc + 1;
+    U32 bidx = ra + rc + 1;
     switch(GET_OPCODE(code)) {
     case OP_SEND:
         ref_clr(&regs[bidx]);
@@ -737,7 +716,7 @@ op_send(guru_vm *vm, U32 code, GV *regs)
         	_vm_object_new(vm, regs+ra, rc);
         }
         else {
-        	printf("%s#%s:\n", m->cname, m->name);
+        	if (vm->step) printf("%s#%s\n", m->cname, m->name);
         	m->func(regs+ra, rc);					// call the C-func
             for (U32 i=ra+1; i<=bidx; i++) {		// clean up block parameters
             	ref_clr(&regs[i]);
@@ -819,8 +798,8 @@ __GURU__ int
 op_return(guru_vm *vm, U32 code, GV *regs)
 {
     // return value
-    int ra = GETARG_A(code);
-    GV ret = regs[ra];
+    U32 ra  = GETARG_A(code);
+    GV  ret = regs[ra];
 
     ref_clr(&regs[0]);
     regs[0]     = ret;
@@ -845,16 +824,14 @@ op_return(guru_vm *vm, U32 code, GV *regs)
 __GURU__ int
 op_blkpush(guru_vm *vm, U32 code, GV *regs)
 {
-    int ra = GETARG_A(code);
+    U32 ra = GETARG_A(code);
 
-    GV *stack = regs + 1;       // call stack: push 1 GV
+    GV *stack = regs + 1;       	// call stack: push 1 GV
 
     if (stack[0].gt==GT_NIL){		// Check leak?
-        return vm->err = 255;  			// EYIELD
+        return vm->err = 255;  		// EYIELD
     }
-    _RA_X(stack);                       // ra <= stack[0]
-
-    return 0;
+    return _RA(*stack);             // ra <= stack[0]
 }
 
 //================================================================
@@ -871,9 +848,9 @@ op_blkpush(guru_vm *vm, U32 code, GV *regs)
 __GURU__ int
 op_add(guru_vm *vm, U32 code, GV *regs)
 {
-    int ra = GETARG_A(code);
-    GV *r0 = &regs[ra];
-    GV *r1 = &regs[ra+1];
+    U32 ra  = GETARG_A(code);
+    GV  *r0 = &regs[ra];
+    GV  *r1 = &regs[ra+1];
 
     if (r0->gt==GT_INT) {
         if      (r1->gt==GT_INT) r0->i += r1->i;
@@ -912,8 +889,8 @@ op_add(guru_vm *vm, U32 code, GV *regs)
 __GURU__ int
 op_addi(guru_vm *vm, U32 code, GV *regs)
 {
-	int ra = GETARG_A(code);
-	int rc = GETARG_C(code);
+	U32 ra = GETARG_A(code);
+	U32 rc = GETARG_C(code);
 
     GV *r0 = &regs[ra];
 
@@ -940,7 +917,7 @@ op_addi(guru_vm *vm, U32 code, GV *regs)
 __GURU__ int
 op_sub(guru_vm *vm, U32 code, GV *regs)
 {
-    int ra = GETARG_A(code);
+    U32 ra = GETARG_A(code);
 
     GV *r0 = &regs[ra];
     GV *r1 = &regs[ra+1];
@@ -981,8 +958,8 @@ op_sub(guru_vm *vm, U32 code, GV *regs)
 __GURU__ int
 op_subi(guru_vm *vm, U32 code, GV *regs)
 {
-    int ra = GETARG_A(code);
-    int rc = GETARG_C(code);
+    U32 ra = GETARG_A(code);
+    U32 rc = GETARG_C(code);
 
     GV *r0 = &regs[ra];
 
@@ -1009,7 +986,7 @@ op_subi(guru_vm *vm, U32 code, GV *regs)
 __GURU__ int
 op_mul(guru_vm *vm, U32 code, GV *regs)
 {
-    int ra = GETARG_A(code);
+    U32 ra = GETARG_A(code);
     GV *r0 = &regs[ra];
     GV *r1 = &regs[ra+1];
 
@@ -1049,7 +1026,7 @@ op_mul(guru_vm *vm, U32 code, GV *regs)
 __GURU__ int
 op_div(guru_vm *vm, U32 code, GV *regs)
 {
-    int ra = GETARG_A(code);
+    U32 ra = GETARG_A(code);
     GV *r0 = &regs[ra];
     GV *r1 = &regs[ra+1];
 
@@ -1092,11 +1069,7 @@ op_eq(guru_vm *vm, U32 code, GV *regs)
     U32 ra = GETARG_A(code);
     GT  tt = GT_BOOL(guru_cmp(&regs[ra], &regs[ra+1])==0);
 
-    _RA_T(tt, i=0);
-
-    ref_clr(&regs[ra+1]);
-
-    return 0;
+    return _RA_T(tt, i=0);
 }
 
 // macro for comparators
@@ -1138,7 +1111,7 @@ do {													\
 __GURU__ int
 op_lt(guru_vm *vm, U32 code, GV *regs)
 {
-	int ra = GETARG_A(code);
+	U32 ra = GETARG_A(code);
 
 	ncmp(&regs[ra], <, &regs[ra+1]);
 
@@ -1159,7 +1132,7 @@ op_lt(guru_vm *vm, U32 code, GV *regs)
 __GURU__ U32
 op_le(guru_vm *vm, U32 code, GV *regs)
 {
-    int ra = GETARG_A(code);
+    U32 ra = GETARG_A(code);
 
     ncmp(&regs[ra], <=, &regs[ra+1]);
 
@@ -1180,7 +1153,7 @@ op_le(guru_vm *vm, U32 code, GV *regs)
 __GURU__ int
 op_gt(guru_vm *vm, U32 code, GV *regs)
 {
-    int ra = GETARG_A(code);
+    U32 ra = GETARG_A(code);
 
     ncmp(&regs[ra], >, &regs[ra+1]);
 
@@ -1201,7 +1174,7 @@ op_gt(guru_vm *vm, U32 code, GV *regs)
 __GURU__ int
 op_ge(guru_vm *vm, U32 code, GV *regs)
 {
-    int ra = GETARG_A(code);
+    U32 ra = GETARG_A(code);
 
     ncmp(&regs[ra], >=, &regs[ra+1]);
 
@@ -1223,18 +1196,17 @@ __GURU__ int
 op_string(guru_vm *vm, U32 code, GV *regs)
 {
 #if GURU_USE_STRING
-	int ra = GETARG_A(code);
-    int rb = GETARG_Bx(code);
+	U32 ra = GETARG_A(code);
+    U32 rb = GETARG_Bx(code);
 
     U32 * v   = _vm_ivar(vm, rb);
     U8 * str  = (U8P)U8PADD(VM_IREP(vm), *v);
     GV ret = guru_str_new(str);
 
-    _RA_V(ret);
+    return _RA(ret);
 #else
     guru_na("String class");
 #endif
-    return 0;
 }
 
 //================================================================
@@ -1252,8 +1224,8 @@ __GURU__ int
 op_strcat(guru_vm *vm, U32 code, GV *regs)
 {
 #if GURU_USE_STRING
-    int ra = GETARG_A(code);
-    int rb = GETARG_B(code);
+    U32 ra = GETARG_A(code);
+    U32 rb = GETARG_B(code);
 
     GV *va  = &regs[ra];
     GV *vb  = &regs[rb];
@@ -1267,12 +1239,11 @@ op_strcat(guru_vm *vm, U32 code, GV *regs)
 
     GV ret = guru_str_add(va, vb);
 
-    _RA_V(ret);
+    return _RA(ret);
 
 #else
     guru_na("String class");
 #endif
-    return 0;
 }
 
 //================================================================
@@ -1290,24 +1261,21 @@ __GURU__ int
 op_array(guru_vm *vm, U32 code, GV *regs)
 {
 #if GURU_USE_ARRAY
-    int ra = GETARG_A(code);
-    int rb = GETARG_B(code);
-    int n  = GETARG_C(code);
-    int sz = sizeof(GV) * n;
+    U32 ra  = GETARG_A(code);
+    U32 rb  = GETARG_B(code);
+    U32 n   = GETARG_C(code);
 
-    GV ret = (GV)guru_array_new(n);
+    GV  *pb = &regs[rb];				// source elements
+    GV  ret = (GV)guru_array_new(n);	// ref_cnt is 1 already
+
     guru_array *h  = ret.array;
-    GV *pb = &regs[rb];
-
-    MEMCPY(h->data, pb, sz);
-    MEMSET(pb, 0, sz);
+    _REGMOVE(h->data, pb, n);
     h->n = n;
 
-    _RA_V(ret);
+    return _RA(ret);					// no need to ref_inc
 #else
     guru_na("Array class");
 #endif
-    return 0;
 }
 
 //================================================================
@@ -1325,25 +1293,24 @@ __GURU__ int
 op_hash(guru_vm *vm, U32 code, GV *regs)
 {
 #if GURU_USE_ARRAY
-    int ra = GETARG_A(code);
-    int rb = GETARG_B(code);
-    int n  = GETARG_C(code);							// entries of hash
-    int sz = sizeof(GV) * (n<<1);						// size of k,v pairs
+    U32 ra = GETARG_A(code);
+    U32 rb = GETARG_B(code);
+    U32 n  = GETARG_C(code);							// entries of hash
+    U32 sz = sizeof(GV) * (n<<1);						// size of k,v pairs
 
     GV *p  = &regs[rb];
-    GV ret = guru_hash_new(n);
-    guru_hash  *h  = ret.hash;
+    GV ret = guru_hash_new(n);							// ref_cnt is already set to 1
+    guru_hash  *h = ret.hash;
 
     MEMCPY((U8P)h->data, (U8P)p, sz);					// copy k,v pairs
 
     for (U32 i=0; i<(h->n=(n<<1)); i++, p++) {
     	p->gt = GT_EMPTY;								// clean up call stack
     }
-    _RA_V(ret);						                	// set return value on stack top
+    return _RA(ret);						          	// set return value on stack top
 #else
     guru_na("Hash class");
 #endif
-    return 0;
 }
 
 //================================================================
@@ -1361,21 +1328,21 @@ __GURU__ int
 op_range(guru_vm *vm, U32 code, GV *regs)
 {
 #if GURU_USE_ARRAY
-    int ra = GETARG_A(code);
-    int rb = GETARG_B(code);
-    int n  = GETARG_C(code);
+    U32 ra = GETARG_A(code);
+    U32 rb = GETARG_B(code);
+    U32 n  = GETARG_C(code);
 
     GV *pb = &regs[rb];
-    GV ret = guru_range_new(pb, pb+1, n);
 
-    _RA_V(ret);						// release and  reassign
     ref_inc(pb);
     ref_inc(pb+1);
+    GV ret = guru_range_new(pb, pb+1, n);
+
+    return _RA_X(&ret);						// release and  reassign
 
 #else
     guru_na("Range class");
 #endif
-    return 0;
 }
 
 //================================================================
@@ -1426,15 +1393,14 @@ op_lambda(guru_vm *vm, U32 code, GV *regs)
 __GURU__ int
 op_class(guru_vm *vm, U32 code, GV *regs)
 {
-    int ra = GETARG_A(code);
-    int rb = GETARG_B(code);
+    U32 ra = GETARG_A(code);
+    U32 rb = GETARG_B(code);
 
     guru_class *super = (regs[ra+1].gt==GT_CLASS) ? regs[ra+1].cls : guru_class_object;
     const U8P  name   = _vm_skey(vm, rb);
     guru_class *cls   = guru_define_class(name, super);
 
-    _RA_T(GT_CLASS, cls=cls);
-    return 0;
+    return _RA_T(GT_CLASS, cls=cls);
 }
 
 //================================================================
@@ -1451,8 +1417,8 @@ op_class(guru_vm *vm, U32 code, GV *regs)
 __GURU__ int
 op_exec(guru_vm *vm, U32 code, GV *regs)
 {
-    int ra = GETARG_A(code);
-    int rb = GETARG_Bx(code);
+    U32 ra = GETARG_A(code);
+    U32 rb = GETARG_Bx(code);
 
     GV rcv = regs[ra];									// receiver
 
@@ -1480,8 +1446,8 @@ op_exec(guru_vm *vm, U32 code, GV *regs)
 __GURU__ int
 op_method(guru_vm *vm, U32 code, GV *regs)
 {
-    int ra = GETARG_A(code);
-    int rb = GETARG_B(code);
+    U32 ra = GETARG_A(code);
+    U32 rb = GETARG_B(code);
 
     if (regs[ra].gt != GT_CLASS) {
     	PRINTF("?op_method");
@@ -1539,11 +1505,9 @@ op_method(guru_vm *vm, U32 code, GV *regs)
 __GURU__ int
 op_tclass(guru_vm *vm, U32 code, GV *regs)
 {
-    int ra = GETARG_A(code);
+    U32 ra = GETARG_A(code);
 
-    _RA_T(GT_CLASS, cls=vm->state->klass);
-
-    return 0;
+    return _RA_T(GT_CLASS, cls=vm->state->klass);
 }
 
 //================================================================
