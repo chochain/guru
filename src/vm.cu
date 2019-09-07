@@ -48,11 +48,10 @@ _vm_begin(guru_vm *pool)
 	if (threadIdx.x!=0 || vm->id==0) return;	// bail if vm not allocated
 
 	MEMSET(vm->regfile, 0, sizeof(vm->regfile));	// clean up registers
-/*
- *  CC:20190907 removed per object class
-    vm->regfile[0].gt  	= GT_CLASS;				// regfile[0] is self
-    vm->regfile[0].cls 	= guru_class_object;	// root class
- */
+
+	vm->regfile[0].gt  = GT_CLASS;				// regfile[0] is self
+    vm->regfile[0].cls = guru_class_object;		// root class
+
     guru_state *st = (guru_state *)guru_alloc(sizeof(guru_state));
 
     st->pc 	  = 0;								// starting IP
@@ -92,7 +91,28 @@ _vm_end(guru_vm *pool)
 
 //================================================================
 /*!@brief
-  Fetch a bytecode and execute
+  GURU Instruction Unit - Prefetcher (fetch bytecode and decode)
+
+  @param  vm    A pointer of VM.
+  @retval 0  No error.
+*/
+__GPU__ void
+_vm_prefetch(guru_vm *pool)
+{
+	guru_vm *vm = pool+blockIdx.x;
+	if (vm->id==0 || !vm->run) return;		// not allocated yet, or completed
+
+	vm->bytecode = VM_BYTECODE(vm);
+
+	vm->op  = vm->bytecode & 0x7f;			// opcode
+	vm->opn = vm->bytecode >> 7;			// operands
+	vm->ar 	= (GAR *)&(vm)->opn;			// operands struct/union
+
+	vm->state->pc++;						// advance instruction pointer
+}
+//================================================================
+/*!@brief
+  GURU Instruction dispatcher
 
   @param  vm    A pointer of VM.
   @retval 0  No error.
@@ -103,6 +123,7 @@ _vm_exec(guru_vm *pool)
 	guru_vm *vm = pool+blockIdx.x;
 	if (vm->id==0 || !vm->run) return;		// not allocated yet, or completed
 
+	// start up dispatcher
 	while (guru_op(vm)==0 && vm->step==0) {	// multi-threading in guru_op
 		// add cuda hook here
 	}
@@ -198,6 +219,9 @@ guru_vm_run(guru_ses *ses)
 	cudaDeviceSynchronize();
 
 	do {	// TODO: flip session/vm centric view into app-server style main loop
+		_vm_prefetch<<<MIN_VM_COUNT, 1>>>(_vm_pool);
+		cudaDeviceSynchronize();
+
 		_vm_trace(ses->trace);
 
 		_vm_exec<<<MIN_VM_COUNT, 1>>>(_vm_pool);
@@ -263,16 +287,15 @@ _find_irep(guru_irep *irep0, guru_irep *irep1, U8P idx)
 __HOST__ void
 _show_regfile(guru_vm *vm, U32 lvl)
 {
-	U32 last = 0;
-	GV  *v   = vm->regfile;
-	for (U32 i=0; i<MAX_REGS_SIZE; i++, v++) {
-		if (v->gt==GT_EMPTY) continue;
-		last=i;
+	U32 n;
+	GV  *v = &vm->regfile[MAX_REGS_SIZE-1];
+	for (n=MAX_REGS_SIZE-1; n>0; n--, v--) {
+		if (v->gt!=GT_EMPTY) break;
 	}
 
-	printf("[");
 	v = vm->regfile;
-	for (U32 i=0; i<=last; i++, v++) {
+	printf("[");
+	for (U32 i=0; i<=n; i++, v++) {
 		printf("%s",_vtype[v->gt]);
 		if (v->gt & GT_HAS_REF) printf("%d", v->rc);
 		else 					printf(" ");
@@ -282,30 +305,18 @@ _show_regfile(guru_vm *vm, U32 lvl)
 }
 
 __HOST__ void
-_show_func(guru_vm *vm, GAR *ar, GV *regs)
+_show_func(guru_vm *vm)
 {
-	U32 ra = ar->a;
-	U32 rb = ar->b;
-	U32 rc = ar->c;
+	if (vm->op != OP_SEND) return;
 
-    guru_class *cls  = (guru_class *)&regs[0];
-	U8 *fname = VM_SYM(vm, rb);
-
-	printf(" %s#%s", cls->name, fname);
-//    if (IS_CFUNC(m) && m->func !=c_proc_call && m->func != c_object_new) {
-//        printf("%s#%s:\n", m->cname, m->name);
-//        //printf(regs+ra, rc);					// call the C-func
-//    }
+	printf(" #%s", VM_SYM(vm, vm->ar->b));
 }
 
 __HOST__ void
 _show_decoder(guru_vm *vm)
 {
-	U16  pc    = vm->state->pc;
-	U32  *iseq = (U32*)VM_ISEQ(vm);
-	U32  code  = *(iseq + pc);
-	U16  opid  = (*(iseq + pc) >> 24) & 0x7f;		// in HOST mode, GET_OPCODE() is DEVICE code
-	U8P  opc   = (U8P)_opcode[GET_OPCODE(opid)];
+	U16  pc  = vm->state->pc;
+	U8P  opc = (U8P)_opcode[GET_OPCODE(vm->op)];
 
 	U8 idx = 'a';
 	if (!_find_irep(vm->irep, vm->state->irep, &idx)) idx='?';
@@ -317,13 +328,9 @@ _show_decoder(guru_vm *vm)
 		st = st->prev;
 		lvl += 2 + st->argc;
 	}
-
 	_show_regfile(vm, lvl);
+	_show_func(vm);
 
-	if (opid==OP_SEND) {
-		U32 ar = code >> 7;
-		_show_func(vm, (GAR *)&ar, (GV *)&vm->regfile);
-	}
 	printf("\n");
 }
 

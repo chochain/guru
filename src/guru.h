@@ -123,16 +123,13 @@ typedef U32 		GS;
   Guru class object.
 */
 typedef struct RClass {			// 16-byte
-    GS       		sid;		// class name
+    GS       		sid;		// class name (symbol) id
     struct RClass 	*super;		// guru_class[super]
     struct RProc  	*vtbl;		// guru_proc[rprocs], linked list
 #if GURU_DEBUG
     char			*name;		// for debug. TODO: remove
 #endif
 } guru_class;
-
-#define GURU_CFUNC 	0x80
-#define IS_CFUNC(v)	((v)->flag & GURU_CFUNC)
 
 typedef struct RString {		// 8-byte
 	U32 			len;		//!< string length.
@@ -198,6 +195,8 @@ typedef struct RProc {				// 16-byte
     char  				*name;		// function name
 #endif
 } guru_proc;
+
+#define IS_CFUNC(p)		(p)
 
 typedef struct RSes {				// 16-byte
 	U8P 				in;

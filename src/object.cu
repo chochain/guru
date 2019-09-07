@@ -87,7 +87,7 @@ _send(GV v[], GV *rcv, const U8P method, U32 argc, ...)
     va_end(ap);
 
     m->func(regs, argc);			// call method
-    GV ret = regs[0];		// copy result
+    GV ret = regs[0];				// copy result
 
 #if GURU_DEBUG
     for (U32 i=0; i<=argc+1; i++) {	// not really needed!
