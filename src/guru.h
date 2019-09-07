@@ -75,19 +75,19 @@ typedef enum {
     GT_FALSE,								// (note) true/false threshold. see op_jmpif
     GT_TRUE,
     GT_INT,									// 0x4
-    GT_FLOAT,
-    GT_SYM,
-    GT_CLASS,
+    GT_FLOAT,								// 0x5
+    GT_SYM,									// 0x6
+    GT_CLASS,								// 0x7
 
     GT_HAS_REF = 16,						// 0x10
 
     /* non-primitive */
-    GT_OBJ = GT_HAS_REF + 4,				// 0x14 or 20
-    GT_PROC,
-    GT_ARRAY,
-    GT_STR,
-    GT_RANGE,
-    GT_HASH,
+    GT_OBJ = GT_HAS_REF,					// 0x10
+    GT_PROC,								// 0x11
+    GT_ARRAY,								// 0x12
+    GT_STR,									// 0x13
+    GT_RANGE,								// 0x14
+    GT_HASH,								// 0x15
 } GT;
 
 #define GT_BOOL(v)		((v) ? GT_TRUE : GT_FALSE)
