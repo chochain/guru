@@ -63,16 +63,13 @@
 __GURU__ GV
 _send(GV v[], GV *rcv, const U8P method, U32 argc, ...)
 {
-    GV *regs = v + 2;	     // allocate 2 for stack
-    GS   sid = name2id(method);
+    GV *regs = v + 2;	     		// allocate 2 for stack
+    GS sid   = name2id(method);
+
     guru_proc *m = proc_by_sid(rcv, sid);	// method of receiver object
 
-    if (m == 0) {
+    if (m==0) {
         PRINTF("No method. vtype=%d method='%s'\n", rcv->gt, method);
-        return GURU_NIL_NEW();
-    }
-    if (!IS_CFUNC(m)) {
-        PRINTF("Method '%s' is not a C function\n", method);
         return GURU_NIL_NEW();
     }
 

@@ -295,13 +295,11 @@ _join(GV v[], U32 argc, GV *src, GV *ret, GV *sep)
 __GURU__ GV
 guru_array_new(U32 sz)
 {
-    GV ret = {.gt = GT_ARRAY};
+    GV ret = {.gt = GT_ARRAY, .rc = 1};
 
     guru_array *h   = (guru_array *)guru_alloc(sizeof(guru_array));		// handle
     void       *ptr = guru_alloc(sizeof(GV) * sz);
 
-    h->gt 	= GT_ARRAY;
-    h->rc   = 1;			// assume handle is referenced
     h->size = sz;
     h->n  	= 0;
     h->data = (GV *)ptr;

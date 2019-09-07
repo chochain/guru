@@ -24,8 +24,6 @@ extern "C" {
   Define Array handle.
 */
 typedef struct RArray {
-    GURU_HDR;
-
     U32  size : 16;	//!< data buffer size.
     U32  n    : 16;	//!< # of stored.
     GV 	 *data;		//!< pointer to allocated memory.

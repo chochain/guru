@@ -118,33 +118,6 @@ typedef U32 		GS;
 #define U8PSUB(p, n)	((U8 *)(p) - (n))
 #define U8POFF(p1, p0)	((U32)((U8 *)(p1) - (U8 *)(p0)))	// pointer offset
 
-//===============================================================================
-/*!@brief
-  Guru objects
-*/
-#define GURU_HDR  		\
-	GT  	gt   : 8; 	\
-	U32		flag : 8;	\
-	U32		rc   : 16
-
-typedef struct {							// 8-bytes
-	GURU_HDR;								// guru header
-    union {
-        GI         		 i;					// TT_FIXNUM, SYMBOL
-        GF       		 f;					// TT_FLOAT
-        U8P       		 sym;				// C-string (only loader use.)
-        struct RClass    *cls;				// TT_CLASS
-        struct RVar      *self;				// TT_OBJECT
-        struct RProc     *proc;				// TT_PROC
-        struct RString   *str;				// TT_STRING
-#if GURU_USE_ARRAY
-        struct RArray    *array;			// TT_ARRAY
-        struct RRange    *range;			// TT_RANGE
-        struct RHash     *hash;				// TT_HASH
-#endif
-    };
-} GV, guru_obj;		// guru_val and guru_object shared the same structure for now
-
 //================================================================
 /*!@brief
   Guru class object.
@@ -159,53 +132,79 @@ typedef struct RClass {			// 16-byte
 } guru_class;
 
 #define GURU_CFUNC 	0x80
-#define IS_CFUNC(m)	((m)->flag & GURU_CFUNC)
+#define IS_CFUNC(v)	((v)->flag & GURU_CFUNC)
 
-typedef struct RString {		// 12-byte
-	GURU_HDR;					// 4-byte
-	U32 	len;				//!< string length.
-	char 	*data;				//!< pointer to allocated buffer.
+typedef struct RString {		// 8-byte
+	U32 			len;		//!< string length.
+	char 			*data;		//!< pointer to allocated buffer.
 } guru_str;
 
 //================================================================
 /*!@brief
   physical store for Guru object instance.
 */
-typedef struct RVar {			// 16-byte
-    GURU_HDR;
-    struct RClass *cls;
-    struct RStore *ivar;
-    U8 			   data[];		// here pointer, instead of *data pointer to somewhere else
+typedef struct RVar {			// 12-byte
+    struct RClass 	*cls;
+    struct RStore 	*ivar;
+    U8 			   	data[];		// here pointer, instead of *data pointer to somewhere else
 } guru_var;
 
 //================================================================
 /*!@brief
   Guru proc object.
 */
-/* forward declaration */
-struct Irep;
+#define GURU_HDR  		\
+	GT  	gt   : 8; 	\
+	U32		flag : 8;	\
+	U32		rc   : 16
+
+//===============================================================================
+/*!@brief
+  Guru objects
+*/
+typedef struct {					// 8-bytes
+	GT  	gt   : 8;				// guru object type
+	U32		flag : 8;				// special attribute flags
+	U32		rc   : 16;				// reference counter
+    union {
+        GI         		 i;			// TT_FIXNUM, SYMBOL
+        GF       		 f;			// TT_FLOAT
+        U8P       		 sym;		// C-string (only loader use.)
+        struct RClass    *cls;		// TT_CLASS
+        struct RVar      *self;		// TT_OBJECT
+        struct RProc     *proc;		// TT_PROC
+        struct RString   *str;		// TT_STRING
+#if GURU_USE_ARRAY
+        struct RArray    *array;	// TT_ARRAY
+        struct RRange    *range;	// TT_RANGE
+        struct RHash     *hash;		// TT_HASH
+#endif
+    };
+} GV, guru_obj;		// TODO: guru_val and guru_object shared the same structure for now
+
 typedef void (*guru_fptr)(guru_obj *obj, U32 argc);
 
-typedef struct RProc {			// 20-byte
-    GURU_HDR;
-    GS 	 			sid;		// u32
-    struct RProc 	*next;		// next function in linked list
+/* forward declaration */
+struct Irep;
+typedef struct RProc {				// 16-byte
+    GS 	 				sid;		// u32
+    struct RProc 		*next;		// next function in linked list
     union {
-        struct RIrep *irep;		// an IREP (Ruby code), defined in vm.h
-        guru_fptr  	 func;		// or a raw C function
+        struct RIrep 	*irep;		// an IREP (Ruby code), defined in vm.h
+        guru_fptr  	 	func;		// or a raw C function
     };
 #if GURU_DEBUG
-    char			*cname;
-    char  			*name;
+    char				*cname;		// classname
+    char  				*name;		// function name
 #endif
 } guru_proc;
 
-typedef struct RSes {			// 16-byte
-	U8P 		in;
-	U8P 		out;
-	U16 		id;
-	U16 		trace;
-	struct RSes *next;
+typedef struct RSes {				// 16-byte
+	U8P 				in;
+	U8P 				out;
+	U16 				id;
+	U16 				trace;
+	struct RSes 		*next;
 } guru_ses;
 
 // internal methods which uses (const char *) for static string									// in class.cu

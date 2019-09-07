@@ -377,7 +377,6 @@ c_hash_key(GV v[], U32 argc)
         if (guru_cmp(p+1, v+1)==0) {
             ref_inc(p);
             RETURN_VAL(*p);
-            return;
         }
     }
     RETURN_NIL();

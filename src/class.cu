@@ -162,9 +162,6 @@ _alloc_proc(guru_class *cls, const U8P name)
 {
     guru_proc *proc = (guru_proc *)guru_alloc(sizeof(guru_proc));
 
-    proc->gt     = GT_PROC;
-    proc->flag   = GURU_CFUNC;
-    proc->rc     = 1;
     proc->sid    = name2id(name);
     proc->next   = NULL;
 #ifdef GURU_DEBUG

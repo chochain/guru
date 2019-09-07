@@ -78,8 +78,6 @@ _blank(U32 len)
     CHECK_ALIGN((U32A)s);
 
     s[0] = '\0';						// empty new string
-    h->gt   = GT_STR;					// TODO: for DEBUG
-    h->rc   = 1;
     h->len  = len;
     h->data = (char *)s;				// TODO: for DEBUG, change back to (U8P)
 
