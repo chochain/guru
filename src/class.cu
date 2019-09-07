@@ -106,9 +106,9 @@ _name2class(const U8P name)
   @return
 */
 __GURU__ guru_proc*
-proc_by_sid(GV *rcv, GS sid)
+proc_by_sid(GV *obj, GS sid)
 {
-    guru_class *cls = class_by_obj(rcv);
+    guru_class *cls = class_by_obj(obj);
 
     while (cls != 0) {
         guru_proc *proc = cls->vtbl;

@@ -25,7 +25,7 @@ __GURU__ guru_proc  *guru_define_method(guru_class *cls, const U8P name, guru_fp
 __GURU__ guru_proc 	*guru_alloc_proc(const U8P name);
 
 __GURU__ guru_class *class_by_obj(guru_obj *obj);
-__GURU__ guru_proc  *proc_by_sid(GV *rcv, GS sid);
+__GURU__ guru_proc  *proc_by_sid(GV *obj, GS sid);
 
 // cross module c-function (a hack)
 __GURU__ void 		c_object_new(GV v[], U32 argc);
