@@ -147,7 +147,7 @@ guru_define_class(const U8P name, guru_class *super)
     cls->super 	= super;
     cls->vtbl 	= NULL;
 #ifdef GURU_DEBUG
-    cls->name   = (char *)name;
+    cls->name   = (char *)id2name(sid);				// retrive from symbol table
 #endif
     // register to global constant.
     GV v = { .gt = GT_CLASS };
@@ -166,7 +166,7 @@ _alloc_proc(guru_class *cls, const U8P name)
     proc->next   = NULL;
 #ifdef GURU_DEBUG
     proc->cname  = cls->name;
-    proc->name   = (char *)name;
+    proc->name   = (char *)id2name(proc->sid);
 #endif
     return proc;
 }

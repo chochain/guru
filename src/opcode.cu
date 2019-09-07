@@ -50,9 +50,7 @@ __GURU__ U32 _mutex_op;
   No operation
 
   @param  vm    A pointer of VM.
-  @param  code  bytecode
-  @param  regs  pointer to regfile
-  @retval 0  No error.
+  @retval 0  	No error.
 */
 __GURU__ int
 op_nop(guru_vm *vm)
@@ -67,9 +65,7 @@ op_nop(guru_vm *vm)
   R(A) := R(B)
 
   @param  vm    A pointer of VM.
-  @param  code  bytecode
-  @param  regs  pointer to regfile
-  @retval 0  No error.
+  @retval 0  	No error.
 */
 __GURU__ int
 op_move(guru_vm *vm)
@@ -89,9 +85,7 @@ op_move(guru_vm *vm)
   R(A) := Pool(Bx)
 
   @param  vm    A pointer of VM.
-  @param  code  bytecode
-  @param  regs  pointer to regfile
-  @retval 0  No error.
+  @retval 0  	No error.
 */
 __GURU__ int
 op_loadl(guru_vm *vm)
@@ -121,9 +115,7 @@ op_loadl(guru_vm *vm)
   R(A) := sBx
 
   @param  vm    A pointer of VM.
-  @param  code  bytecode
-  @param  regs  pointer to regfile
-  @retval 0  No error.
+  @retval 0  	No error.
 */
 __GURU__ int
 op_loadi(guru_vm *vm)
@@ -141,9 +133,7 @@ op_loadi(guru_vm *vm)
   R(A) := Syms(Bx)
 
   @param  vm    A pointer of VM.
-  @param  code  bytecode
-  @param  regs  pointer to regfile
-  @retval 0  No error.
+  @retval 0  	No error.
 */
 __GURU__ int
 op_loadsym(guru_vm *vm)
@@ -164,9 +154,7 @@ op_loadsym(guru_vm *vm)
   R(A) := nil
 
   @param  vm    A pointer of VM.
-  @param  code  bytecode
-  @param  regs  pointer to regfile
-  @retval 0  No error.
+  @retval 0  	No error.
 */
 __GURU__ int
 op_loadnil(guru_vm *vm)
@@ -185,9 +173,7 @@ op_loadnil(guru_vm *vm)
   R(A) := self
 
   @param  vm    A pointer of VM.
-  @param  code  bytecode
-  @param  regs  pointer to regfile
-  @retval 0  No error.
+  @retval 0  	No error.
 */
 __GURU__ int
 op_loadself(guru_vm *vm)
@@ -206,9 +192,7 @@ op_loadself(guru_vm *vm)
   R(A) := true
 
   @param  vm    A pointer of VM.
-  @param  code  bytecode
-  @param  regs  pointer to regfile
-  @retval 0  No error.
+  @retval 0  	No error.
 */
 __GURU__ int
 op_loadt(guru_vm *vm)
@@ -227,9 +211,7 @@ op_loadt(guru_vm *vm)
   R(A) := false
 
   @param  vm    A pointer of VM.
-  @param  code  bytecode
-  @param  regs  pointer to regfile
-  @retval 0  No error.
+  @retval 0  	No error.
 */
 __GURU__ int
 op_loadf(guru_vm *vm)
@@ -248,9 +230,7 @@ op_loadf(guru_vm *vm)
   R(A) := getglobal(Syms(Bx))
 
   @param  vm    A pointer of VM.
-  @param  code  bytecode
-  @param  regs  pointer to regfile
-  @retval 0  No error.
+  @retval 0  	No error.
 */
 __GURU__ int
 op_getglobal(guru_vm *vm)
@@ -273,9 +253,7 @@ op_getglobal(guru_vm *vm)
   setglobal(Syms(Bx), R(A))
 
   @param  vm    A pointer of VM.
-  @param  code  bytecode
-  @param  regs  pointer to regfile
-  @retval 0  No error.
+  @retval 0  	No error.
 */
 __GURU__ int
 op_setglobal(guru_vm *vm)
@@ -298,9 +276,7 @@ op_setglobal(guru_vm *vm)
   R(A) := ivget(Syms(Bx))
 
   @param  vm    A pointer of VM.
-  @param  code  bytecode
-  @param  regs  pointer to regfile
-  @retval 0  No error.
+  @retval 0  	No error.
 */
 __GURU__ int
 op_getiv(guru_vm *vm)
@@ -324,9 +300,7 @@ op_getiv(guru_vm *vm)
   ivset(Syms(Bx),R(A))
 
   @param  vm    A pointer of VM.
-  @param  code  bytecode
-  @param  regs  pointer to regfile
-  @retval 0  No error.
+  @retval 0  	No error.
 */
 __GURU__ int
 op_setiv(guru_vm *vm)
@@ -351,9 +325,7 @@ op_setiv(guru_vm *vm)
   R(A) := constget(Syms(Bx))
 
   @param  vm    A pointer of VM.
-  @param  code  bytecode
-  @param  regs  pointer to regfile
-  @retval 0  No error.
+  @retval 0  	No error.
 */
 __GURU__ int
 op_getconst(guru_vm *vm)
@@ -376,9 +348,7 @@ op_getconst(guru_vm *vm)
   constset(Syms(Bx),R(A))
 
   @param  vm    A pointer of VM.
-  @param  code  bytecode
-  @param  regs  pointer to regfile
-  @retval 0  No error.
+  @retval 0  	No error.
 */
 __GURU__ int
 op_setconst(guru_vm *vm) {
@@ -400,9 +370,7 @@ op_setconst(guru_vm *vm) {
   R(A) := uvget(B,C)
 
   @param  vm    A pointer of VM.
-  @param  code  bytecode
-  @param  regs  pointer to regfile
-  @retval 0  No error.
+  @retval 0  	No error.
 */
 __GURU__ int
 op_getupvar(guru_vm *vm)
@@ -432,9 +400,7 @@ op_getupvar(guru_vm *vm)
   uvset(B,C,R(A))
 
   @param  vm    A pointer of VM.
-  @param  code  bytecode
-  @param  regs  pointer to regfile
-  @retval 0  No error.
+  @retval 0  	No error.
 */
 __GURU__ int
 op_setupvar(guru_vm *vm)
@@ -468,9 +434,7 @@ op_setupvar(guru_vm *vm)
   pc += sBx
 
   @param  vm    A pointer of VM.
-  @param  code  bytecode
-  @param  regs  pointer to regfile
-  @retval 0  No error.
+  @retval 0  	No error.
 */
 __GURU__ int
 op_jmp(guru_vm *vm)
@@ -487,9 +451,7 @@ op_jmp(guru_vm *vm)
   if R(A) pc += sBx
 
   @param  vm    A pointer of VM.
-  @param  code  bytecode
-  @param  regs  pointer to regfile
-  @retval 0  No error.
+  @retval 0  	No error.
 */
 __GURU__ int
 op_jmpif (guru_vm *vm)
@@ -509,9 +471,7 @@ op_jmpif (guru_vm *vm)
   if not R(A) pc += sBx
 
   @param  vm    A pointer of VM.
-  @param  code  bytecode
-  @param  regs  pointer to regfile
-  @retval 0  No error.
+  @retval 0  	No error.
 */
 __GURU__ int
 op_jmpnot(guru_vm *vm)
@@ -533,9 +493,7 @@ op_jmpnot(guru_vm *vm)
   OP_SENDB  R(A) := call(R(A),Syms(B),R(A+1),...,R(A+C),&R(A+C+1))
 
   @param  vm    A pointer of VM.
-  @param  code  bytecode
-  @param  regs  pointer to regfile
-  @retval 0  No error.
+  @retval 0  	No error.
 */
 __GURU__ int
 op_send(guru_vm *vm)
@@ -543,10 +501,10 @@ op_send(guru_vm *vm)
 	GV *regs = vm->state->regs;
 	U32 code = vm->bytecode;
     U32 ra = GETARG_A(code);
-    U32 rb = GETARG_B(code);  			// index of method sym
+    U32 rb = GETARG_B(code);  			// proc.sid
     U32 rc = GETARG_C(code);  			// number of params
 
-    GV  *rcv = &regs[ra];				// receiver object
+    GV  *rcv = &regs[ra];				// message receiver object
 	GS  sid  = name2id(VM_SYM(vm, rb)); // function sid
 
 	guru_proc *m = (guru_proc *)proc_by_sid(rcv, sid);
@@ -556,37 +514,19 @@ op_send(guru_vm *vm)
     	return 0;
     }
 
-    // Clear block param (needed ?)
-    U32 bidx = ra + rc + 1;
-    switch(GET_OPCODE(code)) {
-    case OP_SEND:
-        ref_clr(&regs[bidx]);
-        regs[bidx].gt = GT_NIL;
-        break;
-    case OP_SENDB:						// set Proc object
-        if (regs[bidx].gt != GT_NIL && regs[bidx].gt != GT_PROC){
-            // TODO: fix the following behavior
-            // convert to Proc ?
-            // raise exceprion in mruby/c ?
-            return 0;
-        }
-        break;
-    default: break;
-    }
-
-    if (IS_CFUNC(&regs[rb])) {
+    if (IS_CFUNC(m)) {
     	if (m->func==c_proc_call) {		// because VM is not passed to dispatcher, special handling needed for call() and new()
     		vm_proc_call(vm, regs+ra, rc);
-        }
-        else if (m->func==c_object_new) {
+    	}
+    	else if (m->func==c_object_new) {
         	vm_object_new(vm, regs+ra, rc);
         }
         else {
-        	if (vm->step) printf("%s#%s\n", m->cname, m->name);
         	m->func(regs+ra, rc);					// call the C-func
-            for (U32 i=ra+1; i<=bidx; i++) {		// clean up block parameters
-            	ref_clr(&regs[i]);
-            }
+        }
+        U32 bidx = ra + rc + 1;
+        for (U32 i=ra+1; i<=bidx; i++) {			// wipe block parameters for stat dumper
+//        	regs[i].gt = GT_EMPTY;
         }
     }
     else {								// m->func is a Ruby function (aka IREP)
@@ -606,9 +546,7 @@ op_send(guru_vm *vm)
   R(A) := self.call(frame.argc, frame.argv)
 
   @param  vm    A pointer of VM.
-  @param  code  bytecode
-  @param  regs  pointer to regfile
-  @retval 0  No error.
+  @retval 0  	No error.
 */
 __GURU__ int
 op_call(guru_vm *vm)
@@ -632,9 +570,7 @@ op_call(guru_vm *vm)
   arg setup according to flags (23=5:5:1:5:5:1:1)
 
   @param  vm    A pointer of VM.
-  @param  code  bytecode
-  @param  regs  pointer to regfile
-  @retval 0  No error.
+  @retval 0  	No error.
 */
 __GURU__ int
 op_enter(guru_vm *vm)
@@ -658,9 +594,7 @@ op_enter(guru_vm *vm)
   return R(A) (B=normal,in-block return/break)
 
   @param  vm    A pointer of VM.
-  @param  code  bytecode
-  @param  regs  pointer to regfile
-  @retval 0  No error.
+  @retval 0  	No error.
 */
 __GURU__ int
 op_return(guru_vm *vm)
@@ -687,9 +621,7 @@ op_return(guru_vm *vm)
   R(A) := block (16=6:1:5:4)
 
   @param  vm    A pointer of VM.
-  @param  code  bytecode
-  @param  regs  pointer to regfile
-  @retval 0  No error.
+  @retval 0  	No error.
 */
 __GURU__ int
 op_blkpush(guru_vm *vm)
@@ -713,9 +645,7 @@ op_blkpush(guru_vm *vm)
   R(A) := R(A)+R(A+1) (Syms[B]=:+,C=1)
 
   @param  vm    A pointer of VM.
-  @param  code  bytecode
-  @param  regs  pointer to regfile
-  @retval 0  No error.
+  @retval 0  	No error.
 */
 __GURU__ int
 op_add(guru_vm *vm)
@@ -756,9 +686,7 @@ op_add(guru_vm *vm)
   R(A) := R(A)+C (Syms[B]=:+)
 
   @param  vm    A pointer of VM.
-  @param  code  bytecode
-  @param  regs  pointer to regfile
-  @retval 0  No error.
+  @retval 0  	No error.
 */
 __GURU__ int
 op_addi(guru_vm *vm)
@@ -786,9 +714,7 @@ op_addi(guru_vm *vm)
   R(A) := R(A)-R(A+1) (Syms[B]=:-,C=1)
 
   @param  vm    A pointer of VM.
-  @param  code  bytecode
-  @param  regs  pointer to regfile
-  @retval 0  No error.
+  @retval 0  	No error.
 */
 __GURU__ int
 op_sub(guru_vm *vm)
@@ -829,9 +755,7 @@ op_sub(guru_vm *vm)
   R(A) := R(A)-C (Syms[B]=:-)
 
   @param  vm    A pointer of VM.
-  @param  code  bytecode
-  @param  regs  pointer to regfile
-  @retval 0  No error.
+  @retval 0  	No error.
 */
 __GURU__ int
 op_subi(guru_vm *vm)
@@ -859,9 +783,7 @@ op_subi(guru_vm *vm)
   R(A) := R(A)*R(A+1) (Syms[B]=:*)
 
   @param  vm    A pointer of VM.
-  @param  code  bytecode
-  @param  regs  pointer to regfile
-  @retval 0  No error.
+  @retval 0  	No error.
 */
 __GURU__ int
 op_mul(guru_vm *vm)
@@ -901,9 +823,7 @@ op_mul(guru_vm *vm)
   R(A) := R(A)/R(A+1) (Syms[B]=:/)
 
   @param  vm    A pointer of VM.
-  @param  code  bytecode
-  @param  regs  pointer to regfile
-  @retval 0  No error.
+  @retval 0  	No error.
 */
 __GURU__ int
 op_div(guru_vm *vm)
@@ -943,9 +863,7 @@ op_div(guru_vm *vm)
   R(A) := R(A)==R(A+1)  (Syms[B]=:==,C=1)
 
   @param  vm    A pointer of VM.
-  @param  code  bytecode
-  @param  regs  pointer to regfile
-  @retval 0  No error.
+  @retval 0  	No error.
 */
 __GURU__ int
 op_eq(guru_vm *vm)
@@ -955,6 +873,7 @@ op_eq(guru_vm *vm)
     U32 ra = GETARG_A(code);
     GT  tt = GT_BOOL(guru_cmp(&regs[ra], &regs[ra+1])==0);
 
+    regs[ra+1].gt = GT_EMPTY;
     return _RA_T(tt, i=0);
 }
 
@@ -990,9 +909,7 @@ do {													\
   R(A) := R(A)<R(A+1)  (Syms[B]=:<,C=1)
 
   @param  vm    A pointer of VM.
-  @param  code  bytecode
-  @param  regs  pointer to regfile
-  @retval 0  No error.
+  @retval 0  	No error.
 */
 __GURU__ int
 op_lt(guru_vm *vm)
@@ -1003,6 +920,7 @@ op_lt(guru_vm *vm)
 
 	ncmp(&regs[ra], <, &regs[ra+1]);
 
+    regs[ra+1].gt = GT_EMPTY;
     return 0;
 }
 
@@ -1013,9 +931,7 @@ op_lt(guru_vm *vm)
   R(A) := R(A)<=R(A+1)  (Syms[B]=:<=,C=1)
 
   @param  vm    A pointer of VM.
-  @param  code  bytecode
-  @param  regs  pointer to regfile
-  @retval 0  No error.
+  @retval 0  	No error.
 */
 __GURU__ U32
 op_le(guru_vm *vm)
@@ -1026,6 +942,7 @@ op_le(guru_vm *vm)
 
     ncmp(&regs[ra], <=, &regs[ra+1]);
 
+    regs[ra+1].gt = GT_EMPTY;
     return 0;
 }
 
@@ -1036,9 +953,7 @@ op_le(guru_vm *vm)
   R(A) := R(A)>=R(A+1) (Syms[B]=:>=,C=1)
 
   @param  vm    A pointer of VM.
-  @param  code  bytecode
-  @param  regs  pointer to regfile
-  @retval 0  No error.
+  @retval 0  	No error.
 */
 __GURU__ int
 op_gt(guru_vm *vm)
@@ -1049,6 +964,7 @@ op_gt(guru_vm *vm)
 
     ncmp(&regs[ra], >, &regs[ra+1]);
 
+    regs[ra+1].gt = GT_EMPTY;
     return 0;
 }
 
@@ -1059,9 +975,7 @@ op_gt(guru_vm *vm)
   R(A) := R(A)>=R(A+1) (Syms[B]=:>=,C=1)
 
   @param  vm    A pointer of VM.
-  @param  code  bytecode
-  @param  regs  pointer to regfile
-  @retval 0  No error.
+  @retval 0  	No error.
 */
 __GURU__ int
 op_ge(guru_vm *vm)
@@ -1073,6 +987,7 @@ op_ge(guru_vm *vm)
 
     ncmp(&regs[ra], >=, &regs[ra+1]);
 
+    regs[ra+1].gt = GT_EMPTY;
     return 0;
 }
 
@@ -1083,9 +998,7 @@ op_ge(guru_vm *vm)
   R(A) := str_dup(Lit(Bx))
 
   @param  vm    A pointer of VM.
-  @param  code  bytecode
-  @param  regs  pointer to regfile
-  @retval 0  No error.
+  @retval 0  	No error.
 */
 __GURU__ int
 op_string(guru_vm *vm)
@@ -1114,9 +1027,7 @@ op_string(guru_vm *vm)
   str_cat(R(A),R(B))
 
   @param  vm    A pointer of VM.
-  @param  code  bytecode
-  @param  regs  pointer to regfile
-  @retval 0  No error.
+  @retval 0  	No error.
 */
 __GURU__ int
 op_strcat(guru_vm *vm)
@@ -1154,9 +1065,7 @@ op_strcat(guru_vm *vm)
   R(A) := ary_new(R(B),R(B+1)..R(B+C))
 
   @param  vm    A pointer of VM.
-  @param  code  bytecode
-  @param  regs  pointer to regfile
-  @retval 0  No error.
+  @retval 0  	No error.
 */
 __GURU__ int
 op_array(guru_vm *vm)
@@ -1190,9 +1099,7 @@ op_array(guru_vm *vm)
   R(A) := hash_new(R(B),R(B+1)..R(B+C))
 
   @param  vm    A pointer of VM.
-  @param  code  bytecode
-  @param  regs  pointer to regfile
-  @retval 0  No error.
+  @retval 0  	No error.
 */
 __GURU__ int
 op_hash(guru_vm *vm)
@@ -1228,9 +1135,7 @@ op_hash(guru_vm *vm)
   R(A) := range_new(R(B),R(B+1),C)
 
   @param  vm    A pointer of VM.
-  @param  code  bytecode
-  @param  regs  pointer to regfile
-  @retval 0  No error.
+  @retval 0  	No error.
 */
 __GURU__ int
 op_range(guru_vm *vm)
@@ -1262,9 +1167,7 @@ op_range(guru_vm *vm)
   R(A) := lambda(SEQ[Bz],Cz)
 
   @param  vm    A pointer of VM.
-  @param  code  bytecode
-  @param  regs  pointer to regfile
-  @retval 0  No error.
+  @retval 0  	No error.
 */
 __GURU__ int
 op_lambda(guru_vm *vm)
@@ -1296,9 +1199,7 @@ op_lambda(guru_vm *vm)
   R(A+1): super class
 
   @param  vm    A pointer of VM.
-  @param  code  bytecode
-  @param  regs  pointer to regfile
-  @retval 0  No error.
+  @retval 0  	No error.
 */
 __GURU__ int
 op_class(guru_vm *vm)
@@ -1323,9 +1224,7 @@ op_class(guru_vm *vm)
   R(A) := blockexec(R(A),SEQ[Bx])
 
   @param  vm    A pointer of VM.
-  @param  code  bytecode
-  @param  regs  pointer to regfile
-  @retval 0  No error.
+  @retval 0  	No error.
 */
 __GURU__ int
 op_exec(guru_vm *vm)
@@ -1355,9 +1254,7 @@ op_exec(guru_vm *vm)
   R(A).newmethod(Syms(B),R(A+1))
 
   @param  vm    A pointer of VM.
-  @param  code  bytecode
-  @param  regs  pointer to regfile
-  @retval 0  No error.
+  @retval 0  	No error.
 */
 __GURU__ int
 op_method(guru_vm *vm)
@@ -1367,16 +1264,13 @@ op_method(guru_vm *vm)
     U32 ra = GETARG_A(code);
     U32 rb = GETARG_B(code);
 
-    if (regs[ra].gt != GT_CLASS) {
-    	PRINTF("?op_method");
-    	return 0;
-    }
+    assert(regs[ra].gt == GT_CLASS);		// enforce class checking
 
     guru_class 	*cls  = regs[ra].cls;
     GS			sid   = name2id(VM_SYM(vm, rb));
     guru_proc 	*prc0 = proc_by_sid(&regs[ra], sid);
 
-    assert(prc0 == NULL);					// TODO: reject same name for now
+    assert(prc0 == NULL);					// reject same name for now
 
     guru_proc 	*prc1 = regs[ra+1].proc;
 
@@ -1401,9 +1295,7 @@ op_method(guru_vm *vm)
   R(A) := target_class
 
   @param  vm    A pointer of VM.
-  @param  code  bytecode
-  @param  regs  pointer to regfile
-  @retval 0  No error.
+  @retval 0  	No error.
 */
 __GURU__ int
 op_tclass(guru_vm *vm)
@@ -1423,8 +1315,6 @@ op_tclass(guru_vm *vm)
   stop VM without release memory (OP_ABORT)
 
   @param  vm    A pointer of VM.
-  @param  code  bytecode
-  @param  regs  pointer to regfile
   @retval -1  No error and exit from vm.
 */
 __GURU__ int
@@ -1440,17 +1330,6 @@ op_abort(guru_vm *vm)
 	return -1;		// exit guru_op loop
 }
 
-__GURU__ void
-_prefetch(guru_vm *vm) {
-	vm->bytecode = VM_BYTECODE(vm);
-
-	vm->op  = vm->bytecode & 0x7f;
-	vm->opn = vm->bytecode >> 7;
-	vm->ar 	= (GAR *)&(vm)->opn;
-
-	vm->state->pc++;
-}
-
 //===========================================================================================
 // GURU engine
 //===========================================================================================
@@ -1458,11 +1337,6 @@ __GURU__ int
 guru_op(guru_vm *vm)
 {
 	if (threadIdx.x != 0) return 0;	// TODO: multi-thread [run|suspend] queues
-
-	//=======================================================================================
-	// GURU instruction unit
-	//=======================================================================================
-	_prefetch(vm);					// fetch & advance program counter, ready for next cycle
 
     //=======================================================================================
 	// GURU dispatcher unit
@@ -1490,6 +1364,7 @@ guru_op(guru_vm *vm)
     case OP_JMP:        ret = op_jmp       (vm); break;
     case OP_JMPIF:      ret = op_jmpif     (vm); break;
     case OP_JMPNOT:     ret = op_jmpnot    (vm); break;
+    // CALL
     case OP_SEND:       ret = op_send      (vm); break;
     case OP_SENDB:      ret = op_send      (vm); break;  // reuse
     case OP_CALL:       ret = op_call      (vm); break;
