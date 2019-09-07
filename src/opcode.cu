@@ -5,12 +5,8 @@
   <pre>
   Copyright (C) 2019 GreenII
 
-  This file is distributed under BSD 3-Clause License.
-
-  1. VM attribute accessor macros
-  2. internal state management functions
-  3. a list of opcode (microcode) executor, and
-  4. the core opcode dispatcher
+  1. a list of opcode (microcode) executor, and
+  2. the core opcode dispatcher
   </pre>
 */
 #include "alloc.h"
@@ -21,6 +17,7 @@
 #include "opcode.h"
 #include "object.h"
 #include "class.h"
+#include "state.h"
 
 #if GURU_USE_STRING
 #include "c_string.h"
@@ -39,177 +36,9 @@ __GURU__ U32 _mutex_op;
 // becareful with the following macros, because they release regs[ra] first
 // so, make sure value is kept before the release
 //
-#define _RA(v)      	(ref_dec(&regs[ra]), regs[ra]=(v), 0)
+#define _RA(v)      	(regs[ra]=(v), 0)
+#define _RA_T(t, e) 	(regs[ra].gt=(t), regs[ra].e, 0)
 #define _RA_X(r)    	(ref_dec(&regs[ra]), regs[ra]=*(r), ref_inc(r), 0)
-#define _RA_T(t, e) 	(ref_dec(&regs[ra]), regs[ra].gt=(t), regs[ra].e, 0)
-#define _REGMOVE(dst, src, n) {		\
-	GV *d = dst, *s = src;			\
-	for (U32 i=0; i<(n); i++, ref_inc(s), *d++=*s, s->gt=GT_EMPTY, s++); }
-
-#if GURU_HOST_IMAGE
-//================================================================
-/*! get sym[n] from symbol table in irep
-  @param  p	Pointer to IREP SYMS section.
-  @param  n	n th
-  @return	symbol name string
-*/
-__GURU__ U8P
-_vm_skey(guru_vm *vm, U32 n)
-{
-	guru_irep *irep = VM_IREP(vm);
-	U32P p = (U32P)U8PADD(irep, irep->sym  + n * sizeof(U32));
-
-	return U8PADD(irep, *p);
-}
-
-__GURU__ GS
-_vm_sid(guru_vm *vm, U32 n)
-{
-	const U8P name = _vm_skey(vm, n);
-	return name2id(name);
-}
-
-__GURU__ U32P
-_vm_ivar(guru_vm *vm, U32 n)
-{
-	guru_irep *irep = VM_IREP(vm);
-
-	return (U32P)U8PADD(irep, irep->pool + n*sizeof(U32));
-}
-
-__GURU__ guru_irep*
-_vm_irep_list(guru_vm *vm, U32 n)
-{
-	guru_irep *irep = VM_IREP(vm);
-	U32P p = (U32P)U8PADD(irep, irep->reps + n*sizeof(U32));
-
-	return (guru_irep *)U8PADD(irep, *p);
-}
-
-#else  // !GURU_HOST_IMAGE
-
-__GURU__ U8P
-_get_symbol(U8P p, U32 n)
-{
-    U32 max = _bin_to_u32(p);		p += sizeof(U32);
-    if (n >= max) return NULL;
-
-    for (; n>0; n--) {	// advance to n'th symbol
-        U16 s = _bin_to_u16(p);		p += sizeof(U16)+s+1;	// symbol len + '\0'
-    }
-    return (U8P)p + sizeof(U16);  	// skip size(2 bytes)
-}
-
-__GURU__ GS
-_get_symid(const U8P p, U32 n)
-{
-  	const U8P name = _get_symbol(p, n);
-    return name2id(name);
-}
-#endif
-
-//================================================================
-/*!@brief
-  Push current status to callinfo stack
-
-*/
-__GURU__ void
-_push_state(guru_vm *vm, U32 argc)
-{
-	guru_state *top = vm->state;
-    guru_state *st  = (guru_state *)guru_alloc(sizeof(guru_state));
-
-    st->reg   = top->reg;			// pass register file
-    st->irep  = top->irep;
-    st->pc 	  = top->pc;
-    st->argc  = argc;				// allocate local stack
-    st->klass = top->klass;
-    st->prev  = top;
-
-    vm->state = st;
-}
-
-//================================================================
-/*!@brief
-  Push current status to callinfo stack
-
-*/
-__GURU__ void
-_pop_state(guru_vm *vm, GV *regs)
-{
-    guru_state *st = vm->state;
-    
-    vm->state = st->prev;
-    
-    GV *p  = regs+1;			// clear stacked arguments
-    for (U32 i=0; i < st->argc; i++) {
-        ref_clr(p++);
-    }
-    guru_free(st);
-}
-
-__GURU__ void
-_vm_proc_call(guru_vm *vm, GV v[], U32 argc)
-{
-	_push_state(vm, argc);				// check _funcall which is not used
-
-	vm->state->pc   = 0;
-	vm->state->irep = v[0].proc->irep;	// switch into callee context
-	vm->state->reg  = v;				// shift register file pointer (for local stack)
-
-	v[0].proc->rc++;					// CC: 20181027 added to track proc usage
-}
-
-// Object.new
-__GURU__ void
-_vm_object_new(guru_vm *vm, GV v[], U32 argc)
-{
-    GV obj = guru_store_new(v[0].cls, 0);
-    //
-    // build a temp IREP for calling "initialize"
-    // TODO: make the image static
-    //
-    const U32 iseq = sizeof(guru_irep);				// iseq   offset
-    const U32 sym  = iseq + 2 * sizeof(U32);		// symbol offset
-    const U32 stbl = iseq + 4 * sizeof(U32);		// symbol string table
-    guru_irep irep[2] = {
-        {
-            0,                  		// size (u32)
-            0, 0, 0, 2, 0, 0,   		// nlv, rreg, rlen, ilen, plen, slen (u16)
-            iseq, sym, 0, 0   			// iseq (u32), sym (u32), pool, list
-        },
-        {
-        	(MKOPCODE(OP_SEND)|MKARG_A(0)|MKARG_B(0)|MKARG_C(argc)),	// ISEQ block
-        	(MKOPCODE(OP_ABORT)) & 0xffff, (MKOPCODE(OP_ABORT)) >> 16,
-        	stbl & 0xffff, stbl >> 16, 	0xaaaa, 0xaaaa,					// symbol table
-        	0x74696e69, 0x696c6169, 0x0a00657a, 0xaaaaaaaa				// "initialize"
-        }
-    };
-
-    ref_clr(&v[0]);
-    v[0] = obj;
-    ref_inc(&obj);
-
-    // context switch, which is not multi-thread ready
-    // TODO: create a vm context object with separate regfile, i.e. explore _push_state/_pop_state
-    guru_state  *st    = vm->state;
-
-    uint16_t    pc0    = st->pc;
-    GV  *reg0  = st->reg;
-    guru_irep 	*irep0 = st->irep;
-
-    st->pc 	 = 0;
-    st->irep = irep;
-    st->reg  = v;		   // new register file (shift for call stack)
-
-    while (guru_op(vm)==0); // run til ABORT, or exception
-
-    st->pc 	 = pc0;
-    st->reg  = reg0;
-    st->irep = irep0;
-
-    RETURN_VAL(obj);
-}
 
 //================================================================
 /*!@brief
@@ -264,8 +93,7 @@ op_loadl(guru_vm *vm, U32 code, GV *regs)
 {
 	U32 ra = GETARG_A(code);
     U32 rb = GETARG_Bx(code);
-
-    U32P p = _vm_ivar(vm, rb);
+    U32P p = VM_VAR(vm, rb);
     guru_obj obj;
 
     if (*p & 1) {
@@ -316,8 +144,7 @@ op_loadsym(guru_vm *vm, U32 code, GV *regs)
 {
     U32 ra  = GETARG_A(code);
     U32 rb  = GETARG_Bx(code);
-
-    GS sid = _vm_sid(vm, rb);
+    GS  sid = name2id(VM_SYM(vm, rb));
 
     return _RA_T(GT_SYM, i=sid);
 }
@@ -355,7 +182,7 @@ op_loadnil(guru_vm *vm, U32 code, GV *regs)
 __GURU__ int
 op_loadself(guru_vm *vm, U32 code, GV *regs)
 {
-    U32 ra   = GETARG_A(code);
+    U32 ra = GETARG_A(code);
 
     return _RA(regs[0]);                   	// [ra] <= class
 }
@@ -414,8 +241,8 @@ op_getglobal(guru_vm *vm, U32 code, GV *regs)
 {
     U32 ra  = GETARG_A(code);
     U32 rb  = GETARG_Bx(code);
+    GS sid  = name2id(VM_SYM(vm, rb));
 
-    GS sid = _vm_sid(vm, rb);
     guru_obj obj = global_object_get(sid);
 
     return _RA(obj);
@@ -437,8 +264,8 @@ op_setglobal(guru_vm *vm, U32 code, GV *regs)
 {
     U32 ra  = GETARG_A(code);
     U32 rb  = GETARG_Bx(code);
+    GS  sid = name2id(VM_SYM(vm, rb));
 
-    GS sid = _vm_sid(vm, rb);
     global_object_add(sid, &regs[ra]);
 
     return 0;
@@ -461,7 +288,7 @@ op_getiv(guru_vm *vm, U32 code, GV *regs)
     U32 ra = GETARG_A(code);
     U32 rb = GETARG_Bx(code);
 
-    U8P name = _vm_skey(vm, rb);
+    U8P name = VM_SYM(vm, rb);
     GS sid   = name2id(name+1);					// skip '@'
     GV ret   = guru_store_get(&regs[0], sid);
 
@@ -485,7 +312,7 @@ op_setiv(guru_vm *vm, U32 code, GV *regs)
     U32 ra = GETARG_A(code);
     U32 rb = GETARG_Bx(code);
 
-    U8P name = _vm_skey(vm, rb);
+    U8P name = VM_SYM(vm, rb);
     GS  sid  = name2id(name+1);			// skip '@'
 
     guru_store_set(&regs[0], sid, &regs[ra]);
@@ -509,8 +336,8 @@ op_getconst(guru_vm *vm, U32 code, GV *regs)
 {
     U32 ra  = GETARG_A(code);
     U32 rb  = GETARG_Bx(code);
+    GS  sid = name2id(VM_SYM(vm, rb));
 
-    GS sid = _vm_sid(vm, rb);
     guru_obj obj = const_object_get(sid);
 
     return _RA(obj);
@@ -531,8 +358,8 @@ __GURU__ int
 op_setconst(guru_vm *vm, U32 code, GV *regs) {
     U32 ra  = GETARG_A(code);
     U32 rb  = GETARG_Bx(code);
+    GS  sid = name2id(VM_SYM(vm, rb));
 
-    GS sid = _vm_sid(vm, rb);
     const_object_add(sid, &regs[ra]);
 
     return 0;
@@ -681,12 +508,12 @@ op_send(guru_vm *vm, U32 code, GV *regs)
     U32 rc = GETARG_C(code);  			// number of params
 
     GV  *rcv = &regs[ra];				// receiver object
-	GS  sid  = _vm_sid(vm, rb);			// function sid
+	GS  sid  = name2id(VM_SYM(vm, rb)); // function sid
 
 	guru_proc *m = (guru_proc *)proc_by_sid(rcv, sid);
     if (m==0) {
-    	U8P key = _vm_skey(vm, rb);
-    	guru_na(key);					// dump error, bail out
+    	U8P sym = VM_SYM(vm, rb);
+    	guru_na(sym);					// dump error, bail out
     	return 0;
     }
 
@@ -710,10 +537,10 @@ op_send(guru_vm *vm, U32 code, GV *regs)
 
     if (IS_CFUNC(m)) {
     	if (m->func==c_proc_call) {		// because VM is not passed to dispatcher, special handling needed for call() and new()
-    		_vm_proc_call(vm, regs+ra, rc);
+    		vm_proc_call(vm, regs+ra, rc);
         }
         else if (m->func==c_object_new) {
-        	_vm_object_new(vm, regs+ra, rc);
+        	vm_object_new(vm, regs+ra, rc);
         }
         else {
         	if (vm->step) printf("%s#%s\n", m->cname, m->name);
@@ -724,7 +551,7 @@ op_send(guru_vm *vm, U32 code, GV *regs)
         }
     }
     else {								// m->func is a Ruby function (aka IREP)
-    	_push_state(vm, rc);			// append callinfo list
+    	vm_state_push(vm, rc);			// append callinfo list
 
     	vm->state->irep = m->irep;		// call into target context
     	vm->state->pc 	= 0;			// call into target context
@@ -747,7 +574,7 @@ op_send(guru_vm *vm, U32 code, GV *regs)
 __GURU__ int
 op_call(guru_vm *vm, U32 code, GV *regs)
 {
-    _push_state(vm, 0);
+    vm_state_push(vm, 0);
 
     // jump to proc
     vm->state->pc 	= 0;
@@ -805,7 +632,7 @@ op_return(guru_vm *vm, U32 code, GV *regs)
     regs[0]     = ret;
     regs[ra].gt = GT_EMPTY;
 
-    _pop_state(vm, regs);
+    vm_state_pop(vm, regs);
 
     return 0;
 }
@@ -1199,9 +1026,9 @@ op_string(guru_vm *vm, U32 code, GV *regs)
 	U32 ra = GETARG_A(code);
     U32 rb = GETARG_Bx(code);
 
-    U32 * v   = _vm_ivar(vm, rb);
-    U8 * str  = (U8P)U8PADD(VM_IREP(vm), *v);
-    GV ret = guru_str_new(str);
+    U32 *v = VM_VAR(vm, rb);
+    U8  *str = (U8P)U8PADD(VM_IREP(vm), *v);
+    GV  ret  = guru_str_new(str);				// rc set to 1 already
 
     return _RA(ret);
 #else
@@ -1265,11 +1092,12 @@ op_array(guru_vm *vm, U32 code, GV *regs)
     U32 rb  = GETARG_B(code);
     U32 n   = GETARG_C(code);
 
-    GV  *pb = &regs[rb];				// source elements
     GV  ret = (GV)guru_array_new(n);	// ref_cnt is 1 already
-
     guru_array *h  = ret.array;
-    _REGMOVE(h->data, pb, n);
+
+    GV *s = &regs[rb];					// source elements
+	GV *d = h->data;					// target
+	for (U32 i=0; i<(n); i++, ref_inc(s), *d++=*s, s->gt=GT_EMPTY, s++);
     h->n = n;
 
     return _RA(ret);					// no need to ref_inc
@@ -1338,7 +1166,7 @@ op_range(guru_vm *vm, U32 code, GV *regs)
     ref_inc(pb+1);
     GV ret = guru_range_new(pb, pb+1, n);
 
-    return _RA_X(&ret);						// release and  reassign
+    return _RA(ret);						// release and  reassign
 
 #else
     guru_na("Range class");
@@ -1368,7 +1196,7 @@ op_lambda(guru_vm *vm, U32 code, GV *regs)
 
     guru_proc *prc = (guru_proc *)guru_alloc_proc((U8P)"(lambda)");
 
-    prc->irep = _vm_irep_list(vm, rb);
+    prc->irep = vm_irep_list(vm, rb);
     prc->flag &= ~GURU_CFUNC;           // Ruby IREP
 
     _RA_T(GT_PROC, proc=prc);
@@ -1397,7 +1225,7 @@ op_class(guru_vm *vm, U32 code, GV *regs)
     U32 rb = GETARG_B(code);
 
     guru_class *super = (regs[ra+1].gt==GT_CLASS) ? regs[ra+1].cls : guru_class_object;
-    const U8P  name   = _vm_skey(vm, rb);
+    const U8P  name   = VM_SYM(vm, rb);
     guru_class *cls   = guru_define_class(name, super);
 
     return _RA_T(GT_CLASS, cls=cls);
@@ -1422,9 +1250,9 @@ op_exec(guru_vm *vm, U32 code, GV *regs)
 
     GV rcv = regs[ra];									// receiver
 
-    _push_state(vm, 0);									// push call stack
+    vm_state_push(vm, 0);								// push call stack
 
-    vm->state->irep  = _vm_irep_list(vm, rb);			// fetch designated irep
+    vm->state->irep  = VM_REPS(vm, rb);					// fetch designated irep
     vm->state->pc 	 = 0;								// switch context to callee
     vm->state->reg 	 += ra;								// shift regfile (for local stack)
     vm->state->klass = class_by_obj(&rcv);
@@ -1456,7 +1284,7 @@ op_method(guru_vm *vm, U32 code, GV *regs)
 
     guru_class 	*cls  = regs[ra].cls;
     guru_proc 	*prc  = regs[ra+1].proc;
-    GS			sid   = _vm_sid(vm, rb);
+    GS			sid   = name2id(VM_SYM(vm, rb));
 
     MUTEX_LOCK(_mutex_op);
 
