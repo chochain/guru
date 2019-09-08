@@ -14,31 +14,11 @@
 #include <stdio.h>
 #include <assert.h>
 #include "alloc.h"
+#include "alloc32.h"
 
 // TLSF: Two-Level Segregated Fit allocator with O(1) time complexity.
 // Layer 1st(f), 2nd(s) model, smallest block 16-bytes, 16-byte alignment
 // TODO: multiple-pool, thread-safe
-
-#ifndef L1_BITS
-
-#define L1_BITS     24  // 00000000 00000000 XXXXXXXX 00000000  // 16+8 levels
-#define L2_BITS     4   // 00000000 00000000 00000000 XXXX0000  // 16 entires
-#define MN_BITS		4	// 00000000 00000000 00000000 0000XXXX  // 16-bytes smallest blocksize
-#define L2_MASK 	((1<<L2_BITS)-1)
-#define MIN_BLOCK	(1 << MN_BITS)
-#define BASE_BITS   (L2_BITS+MN_BITS)
-
-#define L1(i) 		((i) >> L2_BITS)
-#define L2(i) 		((i) & L2_MASK)
-#define MSB_BIT 	31                                      // 32-bit MMU
-#define FL_SLOTS	(L1_BITS * (1 << L2_BITS))				// slots for free_list pointers (24 * 16 entries)
-
-#define NEXT(p) 	U8PADD(p, p->size)
-#define PREV(p) 	U8PSUB(p, p->poff)						// poff is a positive number
-#define CHECK_MINSZ(sz)	assert((sz)>=MIN_BLOCK)
-
-#endif
-
 // semaphore
 __GURU__ volatile U32 	_mutex_mem;
 
@@ -51,17 +31,6 @@ __GURU__ U32 			_l1_map;								// use lower 24 bits
 __GURU__ U16 			_l2_map[L1_BITS];						// use all 16 bits
 __GURU__ free_block		*_free_list[FL_SLOTS];
 
-#define L1_MAP(i)       (_l1_map)
-#define L2_MAP(i)       (_l2_map[L1(i)])
-#define TIC(n)      	(1 << n)
-#define INDEX(l1, l2)   ((l1<<L2_BITS) | l2)
-
-#define SET_L1(i)		(L1_MAP(i) |= TIC(L1(i)))
-#define CLR_L1(i)	    (L1_MAP(i) &= ~TIC(L1(i)))
-#define SET_L2(i)	    (L2_MAP(i) |= TIC(L2(i)))
-#define CLR_L2(i)		(L2_MAP(i) &= ~TIC(L2(i)))
-#define SET_MAP(i)      { SET_L1(i); SET_L2(i); }
-#define CLEAR_MAP(i)	{ CLR_L2(i); if (L2_MAP(i)==0) CLR_L1(i); }
 //================================================================
 // most significant bit that is set
 __GURU__ __INLINE__ U32
@@ -110,19 +79,20 @@ __idx(U32 sz, U32P l1, U32P l2)
 __GURU__ void
 __release(free_block *blk)
 {
-    if (blk->prev==NULL) {			// head of linked list?
-    	U32 l1, l2;
-        U32 index = __idx(blk->size, &l1, &l2);
+	CHECK_NULL(blk->free);					// ensure block is free
 
-        if ((_free_list[index]=blk->next)==NULL) {
-            CLEAR_MAP(index);			// mark as unallocated
-        }
+    if (blk->prev) {
+        blk->prev->next = blk->next;		// down link
     }
-    else {								// down link
-        blk->prev->next = blk->next;
-    }
-    if (blk->next != NULL) {			// up link
+    if (blk->next && !blk->tail) {			// up link
         blk->next->prev = blk->prev;
+    }
+    // clear the map (i.e. make available)
+    U32 l1, l2;
+    U32 index = __idx(blk->bsz, &l1, &l2);
+
+    if ((_free_list[index]=blk->next)==NULL) {
+    	CLEAR_MAP(index);					// mark as unallocated
     }
 }
 
@@ -140,7 +110,7 @@ __merge(free_block *p0, free_block *p1)
 
     // merge ptr1 and ptr2
     p0->tail  = p1->tail;
-    p0->size += p1->size;
+    p0->bsz  += p1->bsz;		// include the block header
 
     // update block info
     if (!p0->tail) {
@@ -191,7 +161,7 @@ __GURU__ void
 _mark_free(free_block *blk)
 {
 	U32 l1, l2;
-    U32 index = __idx(blk->size, &l1, &l2);
+    U32 index = __idx(blk->bsz, &l1, &l2);
 
     U32 l1x= L1(index);
     U32 l2x= L2(index);
@@ -285,26 +255,25 @@ _find_free_block(U32 sz)
   @param  size	storage size
 */
 __GURU__ void
-_split_free_block(free_block *blk, U32 sz)
+_split_free_block(free_block *blk, U32 bsz)
 {
-	U32 blk_sz = sz + sizeof(used_block);						// add header overhead
-    if (blk->size < (blk_sz + MIN_BLOCK)) return; 				// too small to split 											// too small to split
+    if ((bsz + MIN_BLOCK) > blk->bsz) return;	 				// too small to split 											// too small to split
 
     // split block, free
-    free_block *free = (free_block *)U8PADD(blk, blk_sz);		// future next block
+    free_block *free = (free_block *)U8PADD(blk, bsz);			// future next block (i.e. alot bsz bytes)
     free_block *next = (free_block *)NEXT(blk);					// current next
 
-    free->size   = blk->size - blk_sz;							// carve out the block
-    free->poff   = U8POFF(free, blk);							// positive offset to previous block
-    free->tail   = blk->tail;
-    free->free   = 1;
+    free->bsz  = blk->bsz - bsz;								// carve out the acquired block
+    free->poff = U8POFF(free, blk);								// positive offset to previous block
+    free->tail = blk->tail;
+    free->free = 1;
 
     if (!free->tail) {
         next->poff = U8POFF(next, free);						// offset (positive)
     }
     _mark_free(free);											// add to free_list
 
-    blk->size = sz;												// reduce size
+    blk->bsz  = bsz;											// reduce size
     blk->tail = 0;
 }
 
@@ -327,7 +296,7 @@ _init_mmu(void *mem, U32 size)
     free_block *blk  = (free_block *)_memory_pool;
     blk->tail = 1;
     blk->free = 1;
-    blk->size = _memory_pool_size;
+    blk->bsz  = _memory_pool_size;
     blk->prev = 0;
 
     _mark_free(blk);
@@ -342,25 +311,25 @@ _init_mmu(void *mem, U32 size)
 __GURU__ void*
 guru_alloc(U32 sz)
 {
-    U32 blk_sz = sz + sizeof(used_block);
+    U32 bsz = sz + sizeof(used_block);			// logical => physical size
 
-    CHECK_ALIGN(sz);
-    CHECK_MINSZ(blk_sz);			// check minimum alloc size
+    CHECK_ALIGN(bsz);							// assume caller already align the size
+    CHECK_MINSZ(bsz);							// check minimum allocation size
 
 	MUTEX_LOCK(_mutex_mem);
 
-	U32 index 		= _find_free_block(blk_sz);
+	U32 index 		= _find_free_block(bsz);
 	free_block *blk = _mark_used(index);
 
+	_split_free_block(blk, bsz);				// allocate the block, free up the rest
+
 #if GURU_DEBUG
-    U32P p = (U32P)BLOCKDATA(blk);
+    U32P p = (U32P)BLOCKDATA(blk);				// point to raw space allocated
     for (U32 i=0; i < sz>>2; i++) *p++ = 0xaaaaaaaa;
 #endif
-	_split_free_block(blk, sz);
-
 	MUTEX_FREE(_mutex_mem);
 
-	return BLOCKDATA(blk);
+	return BLOCKDATA(blk);						// pointer to raw space
 }
 
 //================================================================
@@ -373,20 +342,21 @@ guru_alloc(U32 sz)
 __GURU__ void*
 guru_realloc(void *ptr, U32 sz)
 {
+	U32 bsz = sz + sizeof(used_block);						// include the header
+
 	CHECK_NULL(ptr);
-	CHECK_ALIGN(sz);
+	CHECK_ALIGN(bsz);
 
     used_block *blk = (used_block *)BLOCKHEAD(ptr);
-    assert(!blk->free);										// tyr to be careful
+    CHECK_NULL(!blk->free);									// make sure it is used
 
-    if (sz > blk->size) {
+    if (bsz > blk->bsz) {
     	_merge_with_next((free_block *)blk);				// try to get the block bigger
     }
-    if (sz == blk->size) return ptr;						// same size, good fit
-    if (sz < blk->size) {									// a little to big, split if we can
-    	U32 blk_sz = sz + sizeof(used_block);
-        _split_free_block((free_block *)blk, blk_sz);
-        return ptr;											// return the same memory pointer
+    if (bsz == blk->bsz) return ptr;						// same size, good fit
+    if (bsz < blk->bsz) {									// a little to big, split if we can
+        _split_free_block((free_block *)blk, bsz);			// keep only the first bsz bytes
+        return ptr;
     }
 
     // not big enough block found, new alloc and deep copy
@@ -394,7 +364,7 @@ guru_realloc(void *ptr, U32 sz)
 
     U8 *s = (U8 *)ptr;
     U8 *d = (U8 *)nptr;
-    for (U32 i=0; i<blk->size; i++) *d++ = *s++;			// deep copy
+    for (U32 i=0; i<sz; i++) *d++ = *s++;					// deep copy
 
     guru_free(ptr);											// reclaim block
 
@@ -425,12 +395,12 @@ guru_free(void *ptr)
   @param  vm	pointer to VM.
 */
 __GURU__ void
-guru_memory_clear()
+guru_memory_clr()
 {
     used_block *p = (used_block *)_memory_pool;
     while (1) {
     	if (!p->free) {
-    		guru_free(BLOCKDATA(p));
+    		guru_free(BLOCKDATA(p));		// pointer to raw space
     	}
     	if (p->tail) break;
     	p = (used_block *)NEXT(p);
@@ -461,15 +431,15 @@ _alloc_stat(U32 v[])
 			nfrag++;
 			flag = p->free;
 		}
-		total += p->size;
+		total += p->bsz;
 		nblk  += 1;
 		if (p->free) {
 			nfree += 1;
-			free  += p->size;
+			free  += p->bsz;
 		}
 		else {
 			nused += 1;
-			used  += p->size;
+			used  += p->bsz;
 		}
 		if (p->tail) break;
 		p = (used_block *)NEXT(p);
@@ -494,7 +464,7 @@ guru_memory_init(void *ptr, U32 sz)
 }
 
 __HOST__ void*
-guru_malloc(U32 sz, U32 type)
+cuda_malloc(U32 sz, U32 type)
 {
 	void *mem;
 
@@ -508,7 +478,7 @@ guru_malloc(U32 sz, U32 type)
 }
 
 __HOST__ void
-_get_malloc_stat(U32 stat[])
+_get_alloc_stat(U32 stat[])
 {
 	U32P v;
 	cudaMallocManaged(&v, 8*sizeof(int));				// allocate host memory
@@ -528,7 +498,7 @@ guru_dump_alloc_stat(U32 trace)
 	if (trace==0) return;
 
 	U32 s[8];
-	_get_malloc_stat(s);
+	_get_alloc_stat(s);
 
 	printf("\tmem=%d(0x%x): free=%d(0x%x), used=%d(0x%x), nblk=%d, nfrag=%d, %d%% allocated\n",
 			s[0], s[0], s[1], s[2], s[3], s[4], s[5], s[6], (int)(100*(s[4]+1)/s[0]));

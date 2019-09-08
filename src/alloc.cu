@@ -300,7 +300,7 @@ _split_free_block(free_block *target, unsigned int size, int merge)
     if (free->tail != FLAG_TAIL_BLOCK) {
         next->poff = U8POFF(next, free);
     }
-    if (free != NULL) {
+    if (free) {
     	if (merge) _merge_with_next(free);
     	_mark_free(free);
     }
