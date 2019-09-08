@@ -18,24 +18,20 @@ extern "C" {
 __GURU__ S32  guru_cmp(const GV *v1, const GV *v2);
 
 __GURU__ void ref_clr(GV *v);
-__GURU__ GV *ref_dec(GV *v);
-__GURU__ GV *ref_inc(GV *v);
+__GURU__ GV   *ref_dec(GV *v);
+__GURU__ GV   *ref_inc(GV *v);
 
-// for C call
-#define RETURN_NIL()	{ ref_dec(v); v->gt=GT_NIL;   return; }
-#define RETURN_FALSE()	{ ref_dec(v); v->gt=GT_FALSE; return; }
-#define RETURN_TRUE()	{ ref_dec(v); v->gt=GT_TRUE;  return; }
-#define RETURN_VAL(n)	{ ref_dec(v); *v=(n); 		  return; }
+// macro for C call returns
+// Note: becareful, the following macros assume a "v" pointer to top of stack
+//
+#define RETURN_VAL(n)	{ *v=(n); 		  return; }
+#define RETURN_NIL()	{ v->gt=GT_NIL;   return; }
+#define RETURN_FALSE()	{ v->gt=GT_FALSE; return; }
+#define RETURN_TRUE()	{ v->gt=GT_TRUE;  return; }
      
-#define RETURN_BOOL(n)	{ ref_dec(v); v->gt=(n)?GT_TRUE:GT_FALSE;   return; }
-#define RETURN_INT(n)	{ ref_dec(v); v->gt=GT_INT;   v->i=(GI)(n); return; }
-#define RETURN_FLOAT(n)	{ ref_dec(v); v->gt=GT_FLOAT; v->f=(GF)(n); return; }
-
-// macro to fetch from stack objects
-#define ARG_GT(n)		(v[(n)].gt)
-#define ARG_INT(n)		(v[(n)].i)
-#define ARG_FLOAT(n)	(v[(n)].f)
-#define ARG_STR(n)		(v[(n)].string->data)
+#define RETURN_BOOL(n)	{ v->gt=(n)?GT_TRUE:GT_FALSE;   return; }
+#define RETURN_INT(n)	{ v->gt=GT_INT;   v->i=(GI)(n); return; }
+#define RETURN_FLOAT(n)	{ v->gt=GT_FLOAT; v->f=(GF)(n); return; }
 
 // macro to create new built-in objects
 #define GURU_NIL_NEW()	    ((guru_obj) {.gt = GT_NIL})

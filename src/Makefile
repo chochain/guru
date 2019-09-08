@@ -11,7 +11,7 @@ LIBDIRS=-L/usr/local/cuda/lib64
 INCDIRS=-I/usr/local/cuda/include -I./src
 
 SRC =   main.c 
-GURU= 	alloc.cu guru.cu static.cu value.cu global.cu \
+GURU= 	alloc32.cu guru.cu static.cu value.cu global.cu \
 		store.cu symbol.cu class.cu\
         puts32.cu load.cu \
 		vm.cu opcode.cu state.cu object.cu \
@@ -43,6 +43,8 @@ main.o: main.c gurux.h
 cuda.o: cuda.cu
 
 alloc.o: alloc.cu       vm_config.h guru.h alloc.h
+
+alloc32.o: alloc32.cu   vm_config.h guru.h alloc.h alloc32.h
 
 guru.o: guru.cu         vm_config.h guru.h gurux.h alloc.h vmx.h
 

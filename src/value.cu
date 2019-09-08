@@ -22,13 +22,13 @@
 #include "c_hash.h"
 #endif
 
-extern "C" __GURU__ void guru_store_delete(GV *v);		// store.cu
+extern "C" __GURU__ void guru_store_del(GV *v);		// store.cu
 
 //================================================================
 /*! compare
  */
 __GURU__ S32
-_string_compare(const GV *v1, const GV *v2)
+_string_cmp(const GV *v1, const GV *v2)
 {
 	if (v1->str->len != v2->str->len) return -1;
 
@@ -81,15 +81,15 @@ guru_cmp(const GV *v1, const GV *v2)
     case GT_CLASS:
     case GT_OBJ:
     case GT_PROC:   return -1 + (v1->self == v2->self) + (v1->self > v2->self)*2;
-    case GT_STR: 	return _string_compare(v1, v2);
+    case GT_STR: 	return _string_cmp(v1, v2);
 
 #if GURU_USE_FLOAT
     case GT_FLOAT:  return -1 + (v1->f==v2->f) + (v1->f > v2->f)*2;	// caution: NaN == NaN is false
 #endif
 #if GURU_USE_ARRAY
-    case GT_ARRAY:  return guru_array_compare(v1, v2);
-    case GT_RANGE:  return guru_range_compare(v1, v2);
-    case GT_HASH:   return guru_hash_compare(v1, v2);
+    case GT_ARRAY:  return guru_array_cmp(v1, v2);
+    case GT_RANGE:  return guru_range_cmp(v1, v2);
+    case GT_HASH:   return guru_hash_cmp(v1, v2);
 #endif
     default:
         return 1;
@@ -260,15 +260,15 @@ ref_dec(GV *v)
     if (--v->rc > 0) 			 return v;	// still used, keep going
 
     switch(v->gt) {
-    case GT_OBJ:		guru_store_delete(v);	break;
-    case GT_PROC:	    guru_free(v->proc);		break;
+    case GT_OBJ:		guru_store_del(v);	break;
+    case GT_PROC:	    guru_free(v->proc);	break;
 #if GURU_USE_STRING
-    case GT_STR:		guru_str_delete(v);		break;
+    case GT_STR:		guru_str_del(v);	break;
 #endif
 #if GURU_USE_ARRAY
-    case GT_ARRAY:	    guru_array_delete(v);	break;
-    case GT_RANGE:	    guru_range_delete(v);	break;
-    case GT_HASH:	    guru_hash_delete(v);	break;
+    case GT_ARRAY:	    guru_array_del(v);	break;
+    case GT_RANGE:	    guru_range_del(v);	break;
+    case GT_HASH:	    guru_hash_del(v);	break;
 #endif
     default: break;
     }
