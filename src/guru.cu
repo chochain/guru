@@ -36,7 +36,7 @@ _fetch_bytecode(const U8P rite_fname)
   size_t sz = ftell(fp);
   fseek(fp, 0, SEEK_SET);
 
-  U8P req = (U8P)guru_malloc(sz, 1);			// allocate bytecode storage
+  U8P req = (U8P)cuda_malloc(sz, 1);			// allocate bytecode storage
 
   if (req) {
 	  fread(req, sizeof(char), sz, fp);
@@ -49,12 +49,12 @@ _fetch_bytecode(const U8P rite_fname)
 __HOST__ int
 guru_setup(int trace)
 {
-	U8P mem = _guru_mem = (U8P)guru_malloc(BLOCK_MEMORY_SIZE, 1);
+	U8P mem = _guru_mem = (U8P)cuda_malloc(BLOCK_MEMORY_SIZE, 1);
 	if (!_guru_mem) {
 		fprintf(stderr, "ERROR: failed to allocate device main memory block!\n");
 		return -1;
 	}
-	U8P out = _guru_out = (U8P)guru_malloc(MAX_BUFFER_SIZE, 1);	// allocate output buffer
+	U8P out = _guru_out = (U8P)cuda_malloc(MAX_BUFFER_SIZE, 1);	// allocate output buffer
 	if (!_guru_out) {
 		fprintf(stderr, "ERROR: output buffer allocation error!\n");
 		return -2;

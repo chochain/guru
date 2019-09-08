@@ -165,7 +165,7 @@ _vm_join(void)
 __HOST__ int
 _vm_pool_init(void)
 {
-	guru_vm *vm = _vm_pool = (guru_vm *)guru_malloc(sizeof(guru_vm) * MIN_VM_COUNT, 1);
+	guru_vm *vm = _vm_pool = (guru_vm *)cuda_malloc(sizeof(guru_vm) * MIN_VM_COUNT, 1);
 	if (!vm) return 0;
 
 	for (U32 i=1; i<=MIN_VM_COUNT; i++, vm++) {

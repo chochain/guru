@@ -102,7 +102,7 @@ _build_image(guru_irep *src, U8 * img)
     U32 stbl_sz = sizeof(U8P) * sym_sz * 2;										// string table with padded space
     U32 img_sz  = irep_sz + reps_sz + pool_sz + sym_sz + iseq_sz + stbl_sz;		// should be 8-byte aligned
 
-    guru_irep *tgt = (guru_irep *)guru_malloc(img_sz, 1);						// target CUDA IREP image (managed mem)
+    guru_irep *tgt = (guru_irep *)cuda_malloc(img_sz, 1);						// target CUDA IREP image (managed mem)
     U8 * base = (U8P)tgt;								// keep target image pointer
     if (!tgt) return NULL;
 
