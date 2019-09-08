@@ -58,7 +58,7 @@ guru_range_new(GV *first, GV *last, int exclude_end)
   @param  target 	pointer to range object.
 */
 __GURU__ void
-guru_range_delete(GV *v)
+guru_range_del(GV *v)
 {
     ref_clr(&v->range->first);
     ref_clr(&v->range->last);
@@ -70,7 +70,7 @@ guru_range_delete(GV *v)
 /*! compare
  */
 __GURU__ int
-guru_range_compare(const GV *v1, const GV *v2)
+guru_range_cmp(const GV *v1, const GV *v2)
 {
     int res;
 
@@ -87,7 +87,7 @@ guru_range_compare(const GV *v1, const GV *v2)
 /*! (method) ===
  */
 __GURU__ void
-c_range_equal3(GV v[], U32 argc)
+rng_eq3(GV v[], U32 argc)
 {
     if (v[0].gt == GT_CLASS) {
         GV ret = guru_kind_of(v, argc);
@@ -109,7 +109,7 @@ c_range_equal3(GV v[], U32 argc)
 /*! (method) first
  */
 __GURU__ void
-c_range_first(GV v[], U32 argc)
+rng_first(GV v[], U32 argc)
 {
     RETURN_VAL(v->range->first);
 }
@@ -118,7 +118,7 @@ c_range_first(GV v[], U32 argc)
 /*! (method) last
  */
 __GURU__ void
-c_range_last(GV v[], U32 argc)
+rng_last(GV v[], U32 argc)
 {
     RETURN_VAL(v->range->last);
 }
@@ -127,7 +127,7 @@ c_range_last(GV v[], U32 argc)
 /*! (method) exclude_end?
  */
 __GURU__ void
-c_range_exclude_end(GV v[], U32 argc)
+rng_exclude_end(GV v[], U32 argc)
 {
     RETURN_BOOL(IS_EXCLUDE_END(v[0].range));
 }
@@ -137,7 +137,7 @@ c_range_exclude_end(GV v[], U32 argc)
 /*! (method) inspect
  */
 __GURU__ void
-c_range_inspect(GV v[], U32 argc)
+rng_inspect(GV v[], U32 argc)
 {
     GV ret = guru_str_new(NULL);
     if (!ret.str) {
@@ -164,13 +164,13 @@ guru_init_class_range()
 {
     guru_class *c = guru_class_range = guru_add_class("Range", guru_class_object);
 
-    guru_add_proc(c, "===",          c_range_equal3);
-    guru_add_proc(c, "first",        c_range_first);
-    guru_add_proc(c, "last",         c_range_last);
-    guru_add_proc(c, "exclude_end?", c_range_exclude_end);
+    guru_add_proc(c, "===",          rng_eq3);
+    guru_add_proc(c, "first",        rng_first);
+    guru_add_proc(c, "last",         rng_last);
+    guru_add_proc(c, "exclude_end?", rng_exclude_end);
 
 #if GURU_USE_STRING
-    guru_add_proc(c, "inspect",      c_range_inspect);
-    guru_add_proc(c, "to_s",         c_range_inspect);
+    guru_add_proc(c, "inspect",      rng_inspect);
+    guru_add_proc(c, "to_s",         rng_inspect);
 #endif
 }

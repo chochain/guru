@@ -33,8 +33,8 @@ typedef struct RRange {
 } guru_range;
 
 __GURU__ GV 		guru_range_new(GV *first, GV *last, int exclude_end);
-__GURU__ void       guru_range_delete(GV *v);
-__GURU__ int        guru_range_compare(const GV *v1, const GV *v2);
+__GURU__ void       guru_range_del(GV *v);
+__GURU__ int        guru_range_cmp(const GV *v1, const GV *v2);
 
 __GURU__ void       guru_init_class_range();
 

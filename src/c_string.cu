@@ -232,7 +232,7 @@ guru_str_new(const U8 *src)			// cannot use U8P, need lots of casting
   @param  str	pointer to target value
 */
 __GURU__ void
-guru_str_delete(GV *v)
+guru_str_del(GV *v)
 {
     guru_free(v->str->data);
     guru_free(v->str);
@@ -313,7 +313,7 @@ guru_str_add(const GV *v0, const GV *v1)
 /*! (method) +
  */
 __GURU__ void
-c_str_add(GV v[], U32 argc)
+str_add(GV v[], U32 argc)
 {
     if (v[1].gt != GT_STR) {
         guru_na("str + other type");
@@ -327,7 +327,7 @@ c_str_add(GV v[], U32 argc)
 /*! (method) *
  */
 __GURU__ void
-c_str_mul(GV v[], U32 argc)
+str_mul(GV v[], U32 argc)
 {
 	U32 sz = _len(v);
 
@@ -351,7 +351,7 @@ c_str_mul(GV v[], U32 argc)
 /*! (method) size, length
  */
 __GURU__ void
-c_str_len(GV v[], U32 argc)
+str_len(GV v[], U32 argc)
 {
     GI len = _len(v);
 
@@ -362,7 +362,7 @@ c_str_len(GV v[], U32 argc)
 /*! (method) to_i
  */
 __GURU__ void
-c_str_to_i(GV v[], U32 argc)
+str_to_i(GV v[], U32 argc)
 {
     U32 base = 10;
     if (argc) {
@@ -376,7 +376,7 @@ c_str_to_i(GV v[], U32 argc)
 
 //================================================================
 __GURU__ void
-c_str_to_s(GV v[], U32 argc)
+str_to_s(GV v[], U32 argc)
 {
 	// do nothing
 }
@@ -386,7 +386,7 @@ c_str_to_s(GV v[], U32 argc)
 /*! (method) to_f
  */
 __GURU__ void
-c_str_to_f(GV v[], U32 argc)
+str_to_f(GV v[], U32 argc)
 {
     GF d = ATOF(_data(v));
 
@@ -398,7 +398,7 @@ c_str_to_f(GV v[], U32 argc)
 /*! (method) <<
  */
 __GURU__ void
-c_str_append(GV v[], U32 argc)
+str_append(GV v[], U32 argc)
 {
     guru_str_append(v, v+1);
 }
@@ -407,7 +407,7 @@ c_str_append(GV v[], U32 argc)
 /*! (method) []
  */
 __GURU__ void
-c_str_slice(GV v[], U32 argc)
+str_slice(GV v[], U32 argc)
 {
     GV *v1 = &v[1];
     GV *v2 = &v[2];
@@ -461,7 +461,7 @@ c_str_slice(GV v[], U32 argc)
 /*! (method) []=
  */
 __GURU__ void
-c_str_insert(GV v[], U32 argc)
+str_insert(GV v[], U32 argc)
 {
     S32 nth;
     S32 len;
@@ -483,7 +483,7 @@ c_str_insert(GV v[], U32 argc)
         val = &v[3];
     }
     else {
-        guru_na("case of c_str_insert");
+        guru_na("case of str_insert");
         return;
     }
 
@@ -503,15 +503,13 @@ c_str_insert(GV v[], U32 argc)
 
     v->str->len  = len1 + len2 - len;
     v->str->data = (char *)str;
-
-    ref_clr(v+1);
 }
 
 //================================================================
 /*! (method) chomp
  */
 __GURU__ void
-c_str_chomp(GV v[], U32 argc)
+str_chomp(GV v[], U32 argc)
 {
     GV ret = _dup(v);
     _chomp(&ret);
@@ -522,7 +520,7 @@ c_str_chomp(GV v[], U32 argc)
 /*! (method) chomp!
  */
 __GURU__ void
-c_str_chomp_self(GV v[], U32 argc)
+str_chomp_self(GV v[], U32 argc)
 {
     if (_chomp(v)==0) {
         RETURN_NIL();
@@ -533,7 +531,7 @@ c_str_chomp_self(GV v[], U32 argc)
 /*! (method) dup
  */
 __GURU__ void
-c_str_dup(GV v[], U32 argc)
+str_dup(GV v[], U32 argc)
 {
     RETURN_VAL(_dup(v));
 }
@@ -542,7 +540,7 @@ c_str_dup(GV v[], U32 argc)
 /*! (method) index
  */
 __GURU__ void
-c_str_index(GV v[], U32 argc)
+str_index(GV v[], U32 argc)
 {
     S32 index;
     S32 offset;
@@ -553,21 +551,16 @@ c_str_index(GV v[], U32 argc)
     else if (argc==2 && v[2].gt==GT_INT) {
         offset = v[2].i;
         if (offset < 0) offset += _len(v);
-        if (offset < 0) goto RST_NIL;
+        if (offset < 0) RETURN_NIL();
     }
     else {
-        goto RST_NIL;				// raise? ArgumentError
+        RETURN_NIL();					// raise? ArgumentError
     }
 
     index = _index(v, v+1, offset);
-    if (index < 0) goto RST_NIL;
+    if (index < 0) RETURN_NIL();
 
-    ref_clr(v+1);
     RETURN_INT(index);
-
-RST_NIL:
-	ref_clr(v+1);
-    RETURN_NIL();
 }
 
 //================================================================
@@ -576,7 +569,7 @@ RST_NIL:
 #define BUF_SIZE 80
 
 __GURU__ void
-c_str_inspect(GV v[], U32 argc)
+str_inspect(GV v[], U32 argc)
 {
 	const char    *hex = "0123456789ABCDEF";
     GV    ret  = guru_str_new("\"");
@@ -612,7 +605,7 @@ c_str_inspect(GV v[], U32 argc)
 /*! (method) ord
  */
 __GURU__ void
-c_str_ord(GV v[], U32 argc)
+str_ord(GV v[], U32 argc)
 {
     RETURN_INT(_data(v)[0]);
 }
@@ -621,7 +614,7 @@ c_str_ord(GV v[], U32 argc)
 /*! (method) split
  */
 __GURU__ void
-c_str_split(GV v[], U32 argc)
+str_split(GV v[], U32 argc)
 {
     guru_na("string#split");
 }
@@ -630,7 +623,7 @@ c_str_split(GV v[], U32 argc)
 /*! (method) sprintf
  */
 __GURU__ void
-c_object_sprintf(GV v[], U32 argc)
+str_sprintf(GV v[], U32 argc)
 {
 	guru_na("string#sprintf");
 }
@@ -639,7 +632,7 @@ c_object_sprintf(GV v[], U32 argc)
 /*! (method) printf
  */
 __GURU__ void
-c_object_printf(GV v[], U32 argc)
+str_printf(GV v[], U32 argc)
 {
 	guru_na("string#printf");
 }
@@ -648,7 +641,7 @@ c_object_printf(GV v[], U32 argc)
 /*! (method) lstrip
  */
 __GURU__ void
-c_str_lstrip(GV v[], U32 argc)
+str_lstrip(GV v[], U32 argc)
 {
     GV ret = _dup(v);
 
@@ -661,7 +654,7 @@ c_str_lstrip(GV v[], U32 argc)
 /*! (method) lstrip!
  */
 __GURU__ void
-c_str_lstrip_self(GV v[], U32 argc)
+str_lstrip_self(GV v[], U32 argc)
 {
     if (_strip(v, 0x01)==0) {	// 1: left side only
         RETURN_VAL(GURU_NIL_NEW());
@@ -672,7 +665,7 @@ c_str_lstrip_self(GV v[], U32 argc)
 /*! (method) rstrip
  */
 __GURU__ void
-c_str_rstrip(GV v[], U32 argc)
+str_rstrip(GV v[], U32 argc)
 {
     GV ret = _dup(v);
 
@@ -685,7 +678,7 @@ c_str_rstrip(GV v[], U32 argc)
 /*! (method) rstrip!
  */
 __GURU__ void
-c_str_rstrip_self(GV v[], U32 argc)
+str_rstrip_self(GV v[], U32 argc)
 {
     if (_strip(v, 0x02)==0) {				// 2: right side only
         RETURN_VAL(GURU_NIL_NEW());			// keep refc
@@ -696,7 +689,7 @@ c_str_rstrip_self(GV v[], U32 argc)
 /*! (method) strip
  */
 __GURU__ void
-c_str_strip(GV v[], U32 argc)
+str_strip(GV v[], U32 argc)
 {
     GV ret = _dup(v);
     _strip(&ret, 0x03);	// 3: left and right
@@ -707,7 +700,7 @@ c_str_strip(GV v[], U32 argc)
 /*! (method) strip!
  */
 __GURU__ void
-c_str_strip_self(GV v[], U32 argc)
+str_strip_self(GV v[], U32 argc)
 {
     if (_strip(v, 0x03)==0) {		// 3: left and right
         RETURN_VAL(GURU_NIL_NEW());	// keep refc
@@ -718,7 +711,7 @@ c_str_strip_self(GV v[], U32 argc)
 /*! (method) to_sym
  */
 __GURU__ void
-c_str_to_sym(GV v[], U32 argc)
+str_to_sym(GV v[], U32 argc)
 {
     RETURN_VAL(guru_sym_new(_data(v)));
 }
@@ -731,36 +724,36 @@ guru_init_class_string()
 {
     guru_class *c = guru_class_string = guru_add_class("String", guru_class_object);
 
-    guru_add_proc(c, "+",		c_str_add);
-    guru_add_proc(c, "*",		c_str_mul);
-    guru_add_proc(c, "size",	c_str_len);
-    guru_add_proc(c, "length",	c_str_len);
-    guru_add_proc(c, "to_i",	c_str_to_i);
-    guru_add_proc(c, "to_s",    c_str_to_s);
-    guru_add_proc(c, "<<",		c_str_append);
-    guru_add_proc(c, "[]",		c_str_slice);
-    guru_add_proc(c, "[]=",		c_str_insert);
-    guru_add_proc(c, "chomp",	c_str_chomp);
-    guru_add_proc(c, "chomp!",	c_str_chomp_self);
-    guru_add_proc(c, "dup",		c_str_dup);
-    guru_add_proc(c, "index",	c_str_index);
-    guru_add_proc(c, "inspect",	c_str_inspect);
-    guru_add_proc(c, "ord",		c_str_ord);
-    guru_add_proc(c, "split",	c_str_split);
-    guru_add_proc(c, "lstrip",	c_str_lstrip);
-    guru_add_proc(c, "lstrip!",	c_str_lstrip_self);
-    guru_add_proc(c, "rstrip",	c_str_rstrip);
-    guru_add_proc(c, "rstrip!",	c_str_rstrip_self);
-    guru_add_proc(c, "strip",	c_str_strip);
-    guru_add_proc(c, "strip!",	c_str_strip_self);
-    guru_add_proc(c, "to_sym",	c_str_to_sym);
-    guru_add_proc(c, "intern",	c_str_to_sym);
+    guru_add_proc(c, "+",		str_add);
+    guru_add_proc(c, "*",		str_mul);
+    guru_add_proc(c, "size",	str_len);
+    guru_add_proc(c, "length",	str_len);
+    guru_add_proc(c, "to_i",	str_to_i);
+    guru_add_proc(c, "to_s",    str_to_s);
+    guru_add_proc(c, "<<",		str_append);
+    guru_add_proc(c, "[]",		str_slice);
+    guru_add_proc(c, "[]=",		str_insert);
+    guru_add_proc(c, "chomp",	str_chomp);
+    guru_add_proc(c, "chomp!",	str_chomp_self);
+    guru_add_proc(c, "dup",		str_dup);
+    guru_add_proc(c, "index",	str_index);
+    guru_add_proc(c, "inspect",	str_inspect);
+    guru_add_proc(c, "ord",		str_ord);
+    guru_add_proc(c, "split",	str_split);
+    guru_add_proc(c, "lstrip",	str_lstrip);
+    guru_add_proc(c, "lstrip!",	str_lstrip_self);
+    guru_add_proc(c, "rstrip",	str_rstrip);
+    guru_add_proc(c, "rstrip!",	str_rstrip_self);
+    guru_add_proc(c, "strip",	str_strip);
+    guru_add_proc(c, "strip!",	str_strip_self);
+    guru_add_proc(c, "to_sym",	str_to_sym);
+    guru_add_proc(c, "intern",	str_to_sym);
 #if GURU_USE_FLOAT
-    guru_add_proc(c, "to_f",	c_str_to_f);
+    guru_add_proc(c, "to_f",	str_to_f);
 #endif
 
-    guru_add_proc(guru_class_object, "sprintf",	c_object_sprintf);
-    guru_add_proc(guru_class_object, "printf",	c_object_printf);
+    guru_add_proc(guru_class_object, "sprintf",	str_sprintf);
+    guru_add_proc(guru_class_object, "printf",	str_printf);
 }
 
 #endif // GURU_USE_STRING

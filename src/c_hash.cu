@@ -32,7 +32,7 @@
     guru_hash_new
 
  (destructor)
-    guru_hash_delete
+    guru_hash_del
 
  (setter)
   --[name]-------------[arg]---[ret]-------
@@ -59,10 +59,10 @@ _data(const GV *kv) {
 	return kv->hash->data;
 }
 
-__GURU__ __INLINE__ int
+__GURU__ __INLINE__ void
 _resize(GV *kv, int size)
 {
-	return guru_array_resize(kv->array, size<<1);
+	guru_array_resize(kv->array, size<<1);
 }
 
 //================================================================
@@ -104,22 +104,20 @@ _search(const GV v[], const GV *key)
   @param  val	pointer to value
   @return		error_code
 */
-__GURU__ int
+__GURU__ void
 _set(GV *kv, GV *key, GV *val)
 {
     GV *v = _search(kv, key);
-    int ret = 0;
-    if (v==NULL) {				// key not found, create new kv pair
-        if ((ret = guru_array_push(kv, key)) != 0) return ret;
-        ret = guru_array_push(kv, val);
+    if (v==NULL) {					// key not found, create new kv pair
+        guru_array_push(kv, key);	// push into array tail (ref counter += 1)
+        guru_array_push(kv, val);
     }
     else {
-    	ref_clr(v);       // CC: was dec_refc 20181101
-    	ref_clr(v+1);     // CC: was dec_refc 20181101
+    	ref_dec(v);					// release previous kv elements
+    	ref_dec(v+1);
         *(v)   = *key;
         *(v+1) = *val;
     }
-    return ret;
 }
 
 //================================================================
@@ -168,9 +166,9 @@ _remove(GV *kv, GV *key)
   @param  hash	pointer to target hash
 */
 __GURU__ void
-_clear(GV *kv)
+_clr(GV *kv)
 {
-    guru_array_clear(kv);
+    guru_array_clr(kv);
 
     // TODO: re-index hash table if need.
 }
@@ -231,9 +229,9 @@ _hash_dup(const GV *kv)
   @param  hash	pointer to target value
 */
 __GURU__ void
-guru_hash_delete(GV *kv)
+guru_hash_del(GV *kv)
 {
-    guru_array_delete(kv);		// free content
+    guru_array_del(kv);		// free content
 }
 
 
@@ -246,7 +244,7 @@ guru_hash_delete(GV *kv)
   @retval 1	v1 != v2
 */
 __GURU__ int
-guru_hash_compare(const GV *v0, const GV *v1)
+guru_hash_cmp(const GV *v0, const GV *v1)
 {
 	int n0 = _size(v0);
     if (n0 != _size(v1)) 			return 1;	// size different
@@ -264,7 +262,7 @@ guru_hash_compare(const GV *v0, const GV *v1)
 /*! (method) new
  */
 __GURU__ void
-c_hash_new(GV v[], U32 argc)
+hsh_new(GV v[], U32 argc)
 {
 	RETURN_VAL(guru_hash_new(0));
 }
@@ -273,14 +271,13 @@ c_hash_new(GV v[], U32 argc)
 /*! (operator) []
  */
 __GURU__ void
-c_hash_get(GV v[], U32 argc)
+hsh_get(GV v[], U32 argc)
 {
     if (argc != 1) {
     	assert(argc!=1);
         return;	// raise ArgumentError.
     }
     GV ret = _get(v, v+1);
-    ref_inc(&ret);
 
     RETURN_VAL(ret);
 }
@@ -289,7 +286,7 @@ c_hash_get(GV v[], U32 argc)
 /*! (operator) []=
  */
 __GURU__ void
-c_hash_set(GV v[], U32 argc)
+hsh_set(GV v[], U32 argc)
 {
     if (argc != 2) {
     	assert(argc!=2);
@@ -306,16 +303,16 @@ c_hash_set(GV v[], U32 argc)
 /*! (method) clear
  */
 __GURU__ void
-c_hash_clear(GV v[], U32 argc)
+hsh_clr(GV v[], U32 argc)
 {
-    _clear(v);
+    _clr(v);
 }
 
 //================================================================
 /*! (method) dup
  */
 __GURU__ void
-c_hash_dup(GV v[], U32 argc)
+hsh_dup(GV v[], U32 argc)
 {
     RETURN_VAL(_hash_dup(v));
 }
@@ -324,7 +321,7 @@ c_hash_dup(GV v[], U32 argc)
 /*! (method) delete
  */
 __GURU__ void
-c_hash_delete(GV v[], U32 argc)
+hsh_del(GV v[], U32 argc)
 {
     // TODO : now, support only delete(key) -> object
     // TODO: re-index hash table if need.
@@ -335,7 +332,7 @@ c_hash_delete(GV v[], U32 argc)
 /*! (method) empty?
  */
 __GURU__ void
-c_hash_empty(GV v[], U32 argc)
+hsh_empty(GV v[], U32 argc)
 {
     RETURN_BOOL(_size(v)==0);
 }
@@ -344,7 +341,7 @@ c_hash_empty(GV v[], U32 argc)
 /*! (method) has_key?
  */
 __GURU__ void
-c_hash_has_key(GV v[], U32 argc)
+hsh_has_key(GV v[], U32 argc)
 {
     RETURN_BOOL(_search(v, v+1)!=NULL);
 }
@@ -353,7 +350,7 @@ c_hash_has_key(GV v[], U32 argc)
 /*! (method) has_value?
  */
 __GURU__ void
-c_hash_has_value(GV v[], U32 argc)
+hsh_has_value(GV v[], U32 argc)
 {
     GV *p = _data(v);
     int         n = _size(v);
@@ -369,13 +366,12 @@ c_hash_has_value(GV v[], U32 argc)
 /*! (method) key
  */
 __GURU__ void
-c_hash_key(GV v[], U32 argc)
+hsh_key(GV v[], U32 argc)
 {
     GV *p = _data(v);
     int         n = _size(v);
     for (U32 i=0; i<n; i++, p+=2) {
         if (guru_cmp(p+1, v+1)==0) {
-            ref_inc(p);
             RETURN_VAL(*p);
         }
     }
@@ -386,7 +382,7 @@ c_hash_key(GV v[], U32 argc)
 /*! (method) keys
  */
 __GURU__ void
-c_hash_keys(GV v[], U32 argc)
+hsh_keys(GV v[], U32 argc)
 {
     GV *p  = _data(v);
     int         n  = _size(v);
@@ -402,7 +398,7 @@ c_hash_keys(GV v[], U32 argc)
 /*! (method) size,length,count
  */
 __GURU__ void
-c_hash_size(GV v[], U32 argc)
+hsh_size(GV v[], U32 argc)
 {
     RETURN_INT(_size(v));
 }
@@ -411,15 +407,13 @@ c_hash_size(GV v[], U32 argc)
 /*! (method) merge
  */
 __GURU__ void
-c_hash_merge(GV v[], U32 argc)		// non-destructive merge
+hsh_merge(GV v[], U32 argc)		// non-destructive merge
 {
     GV ret = _hash_dup(v);
     GV *p  = _data(v+1);
     int         n  = _size(v+1);
     for (U32 i=0; i<n; i++, p+=2) {
         _set(&ret, p, p+1);
-        ref_inc(p);						// extra ref on incoming kv
-        ref_inc(p+1);
     }
     RETURN_VAL(ret);
 }
@@ -428,14 +422,12 @@ c_hash_merge(GV v[], U32 argc)		// non-destructive merge
 /*! (method) merge!
  */
 __GURU__ void
-c_hash_merge_self(GV v[], U32 argc)
+hsh_merge_self(GV v[], U32 argc)
 {
     GV *p  = _data(v+1);
     int         n  = _size(v+1);
     for (U32 i=0; i<n; i++, p+=2) {
         _set(v, p, p+1);
-        ref_inc(p);						// extra ref on incoming kv
-        ref_inc(p+1);
     }
 }
 
@@ -443,7 +435,7 @@ c_hash_merge_self(GV v[], U32 argc)
 /*! (method) values
  */
 __GURU__ void
-c_hash_values(GV v[], U32 argc)
+hsh_values(GV v[], U32 argc)
 {
     GV *p  = _data(v);
     int         n  = _size(v);
@@ -458,7 +450,7 @@ c_hash_values(GV v[], U32 argc)
 #if GURU_USE_STRING
 //================================================================
 __GURU__ void
-c_hash_inspect(GV v[], U32 argc)
+hsh_inspect(GV v[], U32 argc)
 {
     GV blank = guru_str_new("");
     GV comma = guru_str_new(", ");
@@ -497,25 +489,25 @@ guru_init_class_hash()
 {
     guru_class *c = guru_class_hash = guru_add_class("Hash", guru_class_object);
 
-    guru_add_proc(c, "new",	    	c_hash_new);
-    guru_add_proc(c, "[]",			c_hash_get);
-    guru_add_proc(c, "[]=",	    	c_hash_set);
-    guru_add_proc(c, "clear",		c_hash_clear);
-    guru_add_proc(c, "dup",	    	c_hash_dup);
-    guru_add_proc(c, "delete",	    c_hash_delete);
-    guru_add_proc(c, "empty?",	    c_hash_empty);
-    guru_add_proc(c, "has_key?",	c_hash_has_key);
-    guru_add_proc(c, "has_value?",	c_hash_has_value);
-    guru_add_proc(c, "key",	    	c_hash_key);
-    guru_add_proc(c, "keys",	    c_hash_keys);
-    guru_add_proc(c, "size",	    c_hash_size);
-    guru_add_proc(c, "length",	    c_hash_size);
-    guru_add_proc(c, "count",	    c_hash_size);
-    guru_add_proc(c, "merge",	    c_hash_merge);
-    guru_add_proc(c, "merge!",	    c_hash_merge_self);
-    guru_add_proc(c, "values",	    c_hash_values);
+    guru_add_proc(c, "new",	    	hsh_new);
+    guru_add_proc(c, "[]",			hsh_get);
+    guru_add_proc(c, "[]=",	    	hsh_set);
+    guru_add_proc(c, "clear",		hsh_clr);
+    guru_add_proc(c, "dup",	    	hsh_dup);
+    guru_add_proc(c, "delete",	    hsh_del);
+    guru_add_proc(c, "empty?",	    hsh_empty);
+    guru_add_proc(c, "has_key?",	hsh_has_key);
+    guru_add_proc(c, "has_value?",	hsh_has_value);
+    guru_add_proc(c, "key",	    	hsh_key);
+    guru_add_proc(c, "keys",	    hsh_keys);
+    guru_add_proc(c, "size",	    hsh_size);
+    guru_add_proc(c, "length",	    hsh_size);
+    guru_add_proc(c, "count",	    hsh_size);
+    guru_add_proc(c, "merge",	    hsh_merge);
+    guru_add_proc(c, "merge!",	    hsh_merge_self);
+    guru_add_proc(c, "values",	    hsh_values);
 #if GURU_USE_STRING
-    guru_add_proc(c, "inspect",		c_hash_inspect);
-    guru_add_proc(c, "to_s",	    c_hash_inspect);
+    guru_add_proc(c, "inspect",		hsh_inspect);
+    guru_add_proc(c, "to_s",	    hsh_inspect);
 #endif
 }

@@ -37,8 +37,8 @@ typedef struct RHash {
 } guru_hash;
 
 __GURU__ GV 		guru_hash_new(int size);
-__GURU__ void       guru_hash_delete(GV *hash);
-__GURU__ int        guru_hash_compare(const GV *v1, const GV *v2);
+__GURU__ void       guru_hash_del(GV *hash);
+__GURU__ int        guru_hash_cmp(const GV *v1, const GV *v2);
 
 __GURU__ void       guru_init_class_hash();
 
