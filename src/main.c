@@ -11,16 +11,16 @@ int  do_cuda(void);
 #endif
 
 #define TRACE_MASK  	0x3
-#define VM_STEP_FLAG  	0x8000
+#define VM_EXEC_FLAG  	0x8000
 
 int _opt(int argc, char *argv[], int *opt)
 {
     int o, n=0;
     *opt = 0;
 
-    while ((o = getopt(argc, argv, ":ts")) != -1) {
+    while ((o = getopt(argc, argv, ":tx")) != -1) {
     	switch(o) {
-    	case 's': *opt |= VM_STEP_FLAG;						break;
+    	case 'x': *opt |= VM_EXEC_FLAG;						break;
     	case 't':
     		o = optarg ? atoi(optarg) : 1;
     		if (optarg) n++;
@@ -36,7 +36,7 @@ int main(int argc, char *argv[])
 {
 	int opt, n = _opt(argc, argv, &opt);
 	int trace = opt & TRACE_MASK;
-	int step  = (opt & VM_STEP_FLAG) ? 1 : 0;
+	int step  = (opt & VM_EXEC_FLAG) ? 0 : 1;
 
 	if (guru_setup(trace)) return -1;
 	for (int i=n+1; i<argc; i++) {
