@@ -36,7 +36,7 @@ typedef struct RStore {
 } guru_store;
 
 __GURU__ guru_obj guru_store_new(guru_class *cls, U32 size);
-__GURU__ void     guru_store_delete(GV *v);
+__GURU__ void     guru_store_del(GV *v);
 __GURU__ void     guru_store_set(guru_obj *obj, GS sid, GV *v);
 __GURU__ guru_obj guru_store_get(guru_obj *obj, GS sid);
 

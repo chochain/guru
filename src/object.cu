@@ -149,7 +149,7 @@ c_print(GV v[], U32 argc)
 /*! (operator) !
  */
 __GURU__ void
-c_object_not(GV v[], U32 argc)
+c_obj_not(GV v[], U32 argc)
 {
     RETURN_FALSE();
 }
@@ -158,7 +158,7 @@ c_object_not(GV v[], U32 argc)
 /*! (operator) !=
  */
 __GURU__ void
-c_object_neq(GV v[], U32 argc)
+c_obj_neq(GV v[], U32 argc)
 {
     S32 t = guru_cmp(&v[0], &v[1]);
     RETURN_BOOL(t);
@@ -168,7 +168,7 @@ c_object_neq(GV v[], U32 argc)
 /*! (operator) <=>
  */
 __GURU__ void
-c_object_compare(GV v[], U32 argc)
+c_obj_cmp(GV v[], U32 argc)
 {
     S32 t = guru_cmp(&v[0], &v[1]);
     RETURN_INT(t);
@@ -178,7 +178,7 @@ c_object_compare(GV v[], U32 argc)
 /*! (operator) ===
  */
 __GURU__ void
-c_object_equal3(GV v[], U32 argc)
+c_obj_eq3(GV v[], U32 argc)
 {
     if (v[0].gt != GT_CLASS) {
     	RETURN_BOOL(guru_cmp(v, v+1)==0);
@@ -193,7 +193,7 @@ c_object_equal3(GV v[], U32 argc)
 /*! (method) class
  */
 __GURU__ void
-c_object_class(GV v[], U32 argc)
+c_obj_class(GV v[], U32 argc)
 {
     GV ret = {.gt = GT_CLASS };
     ret.cls = class_by_obj(v);
@@ -226,7 +226,7 @@ _get_callee(guru_vm *vm)
 /*! (method) instance variable getter
  */
 __GURU__ void
-c_object_getiv(GV v[], U32 argc)
+c_obj_getiv(GV v[], U32 argc)
 {
     const U8P name = _get_callee(NULL);			// TODO:
     GS  sid  = name2id(name);
@@ -238,7 +238,7 @@ c_object_getiv(GV v[], U32 argc)
 /*! (method) instance variable setter
  */
 __GURU__ void
-c_object_setiv(GV v[], U32 argc)
+c_obj_setiv(GV v[], U32 argc)
 {
     U8P name = _get_callee(NULL);			// CC TODO: another way
     GS  sid  = name2id(name);
@@ -250,14 +250,14 @@ c_object_setiv(GV v[], U32 argc)
 /*! (class method) access method 'attr_reader'
  */
 __GURU__ void
-c_object_attr_reader(GV v[], U32 argc)
+c_obj_attr_reader(GV v[], U32 argc)
 {
     for (U32 i = 1; i <= argc; i++) {
         if (v[i].gt != GT_SYM) continue;	// TypeError raise?
 
         // define reader method
         U8P name = id2name(v[i].i);
-        guru_define_method(v[0].cls, name, c_object_getiv);
+        guru_define_method(v[0].cls, name, c_obj_getiv);
     }
 }
 
@@ -265,14 +265,14 @@ c_object_attr_reader(GV v[], U32 argc)
 /*! (class method) access method 'attr_accessor'
  */
 __GURU__ void
-c_object_attr_accessor(GV v[], U32 argc)
+c_obj_attr_accessor(GV v[], U32 argc)
 {
     for (U32 i = 1; i <= argc; i++) {
         if (v[i].gt != GT_SYM) continue;				// TypeError raise?
 
         // define reader method
         U8P name = id2name(v[i].i);
-        guru_define_method(v[0].cls, name, c_object_getiv);
+        guru_define_method(v[0].cls, name, c_obj_getiv);
 
         U32 sz = STRLEN(name);
 
@@ -283,7 +283,7 @@ c_object_attr_accessor(GV v[], U32 argc)
         STRCPY(buf, name);
         STRCAT(buf, "=");
         guru_sym_new(buf);
-        guru_define_method(v[0].cls, buf, c_object_setiv);
+        guru_define_method(v[0].cls, buf, c_obj_setiv);
 
         guru_free(buf);
     }
@@ -293,7 +293,7 @@ c_object_attr_accessor(GV v[], U32 argc)
 /*! (method) is_a, kind_of
  */
 __GURU__ void
-c_object_kind_of(GV v[], U32 argc)
+c_obj_kind_of(GV v[], U32 argc)
 {
     if (v[1].gt != GT_CLASS) {
         RETURN_BOOL(0);
@@ -312,7 +312,7 @@ c_object_kind_of(GV v[], U32 argc)
 /*! (method) to_s
  */
 __GURU__ void
-c_object_to_s(GV v[], U32 argc)
+c_obj_to_s(GV v[], U32 argc)
 {
 	GV ret;
 	U8P name;
@@ -338,7 +338,7 @@ c_object_to_s(GV v[], U32 argc)
 #endif
 
 __GURU__ void
-c_object_new(GV v[], U32 argc)
+c_obj_new(GV v[], U32 argc)
 {
 	assert(1==0);		// taken cared in opcode handler
 }
@@ -356,19 +356,19 @@ _init_class_object()
 #endif
     guru_add_proc(c, "puts",          	c_puts);
     guru_add_proc(c, "print",         	c_print);
-    guru_add_proc(c, "!",             	c_object_not);
-    guru_add_proc(c, "!=",            	c_object_neq);
-    guru_add_proc(c, "<=>",           	c_object_compare);
-    guru_add_proc(c, "===",           	c_object_equal3);
-    guru_add_proc(c, "class",         	c_object_class);
-    guru_add_proc(c, "new",           	c_object_new);
-    guru_add_proc(c, "attr_reader",   	c_object_attr_reader);
-    guru_add_proc(c, "attr_accessor", 	c_object_attr_accessor);
-    guru_add_proc(c, "is_a?",         	c_object_kind_of);
-    guru_add_proc(c, "kind_of?",      	c_object_kind_of);
+    guru_add_proc(c, "!",             	c_obj_not);
+    guru_add_proc(c, "!=",            	c_obj_neq);
+    guru_add_proc(c, "<=>",           	c_obj_cmp);
+    guru_add_proc(c, "===",           	c_obj_eq3);
+    guru_add_proc(c, "class",         	c_obj_class);
+    guru_add_proc(c, "new",           	c_obj_new);
+    guru_add_proc(c, "attr_reader",   	c_obj_attr_reader);
+    guru_add_proc(c, "attr_accessor", 	c_obj_attr_accessor);
+    guru_add_proc(c, "is_a?",         	c_obj_kind_of);
+    guru_add_proc(c, "kind_of?",      	c_obj_kind_of);
 #if GURU_USE_STRING
-    guru_add_proc(c, "inspect",       	c_object_to_s);
-    guru_add_proc(c, "to_s",          	c_object_to_s);
+    guru_add_proc(c, "inspect",       	c_obj_to_s);
+    guru_add_proc(c, "to_s",          	c_obj_to_s);
 #endif
 }
 

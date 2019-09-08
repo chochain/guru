@@ -52,7 +52,7 @@ _print(GV *v)
     case GT_SYM: 	PRINTF("%s", id2name(v->i));			break;
     case GT_CLASS:  PRINTF("%s", id2name(v->cls->sid));  	break;
     case GT_OBJ:
-    	PRINTF("#<%04d:0x%08x>",
+    	PRINTF("#<%s:0x%08x>",
     		id2name(class_by_obj(v)->sid),
     		(U32A)v->self
     	);

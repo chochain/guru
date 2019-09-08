@@ -82,7 +82,7 @@ _new(U32 size)
   @param  st	pointer to instance store handle.
 */
 __GURU__ void
-_delete(guru_store *st)
+_del(guru_store *st)
 {
     guru_store_data *d = st->data;
     for (U32 i=0; i<st->n; i++, d++) {		// free logical
@@ -180,9 +180,9 @@ guru_store_new(guru_class *cls, U32 size)
   @param  v	pointer to target value
 */
 __GURU__ void
-guru_store_delete(GV *v)
+guru_store_del(GV *v)
 {
-    _delete(v->self->ivar);
+    _del(v->self->ivar);
     guru_free(v->self);
 }
 
