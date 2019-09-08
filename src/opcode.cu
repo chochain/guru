@@ -528,6 +528,7 @@ op_send(guru_vm *vm)
         for (U32 i=ra+1; i<=bidx; i++) {			// wipe block parameters for stat dumper
         	regs[i].gt = GT_EMPTY;
         }
+        if (bidx > vm->nreg) vm->nreg = bidx;		// track stack depth
     }
     else {								// m->func is a Ruby function (aka IREP)
     	vm_state_push(vm, rc);			// append callinfo list
@@ -1338,7 +1339,7 @@ guru_op(guru_vm *vm)
 {
 	if (threadIdx.x != 0) return 0;	// TODO: multi-thread [run|suspend] queues
 
-    //=======================================================================================
+	//=======================================================================================
 	// GURU dispatcher unit
 	//=======================================================================================
 	int ret;
