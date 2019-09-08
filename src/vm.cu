@@ -96,20 +96,18 @@ _vm_end(guru_vm *pool)
   @param  vm    A pointer of VM.
   @retval 0  No error.
 */
-__GPU__ void
-_vm_prefetch(guru_vm *pool)
+__GURU__ void
+_vm_prefetch(guru_vm *vm)
 {
-	guru_vm *vm = pool+blockIdx.x;
-	if (vm->id==0 || !vm->run) return;		// not allocated yet, or completed
+   vm->bytecode = VM_BYTECODE(vm);
 
-	vm->bytecode = VM_BYTECODE(vm);
+   vm->op  = vm->bytecode & 0x7f;          // opcode
+   vm->opn = vm->bytecode >> 7;            // operands
+   vm->ar  = (GAR *)&(vm)->opn;            // operands struct/union
 
-	vm->op  = vm->bytecode & 0x7f;			// opcode
-	vm->opn = vm->bytecode >> 7;			// operands
-	vm->ar 	= (GAR *)&(vm)->opn;			// operands struct/union
-
-	vm->state->pc++;						// advance instruction pointer
+   vm->state->pc++;							// advance program counter (ready for next fetch)
 }
+
 //================================================================
 /*!@brief
   GURU Instruction dispatcher
@@ -121,12 +119,19 @@ __GPU__ void
 _vm_exec(guru_vm *pool)
 {
 	guru_vm *vm = pool+blockIdx.x;
-	if (vm->id==0 || !vm->run) return;		// not allocated yet, or completed
+	if (vm->id==0 || !vm->run) return;			// not allocated yet, or completed
 
-	// start up dispatcher
-	while (guru_op(vm)==0 && vm->step==0) {	// multi-threading in guru_op
-		// add cuda hook here
-	}
+	// start up instruction and dispatcher unit
+	U32 ret;
+	do {
+		// add before_fetch hooks here
+		_vm_prefetch(vm);
+		// add before_exec hooks here
+		ret = guru_op(vm);
+		// add after_exec hooks here
+		ret |= vm->step;						// single stepping?
+	} while (ret==0);
+	__syncthreads();							// sync all cooperating threads (to share data)
 }
 
 #if !GURU_HOST_IMAGE
@@ -219,9 +224,6 @@ guru_vm_run(guru_ses *ses)
 	cudaDeviceSynchronize();
 
 	do {	// TODO: flip session/vm centric view into app-server style main loop
-		_vm_prefetch<<<MIN_VM_COUNT, 1>>>(_vm_pool);
-		cudaDeviceSynchronize();
-
 		_vm_trace(ses->trace);
 
 		_vm_exec<<<MIN_VM_COUNT, 1>>>(_vm_pool);
@@ -296,27 +298,24 @@ _show_regfile(guru_vm *vm, U32 lvl)
 	v = vm->regfile;
 	printf("[");
 	for (U32 i=0; i<=n; i++, v++) {
-		printf("%s",_vtype[v->gt]);
-		if (v->gt & GT_HAS_REF) printf("%d", v->rc);
-		else 					printf(" ");
-	    printf("%c", i==lvl ? '|' : ' ');
+		const char *t = _vtype[v->gt];
+		U8 c = i==lvl ? '|' : ' ';
+		if (v->gt & GT_HAS_REF)	printf("%s%d%c", t, v->rc, c);
+		else					printf("%s %c",  t, c);
     }
 	printf("]");
 }
 
-__HOST__ void
-_show_func(guru_vm *vm)
-{
-	if (vm->op != OP_SEND) return;
-
-	printf(" #%s", VM_SYM(vm, vm->ar->b));
-}
+#define bin2u32(x) ((x << 24) | ((x & 0xff00) << 8) | ((x >> 8) & 0xff00) | (x >> 24))
 
 __HOST__ void
 _show_decoder(guru_vm *vm)
 {
-	U16  pc  = vm->state->pc;
-	U8P  opc = (U8P)_opcode[GET_OPCODE(vm->op)];
+	U16  pc    = vm->state->pc;						// program counter
+	U32  *iseq = (U32*)VM_ISEQ(vm);
+	U32  code  = bin2u32(*(iseq + pc));				// convert to big endian
+	U16  op    = code & 0x7f;       				// in HOST mode, GET_OPCODE() is DEVICE code
+	U8P  opc   = (U8P)_opcode[GET_OPCODE(op)];
 
 	U8 idx = 'a';
 	if (!_find_irep(vm->irep, vm->state->irep, &idx)) idx='?';
@@ -329,8 +328,11 @@ _show_decoder(guru_vm *vm)
 		lvl += 2 + st->argc;
 	}
 	_show_regfile(vm, lvl);
-	_show_func(vm);
 
+	if (op==OP_SEND) {								// display function name
+		U32 rb = (code >> 14) & 0x1ff;
+		printf(" #%s", VM_SYM(vm, rb));
+	}
 	printf("\n");
 }
 

@@ -88,6 +88,7 @@ typedef struct VM {				// 12 + 32*reg bytes
     U32 op;						// cached opcode
     U32 opn;					// cached operands
     GAR *ar;
+    U32 nreg;					// max register used
 
     guru_irep  *irep;			// pointer to IREP tree
     guru_state *state;			// VM state (callinfo) linked list
@@ -202,7 +203,7 @@ _u32_to_bin(U32 l, U8P bin)
 }
 
 #define VM_IREP(vm)    	((vm)->state->irep)
-#define VM_SYM(vm,n)	(U8PADD(VM_IREP(vm), *(U32*)U8PADD(VM_IREP(vm), VM_IREP(vm)->sym  + n*sizeof(U32))))
+#define VM_SYM(vm,n)    (U8PADD(VM_IREP(vm), *(U32*)U8PADD(VM_IREP(vm), VM_IREP(vm)->sym + n*sizeof(U32))))
 #define VM_VAR(vm,n)	((U32P)U8PADD(VM_IREP(vm), *(U32*)U8PADD(VM_IREP(vm), VM_IREP(vm)->pool + n*sizeof(U32))))
 #define VM_REPS(vm,n)	((guru_irep*)U8PADD(VM_IREP(vm), *(U32*)U8PADD(VM_IREP(vm), VM_IREP(vm)->reps + n*sizeof(U32))))
 
