@@ -228,15 +228,15 @@ c_all_symbols(GV v[], U32 argc)
  */
 __GURU__ void guru_init_class_symbol()  // << from symbol.cu
 {
-    guru_class *c = guru_class_symbol = guru_add_class("Symbol", guru_class_object);
+    guru_class *c = guru_class_symbol = NEW_CLASS("Symbol", guru_class_object);
 
 #if GURU_USE_ARRAY
-    guru_add_proc(c, "all_symbols", c_all_symbols);
+    NEW_PROC("all_symbols", c_all_symbols);
 #endif
 #if GURU_USE_STRING
-    guru_add_proc(c, "inspect", 	c_sym_inspect);
-    guru_add_proc(c, "to_s", 		c_sym_to_s);
-    guru_add_proc(c, "id2name", 	c_sym_to_s);
+    NEW_PROC("inspect", 	c_sym_inspect);
+    NEW_PROC("to_s", 		c_sym_to_s);
+    NEW_PROC("id2name", 	c_sym_to_s);
 #endif
 }
 

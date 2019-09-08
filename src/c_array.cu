@@ -740,34 +740,34 @@ ary__join(GV v[], U32 argc)
 __GURU__ void
 guru_init_class_array()
 {
-    guru_class *c = guru_class_array = guru_add_class("Array", guru_class_object);
+    guru_class *c = guru_class_array = NEW_CLASS("Array", guru_class_object);
 
-    guru_add_proc(c, "new",       ary__new);
-    guru_add_proc(c, "+",         ary__add);
-    guru_add_proc(c, "[]",        ary__get);
-    guru_add_proc(c, "at",        ary__get);
-    guru_add_proc(c, "[]=",       ary__set);
-    guru_add_proc(c, "<<",        ary__push);
-    guru_add_proc(c, "clear",     ary__clr);
-    guru_add_proc(c, "delete_at", ary__del_at);
-    guru_add_proc(c, "empty?",    ary__empty);
-    guru_add_proc(c, "size",      ary__size);
-    guru_add_proc(c, "length",    ary__size);
-    guru_add_proc(c, "count",     ary__size);
-    guru_add_proc(c, "index",     ary__index);
-    guru_add_proc(c, "first",     ary__first);
-    guru_add_proc(c, "last",      ary__last);
-    guru_add_proc(c, "push",      ary__push);
-    guru_add_proc(c, "pop",       ary__pop);
-    guru_add_proc(c, "shift",     ary__shift);
-    guru_add_proc(c, "unshift",   ary__unshift);
-    guru_add_proc(c, "dup",       ary__dup);
-    guru_add_proc(c, "min",       ary__min);
-    guru_add_proc(c, "max",       ary__max);
-    guru_add_proc(c, "minmax",    ary__minmax);
+    NEW_PROC("new",       ary__new);
+    NEW_PROC("+",         ary__add);
+    NEW_PROC("[]",        ary__get);
+    NEW_PROC("at",        ary__get);
+    NEW_PROC("[]=",       ary__set);
+    NEW_PROC("<<",        ary__push);
+    NEW_PROC("clear",     ary__clr);
+    NEW_PROC("delete_at", ary__del_at);
+    NEW_PROC("empty?",    ary__empty);
+    NEW_PROC("size",      ary__size);
+    NEW_PROC("length",    ary__size);
+    NEW_PROC("count",     ary__size);
+    NEW_PROC("index",     ary__index);
+    NEW_PROC("first",     ary__first);
+    NEW_PROC("last",      ary__last);
+    NEW_PROC("push",      ary__push);
+    NEW_PROC("pop",       ary__pop);
+    NEW_PROC("shift",     ary__shift);
+    NEW_PROC("unshift",   ary__unshift);
+    NEW_PROC("dup",       ary__dup);
+    NEW_PROC("min",       ary__min);
+    NEW_PROC("max",       ary__max);
+    NEW_PROC("minmax",    ary__minmax);
 #if GURU_USE_STRING
-    guru_add_proc(c, "inspect",   ary__inspect);
-    guru_add_proc(c, "to_s",      ary__inspect);
-    guru_add_proc(c, "join",      ary__join);
+    NEW_PROC("inspect",   ary__inspect);
+    NEW_PROC("to_s",      ary__inspect);
+    NEW_PROC("join",      ary__join);
 #endif
 }

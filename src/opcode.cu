@@ -515,10 +515,10 @@ op_send(guru_vm *vm)
     }
 
     if (IS_CFUNC(m)) {
-    	if (m->func==c_proc_call) {		// because VM is not passed to dispatcher, special handling needed for call() and new()
+    	if (m->func==prc_call) {		// because VM is not passed to dispatcher, special handling needed for call() and new()
     		vm_proc_call(vm, regs+ra, rc);
     	}
-    	else if (m->func==c_obj_new) {
+    	else if (m->func==obj_new) {
         	vm_object_new(vm, regs+ra, rc);
         }
         else {

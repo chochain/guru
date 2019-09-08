@@ -210,6 +210,10 @@ typedef struct RSes {				// 16-byte
 __GURU__ guru_class *guru_add_class(const char *name, guru_class *super);						// use (char *) for static string
 __GURU__ guru_proc  *guru_add_proc(guru_class *cls, const char *name, guru_fptr cfunc);
 
+// macro for class and proc creation (assumption: guru_class *c is defined)
+#define NEW_CLASS(name, super)   	guru_add_class(name, super)
+#define NEW_PROC(name, cfunc)		guru_add_proc(c, name, cfunc)
+
 #ifdef __cplusplus
 }
 #endif

@@ -209,26 +209,26 @@ __GURU__ void
 guru_init_class_int(void)
 {
     // int
-    guru_class *c = guru_class_int = guru_add_class("int", guru_class_object);
+    guru_class *c = guru_class_int = NEW_CLASS("int", guru_class_object);
 
-    guru_add_proc(c, "[]", 		int_bitref);
-    guru_add_proc(c, "-@", 		int_negative);
-    guru_add_proc(c, "**", 		int_power);
-    guru_add_proc(c, "%", 		int_mod);
-    guru_add_proc(c, "&", 		int_and);
-    guru_add_proc(c, "|", 		int_or);
-    guru_add_proc(c, "^", 		int_xor);
-    guru_add_proc(c, "~", 		int_not);
-    guru_add_proc(c, "<<", 		int_lshift);
-    guru_add_proc(c, ">>", 		int_rshift);
-    guru_add_proc(c, "abs",		int_abs);
+    NEW_PROC("[]", 		int_bitref);
+    NEW_PROC("-@", 		int_negative);
+    NEW_PROC("**", 		int_power);
+    NEW_PROC("%", 		int_mod);
+    NEW_PROC("&", 		int_and);
+    NEW_PROC("|", 		int_or);
+    NEW_PROC("^", 		int_xor);
+    NEW_PROC("~", 		int_not);
+    NEW_PROC("<<", 		int_lshift);
+    NEW_PROC(">>", 		int_rshift);
+    NEW_PROC("abs",		int_abs);
 #if GURU_USE_FLOAT
-    guru_add_proc(c, "to_f",	int_to_f);
+    NEW_PROC("to_f",	int_to_f);
 #endif
 #if GURU_USE_STRING
-    guru_add_proc(c, "chr", 	int_chr);
-    guru_add_proc(c, "inspect",	int_to_s);
-    guru_add_proc(c, "to_s", 	int_to_s);
+    NEW_PROC("chr", 	int_chr);
+    NEW_PROC("inspect",	int_to_s);
+    NEW_PROC("to_s", 	int_to_s);
 #endif
 }
 
@@ -301,17 +301,17 @@ __GURU__ void
 guru_init_class_float(void)
 {
     // Float
-    guru_class *c = guru_class_float = guru_add_class("Float", guru_class_object);
+    guru_class *c = guru_class_float = NEW_CLASS("Float", guru_class_object);
 
-    guru_add_proc(c, "-@", 		flt__negative);
+    NEW_PROC("-@", 		flt__negative);
 #if GURU_USE_MATH
-    guru_add_proc(c, "**", 		flt__power);
+    NEW_PROC("**", 		flt__power);
 #endif
-    guru_add_proc(c, "abs", 	flt__abs);
-    guru_add_proc(c, "to_i", 	flt__to_i);
+    NEW_PROC("abs", 	flt__abs);
+    NEW_PROC("to_i", 	flt__to_i);
 #if GURU_USE_STRING
-    guru_add_proc(c, "inspect", flt__to_s);
-    guru_add_proc(c, "to_s", 	flt__to_s);
+    NEW_PROC("inspect", flt__to_s);
+    NEW_PROC("to_s", 	flt__to_s);
 #endif
 }
 

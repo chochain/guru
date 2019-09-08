@@ -487,27 +487,27 @@ hsh_inspect(GV v[], U32 argc)
 __GURU__ void
 guru_init_class_hash()
 {
-    guru_class *c = guru_class_hash = guru_add_class("Hash", guru_class_object);
+    guru_class *c = guru_class_hash = NEW_CLASS("Hash", guru_class_object);
 
-    guru_add_proc(c, "new",	    	hsh_new);
-    guru_add_proc(c, "[]",			hsh_get);
-    guru_add_proc(c, "[]=",	    	hsh_set);
-    guru_add_proc(c, "clear",		hsh_clr);
-    guru_add_proc(c, "dup",	    	hsh_dup);
-    guru_add_proc(c, "delete",	    hsh_del);
-    guru_add_proc(c, "empty?",	    hsh_empty);
-    guru_add_proc(c, "has_key?",	hsh_has_key);
-    guru_add_proc(c, "has_value?",	hsh_has_value);
-    guru_add_proc(c, "key",	    	hsh_key);
-    guru_add_proc(c, "keys",	    hsh_keys);
-    guru_add_proc(c, "size",	    hsh_size);
-    guru_add_proc(c, "length",	    hsh_size);
-    guru_add_proc(c, "count",	    hsh_size);
-    guru_add_proc(c, "merge",	    hsh_merge);
-    guru_add_proc(c, "merge!",	    hsh_merge_self);
-    guru_add_proc(c, "values",	    hsh_values);
+    NEW_PROC("new",	    	hsh_new);
+    NEW_PROC("[]",			hsh_get);
+    NEW_PROC("[]=",	    	hsh_set);
+    NEW_PROC("clear",		hsh_clr);
+    NEW_PROC("dup",	    	hsh_dup);
+    NEW_PROC("delete",	    hsh_del);
+    NEW_PROC("empty?",	    hsh_empty);
+    NEW_PROC("has_key?",	hsh_has_key);
+    NEW_PROC("has_value?",	hsh_has_value);
+    NEW_PROC("key",	    	hsh_key);
+    NEW_PROC("keys",	    hsh_keys);
+    NEW_PROC("size",	    hsh_size);
+    NEW_PROC("length",	    hsh_size);
+    NEW_PROC("count",	    hsh_size);
+    NEW_PROC("merge",	    hsh_merge);
+    NEW_PROC("merge!",	    hsh_merge_self);
+    NEW_PROC("values",	    hsh_values);
 #if GURU_USE_STRING
-    guru_add_proc(c, "inspect",		hsh_inspect);
-    guru_add_proc(c, "to_s",	    hsh_inspect);
+    NEW_PROC("inspect",		hsh_inspect);
+    NEW_PROC("to_s",	    hsh_inspect);
 #endif
 }

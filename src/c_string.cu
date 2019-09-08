@@ -722,34 +722,34 @@ str_to_sym(GV v[], U32 argc)
 __GURU__ void
 guru_init_class_string()
 {
-    guru_class *c = guru_class_string = guru_add_class("String", guru_class_object);
+    guru_class *c = guru_class_string = NEW_CLASS("String", guru_class_object);
 
-    guru_add_proc(c, "+",		str_add);
-    guru_add_proc(c, "*",		str_mul);
-    guru_add_proc(c, "size",	str_len);
-    guru_add_proc(c, "length",	str_len);
-    guru_add_proc(c, "to_i",	str_to_i);
-    guru_add_proc(c, "to_s",    str_to_s);
-    guru_add_proc(c, "<<",		str_append);
-    guru_add_proc(c, "[]",		str_slice);
-    guru_add_proc(c, "[]=",		str_insert);
-    guru_add_proc(c, "chomp",	str_chomp);
-    guru_add_proc(c, "chomp!",	str_chomp_self);
-    guru_add_proc(c, "dup",		str_dup);
-    guru_add_proc(c, "index",	str_index);
-    guru_add_proc(c, "inspect",	str_inspect);
-    guru_add_proc(c, "ord",		str_ord);
-    guru_add_proc(c, "split",	str_split);
-    guru_add_proc(c, "lstrip",	str_lstrip);
-    guru_add_proc(c, "lstrip!",	str_lstrip_self);
-    guru_add_proc(c, "rstrip",	str_rstrip);
-    guru_add_proc(c, "rstrip!",	str_rstrip_self);
-    guru_add_proc(c, "strip",	str_strip);
-    guru_add_proc(c, "strip!",	str_strip_self);
-    guru_add_proc(c, "to_sym",	str_to_sym);
-    guru_add_proc(c, "intern",	str_to_sym);
+    NEW_PROC("+",		str_add);
+    NEW_PROC("*",		str_mul);
+    NEW_PROC("size",	str_len);
+    NEW_PROC("length",	str_len);
+    NEW_PROC("to_i",	str_to_i);
+    NEW_PROC("to_s",    str_to_s);
+    NEW_PROC("<<",		str_append);
+    NEW_PROC("[]",		str_slice);
+    NEW_PROC("[]=",		str_insert);
+    NEW_PROC("chomp",	str_chomp);
+    NEW_PROC("chomp!",	str_chomp_self);
+    NEW_PROC("dup",		str_dup);
+    NEW_PROC("index",	str_index);
+    NEW_PROC("inspect",	str_inspect);
+    NEW_PROC("ord",		str_ord);
+    NEW_PROC("split",	str_split);
+    NEW_PROC("lstrip",	str_lstrip);
+    NEW_PROC("lstrip!",	str_lstrip_self);
+    NEW_PROC("rstrip",	str_rstrip);
+    NEW_PROC("rstrip!",	str_rstrip_self);
+    NEW_PROC("strip",	str_strip);
+    NEW_PROC("strip!",	str_strip_self);
+    NEW_PROC("to_sym",	str_to_sym);
+    NEW_PROC("intern",	str_to_sym);
 #if GURU_USE_FLOAT
-    guru_add_proc(c, "to_f",	str_to_f);
+    NEW_PROC("to_f",	str_to_f);
 #endif
 
     guru_add_proc(guru_class_object, "sprintf",	str_sprintf);

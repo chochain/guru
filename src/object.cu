@@ -111,7 +111,7 @@ guru_kind_of(GV v[], U32 argc)		// whether v1 is a kind of v0
 
 //================================================================
 __GURU__ void
-c_nop(GV v[], U32 argc)
+obj_nop(GV v[], U32 argc)
 {
 	// do nothing
 }
@@ -121,7 +121,7 @@ c_nop(GV v[], U32 argc)
 /*! (method) p
  */
 __GURU__ void
-c_p(GV v[], U32 argc)
+obj_p(GV v[], U32 argc)
 {
 	guru_p(v, argc);
 }
@@ -131,7 +131,7 @@ c_p(GV v[], U32 argc)
 /*! (method) puts
  */
 __GURU__ void
-c_puts(GV v[], U32 argc)
+obj_puts(GV v[], U32 argc)
 {
 	guru_puts(v, argc);
 }
@@ -140,7 +140,7 @@ c_puts(GV v[], U32 argc)
 /*! (method) print
  */
 __GURU__ void
-c_print(GV v[], U32 argc)
+obj_print(GV v[], U32 argc)
 {
 	guru_puts(v, argc);
 }
@@ -149,7 +149,7 @@ c_print(GV v[], U32 argc)
 /*! (operator) !
  */
 __GURU__ void
-c_obj_not(GV v[], U32 argc)
+obj_not(GV v[], U32 argc)
 {
     RETURN_FALSE();
 }
@@ -158,7 +158,7 @@ c_obj_not(GV v[], U32 argc)
 /*! (operator) !=
  */
 __GURU__ void
-c_obj_neq(GV v[], U32 argc)
+obj_neq(GV v[], U32 argc)
 {
     S32 t = guru_cmp(&v[0], &v[1]);
     RETURN_BOOL(t);
@@ -168,7 +168,7 @@ c_obj_neq(GV v[], U32 argc)
 /*! (operator) <=>
  */
 __GURU__ void
-c_obj_cmp(GV v[], U32 argc)
+obj_cmp(GV v[], U32 argc)
 {
     S32 t = guru_cmp(&v[0], &v[1]);
     RETURN_INT(t);
@@ -178,7 +178,7 @@ c_obj_cmp(GV v[], U32 argc)
 /*! (operator) ===
  */
 __GURU__ void
-c_obj_eq3(GV v[], U32 argc)
+obj_eq3(GV v[], U32 argc)
 {
     if (v[0].gt != GT_CLASS) {
     	RETURN_BOOL(guru_cmp(v, v+1)==0);
@@ -193,7 +193,7 @@ c_obj_eq3(GV v[], U32 argc)
 /*! (method) class
  */
 __GURU__ void
-c_obj_class(GV v[], U32 argc)
+obj_class(GV v[], U32 argc)
 {
     GV ret = {.gt = GT_CLASS };
     ret.cls = class_by_obj(v);
@@ -226,7 +226,7 @@ _get_callee(guru_vm *vm)
 /*! (method) instance variable getter
  */
 __GURU__ void
-c_obj_getiv(GV v[], U32 argc)
+obj_getiv(GV v[], U32 argc)
 {
     const U8P name = _get_callee(NULL);			// TODO:
     GS  sid  = name2id(name);
@@ -238,7 +238,7 @@ c_obj_getiv(GV v[], U32 argc)
 /*! (method) instance variable setter
  */
 __GURU__ void
-c_obj_setiv(GV v[], U32 argc)
+obj_setiv(GV v[], U32 argc)
 {
     U8P name = _get_callee(NULL);			// CC TODO: another way
     GS  sid  = name2id(name);
@@ -250,14 +250,14 @@ c_obj_setiv(GV v[], U32 argc)
 /*! (class method) access method 'attr_reader'
  */
 __GURU__ void
-c_obj_attr_reader(GV v[], U32 argc)
+obj_attr_reader(GV v[], U32 argc)
 {
     for (U32 i = 1; i <= argc; i++) {
         if (v[i].gt != GT_SYM) continue;	// TypeError raise?
 
         // define reader method
         U8P name = id2name(v[i].i);
-        guru_define_method(v[0].cls, name, c_obj_getiv);
+        guru_define_method(v[0].cls, name, obj_getiv);
     }
 }
 
@@ -265,14 +265,14 @@ c_obj_attr_reader(GV v[], U32 argc)
 /*! (class method) access method 'attr_accessor'
  */
 __GURU__ void
-c_obj_attr_accessor(GV v[], U32 argc)
+obj_attr_accessor(GV v[], U32 argc)
 {
     for (U32 i = 1; i <= argc; i++) {
         if (v[i].gt != GT_SYM) continue;				// TypeError raise?
 
         // define reader method
         U8P name = id2name(v[i].i);
-        guru_define_method(v[0].cls, name, c_obj_getiv);
+        guru_define_method(v[0].cls, name, obj_getiv);
 
         U32 sz = STRLEN(name);
 
@@ -283,7 +283,7 @@ c_obj_attr_accessor(GV v[], U32 argc)
         STRCPY(buf, name);
         STRCAT(buf, "=");
         guru_sym_new(buf);
-        guru_define_method(v[0].cls, buf, c_obj_setiv);
+        guru_define_method(v[0].cls, buf, obj_setiv);
 
         guru_free(buf);
     }
@@ -293,7 +293,7 @@ c_obj_attr_accessor(GV v[], U32 argc)
 /*! (method) is_a, kind_of
  */
 __GURU__ void
-c_obj_kind_of(GV v[], U32 argc)
+obj_kind_of(GV v[], U32 argc)
 {
     if (v[1].gt != GT_CLASS) {
         RETURN_BOOL(0);
@@ -312,7 +312,7 @@ c_obj_kind_of(GV v[], U32 argc)
 /*! (method) to_s
  */
 __GURU__ void
-c_obj_to_s(GV v[], U32 argc)
+obj_to_s(GV v[], U32 argc)
 {
 	GV ret;
 	U8P name;
@@ -338,7 +338,7 @@ c_obj_to_s(GV v[], U32 argc)
 #endif
 
 __GURU__ void
-c_obj_new(GV v[], U32 argc)
+obj_new(GV v[], U32 argc)
 {
 	assert(1==0);		// taken cared in opcode handler
 }
@@ -347,28 +347,28 @@ __GURU__ void
 _init_class_object()
 {
     // Class
-    guru_class *c = guru_class_object = guru_add_class("Object", NULL);
+    guru_class *c = guru_class_object = NEW_CLASS("Object", NULL);
 
     // Methods
-    guru_add_proc(c, "initialize",    	c_nop);
+    NEW_PROC("initialize",    	obj_nop);
 #if GURU_DEBUG
-    guru_add_proc(c, "p", 				c_p);
+    NEW_PROC("p", 				obj_p);
 #endif
-    guru_add_proc(c, "puts",          	c_puts);
-    guru_add_proc(c, "print",         	c_print);
-    guru_add_proc(c, "!",             	c_obj_not);
-    guru_add_proc(c, "!=",            	c_obj_neq);
-    guru_add_proc(c, "<=>",           	c_obj_cmp);
-    guru_add_proc(c, "===",           	c_obj_eq3);
-    guru_add_proc(c, "class",         	c_obj_class);
-    guru_add_proc(c, "new",           	c_obj_new);
-    guru_add_proc(c, "attr_reader",   	c_obj_attr_reader);
-    guru_add_proc(c, "attr_accessor", 	c_obj_attr_accessor);
-    guru_add_proc(c, "is_a?",         	c_obj_kind_of);
-    guru_add_proc(c, "kind_of?",      	c_obj_kind_of);
+    NEW_PROC("puts",          	obj_puts);
+    NEW_PROC("print",         	obj_print);
+    NEW_PROC("!",             	obj_not);
+    NEW_PROC("!=",            	obj_neq);
+    NEW_PROC("<=>",           	obj_cmp);
+    NEW_PROC("===",           	obj_eq3);
+    NEW_PROC("class",         	obj_class);
+    NEW_PROC("new",           	obj_new);
+    NEW_PROC("attr_reader",   	obj_attr_reader);
+    NEW_PROC("attr_accessor", 	obj_attr_accessor);
+    NEW_PROC("is_a?",         	obj_kind_of);
+    NEW_PROC("kind_of?",      	obj_kind_of);
 #if GURU_USE_STRING
-    guru_add_proc(c, "inspect",       	c_obj_to_s);
-    guru_add_proc(c, "to_s",          	c_obj_to_s);
+    NEW_PROC("inspect",       	obj_to_s);
+    NEW_PROC("to_s",          	obj_to_s);
 #endif
 }
 
@@ -376,7 +376,7 @@ _init_class_object()
 // ProcClass
 //================================================================
 __GURU__ void
-c_proc_call(GV v[], U32 argc)
+prc_call(GV v[], U32 argc)
 {
 	// not suppose to come here
 	assert(1==0);		// taken care by vm#op_send
@@ -384,7 +384,7 @@ c_proc_call(GV v[], U32 argc)
 
 #if GURU_USE_STRING
 __GURU__ void
-c_proc_inspect(GV v[], U32 argc)
+prc_inspect(GV v[], U32 argc)
 {
 	GV ret = guru_str_new("<#Proc:");
 	guru_str_append_cstr(&ret, guru_i2s((U64)v->proc, 16));
@@ -397,12 +397,12 @@ __GURU__ void
 _init_class_proc()
 {
     // Class
-    guru_class *c = guru_class_proc = guru_add_class("Proc", guru_class_object);
+    guru_class *c = guru_class_proc = NEW_CLASS("Proc", guru_class_object);
     // Methods
-    guru_add_proc(c, "call", 	c_proc_call);
+    NEW_PROC("call", 	prc_call);
 #if GURU_USE_STRING
-    guru_add_proc(c, "inspect", c_proc_inspect);
-    guru_add_proc(c, "to_s", 	c_proc_inspect);
+    NEW_PROC("inspect", prc_inspect);
+    NEW_PROC("to_s", 	prc_inspect);
 #endif
 }
 
@@ -413,7 +413,7 @@ _init_class_proc()
 /*! (method) !
  */
 __GURU__ void
-c_nil_false_not(GV v[], U32 argc)
+nil_false_not(GV v[], U32 argc)
 {
     v[0].gt = GT_TRUE;
 }
@@ -423,7 +423,7 @@ c_nil_false_not(GV v[], U32 argc)
 /*! (method) inspect
  */
 __GURU__ void
-c_nil_inspect(GV v[], U32 argc)
+nil_inspect(GV v[], U32 argc)
 {
     v[0] = guru_str_new("nil");
 }
@@ -432,7 +432,7 @@ c_nil_inspect(GV v[], U32 argc)
 /*! (method) to_s
  */
 __GURU__ void
-c_nil_to_s(GV v[], U32 argc)
+nil_to_s(GV v[], U32 argc)
 {
     v[0] = guru_str_new(NULL);
 }
@@ -445,12 +445,12 @@ __GURU__ void
 _init_class_nil()
 {
     // Class
-    guru_class *c = guru_class_nil = guru_add_class("NilClass", guru_class_object);
+    guru_class *c = guru_class_nil = NEW_CLASS("NilClass", guru_class_object);
     // Methods
-    guru_add_proc(c, "!", 			c_nil_false_not);
+    NEW_PROC("!", 			nil_false_not);
 #if GURU_USE_STRING
-    guru_add_proc(c, "inspect", 	c_nil_inspect);
-    guru_add_proc(c, "to_s", 		c_nil_to_s);
+    NEW_PROC("inspect", 	nil_inspect);
+    NEW_PROC("to_s", 		nil_to_s);
 #endif
 }
 
@@ -462,7 +462,7 @@ _init_class_nil()
 /*! (method) to_s
  */
 __GURU__ void
-c_false_to_s(GV v[], U32 argc)
+false_to_s(GV v[], U32 argc)
 {
     v[0] = guru_str_new("false");
 }
@@ -475,12 +475,12 @@ __GURU__ void
 _init_class_false()
 {
     // Class
-    guru_class *c = guru_class_false = guru_add_class("FalseClass", guru_class_object);
+    guru_class *c = guru_class_false = NEW_CLASS("FalseClass", guru_class_object);
     // Methods
-    guru_add_proc(c, "!", 		c_nil_false_not);
+    NEW_PROC("!", 		nil_false_not);
 #if GURU_USE_STRING
-    guru_add_proc(c, "inspect", c_false_to_s);
-    guru_add_proc(c, "to_s",    c_false_to_s);
+    NEW_PROC("inspect", false_to_s);
+    NEW_PROC("to_s",    false_to_s);
 #endif
 }
 
@@ -492,7 +492,7 @@ _init_class_false()
 /*! (method) to_s
  */
 __GURU__ void
-c_true_to_s(GV v[], U32 argc)
+true_to_s(GV v[], U32 argc)
 {
     v[0] = guru_str_new("true");
 }
@@ -502,11 +502,11 @@ __GURU__ void
 _init_class_true()
 {
     // Class
-    guru_class_true = guru_add_class("TrueClass", guru_class_object);
+    guru_class *c = guru_class_true = NEW_CLASS("TrueClass", guru_class_object);
     // Methods
 #if GURU_USE_STRING
-    guru_add_proc(guru_class_true, "inspect", 	c_true_to_s);
-    guru_add_proc(guru_class_true, "to_s", 		c_true_to_s);
+    NEW_PROC("inspect", 	true_to_s);
+    NEW_PROC("to_s", 		true_to_s);
 #endif
 }
 
