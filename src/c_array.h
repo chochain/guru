@@ -31,12 +31,12 @@ typedef struct RArray {
 } guru_array;
 
 __GURU__ GV 		guru_array_new(U32 sz);
-__GURU__ void       guru_array_delete(GV *ary);
+__GURU__ void       guru_array_del(GV *ary);
 
-__GURU__ int		guru_array_resize(guru_array *h, U32 new_sz);
-__GURU__ int        guru_array_push(GV *ary, GV *set_val);
-__GURU__ void       guru_array_clear(GV *ary);
-__GURU__ int        guru_array_compare(const GV *v1, const GV *v2);
+__GURU__ void		guru_array_resize(guru_array *h, U32 new_sz);
+__GURU__ void       guru_array_push(GV *ary, GV *set_val);
+__GURU__ void       guru_array_clr(GV *ary);
+__GURU__ S32        guru_array_cmp(const GV *v1, const GV *v2);
 
 __GURU__ void       guru_init_class_array();
 

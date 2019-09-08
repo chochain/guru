@@ -85,7 +85,7 @@ _vm_end(guru_vm *pool)
 	for (U32 i=0; i < MAX_REGS_SIZE; i++, p++) {
 		ref_clr(p);
 	}
-    guru_memory_clear();
+    guru_memory_clr();
 #endif
 }
 

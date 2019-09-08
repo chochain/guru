@@ -518,7 +518,7 @@ op_send(guru_vm *vm)
     	if (m->func==c_proc_call) {		// because VM is not passed to dispatcher, special handling needed for call() and new()
     		vm_proc_call(vm, regs+ra, rc);
     	}
-    	else if (m->func==c_object_new) {
+    	else if (m->func==c_obj_new) {
         	vm_object_new(vm, regs+ra, rc);
         }
         else {
@@ -526,7 +526,7 @@ op_send(guru_vm *vm)
         }
         U32 bidx = ra + rc + 1;
         for (U32 i=ra+1; i<=bidx; i++) {			// wipe block parameters for stat dumper
-//        	regs[i].gt = GT_EMPTY;
+        	regs[i].gt = GT_EMPTY;
         }
     }
     else {								// m->func is a Ruby function (aka IREP)

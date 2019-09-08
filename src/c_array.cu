@@ -30,7 +30,7 @@
     guru_array_new
 
  (destructor)
-    guru_array_delete
+    guru_array_del
 
  (setter)
   --[name]-------------[arg]---[ret]-------------------------------------------
@@ -48,33 +48,27 @@
 
  (others)
     guru_array_resize
-    guru_array_clear
-    guru_array_compare
+    guru_array_clr
+    guru_array_cmp
     guru_array_minmax
 */
 
 //================================================================
 /*! get size
  */
-__GURU__ U32
-_reindex(guru_array *h, S32 idx, U32 inc)
+__GURU__ void
+_resize(guru_array *h, U32 ndx)
 {
-    if (idx < 0) {					// index from tail of array
-        idx += h->n + inc;
-        assert(idx>=0);
-    }
-
     U32 nsz = 0;
-    if (idx >= h->size) {			// need resize?
-        nsz = idx + inc;
+    if (ndx >= h->size) {			// need resize?
+        nsz = ndx;
     }
     else if (h->n >= h->size) {
-        nsz = h->n + 4;				// pre allocate
+        nsz = h->n + 4;				// auto allocate extra 4 elements
     }
     if (nsz) {
     	guru_array_resize(h, nsz);
     }
-    return idx;
 }
 
 //================================================================
@@ -88,13 +82,13 @@ __GURU__ void
 _set(GV *ary, S32 idx, GV *val)
 {
     guru_array *h = ary->array;
-
-    U32 ndx = _reindex(h, idx, 0);				// adjust index if needed
+    U32 ndx = (idx < 0) ? h->size + idx : idx;
 
     if (ndx < h->n) {
         ref_dec(&h->data[ndx]);					// release existing data
     }
     else {
+        _resize(h, ndx);						// adjust array size
         for (U32 i=h->n; i<ndx; i++) {			// lazy fill here, instead of when resized
             h->data[i] = GURU_NIL_NEW();		// prep newly allocated cells
         }
@@ -142,12 +136,12 @@ __GURU__ int
 _insert(GV *ary, S32 idx, GV *set_val)
 {
     guru_array *h = ary->array;
-
-    U32 ndx = _reindex(h, idx, 1);
+    U32 ndx = 1 + (idx < 0) ? h->size+idx : idx;
+    _resize(h, ndx);
 
     if (ndx < h->n) {										// move data
-    	U32 blksz = sizeof(GV)*(h->n - idx);
-        MEMCPY(h->data + ndx + 1, h->data + ndx, blksz);	// rshift
+    	U32 bsz = sizeof(GV)*(h->n - ndx);
+        MEMCPY(h->data + ndx + 1, h->data + ndx, bsz);		// rshift (copy backward, does this work?)
     }
 
     h->data[ndx] = *ref_inc(set_val);						// set data
@@ -315,7 +309,7 @@ guru_array_new(U32 sz)
   @param  ary	pointer to target value
 */
 __GURU__ void
-guru_array_delete(GV *ary)
+guru_array_del(GV *ary)
 {
     guru_array *h = ary->array;
     GV *p = h->data;
@@ -333,7 +327,7 @@ guru_array_delete(GV *ary)
   @param  size	size
   @return	error_code
 */
-__GURU__ int
+__GURU__ void
 guru_array_resize(guru_array *h, U32 new_sz)
 {
 	assert(new_sz > h->size);
@@ -342,8 +336,6 @@ guru_array_resize(guru_array *h, U32 new_sz)
 
     h->size = new_sz;
     h->data = (GV *)ptr;			// lazy fill later
-
-    return 0;
 }
 
 //================================================================
@@ -353,11 +345,10 @@ guru_array_resize(guru_array *h, U32 new_sz)
   @param  set_val	set value
   @return			error_code
 */
-__GURU__ int
+__GURU__ void
 guru_array_push(GV *ary, GV *set_val)
 {
 	_push(ary, set_val);
-    return 0;
 }
 
 //================================================================
@@ -366,7 +357,7 @@ guru_array_push(GV *ary, GV *set_val)
   @param  ary		pointer to target value
 */
 __GURU__ void
-guru_array_clear(GV *ary)
+guru_array_clr(GV *ary)
 {
     guru_array *h = ary->array;
     GV *p = h->data;
@@ -385,26 +376,30 @@ guru_array_clear(GV *ary)
   @retval plus	v1 >  v2
   @retval minus	v1 <  v2
 */
-__GURU__ int
-guru_array_compare(const GV *v0, const GV *v1)
+__GURU__ S32
+guru_array_cmp(const GV *v0, const GV *v1)
 {
 	guru_array *h0 = v0->array;
 	guru_array *h1 = v1->array;
+
+	S32 dif = (h0->n - h1->n);
+	if (dif) return dif;
+
 	GV *d0 = h0->data;
 	GV *d1 = h1->data;
 
 	for (U32 i=0; i < h0->n && i < h1->n; i++) {
-        int res = guru_cmp(d0++, d1++);
+        S32 res = guru_cmp(d0++, d1++);
         if (res != 0) return res;
     }
-    return h0->n - h1->n;
+    return 0;
 }
 
 //================================================================
 /*! method new
  */
 __GURU__ void
-c_array_new(GV v[], U32 argc)
+ary__new(GV v[], U32 argc)
 {
 	GV ret;
     if (argc==0) {											// in case of new()
@@ -435,9 +430,9 @@ c_array_new(GV v[], U32 argc)
 /*! (operator) +
  */
 __GURU__ void
-c_array_add(GV v[], U32 argc)
+ary__add(GV v[], U32 argc)
 {
-    assert(ARG_GT(1) == GT_ARRAY);			// array only (for now)
+    assert(v[1].gt == GT_ARRAY);			// array only (for now)
 
     guru_array *h0 = v[0].array;
     guru_array *h1 = v[1].array;
@@ -463,7 +458,7 @@ c_array_add(GV v[], U32 argc)
 /*! (operator) []
  */
 __GURU__ void
-c_array_get(GV v[], U32 argc)
+ary__get(GV v[], U32 argc)
 {
 	GV ret;
     if (argc==1 && v[1].gt==GT_INT) {					// self[n] -> object | nil
@@ -496,7 +491,7 @@ c_array_get(GV v[], U32 argc)
 /*! (operator) []=
  */
 __GURU__ void
-c_array_set(GV v[], U32 argc)
+ary__set(GV v[], U32 argc)
 {
 	GT gt1 = v[1].gt;
 	GT gt2 = v[2].gt;
@@ -517,18 +512,18 @@ c_array_set(GV v[], U32 argc)
 /*! (method) clear
  */
 __GURU__ void
-c_array_clear(GV v[], U32 argc)
+ary__clr(GV v[], U32 argc)
 {
-    guru_array_clear(v);
+    guru_array_clr(v);
 }
 
 //================================================================
 /*! (method) delete_at
  */
 __GURU__ void
-c_array_delete_at(GV v[], U32 argc)
+ary__del_at(GV v[], U32 argc)
 {
-	S32 n = ARG_INT(1);
+	S32 n = v[1].i;
 
     RETURN_VAL(_remove(v, n));
 }
@@ -537,7 +532,7 @@ c_array_delete_at(GV v[], U32 argc)
 /*! (method) empty?
  */
 __GURU__ void
-c_array_empty(GV v[], U32 argc)
+ary__empty(GV v[], U32 argc)
 {
     RETURN_BOOL(v->array->n==0);
 }
@@ -546,7 +541,7 @@ c_array_empty(GV v[], U32 argc)
 /*! (method) size,length,count
  */
 __GURU__ void
-c_array_size(GV v[], U32 argc)
+ary__size(GV v[], U32 argc)
 {
     RETURN_INT(v->array->n);
 }
@@ -555,7 +550,7 @@ c_array_size(GV v[], U32 argc)
 /*! (method) index
  */
 __GURU__ void
-c_array_index(GV v[], U32 argc)
+ary__index(GV v[], U32 argc)
 {
     guru_array *h = v->array;
     GV *p = h->data;
@@ -570,7 +565,7 @@ c_array_index(GV v[], U32 argc)
 //================================================================
 /*! (method) first
  */
-__GURU__ void c_array_first(GV v[], U32 argc)
+__GURU__ void ary__first(GV v[], U32 argc)
 {
     RETURN_VAL(_get(v, 0));
 }
@@ -579,7 +574,7 @@ __GURU__ void c_array_first(GV v[], U32 argc)
 /*! (method) last
  */
 __GURU__ void
-c_array_last(GV v[], U32 argc)
+ary__last(GV v[], U32 argc)
 {
     RETURN_VAL(_get(v, -1));
 }
@@ -588,7 +583,7 @@ c_array_last(GV v[], U32 argc)
 /*! (method) push
  */
 __GURU__ void
-c_array_push(GV v[], U32 argc)
+ary__push(GV v[], U32 argc)
 {
     guru_array_push(v, v+1);	// raise? ENOMEM
     v[1].gt = GT_EMPTY;
@@ -598,7 +593,7 @@ c_array_push(GV v[], U32 argc)
 /*! (method) pop
  */
 __GURU__ void
-c_array_pop(GV v[], U32 argc)
+ary__pop(GV v[], U32 argc)
 {
     if (argc==0) {							// pop() -> object | nil
         RETURN_VAL(_pop(v));
@@ -615,7 +610,7 @@ c_array_pop(GV v[], U32 argc)
 /*! (method) unshift
  */
 __GURU__ void
-c_array_unshift(GV v[], U32 argc)
+ary__unshift(GV v[], U32 argc)
 {
     _unshift(v, v+1);						// raise? IndexError or ENOMEM
     v[1].gt = GT_EMPTY;
@@ -625,7 +620,7 @@ c_array_unshift(GV v[], U32 argc)
 /*! (method) shift
  */
 __GURU__ void
-c_array_shift(GV v[], U32 argc)
+ary__shift(GV v[], U32 argc)
 {
     if (argc==0) {							// shift() -> object | nil
         RETURN_VAL(_shift(v));
@@ -642,7 +637,7 @@ c_array_shift(GV v[], U32 argc)
 /*! (method) dup
  */
 __GURU__ void
-c_array_dup(GV v[], U32 argc)
+ary__dup(GV v[], U32 argc)
 {
     guru_array *h0 = v[0].array;
 
@@ -658,7 +653,7 @@ c_array_dup(GV v[], U32 argc)
 /*! (method) min
  */
 __GURU__ void
-c_array_min(GV v[], U32 argc)
+ary__min(GV v[], U32 argc)
 {
     // Subset of Array#min, not support min(n).
     GV *min, *max;
@@ -674,7 +669,7 @@ c_array_min(GV v[], U32 argc)
 /*! (method) max
  */
 __GURU__ void
-c_array_max(GV v[], U32 argc)
+ary__max(GV v[], U32 argc)
 {
     // Subset of Array#max, not support max(n).
     GV *min, *max;
@@ -690,7 +685,7 @@ c_array_max(GV v[], U32 argc)
 /*! (method) minmax
  */
 __GURU__ void
-c_array_minmax(GV v[], U32 argc)
+ary__minmax(GV v[], U32 argc)
 {
     GV nil = GURU_NIL_NEW();
     GV ret = guru_array_new(2);
@@ -711,7 +706,7 @@ c_array_minmax(GV v[], U32 argc)
 /*! (method) inspect
  */
 __GURU__ void
-c_array_inspect(GV v[], U32 argc)
+ary__inspect(GV v[], U32 argc)
 {
 	GV ret = guru_str_new("[");
     GV vi, s1;
@@ -727,7 +722,7 @@ c_array_inspect(GV v[], U32 argc)
 }
 
 __GURU__ void
-c_array_join(GV v[], U32 argc)
+ary__join(GV v[], U32 argc)
 {
     GV ret = guru_str_new(NULL);
     GV sep = (argc==0)						// separator
@@ -747,32 +742,32 @@ guru_init_class_array()
 {
     guru_class *c = guru_class_array = guru_add_class("Array", guru_class_object);
 
-    guru_add_proc(c, "new",       c_array_new);
-    guru_add_proc(c, "+",         c_array_add);
-    guru_add_proc(c, "[]",        c_array_get);
-    guru_add_proc(c, "at",        c_array_get);
-    guru_add_proc(c, "[]=",       c_array_set);
-    guru_add_proc(c, "<<",        c_array_push);
-    guru_add_proc(c, "clear",     c_array_clear);
-    guru_add_proc(c, "delete_at", c_array_delete_at);
-    guru_add_proc(c, "empty?",    c_array_empty);
-    guru_add_proc(c, "size",      c_array_size);
-    guru_add_proc(c, "length",    c_array_size);
-    guru_add_proc(c, "count",     c_array_size);
-    guru_add_proc(c, "index",     c_array_index);
-    guru_add_proc(c, "first",     c_array_first);
-    guru_add_proc(c, "last",      c_array_last);
-    guru_add_proc(c, "push",      c_array_push);
-    guru_add_proc(c, "pop",       c_array_pop);
-    guru_add_proc(c, "shift",     c_array_shift);
-    guru_add_proc(c, "unshift",   c_array_unshift);
-    guru_add_proc(c, "dup",       c_array_dup);
-    guru_add_proc(c, "min",       c_array_min);
-    guru_add_proc(c, "max",       c_array_max);
-    guru_add_proc(c, "minmax",    c_array_minmax);
+    guru_add_proc(c, "new",       ary__new);
+    guru_add_proc(c, "+",         ary__add);
+    guru_add_proc(c, "[]",        ary__get);
+    guru_add_proc(c, "at",        ary__get);
+    guru_add_proc(c, "[]=",       ary__set);
+    guru_add_proc(c, "<<",        ary__push);
+    guru_add_proc(c, "clear",     ary__clr);
+    guru_add_proc(c, "delete_at", ary__del_at);
+    guru_add_proc(c, "empty?",    ary__empty);
+    guru_add_proc(c, "size",      ary__size);
+    guru_add_proc(c, "length",    ary__size);
+    guru_add_proc(c, "count",     ary__size);
+    guru_add_proc(c, "index",     ary__index);
+    guru_add_proc(c, "first",     ary__first);
+    guru_add_proc(c, "last",      ary__last);
+    guru_add_proc(c, "push",      ary__push);
+    guru_add_proc(c, "pop",       ary__pop);
+    guru_add_proc(c, "shift",     ary__shift);
+    guru_add_proc(c, "unshift",   ary__unshift);
+    guru_add_proc(c, "dup",       ary__dup);
+    guru_add_proc(c, "min",       ary__min);
+    guru_add_proc(c, "max",       ary__max);
+    guru_add_proc(c, "minmax",    ary__minmax);
 #if GURU_USE_STRING
-    guru_add_proc(c, "inspect",   c_array_inspect);
-    guru_add_proc(c, "to_s",      c_array_inspect);
-    guru_add_proc(c, "join",      c_array_join);
+    guru_add_proc(c, "inspect",   ary__inspect);
+    guru_add_proc(c, "to_s",      ary__inspect);
+    guru_add_proc(c, "join",      ary__join);
 #endif
 }
