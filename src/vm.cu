@@ -279,7 +279,7 @@ _find_irep(guru_irep *irep0, guru_irep *irep1, U8P idx)
 
 	U8P  base = (U8P)irep0;
 	U32P off  = (U32P)U8PADD(base, irep0->reps);		// child irep offset array
-	for (U32 i=0; i<irep0->rlen; i++) {
+	for (U32 i=0; i<irep0->c; i++) {
 		*idx += 1;
 		if (_find_irep((guru_irep *)(base + off[i]), irep1, idx)) return 1;
 	}

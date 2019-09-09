@@ -26,14 +26,13 @@ extern "C" {
 */
 typedef struct RIrep {	// 32-byte
     U32	size;			// size of entire IREP block
+    U8  nv; 		  	//!< # of local variables
+    U8  nr;				//!< # of register used
+    U16 c;				//!< # of child IREP blocks (into list below)
 
-    U32 ilen;			//!< # of bytecodes (by iseq below)
-    U32 plen	: 16;	//!< # of objects in pool (into pool below)
-    U32	slen	: 16;	//!< # of symbols (into sym below)
-    U32 rlen	: 16;	//!< # of child IREP blocks (into list below)
-
-    U32 nlv		: 8;   	//!< # of local variables
-    U32 nreg	: 8;	//!< # of register used
+    U32 i;				//!< # of bytecodes (by iseq below)
+    U16 p;				//!< # of objects in pool (into pool below)
+    U16	s;				//!< # of symbols (into sym below)
 
     U32 reps;			//!< offset to array of child IREP's pointer.
     U32 pool; 			//!< offset to array of POOL objects pointer.
@@ -203,7 +202,7 @@ _u32_to_bin(U32 l, U8P bin)
 }
 
 #define VM_IREP(vm)    	((vm)->state->irep)
-#define VM_SYM(vm,n)    (U8PADD(VM_IREP(vm), *(U32*)U8PADD(VM_IREP(vm), VM_IREP(vm)->sym + n*sizeof(U32))))
+#define VM_SYM(vm,n)    (U8PADD(VM_IREP(vm), *(U32*)U8PADD(VM_IREP(vm), VM_IREP(vm)->sym  + n*sizeof(U32))))
 #define VM_VAR(vm,n)	((U32P)U8PADD(VM_IREP(vm), *(U32*)U8PADD(VM_IREP(vm), VM_IREP(vm)->pool + n*sizeof(U32))))
 #define VM_REPS(vm,n)	((guru_irep*)U8PADD(VM_IREP(vm), *(U32*)U8PADD(VM_IREP(vm), VM_IREP(vm)->reps + n*sizeof(U32))))
 

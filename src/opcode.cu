@@ -1011,8 +1011,7 @@ op_string(guru_vm *vm)
 	U32 ra = GETARG_A(code);
     U32 rb = GETARG_Bx(code);
 
-    U32 *v = VM_VAR(vm, rb);
-    U8  *str = (U8P)U8PADD(VM_IREP(vm), *v);
+    U8  *str = (U8 *)VM_VAR(vm, rb);			// string pool var
     GV  ret  = guru_str_new(str);				// rc set to 1 already
 
     return _RA(ret);

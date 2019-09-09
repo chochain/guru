@@ -95,10 +95,10 @@ _build_image(guru_irep *src, U8 * img)
 {
 	// compute CUDA alignment memory block sizes
     U32 irep_sz = sizeof(guru_irep) + (-sizeof(guru_irep) & 7);					// 8-byte alignment
-    U32 reps_sz = sizeof(U32) * (src->rlen + (src->rlen & 1));
-    U32 pool_sz = sizeof(U32) * (src->plen + (src->plen & 1));
-    U32 sym_sz  = sizeof(U32) * (src->slen + (src->slen & 1));
-    U32 iseq_sz = sizeof(U32) * (src->ilen + (src->ilen & 1));
+    U32 reps_sz = sizeof(U32) * (src->c + (src->c & 1));
+    U32 pool_sz = sizeof(U32) * (src->p + (src->p & 1));
+    U32 sym_sz  = sizeof(U32) * (src->s + (src->s & 1));
+    U32 iseq_sz = sizeof(U32) * (src->i + (src->i & 1));
     U32 stbl_sz = sizeof(U8P) * sym_sz * 2;										// string table with padded space
     U32 img_sz  = irep_sz + reps_sz + pool_sz + sym_sz + iseq_sz + stbl_sz;		// should be 8-byte aligned
 
@@ -121,19 +121,24 @@ _build_image(guru_irep *src, U8 * img)
     memcpy(iseq, U8PADD(img, src->iseq), iseq_sz);		// copy ISEQ block
 
 	tgt->reps = U8POFF(reps, tgt);						// overwrite with new reps offset
-    tgt->iseq = U8POFF(iseq, tgt);						// overwrite with new iseq offset
+    tgt->iseq = U8POFF(iseq, tgt);						// new iseq offset
+    tgt->pool = U8POFF(pool, tgt);						// new pool offset
+    tgt->sym  = U8POFF(sym, tgt);						// new sym offset
 
+    // build POOL block
     U8 *  p = U8PADD(img, src->pool);					// point to source object pool
     U32 * v = (U32 *)pool;
-    for (U32 i=0; i < src->plen; i++, v++) {
+    for (U32 i=0; i < src->p; i++, v++) {
         U32  tt = *p++;
         U32  len = bin_to_u16(p);	p += sizeof(U16);
-        U32  asz = len + ((8 - len) & 7);
+        U32  asz;								// adjusted size
         char buf[64+2];							// 64-bit number
 
         switch (tt) {
         case 0:									// IREP_TT_STRING
-        	memcpy(stbl, p, asz);				// duplicate the raw string
+            asz = len + 1;						// '\0'
+            asz += (-asz & 3);					// 4-byte aligned
+            memcpy(stbl, p, asz);				// duplicate the raw string
         	*v = U8POFF(stbl, base);
         	stbl += asz;						// advance string table pointer
         	break;
@@ -156,20 +161,18 @@ _build_image(guru_irep *src, U8 * img)
         }
         p += len;
     }
-    tgt->pool = U8POFF(pool, tgt);				// update pool offset
 
     p = U8PADD(img, src->sym);					// build symbol table
     v = (U32 *)sym;
-    for (U32 i=0; i < src->slen; i++, v++) {
+    for (U32 i=0; i < src->s; i++, v++) {
         U32 len = bin_to_u16(p)+1;	p += sizeof(U16);	// symbol_len+'\0'
-        U32 asz = len + ((8 - len) & 7);				// 8-byte alignment
+        U32 asz = len + (-len & 3);				// 4-byte alignment
 
-    	memcpy(stbl, p, asz);					// copy the symbol string
+    	memcpy(stbl, p, len ? len : 1);			// copy the symbol string
     	*v = U8POFF(stbl, base);
     	stbl += asz;							// advance string table pointer
         p    += len;
     }
-    tgt->sym  = U8POFF(sym, tgt);
     tgt->size = U8POFF(stbl, tgt);
 
     return tgt;
@@ -210,28 +213,27 @@ _fetch_irep_size(guru_irep *irep, U8P img)						// pos will be advance to next I
 {
     U8 * p = img;
 
-    // nlocals,nregs,rlen
-    irep->size = bin_to_u32(p); p += sizeof(U32);				// IREP size
-    irep->nlv  = bin_to_u16(p);	p += sizeof(U16);				// number of local variables
-    irep->nreg = bin_to_u16(p);	p += sizeof(U16);				// number of registers used
-    irep->rlen = bin_to_u16(p);	p += sizeof(U16);				// number of child IREP blocks
-    irep->ilen = bin_to_u32(p);	p += sizeof(U32);				// ISEQ (bytecodes) length
-
-    p += U8POFF(irep, p) & 0x03;								// 32-bit align code pointer
-
-    irep->iseq = U8POFF(p, img);	p += irep->ilen * sizeof(U32);	// ISEQ (code) block
-    irep->plen = bin_to_u32(p);		p += sizeof(U32);				// POOL block
-    irep->pool = U8POFF(p, img);									// pool offset
-
-    for (U32 i=0; i < irep->plen; i++) {	// scan through pool (so we know the size to allocate)
+    // Header: sz,nlocals,nregs,rlen
+    irep->size 	= bin_to_u32(p); 	p += sizeof(U32);			// IREP size
+    irep->nv 	= bin_to_u16(p);	p += sizeof(U16);			// number of local variables
+    irep->nr 	= bin_to_u16(p);	p += sizeof(U16);			// number of registers used
+    irep->c  	= bin_to_u16(p);	p += sizeof(U16);			// number of child IREP blocks
+    // ISEQ block
+    irep->i = bin_to_u32(p);		p += sizeof(U32);			// ISEQ (bytecodes) length
+    p += -(U32A)p & 03;											// supposedly 32-bit aligned already
+    irep->iseq = U8POFF(p, img);	p += irep->i * sizeof(U32);	// ISEQ (code) block
+    // POOL block
+    irep->p    	= bin_to_u32(p);	p += sizeof(U32);			// pool element count
+    irep->pool 	= U8POFF(p, img);								// pool offset
+    for (U32 i=0; i < irep->p; i++) {	// scan through pool (so we know the size to allocate)
         int  tt  = *p++;										// object type
         int  len = bin_to_u16(p);   p += sizeof(U16) + len;
         tt = 0;
     }
-
-    irep->slen = bin_to_u32(p);		p += sizeof(U32);
-    irep->sym  = U8POFF(p, img);								// symbol offset
-    for (U32 i=0; i < irep->slen; i++) {
+    // SYM block
+    irep->s 	= bin_to_u32(p);	p += sizeof(U32);			// compiled symbol counts
+    irep->sym  	= U8POFF(p, img);								// symbol offset
+    for (U32 i=0; i < irep->s; i++) {
         int len = bin_to_u16(p)+1;	p += sizeof(U16) + len;		// symbol_len+'\0'
         int tt = 0;
     }
@@ -264,7 +266,7 @@ _load_irep(U8P *pos)
 
     // recursively create the child irep tree
     U32 * v = (U32P)U8PADD(irep, irep->reps);
-    for (U32 i=0; i < src.rlen; i++) {
+    for (U32 i=0; i < src.c; i++) {					// number of irep children
     	guru_irep *irep_n = _load_irep(&sp);		// load a child irep recursively
         v[i] = U8POFF(irep_n, irep);				// calculate offset
     }
@@ -333,12 +335,12 @@ _show_irep(guru_irep *irep, U32 ioff, char level, char *idx)
 {
 	printf("\tirep[%c]=%c%04x: size=%d, nreg=%d, nlocal=%d, pools=%d, syms=%d, reps=%d, ilen=%d\n",
 			*idx, level, ioff,
-			irep->size, irep->nreg, irep->nlv, irep->plen, irep->slen, irep->rlen, irep->ilen);
+			irep->size, irep->nr, irep->nv, irep->p, irep->s, irep->c, irep->i);
 
 	// dump all children ireps
 	U8  *base = (U8 *)irep;
 	U32 *off  = (U32 *)U8PADD(base, irep->reps);		// pointer to irep offset array
-	for (U32 i=0; i<irep->rlen; i++) {
+	for (U32 i=0; i<irep->c; i++) {
 		*idx += 1;
 		_show_irep((guru_irep *)(base + off[i]), off[i], level+1, idx);
 	}
