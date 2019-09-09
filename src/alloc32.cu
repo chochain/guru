@@ -340,35 +340,32 @@ guru_alloc(U32 sz)
   @return void* pointer to allocated memory.
 */
 __GURU__ void*
-guru_realloc(void *ptr, U32 sz)
+guru_realloc(void *p0, U32 sz)
 {
 	U32 bsz = sz + sizeof(used_block);						// include the header
 
-	CHECK_NULL(ptr);
+	CHECK_NULL(p0);
 	CHECK_ALIGN(bsz);
 
-    used_block *blk = (used_block *)BLOCKHEAD(ptr);
+    used_block *blk = (used_block *)BLOCKHEAD(p0);
     CHECK_NULL(!blk->free);									// make sure it is used
 
     if (bsz > blk->bsz) {
     	_merge_with_next((free_block *)blk);				// try to get the block bigger
     }
-    if (bsz == blk->bsz) return ptr;						// same size, good fit
+    if (bsz == blk->bsz) return p0;							// same size, good fit
     if (bsz < blk->bsz) {									// a little to big, split if we can
         _split_free_block((free_block *)blk, bsz);			// keep only the first bsz bytes
-        return ptr;
+        return p0;
     }
 
     // not big enough block found, new alloc and deep copy
-    void *nptr = guru_alloc(sz);
+    void *p1 = guru_alloc(sz);
+    memcpy(p1, p0, sz);										// deep copy
 
-    U8 *s = (U8 *)ptr;
-    U8 *d = (U8 *)nptr;
-    for (U32 i=0; i<sz; i++) *d++ = *s++;					// deep copy
+    guru_free(p0);											// reclaim block
 
-    guru_free(ptr);											// reclaim block
-
-    return nptr;
+    return p1;
 }
 
 //================================================================

@@ -67,7 +67,12 @@ _resize(guru_array *h, U32 ndx)
         nsz = h->n + 4;				// auto allocate extra 4 elements
     }
     if (nsz) {
-    	guru_array_resize(h, nsz);
+        GV *p1 = (GV *)guru_realloc(h->data, sizeof(GV) * nsz);
+        h->size = nsz;
+        h->data = p1;				// set to new pointer
+        for (U32 i=h->n; i<nsz; i++) {			// lazy fill here, instead of when resized
+            h->data[i] = GURU_NIL_NEW();		// prep newly allocated cells
+        }
     }
 }
 
@@ -84,15 +89,14 @@ _set(GV *ary, S32 idx, GV *val)
     guru_array *h = ary->array;
     U32 ndx = (idx < 0) ? h->size + idx : idx;
 
+    if (ndx >= h->size) {
+        _resize(h, ndx + 4);					// adjust array size
+    }
     if (ndx < h->n) {
         ref_dec(&h->data[ndx]);					// release existing data
     }
     else {
-        _resize(h, ndx);						// adjust array size
-        for (U32 i=h->n; i<ndx; i++) {			// lazy fill here, instead of when resized
-            h->data[i] = GURU_NIL_NEW();		// prep newly allocated cells
-        }
-        h->n = ndx+1;
+    	h->n = ndx+1;
     }
     h->data[ndx] = *ref_inc(val);				// keep the reference to the value
 }
@@ -103,8 +107,7 @@ _push(GV *ary, GV *set_val)
     guru_array *h = ary->array;
 
     if (h->n >= h->size) {
-        U32 sz = h->size + 6;
-        guru_array_resize(h, sz);
+        _resize(h, h->size + 6);
     }
     h->data[h->n++] = *ref_inc(set_val);
 }
@@ -330,12 +333,7 @@ guru_array_del(GV *ary)
 __GURU__ void
 guru_array_resize(guru_array *h, U32 new_sz)
 {
-	assert(new_sz > h->size);
-
-    void *ptr = guru_realloc(h->data, sizeof(GV) * new_sz);
-
-    h->size = new_sz;
-    h->data = (GV *)ptr;			// lazy fill later
+	_resize(h, new_sz);
 }
 
 //================================================================
