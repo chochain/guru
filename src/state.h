@@ -20,10 +20,12 @@
 extern "C" {
 #endif
 
-__GURU__ void		vm_state_push(guru_vm *vm, U32 argc);
-__GURU__ void		vm_state_pop(guru_vm *vm, GV *regs);
-__GURU__ void		vm_proc_call(guru_vm *vm, GV v[], U32 argc);
-__GURU__ void		vm_object_new(guru_vm *vm, GV v[], U32 argc);
+__GURU__ void 	vm_state_push(guru_vm *vm, guru_irep *irep, U32 pc, GV *regs, U32 argc);
+__GURU__ void	vm_state_pop(guru_vm *vm, GV *ret_val);
+
+// TODO: temp functions for call and new (due to VM passing required)
+__GURU__ void	vm_proc_call(guru_vm *vm, GV v[], U32 argc);
+__GURU__ void	vm_object_new(guru_vm *vm, GV v[], U32 argc);
 
 #ifdef __cplusplus
 }

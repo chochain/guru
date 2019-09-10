@@ -11,6 +11,8 @@
   2. internal state management functions
   </pre>
 */
+#include <assert.h>
+
 #include "alloc.h"
 #include "store.h"
 #include "symbol.h"
@@ -24,19 +26,21 @@
 
 */
 __GURU__ void
-vm_state_push(guru_vm *vm, U32 argc)
+vm_state_push(guru_vm *vm, guru_irep *irep, U32 pc, GV *regs, U32 argc)
 {
 	guru_state *top = vm->state;
     guru_state *st  = (guru_state *)guru_alloc(sizeof(guru_state));
 
-    st->regs  = top->regs;			// pass register file
-    st->irep  = top->irep;
-    st->pc 	  = top->pc;
-    st->argc  = argc;				// allocate local stack
-    st->klass = top->klass;
-    st->prev  = top;
+    assert(regs->gt==GT_CLASS);	// just to make sure
 
-    vm->state = st;
+    st->klass = regs[0].cls;	// receiver class
+    st->irep  = irep;
+    st->pc    = pc;
+    st->regs  = regs;
+    st->argc  = argc;			// allocate local stack
+
+    st->prev  = top;			// push into context stack
+    vm->state = st;				// TODO: use array-based stack
 }
 
 //================================================================
@@ -45,13 +49,15 @@ vm_state_push(guru_vm *vm, U32 argc)
 
 */
 __GURU__ void
-vm_state_pop(guru_vm *vm, GV *regs)
+vm_state_pop(guru_vm *vm, GV *ret_val)
 {
-    guru_state *st = vm->state;
-    
+    guru_state 	*st   = vm->state;
+    GV 			*regs = st->regs;
+
+    regs[0]   = *ret_val;					// put return value on top of stack
     vm->state = st->prev;
     
-    GV *p = regs+1;						// clear stacked arguments
+    GV *p = regs+1;							// clear stacked arguments
     for (U32 i=0; i < st->argc; i++) {
         ref_clr(p++);
     }
@@ -61,36 +67,40 @@ vm_state_pop(guru_vm *vm, GV *regs)
 __GURU__ void
 vm_proc_call(guru_vm *vm, GV v[], U32 argc)
 {
-	vm_state_push(vm, argc);			// check _funcall which is not used
+	assert(v[0].gt==GT_PROC);				// ensure it is a proc
 
-	vm->state->pc   = 0;
-	vm->state->irep = v[0].proc->irep;	// switch into callee context
-	vm->state->regs = v;				// shift register file pointer (for local stack)
+	guru_irep *irep = v[0].proc->irep;
+
+	vm_state_push(vm, irep, 0, v, argc);	// switch into callee's context
 }
 
 // Object.new
 __GURU__ void
 vm_object_new(guru_vm *vm, GV v[], U32 argc)
 {
+	assert(v[0].gt==GT_CLASS);			// ensure it is a class object
+
     GV obj = guru_store_new(v[0].cls, 0);
     //
     // build a temp IREP for calling "initialize"
     // TODO: make the image static
     //
-    const U32 iseq = sizeof(guru_irep);				// iseq   offset
-    const U32 sym  = iseq + 2 * sizeof(U32);		// symbol offset
-    const U32 stbl = iseq + 4 * sizeof(U32);		// symbol string table
+    const U32 sym  = sizeof(guru_irep);			// symbol offset
+    const U32 iseq = sym  + 2 * sizeof(U32);	// iseq   offset
+    const U32 stbl = iseq + 2 * sizeof(U32);	// symbol string table
     guru_irep irep[2] = {
         {
-            0,                  		// size (u32)
-            0, 0, 0, 2, 0, 0,   		// nlv, rreg, rlen, ilen, plen, slen (u16)
-            iseq, sym, 0, 0   			// iseq (u32), sym (u32), pool, list
+            0, 					// size						u32
+            0, 0, sym, iseq,	// reps, pool, sym, iseq	u32, u32, u32, u32
+            0,					// i  						u32
+            0, 0,				// c, p						u16, u16
+            2, 0, 0 			// s, nv, nr				u16, u8, u8
         },
         {
+        	stbl,														// symbol table
         	(MKOPCODE(OP_SEND)|MKARG_A(0)|MKARG_B(0)|MKARG_C(argc)),	// ISEQ block
-        	(MKOPCODE(OP_ABORT)) & 0xffff, (MKOPCODE(OP_ABORT)) >> 16,
-        	stbl & 0xffff, stbl >> 16, 	0xaaaa, 0xaaaa,					// symbol table
-        	0x74696e69, 0x696c6169, 0x0a00657a, 0xaaaaaaaa				// "initialize"
+        	(MKOPCODE(OP_ABORT)),
+        	0x74696e69, 0x696c6169, 0x0a00657a,	0						// "initialize"
         }
     };
 

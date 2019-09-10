@@ -26,18 +26,18 @@ extern "C" {
 */
 typedef struct RIrep {	// 32-byte
     U32	size;			// size of entire IREP block
-    U8  nv; 		  	//!< # of local variables
-    U8  nr;				//!< # of register used
-    U16 c;				//!< # of child IREP blocks (into list below)
-
-    U32 i;				//!< # of bytecodes (by iseq below)
-    U16 p;				//!< # of objects in pool (into pool below)
-    U16	s;				//!< # of symbols (into sym below)
 
     U32 reps;			//!< offset to array of child IREP's pointer.
     U32 pool; 			//!< offset to array of POOL objects pointer.
     U32	sym;			//!< offset to array of SYMBOLs
     U32 iseq;			//!< offset to ISEQ (code) BLOCK
+
+    U32 i;				//!< # of bytecodes (by iseq below)
+    U16 c;				//!< # of child IREP blocks (into list below)
+    U16 p;				//!< # of objects in pool (into pool below)
+    U16	s;				//!< # of symbols (into sym below)
+    U8  nv; 		  	//!< # of local variables
+    U8  nr;				//!< # of register used
 } guru_irep;
 
 //================================================================

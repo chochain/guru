@@ -333,7 +333,6 @@ _show_decoder(guru_vm *vm)
 		U32 rb = (code >> 14) & 0x1ff;
 		printf(" #%s", VM_SYM(vm, rb));
 	}
-	printf("\n");
 }
 
 __HOST__ cudaError_t
@@ -346,10 +345,11 @@ _vm_trace(U32 level)
 		if (vm->id > 0 && vm->run && vm->step) {
 			guru_state *st = vm->state;
 			while (st->prev) {
-				printf("%p <-- ", st);
+				printf("  ");
 				st = st->prev;
 			}
 			_show_decoder(vm);
+			printf("\n");
 		}
 	}
 	if (level>1) guru_dump_alloc_stat(level);
