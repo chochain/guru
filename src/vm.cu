@@ -327,7 +327,7 @@ _show_decoder(guru_vm *vm)
 	}
 	_show_regfile(vm, lvl);
 
-	if (op==OP_SEND) {								// display function name
+	if (op==OP_SEND || op==OP_SENDB) {				// display function name
 		U32 rb = (code >> 14) & 0x1ff;
 		printf(" #%s", VM_SYM(vm, rb));
 	}

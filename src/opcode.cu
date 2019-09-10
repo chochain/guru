@@ -39,10 +39,10 @@ __GURU__ U32 _mutex_op;
 //
 #define _ARG(r)         ((vm->ar->r))
 #define _R(r)			((vm)->state->regs[_ARG(r)])
-#define _RA(v)      	(regs[ra]=(v), 0)
-#define _RA_T(t, e) 	(regs[ra].gt=(t), regs[ra].e, 0)
-#define _RA_X(r)    	(ref_dec(&regs[ra]), regs[ra]=*(r), ref_inc(r), 0)
-#define _RA_T2(t,e)     (_R(a).gt=(t), _R(a).e, 0)
+#define _RA(v)      	(regs[ra]=(v))
+#define _RA_T(t, e) 	(regs[ra].gt=(t), regs[ra].e)
+#define _RA_X(r)    	(ref_dec(&regs[ra]), regs[ra]=*(r), ref_inc(r))
+#define _RA_T2(t,e)     (_R(a).gt=(t), _R(a).e)
 //================================================================
 /*!@brief
   Execute OP_NOP
@@ -504,10 +504,10 @@ op_send(guru_vm *vm)
 
     if (IS_CFUNC(m)) {
     	if (m->func==prc_call) {					// because VM is not passed to dispatcher,
-    		vm_proc_call(vm, obj, rc);				// special handling needed for call() and new()
+    		vm_proc_call(vm, regs+ra, rc);			// special handling needed for call() and new()
     	}
     	else if (m->func==obj_new) {
-        	vm_object_new(vm, obj, rc);
+        	vm_object_new(vm, regs+ra, rc);
         }
         else {
         	m->func(obj, rc);						// call the C-func
@@ -518,7 +518,7 @@ op_send(guru_vm *vm)
         }
     }
     else {											// m->func is a Ruby function (aka IREP)
-    	vm_state_push(vm, m->irep, 0, obj, rc);		// append callinfo list
+    	vm_state_push(vm, m->irep, regs+ra, rc);	// append callinfo list
     }
 }
 
@@ -537,7 +537,7 @@ op_call(guru_vm *vm)
 	GV *regs = vm->state->regs;
 	guru_irep *irep = regs[0].proc->irep;
 
-	vm_state_push(vm, irep, 0, regs, 0);
+	vm_state_push(vm, irep, regs, 0);
 }
 
 
@@ -631,24 +631,24 @@ op_add(guru_vm *vm)
     GV  *r1 = &regs[ra+1];
 
     if (r0->gt==GT_INT) {
-        if      (r1->gt==GT_INT) r0->i += r1->i;
+        if      (r1->gt==GT_INT) 	r0->i += r1->i;
 #if GURU_USE_FLOAT
         else if (r1->gt==GT_FLOAT) {	// in case of Fixnum, Float
             r0->gt = GT_FLOAT;
-            r0->f = r0->i + r1->f;
+            r0->f  = r0->i + r1->f;
         }
         else guru_na("Fixnum + ?");
     }
     else if (r0->gt==GT_FLOAT) {
-        if      (r1->gt==GT_INT) r0->f += r1->i;
-        else if (r1->gt==GT_FLOAT)	 r0->f += r1->f;
+        if      (r1->gt==GT_INT) 	r0->f += r1->i;
+        else if (r1->gt==GT_FLOAT)	r0->f += r1->f;
         else guru_na("Float + ?");
 #endif
     }
     else {    	// other case
     	op_send(vm);			// should have already released regs[ra + n], ...
     }
-    ref_clr(r1);
+    r1->gt = GT_EMPTY;
 }
 
 //================================================================
@@ -773,7 +773,7 @@ op_mul(guru_vm *vm)
         else guru_na("Fixnum * ?");
     }
     else if (r0->gt==GT_FLOAT) {
-        if      (r1->gt==GT_INT) r0->f *= r1->i;
+        if      (r1->gt==GT_INT) 	r0->f *= r1->i;
         else if (r1->gt==GT_FLOAT)  r0->f *= r1->f;
         else guru_na("Float * ?");
 #endif
@@ -813,7 +813,7 @@ op_div(guru_vm *vm)
     }
     else if (r0->gt==GT_FLOAT) {
         if      (r1->gt==GT_INT) 	r0->f /= r1->i;
-        else if (r1->gt==GT_FLOAT)		r0->f /= r1->f;
+        else if (r1->gt==GT_FLOAT)	r0->f /= r1->f;
         else guru_na("Float / ?");
 #endif
     }
@@ -899,7 +899,7 @@ op_lt(guru_vm *vm)
   @param  vm    A pointer of VM.
   @retval 0  	No error.
 */
-__GURU__ U32
+__GURU__ void
 op_le(guru_vm *vm)
 {
 	GV *regs = vm->state->regs;
@@ -1195,7 +1195,7 @@ op_exec(guru_vm *vm)
 
     guru_irep *irep = VM_REPS(vm, rb);
 
-    vm_state_push(vm, irep, 0, regs+ra, 0);		// push call stack
+    vm_state_push(vm, irep, regs+ra, 0);		// push call stack
 }
 
 //================================================================

@@ -26,16 +26,16 @@
 
 */
 __GURU__ void
-vm_state_push(guru_vm *vm, guru_irep *irep, U32 pc, GV *regs, U32 argc)
+vm_state_push(guru_vm *vm, guru_irep *irep, GV *regs, U32 argc)
 {
 	guru_state *top = vm->state;
     guru_state *st  = (guru_state *)guru_alloc(sizeof(guru_state));
 
-    assert(regs->gt==GT_CLASS);	// just to make sure
+    assert(regs[0].gt==GT_CLASS);	// just to make sure
 
     st->klass = regs[0].cls;	// receiver class
     st->irep  = irep;
-    st->pc    = pc;
+    st->pc    = 0;
     st->regs  = regs;
     st->argc  = argc;			// allocate local stack
 
@@ -66,14 +66,14 @@ vm_proc_call(guru_vm *vm, GV v[], U32 argc)
 
 	guru_irep *irep = v[0].proc->irep;
 
-	vm_state_push(vm, irep, 0, v, argc);	// switch into callee's context
+	vm_state_push(vm, irep, v, argc);		// switch into callee's context
 }
 
 // Object.new
 __GURU__ void
 vm_object_new(guru_vm *vm, GV v[], U32 argc)
 {
-	assert(v[0].gt==GT_CLASS);			// ensure it is a class object
+	assert(v[0].gt==GT_CLASS);	// ensure it is a class object
 
     GV obj = guru_store_new(v[0].cls, 0);
     //
@@ -105,25 +105,12 @@ vm_object_new(guru_vm *vm, GV v[], U32 argc)
 
     // context switch, which is not multi-thread ready
     // TODO: create a vm context object with separate regfile, i.e. explore _push_state/_pop_state
-    guru_state  *st = vm->state;
-
-    U16 pc0    = st->pc;
-    GV  *reg0  = st->regs;
-    guru_irep *irep0 = st->irep;
-
-    st->pc 	 = 0;
-    st->irep = irep;
-    st->regs = v;		   // new register file (shift for call stack)
-
-    // start a VM
-    // TODO: enter into a VM run queue (also a suspended queue)
-    do {
+    vm_state_push(vm, irep, v, 0);
+    do {					// execute the mini IREP
     	guru_op(vm);
-    } while (!vm->done);	// run til ABORT, or exception
-
-    st->pc 	 = pc0;
-    st->regs = reg0;
-    st->irep = irep0;
+    } while (!vm->done);
+    vm->done = 0;
+    vm_state_pop(vm, vm->state->regs[0]);
 
     RETURN_VAL(obj);
 }
