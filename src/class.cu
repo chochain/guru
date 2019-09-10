@@ -185,15 +185,15 @@ guru_define_method(guru_class *cls, const U8P name, guru_fptr cfunc)
 {
     if (cls==NULL) cls = guru_class_object;		// set default to Object.
 
-    guru_proc *proc = _alloc_proc(cls, name);
+    guru_proc *prc = _alloc_proc(cls, name);
 
     MUTEX_LOCK(_mutex_cls);
 
-    proc->func 	= cfunc;						// set function pointer
-    proc->next 	= cls->vtbl;					// add as the new list head
-    cls->vtbl 	= proc;
+    prc->func 	= cfunc;						// set function pointer
+    prc->next 	= cls->vtbl;					// add as the new list head
+    cls->vtbl 	= prc;
 
     MUTEX_FREE(_mutex_cls);
 
-    return proc;
+    return prc;
 }

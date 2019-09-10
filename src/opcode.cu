@@ -501,28 +501,28 @@ op_send(guru_vm *vm)
 	GV *regs = vm->state->regs;
 	U32 code = vm->bytecode;
     U32 ra = GETARG_A(code);
-    U32 rb = GETARG_B(code);  			// proc.sid
-    U32 rc = GETARG_C(code);  			// number of params
+    U32 rb = GETARG_B(code);  						// proc.sid
+    U32 rc = GETARG_C(code);  						// number of params
 
-    GV  *rcv = &regs[ra];				// message receiver object
-	GS  sid  = name2id(VM_SYM(vm, rb)); // function sid
+    GV  *obj = &regs[ra];							// message receiver object
+	GS  sid  = name2id(VM_SYM(vm, rb)); 			// function sid
 
-	guru_proc *m = (guru_proc *)proc_by_sid(rcv, sid);
+	guru_proc *m = (guru_proc *)proc_by_sid(obj, sid);
     if (m==0) {
     	U8P sym = VM_SYM(vm, rb);
-    	guru_na(sym);					// dump error, bail out
+    	guru_na(sym);								// dump error, bail out
     	return 0;
     }
 
     if (IS_CFUNC(m)) {
-    	if (m->func==prc_call) {		// because VM is not passed to dispatcher, special handling needed for call() and new()
-    		vm_proc_call(vm, regs+ra, rc);
+    	if (m->func==prc_call) {					// because VM is not passed to dispatcher,
+    		vm_proc_call(vm, obj, rc);				// special handling needed for call() and new()
     	}
     	else if (m->func==obj_new) {
-        	vm_object_new(vm, regs+ra, rc);
+        	vm_object_new(vm, obj, rc);
         }
         else {
-        	m->func(regs+ra, rc);					// call the C-func
+        	m->func(obj, rc);						// call the C-func
         }
         U32 bidx = ra + rc + 1;
         for (U32 i=ra+1; i<=bidx; i++) {			// wipe block parameters for stat dumper
@@ -530,12 +530,8 @@ op_send(guru_vm *vm)
         }
         if (bidx > vm->nreg) vm->nreg = bidx;		// track stack depth
     }
-    else {								// m->func is a Ruby function (aka IREP)
-    	vm_state_push(vm, rc);			// append callinfo list
-
-    	vm->state->irep = m->irep;		// call into target context
-    	vm->state->pc 	= 0;			// call into target context
-    	vm->state->regs += ra;			// add call stack (new register)
+    else {											// m->func is a Ruby function (aka IREP)
+    	vm_state_push(vm, m->irep, 0, obj, rc);		// append callinfo list
     }
     return 0;
 }
@@ -553,12 +549,9 @@ __GURU__ int
 op_call(guru_vm *vm)
 {
 	GV *regs = vm->state->regs;
-    vm_state_push(vm, 0);
+	guru_irep *irep = regs[0].proc->irep;
 
-    // jump to proc
-    vm->state->pc 	= 0;
-    vm->state->irep = regs[0].proc->irep;
-
+	vm_state_push(vm, irep, 0, regs, 0);
     return 0;
 }
 
@@ -602,15 +595,9 @@ op_return(guru_vm *vm)
 {
 	GV *regs = vm->state->regs;
 	U32 code = vm->bytecode;
-    // return value
-    U32 ra  = GETARG_A(code);
-    GV  ret = regs[ra];
+    U32 ra   = GETARG_A(code);
 
-    ref_clr(&regs[0]);
-    regs[0]     = ret;
-    regs[ra].gt = GT_EMPTY;
-
-    vm_state_pop(vm, regs);
+    vm_state_pop(vm, regs+ra);		// pass return value
 
     return 0;
 }
@@ -1172,22 +1159,20 @@ op_range(guru_vm *vm)
 __GURU__ int
 op_lambda(guru_vm *vm)
 {
-    guru_na("OP_LAMBDA");
-	return 0;							// no support for metaprogramming yet
-	/*
+	GV *regs = vm->state->regs;
+	U32 code = vm->bytecode;
     int ra = GETARG_A(code);
     int rb = GETARG_b(code);      		// sequence position in irep list
-    // int c = GETARG_C(code);    		// TODO: Add flags support for OP_LAMBDA
+    int rc = GETARG_C(code);    		// TODO: Add flags support for OP_LAMBDA
 
-    guru_proc *prc = (guru_proc *)guru_alloc_proc((U8P)"(lambda)");
+    guru_proc *prc = (guru_proc *)guru_alloc(sizeof(guru_proc));
 
-    prc->irep = vm_irep_list(vm, rb);
-    prc->flag &= ~GURU_CFUNC;           // Ruby IREP
+    prc->func = NULL;					// not a c-func (i.e. a Ruby func)
+    prc->irep = VM_REPS(vm, rb);		// fetch from children irep list
 
     _RA_T(GT_PROC, proc=prc);
 
     return 0;
-    */
 }
 
 //================================================================
@@ -1232,18 +1217,12 @@ op_exec(guru_vm *vm)
 	U32 code  = vm->bytecode;
 	GV  *regs = vm->state->regs;
 
-    U32 ra = GETARG_A(code);
-    U32 rb = GETARG_Bx(code);
+    U32 ra = GETARG_A(code);					// receiver
+    U32 rb = GETARG_Bx(code);					// irep pointer
 
-    GV rcv = regs[ra];									// receiver
+    guru_irep *irep = VM_REPS(vm, rb);
 
-    vm_state_push(vm, 0);								// push call stack
-
-    vm->state->irep  = VM_REPS(vm, rb);					// fetch designated irep
-    vm->state->pc 	 = 0;								// switch context to callee
-    vm->state->regs += ra;								// shift regfile (for local stack)
-    vm->state->klass = class_by_obj(&rcv);
-
+    vm_state_push(vm, irep, 0, regs+ra, 0);		// push call stack
     return 0;
 }
 
@@ -1266,20 +1245,21 @@ op_method(guru_vm *vm)
 
     assert(regs[ra].gt == GT_CLASS);		// enforce class checking
 
-    guru_class 	*cls  = regs[ra].cls;
-    GS			sid   = name2id(VM_SYM(vm, rb));
-    guru_proc 	*prc0 = proc_by_sid(&regs[ra], sid);
+    // check whether the name has been defined in the same class
+    guru_class 	*cls = regs[ra].cls;
+    GS			sid  = name2id(VM_SYM(vm, rb));
+    guru_proc 	*prc = proc_by_sid(&regs[ra], sid);
 
-    assert(prc0 == NULL);					// reject same name for now
+    assert(prc == NULL);					// reject same name for now
 
-    guru_proc 	*prc1 = regs[ra+1].proc;
+    prc = regs[ra+1].proc;					// setup the new proc
 
     MUTEX_LOCK(_mutex_op);
 
     // add proc to class
-    prc1->sid 	= sid;
-    prc1->next  = cls->vtbl;				// add to top of vtable
-    cls->vtbl   = prc1;
+    prc->sid  = sid;
+    prc->next = cls->vtbl;					// add to top of vtable
+    cls->vtbl = prc;
 
     MUTEX_FREE(_mutex_op);
 
