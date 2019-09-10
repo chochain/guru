@@ -34,7 +34,7 @@ __GURU__ GV   *ref_inc(GV *v);
 #define RETURN_FLOAT(n)	{ v->gt=GT_FLOAT; v->f=(GF)(n); return; }
 
 // macro to create new built-in objects
-#define GURU_NIL_NEW()	    ((guru_obj) {.gt = GT_NIL})
+#define GURU_NIL_NEW()	((guru_obj) {.gt = GT_NIL})
 
 #ifdef __GURU_CUDA__
 __GURU__ GI   		guru_atoi(U8P s, U32 base);
