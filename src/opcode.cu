@@ -52,10 +52,9 @@ __GURU__ U32 _mutex_op;
   @param  vm    A pointer of VM.
   @retval 0  	No error.
 */
-__GURU__ int
+__GURU__ void
 op_nop(guru_vm *vm)
 {
-    return 0;
 }
 
 //================================================================
@@ -67,7 +66,7 @@ op_nop(guru_vm *vm)
   @param  vm    A pointer of VM.
   @retval 0  	No error.
 */
-__GURU__ int
+__GURU__ void
 op_move(guru_vm *vm)
 {
 	GV *regs = vm->state->regs;
@@ -75,7 +74,7 @@ op_move(guru_vm *vm)
 	U32 ra = GETARG_A(code);
 	U32 rb = GETARG_B(code);
 
-    return _RA(regs[rb]);                  	// [ra] <= [rb]
+    _RA(regs[rb]);                  	// [ra] <= [rb]
 }
 
 //================================================================
@@ -87,7 +86,7 @@ op_move(guru_vm *vm)
   @param  vm    A pointer of VM.
   @retval 0  	No error.
 */
-__GURU__ int
+__GURU__ void
 op_loadl(guru_vm *vm)
 {
 	GV *regs = vm->state->regs;
@@ -105,7 +104,7 @@ op_loadl(guru_vm *vm)
     	obj.gt = GT_INT;
     	obj.i  = *p>>1;
     }
-    return _RA(obj);
+    _RA(obj);
 }
 
 //================================================================
@@ -117,12 +116,12 @@ op_loadl(guru_vm *vm)
   @param  vm    A pointer of VM.
   @retval 0  	No error.
 */
-__GURU__ int
+__GURU__ void
 op_loadi(guru_vm *vm)
 {
     GI rb = _ARG(bx) - MAXARG_sBx;		// sBx
 
-    return _RA_T2(GT_INT, i=rb);
+    _RA_T2(GT_INT, i=rb);
 }
 
 
@@ -135,7 +134,7 @@ op_loadi(guru_vm *vm)
   @param  vm    A pointer of VM.
   @retval 0  	No error.
 */
-__GURU__ int
+__GURU__ void
 op_loadsym(guru_vm *vm)
 {
 	GV *regs = vm->state->regs;
@@ -144,7 +143,7 @@ op_loadsym(guru_vm *vm)
     U32 rb  = GETARG_Bx(code);
     GS  sid = name2id(VM_SYM(vm, rb));
 
-    return _RA_T(GT_SYM, i=sid);
+    _RA_T(GT_SYM, i=sid);
 }
 
 //================================================================
@@ -156,14 +155,14 @@ op_loadsym(guru_vm *vm)
   @param  vm    A pointer of VM.
   @retval 0  	No error.
 */
-__GURU__ int
+__GURU__ void
 op_loadnil(guru_vm *vm)
 {
 	GV *regs = vm->state->regs;
 	U32 code = vm->bytecode;
     U32 ra = GETARG_A(code);
 
-    return _RA_T(GT_NIL, i=0);
+    _RA_T(GT_NIL, i=0);
 }
 
 //================================================================
@@ -175,14 +174,14 @@ op_loadnil(guru_vm *vm)
   @param  vm    A pointer of VM.
   @retval 0  	No error.
 */
-__GURU__ int
+__GURU__ void
 op_loadself(guru_vm *vm)
 {
 	GV *regs = vm->state->regs;
 	U32 code = vm->bytecode;
     U32 ra = GETARG_A(code);
 
-    return _RA(regs[0]);                   	// [ra] <= class
+    _RA(regs[0]);                   	// [ra] <= class
 }
 
 //================================================================
@@ -194,14 +193,14 @@ op_loadself(guru_vm *vm)
   @param  vm    A pointer of VM.
   @retval 0  	No error.
 */
-__GURU__ int
+__GURU__ void
 op_loadt(guru_vm *vm)
 {
 	GV *regs = vm->state->regs;
 	U32 code = vm->bytecode;
     U32 ra = GETARG_A(code);
 
-    return _RA_T(GT_TRUE, i=0);
+    _RA_T(GT_TRUE, i=0);
 }
 
 //================================================================
@@ -213,14 +212,14 @@ op_loadt(guru_vm *vm)
   @param  vm    A pointer of VM.
   @retval 0  	No error.
 */
-__GURU__ int
+__GURU__ void
 op_loadf(guru_vm *vm)
 {
 	GV *regs = vm->state->regs;
 	U32 code = vm->bytecode;
     U32 ra = GETARG_A(code);
 
-    return _RA_T(GT_FALSE, i=0);
+    _RA_T(GT_FALSE, i=0);
 }
 
 //================================================================
@@ -232,7 +231,7 @@ op_loadf(guru_vm *vm)
   @param  vm    A pointer of VM.
   @retval 0  	No error.
 */
-__GURU__ int
+__GURU__ void
 op_getglobal(guru_vm *vm)
 {
 	GV *regs = vm->state->regs;
@@ -243,7 +242,7 @@ op_getglobal(guru_vm *vm)
 
     guru_obj obj = global_object_get(sid);
 
-    return _RA(obj);
+    _RA(obj);
 }
 
 //================================================================
@@ -255,7 +254,7 @@ op_getglobal(guru_vm *vm)
   @param  vm    A pointer of VM.
   @retval 0  	No error.
 */
-__GURU__ int
+__GURU__ void
 op_setglobal(guru_vm *vm)
 {
 	GV *regs = vm->state->regs;
@@ -265,8 +264,6 @@ op_setglobal(guru_vm *vm)
     GS  sid = name2id(VM_SYM(vm, rb));
 
     global_object_add(sid, &regs[ra]);
-
-    return 0;
 }
 
 //================================================================
@@ -278,7 +275,7 @@ op_setglobal(guru_vm *vm)
   @param  vm    A pointer of VM.
   @retval 0  	No error.
 */
-__GURU__ int
+__GURU__ void
 op_getiv(guru_vm *vm)
 {
 	GV *regs = vm->state->regs;
@@ -290,7 +287,7 @@ op_getiv(guru_vm *vm)
     GS sid   = name2id(name+1);					// skip '@'
     GV ret   = guru_store_get(&regs[0], sid);
 
-    return _RA(ret);
+    _RA(ret);
 }
 
 //================================================================
@@ -302,7 +299,7 @@ op_getiv(guru_vm *vm)
   @param  vm    A pointer of VM.
   @retval 0  	No error.
 */
-__GURU__ int
+__GURU__ void
 op_setiv(guru_vm *vm)
 {
 	GV *regs = vm->state->regs;
@@ -314,8 +311,6 @@ op_setiv(guru_vm *vm)
     GS  sid  = name2id(name+1);			// skip '@'
 
     guru_store_set(&regs[0], sid, &regs[ra]);
-
-    return 0;
 }
 
 //================================================================
@@ -327,7 +322,7 @@ op_setiv(guru_vm *vm)
   @param  vm    A pointer of VM.
   @retval 0  	No error.
 */
-__GURU__ int
+__GURU__ void
 op_getconst(guru_vm *vm)
 {
 	GV *regs = vm->state->regs;
@@ -338,7 +333,7 @@ op_getconst(guru_vm *vm)
 
     guru_obj obj = const_object_get(sid);
 
-    return _RA(obj);
+    _RA(obj);
 }
 
 //================================================================
@@ -350,7 +345,7 @@ op_getconst(guru_vm *vm)
   @param  vm    A pointer of VM.
   @retval 0  	No error.
 */
-__GURU__ int
+__GURU__ void
 op_setconst(guru_vm *vm) {
 	GV *regs = vm->state->regs;
 	U32 code = vm->bytecode;
@@ -359,8 +354,6 @@ op_setconst(guru_vm *vm) {
     GS  sid = name2id(VM_SYM(vm, rb));
 
     const_object_add(sid, &regs[ra]);
-
-    return 0;
 }
 
 //================================================================
@@ -372,7 +365,7 @@ op_setconst(guru_vm *vm) {
   @param  vm    A pointer of VM.
   @retval 0  	No error.
 */
-__GURU__ int
+__GURU__ void
 op_getupvar(guru_vm *vm)
 {
 	GV *regs = vm->state->regs;
@@ -390,7 +383,7 @@ op_getupvar(guru_vm *vm)
     }
     GV *uregs = st->regs;			// outer scope register file
 
-    return _RA(uregs[rb]);          // ra <= up[rb]
+    _RA(uregs[rb]);          // ra <= up[rb]
 }
 
 //================================================================
@@ -402,7 +395,7 @@ op_getupvar(guru_vm *vm)
   @param  vm    A pointer of VM.
   @retval 0  	No error.
 */
-__GURU__ int
+__GURU__ void
 op_setupvar(guru_vm *vm)
 {
 	GV *regs = vm->state->regs;
@@ -423,8 +416,6 @@ op_setupvar(guru_vm *vm)
     ref_clr(&uregs[rb]);
     uregs[rb] = regs[ra];                   // update outer-scope vars
     ref_inc(&regs[ra]);
-
-    return 0;
 }
 
 //================================================================
@@ -436,12 +427,11 @@ op_setupvar(guru_vm *vm)
   @param  vm    A pointer of VM.
   @retval 0  	No error.
 */
-__GURU__ int
+__GURU__ void
 op_jmp(guru_vm *vm)
 {
 	U32 code = vm->bytecode;
     vm->state->pc += GETARG_sBx(code) - 1;
-    return 0;
 }
 
 //================================================================
@@ -453,7 +443,7 @@ op_jmp(guru_vm *vm)
   @param  vm    A pointer of VM.
   @retval 0  	No error.
 */
-__GURU__ int
+__GURU__ void
 op_jmpif (guru_vm *vm)
 {
 	GV *regs = vm->state->regs;
@@ -461,7 +451,6 @@ op_jmpif (guru_vm *vm)
     if (regs[GETARG_A(code)].gt > GT_FALSE) {
         vm->state->pc += GETARG_sBx(code) - 1;
     }
-    return 0;
 }
 
 //================================================================
@@ -473,7 +462,7 @@ op_jmpif (guru_vm *vm)
   @param  vm    A pointer of VM.
   @retval 0  	No error.
 */
-__GURU__ int
+__GURU__ void
 op_jmpnot(guru_vm *vm)
 {
 	GV *regs = vm->state->regs;
@@ -481,7 +470,6 @@ op_jmpnot(guru_vm *vm)
     if (regs[GETARG_A(code)].gt <= GT_FALSE) {
         vm->state->pc += GETARG_sBx(code) - 1;
     }
-    return 0;
 }
 
 
@@ -495,7 +483,7 @@ op_jmpnot(guru_vm *vm)
   @param  vm    A pointer of VM.
   @retval 0  	No error.
 */
-__GURU__ int
+__GURU__ void
 op_send(guru_vm *vm)
 {
 	GV *regs = vm->state->regs;
@@ -511,7 +499,7 @@ op_send(guru_vm *vm)
     if (m==0) {
     	U8P sym = VM_SYM(vm, rb);
     	guru_na(sym);								// dump error, bail out
-    	return 0;
+    	return;
     }
 
     if (IS_CFUNC(m)) {
@@ -528,12 +516,10 @@ op_send(guru_vm *vm)
         for (U32 i=ra+1; i<=bidx; i++) {			// wipe block parameters for stat dumper
         	regs[i].gt = GT_EMPTY;
         }
-        if (bidx > vm->nreg) vm->nreg = bidx;		// track stack depth
     }
     else {											// m->func is a Ruby function (aka IREP)
     	vm_state_push(vm, m->irep, 0, obj, rc);		// append callinfo list
     }
-    return 0;
 }
 
 //================================================================
@@ -545,14 +531,13 @@ op_send(guru_vm *vm)
   @param  vm    A pointer of VM.
   @retval 0  	No error.
 */
-__GURU__ int
+__GURU__ void
 op_call(guru_vm *vm)
 {
 	GV *regs = vm->state->regs;
 	guru_irep *irep = regs[0].proc->irep;
 
 	vm_state_push(vm, irep, 0, regs, 0);
-    return 0;
 }
 
 
@@ -566,7 +551,7 @@ op_call(guru_vm *vm)
   @param  vm    A pointer of VM.
   @retval 0  	No error.
 */
-__GURU__ int
+__GURU__ void
 op_enter(guru_vm *vm)
 {
 	U32 code  = vm->bytecode;
@@ -578,7 +563,6 @@ op_enter(guru_vm *vm)
     if (arg0 > 0){
         vm->state->pc += vm->state->argc - argc;
     }
-    return 0;
 }
 
 //================================================================
@@ -590,16 +574,17 @@ op_enter(guru_vm *vm)
   @param  vm    A pointer of VM.
   @retval 0  	No error.
 */
-__GURU__ int
+__GURU__ void
 op_return(guru_vm *vm)
 {
 	GV *regs = vm->state->regs;
 	U32 code = vm->bytecode;
     U32 ra   = GETARG_A(code);
+    GV ret   = regs[ra];
 
-    vm_state_pop(vm, regs+ra);		// pass return value
+    regs[ra].gt = GT_EMPTY;		// wipe the stack for tracing display
 
-    return 0;
+    vm_state_pop(vm, ret);		// pass return value
 }
 
 //================================================================
@@ -611,7 +596,7 @@ op_return(guru_vm *vm)
   @param  vm    A pointer of VM.
   @retval 0  	No error.
 */
-__GURU__ int
+__GURU__ void
 op_blkpush(guru_vm *vm)
 {
 	GV *regs = vm->state->regs;
@@ -621,9 +606,10 @@ op_blkpush(guru_vm *vm)
     GV *stack = regs + 1;       	// call stack: push 1 GV
 
     if (stack[0].gt==GT_NIL){		// Check leak?
-        return vm->err = 255;  		// EYIELD
+        vm->err = 1;  				// EYIELD
+        return;
     }
-    return _RA(*stack);             // ra <= stack[0]
+    _RA(*stack);             		// ra <= stack[0]
 }
 
 //================================================================
@@ -635,7 +621,7 @@ op_blkpush(guru_vm *vm)
   @param  vm    A pointer of VM.
   @retval 0  	No error.
 */
-__GURU__ int
+__GURU__ void
 op_add(guru_vm *vm)
 {
 	GV *regs = vm->state->regs;
@@ -663,8 +649,6 @@ op_add(guru_vm *vm)
     	op_send(vm);			// should have already released regs[ra + n], ...
     }
     ref_clr(r1);
-
-    return 0;
 }
 
 //================================================================
@@ -676,7 +660,7 @@ op_add(guru_vm *vm)
   @param  vm    A pointer of VM.
   @retval 0  	No error.
 */
-__GURU__ int
+__GURU__ void
 op_addi(guru_vm *vm)
 {
 	GV *regs = vm->state->regs;
@@ -686,13 +670,12 @@ op_addi(guru_vm *vm)
 
     GV *r0 = &regs[ra];
 
-    if (r0->gt==GT_INT)     r0->i += rc;
+    if (r0->gt==GT_INT)     	r0->i += rc;
 #if GURU_USE_FLOAT
     else if (r0->gt==GT_FLOAT)	r0->f += rc;
 #else
     else guru_na("Float class");
 #endif
-    return 0;
 }
 
 //================================================================
@@ -704,7 +687,7 @@ op_addi(guru_vm *vm)
   @param  vm    A pointer of VM.
   @retval 0  	No error.
 */
-__GURU__ int
+__GURU__ void
 op_sub(guru_vm *vm)
 {
 	GV *regs = vm->state->regs;
@@ -725,7 +708,7 @@ op_sub(guru_vm *vm)
     }
     else if (r0->gt==GT_FLOAT) {
         if      (r1->gt==GT_INT)	r0->f -= r1->i;
-        else if (r1->gt==GT_FLOAT)		r0->f -= r1->f;
+        else if (r1->gt==GT_FLOAT)	r0->f -= r1->f;
         else guru_na("Float - ?");
 #endif
     }
@@ -733,7 +716,6 @@ op_sub(guru_vm *vm)
     	op_send(vm);
     }
     ref_clr(r1);
-	return 0;
 }
 
 //================================================================
@@ -745,7 +727,7 @@ op_sub(guru_vm *vm)
   @param  vm    A pointer of VM.
   @retval 0  	No error.
 */
-__GURU__ int
+__GURU__ void
 op_subi(guru_vm *vm)
 {
 	GV *regs = vm->state->regs;
@@ -755,13 +737,12 @@ op_subi(guru_vm *vm)
 
     GV *r0 = &regs[ra];
 
-    if (r0->gt==GT_INT) 	r0->i -= rc;
+    if (r0->gt==GT_INT) 		r0->i -= rc;
 #if GURU_USE_FLOAT
-    else if (r0->gt==GT_FLOAT) r0->f -= rc;
+    else if (r0->gt==GT_FLOAT) 	r0->f -= rc;
 #else
     else guru_na("Float class");
 #endif
-    return 0;
 }
 
 //================================================================
@@ -773,7 +754,7 @@ op_subi(guru_vm *vm)
   @param  vm    A pointer of VM.
   @retval 0  	No error.
 */
-__GURU__ int
+__GURU__ void
 op_mul(guru_vm *vm)
 {
 	GV *regs = vm->state->regs;
@@ -801,7 +782,6 @@ op_mul(guru_vm *vm)
     	op_send(vm);
     }
     ref_clr(r1);
-    return 0;
 }
 
 //================================================================
@@ -813,7 +793,7 @@ op_mul(guru_vm *vm)
   @param  vm    A pointer of VM.
   @retval 0  	No error.
 */
-__GURU__ int
+__GURU__ void
 op_div(guru_vm *vm)
 {
 	GV *regs = vm->state->regs;
@@ -841,7 +821,6 @@ op_div(guru_vm *vm)
     	op_send(vm);
     }
     ref_clr(r1);
-    return 0;
 }
 
 //================================================================
@@ -853,7 +832,7 @@ op_div(guru_vm *vm)
   @param  vm    A pointer of VM.
   @retval 0  	No error.
 */
-__GURU__ int
+__GURU__ void
 op_eq(guru_vm *vm)
 {
 	GV *regs = vm->state->regs;
@@ -862,7 +841,7 @@ op_eq(guru_vm *vm)
     GT  tt = GT_BOOL(guru_cmp(&regs[ra], &regs[ra+1])==0);
 
     regs[ra+1].gt = GT_EMPTY;
-    return _RA_T(tt, i=0);
+    _RA_T(tt, i=0);
 }
 
 // macro for comparators
@@ -899,7 +878,7 @@ do {													\
   @param  vm    A pointer of VM.
   @retval 0  	No error.
 */
-__GURU__ int
+__GURU__ void
 op_lt(guru_vm *vm)
 {
 	GV *regs = vm->state->regs;
@@ -909,7 +888,6 @@ op_lt(guru_vm *vm)
 	ncmp(&regs[ra], <, &regs[ra+1]);
 
     regs[ra+1].gt = GT_EMPTY;
-    return 0;
 }
 
 //================================================================
@@ -931,7 +909,6 @@ op_le(guru_vm *vm)
     ncmp(&regs[ra], <=, &regs[ra+1]);
 
     regs[ra+1].gt = GT_EMPTY;
-    return 0;
 }
 
 //================================================================
@@ -943,7 +920,7 @@ op_le(guru_vm *vm)
   @param  vm    A pointer of VM.
   @retval 0  	No error.
 */
-__GURU__ int
+__GURU__ void
 op_gt(guru_vm *vm)
 {
 	GV *regs = vm->state->regs;
@@ -953,7 +930,6 @@ op_gt(guru_vm *vm)
     ncmp(&regs[ra], >, &regs[ra+1]);
 
     regs[ra+1].gt = GT_EMPTY;
-    return 0;
 }
 
 //================================================================
@@ -965,7 +941,7 @@ op_gt(guru_vm *vm)
   @param  vm    A pointer of VM.
   @retval 0  	No error.
 */
-__GURU__ int
+__GURU__ void
 op_ge(guru_vm *vm)
 {
 	GV *regs = vm->state->regs;
@@ -976,7 +952,6 @@ op_ge(guru_vm *vm)
     ncmp(&regs[ra], >=, &regs[ra+1]);
 
     regs[ra+1].gt = GT_EMPTY;
-    return 0;
 }
 
 //================================================================
@@ -988,7 +963,7 @@ op_ge(guru_vm *vm)
   @param  vm    A pointer of VM.
   @retval 0  	No error.
 */
-__GURU__ int
+__GURU__ void
 op_string(guru_vm *vm)
 {
 #if GURU_USE_STRING
@@ -1001,7 +976,7 @@ op_string(guru_vm *vm)
     U8  *str = (U8 *)VM_VAR(vm, rb);			// string pool var
     GV  ret  = guru_str_new(str);				// rc set to 1 already
 
-    return _RA(ret);
+    _RA(ret);
 #else
     guru_na("String class");
 #endif
@@ -1016,7 +991,7 @@ op_string(guru_vm *vm)
   @param  vm    A pointer of VM.
   @retval 0  	No error.
 */
-__GURU__ int
+__GURU__ void
 op_strcat(guru_vm *vm)
 {
 #if GURU_USE_STRING
@@ -1038,7 +1013,7 @@ op_strcat(guru_vm *vm)
 
     GV ret = guru_str_add(va, vb);
 
-    return _RA(ret);
+    _RA(ret);
 
 #else
     guru_na("String class");
@@ -1054,7 +1029,7 @@ op_strcat(guru_vm *vm)
   @param  vm    A pointer of VM.
   @retval 0  	No error.
 */
-__GURU__ int
+__GURU__ void
 op_array(guru_vm *vm)
 {
 #if GURU_USE_ARRAY
@@ -1073,7 +1048,7 @@ op_array(guru_vm *vm)
 	for (U32 i=0; i<(n); i++, ref_inc(s), *d++=*s, s->gt=GT_EMPTY, s++);
     h->n = n;
 
-    return _RA(ret);					// no need to ref_inc
+    _RA(ret);					// no need to ref_inc
 #else
     guru_na("Array class");
 #endif
@@ -1088,7 +1063,7 @@ op_array(guru_vm *vm)
   @param  vm    A pointer of VM.
   @retval 0  	No error.
 */
-__GURU__ int
+__GURU__ void
 op_hash(guru_vm *vm)
 {
 #if GURU_USE_ARRAY
@@ -1109,7 +1084,7 @@ op_hash(guru_vm *vm)
     for (U32 i=0; i<(h->n=(n<<1)); i++, p++) {
     	p->gt = GT_EMPTY;								// clean up call stack
     }
-    return _RA(ret);						          	// set return value on stack top
+    _RA(ret);						          	// set return value on stack top
 #else
     guru_na("Hash class");
 #endif
@@ -1124,7 +1099,7 @@ op_hash(guru_vm *vm)
   @param  vm    A pointer of VM.
   @retval 0  	No error.
 */
-__GURU__ int
+__GURU__ void
 op_range(guru_vm *vm)
 {
 #if GURU_USE_ARRAY
@@ -1140,7 +1115,7 @@ op_range(guru_vm *vm)
     ref_inc(pb+1);
     GV ret = guru_range_new(pb, pb+1, n);
 
-    return _RA(ret);						// release and  reassign
+    _RA(ret);						// release and  reassign
 
 #else
     guru_na("Range class");
@@ -1156,7 +1131,7 @@ op_range(guru_vm *vm)
   @param  vm    A pointer of VM.
   @retval 0  	No error.
 */
-__GURU__ int
+__GURU__ void
 op_lambda(guru_vm *vm)
 {
 	GV *regs = vm->state->regs;
@@ -1171,8 +1146,6 @@ op_lambda(guru_vm *vm)
     prc->irep = VM_REPS(vm, rb);		// fetch from children irep list
 
     _RA_T(GT_PROC, proc=prc);
-
-    return 0;
 }
 
 //================================================================
@@ -1186,7 +1159,7 @@ op_lambda(guru_vm *vm)
   @param  vm    A pointer of VM.
   @retval 0  	No error.
 */
-__GURU__ int
+__GURU__ void
 op_class(guru_vm *vm)
 {
 	GV *regs = vm->state->regs;
@@ -1199,7 +1172,7 @@ op_class(guru_vm *vm)
     const U8P  name   = VM_SYM(vm, rb);
     guru_class *cls   = guru_define_class(name, super);
 
-    return _RA_T(GT_CLASS, cls=cls);
+    _RA_T(GT_CLASS, cls=cls);
 }
 
 //================================================================
@@ -1211,7 +1184,7 @@ op_class(guru_vm *vm)
   @param  vm    A pointer of VM.
   @retval 0  	No error.
 */
-__GURU__ int
+__GURU__ void
 op_exec(guru_vm *vm)
 {
 	U32 code  = vm->bytecode;
@@ -1223,7 +1196,6 @@ op_exec(guru_vm *vm)
     guru_irep *irep = VM_REPS(vm, rb);
 
     vm_state_push(vm, irep, 0, regs+ra, 0);		// push call stack
-    return 0;
 }
 
 //================================================================
@@ -1235,7 +1207,7 @@ op_exec(guru_vm *vm)
   @param  vm    A pointer of VM.
   @retval 0  	No error.
 */
-__GURU__ int
+__GURU__ void
 op_method(guru_vm *vm)
 {
 	GV  *regs = vm->state->regs;
@@ -1264,8 +1236,6 @@ op_method(guru_vm *vm)
     MUTEX_FREE(_mutex_op);
 
     regs[ra+1].gt = GT_EMPTY;
-
-    return 0;
 }
 
 //================================================================
@@ -1277,14 +1247,14 @@ op_method(guru_vm *vm)
   @param  vm    A pointer of VM.
   @retval 0  	No error.
 */
-__GURU__ int
+__GURU__ void
 op_tclass(guru_vm *vm)
 {
 	U32 code  = vm->bytecode;
 	GV  *regs = vm->state->regs;
 	U32 ra = GETARG_A(code);
 
-	return _RA_T(GT_CLASS, cls=vm->state->klass);
+	_RA_T(GT_CLASS, cls=vm->state->klass);
 }
 
 //================================================================
@@ -1297,98 +1267,96 @@ op_tclass(guru_vm *vm)
   @param  vm    A pointer of VM.
   @retval -1  No error and exit from vm.
 */
-__GURU__ int
+__GURU__ void
 op_stop(guru_vm *vm)
 {
-	vm->run = 0;
-    return -1;		// exit guru_op loop
+	vm->run  = 0;	// VM stop running
+	vm->done = 1;	// exit guru_op loop
 }
 
-__GURU__ int
+__GURU__ void
 op_abort(guru_vm *vm)
 {
-	return -1;		// exit guru_op loop
+	vm->done = 1;	// exit guru_op loop
 }
 
 //===========================================================================================
 // GURU engine
 //===========================================================================================
-__GURU__ int
+__GURU__ void
 guru_op(guru_vm *vm)
 {
-	if (threadIdx.x != 0) return 0;	// TODO: multi-thread [run|suspend] queues
+	if (threadIdx.x != 0) return;	// TODO: multi-thread [run|suspend] queues
 
 	//=======================================================================================
 	// GURU dispatcher unit
 	//=======================================================================================
-	int ret;
     switch (vm->op) {
     // LOAD,STORE
-    case OP_LOADL:      ret = op_loadl     (vm); break;
-    case OP_LOADI:      ret = op_loadi     (vm); break;
-    case OP_LOADSYM:    ret = op_loadsym   (vm); break;
-    case OP_LOADNIL:    ret = op_loadnil   (vm); break;
-    case OP_LOADSELF:   ret = op_loadself  (vm); break;
-    case OP_LOADT:      ret = op_loadt     (vm); break;
-    case OP_LOADF:      ret = op_loadf     (vm); break;
+    case OP_LOADL:      op_loadl     (vm); break;
+    case OP_LOADI:      op_loadi     (vm); break;
+    case OP_LOADSYM:    op_loadsym   (vm); break;
+    case OP_LOADNIL:    op_loadnil   (vm); break;
+    case OP_LOADSELF:   op_loadself  (vm); break;
+    case OP_LOADT:      op_loadt     (vm); break;
+    case OP_LOADF:      op_loadf     (vm); break;
     // VARIABLES
-    case OP_GETGLOBAL:  ret = op_getglobal (vm); break;
-    case OP_SETGLOBAL:  ret = op_setglobal (vm); break;
-    case OP_GETIV:      ret = op_getiv     (vm); break;
-    case OP_SETIV:      ret = op_setiv     (vm); break;
-    case OP_GETCONST:   ret = op_getconst  (vm); break;
-    case OP_SETCONST:   ret = op_setconst  (vm); break;
-    case OP_GETUPVAR:   ret = op_getupvar  (vm); break;
-    case OP_SETUPVAR:   ret = op_setupvar  (vm); break;
+    case OP_GETGLOBAL:  op_getglobal (vm); break;
+    case OP_SETGLOBAL:  op_setglobal (vm); break;
+    case OP_GETIV:      op_getiv     (vm); break;
+    case OP_SETIV:      op_setiv     (vm); break;
+    case OP_GETCONST:   op_getconst  (vm); break;
+    case OP_SETCONST:   op_setconst  (vm); break;
+    case OP_GETUPVAR:   op_getupvar  (vm); break;
+    case OP_SETUPVAR:   op_setupvar  (vm); break;
     // BRANCH
-    case OP_JMP:        ret = op_jmp       (vm); break;
-    case OP_JMPIF:      ret = op_jmpif     (vm); break;
-    case OP_JMPNOT:     ret = op_jmpnot    (vm); break;
+    case OP_JMP:        op_jmp       (vm); break;
+    case OP_JMPIF:      op_jmpif     (vm); break;
+    case OP_JMPNOT:     op_jmpnot    (vm); break;
     // CALL
-    case OP_SEND:       ret = op_send      (vm); break;
-    case OP_SENDB:      ret = op_send      (vm); break;  // reuse
-    case OP_CALL:       ret = op_call      (vm); break;
-    case OP_ENTER:      ret = op_enter     (vm); break;
-    case OP_RETURN:     ret = op_return    (vm); break;
-    case OP_BLKPUSH:    ret = op_blkpush   (vm); break;
+    case OP_SEND:       op_send      (vm); break;
+    case OP_SENDB:      op_send      (vm); break;  // reuse
+    case OP_CALL:       op_call      (vm); break;
+    case OP_ENTER:      op_enter     (vm); break;
+    case OP_RETURN:     op_return    (vm); break;
+    case OP_BLKPUSH:    op_blkpush   (vm); break;
     // ALU
-    case OP_MOVE:       ret = op_move      (vm); break;
-    case OP_ADD:        ret = op_add       (vm); break;
-    case OP_ADDI:       ret = op_addi      (vm); break;
-    case OP_SUB:        ret = op_sub       (vm); break;
-    case OP_SUBI:       ret = op_subi      (vm); break;
-    case OP_MUL:        ret = op_mul       (vm); break;
-    case OP_DIV:        ret = op_div       (vm); break;
-    case OP_EQ:         ret = op_eq        (vm); break;
-    case OP_LT:         ret = op_lt        (vm); break;
-    case OP_LE:         ret = op_le        (vm); break;
-    case OP_GT:         ret = op_gt        (vm); break;
-    case OP_GE:         ret = op_ge        (vm); break;
+    case OP_MOVE:       op_move      (vm); break;
+    case OP_ADD:        op_add       (vm); break;
+    case OP_ADDI:       op_addi      (vm); break;
+    case OP_SUB:        op_sub       (vm); break;
+    case OP_SUBI:       op_subi      (vm); break;
+    case OP_MUL:        op_mul       (vm); break;
+    case OP_DIV:        op_div       (vm); break;
+    case OP_EQ:         op_eq        (vm); break;
+    case OP_LT:         op_lt        (vm); break;
+    case OP_LE:         op_le        (vm); break;
+    case OP_GT:         op_gt        (vm); break;
+    case OP_GE:         op_ge        (vm); break;
     // BUILT-IN class (TODO: tensor)
 #if GURU_USE_STRING
-    case OP_STRING:     ret = op_string    (vm); break;
-    case OP_STRCAT:     ret = op_strcat    (vm); break;
+    case OP_STRING:     op_string    (vm); break;
+    case OP_STRCAT:     op_strcat    (vm); break;
 #endif
 #if GURU_USE_ARRAY
-    case OP_ARRAY:      ret = op_array     (vm); break;
-    case OP_HASH:       ret = op_hash      (vm); break;
-    case OP_RANGE:      ret = op_range     (vm); break;
+    case OP_ARRAY:      op_array     (vm); break;
+    case OP_HASH:       op_hash      (vm); break;
+    case OP_RANGE:      op_range     (vm); break;
 #endif
     // CLASS, PROC (STACK ops)
-    case OP_LAMBDA:     ret = op_lambda    (vm); break;
-    case OP_CLASS:      ret = op_class     (vm); break;
-    case OP_EXEC:       ret = op_exec      (vm); break;
-    case OP_METHOD:     ret = op_method    (vm); break;
-    case OP_TCLASS:     ret = op_tclass    (vm); break;
+    case OP_LAMBDA:     op_lambda    (vm); break;
+    case OP_CLASS:      op_class     (vm); break;
+    case OP_EXEC:       op_exec      (vm); break;
+    case OP_METHOD:     op_method    (vm); break;
+    case OP_TCLASS:     op_tclass    (vm); break;
     // CONTROL
-    case OP_STOP:       ret = op_stop      (vm); break;
-    case OP_ABORT:      ret = op_abort     (vm); break;  	// reuse
-    case OP_NOP:        ret = op_nop       (vm); break;
+    case OP_STOP:       op_stop      (vm); break;
+    case OP_ABORT:      op_abort     (vm); break;  	// reuse
+    case OP_NOP:        op_nop       (vm); break;
     default:
     	PRINTF("?OP=0x%04x\n", vm->op);
-    	ret = 0;
+    	vm->err = 1;
     	break;
     }
-    return ret;
 }
 

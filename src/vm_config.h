@@ -63,7 +63,7 @@
 
 #define __GURU_CUDA__
 #define GURU_DEBUG					1
-#define BLOCK_MEMORY_SIZE 			(8*1024)
+#define BLOCK_MEMORY_SIZE 			(16*1024)
 #define GURU_64BIT_ALIGN_REQUIRED 	1
 #endif
 

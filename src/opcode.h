@@ -168,7 +168,7 @@ enum OPCODE {
     OP_ABORT     = 0x50,  // using OP_ABORT inside mruby/c only
 };
 
-__GURU__ int guru_op(guru_vm *vm);
+__GURU__ void guru_op(guru_vm *vm);
 
 #ifdef __cplusplus
 }

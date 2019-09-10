@@ -122,15 +122,13 @@ _vm_exec(guru_vm *pool)
 	if (vm->id==0 || !vm->run) return;			// not allocated yet, or completed
 
 	// start up instruction and dispatcher unit
-	U32 ret;
 	do {
 		// add before_fetch hooks here
 		_vm_prefetch(vm);
 		// add before_exec hooks here
-		ret = guru_op(vm);
+		guru_op(vm);
 		// add after_exec hooks here
-		ret |= vm->step;						// single stepping?
-	} while (ret==0);
+	} while (!vm->step && !vm->done);
 	__syncthreads();							// sync all cooperating threads (to share data)
 }
 

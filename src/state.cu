@@ -49,18 +49,13 @@ vm_state_push(guru_vm *vm, guru_irep *irep, U32 pc, GV *regs, U32 argc)
 
 */
 __GURU__ void
-vm_state_pop(guru_vm *vm, GV *ret_val)
+vm_state_pop(guru_vm *vm, GV ret_val)
 {
-    guru_state 	*st   = vm->state;
-    GV 			*regs = st->regs;
+    guru_state 	*st = vm->state;
 
-    regs[0]   = *ret_val;					// put return value on top of stack
-    vm->state = st->prev;
+    st->regs[0] = ret_val;
+    vm->state   = st->prev;
     
-    GV *p = regs+1;							// clear stacked arguments
-    for (U32 i=0; i < st->argc; i++) {
-        ref_clr(p++);
-    }
     guru_free(st);
 }
 
@@ -122,7 +117,9 @@ vm_object_new(guru_vm *vm, GV v[], U32 argc)
 
     // start a VM
     // TODO: enter into a VM run queue (also a suspended queue)
-    while (guru_op(vm)==0); // run til ABORT, or exception
+    do {
+    	guru_op(vm);
+    } while (!vm->done);	// run til ABORT, or exception
 
     st->pc 	 = pc0;
     st->regs = reg0;
