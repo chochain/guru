@@ -81,8 +81,8 @@ typedef struct {
 typedef struct VM {				// 24 + 32*reg bytes
     U32	id   : 13;				// allocation control (0 means free)
     U32	step : 1;				// for single-step debug level
-    U32	run  : 1;				// to exit vm loop
-    U32 done : 1;				//
+    U32	run  : 1;				// vm running, or suspended
+    U32 quit : 1;				// exit run queue
     U32	err	 : 8;				// error code/condition
     U32 op   : 8;				// cached opcode
 

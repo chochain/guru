@@ -408,14 +408,13 @@ op_setupvar(guru_vm *vm)
 
     U32 n = (rc+1) << 1;					// 2 per outer scope level
     while (n > 0){
-        st = st->prev;
+        st = st->prev;	CHECK_NULL(st);
         n--;
     }
-    GV *uregs = st->regs;
+    GV *uregs = st->regs;					// pointer to caller's register file
 
-    ref_clr(&uregs[rb]);
+    ref_dec(&uregs[rb]);
     uregs[rb] = regs[ra];                   // update outer-scope vars
-    ref_inc(&regs[ra]);
 }
 
 //================================================================
@@ -513,8 +512,9 @@ op_send(guru_vm *vm)
         	m->func(obj, rc);						// call the C-func
         }
         U32 bidx = ra + rc + 1;
-        for (U32 i=ra+1; i<=bidx; i++) {			// wipe block parameters for stat dumper
-        	regs[i].gt = GT_EMPTY;
+        for (U32 i=ra+1; i<=bidx; i++) {			// sweep block parameters
+        	ref_dec(&regs[i]);
+        	regs[i].gt = GT_EMPTY;					// clean up for stat dumper
         }
     }
     else {											// m->func is a Ruby function (aka IREP)
@@ -580,7 +580,7 @@ op_return(guru_vm *vm)
 	GV *regs = vm->state->regs;
 	U32 code = vm->bytecode;
     U32 ra   = GETARG_A(code);
-    GV ret   = regs[ra];
+    GV  ret  = regs[ra];
 
     regs[ra].gt = GT_EMPTY;		// wipe the stack for tracing display
 
@@ -589,7 +589,7 @@ op_return(guru_vm *vm)
 
 //================================================================
 /*!@brief
-  Execute OP_BLKPUSH
+  Execute OP_BLKPUSH (yield implementation)
 
   R(A) := block (16=6:1:5:4)
 
@@ -603,13 +603,11 @@ op_blkpush(guru_vm *vm)
 	U32 code = vm->bytecode;
     U32 ra = GETARG_A(code);
 
-    GV *stack = regs + 1;       	// call stack: push 1 GV
+    GV *stack = regs + 1;       			// use regs[1] as the class
 
-    if (stack[0].gt==GT_NIL){		// Check leak?
-        vm->err = 1;  				// EYIELD
-        return;
-    }
-    _RA(*stack);             		// ra <= stack[0]
+    assert(stack[0].gt==GT_PROC);			// ensure
+
+    _RA(*stack);             				// ra <= proc
 }
 
 //================================================================
@@ -1142,6 +1140,7 @@ op_lambda(guru_vm *vm)
 
     guru_proc *prc = (guru_proc *)guru_alloc(sizeof(guru_proc));
 
+    prc->sid  = 0xffffffff;				// will be filled by OP_METHOD
     prc->func = NULL;					// not a c-func (i.e. a Ruby func)
     prc->irep = VM_REPS(vm, rb);		// fetch from children irep list
 
@@ -1270,14 +1269,14 @@ op_tclass(guru_vm *vm)
 __GURU__ void
 op_stop(guru_vm *vm)
 {
-	vm->run  = 0;	// VM stop running
-	vm->done = 1;	// exit guru_op loop
+	vm->run  = 0;	// VM suspended
+	vm->quit = 1;	// exit guru_op loop
 }
 
 __GURU__ void
 op_abort(guru_vm *vm)
 {
-	vm->done = 1;	// exit guru_op loop
+	vm->quit = 1;	// exit guru_op loop
 }
 
 //===========================================================================================

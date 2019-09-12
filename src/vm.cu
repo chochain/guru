@@ -24,6 +24,7 @@
 #include "static.h"
 #include "opcode.h"
 #include "load.h"
+#include "state.h"
 #include "vmx.h"
 #include "vm.h"
 
@@ -52,18 +53,11 @@ _vm_begin(guru_vm *pool)
 	vm->regfile[0].gt  = GT_CLASS;				// regfile[0] is self
     vm->regfile[0].cls = guru_class_object;		// root class
 
-    guru_state *st = (guru_state *)guru_alloc(sizeof(guru_state));
-
-    st->pc 	  = 0;								// starting IP
-    st->klass = guru_class_object;				// target class
-    st->regs  = vm->regfile;					// point to reg[0]
-    st->irep  = vm->irep;						// root of irep tree
-    st->argc  = 0;
-    st->prev  = NULL;							// state linked-list (i.e. call stack)
-
-    vm->state = st;
+    vm->state = NULL;
     vm->run   = 1;
     vm->err   = 0;
+
+    vm_state_push(vm, vm->irep, vm->regfile, 0);
 }
 
 //================================================================
@@ -78,6 +72,8 @@ _vm_end(guru_vm *pool)
 	guru_vm *vm = pool+blockIdx.x;
 
 	if (threadIdx.x!=0 || vm->id==0) return;		// bail if vm not allocated
+
+	vm_state_pop(vm, GURU_NIL_NEW());
 
 #if !GURU_DEBUG
 	// clean up register file
@@ -128,7 +124,7 @@ _vm_exec(guru_vm *pool)
 		// add before_exec hooks here
 		guru_op(vm);
 		// add after_exec hooks here
-	} while (!vm->step && !vm->done);
+	} while (!vm->step && !vm->quit);
 	__syncthreads();							// sync all cooperating threads (to share data)
 }
 
