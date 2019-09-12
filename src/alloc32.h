@@ -44,24 +44,29 @@ typedef struct free_block {			// 4-bytes (+ 4 bytes free space)
 typedef struct used_block {			// 8-bytes
   U32 bsz  : 31;  					//!< block size, header included (max 2G)
   U32 free : 1;   					//!< flag of free block
-  U32 poff : 31;  					//!< positive offset of previous memory block
+  U32 psz  : 31;  					//!< prior adjacent memory block size
   U32 tail : 1;   					//!< flag of the tail block
 } used_block;
 
 typedef struct free_block {			// 16-bytes (i.e. mininum allocation per block)
   U32 bsz  : 31;  					//!< block size, header included (max 2G)
   U32 free : 1;   					//!< flag of free block
-  U32 poff : 31;  					//!< offset of previous physical block
+  U32 psz  : 31;  					//!< prior adjacent memory block size
   U32 tail : 1;   					//!< flag of the tail block
 
-  struct free_block 	*next;		// pointer to next free block
-  struct free_block 	*prev;		// pointer to previous free block
+  U32 next;							// offset to next free block
+  U32 prev;							// offset to previous free block
 } free_block;
 
-#define BLOCKHEAD(p) 	U8PSUB(p, sizeof(used_block))
-#define BLOCKDATA(b) 	U8PADD(b, sizeof(used_block))
+#define NEXTFREE(p)		((free_block*)((p)->next ? U8PADD((p), (p)->next) : NULL))
+#define PREVFREE(p)		((free_block*)((p)->prev ? U8PADD((p), (p)->prev) : NULL))
 
-#define L1_BITS     	25  		// 00000000 00000000 XXXXXXXX X0000000  // 16+8 levels
+#define BLKAFTER(p) 	U8PADD(p, p->bsz)						// following adjacent memory block
+#define BLKBEFORE(p) 	U8PSUB(p, p->psz)						// prior adjacent memory block
+#define BLKHEAD(p) 		U8PSUB(p, sizeof(used_block))
+#define BLKDATA(b) 		U8PADD(b, sizeof(used_block))
+
+#define L1_BITS     	25  		// 00000000 00000000 XXXXXXXX X0000000  // 16+9 levels
 #define L2_BITS     	3   		// 00000000 00000000 00000000 0XXX0000  // 8 entires
 #define MN_BITS			4			// 00000000 00000000 00000000 0000XXXX  // 16-bytes smallest blocksize
 #define L2_MASK 		((1<<L2_BITS)-1)
@@ -72,9 +77,6 @@ typedef struct free_block {			// 16-bytes (i.e. mininum allocation per block)
 #define L2(i) 			((i) & L2_MASK)
 #define MSB_BIT 		31                                      // 32-bit MMU
 #define FL_SLOTS		(L1_BITS * (1 << L2_BITS))				// slots for free_list pointers (25 * 8 entries)
-
-#define NEXT(p) 		U8PADD(p, p->bsz)						// size is the entire block
-#define PREV(p) 		U8PSUB(p, p->poff)						// positive offset to previous block
 
 #define L1_MAP(i)       (_l1_map)
 #define L2_MAP(i)       (_l2_map[L1(i)])
