@@ -39,9 +39,9 @@ __GURU__ U32 _mutex_op;
 //
 #define _ARG(r)         ((vm->ar->r))
 #define _R(r)			((vm)->state->regs[_ARG(r)])
-#define _RA(v)      	(regs[ra]=(v))
-#define _RA_T(t, e) 	(regs[ra].gt=(t), regs[ra].e)
+#define _RA(v)      	(ref_dec(&regs[ra]), regs[ra]=(v))
 #define _RA_X(r)    	(ref_dec(&regs[ra]), regs[ra]=*(r), ref_inc(r))
+#define _RA_T(t, e) 	(ref_dec(&regs[ra]), regs[ra].gt=(t), regs[ra].e)
 #define _RA_T2(t,e)     (_R(a).gt=(t), _R(a).e)
 //================================================================
 /*!@brief
@@ -74,7 +74,7 @@ op_move(guru_vm *vm)
 	U32 ra = GETARG_A(code);
 	U32 rb = GETARG_B(code);
 
-    _RA(regs[rb]);                  	// [ra] <= [rb]
+    _RA_X(&regs[rb]); 	                	// [ra] <= [rb]
 }
 
 //================================================================
@@ -582,6 +582,7 @@ op_return(guru_vm *vm)
     U32 ra   = GETARG_A(code);
     GV  ret  = regs[ra];
 
+    ref_dec(&regs[ra]);
     regs[ra].gt = GT_EMPTY;		// wipe the stack for tracing display
 
     vm_state_pop(vm, ret);		// pass return value
@@ -1009,8 +1010,10 @@ op_strcat(guru_vm *vm)
     if (pa) pa->func(va, 0);
     if (pb) pb->func(vb, 0);
 
-    GV ret = guru_str_add(va, vb);
+    GV ret = guru_str_add(va, vb);				// ref counts updated
 
+    ref_dec(va);								// free both strings
+    ref_dec(vb);
     _RA(ret);
 
 #else
@@ -1046,7 +1049,7 @@ op_array(guru_vm *vm)
 	for (U32 i=0; i<(n); i++, ref_inc(s), *d++=*s, s->gt=GT_EMPTY, s++);
     h->n = n;
 
-    _RA(ret);					// no need to ref_inc
+    _RA(ret);							// no need to ref_inc
 #else
     guru_na("Array class");
 #endif
@@ -1082,7 +1085,7 @@ op_hash(guru_vm *vm)
     for (U32 i=0; i<(h->n=(n<<1)); i++, p++) {
     	p->gt = GT_EMPTY;								// clean up call stack
     }
-    _RA(ret);						          	// set return value on stack top
+    _RA(ret);						          			// set return value on stack top
 #else
     guru_na("Hash class");
 #endif
@@ -1140,7 +1143,6 @@ op_lambda(guru_vm *vm)
 
     guru_proc *prc = (guru_proc *)guru_alloc(sizeof(guru_proc));
 
-    prc->sid  = 0xffffffff;				// will be filled by OP_METHOD
     prc->func = NULL;					// not a c-func (i.e. a Ruby func)
     prc->irep = VM_REPS(vm, rb);		// fetch from children irep list
 
@@ -1287,6 +1289,7 @@ guru_op(guru_vm *vm)
 {
 	if (threadIdx.x != 0) return;	// TODO: multi-thread [run|suspend] queues
 
+	guru_state *st = vm->state;		// capture pointer for memory debugging
 	//=======================================================================================
 	// GURU dispatcher unit
 	//=======================================================================================
