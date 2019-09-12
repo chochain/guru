@@ -98,27 +98,21 @@ _name2class(const U8P name)
 
 //================================================================
 /*!@brief
-  find method from
+  walk linked list to find method from vtbl of class (and super class if needs to)
 
   @param  vm
   @param  recv
   @param  sid
-  @return
+  @return proc pointer
 */
 __GURU__ guru_proc*
 proc_by_sid(GV *obj, GS sid)
 {
     guru_class *cls = class_by_obj(obj);
-
-    while (cls != 0) {
-        guru_proc *proc = cls->vtbl;
-        while (proc != 0) {					// walk the linked list
-            if (proc->sid == sid) {
-                return proc;
-            }
-            proc = proc->next;
-        }
-        cls = cls->super;					// search the super class
+    guru_proc  *p;
+    for (p=cls->vtbl; cls; cls=cls->super) {				// walk up class hierarchy
+        for (p=cls->vtbl; p && (p->sid != sid); p=p->next);	// walk thru class vtbl
+        if (p) return p;
     }
     return NULL;
 }
