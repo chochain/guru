@@ -73,7 +73,7 @@ _vm_end(guru_vm *pool)
 
 	if (threadIdx.x!=0 || vm->id==0) return;		// bail if vm not allocated
 
-	vm_state_pop(vm, GURU_NIL_NEW());
+	vm_state_pop(vm, vm->state->regs[0]);
 
 #if !GURU_DEBUG
 	// clean up register file
@@ -248,8 +248,8 @@ guru_vm_release(guru_ses *ses)
 #if GURU_DEBUG
 static const char *_vtype[] = {
 	"___","nil","f  ","t  ","num","flt","sym","cls",	// 0x0
-	"","","","","","","","",							// 0x8
-	"obj","prc","ary","str","rng","hsh"					// 0x10
+	"prc","","","","","","","",							// 0x8
+	"obj","ary","str","rng","hsh"					    // 0x10
 };
 
 static const char *_opcode[] = {

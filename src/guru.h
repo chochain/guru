@@ -78,16 +78,16 @@ typedef enum {
     GT_FLOAT,								// 0x5
     GT_SYM,									// 0x6
     GT_CLASS,								// 0x7
+    GT_PROC,								// 0x8
 
     GT_HAS_REF = 16,						// 0x10
 
     /* non-primitive */
     GT_OBJ = GT_HAS_REF,					// 0x10
-    GT_PROC,								// 0x11
-    GT_ARRAY,								// 0x12
-    GT_STR,									// 0x13
-    GT_RANGE,								// 0x14
-    GT_HASH,								// 0x15
+    GT_ARRAY,								// 0x11
+    GT_STR,									// 0x12
+    GT_RANGE,								// 0x13
+    GT_HASH,								// 0x14
 } GT;
 
 #define GT_BOOL(v)		((v) ? GT_TRUE : GT_FALSE)
