@@ -68,7 +68,7 @@ __GURU__ GV
 _blank(U32 len)
 {
     U32 asz= len+1;		asz += -asz & 7;	// size to allocate
-    GV  ret = { .gt = GT_STR };
+    GV  ret = { .gt=GT_STR, .rc=1 };		// some one referenced it
     /*
       Allocate handle and string buffer.
     */

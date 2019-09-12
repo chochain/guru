@@ -77,9 +77,9 @@ __idx(U32 sz, U32P l1, U32P l2)
   @param  blk	pointer to free block.
 */
 __GURU__ void
-__release(free_block *blk)
+__remove(free_block *blk)
 {
-	CHECK_NULL(blk->free);					// ensure block is free
+	assert(blk->free);						// ensure block is free
 
     if (blk->prev) {
         blk->prev->next = blk->next;		// down link
@@ -94,32 +94,34 @@ __release(free_block *blk)
     if ((_free_list[index]=blk->next)==NULL) {
     	CLEAR_MAP(index);					// mark as unallocated
     }
+    blk->next = NULL;
+    blk->tail = 1;
 }
 
 //================================================================
-/*! merge ptr1 and ptr2 block.
+/*! merge p0 and p1 adjacent free blocks.
   ptr2 will disappear
 
   @param  ptr1	pointer to free block 1
   @param  ptr2	pointer to free block 2
 */
-__GURU__ void
-__merge(free_block *p0, free_block *p1)
+__GURU__ free_block *
+__pack(free_block *p0, free_block *p1)
 {
-    assert(p0 < p1);
+	assert(!p0->free);					// try to be very careful here
+	assert((free_block*)NEXT(p0)==p1);
+	assert(p1->free);
 
-    // merge ptr1 and ptr2
-    p0->tail  = p1->tail;
-    p0->bsz  += p1->bsz;		// include the block header
+	__remove(p1);						// remove p1 from free_list
 
-    // update block info
-    if (!p0->tail) {
-        free_block *next = (free_block *)NEXT(p0);
-        next->poff = U8POFF(next, p0);
-    }
+	// merge p0 and p1
+    p0->bsz += p1->bsz;					// include the block header
+
 #if GURU_DEBUG
     *((U64*)p1) = 0xeeeeeeeeeeeeeeee;
 #endif
+
+    return p0;
 }
 
 __GURU__ free_block*
@@ -131,10 +133,7 @@ _merge_with_next(free_block *blk)
 
 	if (!next->free) return blk;
 
-	__release(next);
-	__merge(blk, next);
-
-	return blk;
+	return __pack(blk, next);
 }
 
 __GURU__ free_block*
@@ -142,12 +141,9 @@ _merge_with_prev(free_block *blk)
 {
 	free_block *prev = (free_block *)PREV(blk);
 
-	if (prev && prev->free) {			// merge with previous, needed?
-		__release(prev);
-		__merge(prev, blk);
-		blk = prev;
-	}
-	return blk;
+	if (!prev->free) return blk;
+
+	return _merge_with_next(prev);
 }
 
 //================================================================
@@ -178,23 +174,28 @@ _mark_free(free_block *blk)
     free_block *head = _free_list[index];
 
     blk->free = 1;
-    blk->next = head;					// setup linked list
+    blk->tail = head ? 0 : 1;
+    blk->next = head;						// setup linked list
     blk->prev = NULL;
     if (head) {								// non-end block, add backward link
     	head->prev = blk;
     }
-
     _free_list[index] = blk;				// new head of the linked list
 }
 
 __GURU__ free_block*
 _mark_used(U32 index)
 {
-    free_block *blk = _free_list[index];
+    free_block *blk  = _free_list[index];
+    assert(blk);
+    assert(blk->free);
 
-    CHECK_NULL(blk);
-
-    if (blk->next==NULL) {					// top of linked list
+    free_block *next = blk->next;
+    if (next) {									// next free block exists
+        _free_list[index] = next;				// take it out of free list
+    	next->prev = blk->prev;					// up link
+    }
+    else {
         U32 l1x= L1(index);
         U32 l2x= L2(index);
         U32 t1 = TIC(l1x);
@@ -211,11 +212,8 @@ _mark_used(U32 index)
         	_free_list[index] = NULL;
         }
     }
-    else {
-        _free_list[index] = blk->next;		// follow the linked list
-    	blk->next->prev = blk->prev;		// 20190819 CC: is this necessary?
-    }
     blk->free = 0;
+    blk->tail = 1;								// used block needs this
 
     return blk;
 }
@@ -228,7 +226,7 @@ _mark_used(U32 index)
   @retval index to available _free_list
 */
 __GURU__ S32
-_find_free_block(U32 sz)
+_find_free_index(U32 sz)
 {
 	U32 l1, l2;
     U32 index = __idx(sz, &l1, &l2);	// find free_list index by size
@@ -249,29 +247,30 @@ _find_free_block(U32 sz)
 }
 
 //================================================================
-/*! Split block by size
+/*! Split free block by size (before allocating)
 
   @param  blk	pointer to free block
   @param  size	storage size
 */
 __GURU__ void
-_split_free_block(free_block *blk, U32 bsz)
+_split(free_block *blk, U32 bsz)
 {
+	assert(!blk->free);
+
     if ((bsz + MIN_BLOCK) > blk->bsz) return;	 				// too small to split 											// too small to split
 
     // split block, free
     free_block *free = (free_block *)U8PADD(blk, bsz);			// future next block (i.e. alot bsz bytes)
-    free_block *next = (free_block *)NEXT(blk);					// current next
+    free_block *next = (free_block *)NEXT(blk);					// next adjacent block
 
     free->bsz  = blk->bsz - bsz;								// carve out the acquired block
     free->poff = U8POFF(free, blk);								// positive offset to previous block
-    free->tail = blk->tail;
-    free->free = 1;
 
-    if (!free->tail) {
-        next->poff = U8POFF(next, free);						// offset (positive)
+    if (!blk->tail) {
+        next->poff = U8POFF(next, free);						// backward offset (positive)
+        _merge_with_next(free);									// _combine if possible
     }
-    _mark_free(free);											// add to free_list
+    _mark_free(free);			// add to free_list and set (free, tail, next, prev) fields
 
     blk->bsz  = bsz;											// reduce size
     blk->tail = 0;
@@ -294,12 +293,9 @@ _init_mmu(void *mem, U32 size)
 
     // initialize entire memory pool as the first block
     free_block *blk  = (free_block *)_memory_pool;
-    blk->tail = 1;
-    blk->free = 1;
     blk->bsz  = _memory_pool_size;
-    blk->prev = 0;
 
-    _mark_free(blk);
+    _mark_free(blk);	// will set free, tail, next, prev
 }
 
 //================================================================
@@ -318,11 +314,10 @@ guru_alloc(U32 sz)
 
 	MUTEX_LOCK(_mutex_mem);
 
-	U32 index 		= _find_free_block(bsz);
-	free_block *blk = _mark_used(index);
+	U32 index 		= _find_free_index(bsz);
+	free_block *blk = _mark_used(index);		// take the indexed block off free list
 
-	_split_free_block(blk, bsz);				// allocate the block, free up the rest
-
+	_split(blk, bsz);							// allocate the block, free up the rest
 #if GURU_DEBUG
     U32P p = (U32P)BLOCKDATA(blk);				// point to raw space allocated
     for (U32 i=0; i < sz>>2; i++) *p++ = 0xaaaaaaaa;
@@ -348,14 +343,14 @@ guru_realloc(void *p0, U32 sz)
 	CHECK_ALIGN(bsz);
 
     used_block *blk = (used_block *)BLOCKHEAD(p0);
-    CHECK_NULL(!blk->free);									// make sure it is used
+    assert(!blk->free);										// make sure it is used
 
     if (bsz > blk->bsz) {
     	_merge_with_next((free_block *)blk);				// try to get the block bigger
     }
     if (bsz == blk->bsz) return p0;							// same size, good fit
     if (bsz < blk->bsz) {									// a little to big, split if we can
-        _split_free_block((free_block *)blk, bsz);			// keep only the first bsz bytes
+        _split((free_block *)blk, bsz);						// keep only the first bsz bytes
         return p0;
     }
 
@@ -376,12 +371,18 @@ guru_free(void *ptr)
 {
 	MUTEX_LOCK(_mutex_mem);
 
-    free_block *blk = (free_block *)BLOCKHEAD(ptr);	// get block header
+    free_block *blk = (free_block *)BLOCKHEAD(ptr);			// get block header
 
     blk = _merge_with_next(blk);
     blk = _merge_with_prev(blk);
 
     _mark_free(blk);
+
+#if GURU_DEBUG
+    U32 *p = (U32*)U8PADD(blk, sizeof(free_block));
+    U32 sz = (blk->bsz - sizeof(free_block))>>2;
+    for (U32 i=0; i< (sz>16 ? 16 : sz); i++) *p++=0xffffffff;
+#endif
 
     MUTEX_FREE(_mutex_mem);
 }

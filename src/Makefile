@@ -70,7 +70,7 @@ state.o: state.cu		vm_config.h guru.h symbol.h \
 						vm.h state.h
 
 vm.o: vm.cu             vm_config.h guru.h alloc.h value.h static.h store.h \
-						opcode.h vm.h load.h
+						opcode.h state.h vm.h load.h
 
 console.o: console.cu 	vm_config.h guru.h value.h console.h
 
