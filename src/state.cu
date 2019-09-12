@@ -31,9 +31,11 @@ vm_state_push(guru_vm *vm, guru_irep *irep, GV *regs, U32 argc)
 	guru_state *top = vm->state;
     guru_state *st  = (guru_state *)guru_alloc(sizeof(guru_state));
 
-    assert(regs[0].gt==GT_CLASS);	// just to make sure
-
-    st->klass = regs[0].cls;	// receiver class
+    switch(regs[0].gt) {
+    case GT_CLASS: st->klass = regs[0].cls;			break;
+    case GT_PROC:  st->klass = top->regs[0].cls; 	break;
+    default: CHECK_NULL(NULL);
+    }
     st->irep  = irep;
     st->pc    = 0;
     st->regs  = regs;
@@ -99,17 +101,15 @@ vm_object_new(guru_vm *vm, GV v[], U32 argc)
         }
     };
 
-    ref_clr(&v[0]);
     v[0] = obj;
-    ref_inc(&obj);
 
     // context switch, which is not multi-thread ready
     // TODO: create a vm context object with separate regfile, i.e. explore _push_state/_pop_state
     vm_state_push(vm, irep, v, 0);
     do {					// execute the mini IREP
     	guru_op(vm);
-    } while (!vm->done);
-    vm->done = 0;
+    } while (!vm->quit);
+    vm->quit = 0;
     vm_state_pop(vm, vm->state->regs[0]);
 
     RETURN_VAL(obj);
