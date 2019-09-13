@@ -55,8 +55,9 @@ vm_state_pop(guru_vm *vm, GV ret_val)
 {
     guru_state 	*st = vm->state;
 
-    st->regs[0] = ret_val;
-    vm->state   = st->prev;
+    st->regs[1]    = ret_val;
+    st->regs[2].gt = GT_EMPTY;
+    vm->state      = st->prev;
     
     guru_free(st);
 }
@@ -110,7 +111,7 @@ vm_object_new(guru_vm *vm, GV v[], U32 argc)
     	guru_op(vm);
     } while (!vm->quit);
     vm->quit = 0;
-    vm_state_pop(vm, vm->state->regs[0]);
+    vm_state_pop(vm, vm->state->regs[1]);
 
     RETURN_VAL(obj);
 }
