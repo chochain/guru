@@ -379,7 +379,7 @@ str_to_i(GV v[], U32 argc)
 __GURU__ void
 str_to_s(GV v[], U32 argc)
 {
-	// do nothing
+	ref_inc(&v[0]);							// same string, one more ref
 }
 
 #if GURU_USE_FLOAT

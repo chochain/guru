@@ -1014,7 +1014,9 @@ op_strcat(guru_vm *vm)
 
     ref_dec(va);								// free both strings
     ref_dec(vb);
-    _RA(ret);
+    vb->gt = GT_EMPTY;
+
+    _RA_X(&ret);
 
 #else
     guru_na("String class");
