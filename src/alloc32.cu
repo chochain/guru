@@ -265,22 +265,22 @@ _split(free_block *blk, U32 bsz)
 {
 	assert(IS_USED(blk));
 
-    if ((bsz + MIN_BLOCK) > blk->bsz) return;	 				// too small to split 											// too small to split
+    if ((bsz + MIN_BLOCK) > blk->bsz) return;	 		// too small to split 											// too small to split
 
     // split block, free
-    free_block *free = (free_block *)U8PADD(blk, bsz);			// future next block (i.e. alot bsz bytes)
-    free_block *aft  = (free_block *)BLK_AFTER(blk);			// next adjacent block
+    free_block *free = (free_block *)U8PADD(blk, bsz);	// future next block (i.e. alot bsz bytes)
+    free_block *aft  = (free_block *)BLK_AFTER(blk);	// next adjacent block
 
-    free->bsz = blk->bsz - bsz;									// carve out the acquired block
-    free->psz = U8POFF(free, blk);								// positive offset to previous block
+    free->bsz = blk->bsz - bsz;							// carve out the acquired block
+    free->psz = U8POFF(free, blk);						// positive offset to previous block
 
     if (aft) {
-        aft->psz = U8POFF(aft, free);							// backward offset (positive)
-        _merge_with_next(free);									// _combine if possible
+        aft->psz = U8POFF(aft, free);					// backward offset (positive)
+        _merge_with_next(free);							// _combine if possible
     }
     _mark_free(free);			// add to free_list and set (free, tail, next, prev) fields
 
-    blk->bsz  = bsz;											// reduce size
+    blk->bsz  = bsz;									// reduce size
 }
 
 //================================================================

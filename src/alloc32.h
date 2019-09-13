@@ -43,30 +43,34 @@ typedef struct free_block {			// 4-bytes (+ 4 bytes free space)
 */
 typedef struct used_block {			// 8-bytes
 	U32 bsz : 	32; 				//!< block size, header included (max 2G)
-	U32 psz	:   31;  				//!< prior adjacent memory block size
-	U32 free: 	1;					// lower 4 bit might be used
+	union {
+		U32 psz	:   32;  			//!< prior adjacent memory block size
+		U32 flag: 	3;				// lower 4 bit might be used
+	};
 } used_block;
 
 typedef struct free_block {			// 16-bytes (i.e. mininum allocation per block)
 	U32 bsz : 	32; 				//!< block size, header included (max 2G)
-	U32 psz	:   31;  				//!< prior adjacent memory block size
-	U32 free: 	1;					// lower 4 bit might be used
+	union {
+		U32 psz	:   32;  			//!< prior adjacent memory block size
+		U32 flag: 	3;				// lower 4 bit might be used
+	};
 
 	S32 next;						// offset to next free block
 	S32 prev;						// offset to previous free block
 } free_block;
 
 #define FREE_FLAG		0x1
-#define IS_FREE(b)		((b)->free)
+#define IS_FREE(b)		((b)->flag & FREE_FLAG)
 #define IS_USED(b)		(!IS_FREE(b))
-#define SET_FREE(b)		((b)->free |= FREE_FLAG)
-#define SET_USED(b)		((b)->free &= ~FREE_FLAG)
+#define SET_FREE(b)		((b)->flag |=  FREE_FLAG)
+#define SET_USED(b)		((b)->flag &= ~FREE_FLAG)
 
 #define NEXT_FREE(b)	((free_block*)((b)->next ? U8PADD((b), (b)->next) : NULL))
 #define PREV_FREE(b)	((free_block*)((b)->prev ? U8PADD((b), (b)->prev) : NULL))
 
-#define BLK_AFTER(b) 	((b)->bsz ? U8PADD(b, (b)->bsz) : NULL)		// following adjacent memory block
-#define BLK_BEFORE(b) 	((b)->psz ? U8PSUB(b, (b)->psz)	: NULL)		// prior adjacent memory block
+#define BLK_AFTER(b) 	((b)->bsz 			   ? U8PADD(b, (b)->bsz) 				: NULL)	// following adjacent memory block
+#define BLK_BEFORE(b) 	(((b)->psz&~FREE_FLAG) ? U8PSUB(b, ((b)->psz&~FREE_FLAG)) 	: NULL)	// prior adjacent memory block
 #define BLK_DATA(b) 	(U8PADD(b, sizeof(used_block)))				// pointer to raw data space
 #define BLK_HEAD(p) 	(U8PSUB(p, sizeof(used_block)))				// pointer block given raw data pointer
 

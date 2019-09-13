@@ -43,11 +43,12 @@
 							</tool>
 						</toolChain>
 					</folderInfo>
-					<fileInfo id="com.nvidia.cuda.ide.nine_zero.configuration.debug.665767582.1501975725" name="alloc.cu" rcbsApplicability="disable" resourcePath="src/alloc.cu" toolsToInvoke="nvcc.compiler.base.201105002.2031256254">
-						<tool id="nvcc.compiler.base.201105002.2031256254" name="NVCC Compiler" superClass="nvcc.compiler.base.201105002"/>
-					</fileInfo>
+					<fileInfo id="com.nvidia.cuda.ide.nine_zero.configuration.debug.665767582.2061771612" name="console.h" rcbsApplicability="disable" resourcePath="src/console.h" toolsToInvoke=""/>
+					<fileInfo id="com.nvidia.cuda.ide.nine_zero.configuration.debug.665767582.521084309" name="errorcode.h" rcbsApplicability="disable" resourcePath="src/errorcode.h" toolsToInvoke=""/>
+					<fileInfo id="com.nvidia.cuda.ide.nine_zero.configuration.debug.665767582.2127301004" name="puts.h" rcbsApplicability="disable" resourcePath="src/puts.h" toolsToInvoke=""/>
+					<fileInfo id="com.nvidia.cuda.ide.nine_zero.configuration.debug.665767582.388242189" name="sprintf.h" rcbsApplicability="disable" resourcePath="src/sprintf.h" toolsToInvoke=""/>
 					<sourceEntries>
-						<entry excluding="src/alloc.cu|orig|ext" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
+						<entry excluding="src/errorcode.h|src/puts.cu|src/cuda.cu|src/alloc.cu|orig|ext" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
 					</sourceEntries>
 				</configuration>
 			</storageModule>
