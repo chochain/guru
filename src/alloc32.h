@@ -42,29 +42,37 @@ typedef struct free_block {			// 4-bytes (+ 4 bytes free space)
 }
 */
 typedef struct used_block {			// 8-bytes
-  U32 bsz  : 31;  					//!< block size, header included (max 2G)
-  U32 free : 1;   					//!< flag of free block
-  U32 psz  : 31;  					//!< prior adjacent memory block size
-  U32 tail : 1;   					//!< flag of the tail block
+	U32 bsz;  						//!< block size, header included (max 2G)
+	union {
+		U32 psz  : 32;  			//!< prior adjacent memory block size
+		U32 flag : 3;				// LSB bit, lower 4 bit might be used
+	};
 } used_block;
 
 typedef struct free_block {			// 16-bytes (i.e. mininum allocation per block)
-  U32 bsz  : 31;  					//!< block size, header included (max 2G)
-  U32 free : 1;   					//!< flag of free block
-  U32 psz  : 31;  					//!< prior adjacent memory block size
-  U32 tail : 1;   					//!< flag of the tail block
+	U32 bsz;  						//!< block size, header included (max 2G)
+	union {
+		U32 psz  : 32;  			//!< prior adjacent memory block size
+		U32 flag : 3;				// LSB bit, lower 4 bit might be used
+	};
 
-  U32 next;							// offset to next free block
-  U32 prev;							// offset to previous free block
+	U32 next;						// offset to next free block
+	U32 prev;						// offset to previous free block
 } free_block;
 
-#define NEXTFREE(p)		((free_block*)((p)->next ? U8PADD((p), (p)->next) : NULL))
-#define PREVFREE(p)		((free_block*)((p)->prev ? U8PADD((p), (p)->prev) : NULL))
+#define FREE_FLAG		0x1
+#define IS_FREE(b)		((b)->flag & FREE_FLAG)
+#define IS_USED(b)		(!IS_FREE(b))
+#define SET_FREE(b)		((b)->flag |= FREE_FLAG)
+#define SET_USED(b)		((b)->flag &= ~FREE_FLAG)
 
-#define BLKAFTER(p) 	U8PADD(p, p->bsz)						// following adjacent memory block
-#define BLKBEFORE(p) 	U8PSUB(p, p->psz)						// prior adjacent memory block
-#define BLKHEAD(p) 		U8PSUB(p, sizeof(used_block))
-#define BLKDATA(b) 		U8PADD(b, sizeof(used_block))
+#define NEXTFREE(b)		((free_block*)((b)->next ? U8PADD((b), (b)->next) : NULL))
+#define PREVFREE(b)		((free_block*)((b)->prev ? U8PADD((b), (b)->prev) : NULL))
+
+#define BLKAFTER(b) 	((b)->bsz 				? U8PADD(b, (b)->bsz) 				: NULL)									// following adjacent memory block
+#define BLKBEFORE(b) 	(((b)->psz&~FREE_FLAG) 	? U8PSUB(b, ((b)->psz&~FREE_FLAG))	: NULL)		// prior adjacent memory block
+#define BLKDATA(b) 		(U8PADD(b, sizeof(used_block)))			// pointer to raw data space
+#define BLKHEAD(p) 		(U8PSUB(p, sizeof(used_block)))			// pointer block given raw data pointer
 
 #define L1_BITS     	25  		// 00000000 00000000 XXXXXXXX X0000000  // 16+9 levels
 #define L2_BITS     	3   		// 00000000 00000000 00000000 0XXX0000  // 8 entires
