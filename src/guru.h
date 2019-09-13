@@ -117,7 +117,7 @@ typedef U32 		GS;
 // pointer arithmetic, this will not work in multiple segment implementation
 #define U8PADD(p, n)	((U8 *)(p) + (n))					// add
 #define U8PSUB(p, n)	((U8 *)(p) - (n))					// sub
-#define U8POFF(p1, p0)	((U32)((U32A)(p1) - (U32A)(p0)))	// offset (downshift from 64-bit)
+#define U8POFF(p1, p0)	((S32)((U32A)(p1) - (U32A)(p0)))	// offset (downshift from 64-bit)
 
 //================================================================
 /*!@brief

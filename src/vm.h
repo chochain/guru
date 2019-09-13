@@ -27,10 +27,10 @@ extern "C" {
 typedef struct RIrep {	// 32-byte
     U32	size;			// size of entire IREP block
 
-    U32 reps;			//!< offset to array of child IREP's pointer.
-    U32 pool; 			//!< offset to array of POOL objects pointer.
-    U32	sym;			//!< offset to array of SYMBOLs
-    U32 iseq;			//!< offset to ISEQ (code) BLOCK
+    S32 reps;			//!< offset to array of child IREP's pointer.
+    S32 pool; 			//!< offset to array of POOL objects pointer.
+    S32	sym;			//!< offset to array of SYMBOLs
+    S32 iseq;			//!< offset to ISEQ (code) BLOCK
 
     U32 i;				//!< # of bytecodes (by iseq below)
     U16 c;				//!< # of child IREP blocks (into list below)
