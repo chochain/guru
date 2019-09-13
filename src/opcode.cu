@@ -43,6 +43,7 @@ __GURU__ U32 _mutex_op;
 #define _RA_X(r)    	(ref_dec(&regs[ra]), regs[ra]=*(r), ref_inc(r))
 #define _RA_T(t, e) 	(ref_dec(&regs[ra]), regs[ra].gt=(t), regs[ra].e)
 #define _RA_T2(t,e)     (_R(a).gt=(t), _R(a).e)
+#define QUIT(x)			{ vm->quit=1; guru_na(x); return; }
 //================================================================
 /*!@brief
   Execute OP_NOP
@@ -497,8 +498,7 @@ op_send(guru_vm *vm)
 	guru_proc *m = (guru_proc *)proc_by_sid(obj, sid);
     if (m==0) {
     	U8P sym = VM_SYM(vm, rb);
-    	guru_na(sym);								// dump error, bail out
-    	return;
+    	QUIT(sym); 									// dump error, bail out
     }
 
     if (IS_CFUNC(m)) {
@@ -636,12 +636,12 @@ op_add(guru_vm *vm)
             r0->gt = GT_FLOAT;
             r0->f  = r0->i + r1->f;
         }
-        else guru_na("Fixnum + ?");
+        else QUIT("Fixnum + ?");
     }
     else if (r0->gt==GT_FLOAT) {
         if      (r1->gt==GT_INT) 	r0->f += r1->i;
         else if (r1->gt==GT_FLOAT)	r0->f += r1->f;
-        else guru_na("Float + ?");
+        else QUIT("Float + ?");
 #endif
     }
     else {    	// other case
@@ -673,7 +673,7 @@ op_addi(guru_vm *vm)
 #if GURU_USE_FLOAT
     else if (r0->gt==GT_FLOAT)	r0->f += rc;
 #else
-    else guru_na("Float class");
+    else QUIT("Float class");
 #endif
 }
 
@@ -703,12 +703,12 @@ op_sub(guru_vm *vm)
             r0->gt = GT_FLOAT;
             r0->f  = r0->i - r1->f;
         }
-        else guru_na("Fixnum - ?");
+        else QUIT("Fixnum - ?");
     }
     else if (r0->gt==GT_FLOAT) {
         if      (r1->gt==GT_INT)	r0->f -= r1->i;
         else if (r1->gt==GT_FLOAT)	r0->f -= r1->f;
-        else guru_na("Float - ?");
+        else QUIT("Float - ?");
 #endif
     }
     else {  // other case
@@ -740,7 +740,7 @@ op_subi(guru_vm *vm)
 #if GURU_USE_FLOAT
     else if (r0->gt==GT_FLOAT) 	r0->f -= rc;
 #else
-    else guru_na("Float class");
+    else QUIT("Float class");
 #endif
 }
 
@@ -769,12 +769,12 @@ op_mul(guru_vm *vm)
             r0->gt = GT_FLOAT;
             r0->f  = r0->i * r1->f;
         }
-        else guru_na("Fixnum * ?");
+        else QUIT("Fixnum * ?");
     }
     else if (r0->gt==GT_FLOAT) {
         if      (r1->gt==GT_INT) 	r0->f *= r1->i;
         else if (r1->gt==GT_FLOAT)  r0->f *= r1->f;
-        else guru_na("Float * ?");
+        else QUIT("Float * ?");
 #endif
     }
     else {   // other case
@@ -808,12 +808,12 @@ op_div(guru_vm *vm)
             r0->gt = GT_FLOAT;
             r0->f  = r0->i / r1->f;
         }
-        else guru_na("Fixnum / ?");
+        else QUIT("Fixnum / ?");
     }
     else if (r0->gt==GT_FLOAT) {
         if      (r1->gt==GT_INT) 	r0->f /= r1->i;
         else if (r1->gt==GT_FLOAT)	r0->f /= r1->f;
-        else guru_na("Float / ?");
+        else QUIT("Float / ?");
 #endif
     }
     else {   // other case
@@ -977,7 +977,7 @@ op_string(guru_vm *vm)
 
     _RA(ret);
 #else
-    guru_na("String class");
+    QUIT("String class");
 #endif
 }
 
@@ -1019,7 +1019,7 @@ op_strcat(guru_vm *vm)
     _RA_X(&ret);
 
 #else
-    guru_na("String class");
+    QUIT("String class");
 #endif
 }
 
@@ -1053,7 +1053,7 @@ op_array(guru_vm *vm)
 
     _RA(ret);							// no need to ref_inc
 #else
-    guru_na("Array class");
+    QUIT("Array class");
 #endif
 }
 
@@ -1089,7 +1089,7 @@ op_hash(guru_vm *vm)
     }
     _RA(ret);						          			// set return value on stack top
 #else
-    guru_na("Hash class");
+    QUIT("Hash class");
 #endif
 }
 
@@ -1113,15 +1113,13 @@ op_range(guru_vm *vm)
     U32 n  = GETARG_C(code);
 
     GV *pb = &regs[rb];
+    GV ret = guru_range_new(pb, pb+1, n);	// pb, pb+1 ref cnt will be increased
+    regs[rb+1].gt = GT_EMPTY;
 
-    ref_inc(pb);
-    ref_inc(pb+1);
-    GV ret = guru_range_new(pb, pb+1, n);
-
-    _RA(ret);						// release and  reassign
+    _RA_X(&ret);							// release and  reassign
 
 #else
-    guru_na("Range class");
+    QUIT("Range class");
 #endif
 }
 
@@ -1292,6 +1290,7 @@ guru_op(guru_vm *vm)
 	if (threadIdx.x != 0) return;	// TODO: multi-thread [run|suspend] queues
 
 	guru_state *st = vm->state;		// capture pointer for memory debugging
+
 	//=======================================================================================
 	// GURU dispatcher unit
 	//=======================================================================================
