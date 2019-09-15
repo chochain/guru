@@ -123,7 +123,7 @@ _build_image(guru_irep *src, U8 * img)
 	tgt->reps = U8POFF(reps, tgt);						// overwrite with new reps offset
     tgt->iseq = U8POFF(iseq, tgt);						// new iseq offset
     tgt->pool = U8POFF(pool, tgt);						// new pool offset
-    tgt->sym  = U8POFF(sym, tgt);						// new sym offset
+    tgt->sym  = U8POFF(sym,  tgt);						// new sym offset
 
     // build POOL block
     U8 *  p = U8PADD(img, src->pool);					// point to source object pool
