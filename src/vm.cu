@@ -343,6 +343,7 @@ _vm_trace(U32 level)
 				st = st->prev;
 			}
 			_show_decoder(vm);
+			if (level>0) guru_dump_freelist();
 			printf("\n");
 		}
 	}

@@ -64,8 +64,9 @@ __idx(U32 sz, U32P l1, U32P l2)
 	U32 v = __fls(sz);
 	U32 x = __ffs(sz);
 
-    *l1 = v<BASE_BITS ? 0 : v - BASE_BITS;			// 1st level index
-    *l2 = (sz >> (v - MN_BITS)) & L2_MASK;  // 2nd level index (with lower bits)
+    *l1    = v > MN_BITS ? v-MN_BITS : 0;			// 1st level index
+    U32 s2 = v > L2_BITS ? v-L2_BITS : L2_BITS;
+    *l2    = (sz >> s2) & L2_MASK; 				 	// 2nd level index (with lower bits)
 
     return INDEX(*l1, *l2);
 }
@@ -159,9 +160,12 @@ _mark_free(free_block *blk)
 
     SET_FREE(blk);
     blk->next = head ? U8POFF(head, blk) : 0;			// setup linked list
+    assert((blk->next&7)==0);
     blk->prev = 0;
     if (head) {											// non-end block, add backward link
     	head->prev = U8POFF(blk, head);
+        assert((head->prev&7)==0);
+    	SET_FREE(head);									// turn the free flag back on
     }
     _free_list[index] = blk;							// new head of the linked list
 }
@@ -177,6 +181,7 @@ _mark_used(U32 index)
     if (next) {											// next free block exists
         free_block *prev = PREV_FREE(blk);
     	next->prev = prev ? U8POFF(prev, next) : 0;		// up link
+        assert((next->prev&7)==0);
         _free_list[index] = next;						// take it out of free list
     }
     else {
@@ -187,12 +192,13 @@ _mark_used(U32 index)
         U32 m1 = L1_MAP(index);
         U16 m2 = L2_MAP(index);
 
-        CLEAR_MAP(index);						// release the index
+        CLEAR_MAP(index);								// release the index
 
         U32 m1x = L1_MAP(index);
         U16 m2x = L2_MAP(index);
 
-        if (L1_MAP(index)==0 && L2_MAP(index)==0) {
+//        if ((L1_MAP(index)&L1_MASK)==0 && (L2_MAP(index)&L2_MASK)==0) {
+        if ((L2_MAP(index)&L2_MASK)==0) {				// CC:20190915 fix
         	_free_list[index] = NULL;
         }
     }
@@ -215,7 +221,7 @@ __GURU__ free_block*
 _merge_with_prev(free_block *b1)
 {
     free_block *b0 = (free_block *)BLK_BEFORE(b1);
-	if (IS_USED(b0)) return b1;
+	if (b0==NULL || IS_USED(b0)) return b1;
 
 	__unmap(b0);							// take it out of free_list before merge
 	__pack(b0, b1);							// take b1 out and merge with b0
@@ -275,7 +281,7 @@ _split(free_block *blk, U32 bsz)
     free->psz = U8POFF(free, blk);						// positive offset to previous block
 
     if (aft) {
-        aft->psz = U8POFF(aft, free);					// backward offset (positive)
+        aft->psz = U8POFF(aft, free)|aft->flag&FREE_FLAG;		// backward offset (positive)
         _merge_with_next(free);							// _combine if possible
     }
     _mark_free(free);			// add to free_list and set (free, tail, next, prev) fields
@@ -335,7 +341,8 @@ guru_alloc(U32 sz)
 	_split(blk, bsz);							// allocate the block, free up the rest
 #if GURU_DEBUG
     U32P p = (U32P)BLK_DATA(blk);				// point to raw space allocated
-    for (U32 i=0; i < sz>>2; i++) *p++ = 0xaaaaaaaa;
+    sz >>= 2;
+    for (U32 i=0; i < (sz>16 ? 16 : sz); i++) *p++ = 0xaaaaaaaa;
 #endif
 	MUTEX_FREE(_mutex_mem);
 
@@ -389,11 +396,6 @@ guru_free(void *ptr)
     free_block *blk = (free_block *)BLK_HEAD(ptr);			// get block header
 
     _merge_with_next(blk);
-    _mark_free(blk);
-
-    // the block is free now, try to merge a free block before if exists
-    blk = _merge_with_prev(blk);
-
 #if GURU_DEBUG
     if (BLK_AFTER(blk)) {
     	U32 *p = (U32*)U8PADD(blk, sizeof(free_block));
@@ -401,6 +403,10 @@ guru_free(void *ptr)
     	for (U32 i=0; i< (sz>32 ? 32 : sz); i++) *p++=0xffffffff;
     }
 #endif
+    _mark_free(blk);
+
+    // the block is free now, try to merge a free block before if exists
+    blk = _merge_with_prev(blk);
 
     MUTEX_FREE(_mutex_mem);
 }
@@ -420,6 +426,14 @@ guru_memory_clr()
     	}
     	p = (used_block *)BLK_AFTER(p);
     }
+}
+
+__GPU__ void
+guru_memory_init(void *ptr, U32 sz)
+{
+	if (threadIdx.x!=0 || blockIdx.x!=0) return;
+
+	_init_mmu(ptr, sz);
 }
 
 #if GURU_DEBUG
@@ -470,11 +484,72 @@ _alloc_stat(U32 v[])
 }
 
 __GPU__ void
-guru_memory_init(void *ptr, U32 sz)
+_mmu_alloc(U8 **b, U32 sz)
 {
 	if (threadIdx.x!=0 || blockIdx.x!=0) return;
 
-	_init_mmu(ptr, sz);
+	*b = (U8*)guru_alloc(sz);
+}
+
+__GPU__ void
+_mmu_free(U8 *b)
+{
+	if (threadIdx.x!=0 || blockIdx.x!=0) return;
+
+	guru_free(b);
+}
+
+__HOST__ void
+guru_mmu_test()
+{
+	U32 a[] = { 0x10, 0x18, 0x20, 0x40, 0x20, 0x60 };
+	U32 f[] = { 0, 2, 4 };
+	U8 *p   = (U8 *)cuda_malloc(10*sizeof(U8P), 1);
+	U8 **b  = (U8**)p;
+
+	for (U32 i=0; i<sizeof(a)>>2; i++) {
+		printf("\nalloc 0x%02x", a[i]);
+		_mmu_alloc<<<1,1>>>(&b[i], a[i]);
+		guru_dump_freelist();
+		printf("\t=>%p", b[i]);
+	}
+	for (U32 i=0; i<sizeof(f)>>2; i++) {
+		printf("\nfree %p", b[f[i]]);
+		_mmu_free<<<1,1>>>(b[f[i]]);
+		guru_dump_freelist();
+	}
+	for (U32 i=0; i<sizeof(a)>>2; i++) {
+		printf("\nalloc 0x%02x", a[i]);
+		_mmu_alloc<<<1,1>>>(&b[i], a[i]);
+		guru_dump_freelist();
+		printf("\t=>%p", b[i]);
+	}
+}
+
+#define bin2u32(x) ((x << 24) | ((x & 0xff00) << 8) | ((x >> 8) & 0xff00) | (x >> 24))
+
+__GPU__ void
+_dump_freelist()
+{
+	printf("\n\t");
+	for (U32 i=0; i<FL_SLOTS; i++) {
+		if (!_free_list[i]) continue;
+
+		printf("%02x=>[", i);
+		free_block *b = _free_list[i];
+		U32 a = (U32A)b;						// take 32-bits only
+		while (b) {
+			assert((a&7)==0);
+			printf("%08x(%02x) ", a, b->bsz);	// 64-bit bleeds into 2nd param
+			if (IS_USED(b)) {
+				printf("used");
+				break;
+			}
+			b = NEXT_FREE(b);
+			a = (U32A)b;
+		}
+		printf("] ");
+	}
 }
 
 __HOST__ void*
@@ -516,5 +591,13 @@ guru_dump_alloc_stat(U32 trace)
 
 	printf("\tmem=%d(0x%x): free=%d(0x%x), used=%d(0x%x), nblk=%d, nfrag=%d, %d%% allocated\n",
 			s[0], s[0], s[1], s[2], s[3], s[4], s[5], s[6], (int)(100*(s[4]+1)/s[0]));
+
+}
+
+__HOST__ void
+guru_dump_freelist()
+{
+	_dump_freelist<<<1,1>>>();
+	cudaDeviceSynchronize();
 }
 #endif
