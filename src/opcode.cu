@@ -43,6 +43,7 @@ __GURU__ U32 _mutex_op;
 #define _RA_X(r)    	(ref_dec(&regs[ra]), regs[ra]=*(r), ref_inc(r))
 #define _RA_T(t, e) 	(ref_dec(&regs[ra]), regs[ra].gt=(t), regs[ra].e)
 #define _RA_T2(t,e)     (_R(a).gt=(t), _R(a).e)
+#define SKIP(x)	        { guru_na(x); return; }
 #define QUIT(x)			{ vm->quit=1; guru_na(x); return; }
 //================================================================
 /*!@brief
@@ -484,6 +485,15 @@ op_jmpnot(guru_vm *vm)
   @retval 0  	No error.
 */
 __GURU__ void
+_wipe_stack(GV *regs, U32 rc)
+{
+    for (U32 i=0; i<=rc; i++) {			// sweep block parameters
+    	ref_dec(&regs[i]);
+    	regs[i].gt = GT_EMPTY;					// clean up for stat dumper
+    }
+}
+
+__GURU__ void
 op_send(guru_vm *vm)
 {
 	GV *regs = vm->state->regs;
@@ -498,7 +508,8 @@ op_send(guru_vm *vm)
 	guru_proc *m = (guru_proc *)proc_by_sid(obj, sid);
     if (m==0) {
     	U8P sym = VM_SYM(vm, rb);
-    	QUIT(sym); 									// dump error, bail out
+    	_wipe_stack(regs+ra+1, rc);
+    	SKIP(sym); 									// function not found, bail out
     }
 
     if (IS_CFUNC(m)) {
@@ -511,11 +522,7 @@ op_send(guru_vm *vm)
         else {
         	m->func(obj, rc);						// call the C-func
         }
-        U32 bidx = ra + rc + 1;
-        for (U32 i=ra+1; i<=bidx; i++) {			// sweep block parameters
-        	ref_dec(&regs[i]);
-        	regs[i].gt = GT_EMPTY;					// clean up for stat dumper
-        }
+    	_wipe_stack(regs+ra+1, rc);
     }
     else {											// m->func is a Ruby function (aka IREP)
     	vm_state_push(vm, m->irep, regs+ra, rc);	// append callinfo list
@@ -636,12 +643,12 @@ op_add(guru_vm *vm)
             r0->gt = GT_FLOAT;
             r0->f  = r0->i + r1->f;
         }
-        else QUIT("Fixnum + ?");
+        else SKIP("Fixnum + ?");
     }
     else if (r0->gt==GT_FLOAT) {
         if      (r1->gt==GT_INT) 	r0->f += r1->i;
         else if (r1->gt==GT_FLOAT)	r0->f += r1->f;
-        else QUIT("Float + ?");
+        else SKIP("Float + ?");
 #endif
     }
     else {    	// other case
@@ -703,12 +710,12 @@ op_sub(guru_vm *vm)
             r0->gt = GT_FLOAT;
             r0->f  = r0->i - r1->f;
         }
-        else QUIT("Fixnum - ?");
+        else SKIP("Fixnum - ?");
     }
     else if (r0->gt==GT_FLOAT) {
         if      (r1->gt==GT_INT)	r0->f -= r1->i;
         else if (r1->gt==GT_FLOAT)	r0->f -= r1->f;
-        else QUIT("Float - ?");
+        else SKIP("Float - ?");
 #endif
     }
     else {  // other case
@@ -769,12 +776,12 @@ op_mul(guru_vm *vm)
             r0->gt = GT_FLOAT;
             r0->f  = r0->i * r1->f;
         }
-        else QUIT("Fixnum * ?");
+        else SKIP("Fixnum * ?");
     }
     else if (r0->gt==GT_FLOAT) {
         if      (r1->gt==GT_INT) 	r0->f *= r1->i;
         else if (r1->gt==GT_FLOAT)  r0->f *= r1->f;
-        else QUIT("Float * ?");
+        else SKIP("Float * ?");
 #endif
     }
     else {   // other case
@@ -808,12 +815,12 @@ op_div(guru_vm *vm)
             r0->gt = GT_FLOAT;
             r0->f  = r0->i / r1->f;
         }
-        else QUIT("Fixnum / ?");
+        else SKIP("Fixnum / ?");
     }
     else if (r0->gt==GT_FLOAT) {
         if      (r1->gt==GT_INT) 	r0->f /= r1->i;
         else if (r1->gt==GT_FLOAT)	r0->f /= r1->f;
-        else QUIT("Float / ?");
+        else SKIP("Float / ?");
 #endif
     }
     else {   // other case
