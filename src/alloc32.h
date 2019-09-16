@@ -74,9 +74,9 @@ typedef struct free_block {			// 16-bytes (i.e. mininum allocation per block)
 #define BLK_DATA(b) 	(U8PADD(b, sizeof(used_block)))		// pointer to raw data space
 #define BLK_HEAD(p) 	(U8PSUB(p, sizeof(used_block)))		// pointer block given raw data pointer
 
-#define MN_BITS			4									// 00000000 00000000 00000000 0000XXXX  // 16-bytes smallest blocksize
-#define L2_BITS     	3   								// 00000000 00000000 00000000 0XXX0000  // 8 entires
-#define L1_BITS     	10									// 00000000 00000000 00XXXXXX X0000000  // 7 levels (for 16K)
+#define MN_BITS			3									// 00000000 00000000 00000000 00000XXX  // 8-bytes smallest blocksize
+#define L2_BITS     	3   								// 00000000 00000000 00000000 00XXX000  // 8 entires
+#define L1_BITS     	8									// 00000000 00000000 00XXXXXX XX000000  // 8 levels (for 16K)
 #define BASE_BITS   	(L2_BITS+MN_BITS)
 
 #define TIC(n)      	(1 << n)

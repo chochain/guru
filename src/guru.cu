@@ -62,10 +62,6 @@ guru_setup(int trace)
 	_ses_list = NULL;
 
 	guru_memory_init<<<1,1>>>(mem, BLOCK_MEMORY_SIZE);			// setup memory management
-
-	guru_mmu_test();
-	return 0;
-
 	guru_global_init<<<1,1>>>();								// setup static objects
 	guru_class_init<<<1,1>>>();									// setup basic classes
 	guru_console_init<<<1,1>>>(out, MAX_BUFFER_SIZE);			// initialize output buffer

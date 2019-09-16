@@ -27,7 +27,7 @@ __GURU__ U8				*_memory_pool;
 
 // free memory bitmap
 __GURU__ U32 			_l1_map;								// use lower 24 bits
-__GURU__ U16 			_l2_map[L1_BITS];						// use all 16 bits
+__GURU__ U8 			_l2_map[L1_BITS];						// use all 16 bits
 __GURU__ free_block		*_free_list[FL_SLOTS];
 
 //================================================================
@@ -62,11 +62,11 @@ __GURU__ U32
 __idx(U32 sz, U32P l1, U32P l2)
 {
 	U32 v = __fls(sz);
-	U32 x = __ffs(sz);
+	//U32 x = __ffs(sz);
+    U32 m = v<BASE_BITS ? 0 : v - BASE_BITS + 1;
 
-    *l1    = v > MN_BITS ? v-MN_BITS : 0;			// 1st level index
-    U32 s2 = v > L2_BITS ? v-L2_BITS : L2_BITS;
-    *l2    = (sz >> s2) & L2_MASK; 				 	// 2nd level index (with lower bits)
+    *l1 = m>1 ? m - 1 : 0;					// 1st level index
+    *l2 = (sz >> (m+MN_BITS)) & L2_MASK; 	// 2nd level index (with lower bits)
 
     return INDEX(*l1, *l2);
 }
@@ -271,7 +271,7 @@ _split(free_block *blk, U32 bsz)
 {
 	assert(IS_USED(blk));
 
-    if ((bsz + MIN_BLOCK) > blk->bsz) return;	 		// too small to split 											// too small to split
+    if ((bsz + MIN_BLOCK + sizeof(free_block)) > blk->bsz) return;	// too small to split 											// too small to split
 
     // split block, free
     free_block *free = (free_block *)U8PADD(blk, bsz);	// future next block (i.e. alot bsz bytes)
@@ -524,6 +524,7 @@ guru_mmu_test()
 		guru_dump_freelist();
 		printf("\t=>%p", b[i]);
 	}
+	return;
 }
 
 #define bin2u32(x) ((x << 24) | ((x & 0xff00) << 8) | ((x >> 8) & 0xff00) | (x >> 24))
@@ -557,6 +558,7 @@ cuda_malloc(U32 sz, U32 type)
 {
 	void *mem;
 
+	// TODO: to add texture memory
 	switch (type) {
 	case 0: 	cudaMalloc(&mem, sz); break;			// allocate device memory
 	default: 	cudaMallocManaged(&mem, sz);			// managed (i.e. paged) memory
