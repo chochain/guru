@@ -97,8 +97,9 @@ guru_load(char *rite_name, int step, int trace)
 		fprintf(stderr, "ERROR: virtual memory block allocation error!\n");
 		return -3;
 	}
-	guru_dump_alloc_stat(trace);
-
+	if (trace) {
+		guru_dump_alloc_stat(trace);
+	}
 	ses->next = _ses_list;		// add to linked-list
 	_ses_list = ses;
 

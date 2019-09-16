@@ -18,14 +18,25 @@ int _opt(int argc, char *argv[], int *opt)
     int o, n=0;
     *opt = 0;
 
-    while ((o = getopt(argc, argv, ":tx")) != -1) {
+    while ((o = getopt(argc, argv, "xt:")) != -1) {
     	switch(o) {
     	case 'x': *opt |= VM_EXEC_FLAG;						break;
     	case 't':
-    		o = optarg ? atoi(optarg) : 1;
-    		if (optarg) n++;
+    		o = (*optarg >= '0') ? atoi(optarg) : 1;
     		*opt |= o & TRACE_MASK;							break;
-    	case '?': printf("unknown option %c\n", optopt); 	break;
+    	case '?':
+    	default:
+    		printf(
+    			"Usage:> %s [options] fname1.mrb [[fname2.mrb] ...]\n"
+    			"\toptions:\n"
+    			"\t-tn : where n is trace level\n"
+    			"\t      0: no tracing\n"
+    			"\t      1: stack dump\n"
+    			"\t      2: heap free list\n"
+        		"\t      3: stack + free list\n"
+    			"\t-x  : execute entirely inside VM\n",
+    			argv[0]);
+    		exit(-1);
     	}
     	n++;
     }
