@@ -22,13 +22,9 @@ extern "C" {
 #endif
 
 #if GURU_HOST_IMAGE
-// bytecode parsed by HOST, image passed into GPU
-__HOST__ void  guru_parse_bytecode(guru_vm *vm, U8P ptr);
-__HOST__ void  guru_show_irep(guru_irep *irep);
+__HOST__ void  guru_parse_bytecode(guru_vm *vm, U8P ptr);	// parsed by HOST, image passed into GPU
 #else
-// bytecode parsed directly by GPU
-__GPU__  void  mrbc_parse_bytecode(mrbc_vm *vm, U8P ptr);
-__HOST__ void  mrbc_show_irep(mrbc_irep *irep);
+__GPU__  void  mrbc_parse_bytecode(mrbc_vm *vm, U8P ptr);	// parsed inside GPU
 #endif
 
 #ifdef __cplusplus
