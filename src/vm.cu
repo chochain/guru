@@ -343,7 +343,6 @@ _vm_trace(U32 level)
 				st = st->prev;
 			}
 			_show_decoder(vm);
-			if (level>0) guru_dump_freelist();
 			printf("\n");
 		}
 	}
@@ -351,7 +350,32 @@ _vm_trace(U32 level)
 
 	return cudaSuccess;
 }
+
+__HOST__ void
+_show_irep(guru_irep *irep, U32 ioff, char level, char *idx)
+{
+	printf("\tirep[%c]=%c%04x: size=%d, nreg=%d, nlocal=%d, pools=%d, syms=%d, reps=%d, ilen=%d\n",
+			*idx, level, ioff,
+			irep->size, irep->nr, irep->nv, irep->p, irep->s, irep->c, irep->i);
+
+	// dump all children ireps
+	U8  *base = (U8 *)irep;
+	U32 *off  = (U32 *)U8PADD(base, irep->reps);		// pointer to irep offset array
+	for (U32 i=0; i<irep->c; i++) {
+		*idx += 1;
+		_show_irep((guru_irep *)(base + off[i]), off[i], level+1, idx);
+	}
+}
+
+__HOST__ void
+guru_show_irep(guru_irep *irep)
+{
+	char idx = 'a';
+	_show_irep(irep, 0, 'A', &idx);
+}
+
 #else
-__HOST__ cudaError_t _vm_trace(U32 level) { return cudaSuccess; }
+__HOST__ cudaError_t 	_vm_trace(U32 level) { return cudaSuccess; }
+__HOST__ void 			guru_show_irep(guru_irep *irep) {}
 #endif 	// GURU_DEBUG
 

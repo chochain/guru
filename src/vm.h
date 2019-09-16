@@ -20,6 +20,7 @@
 extern "C" {
 #endif
 
+#if GURU_HOST_IMAGE
 //================================================================
 /*!@brief
   IREP Internal REPresentation
@@ -96,7 +97,9 @@ typedef struct VM {				// 24 + 32*reg bytes
     GV regfile[MAX_REGS_SIZE];	// TODO: change to a pointer
 } guru_vm;
 
-#if !GURU_HOST_IMAGE
+__HOST__ void  guru_show_irep(guru_irep *irep);
+
+#else	// !GURU_HOST_IMAGE
 //
 // old MRBC implementation (on HOST with pointers)
 //
@@ -133,7 +136,11 @@ typedef struct XVM {
     volatile U8 	run;
     volatile U8		err;
 } mrbc_vm;
-#endif 	// !GURU_HOST_IMAGE
+
+__HOST__ void  mrbc_show_irep(mrbc_irep *irep);
+#endif 	// GURU_HOST_IMAGE
+
+
 //================================================================
 /*!@brief
   Get 32bit value from memory big endian.
