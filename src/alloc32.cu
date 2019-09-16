@@ -436,6 +436,21 @@ guru_memory_init(void *ptr, U32 sz)
 	_init_mmu(ptr, sz);
 }
 
+__HOST__ void*
+cuda_malloc(U32 sz, U32 type)
+{
+	void *mem;
+
+	// TODO: to add texture memory
+	switch (type) {
+	case 0: 	cudaMalloc(&mem, sz); break;			// allocate device memory
+	default: 	cudaMallocManaged(&mem, sz);			// managed (i.e. paged) memory
+	}
+    if (cudaSuccess != cudaGetLastError()) return NULL;
+
+    return mem;
+}
+
 #if GURU_DEBUG
 //================================================================
 /*! statistics
@@ -445,6 +460,49 @@ guru_memory_init(void *ptr, U32 sz)
   @param  *free		returns free memory.
   @param  *fragment	returns memory fragmentation
 */
+#define bin2u32(x) ((x << 24) | ((x & 0xff00) << 8) | ((x >> 8) & 0xff00) | (x >> 24))
+
+__GPU__ void
+_dump_freelist()
+{
+	printf("%14s","");
+	for (U32 i=0; i<FL_SLOTS; i++) {
+		if (!_free_list[i]) continue;
+
+		printf("%02x=>[", i);
+		free_block *b = _free_list[i];
+		U32 a = (U32A)b;						// take 32-bits only
+		while (b) {
+			assert((a&7)==0);
+			printf("%08x(%02x) ", a, b->bsz);	// 64-bit bleeds into 2nd param
+			if (IS_USED(b)) {
+				printf("used");
+				break;
+			}
+			b = NEXT_FREE(b);
+			a = (U32A)b;
+		}
+		printf("] ");
+	}
+	printf("\n");
+}
+
+__GPU__ void
+_mmu_alloc(U8 **b, U32 sz)
+{
+	if (threadIdx.x!=0 || blockIdx.x!=0) return;
+
+	*b = (U8*)guru_alloc(sz);
+}
+
+__GPU__ void
+_mmu_free(U8 *b)
+{
+	if (threadIdx.x!=0 || blockIdx.x!=0) return;
+
+	guru_free(b);
+}
+
 __GPU__ void
 _alloc_stat(U32 v[])
 {
@@ -483,22 +541,6 @@ _alloc_stat(U32 v[])
 	__syncthreads();
 }
 
-__GPU__ void
-_mmu_alloc(U8 **b, U32 sz)
-{
-	if (threadIdx.x!=0 || blockIdx.x!=0) return;
-
-	*b = (U8*)guru_alloc(sz);
-}
-
-__GPU__ void
-_mmu_free(U8 *b)
-{
-	if (threadIdx.x!=0 || blockIdx.x!=0) return;
-
-	guru_free(b);
-}
-
 __HOST__ void
 guru_mmu_test()
 {
@@ -510,62 +552,21 @@ guru_mmu_test()
 	for (U32 i=0; i<sizeof(a)>>2; i++) {
 		printf("\nalloc 0x%02x", a[i]);
 		_mmu_alloc<<<1,1>>>(&b[i], a[i]);
-		guru_dump_freelist();
+		_dump_freelist<<<1,1>>>();
 		printf("\t=>%p", b[i]);
 	}
 	for (U32 i=0; i<sizeof(f)>>2; i++) {
 		printf("\nfree %p", b[f[i]]);
 		_mmu_free<<<1,1>>>(b[f[i]]);
-		guru_dump_freelist();
+		_dump_freelist<<<1,1>>>();
 	}
 	for (U32 i=0; i<sizeof(a)>>2; i++) {
 		printf("\nalloc 0x%02x", a[i]);
 		_mmu_alloc<<<1,1>>>(&b[i], a[i]);
-		guru_dump_freelist();
+		_dump_freelist<<<1,1>>>();
 		printf("\t=>%p", b[i]);
 	}
 	return;
-}
-
-#define bin2u32(x) ((x << 24) | ((x & 0xff00) << 8) | ((x >> 8) & 0xff00) | (x >> 24))
-
-__GPU__ void
-_dump_freelist()
-{
-	printf("\n\t");
-	for (U32 i=0; i<FL_SLOTS; i++) {
-		if (!_free_list[i]) continue;
-
-		printf("%02x=>[", i);
-		free_block *b = _free_list[i];
-		U32 a = (U32A)b;						// take 32-bits only
-		while (b) {
-			assert((a&7)==0);
-			printf("%08x(%02x) ", a, b->bsz);	// 64-bit bleeds into 2nd param
-			if (IS_USED(b)) {
-				printf("used");
-				break;
-			}
-			b = NEXT_FREE(b);
-			a = (U32A)b;
-		}
-		printf("] ");
-	}
-}
-
-__HOST__ void*
-cuda_malloc(U32 sz, U32 type)
-{
-	void *mem;
-
-	// TODO: to add texture memory
-	switch (type) {
-	case 0: 	cudaMalloc(&mem, sz); break;			// allocate device memory
-	default: 	cudaMallocManaged(&mem, sz);			// managed (i.e. paged) memory
-	}
-    if (cudaSuccess != cudaGetLastError()) return NULL;
-
-    return mem;
 }
 
 __HOST__ void
@@ -589,17 +590,14 @@ guru_dump_alloc_stat(U32 trace)
 	if (trace==0) return;
 
 	U32 s[8];
-	_get_alloc_stat(s);
+	if (trace & 1) {
+		_get_alloc_stat(s);
 
-	printf("\tmem=%d(0x%x): free=%d(0x%x), used=%d(0x%x), nblk=%d, nfrag=%d, %d%% allocated\n",
-			s[0], s[0], s[1], s[2], s[3], s[4], s[5], s[6], (int)(100*(s[4]+1)/s[0]));
-
-}
-
-__HOST__ void
-guru_dump_freelist()
-{
-	_dump_freelist<<<1,1>>>();
-	cudaDeviceSynchronize();
+		printf("%14smem=%d(0x%x): free=%d(0x%x), used=%d(0x%x), nblk=%d, nfrag=%d, %d%% allocated\n",
+			"", s[0], s[0], s[1], s[2], s[3], s[4], s[5], s[6], (int)(100*(s[4]+1)/s[0]));
+	}
+	if (trace & 2) {
+		_dump_freelist<<<1,1>>>();
+	}
 }
 #endif
