@@ -73,7 +73,7 @@ _vm_end(guru_vm *pool)
 
 	if (threadIdx.x!=0 || vm->id==0) return;		// bail if vm not allocated
 
-	vm_state_pop(vm, vm->state->regs[1]);
+	vm_state_pop(vm, vm->state->regs[1], 0);
 
 #if !GURU_DEBUG
 	// clean up register file

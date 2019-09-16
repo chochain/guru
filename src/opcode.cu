@@ -589,10 +589,7 @@ op_return(guru_vm *vm)
     U32 ra   = GETARG_A(code);
     GV  ret  = regs[ra];
 
-    ref_dec(&regs[ra]);
-    regs[ra].gt = GT_EMPTY;		// wipe the stack for tracing display
-
-    vm_state_pop(vm, ret);		// pass return value
+    vm_state_pop(vm, ret, ra);		// pass return value
 }
 
 //================================================================

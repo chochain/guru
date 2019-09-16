@@ -51,15 +51,19 @@ vm_state_push(guru_vm *vm, guru_irep *irep, GV *regs, U32 argc)
 
 */
 __GURU__ void
-vm_state_pop(guru_vm *vm, GV ret_val)
+vm_state_pop(guru_vm *vm, GV ret_val, U32 ra)
 {
     guru_state 	*st = vm->state;
 
-    st->regs[1]    = ret_val;
-    st->regs[2].gt = GT_EMPTY;
-    vm->state      = st->prev;
-    
-    guru_free(st);
+    GV *r = st->regs + ra;		// TODO: check whether 2 is correct
+    for (U32 i=0; i<=st->argc; i++) {
+    	ref_dec(&r[i]);
+        r[i].gt = GT_EMPTY;
+    }
+    st->regs[0] = ret_val;
+
+    vm->state = st->prev;		// restore previous state
+    guru_free(st);				// release memory block
 }
 
 __GURU__ void
@@ -111,7 +115,7 @@ vm_object_new(guru_vm *vm, GV v[], U32 argc)
     	guru_op(vm);
     } while (!vm->quit);
     vm->quit = 0;
-    vm_state_pop(vm, vm->state->regs[1]);
+    vm_state_pop(vm, vm->state->regs[1], 0);
 
     RETURN_VAL(obj);
 }
