@@ -40,49 +40,43 @@ __GURU__ _gobj 	_global[MAX_GLOBAL_COUNT];
 /* search */
 /* linear search is not efficient! */
 /* TODO: Use binary search */
-__GURU__ U32
+__GURU__ S32
 _get_idx(GS sid, _gtype gt)
 {
-    for (U32 i=0; i < _global_idx ; i++) {
-        _gobj *obj = &_global[i];
+	_gobj *obj = _global;
+    for (U32 i=0; i <_global_idx ; i++, obj++) {
         if (obj->sid == sid && obj->gt == gt) return i;
     }
-    return MAX_GLOBAL_COUNT;
+    return -1;
 }
 
-__GURU__ guru_obj
+__GURU__ guru_obj *
 _get_obj(GS sid, _gtype gt)
 {
-    U32 idx = _get_idx(sid, gt);
+    S32 idx = _get_idx(sid, gt);
 
-    if (idx>=MAX_GLOBAL_COUNT) return GURU_NIL_NEW();
+    if (idx < 0) return NULL;
 
-    ref_inc(&_global[idx].obj);
-
-    return _global[idx].obj;				// pointer to global object
+    return &_global[idx].obj;				// pointer to global object
 }
 
 __GURU__ void
 _add_obj(GS sid, guru_obj *obj, _gtype gt)
 {
-    int idx = _get_idx(sid, gt);
+    S32 idx = _get_idx(sid, gt);
 
     MUTEX_LOCK(_mutex_gobj);
 
-    if (idx < MAX_GLOBAL_COUNT) {
-        ref_clr(&(_global[idx].obj));
-     }
-    else {
-        idx = ++_global_idx;
-         assert(idx < MAX_GLOBAL_COUNT);	// maybe raise ex
+    if (idx < 0) {			// not found
+        idx = _global_idx++;
     }
+    assert(idx < MAX_GLOBAL_COUNT);			// maybe raise ex
+
     _global[idx].sid = sid;
-    _global[idx].obj = *obj;				// deep copy
     _global[idx].gt  = gt;
+    MEMCPY(&_global[idx].obj, obj, sizeof(guru_obj));				// deep copy
 
     MUTEX_FREE(_mutex_gobj);
-
-    ref_inc(obj);
 }
 
 /* add */
@@ -100,14 +94,14 @@ const_object_add(GS sid, guru_obj *obj)
 }
 
 /* get */
-__GURU__ guru_obj
+__GURU__ guru_obj *
 global_object_get(GS sid)
 {
     return _get_obj(sid, GURU_GLOBAL_OBJECT);
 }
 
 /* add const */
-__GURU__ guru_obj
+__GURU__ guru_obj *
 const_object_get(GS sid)
 {
     return _get_obj(sid, GURU_CONST_OBJECT);

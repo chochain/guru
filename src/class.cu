@@ -91,9 +91,9 @@ class_by_obj(guru_obj *obj)
 __GURU__ guru_class*
 _name2class(const U8P name)
 {
-    guru_obj obj = const_object_get(name2id(name));
+    guru_obj *obj = const_object_get(name2id(name));
 
-    return (obj.gt==GT_CLASS) ? obj.cls : NULL;
+    return (obj && obj->gt==GT_CLASS) ? obj->cls : NULL;
 }
 
 //================================================================
@@ -144,9 +144,9 @@ guru_define_class(const U8P name, guru_class *super)
     cls->name   = (char *)id2name(sid);				// retrive from symbol table
 #endif
     // register to global constant.
-    GV v = { .gt = GT_CLASS };
-    v.cls = cls;
-    const_object_add(sid, &v);
+    guru_obj obj = { .gt = GT_CLASS };
+    obj.cls = cls;
+    const_object_add(sid, &obj);
 
     return cls;
 }
