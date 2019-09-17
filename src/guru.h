@@ -202,8 +202,8 @@ typedef struct RProc {				// 16-byte
 #define IS_CFUNC(p)		(p->func)	//
 
 typedef struct RSes {				// 16-byte
-	U8P 				in;
-	U8P 				out;
+	U8P 				stdin;		// input stream
+	U8P 				stdout;		// output stream
 	U16 				id;
 	U16 				trace;
 	struct RSes 		*next;

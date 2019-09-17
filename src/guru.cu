@@ -9,6 +9,7 @@
 #include <stdio.h>
 #include "gurux.h"
 #include "vmx.h"
+#include "load.h"
 #include "alloc.h"				// guru_malloc
 
 // forward declaration for implementation
@@ -59,6 +60,10 @@ guru_setup(int trace)
 		fprintf(stderr, "ERROR: output buffer allocation error!\n");
 		return -2;
 	}
+	if (vm_pool_init(trace)) {
+		fprintf(stderr, "ERROR: VM memory block allocation error!\n");
+		return -3;
+	}
 	_ses_list = NULL;
 
 	guru_memory_init<<<1,1>>>(mem, BLOCK_MEMORY_SIZE);			// setup memory management
@@ -85,20 +90,12 @@ guru_load(char *rite_name, int step, int trace)
 	if (!ses) return -1;		// memory allocation error
 
 	ses->trace = trace;
-	ses->out   = _guru_out;
+	ses->stdout   = _guru_out;
 
-	U8P in = ses->in = _fetch_bytecode((U8P)rite_name);
-	if (!in) {
+	U8P ins = ses->stdin = _fetch_bytecode((U8P)rite_name);
+	if (!ins) {
 		fprintf(stderr, "ERROR: bytecode request allocation error!\n");
 		return -2;
-	}
-	cudaError_t rst = guru_vm_setup(ses, step);
-	if (cudaSuccess != rst) {
-		fprintf(stderr, "ERROR: virtual memory block allocation error!\n");
-		return -3;
-	}
-	if (trace) {
-		guru_dump_alloc_stat(trace);
 	}
 	ses->next = _ses_list;		// add to linked-list
 	_ses_list = ses;
@@ -109,17 +106,23 @@ guru_load(char *rite_name, int step, int trace)
 __HOST__ int
 guru_run(int trace)
 {
-	cudaError_t rst = guru_vm_run(_ses_list);
-    if (cudaSuccess != rst) {
-    	fprintf(stderr, "\nERR> %s\n", cudaGetErrorString(rst));
-    }
-	if (trace) {
-		printf("guru_session completed\n");
-		guru_dump_alloc_stat(trace);
+	for (guru_ses *ses=_ses_list; ses; ses=ses->next) {
+		U8 *irep_img = guru_parse_bytecode(ses->stdin);
+		if (irep_img) {
+			U32 vid = ses->id = vm_get(irep_img);
+			if (trace) {
+				printf("  vm[%d]:\n", vid);
+				vm_show_irep(irep_img);
+				guru_dump_alloc_stat(trace);
+			}
+		}
+		else {
+			fprintf(stderr, "ERROR: bytecode parsing error!\n");
+		}
 	}
-	rst = guru_vm_release(_ses_list);
+	vm_main_start(trace);
 
-	return cudaSuccess != rst;
+	return 0;
 }
 
 
