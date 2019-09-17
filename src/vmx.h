@@ -16,15 +16,22 @@
 #define GURU_SRC_VMX_H_
 
 #include "guru.h"
-#include "vm.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-cudaError_t guru_vm_setup(guru_ses *ses, U32 step);
-cudaError_t guru_vm_run(guru_ses *ses);
-cudaError_t guru_vm_release(guru_ses *ses);
+int  vm_pool_init(U32 step);
+
+int  vm_get(U8 *irep_img);
+int	 vm_hold(U32 vid);
+int	 vm_stop(U32 vid);
+int	 vm_run(U32 vid);
+
+int  vm_main_start(U32 trace);
+
+void vm_trace(U32 level);
+void vm_show_irep(U8 *irep_img);
 
 #ifdef __cplusplus
 }

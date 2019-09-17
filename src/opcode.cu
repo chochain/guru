@@ -242,9 +242,9 @@ op_getglobal(guru_vm *vm)
     U32 rb  = GETARG_Bx(code);
     GS sid  = name2id(VM_SYM(vm, rb));
 
-    guru_obj obj = global_object_get(sid);
+    guru_obj *obj = global_object_get(sid);
 
-    _RA(obj);
+    _RA_X(obj);
 }
 
 //================================================================
@@ -333,9 +333,9 @@ op_getconst(guru_vm *vm)
     U32 rb  = GETARG_Bx(code);
     GS  sid = name2id(VM_SYM(vm, rb));
 
-    guru_obj obj = const_object_get(sid);
+    guru_obj *obj = const_object_get(sid);
 
-    _RA(obj);
+    _RA_X(obj);
 }
 
 //================================================================
@@ -1240,7 +1240,10 @@ op_method(guru_vm *vm)
 
     MUTEX_FREE(_mutex_op);
 
-    regs[ra+1].gt = GT_EMPTY;
+    for (U32 i=1; i<=ra+1; i++) {
+    	ref_dec(&regs[i]);
+    	regs[ra+1].gt = GT_EMPTY;
+    }
 }
 
 //================================================================
@@ -1275,14 +1278,13 @@ op_tclass(guru_vm *vm)
 __GURU__ void
 op_stop(guru_vm *vm)
 {
-	vm->run  = 0;	// VM suspended
-	vm->quit = 1;	// exit guru_op loop
+	vm->run  = VM_STATUS_HOLD;	// VM suspended
 }
 
 __GURU__ void
 op_abort(guru_vm *vm)
 {
-	vm->quit = 1;	// exit guru_op loop
+	vm->run = VM_STATUS_FREE;	// exit guru_op loop
 }
 
 //===========================================================================================

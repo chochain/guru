@@ -41,9 +41,9 @@ extern "C" {
 #define GETARG_b(i)                GETARG_UNPACK_b(i,14,2)
 
 #define MKOPCODE(op)               ((op & 0x7f)<<24)
-#define MKARG_A(c)                 ((c & 0xff)<<1 | (c & 0x01)>>8)
-#define MKARG_B(c)                 ((c & 0x1fc)<<6 | (c & 0x03)<<22)
-#define MKARG_C(c)                 ((c & 0x7e)<<15 | (c & 0x01)<<31)
+#define MKARG_A(c)                 ((c & 0x0ff)<<1  | (c & 0x01)>>8)
+#define MKARG_B(c)                 ((c & 0x1fc)<<6  | (c & 0x03)<<22)
+#define MKARG_C(c)                 ((c & 0x07e)<<15 | (c & 0x01)<<31)
 
 // the following are not implemented
 #define MKARG_Bx(v)                ((mrb_code)((v) & 0xffff) << 7)

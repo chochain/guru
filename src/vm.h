@@ -20,6 +20,11 @@
 extern "C" {
 #endif
 
+#define VM_STATUS_FREE  0
+#define VM_STATUS_READY	1
+#define VM_STATUS_RUN   2
+#define VM_STATUS_HOLD  3
+
 #if GURU_HOST_IMAGE
 //================================================================
 /*!@brief
@@ -80,24 +85,19 @@ typedef struct {
   Virtual Machine
 */
 typedef struct VM {				// 24 + 32*reg bytes
-    U32	id   : 13;				// allocation control (0 means free)
-    U32	step : 1;				// for single-step debug level
-    U32	run  : 1;				// vm running, or suspended
-    U32 quit : 1;				// exit run queue
+    U32	id   : 14;				// allocation control
+    U32	run  : 2;				// VM_STATUS_FREE, READY, RUN, HOLD
     U32	err	 : 8;				// error code/condition
-    U32 op   : 8;				// cached opcode
+    U32 op   : 7;				// cached opcode
+    U32	step : 1;				// for single-step debug level
 
     U32 opn;					// cached operands
     U32 bytecode;				// cached bytecode
     GAR *ar;					// argument struct
 
-    guru_irep  *irep;			// pointer to IREP tree
     guru_state *state;			// VM state (callinfo) linked list
-
     GV regfile[MAX_REGS_SIZE];	// TODO: change to a pointer
 } guru_vm;
-
-__HOST__ void  guru_show_irep(guru_irep *irep);
 
 #else	// !GURU_HOST_IMAGE
 //
@@ -136,10 +136,7 @@ typedef struct XVM {
     volatile U8 	run;
     volatile U8		err;
 } mrbc_vm;
-
-__HOST__ void  mrbc_show_irep(mrbc_irep *irep);
 #endif 	// GURU_HOST_IMAGE
-
 
 //================================================================
 /*!@brief

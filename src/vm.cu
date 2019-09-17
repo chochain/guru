@@ -19,6 +19,7 @@
   </pre>
 */
 #include <stdio.h>
+#include <pthread.h>
 
 #include "alloc.h"
 #include "static.h"
@@ -30,60 +31,11 @@
 
 #include "puts.h"
 
-__HOST__ cudaError_t _vm_trace(U32 level);		// forward
-
-U32     _vm_pool_ok = 0;
 guru_vm *_vm_pool;
 
-//================================================================
-/*!@brief
-  VM initializer.
-
-  @param  vm  Pointer to VM
-*/
-__GPU__ void
-_vm_begin(guru_vm *pool)
-{
-	guru_vm *vm = pool+blockIdx.x;
-
-	if (threadIdx.x!=0 || vm->id==0) return;	// bail if vm not allocated
-
-	MEMSET(vm->regfile, 0, sizeof(vm->regfile));	// clean up registers
-
-	vm->regfile[0].gt  = GT_CLASS;				// regfile[0] is self
-    vm->regfile[0].cls = guru_class_object;		// root class
-
-    vm->state = NULL;
-    vm->run   = 1;
-    vm->err   = 0;
-
-    vm_state_push(vm, vm->irep, vm->regfile, 0);
-}
-
-//================================================================
-/*!@brief
-  VM finalizer.
-
-  @param  vm  Pointer to VM
-*/
-__GPU__ void
-_vm_end(guru_vm *pool)
-{
-	guru_vm *vm = pool+blockIdx.x;
-
-	if (threadIdx.x!=0 || vm->id==0) return;		// bail if vm not allocated
-
-	vm_state_pop(vm, vm->state->regs[1], 0);
-
-#if !GURU_DEBUG
-	// clean up register file
-	GV *p = vm->regfile;
-	for (U32 i=0; i < MAX_REGS_SIZE; i++, p++) {
-		ref_clr(p);
-	}
-    guru_memory_clr();
-#endif
-}
+pthread_mutex_t 	_vm_pool_lock;
+#define _LOCK		(pthread_mutex_lock(&_vm_pool_lock))
+#define _UNLOCK		(pthread_mutex_unlock(&_vm_pool_lock))
 
 //================================================================
 /*!@brief
@@ -93,39 +45,78 @@ _vm_end(guru_vm *pool)
   @retval 0  No error.
 */
 __GURU__ void
-_vm_prefetch(guru_vm *vm)
+_prefetch(guru_vm *vm)
 {
-   vm->bytecode = VM_BYTECODE(vm);
+	vm->bytecode = VM_BYTECODE(vm);
 
-   vm->op  = vm->bytecode & 0x7f;          // opcode
-   vm->opn = vm->bytecode >> 7;            // operands
-   vm->ar  = (GAR *)&(vm)->opn;            // operands struct/union
+	vm->op  = vm->bytecode & 0x7f;      // opcode
+	vm->opn = vm->bytecode >> 7;        // operands
+	vm->ar  = (GAR *)&(vm)->opn;        // operands struct/union
 
-   vm->state->pc++;							// advance program counter (ready for next fetch)
+	vm->state->pc++;					// advance program counter (ready for next fetch)
 }
 
 //================================================================
 /*!@brief
-  GURU Instruction dispatcher
+  VM initializer.
+
+  @param  vm  Pointer to VM
+*/
+__GPU__ void
+_ready(guru_vm *vm, guru_irep *irep)
+{
+	if (blockIdx.x!=0 || threadIdx.x!=0) return;		// single threaded
+
+	MEMSET(vm->regfile, 0, sizeof(vm->regfile));		// clean up registers
+
+	vm->regfile[0].gt  = GT_CLASS;						// regfile[0] is self
+    vm->regfile[0].cls = guru_class_object;				// root class
+
+    vm->state = NULL;
+    vm->run   = VM_STATUS_READY;
+    vm->err   = 0;
+
+    vm_state_push(vm, irep, vm->regfile, 0);
+}
+
+__GURU__ void
+_stop(guru_vm *vm)
+{
+	if (blockIdx.x!=0 || threadIdx.x!=0) return;		// single threaded
+	if (vm->run!=VM_STATUS_FREE) 		 return;
+
+	while (vm->state) {									// pop off call stack
+		vm_state_pop(vm, vm->state->regs[1], 0);
+	}
+}
+
+//================================================================
+/*!@brief
+  execute one ISEQ instruction for each VM
 
   @param  vm    A pointer of VM.
   @retval 0  No error.
 */
 __GPU__ void
-_vm_exec(guru_vm *pool)
+_step(guru_vm *pool)
 {
-	guru_vm *vm = pool+blockIdx.x;
-	if (vm->id==0 || !vm->run) return;			// not allocated yet, or completed
+	guru_vm *vm = pool+blockIdx.x;					// start up all VMs (with different blockIdx
+
+	if (vm->run!=VM_STATUS_RUN) return;				// free, ready, or hold
 
 	// start up instruction and dispatcher unit
 	do {
 		// add before_fetch hooks here
-		_vm_prefetch(vm);
+		_prefetch(vm);
 		// add before_exec hooks here
 		guru_op(vm);
 		// add after_exec hooks here
-	} while (!vm->step && !vm->quit);
-	__syncthreads();							// sync all cooperating threads (to share data)
+	} while (!vm->step && vm->run==VM_STATUS_RUN);
+
+	if (vm->run==VM_STATUS_FREE) {					// the VM is completed
+		_stop(vm);									// free up vm_state
+	}
+	__syncthreads();								// sync all cooperating threads (to shared data)
 }
 
 #if !GURU_HOST_IMAGE
@@ -152,50 +143,17 @@ _mrbc_irep_free(mrbc_irep *irep)
 #endif
 
 __HOST__ int
-_vm_join(void)
-{
-	guru_vm *vm = _vm_pool;
-	for (U32 i=1; i<=MIN_VM_COUNT; i++, vm++) {
-		if (vm->id != 0 && vm->run && !vm->quit) return 1;
-	}
-	return 0;
-}
-
-__HOST__ int
-_vm_pool_init(void)
-{
-	guru_vm *vm = _vm_pool = (guru_vm *)cuda_malloc(sizeof(guru_vm) * MIN_VM_COUNT, 1);
-	if (!vm) return 0;
-
-	for (U32 i=1; i<=MIN_VM_COUNT; i++, vm++) {
-		vm->id = vm->step = vm->run = vm->err = 0;
-	}
-	return MIN_VM_COUNT;
-}
-
-__HOST__ cudaError_t
-guru_vm_setup(guru_ses *ses, U32 step)
+vm_pool_init(U32 step)
 {
 #if GURU_HOST_IMAGE
-	if (!_vm_pool_ok) {
-		_vm_pool_ok = _vm_pool_init();
-		if (!_vm_pool_ok) return cudaErrorMemoryAllocation;
-	}
-	guru_vm *vm = _vm_pool;
-	U32 i;
-	for (i=1; i<=MIN_VM_COUNT; i++, vm++) {
-		if (vm->id == 0) {			// whether vm is unallocated
-			vm->id = ses->id = i;	// found, assign vm to session
-			vm->step = step;
-			break;
-		}
-	}
-	if (i>MIN_VM_COUNT) return cudaErrorMemoryAllocation;
+	guru_vm *vm = _vm_pool = (guru_vm *)cuda_malloc(sizeof(guru_vm) * MIN_VM_COUNT, 1);
+	if (!vm) return -1;
 
-	guru_parse_bytecode(vm, ses->in);
-	if (ses->trace) {
-		printf("  vm[%d]: %p\n", vm->id, (void *)vm);
-		guru_show_irep(vm->irep);
+	for (U32 i=0; i<=MIN_VM_COUNT; i++, vm++) {
+		vm->id   = i;
+		vm->step = step;
+		vm->err  = 0;
+		vm->run  = VM_STATUS_FREE;
 	}
 #else
 	mrbc_vm *vm = (mrbc_vm *)guru_malloc(sizeof(mrbc_vm), 1);
@@ -208,44 +166,105 @@ guru_vm_setup(guru_ses *ses, U32 step)
 		mrbc_show_irep(vm->irep);
 	}
 #endif
-	return cudaSuccess;
+	return 0;
 }
 
-__HOST__ cudaError_t
-guru_vm_run(guru_ses *ses)
+__HOST__ int
+_join() {
+	U32 i;
+	guru_vm *vm = _vm_pool;
+
+	_LOCK;
+	for (i=0; i<MIN_VM_COUNT; i++, vm++) {
+		if (vm->run==VM_STATUS_RUN) break;
+	}
+	_UNLOCK;
+
+	return (i<MIN_VM_COUNT) ? 1 : 0;
+}
+
+__HOST__ int
+vm_main_start(U32 trace)
 {
-    _vm_begin<<<MIN_VM_COUNT, 1>>>(_vm_pool);
-	cudaDeviceSynchronize();
+	if (trace) {
+		printf("guru_session starting...\n");
+		guru_dump_alloc_stat(trace);
+	}
 
-	do {	// TODO: flip session/vm centric view into app-server style main loop
-		_vm_trace(ses->trace);
+	// TODO: pthread
+	do {
+		vm_trace(trace);
 
-		_vm_exec<<<MIN_VM_COUNT, 1>>>(_vm_pool);
+		_step<<<MIN_VM_COUNT, 1>>>(_vm_pool);
 		cudaDeviceSynchronize();
 
-		// add host hook here
+	// add host hook here
 #if GURU_USE_CONSOLE
 		guru_console_flush(ses->out, ses->trace);	// dump output buffer
 #endif
-	} while (_vm_join());
+	} while (_join());
 
-    _vm_end<<<MIN_VM_COUNT, 1>>>(_vm_pool);
-	cudaDeviceSynchronize();
-
-	return cudaSuccess;
+	if (trace) {
+		printf("guru_session completed\n");
+		guru_dump_alloc_stat(trace);
+	}
+	return 0;
 }
 
-__HOST__ cudaError_t
-guru_vm_release(guru_ses *ses)
+__HOST__ int
+vm_get(U8 *irep_img)
 {
-	// TODO: release vm back to pool
-	return cudaSuccess;
+	guru_irep *irep = (guru_irep *)irep_img;
+	guru_vm   *vm   = NULL;
+	int i;
+
+	_LOCK;
+	vm = _vm_pool;
+	for (i=0; i<MIN_VM_COUNT; i++, vm++) {
+		if (vm->run==VM_STATUS_FREE) {
+			vm->run=VM_STATUS_READY;				// reserve the VM
+			break;
+		}
+	}
+	_ready<<<1,1>>>(vm, irep);
+	_UNLOCK;
+
+	return (i<MIN_VM_COUNT) ? i : -1;
 }
+
+__HOST__ int
+_set_status(U32 vid, U32 status)
+{
+	guru_vm *vm = _vm_pool + vid;
+	if (vm->run != VM_STATUS_RUN) return -1;
+
+	_LOCK;
+	vm->run = VM_STATUS_HOLD;
+	_UNLOCK;
+
+	return 0;
+}
+
+__HOST__ int vm_run(U32 vid)  { return _set_status(vid, VM_STATUS_RUN);  }
+__HOST__ int vm_hold(U32 vid) { return _set_status(vid, VM_STATUS_HOLD); }
+__HOST__ int vm_stop(U32 vid) { return _set_status(vid, VM_STATUS_FREE); }
 
 //========================================================================================
 // the following code is for debugging purpose, turn off GURU_DEBUG for release
 //========================================================================================
 #if GURU_DEBUG
+__HOST__ void
+_show_irep(guru_irep *irep, U32 ioff, char level, char *idx);		// forward declaration
+
+__HOST__ void
+vm_show_irep(U8 *irep_img)
+{
+	guru_irep *irep = (guru_irep *)irep_img;
+
+	char idx = 'a';
+	_show_irep(irep, 0, 'A', &idx);
+}
+
 static const char *_vtype[] = {
 	"___","nil","f  ","t  ","num","flt","sym","cls",	// 0x0
 	"prc","","","","","","","",							// 0x8
@@ -262,7 +281,7 @@ static const char *_opcode[] = {
     "MUL ","DIV ","EQ  ","LT  ","LE  ","GT  ","GE  ","ARRAY",
     "","","","","","STRING","STRCAT","HASH",
     "LAMBDA","RANGE","","CLASS","","EXEC","METHOD","",
-    "CLASS","","STOP","","","","","",
+    "TCLASS","","STOP","","","","","",
     "ABORT"
 };
 
@@ -278,6 +297,22 @@ _find_irep(guru_irep *irep0, guru_irep *irep1, U8P idx)
 		if (_find_irep((guru_irep *)(base + off[i]), irep1, idx)) return 1;
 	}
 	return 0;		// not found
+}
+
+__HOST__ void
+_show_irep(guru_irep *irep, U32 ioff, char level, char *idx)
+{
+	printf("\tirep[%c]=%c%04x: size=%d, nreg=%d, nlocal=%d, pools=%d, syms=%d, reps=%d, ilen=%d\n",
+			*idx, level, ioff,
+			irep->size, irep->nr, irep->nv, irep->p, irep->s, irep->c, irep->i);
+
+	// dump all children ireps
+	U8  *base = (U8 *)irep;
+	U32 *off  = (U32 *)U8PADD(base, irep->reps);		// pointer to irep offset array
+	for (U32 i=0; i<irep->c; i++) {
+		*idx += 1;
+		_show_irep((guru_irep *)(base + off[i]), off[i], level+1, idx);
+	}
 }
 
 __HOST__ void
@@ -311,12 +346,16 @@ _show_decoder(guru_vm *vm)
 	U16  op    = code & 0x7f;       				// in HOST mode, GET_OPCODE() is DEVICE code
 	U8P  opc   = (U8P)_opcode[GET_OPCODE(op)];
 
+	guru_state *st    = vm->state;
+	guru_irep  *irep1 = st->irep;
+
 	U8 idx = 'a';
-	if (!_find_irep(vm->irep, vm->state->irep, &idx)) idx='?';
+	if (st->prev) {
+		if (!_find_irep(st->prev->irep, irep1, &idx)) idx='?';
+	}
 	printf("%1d%c%-4d%-8s", vm->id, idx, pc, opc);
 
 	U32 lvl=0;
-	guru_state *st = vm->state;
 	while (st->prev != NULL) {
 		st = st->prev;
 		lvl += 2 + st->argc;
@@ -329,14 +368,14 @@ _show_decoder(guru_vm *vm)
 	}
 }
 
-__HOST__ cudaError_t
-_vm_trace(U32 level)
+__HOST__ void
+vm_trace(U32 level)
 {
-	if (level==0) return cudaSuccess;
+	if (level==0) return;
 
 	guru_vm *vm = _vm_pool;
 	for (U32 i=0; i<MIN_VM_COUNT; i++, vm++) {
-		if (vm->id > 0 && vm->run && vm->step) {
+		if (vm->run==VM_STATUS_RUN && vm->step) {
 			guru_state *st = vm->state;
 			while (st->prev) {
 				printf("  ");
@@ -347,35 +386,10 @@ _vm_trace(U32 level)
 		}
 	}
 	if (level>1) guru_dump_alloc_stat(level);
-
-	return cudaSuccess;
-}
-
-__HOST__ void
-_show_irep(guru_irep *irep, U32 ioff, char level, char *idx)
-{
-	printf("\tirep[%c]=%c%04x: size=%d, nreg=%d, nlocal=%d, pools=%d, syms=%d, reps=%d, ilen=%d\n",
-			*idx, level, ioff,
-			irep->size, irep->nr, irep->nv, irep->p, irep->s, irep->c, irep->i);
-
-	// dump all children ireps
-	U8  *base = (U8 *)irep;
-	U32 *off  = (U32 *)U8PADD(base, irep->reps);		// pointer to irep offset array
-	for (U32 i=0; i<irep->c; i++) {
-		*idx += 1;
-		_show_irep((guru_irep *)(base + off[i]), off[i], level+1, idx);
-	}
-}
-
-__HOST__ void
-guru_show_irep(guru_irep *irep)
-{
-	char idx = 'a';
-	_show_irep(irep, 0, 'A', &idx);
 }
 
 #else
-__HOST__ cudaError_t 	_vm_trace(U32 level) { return cudaSuccess; }
-__HOST__ void 			guru_show_irep(guru_irep *irep) {}
+__HOST__ void vm_trace(U32 level)        {}
+__HOST__ void vm_show_irep(U8 *irep_img) {}
 #endif 	// GURU_DEBUG
 
