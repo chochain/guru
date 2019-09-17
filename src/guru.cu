@@ -48,7 +48,7 @@ _fetch_bytecode(const U8P rite_fname)
 }
 
 __HOST__ int
-guru_setup(int trace)
+guru_setup(int step, int trace)
 {
 	U8P mem = _guru_mem = (U8P)cuda_malloc(BLOCK_MEMORY_SIZE, 1);
 	if (!_guru_mem) {
@@ -60,7 +60,7 @@ guru_setup(int trace)
 		fprintf(stderr, "ERROR: output buffer allocation error!\n");
 		return -2;
 	}
-	if (vm_pool_init(trace)) {
+	if (vm_pool_init(step)) {
 		fprintf(stderr, "ERROR: VM memory block allocation error!\n");
 		return -3;
 	}
@@ -77,20 +77,19 @@ guru_setup(int trace)
 	cudaDeviceGetLimit((size_t *)&sz1, cudaLimitStackSize);
 
 	if (trace) {
-		printf("guru session initialized[defaultStackSize %d => %d]\n", sz0, sz1);
+		printf("guru system initialized[defaultStackSize %d => %d]\n", sz0, sz1);
 		guru_dump_alloc_stat(trace);
 	}
 	return 0;
 }
 
 __HOST__ int
-guru_load(char *rite_name, int step, int trace)
+guru_load(char *rite_name)
 {
 	guru_ses *ses = (guru_ses *)malloc(sizeof(guru_ses));
 	if (!ses) return -1;		// memory allocation error
 
-	ses->trace = trace;
-	ses->stdout   = _guru_out;
+	ses->stdout = _guru_out;
 
 	U8P ins = ses->stdin = _fetch_bytecode((U8P)rite_name);
 	if (!ins) {
@@ -113,13 +112,15 @@ guru_run(int trace)
 			if (trace) {
 				printf("  vm[%d]:\n", vid);
 				vm_show_irep(irep_img);
-				guru_dump_alloc_stat(trace);
 			}
+			vm_run(vid);
 		}
 		else {
 			fprintf(stderr, "ERROR: bytecode parsing error!\n");
 		}
 	}
+	// kick up main loop until all VM are done
+	// TODO: become a server which responses to IREP requests
 	vm_main_start(trace);
 
 	return 0;
