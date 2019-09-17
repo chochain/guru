@@ -32,7 +32,8 @@ vm_state_push(guru_vm *vm, guru_irep *irep, GV *regs, U32 argc)
     guru_state *st  = (guru_state *)guru_alloc(sizeof(guru_state));
 
     switch(regs[0].gt) {
-    case GT_CLASS: st->klass = regs[0].cls;			break;
+    case GT_CLASS:
+    case GT_OBJ:   st->klass = regs[0].cls;			break;
     case GT_PROC:  st->klass = top->regs[0].cls; 	break;
     default: CHECK_NULL(NULL);
     }
@@ -82,7 +83,7 @@ vm_object_new(guru_vm *vm, GV v[], U32 argc)
 {
 	assert(v[0].gt==GT_CLASS);	// ensure it is a class object
 
-    GV obj = guru_store_new(v[0].cls, 0);
+    GV obj = guru_store_new(v[0].cls, 0);	// temp space (i.e. call stack)
     //
     // build a temp IREP for calling "initialize"
     // TODO: make the image static
@@ -92,17 +93,17 @@ vm_object_new(guru_vm *vm, GV v[], U32 argc)
     const U32 stbl = iseq + 2 * sizeof(U32);	// symbol string table
     guru_irep irep[2] = {
         {
-            0, 					// size						u32
+            sizeof(irep)*2, 	// size						u32
             0, 0, sym, iseq,	// reps, pool, sym, iseq	u32, u32, u32, u32
-            0,					// i  						u32
+            2,					// i  						u32
             0, 0,				// c, p						u16, u16
             2, 0, 0 			// s, nv, nr				u16, u8, u8
         },
         {
-        	stbl,														// symbol table
-        	(MKOPCODE(OP_SEND)|MKARG_A(0)|MKARG_B(0)|MKARG_C(argc)),	// ISEQ block
-        	(MKOPCODE(OP_ABORT)),
-        	0x74696e69, 0x696c6169, 0x0a00657a,	0						// "initialize"
+        	stbl,									// symbol table
+        	MKOP_ABC(OP_SEND,0,0,argc),				// ISEQ block
+        	MKOPCODE(OP_ABORT),
+        	0x74696e69, 0x696c6169, 0x0a00657a,	0	// "initialize"
         }
     };
 
@@ -113,9 +114,10 @@ vm_object_new(guru_vm *vm, GV v[], U32 argc)
     vm_state_push(vm, irep, v, 0);
     do {					// execute the mini IREP
     	guru_op(vm);
-    } while (!vm->quit);
-    vm->quit = 0;
+    } while (vm->run!=VM_STATUS_RUN);
+
     vm_state_pop(vm, vm->state->regs[1], 0);
+    vm->run = VM_STATUS_RUN;
 
     RETURN_VAL(obj);
 }
