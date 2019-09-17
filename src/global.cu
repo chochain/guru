@@ -31,6 +31,9 @@ typedef struct _gobj_ {
     _gtype 		gt	:8;
 } _gobj;
 
+#define _LOCK		{ MUTEX_LOCK(_mutex_gobj); }
+#define _UNLOCK		{ MUTEX_FREE(_mutex_gobj); }
+
 // max of global object in _global[]
 __GURU__ U32 	_mutex_gobj;
 
@@ -65,7 +68,7 @@ _add_obj(GS sid, guru_obj *obj, _gtype gt)
 {
     S32 idx = _get_idx(sid, gt);
 
-    MUTEX_LOCK(_mutex_gobj);
+    _LOCK;
 
     if (idx < 0) {			// not found
         idx = _global_idx++;
@@ -76,7 +79,7 @@ _add_obj(GS sid, guru_obj *obj, _gtype gt)
     _global[idx].gt  = gt;
     MEMCPY(&_global[idx].obj, obj, sizeof(guru_obj));				// deep copy
 
-    MUTEX_FREE(_mutex_gobj);
+    _UNLOCK;
 }
 
 /* add */

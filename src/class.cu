@@ -23,6 +23,9 @@
 #include "class.h"
 #include "puts.h"
 
+#define _LOCK		{ MUTEX_LOCK(_mutex_cls); }
+#define _UNLOCK 	{ MUTEX_FREE(_mutex_cls); }
+
 __GURU__ U32 _mutex_cls;
 
 //================================================================
@@ -181,13 +184,13 @@ guru_define_method(guru_class *cls, const U8P name, guru_fptr cfunc)
 
     guru_proc *prc = _alloc_proc(cls, name);
 
-    MUTEX_LOCK(_mutex_cls);
+    _LOCK;
 
     prc->func 	= cfunc;						// set function pointer
     prc->next 	= cls->vtbl;					// add as the new list head
     cls->vtbl 	= prc;
 
-    MUTEX_FREE(_mutex_cls);
+    _UNLOCK;
 
     return prc;
 }

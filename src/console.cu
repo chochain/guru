@@ -17,6 +17,10 @@ __GURU__ U32 _output_size;
 __GURU__ U8P _output_ptr;		// global output buffer for now, per session later
 __GURU__ U8P _output_buf;
 
+
+#define _LOCK		{ MUTEX_LOCK(_mutex_con); }
+#define _UNLOCK		{ MUTEX_FREE(_mutex_con); }
+
 __GURU__ volatile U32 _mutex_con;
 
 __GURU__ void
@@ -24,7 +28,7 @@ _write(GT gt, GT fmt, U32 sz, U8P buf)
 {
 	if (threadIdx.x!=0) return;		// only thread 0 within a block can write
 
-	MUTEX_LOCK(_mutex_con);
+	_LOCK;
 
 	guru_print_node *n = (guru_print_node *)_output_ptr;
 	MEMCPY(n->data, buf, sz);
@@ -37,7 +41,7 @@ _write(GT gt, GT fmt, U32 sz, U8P buf)
 	_output_ptr  = U8PADD(n->data, n->size);		// advance pointer to next print block
 	*_output_ptr = (U8)GT_EMPTY;
 
-	MUTEX_FREE(_mutex_con);
+	_UNLOCK;
 }
 
 __GURU__ U8P

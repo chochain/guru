@@ -32,6 +32,9 @@
 
 #include "puts.h"
 
+#define _LOCK		{ MUTEX_LOCK(_mutex_op); }
+#define _UNLOCK		{ MUTEX_FREE(_mutex_op); }
+
 __GURU__ U32 _mutex_op;
 //
 // becareful with the following macros, because they release regs[ra] first
@@ -1231,14 +1234,14 @@ op_method(guru_vm *vm)
 
     prc = regs[ra+1].proc;					// setup the new proc
 
-    MUTEX_LOCK(_mutex_op);
+    _LOCK;
 
     // add proc to class
     prc->sid  = sid;
     prc->next = cls->vtbl;					// add to top of vtable
     cls->vtbl = prc;
 
-    MUTEX_FREE(_mutex_op);
+    _UNLOCK;
 
     for (U32 i=1; i<=ra+1; i++) {
     	ref_dec(&regs[i]);

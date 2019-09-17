@@ -56,6 +56,9 @@
 #define NEXT(p) 		U8PADD(p, p->size)
 #define PREV(p) 		U8PADD(p, -p->poff)
 
+#define _LOCK			(MUTEX_LOCK(_mutex_mem))
+#define _UNLOCK			(MUTEX_FREE(_mutex_mem))
+
 // semaphore
 __GURU__ volatile int 	_mutex_mem;
 
@@ -381,14 +384,14 @@ mrbc_alloc(U32 size)
     }
 #endif
 
-	MUTEX_LOCK(_mutex_mem);
+	_LOCK;
 
 	int index 			= _get_free_index(alloc_size);
 	free_block *target 	= _mark_used(index);
 
 	_split_free_block(target, alloc_size, 0);
 
-	MUTEX_FREE(_mutex_mem);
+	_UNLOCK;
 
 #if GURU_DEBUG
     uint8_t *p = BLOCKDATA(target);

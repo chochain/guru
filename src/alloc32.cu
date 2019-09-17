@@ -20,6 +20,9 @@
 // Layer 1st(f), 2nd(s) model, smallest block 16-bytes, 16-byte alignment
 // TODO: multiple-pool, thread-safe
 // semaphore
+#define _LOCK			{ MUTEX_LOCK(_mutex_mem); }
+#define _UNLOCK			{ MUTEX_FREE(_mutex_mem); }
+
 __GURU__ volatile U32 	_mutex_mem;
 
 // memory pool
@@ -333,7 +336,7 @@ guru_alloc(U32 sz)
     CHECK_ALIGN(bsz);							// assume caller already align the size
     CHECK_MINSZ(bsz);							// check minimum allocation size
 
-	MUTEX_LOCK(_mutex_mem);
+	_LOCK;
 
 	U32 index 		= _find_free_index(bsz);
 	free_block *blk = _mark_used(index);		// take the indexed block off free list
@@ -344,7 +347,7 @@ guru_alloc(U32 sz)
     sz >>= 2;
     for (U32 i=0; i < (sz>16 ? 16 : sz); i++) *p++ = 0xaaaaaaaa;
 #endif
-	MUTEX_FREE(_mutex_mem);
+	_UNLOCK;
 
 	return BLK_DATA(blk);						// pointer to raw space
 }
@@ -391,7 +394,7 @@ guru_realloc(void *p0, U32 sz)
 __GURU__ void
 guru_free(void *ptr)
 {
-	MUTEX_LOCK(_mutex_mem);
+	_LOCK;
 
     free_block *blk = (free_block *)BLK_HEAD(ptr);			// get block header
 
@@ -408,7 +411,7 @@ guru_free(void *ptr)
     // the block is free now, try to merge a free block before if exists
     blk = _merge_with_prev(blk);
 
-    MUTEX_FREE(_mutex_mem);
+    _UNLOCK;
 }
 
 //================================================================
@@ -598,6 +601,7 @@ guru_dump_alloc_stat(U32 trace)
 	}
 	if (trace & 2) {
 		_dump_freelist<<<1,1>>>();
+		cudaDeviceSynchronize();
 	}
 }
 #endif
