@@ -33,9 +33,11 @@
 
 guru_vm *_vm_pool;
 
-pthread_mutex_t 	_vm_pool_lock;
-#define _LOCK		(pthread_mutex_lock(&_vm_pool_lock))
-#define _UNLOCK		(pthread_mutex_unlock(&_vm_pool_lock))
+pthread_mutex_t 	_mutex_pool;
+#define _LOCK		(pthread_mutex_lock(&_mutex_pool))
+#define _UNLOCK		(pthread_mutex_unlock(&_mutex_pool), cudaDeviceSynchronize())
+
+__HOST__ void	_trace(U32 level);		// forward declaration
 
 //================================================================
 /*!@brief
@@ -149,11 +151,11 @@ vm_pool_init(U32 step)
 	guru_vm *vm = _vm_pool = (guru_vm *)cuda_malloc(sizeof(guru_vm) * MIN_VM_COUNT, 1);
 	if (!vm) return -1;
 
-	for (U32 i=0; i<=MIN_VM_COUNT; i++, vm++) {
+	for (U32 i=0; i<MIN_VM_COUNT; i++, vm++) {
 		vm->id   = i;
 		vm->step = step;
 		vm->err  = 0;
-		vm->run  = VM_STATUS_FREE;
+		vm->run  = VM_STATUS_FREE;		// VM not allocated
 	}
 #else
 	mrbc_vm *vm = (mrbc_vm *)guru_malloc(sizeof(mrbc_vm), 1);
@@ -186,14 +188,12 @@ _join() {
 __HOST__ int
 vm_main_start(U32 trace)
 {
-	if (trace) {
-		printf("guru_session starting...\n");
-		guru_dump_alloc_stat(trace);
-	}
+	if (trace) printf("guru_session starting...\n");
 
 	// TODO: pthread
 	do {
-		vm_trace(trace);
+		_trace(trace);
+		cudaDeviceSynchronize();
 
 		_step<<<MIN_VM_COUNT, 1>>>(_vm_pool);
 		cudaDeviceSynchronize();
@@ -222,7 +222,7 @@ vm_get(U8 *irep_img)
 	vm = _vm_pool;
 	for (i=0; i<MIN_VM_COUNT; i++, vm++) {
 		if (vm->run==VM_STATUS_FREE) {
-			vm->run=VM_STATUS_READY;				// reserve the VM
+			vm->run  = VM_STATUS_READY;				// reserve the VM
 			break;
 		}
 	}
@@ -233,28 +233,27 @@ vm_get(U8 *irep_img)
 }
 
 __HOST__ int
-_set_status(U32 vid, U32 status)
+_set_status(U32 vid, U32 new_status, U32 status_flag)
 {
 	guru_vm *vm = _vm_pool + vid;
-	if (vm->run != VM_STATUS_RUN) return -1;
+	if (!(vm->run & status_flag)) return -1;		// state machine
 
 	_LOCK;
-	vm->run = VM_STATUS_HOLD;
+	vm->run = new_status;
 	_UNLOCK;
 
 	return 0;
 }
 
-__HOST__ int vm_run(U32 vid)  { return _set_status(vid, VM_STATUS_RUN);  }
-__HOST__ int vm_hold(U32 vid) { return _set_status(vid, VM_STATUS_HOLD); }
-__HOST__ int vm_stop(U32 vid) { return _set_status(vid, VM_STATUS_FREE); }
+__HOST__ int vm_run(U32 vid)  { return _set_status(vid, VM_STATUS_RUN,  VM_STATUS_READY); }
+__HOST__ int vm_hold(U32 vid) { return _set_status(vid, VM_STATUS_HOLD, VM_STATUS_RUN);   }
+__HOST__ int vm_stop(U32 vid) { return _set_status(vid, VM_STATUS_FREE, VM_STATUS_RUN);   }
 
 //========================================================================================
 // the following code is for debugging purpose, turn off GURU_DEBUG for release
 //========================================================================================
 #if GURU_DEBUG
-__HOST__ void
-_show_irep(guru_irep *irep, U32 ioff, char level, char *idx);		// forward declaration
+__HOST__ void	_show_irep(guru_irep *irep, U32 ioff, char level, char *idx);		// forward declaration
 
 __HOST__ void
 vm_show_irep(U8 *irep_img)
@@ -369,8 +368,10 @@ _show_decoder(guru_vm *vm)
 }
 
 __HOST__ void
-vm_trace(U32 level)
+_trace(U32 level)
 {
+	static const char* aa[] = { "FREE", "RUN", "READY", "HOLD" };
+
 	if (level==0) return;
 
 	guru_vm *vm = _vm_pool;
@@ -389,7 +390,7 @@ vm_trace(U32 level)
 }
 
 #else
-__HOST__ void vm_trace(U32 level)        {}
 __HOST__ void vm_show_irep(U8 *irep_img) {}
+__HOST__ void _trace(U32 level)          {}
 #endif 	// GURU_DEBUG
 

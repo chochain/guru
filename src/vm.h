@@ -21,8 +21,8 @@ extern "C" {
 #endif
 
 #define VM_STATUS_FREE  0
-#define VM_STATUS_READY	1
-#define VM_STATUS_RUN   2
+#define VM_STATUS_RUN   1
+#define VM_STATUS_READY	2
 #define VM_STATUS_HOLD  3
 
 #if GURU_HOST_IMAGE

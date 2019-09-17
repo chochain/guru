@@ -30,7 +30,6 @@ int	 vm_run(U32 vid);
 
 int  vm_main_start(U32 trace);
 
-void vm_trace(U32 level);
 void vm_show_irep(U8 *irep_img);
 
 #ifdef __cplusplus
