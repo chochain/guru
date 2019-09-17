@@ -22,7 +22,7 @@ extern "C" {
 #endif
 
 #if GURU_HOST_IMAGE
-__HOST__ void  guru_parse_bytecode(guru_vm *vm, U8P ptr);	// parsed by HOST, image passed into GPU
+__HOST__ U8 *guru_parse_bytecode(U8P ptr);	// parsed by HOST, image passed into GPU
 #else
 __GPU__  void  mrbc_parse_bytecode(mrbc_vm *vm, U8P ptr);	// parsed inside GPU
 #endif

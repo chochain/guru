@@ -90,9 +90,11 @@ _check_header(U8P *pos)
 //
 // building memory image, offset-based with alignment
 //
-__HOST__ guru_irep *
-_build_image(guru_irep *src, U8 * img)
+__HOST__ U8 *
+_build_image(U8 *src_u8, U8 * img)
 {
+	guru_irep *src = (guru_irep *)src_u8;
+
 	// compute CUDA alignment memory block sizes
     U32 irep_sz = sizeof(guru_irep) + (-sizeof(guru_irep) & 7);					// 8-byte alignment
     U32 reps_sz = sizeof(U32) * (src->c + (src->c & 1));
@@ -175,7 +177,7 @@ _build_image(guru_irep *src, U8 * img)
     }
     tgt->size = U8POFF(stbl, tgt);
 
-    return tgt;
+    return (U8*)tgt;
 }
 
 //================================================================
@@ -209,8 +211,9 @@ _build_image(guru_irep *src, U8 * img)
   </pre>
 */
 __HOST__ U8P
-_fetch_irep_size(guru_irep *irep, U8P img)						// pos will be advance to next IREP block
+_fetch_irep_size(U8 *src, U8P img)								// pos will be advance to next IREP block
 {
+	guru_irep *irep = (guru_irep *)src;
     U8 * p = img;
 
     // Header: sz,nlocals,nregs,rlen
@@ -254,25 +257,25 @@ _fetch_irep_size(guru_irep *irep, U8P img)						// pos will be advance to next I
   "0000"	rite version
   </pre>
 */
-__HOST__ guru_irep *
+__HOST__ U8 *
 _load_irep(U8P *pos)
 {
-    U8 * img = *pos;								// host image
-    U8 * sp  = *pos;								// local pointer
+    U8 *img = *pos;									// host image
+    U8 *sp  = *pos;									// local pointer
     guru_irep src;									// temp store for source IREP
 
-    sp = _fetch_irep_size(&src, img);				// populate metadata of current IREP, sp will be advanced to next IREP block
-	guru_irep *irep = _build_image(&src, img);		// build CUDA image from host image
+    sp = _fetch_irep_size((U8*)&src, img);			// populate metadata of current IREP, sp will be advanced to next IREP block
+	U8 *irep = _build_image((U8*)&src, img);		// build CUDA image (in managed memory) from host image
 
     // recursively create the child irep tree
-    U32 * v = (U32P)U8PADD(irep, irep->reps);
+    U32 * v = (U32P)U8PADD(irep, ((guru_irep *)irep)->reps);
     for (U32 i=0; i < src.c; i++) {					// number of irep children
-    	guru_irep *irep_n = _load_irep(&sp);		// load a child irep recursively
+    	U8 *irep_n = _load_irep(&sp);				// load a child irep recursively (from host image)
         v[i] = U8POFF(irep_n, irep);				// calculate offset
     }
 	*pos = sp;
 
-    return irep;
+    return irep;		// a pointer to CUDA irep (in managed memory)
 }
 
 //================================================================
@@ -304,19 +307,20 @@ _load_lvar(U8P *pos)
   @param  ptr	Pointer to bytecode.
 
 */
-__HOST__ void
-guru_parse_bytecode(guru_vm *vm, U8P src)
+__HOST__ U8 *
+guru_parse_bytecode(U8P src)
 {
 	U8P *sp = (U8P *)&src;
 	int ret = _check_header(sp);
 
+	U8 *irep;
     while (ret==NO_ERROR) {
         if (memcmp(*sp, "IREP", 4)==0) {
         	*sp += 4 + sizeof(U32);								// skip "IREP", irep_sz
             if (memcmp(*sp, "0000", 4) != 0) break;				// IREP version
             *sp += 4;											// skip "0000"
 
-        	ret = (vm->irep = _load_irep(sp))==NULL
+        	ret = ((irep = _load_irep(sp))==NULL)
         			? LOAD_FILE_IREP_ERROR_ALLOCATION
         			: NO_ERROR;
         }
@@ -327,5 +331,6 @@ guru_parse_bytecode(guru_vm *vm, U8P src)
             break;
         }
     }
+    return (ret==NO_ERROR) ? irep : NULL;
 }
 #endif 	// GURU_HOST_IMAGE
