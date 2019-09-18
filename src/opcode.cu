@@ -32,10 +32,10 @@
 
 #include "puts.h"
 
-#define _LOCK		{ MUTEX_LOCK(_mutex_op); }
-#define _UNLOCK		{ MUTEX_FREE(_mutex_op); }
+#define _LOCK		{ MUTEX_LOCK(_mutex_uc); }
+#define _UNLOCK		{ MUTEX_FREE(_mutex_uc); }
 
-__GURU__ U32 _mutex_op;
+__GURU__ U32 _mutex_uc;
 //
 // becareful with the following macros, because they release regs[ra] first
 // so, make sure value is kept before the release
@@ -50,29 +50,23 @@ __GURU__ U32 _mutex_op;
 #define QUIT(x)			{ vm->quit=1; guru_na(x); return; }
 //================================================================
 /*!@brief
-  Execute OP_NOP
+  OP_NOP
 
   No operation
-
-  @param  vm    A pointer of VM.
-  @retval 0  	No error.
 */
 __GURU__ void
-op_nop(guru_vm *vm)
+uc_nop(guru_vm *vm)
 {
 }
 
 //================================================================
 /*!@brief
-  Execute OP_MOVE
+  OP_MOVE
 
   R(A) := R(B)
-
-  @param  vm    A pointer of VM.
-  @retval 0  	No error.
 */
 __GURU__ void
-op_move(guru_vm *vm)
+uc_move(guru_vm *vm)
 {
 	GV *regs = vm->state->regs;
 	U32 code = vm->bytecode;
@@ -84,15 +78,12 @@ op_move(guru_vm *vm)
 
 //================================================================
 /*!@brief
-  Execute OP_LOADL
+  OP_LOADL
 
   R(A) := Pool(Bx)
-
-  @param  vm    A pointer of VM.
-  @retval 0  	No error.
 */
 __GURU__ void
-op_loadl(guru_vm *vm)
+uc_loadl(guru_vm *vm)
 {
 	GV *regs = vm->state->regs;
 	U32 code = vm->bytecode;
@@ -114,15 +105,12 @@ op_loadl(guru_vm *vm)
 
 //================================================================
 /*!@brief
-  Execute OP_LOADI
+  OP_LOADI
 
   R(A) := sBx
-
-  @param  vm    A pointer of VM.
-  @retval 0  	No error.
 */
 __GURU__ void
-op_loadi(guru_vm *vm)
+uc_loadi(guru_vm *vm)
 {
     GI rb = _ARG(bx) - MAXARG_sBx;		// sBx
 
@@ -132,15 +120,12 @@ op_loadi(guru_vm *vm)
 
 //================================================================
 /*!@brief
-  Execute OP_LOADSYM
+  OP_LOADSYM
 
   R(A) := Syms(Bx)
-
-  @param  vm    A pointer of VM.
-  @retval 0  	No error.
 */
 __GURU__ void
-op_loadsym(guru_vm *vm)
+uc_loadsym(guru_vm *vm)
 {
 	GV *regs = vm->state->regs;
 	U32 code = vm->bytecode;
@@ -153,15 +138,12 @@ op_loadsym(guru_vm *vm)
 
 //================================================================
 /*!@brief
-  Execute OP_LOADNIL
+  OP_LOADNIL
 
   R(A) := nil
-
-  @param  vm    A pointer of VM.
-  @retval 0  	No error.
 */
 __GURU__ void
-op_loadnil(guru_vm *vm)
+uc_loadnil(guru_vm *vm)
 {
 	GV *regs = vm->state->regs;
 	U32 code = vm->bytecode;
@@ -172,15 +154,12 @@ op_loadnil(guru_vm *vm)
 
 //================================================================
 /*!@brief
-  Execute OP_LOADSELF
+  OP_LOADSELF
 
   R(A) := self
-
-  @param  vm    A pointer of VM.
-  @retval 0  	No error.
 */
 __GURU__ void
-op_loadself(guru_vm *vm)
+uc_loadself(guru_vm *vm)
 {
 	GV *regs = vm->state->regs;
 	U32 code = vm->bytecode;
@@ -191,15 +170,12 @@ op_loadself(guru_vm *vm)
 
 //================================================================
 /*!@brief
-  Execute OP_LOADT
+  OP_LOADT
 
   R(A) := true
-
-  @param  vm    A pointer of VM.
-  @retval 0  	No error.
 */
 __GURU__ void
-op_loadt(guru_vm *vm)
+uc_loadt(guru_vm *vm)
 {
 	GV *regs = vm->state->regs;
 	U32 code = vm->bytecode;
@@ -210,15 +186,12 @@ op_loadt(guru_vm *vm)
 
 //================================================================
 /*!@brief
-  Execute OP_LOADF
+  OP_LOADF
 
   R(A) := false
-
-  @param  vm    A pointer of VM.
-  @retval 0  	No error.
 */
 __GURU__ void
-op_loadf(guru_vm *vm)
+uc_loadf(guru_vm *vm)
 {
 	GV *regs = vm->state->regs;
 	U32 code = vm->bytecode;
@@ -229,15 +202,12 @@ op_loadf(guru_vm *vm)
 
 //================================================================
 /*!@brief
-  Execute OP_GETGLOBAL
+  OP_GETGLOBAL
 
   R(A) := getglobal(Syms(Bx))
-
-  @param  vm    A pointer of VM.
-  @retval 0  	No error.
 */
 __GURU__ void
-op_getglobal(guru_vm *vm)
+uc_getglobal(guru_vm *vm)
 {
 	GV *regs = vm->state->regs;
 	U32 code = vm->bytecode;
@@ -252,15 +222,12 @@ op_getglobal(guru_vm *vm)
 
 //================================================================
 /*!@brief
-  Execute OP_SETGLOBAL
+  OP_SETGLOBAL
 
   setglobal(Syms(Bx), R(A))
-
-  @param  vm    A pointer of VM.
-  @retval 0  	No error.
 */
 __GURU__ void
-op_setglobal(guru_vm *vm)
+uc_setglobal(guru_vm *vm)
 {
 	GV *regs = vm->state->regs;
 	U32 code = vm->bytecode;
@@ -273,15 +240,12 @@ op_setglobal(guru_vm *vm)
 
 //================================================================
 /*!@brief
-  Execute OP_GETIV
+  OP_GETIV
 
   R(A) := ivget(Syms(Bx))
-
-  @param  vm    A pointer of VM.
-  @retval 0  	No error.
 */
 __GURU__ void
-op_getiv(guru_vm *vm)
+uc_getiv(guru_vm *vm)
 {
 	GV *regs = vm->state->regs;
 	U32 code = vm->bytecode;
@@ -297,15 +261,12 @@ op_getiv(guru_vm *vm)
 
 //================================================================
 /*!@brief
-  Execute OP_SETIV
+  OP_SETIV
 
   ivset(Syms(Bx),R(A))
-
-  @param  vm    A pointer of VM.
-  @retval 0  	No error.
 */
 __GURU__ void
-op_setiv(guru_vm *vm)
+uc_setiv(guru_vm *vm)
 {
 	GV *regs = vm->state->regs;
 	U32 code = vm->bytecode;
@@ -320,15 +281,12 @@ op_setiv(guru_vm *vm)
 
 //================================================================
 /*!@brief
-  Execute OP_GETCONST
+  OP_GETCONST
 
   R(A) := constget(Syms(Bx))
-
-  @param  vm    A pointer of VM.
-  @retval 0  	No error.
 */
 __GURU__ void
-op_getconst(guru_vm *vm)
+uc_getconst(guru_vm *vm)
 {
 	GV *regs = vm->state->regs;
 	U32 code = vm->bytecode;
@@ -343,15 +301,12 @@ op_getconst(guru_vm *vm)
 
 //================================================================
 /*!@brief
-  Execute OP_SETCONST
+  OP_SETCONST
 
   constset(Syms(Bx),R(A))
-
-  @param  vm    A pointer of VM.
-  @retval 0  	No error.
 */
 __GURU__ void
-op_setconst(guru_vm *vm) {
+uc_setconst(guru_vm *vm) {
 	GV *regs = vm->state->regs;
 	U32 code = vm->bytecode;
     U32 ra  = GETARG_A(code);
@@ -363,15 +318,12 @@ op_setconst(guru_vm *vm) {
 
 //================================================================
 /*!@brief
-  Execute OP_GETUPVAR
+  OP_GETUPVAR
 
   R(A) := uvget(B,C)
-
-  @param  vm    A pointer of VM.
-  @retval 0  	No error.
 */
 __GURU__ void
-op_getupvar(guru_vm *vm)
+uc_getupvar(guru_vm *vm)
 {
 	GV *regs = vm->state->regs;
 	U32 code = vm->bytecode;
@@ -393,15 +345,12 @@ op_getupvar(guru_vm *vm)
 
 //================================================================
 /*!@brief
-  Execute OP_SETUPVAR
+  OP_SETUPVAR
 
   uvset(B,C,R(A))
-
-  @param  vm    A pointer of VM.
-  @retval 0  	No error.
 */
 __GURU__ void
-op_setupvar(guru_vm *vm)
+uc_setupvar(guru_vm *vm)
 {
 	GV *regs = vm->state->regs;
 	U32 code = vm->bytecode;
@@ -424,15 +373,12 @@ op_setupvar(guru_vm *vm)
 
 //================================================================
 /*!@brief
-  Execute OP_JMP
+  OP_JMP
 
   pc += sBx
-
-  @param  vm    A pointer of VM.
-  @retval 0  	No error.
 */
 __GURU__ void
-op_jmp(guru_vm *vm)
+uc_jmp(guru_vm *vm)
 {
 	U32 code = vm->bytecode;
     vm->state->pc += GETARG_sBx(code) - 1;
@@ -440,15 +386,12 @@ op_jmp(guru_vm *vm)
 
 //================================================================
 /*!@brief
-  Execute OP_JMPIF
+  OP_JMPIF
 
   if R(A) pc += sBx
-
-  @param  vm    A pointer of VM.
-  @retval 0  	No error.
 */
 __GURU__ void
-op_jmpif (guru_vm *vm)
+uc_jmpif (guru_vm *vm)
 {
 	GV *regs = vm->state->regs;
 	U32 code = vm->bytecode;
@@ -459,15 +402,12 @@ op_jmpif (guru_vm *vm)
 
 //================================================================
 /*!@brief
-  Execute OP_JMPNOT
+  OP_JMPNOT
 
   if not R(A) pc += sBx
-
-  @param  vm    A pointer of VM.
-  @retval 0  	No error.
 */
 __GURU__ void
-op_jmpnot(guru_vm *vm)
+uc_jmpnot(guru_vm *vm)
 {
 	GV *regs = vm->state->regs;
 	U32 code = vm->bytecode;
@@ -479,13 +419,10 @@ op_jmpnot(guru_vm *vm)
 
 //================================================================
 /*!@brief
-  Execute OP_SEND / OP_SENDB
+  OP_SEND / OP_SENDB
 
   OP_SEND   R(A) := call(R(A),Syms(B),R(A+1),...,R(A+C))
   OP_SENDB  R(A) := call(R(A),Syms(B),R(A+1),...,R(A+C),&R(A+C+1))
-
-  @param  vm    A pointer of VM.
-  @retval 0  	No error.
 */
 __GURU__ void
 _wipe_stack(GV *regs, U32 rc)
@@ -497,7 +434,7 @@ _wipe_stack(GV *regs, U32 rc)
 }
 
 __GURU__ void
-op_send(guru_vm *vm)
+uc_send(guru_vm *vm)
 {
 	GV *regs = vm->state->regs;
 	U32 code = vm->bytecode;
@@ -534,15 +471,12 @@ op_send(guru_vm *vm)
 
 //================================================================
 /*!@brief
-  Execute OP_CALL
+  OP_CALL
 
   R(A) := self.call(frame.argc, frame.argv)
-
-  @param  vm    A pointer of VM.
-  @retval 0  	No error.
 */
 __GURU__ void
-op_call(guru_vm *vm)
+uc_call(guru_vm *vm)
 {
 	GV *regs = vm->state->regs;
 	guru_irep *irep = regs[0].proc->irep;
@@ -554,15 +488,12 @@ op_call(guru_vm *vm)
 
 //================================================================
 /*!@brief
-  Execute OP_ENTER
+  OP_ENTER
 
   arg setup according to flags (23=5:5:1:5:5:1:1)
-
-  @param  vm    A pointer of VM.
-  @retval 0  	No error.
 */
 __GURU__ void
-op_enter(guru_vm *vm)
+uc_enter(guru_vm *vm)
 {
 	U32 code  = vm->bytecode;
     U32 param = GETARG_Ax(code);
@@ -577,15 +508,12 @@ op_enter(guru_vm *vm)
 
 //================================================================
 /*!@brief
-  Execute OP_RETURN
+  OP_RETURN
 
   return R(A) (B=normal,in-block return/break)
-
-  @param  vm    A pointer of VM.
-  @retval 0  	No error.
 */
 __GURU__ void
-op_return(guru_vm *vm)
+uc_return(guru_vm *vm)
 {
 	GV *regs = vm->state->regs;
 	U32 code = vm->bytecode;
@@ -597,15 +525,12 @@ op_return(guru_vm *vm)
 
 //================================================================
 /*!@brief
-  Execute OP_BLKPUSH (yield implementation)
+  OP_BLKPUSH (yield implementation)
 
   R(A) := block (16=6:1:5:4)
-
-  @param  vm    A pointer of VM.
-  @retval 0  	No error.
 */
 __GURU__ void
-op_blkpush(guru_vm *vm)
+uc_blkpush(guru_vm *vm)
 {
 	GV *regs = vm->state->regs;
 	U32 code = vm->bytecode;
@@ -620,15 +545,12 @@ op_blkpush(guru_vm *vm)
 
 //================================================================
 /*!@brief
-  Execute OP_ADD
+  OP_ADD
 
   R(A) := R(A)+R(A+1) (Syms[B]=:+,C=1)
-
-  @param  vm    A pointer of VM.
-  @retval 0  	No error.
 */
 __GURU__ void
-op_add(guru_vm *vm)
+uc_add(guru_vm *vm)
 {
 	GV *regs = vm->state->regs;
 	U32 code = vm->bytecode;
@@ -652,22 +574,19 @@ op_add(guru_vm *vm)
 #endif
     }
     else {    	// other case
-    	op_send(vm);			// should have already released regs[ra + n], ...
+    	uc_send(vm);			// should have already released regs[ra + n], ...
     }
     r1->gt = GT_EMPTY;
 }
 
 //================================================================
 /*!@brief
-  Execute OP_ADDI
+  OP_ADDI
 
   R(A) := R(A)+C (Syms[B]=:+)
-
-  @param  vm    A pointer of VM.
-  @retval 0  	No error.
 */
 __GURU__ void
-op_addi(guru_vm *vm)
+uc_addi(guru_vm *vm)
 {
 	GV *regs = vm->state->regs;
 	U32 code = vm->bytecode;
@@ -686,15 +605,12 @@ op_addi(guru_vm *vm)
 
 //================================================================
 /*!@brief
-  Execute OP_SUB
+  OP_SUB
 
   R(A) := R(A)-R(A+1) (Syms[B]=:-,C=1)
-
-  @param  vm    A pointer of VM.
-  @retval 0  	No error.
 */
 __GURU__ void
-op_sub(guru_vm *vm)
+uc_sub(guru_vm *vm)
 {
 	GV *regs = vm->state->regs;
 	U32 code = vm->bytecode;
@@ -719,22 +635,19 @@ op_sub(guru_vm *vm)
 #endif
     }
     else {  // other case
-    	op_send(vm);
+    	uc_send(vm);
     }
     ref_clr(r1);
 }
 
 //================================================================
 /*!@brief
-  Execute OP_SUBI
+  OP_SUBI
 
   R(A) := R(A)-C (Syms[B]=:-)
-
-  @param  vm    A pointer of VM.
-  @retval 0  	No error.
 */
 __GURU__ void
-op_subi(guru_vm *vm)
+uc_subi(guru_vm *vm)
 {
 	GV *regs = vm->state->regs;
 	U32 code = vm->bytecode;
@@ -753,15 +666,12 @@ op_subi(guru_vm *vm)
 
 //================================================================
 /*!@brief
-  Execute OP_MUL
+  OP_MUL
 
   R(A) := R(A)*R(A+1) (Syms[B]=:*)
-
-  @param  vm    A pointer of VM.
-  @retval 0  	No error.
 */
 __GURU__ void
-op_mul(guru_vm *vm)
+uc_mul(guru_vm *vm)
 {
 	GV *regs = vm->state->regs;
 	U32 code = vm->bytecode;
@@ -785,22 +695,19 @@ op_mul(guru_vm *vm)
 #endif
     }
     else {   // other case
-    	op_send(vm);
+    	uc_send(vm);
     }
     ref_clr(r1);
 }
 
 //================================================================
 /*!@brief
-  Execute OP_DIV
+  OP_DIV
 
   R(A) := R(A)/R(A+1) (Syms[B]=:/)
-
-  @param  vm    A pointer of VM.
-  @retval 0  	No error.
 */
 __GURU__ void
-op_div(guru_vm *vm)
+uc_div(guru_vm *vm)
 {
 	GV *regs = vm->state->regs;
 	U32 code = vm->bytecode;
@@ -824,22 +731,19 @@ op_div(guru_vm *vm)
 #endif
     }
     else {   // other case
-    	op_send(vm);
+    	uc_send(vm);
     }
     ref_clr(r1);
 }
 
 //================================================================
 /*!@brief
-  Execute OP_EQ
+  OP_EQ
 
   R(A) := R(A)==R(A+1)  (Syms[B]=:==,C=1)
-
-  @param  vm    A pointer of VM.
-  @retval 0  	No error.
 */
 __GURU__ void
-op_eq(guru_vm *vm)
+uc_eq(guru_vm *vm)
 {
 	GV *regs = vm->state->regs;
 	U32 code = vm->bytecode;
@@ -870,22 +774,19 @@ do {													\
 		}												\
 	}													\
 	else {												\
-		op_send(vm);						\
+		uc_send(vm);						\
 	}													\
     ref_clr(r1);										\
 } while (0)
 
 //================================================================
 /*!@brief
-  Execute OP_LT
+  OP_LT
 
   R(A) := R(A)<R(A+1)  (Syms[B]=:<,C=1)
-
-  @param  vm    A pointer of VM.
-  @retval 0  	No error.
 */
 __GURU__ void
-op_lt(guru_vm *vm)
+uc_lt(guru_vm *vm)
 {
 	GV *regs = vm->state->regs;
 	U32 code = vm->bytecode;
@@ -898,15 +799,12 @@ op_lt(guru_vm *vm)
 
 //================================================================
 /*!@brief
-  Execute OP_LE
+  OP_LE
 
   R(A) := R(A)<=R(A+1)  (Syms[B]=:<=,C=1)
-
-  @param  vm    A pointer of VM.
-  @retval 0  	No error.
 */
 __GURU__ void
-op_le(guru_vm *vm)
+uc_le(guru_vm *vm)
 {
 	GV *regs = vm->state->regs;
 	U32 code = vm->bytecode;
@@ -919,15 +817,12 @@ op_le(guru_vm *vm)
 
 //================================================================
 /*!@brief
-  Execute OP_GT
+  OP_GT
 
   R(A) := R(A)>=R(A+1) (Syms[B]=:>=,C=1)
-
-  @param  vm    A pointer of VM.
-  @retval 0  	No error.
 */
 __GURU__ void
-op_gt(guru_vm *vm)
+uc_gt(guru_vm *vm)
 {
 	GV *regs = vm->state->regs;
 	U32 code = vm->bytecode;
@@ -940,15 +835,12 @@ op_gt(guru_vm *vm)
 
 //================================================================
 /*!@brief
-  Execute OP_GE
+  OP_GE
 
   R(A) := R(A)>=R(A+1) (Syms[B]=:>=,C=1)
-
-  @param  vm    A pointer of VM.
-  @retval 0  	No error.
 */
 __GURU__ void
-op_ge(guru_vm *vm)
+uc_ge(guru_vm *vm)
 {
 	GV *regs = vm->state->regs;
 	U32 code = vm->bytecode;
@@ -965,12 +857,9 @@ op_ge(guru_vm *vm)
   Create string object
 
   R(A) := str_dup(Lit(Bx))
-
-  @param  vm    A pointer of VM.
-  @retval 0  	No error.
 */
 __GURU__ void
-op_string(guru_vm *vm)
+uc_string(guru_vm *vm)
 {
 #if GURU_USE_STRING
 	GV *regs = vm->state->regs;
@@ -993,12 +882,9 @@ op_string(guru_vm *vm)
   String Catination
 
   str_cat(R(A),R(B))
-
-  @param  vm    A pointer of VM.
-  @retval 0  	No error.
 */
 __GURU__ void
-op_strcat(guru_vm *vm)
+uc_strcat(guru_vm *vm)
 {
 #if GURU_USE_STRING
 	GV *regs = vm->state->regs;
@@ -1035,12 +921,9 @@ op_strcat(guru_vm *vm)
   Create Array object
 
   R(A) := ary_new(R(B),R(B+1)..R(B+C))
-
-  @param  vm    A pointer of VM.
-  @retval 0  	No error.
 */
 __GURU__ void
-op_array(guru_vm *vm)
+uc_array(guru_vm *vm)
 {
 #if GURU_USE_ARRAY
 	GV *regs = vm->state->regs;
@@ -1069,12 +952,9 @@ op_array(guru_vm *vm)
   Create Hash object
 
   R(A) := hash_new(R(B),R(B+1)..R(B+C))
-
-  @param  vm    A pointer of VM.
-  @retval 0  	No error.
 */
 __GURU__ void
-op_hash(guru_vm *vm)
+uc_hash(guru_vm *vm)
 {
 #if GURU_USE_ARRAY
 	GV *regs = vm->state->regs;
@@ -1102,15 +982,12 @@ op_hash(guru_vm *vm)
 
 //================================================================
 /*!@brief
-  Execute OP_RANGE
+  OP_RANGE
 
   R(A) := range_new(R(B),R(B+1),C)
-
-  @param  vm    A pointer of VM.
-  @retval 0  	No error.
 */
 __GURU__ void
-op_range(guru_vm *vm)
+uc_range(guru_vm *vm)
 {
 #if GURU_USE_ARRAY
 	GV *regs = vm->state->regs;
@@ -1132,15 +1009,12 @@ op_range(guru_vm *vm)
 
 //================================================================
 /*!@brief
-  Execute OP_LAMBDA
+  OP_LAMBDA
 
   R(A) := lambda(SEQ[Bz],Cz)
-
-  @param  vm    A pointer of VM.
-  @retval 0  	No error.
 */
 __GURU__ void
-op_lambda(guru_vm *vm)
+uc_lambda(guru_vm *vm)
 {
 	GV *regs = vm->state->regs;
 	U32 code = vm->bytecode;
@@ -1158,17 +1032,14 @@ op_lambda(guru_vm *vm)
 
 //================================================================
 /*!@brief
-  Execute OP_CLASS
+  OP_CLASS
 
   R(A) := newclass(R(A),Syms(B),R(A+1))
   Syms(B): class name
   R(A+1): super class
-
-  @param  vm    A pointer of VM.
-  @retval 0  	No error.
 */
 __GURU__ void
-op_class(guru_vm *vm)
+uc_class(guru_vm *vm)
 {
 	GV *regs = vm->state->regs;
 	U32 code = vm->bytecode;
@@ -1185,15 +1056,12 @@ op_class(guru_vm *vm)
 
 //================================================================
 /*!@brief
-  Execute OP_EXEC
+  OP_EXEC
 
   R(A) := blockexec(R(A),SEQ[Bx])
-
-  @param  vm    A pointer of VM.
-  @retval 0  	No error.
 */
 __GURU__ void
-op_exec(guru_vm *vm)
+uc_exec(guru_vm *vm)
 {
 	U32 code  = vm->bytecode;
 	GV  *regs = vm->state->regs;
@@ -1208,15 +1076,12 @@ op_exec(guru_vm *vm)
 
 //================================================================
 /*!@brief
-  Execute OP_METHOD
+  OP_METHOD
 
   R(A).newmethod(Syms(B),R(A+1))
-
-  @param  vm    A pointer of VM.
-  @retval 0  	No error.
 */
 __GURU__ void
-op_method(guru_vm *vm)
+uc_method(guru_vm *vm)
 {
 	GV  *regs = vm->state->regs;
 	U32 code  = vm->bytecode;
@@ -1251,15 +1116,12 @@ op_method(guru_vm *vm)
 
 //================================================================
 /*!@brief
-  Execute OP_TCLASS
+  OP_TCLASS
 
   R(A) := target_class
-
-  @param  vm    A pointer of VM.
-  @retval 0  	No error.
 */
 __GURU__ void
-op_tclass(guru_vm *vm)
+uc_tclass(guru_vm *vm)
 {
 	U32 code  = vm->bytecode;
 	GV  *regs = vm->state->regs;
@@ -1270,101 +1132,115 @@ op_tclass(guru_vm *vm)
 
 //================================================================
 /*!@brief
-  Execute OP_STOP and OP_ABORT
+  OP_STOP and OP_ABORT
 
   stop VM (OP_STOP)
-  stop VM without release memory (OP_ABORT)
-
-  @param  vm    A pointer of VM.
-  @retval -1  No error and exit from vm.
+  stop VM without release memory (OP_HOLD)
 */
 __GURU__ void
-op_stop(guru_vm *vm)
+uc_stop(guru_vm *vm)
 {
-	vm->run  = VM_STATUS_HOLD;	// VM suspended
+	vm->run  = VM_STATUS_STOP;	// VM suspended
 }
 
 __GURU__ void
-op_abort(guru_vm *vm)
+uc_hold(guru_vm *vm)
 {
-	vm->run = VM_STATUS_FREE;	// exit guru_op loop
+	vm->run = VM_STATUS_HOLD;	// exit guru_op loop
 }
 
 //===========================================================================================
 // GURU engine
 //===========================================================================================
+//================================================================
+/*!@brief
+  GURU Instruction Unit - Prefetcher (fetch bytecode and decode)
+
+  @param  vm    A pointer of VM.
+  @retval 0  No error.
+*/
 __GURU__ void
-guru_op(guru_vm *vm)
+ucode_prefetch(guru_vm *vm)
+{
+	vm->bytecode = VM_BYTECODE(vm);		// fetch from vm->state->pc
+
+	U32 opn = vm->opn = vm->bytecode >> 7;      // operands
+	vm->op  = vm->bytecode & 0x7f;      		// opcode (cannot take address from bitfield yet)
+	vm->ar  = (GAR *)&opn;        				// operands struct/union
+
+	vm->state->pc++;					// advance program counter (ready for next fetch)
+}
+
+__GURU__ void
+ucode_exec(guru_vm *vm)
 {
 	if (threadIdx.x != 0) return;	// TODO: multi-thread [run|suspend] queues
-
-	guru_state *st = vm->state;		// capture pointer for memory debugging
 
 	//=======================================================================================
 	// GURU dispatcher unit
 	//=======================================================================================
     switch (vm->op) {
     // LOAD,STORE
-    case OP_LOADL:      op_loadl     (vm); break;
-    case OP_LOADI:      op_loadi     (vm); break;
-    case OP_LOADSYM:    op_loadsym   (vm); break;
-    case OP_LOADNIL:    op_loadnil   (vm); break;
-    case OP_LOADSELF:   op_loadself  (vm); break;
-    case OP_LOADT:      op_loadt     (vm); break;
-    case OP_LOADF:      op_loadf     (vm); break;
+    case OP_LOADL:      uc_loadl     (vm); break;
+    case OP_LOADI:      uc_loadi     (vm); break;
+    case OP_LOADSYM:    uc_loadsym   (vm); break;
+    case OP_LOADNIL:    uc_loadnil   (vm); break;
+    case OP_LOADSELF:   uc_loadself  (vm); break;
+    case OP_LOADT:      uc_loadt     (vm); break;
+    case OP_LOADF:      uc_loadf     (vm); break;
     // VARIABLES
-    case OP_GETGLOBAL:  op_getglobal (vm); break;
-    case OP_SETGLOBAL:  op_setglobal (vm); break;
-    case OP_GETIV:      op_getiv     (vm); break;
-    case OP_SETIV:      op_setiv     (vm); break;
-    case OP_GETCONST:   op_getconst  (vm); break;
-    case OP_SETCONST:   op_setconst  (vm); break;
-    case OP_GETUPVAR:   op_getupvar  (vm); break;
-    case OP_SETUPVAR:   op_setupvar  (vm); break;
+    case OP_GETGLOBAL:  uc_getglobal (vm); break;
+    case OP_SETGLOBAL:  uc_setglobal (vm); break;
+    case OP_GETIV:      uc_getiv     (vm); break;
+    case OP_SETIV:      uc_setiv     (vm); break;
+    case OP_GETCONST:   uc_getconst  (vm); break;
+    case OP_SETCONST:   uc_setconst  (vm); break;
+    case OP_GETUPVAR:   uc_getupvar  (vm); break;
+    case OP_SETUPVAR:   uc_setupvar  (vm); break;
     // BRANCH
-    case OP_JMP:        op_jmp       (vm); break;
-    case OP_JMPIF:      op_jmpif     (vm); break;
-    case OP_JMPNOT:     op_jmpnot    (vm); break;
+    case OP_JMP:        uc_jmp       (vm); break;
+    case OP_JMPIF:      uc_jmpif     (vm); break;
+    case OP_JMPNOT:     uc_jmpnot    (vm); break;
     // CALL
-    case OP_SEND:       op_send      (vm); break;
-    case OP_SENDB:      op_send      (vm); break;  // reuse
-    case OP_CALL:       op_call      (vm); break;
-    case OP_ENTER:      op_enter     (vm); break;
-    case OP_RETURN:     op_return    (vm); break;
-    case OP_BLKPUSH:    op_blkpush   (vm); break;
+    case OP_SEND:       uc_send      (vm); break;
+    case OP_SENDB:      uc_send      (vm); break;  // reuse
+    case OP_CALL:       uc_call      (vm); break;
+    case OP_ENTER:      uc_enter     (vm); break;
+    case OP_RETURN:     uc_return    (vm); break;
+    case OP_BLKPUSH:    uc_blkpush   (vm); break;
     // ALU
-    case OP_MOVE:       op_move      (vm); break;
-    case OP_ADD:        op_add       (vm); break;
-    case OP_ADDI:       op_addi      (vm); break;
-    case OP_SUB:        op_sub       (vm); break;
-    case OP_SUBI:       op_subi      (vm); break;
-    case OP_MUL:        op_mul       (vm); break;
-    case OP_DIV:        op_div       (vm); break;
-    case OP_EQ:         op_eq        (vm); break;
-    case OP_LT:         op_lt        (vm); break;
-    case OP_LE:         op_le        (vm); break;
-    case OP_GT:         op_gt        (vm); break;
-    case OP_GE:         op_ge        (vm); break;
+    case OP_MOVE:       uc_move      (vm); break;
+    case OP_ADD:        uc_add       (vm); break;
+    case OP_ADDI:       uc_addi      (vm); break;
+    case OP_SUB:        uc_sub       (vm); break;
+    case OP_SUBI:       uc_subi      (vm); break;
+    case OP_MUL:        uc_mul       (vm); break;
+    case OP_DIV:        uc_div       (vm); break;
+    case OP_EQ:         uc_eq        (vm); break;
+    case OP_LT:         uc_lt        (vm); break;
+    case OP_LE:         uc_le        (vm); break;
+    case OP_GT:         uc_gt        (vm); break;
+    case OP_GE:         uc_ge        (vm); break;
     // BUILT-IN class (TODO: tensor)
 #if GURU_USE_STRING
-    case OP_STRING:     op_string    (vm); break;
-    case OP_STRCAT:     op_strcat    (vm); break;
+    case OP_STRING:     uc_string    (vm); break;
+    case OP_STRCAT:     uc_strcat    (vm); break;
 #endif
 #if GURU_USE_ARRAY
-    case OP_ARRAY:      op_array     (vm); break;
-    case OP_HASH:       op_hash      (vm); break;
-    case OP_RANGE:      op_range     (vm); break;
+    case OP_ARRAY:      uc_array     (vm); break;
+    case OP_HASH:       uc_hash      (vm); break;
+    case OP_RANGE:      uc_range     (vm); break;
 #endif
     // CLASS, PROC (STACK ops)
-    case OP_LAMBDA:     op_lambda    (vm); break;
-    case OP_CLASS:      op_class     (vm); break;
-    case OP_EXEC:       op_exec      (vm); break;
-    case OP_METHOD:     op_method    (vm); break;
-    case OP_TCLASS:     op_tclass    (vm); break;
+    case OP_LAMBDA:     uc_lambda    (vm); break;
+    case OP_CLASS:      uc_class     (vm); break;
+    case OP_EXEC:       uc_exec      (vm); break;
+    case OP_METHOD:     uc_method    (vm); break;
+    case OP_TCLASS:     uc_tclass    (vm); break;
     // CONTROL
-    case OP_STOP:       op_stop      (vm); break;
-    case OP_ABORT:      op_abort     (vm); break;  	// reuse
-    case OP_NOP:        op_nop       (vm); break;
+    case OP_STOP:       uc_stop      (vm); break;
+    case OP_HOLD:       uc_hold      (vm); break;
+    case OP_NOP:        uc_nop       (vm); break;
     default:
     	PRINTF("?OP=0x%04x\n", vm->op);
     	vm->err = 1;

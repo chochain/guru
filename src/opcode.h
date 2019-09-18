@@ -165,10 +165,11 @@ enum OPCODE {
     OP_RSVD2,     /*         reserved instruction #2                         */
     OP_RSVD3,     /*         reserved instruction #3                         */
     OP_RSVD4,     /*         reserved instruction #4                         */
-    OP_ABORT     = 0x50,  // using OP_ABORT inside mruby/c only
+    OP_HOLD     = 0x50,  // using OP_HOLD inside guru only
 };
 
-__GURU__ void guru_op(guru_vm *vm);
+__GURU__ void ucode_prefetch(guru_vm *vm);
+__GURU__ void ucode_exec(guru_vm *vm);
 
 #ifdef __cplusplus
 }
