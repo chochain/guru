@@ -22,6 +22,11 @@ U8P _guru_mem;				// guru global memory
 U8P _guru_out;				// guru output stream
 guru_ses *_ses_list = NULL; // session linked-list
 
+//
+// _fetch_bytecode:
+//     	read raw bytecode from input file (or stream) into CUDA managed memory
+//		for later CUDA IREP image building
+//
 __HOST__ U8P
 _fetch_bytecode(const U8P rite_fname)
 {
@@ -105,15 +110,12 @@ guru_load(char *rite_name)
 __HOST__ int
 guru_run(int trace)
 {
-	for (guru_ses *ses=_ses_list; ses; ses=ses->next) {
-		U8 *irep_img = guru_parse_bytecode(ses->stdin);
+	for (guru_ses *ses=_ses_list; ses!=NULL; ses=ses->next) {
+		U8 *irep_img = guru_parse_bytecode(ses->stdin);		// build CUDA IREP image
+
 		if (irep_img) {
-			U32 vid = ses->id = vm_get(irep_img);
-			if (trace) {
-				printf("  vm[%d]:\n", vid);
-				vm_show_irep(irep_img);
-			}
-			vm_run(vid);
+			U32 vid = ses->id = vm_get(irep_img, trace);	// acquire a VM for the session
+			vm_run(vid);									// turn vm from READY to RUN
 		}
 		else {
 			fprintf(stderr, "ERROR: bytecode parsing error!\n");

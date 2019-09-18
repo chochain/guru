@@ -43,7 +43,9 @@ vm_state_push(guru_vm *vm, guru_irep *irep, GV *regs, U32 argc)
     st->argc  = argc;			// allocate local stack
 
     st->prev  = top;			// push into context stack
+
     vm->state = st;				// TODO: use array-based stack
+    vm->depth++;
 }
 
 //================================================================
@@ -64,6 +66,7 @@ vm_state_pop(guru_vm *vm, GV ret_val, U32 ra)
     st->regs[0] = ret_val;
 
     vm->state = st->prev;		// restore previous state
+    vm->depth--;
     guru_free(st);				// release memory block
 }
 
@@ -83,14 +86,14 @@ vm_object_new(guru_vm *vm, GV v[], U32 argc)
 {
 	assert(v[0].gt==GT_CLASS);	// ensure it is a class object
 
-    GV obj = guru_store_new(v[0].cls, 0);	// temp space (i.e. call stack)
+    GV obj = guru_store_new(v[0].cls, 0);			// temp space (i.e. call stack)
     //
     // build a temp IREP for calling "initialize"
     // TODO: make the image static
     //
-    const U32 sym  = sizeof(guru_irep);			// symbol offset
-    const U32 iseq = sym  + 2 * sizeof(U32);	// iseq   offset
-    const U32 stbl = iseq + 2 * sizeof(U32);	// symbol string table
+    const U32 sym  = sizeof(guru_irep);				// symbol offset
+    const U32 iseq = sym  + 2 * sizeof(U32);		// iseq   offset
+    const U32 stbl = iseq + 2 * sizeof(U32);		// symbol string table
     guru_irep irep[2] = {
         {
             sizeof(irep)*2, 	// size						u32
@@ -102,7 +105,7 @@ vm_object_new(guru_vm *vm, GV v[], U32 argc)
         {
         	stbl,									// symbol table
         	MKOP_ABC(OP_SEND,0,0,argc),				// ISEQ block
-        	MKOPCODE(OP_ABORT),
+        	MKOPCODE(OP_HOLD),						// keep the memory
         	0x74696e69, 0x696c6169, 0x0a00657a,	0	// "initialize"
         }
     };
@@ -112,9 +115,9 @@ vm_object_new(guru_vm *vm, GV v[], U32 argc)
     // context switch, which is not multi-thread ready
     // TODO: create a vm context object with separate regfile, i.e. explore _push_state/_pop_state
     vm_state_push(vm, irep, v, 0);
-    do {					// execute the mini IREP
-    	guru_op(vm);
-    } while (vm->run!=VM_STATUS_RUN);
+    do {						// execute the mini IREP
+    	ucode_exec(vm);
+    } while (vm->run==VM_STATUS_RUN);
 
     vm_state_pop(vm, vm->state->regs[1], 0);
     vm->run = VM_STATUS_RUN;

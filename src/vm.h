@@ -20,10 +20,24 @@
 extern "C" {
 #endif
 
-#define VM_STATUS_FREE  0
-#define VM_STATUS_RUN   1
-#define VM_STATUS_READY	2
-#define VM_STATUS_HOLD  3
+// VM state machine (3-bit status)
+//
+//       +----> FREE (init state)
+//       |       |
+//       |       v
+//       |     READY
+//       |       |
+//       |       v
+//       |      RUN <-----> HOLD
+//       |       |
+//       |       v
+//       +---- STOP
+//
+#define VM_STATUS_FREE  	0
+#define VM_STATUS_READY		1
+#define VM_STATUS_STOP  	2
+#define VM_STATUS_RUN   	4
+#define VM_STATUS_HOLD  	(VM_STATUS_RUN|VM_STATUS_READY)
 
 #if GURU_HOST_IMAGE
 //================================================================
@@ -85,13 +99,14 @@ typedef struct {
   Virtual Machine
 */
 typedef struct VM {				// 24 + 32*reg bytes
-    U32	id   : 14;				// allocation control
-    U32	run  : 2;				// VM_STATUS_FREE, READY, RUN, HOLD
+    U32	id   : 13;				// allocation control
+    U32	run  : 3;				// VM_STATUS_FREE, READY, RUN, HOLD
     U32	err	 : 8;				// error code/condition
-    U32 op   : 7;				// cached opcode
+    U32 depth: 7;				// depth of call stack
     U32	step : 1;				// for single-step debug level
 
-    U32 opn;					// cached operands
+    U32 op	 : 7;				// cached opcode
+    U32 opn  : 25;				// call stack depth
     U32 bytecode;				// cached bytecode
     GAR *ar;					// argument struct
 
