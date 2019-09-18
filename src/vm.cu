@@ -15,7 +15,9 @@
   	  dump irep tree (optional)
   execute VM
   	  opcode execution loop (on GPU)
-  	  flush output per single-step (optional)
+  	    ucode_prefetch
+  	    ucode_exec
+  	    flush output per step (optional)
   </pre>
 */
 #include <stdio.h>
@@ -23,7 +25,7 @@
 
 #include "alloc.h"
 #include "static.h"
-#include "opcode.h"
+#include "ucode.h"
 #include "load.h"
 #include "state.h"
 #include "vmx.h"

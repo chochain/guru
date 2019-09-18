@@ -16,7 +16,7 @@
 #include "alloc.h"
 #include "store.h"
 #include "symbol.h"
-#include "opcode.h"
+#include "ucode.h"
 #include "state.h"
 #include "vm.h"
 

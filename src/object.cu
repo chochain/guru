@@ -23,7 +23,7 @@
 #include "vm.h"
 #include "class.h"
 
-#include "opcode.h"
+#include "ucode.h"
 #include "object.h"
 
 #include "c_fixnum.h"
@@ -340,7 +340,7 @@ obj_to_s(GV v[], U32 argc)
 __GURU__ void
 obj_new(GV v[], U32 argc)
 {
-	assert(1==0);		// taken cared in opcode handler
+	assert(1==0);		// taken cared in ucode handler
 }
 
 __GURU__ void

@@ -1,6 +1,6 @@
 /*! @file
   @brief
-  GURU microcode unit
+  GURU instruction unit - prefetch & microcode dispatcher
 
   <pre>
   Copyright (C) 2019 GreenII
@@ -16,7 +16,7 @@
 #include "static.h"
 #include "symbol.h"
 #include "global.h"
-#include "opcode.h"
+#include "ucode.h"
 #include "object.h"
 #include "class.h"
 #include "state.h"

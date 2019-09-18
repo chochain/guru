@@ -16,7 +16,7 @@
 #include "alloc.h"
 #include "static.h"
 
-#include "opcode.h"
+#include "ucode.h"
 #include "object.h"
 #include "c_array.h"
 #include "c_string.h"

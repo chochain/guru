@@ -17,7 +17,7 @@
 #include "static.h"
 #include "symbol.h"
 
-#include "opcode.h"
+#include "ucode.h"
 #include "object.h"		// guru_kind_of, guru_inspect
 
 #include "c_range.h"
