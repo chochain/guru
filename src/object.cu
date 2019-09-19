@@ -340,7 +340,18 @@ obj_to_s(GV v[], U32 argc)
 __GURU__ void
 obj_new(GV v[], U32 argc)
 {
-	assert(1==0);		// taken cared in ucode handler
+	assert(v[0].gt==GT_CLASS);						// ensure it is a class object
+
+    GV  obj = guru_store_new(v[0].cls, 0);			// temp space (i.e. call stack)
+	GS  sid  = name2id((U8P)"initialize"); 			// function sid
+
+	guru_proc *m = (guru_proc *)proc_by_sid(&obj, sid);
+
+	if (!m) return;
+
+	m->func(&obj, argc);							// call super#initialize
+
+	RETURN_VAL(obj);
 }
 
 __GURU__ void

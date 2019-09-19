@@ -86,27 +86,28 @@ vm_object_new(guru_vm *vm, GV v[], U32 argc)
 {
 	assert(v[0].gt==GT_CLASS);	// ensure it is a class object
 
-    GV obj = guru_store_new(v[0].cls, 0);			// temp space (i.e. call stack)
+    GV  obj = guru_store_new(v[0].cls, 0);			// allot memory for the new object instance
     //
     // build a temp IREP for calling "initialize"
     // TODO: make the image static
     //
-    const U32 sym  = sizeof(guru_irep);				// symbol offset
-    const U32 iseq = sym  + 2 * sizeof(U32);		// iseq   offset
-    const U32 stbl = iseq + 2 * sizeof(U32);		// symbol string table
-    guru_irep irep[2] = {
+    guru_irep irep[2] = {							// IREP to call super#initialize
         {
-            sizeof(irep)*2, 	// size						u32
-            0, 0, sym, iseq,	// reps, pool, sym, iseq	u32, u32, u32, u32
-            2,					// i  						u32
-            0, 0,				// c, p						u16, u16
-            2, 0, 0 			// s, nv, nr				u16, u8, u8
+            sizeof(irep)*2, 0, 						// size, reps	u32, u32
+            0, 										// pool			u32
+            sizeof(guru_irep),						// sym			u32		(symbol offset)
+            sizeof(guru_irep)+2*sizeof(U32),		// iseq			u32		(ISEQ offset)
+            2,										// i  			u32
+            0, 0,									// c, p			u16, u16
+            2, 0, 0 								// s, nv, nr	u16, u8, u8 (2 symbols)
         },
         {
-        	stbl,									// symbol table
-        	MKOP_ABC(OP_SEND,0,0,argc),				// ISEQ block
-        	MKOPCODE(OP_HOLD),						// keep the memory
-        	0x74696e69, 0x696c6169, 0x0a00657a,	0	// "initialize"
+        	sizeof(guru_irep)+4*sizeof(U32), 0,		// symbol table (for 2 symbols to align ISEQ block)
+        	OP_ABC(OP_SEND,0,0,argc),				// ISEQ block
+        	MK_OP(OP_STOP),							// keep the memory
+        	0x74696e69,								// "initialize"
+        	0x696c6169,
+        	0x657a,	0x0000
         }
     };
 
@@ -116,12 +117,13 @@ vm_object_new(guru_vm *vm, GV v[], U32 argc)
     // TODO: create a vm context object with separate regfile, i.e. explore _push_state/_pop_state
     vm_state_push(vm, irep, v, 0);
     do {						// execute the mini IREP
+    	ucode_prefetch(vm);
     	ucode_exec(vm);
     } while (vm->run==VM_STATUS_RUN);
 
-    vm_state_pop(vm, vm->state->regs[1], 0);
+    vm_state_pop(vm, obj, 1);	// pop stack but needs to keep the newly created object
     vm->run = VM_STATUS_RUN;
-
-    RETURN_VAL(obj);
+//
+//    RETURN_VAL(obj);
 }
 
