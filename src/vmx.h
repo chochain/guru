@@ -22,13 +22,12 @@ extern "C" {
 #endif
 
 int  vm_pool_init(U32 step);
-
 int  vm_get(U8 *irep_img, U32 trace);
+int  vm_main_start(U32 trace);
+
 int	 vm_hold(U32 vid);
 int	 vm_stop(U32 vid);
 int	 vm_run(U32 vid);
-
-int  vm_main_start(U32 trace);
 
 #ifdef __cplusplus
 }

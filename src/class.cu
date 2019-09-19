@@ -113,7 +113,7 @@ proc_by_sid(GV *obj, GS sid)
 {
     guru_class *cls = class_by_obj(obj);
     guru_proc  *p;
-    for (p=cls->vtbl; cls; cls=cls->super) {				// walk up class hierarchy
+    for (p=cls->vtbl; cls!=NULL; cls=cls->super) {			// walk up class hierarchy
         for (p=cls->vtbl; p && (p->sid != sid); p=p->next);	// walk thru class vtbl
         if (p) return p;
     }

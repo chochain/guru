@@ -37,7 +37,7 @@ guru_vm *_vm_pool;
 
 pthread_mutex_t 	_mutex_pool;
 #define _LOCK		(pthread_mutex_lock(&_mutex_pool))
-#define _UNLOCK		(pthread_mutex_unlock(&_mutex_pool), cudaDeviceSynchronize())
+#define _UNLOCK		(cudaDeviceSynchronize(), pthread_mutex_unlock(&_mutex_pool))
 
 __HOST__ void _show_irep(guru_irep *irep, U32 ioff, char level, char *idx);		// forward declaration
 __HOST__ void _trace(U32 level);												// forward declaration
@@ -48,7 +48,7 @@ __HOST__ void _trace(U32 level);												// forward declaration
 
   @param  vm  Pointer to VM
 */
-__GPU__ void
+__GURU__ void
 _ready(guru_vm *vm, guru_irep *irep)
 {
 	if (blockIdx.x!=0 || threadIdx.x!=0) return;		// single threaded
@@ -77,6 +77,26 @@ _free(guru_vm *vm)
 	vm->run = VM_STATUS_FREE;							// release the vm
 }
 
+__GPU__ void
+_fetch(guru_vm *pool, guru_irep *irep, int *vid)
+{
+	if (blockIdx.x!=0 || threadIdx.x!=0) return;		// single threaded
+
+	guru_vm *vm = pool;
+	int idx;
+
+	for (idx=0; idx<MIN_VM_COUNT; idx++, vm++) {
+		if (vm->run==VM_STATUS_FREE) {
+			vm->run = VM_STATUS_READY;				// reserve the VM
+			break;
+		}
+	}
+	if (idx<MIN_VM_COUNT) _ready(vm, irep);
+	else 				  idx = -1;
+
+	*vid = idx;
+}
+
 //================================================================
 /*!@brief
   execute one ISEQ instruction for each VM
@@ -87,6 +107,8 @@ _free(guru_vm *vm)
 __GPU__ void
 _step(guru_vm *pool)
 {
+	if (threadIdx.x != 0) return;					// TODO: single thread for now
+
 	guru_vm *vm = pool+blockIdx.x;					// start up all VMs (with different blockIdx
 
 	if (vm->run!=VM_STATUS_RUN) return;				// free, ready, or hold
@@ -200,32 +222,23 @@ __HOST__ int
 vm_get(U8 *irep_img, U32 trace)
 {
 	guru_irep *irep = (guru_irep *)irep_img;
-	guru_vm   *vm   = NULL;
-	int idx;
+	int *vid = (int *)cuda_malloc(sizeof(int), 1);
 
 	_LOCK;
-	vm = _vm_pool;
-	for (idx=0; idx<MIN_VM_COUNT; idx++, vm++) {
-		if (vm->run==VM_STATUS_FREE) {
-			vm->run = VM_STATUS_READY;				// reserve the VM
-			break;
-		}
-	}
-	if (idx<MIN_VM_COUNT) _ready<<<1,1>>>(vm, irep);
-	else 				  idx = -1;
+	_fetch<<<1,1>>>(_vm_pool, irep, vid);
 	_UNLOCK;
 
 	if (trace) {
-		if (idx<0) {
+		if (vid<0) {
 			printf("ERROR: no vm available!");
 		}
 		else {
-			printf("  vm[%d]:\n", idx);
-			char idx = 'a';
-			_show_irep(irep, 0, 'A', &idx);
+			printf("  vm[%d]:\n", *vid);
+			char c = 'a';
+			_show_irep(irep, 0, 'A', &c);
 		}
 	}
-	return idx;
+	return *vid;		// CUDA memory leak?
 }
 
 __HOST__ int
@@ -329,7 +342,7 @@ _show_ucode(guru_vm *vm)
 	U32  *iseq = (U32*)VM_ISEQ(vm);
 	U32  code  = bin2u32(*(iseq + pc));				// convert to big endian
 	U16  op    = code & 0x7f;       				// in HOST mode, GET_OPCODE() is DEVICE code
-	U8P  opc   = (U8P)_opcode[GET_OPCODE(op)];
+	U8P  opc   = (U8P)_opcode[GET_OP(op)];
 
 	guru_state *st    = vm->state;
 	guru_irep  *irep1 = st->irep;
@@ -356,8 +369,6 @@ _show_ucode(guru_vm *vm)
 __HOST__ void
 _trace(U32 level)
 {
-	static const char* aa[] = { "FREE", "RUN", "READY", "HOLD" };
-
 	if (level==0) return;
 
 	guru_vm *vm = _vm_pool;

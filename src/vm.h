@@ -107,8 +107,9 @@ typedef struct VM {				// 24 + 32*reg bytes
 
     U32 op	 : 7;				// cached opcode
     U32 opn  : 25;				// call stack depth
+
     U32 bytecode;				// cached bytecode
-    GAR *ar;					// argument struct
+    GAR ar;						// argument struct
 
     guru_state *state;			// VM state (callinfo) linked list
     GV regfile[MAX_REGS_SIZE];	// TODO: change to a pointer

@@ -114,8 +114,8 @@ guru_run(int trace)
 		U8 *irep_img = guru_parse_bytecode(ses->stdin);		// build CUDA IREP image
 
 		if (irep_img) {
-			U32 vid = ses->id = vm_get(irep_img, trace);	// acquire a VM for the session
-			vm_run(vid);									// turn vm from READY to RUN
+			int vm_id = ses->id = vm_get(irep_img, trace);	// acquire a VM for the session
+			vm_run(vm_id);
 		}
 		else {
 			fprintf(stderr, "ERROR: bytecode parsing error!\n");
