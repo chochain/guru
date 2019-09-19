@@ -165,7 +165,7 @@ _get(guru_store *st, GS sid)
 __GURU__ GV
 guru_store_new(guru_class *cls, U32 size)
 {
-    GV v = { .gt = GT_OBJ };
+    GV v = { .gt = GT_OBJ, .rc = 1 };
     v.self = (guru_var *)guru_alloc(sizeof(guru_store));
 
     v.self->ivar = _new(0);			// allocate internal kv handle
