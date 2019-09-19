@@ -402,7 +402,7 @@ guru_free(void *ptr)
 #if GURU_DEBUG
     if (BLK_AFTER(blk)) {
     	U32 *p = (U32*)U8PADD(blk, sizeof(free_block));
-    	U32 sz = (blk->bsz - sizeof(free_block))>>2;
+    	U32 sz = blk->bsz > sizeof(free_block) ? (blk->bsz - sizeof(free_block))>>2 : 0;
     	for (U32 i=0; i< (sz>32 ? 32 : sz); i++) *p++=0xffffffff;
     }
 #endif
