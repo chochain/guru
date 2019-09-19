@@ -40,7 +40,7 @@ __GURU__ U32 _mutex_uc;
 // becareful with the following macros, because they release regs[ra] first
 // so, make sure value is kept before the release
 //
-#define _ARG(r)         ((vm->ar->r))
+#define _ARG(r)         ((vm->ar.r))
 #define _R(r)			((vm)->state->regs[_ARG(r)])
 #define _RA(v)      	(ref_dec(&regs[ra]), regs[ra]=(v))
 #define _RA_X(r)    	(ref_dec(&regs[ra]), regs[ra]=*(r), ref_inc(r))
@@ -70,8 +70,8 @@ uc_move(guru_vm *vm)
 {
 	GV *regs = vm->state->regs;
 	U32 code = vm->bytecode;
-	U32 ra = GETARG_A(code);
-	U32 rb = GETARG_B(code);
+	U32 ra = GET_RA(code);
+	U32 rb = GET_RB(code);
 
     _RA_X(&regs[rb]); 	                	// [ra] <= [rb]
 }
@@ -87,8 +87,8 @@ uc_loadl(guru_vm *vm)
 {
 	GV *regs = vm->state->regs;
 	U32 code = vm->bytecode;
-	U32 ra = GETARG_A(code);
-    U32 rb = GETARG_Bx(code);
+	U32 ra = GET_RA(code);
+    U32 rb = GET_Bx(code);
     U32P p = VM_VAR(vm, rb);
     guru_obj obj;
 
@@ -112,9 +112,17 @@ uc_loadl(guru_vm *vm)
 __GURU__ void
 uc_loadi(guru_vm *vm)
 {
-    GI rb = _ARG(bx) - MAXARG_sBx;		// sBx
+/*
+	GV *regs = vm->state->regs;
+	U32 code = vm->bytecode;
+    U32 ra   = GET_RA(code);
+    U32 sbx  = GETARG_sBx(code);
 
-    _RA_T2(GT_INT, i=rb);
+    _RA_T(GT_INT, i=sbx);
+*/
+    GI sbx = _ARG(bx) - MAX_sBx;		// sBx
+
+    _RA_T2(GT_INT, i=sbx);
 }
 
 
@@ -129,8 +137,8 @@ uc_loadsym(guru_vm *vm)
 {
 	GV *regs = vm->state->regs;
 	U32 code = vm->bytecode;
-    U32 ra  = GETARG_A(code);
-    U32 rb  = GETARG_Bx(code);
+    U32 ra  = GET_RA(code);
+    U32 rb  = GET_Bx(code);
     GS  sid = name2id(VM_SYM(vm, rb));
 
     _RA_T(GT_SYM, i=sid);
@@ -147,7 +155,7 @@ uc_loadnil(guru_vm *vm)
 {
 	GV *regs = vm->state->regs;
 	U32 code = vm->bytecode;
-    U32 ra = GETARG_A(code);
+    U32 ra = GET_RA(code);
 
     _RA_T(GT_NIL, i=0);
 }
@@ -163,7 +171,7 @@ uc_loadself(guru_vm *vm)
 {
 	GV *regs = vm->state->regs;
 	U32 code = vm->bytecode;
-    U32 ra = GETARG_A(code);
+    U32 ra = GET_RA(code);
 
     _RA(regs[0]);                   	// [ra] <= class
 }
@@ -179,7 +187,7 @@ uc_loadt(guru_vm *vm)
 {
 	GV *regs = vm->state->regs;
 	U32 code = vm->bytecode;
-    U32 ra = GETARG_A(code);
+    U32 ra = GET_RA(code);
 
     _RA_T(GT_TRUE, i=0);
 }
@@ -195,7 +203,7 @@ uc_loadf(guru_vm *vm)
 {
 	GV *regs = vm->state->regs;
 	U32 code = vm->bytecode;
-    U32 ra = GETARG_A(code);
+    U32 ra = GET_RA(code);
 
     _RA_T(GT_FALSE, i=0);
 }
@@ -211,8 +219,8 @@ uc_getglobal(guru_vm *vm)
 {
 	GV *regs = vm->state->regs;
 	U32 code = vm->bytecode;
-    U32 ra  = GETARG_A(code);
-    U32 rb  = GETARG_Bx(code);
+    U32 ra  = GET_RA(code);
+    U32 rb  = GET_Bx(code);
     GS sid  = name2id(VM_SYM(vm, rb));
 
     guru_obj *obj = global_object_get(sid);
@@ -231,8 +239,8 @@ uc_setglobal(guru_vm *vm)
 {
 	GV *regs = vm->state->regs;
 	U32 code = vm->bytecode;
-    U32 ra  = GETARG_A(code);
-    U32 rb  = GETARG_Bx(code);
+    U32 ra  = GET_RA(code);
+    U32 rb  = GET_Bx(code);
     GS  sid = name2id(VM_SYM(vm, rb));
 
     global_object_add(sid, &regs[ra]);
@@ -249,8 +257,8 @@ uc_getiv(guru_vm *vm)
 {
 	GV *regs = vm->state->regs;
 	U32 code = vm->bytecode;
-    U32 ra = GETARG_A(code);
-    U32 rb = GETARG_Bx(code);
+    U32 ra = GET_RA(code);
+    U32 rb = GET_Bx(code);
 
     U8P name = VM_SYM(vm, rb);
     GS sid   = name2id(name+1);					// skip '@'
@@ -270,8 +278,8 @@ uc_setiv(guru_vm *vm)
 {
 	GV *regs = vm->state->regs;
 	U32 code = vm->bytecode;
-    U32 ra = GETARG_A(code);
-    U32 rb = GETARG_Bx(code);
+    U32 ra = GET_RA(code);
+    U32 rb = GET_Bx(code);
 
     U8P name = VM_SYM(vm, rb);
     GS  sid  = name2id(name+1);			// skip '@'
@@ -290,8 +298,8 @@ uc_getconst(guru_vm *vm)
 {
 	GV *regs = vm->state->regs;
 	U32 code = vm->bytecode;
-    U32 ra  = GETARG_A(code);
-    U32 rb  = GETARG_Bx(code);
+    U32 ra  = GET_RA(code);
+    U32 rb  = GET_Bx(code);
     GS  sid = name2id(VM_SYM(vm, rb));
 
     guru_obj *obj = const_object_get(sid);
@@ -309,8 +317,8 @@ __GURU__ void
 uc_setconst(guru_vm *vm) {
 	GV *regs = vm->state->regs;
 	U32 code = vm->bytecode;
-    U32 ra  = GETARG_A(code);
-    U32 rb  = GETARG_Bx(code);
+    U32 ra  = GET_RA(code);
+    U32 rb  = GET_Bx(code);
     GS  sid = name2id(VM_SYM(vm, rb));
 
     const_object_add(sid, &regs[ra]);
@@ -327,9 +335,9 @@ uc_getupvar(guru_vm *vm)
 {
 	GV *regs = vm->state->regs;
 	U32 code = vm->bytecode;
-    U32 ra = GETARG_A(code);
-    U32 rb = GETARG_B(code);
-    U32 rc = GETARG_C(code);   		// UP
+    U32 ra = GET_RA(code);
+    U32 rb = GET_RB(code);
+    U32 rc = GET_RC(code);   		// UP
 
     guru_state *st = vm->state;
 
@@ -354,9 +362,9 @@ uc_setupvar(guru_vm *vm)
 {
 	GV *regs = vm->state->regs;
 	U32 code = vm->bytecode;
-    U32 ra = GETARG_A(code);
-    U32 rb = GETARG_B(code);
-    U32 rc = GETARG_C(code);   				// UP level
+    U32 ra = GET_RA(code);
+    U32 rb = GET_RB(code);
+    U32 rc = GET_RC(code);   				// UP level
 
     guru_state *st = vm->state;
 
@@ -381,7 +389,7 @@ __GURU__ void
 uc_jmp(guru_vm *vm)
 {
 	U32 code = vm->bytecode;
-    vm->state->pc += GETARG_sBx(code) - 1;
+    vm->state->pc += GET_sBx(code) - 1;
 }
 
 //================================================================
@@ -395,8 +403,8 @@ uc_jmpif (guru_vm *vm)
 {
 	GV *regs = vm->state->regs;
 	U32 code = vm->bytecode;
-    if (regs[GETARG_A(code)].gt > GT_FALSE) {
-        vm->state->pc += GETARG_sBx(code) - 1;
+    if (regs[GET_RA(code)].gt > GT_FALSE) {
+        vm->state->pc += GET_sBx(code) - 1;
     }
 }
 
@@ -411,8 +419,8 @@ uc_jmpnot(guru_vm *vm)
 {
 	GV *regs = vm->state->regs;
 	U32 code = vm->bytecode;
-    if (regs[GETARG_A(code)].gt <= GT_FALSE) {
-        vm->state->pc += GETARG_sBx(code) - 1;
+    if (regs[GET_RA(code)].gt <= GT_FALSE) {
+        vm->state->pc += GET_sBx(code) - 1;
     }
 }
 
@@ -438,9 +446,9 @@ uc_send(guru_vm *vm)
 {
 	GV *regs = vm->state->regs;
 	U32 code = vm->bytecode;
-    U32 ra = GETARG_A(code);
-    U32 rb = GETARG_B(code);  						// proc.sid
-    U32 rc = GETARG_C(code);  						// number of params
+    U32 ra = GET_RA(code);
+    U32 rb = GET_RB(code);  						// proc.sid
+    U32 rc = GET_RC(code);  						// number of params
 
     GV  *obj = &regs[ra];							// message receiver object
 	GS  sid  = name2id(VM_SYM(vm, rb)); 			// function sid
@@ -456,9 +464,9 @@ uc_send(guru_vm *vm)
     	if (m->func==prc_call) {					// because VM is not passed to dispatcher,
     		vm_proc_call(vm, regs+ra, rc);			// special handling needed for call() and new()
     	}
-    	else if (m->func==obj_new) {
-        	vm_object_new(vm, regs+ra, rc);
-        }
+//    	else if (m->func==obj_new) {
+//        	_object_new(vm, regs+ra, rc);			// change scope into new object
+//        }
         else {
         	m->func(obj, rc);						// call the C-func
         }
@@ -496,7 +504,7 @@ __GURU__ void
 uc_enter(guru_vm *vm)
 {
 	U32 code  = vm->bytecode;
-    U32 param = GETARG_Ax(code);
+    U32 param = GET_Ax(code);
 
     U32 arg0 = (param >> 13) & 0x1f;  // default args
     U32 argc = (param >> 18) & 0x1f;  // given args
@@ -517,7 +525,7 @@ uc_return(guru_vm *vm)
 {
 	GV *regs = vm->state->regs;
 	U32 code = vm->bytecode;
-    U32 ra   = GETARG_A(code);
+    U32 ra   = GET_RA(code);
     GV  ret  = regs[ra];
 
     vm_state_pop(vm, ret, ra);		// pass return value
@@ -534,7 +542,7 @@ uc_blkpush(guru_vm *vm)
 {
 	GV *regs = vm->state->regs;
 	U32 code = vm->bytecode;
-    U32 ra = GETARG_A(code);
+    U32 ra = GET_RA(code);
 
     GV *stack = regs + 1;       			// use regs[1] as the class
 
@@ -554,7 +562,7 @@ uc_add(guru_vm *vm)
 {
 	GV *regs = vm->state->regs;
 	U32 code = vm->bytecode;
-    U32 ra  = GETARG_A(code);
+    U32 ra  = GET_RA(code);
     GV  *r0 = &regs[ra];
     GV  *r1 = &regs[ra+1];
 
@@ -590,8 +598,8 @@ uc_addi(guru_vm *vm)
 {
 	GV *regs = vm->state->regs;
 	U32 code = vm->bytecode;
-	U32 ra = GETARG_A(code);
-	U32 rc = GETARG_C(code);
+	U32 ra = GET_RA(code);
+	U32 rc = GET_RC(code);
 
     GV *r0 = &regs[ra];
 
@@ -614,7 +622,7 @@ uc_sub(guru_vm *vm)
 {
 	GV *regs = vm->state->regs;
 	U32 code = vm->bytecode;
-    U32 ra = GETARG_A(code);
+    U32 ra = GET_RA(code);
 
     GV *r0 = &regs[ra];
     GV *r1 = &regs[ra+1];
@@ -651,8 +659,8 @@ uc_subi(guru_vm *vm)
 {
 	GV *regs = vm->state->regs;
 	U32 code = vm->bytecode;
-    U32 ra = GETARG_A(code);
-    U32 rc = GETARG_C(code);
+    U32 ra = GET_RA(code);
+    U32 rc = GET_RC(code);
 
     GV *r0 = &regs[ra];
 
@@ -675,7 +683,7 @@ uc_mul(guru_vm *vm)
 {
 	GV *regs = vm->state->regs;
 	U32 code = vm->bytecode;
-    U32 ra = GETARG_A(code);
+    U32 ra = GET_RA(code);
     GV *r0 = &regs[ra];
     GV *r1 = &regs[ra+1];
 
@@ -711,7 +719,7 @@ uc_div(guru_vm *vm)
 {
 	GV *regs = vm->state->regs;
 	U32 code = vm->bytecode;
-    U32 ra = GETARG_A(code);
+    U32 ra = GET_RA(code);
     GV *r0 = &regs[ra];
     GV *r1 = &regs[ra+1];
 
@@ -747,7 +755,7 @@ uc_eq(guru_vm *vm)
 {
 	GV *regs = vm->state->regs;
 	U32 code = vm->bytecode;
-    U32 ra = GETARG_A(code);
+    U32 ra = GET_RA(code);
     GT  tt = GT_BOOL(guru_cmp(&regs[ra], &regs[ra+1])==0);
 
     regs[ra+1].gt = GT_EMPTY;
@@ -790,7 +798,7 @@ uc_lt(guru_vm *vm)
 {
 	GV *regs = vm->state->regs;
 	U32 code = vm->bytecode;
-	U32 ra = GETARG_A(code);
+	U32 ra = GET_RA(code);
 
 	ncmp(&regs[ra], <, &regs[ra+1]);
 
@@ -808,7 +816,7 @@ uc_le(guru_vm *vm)
 {
 	GV *regs = vm->state->regs;
 	U32 code = vm->bytecode;
-    U32 ra = GETARG_A(code);
+    U32 ra = GET_RA(code);
 
     ncmp(&regs[ra], <=, &regs[ra+1]);
 
@@ -826,7 +834,7 @@ uc_gt(guru_vm *vm)
 {
 	GV *regs = vm->state->regs;
 	U32 code = vm->bytecode;
-    U32 ra = GETARG_A(code);
+    U32 ra = GET_RA(code);
 
     ncmp(&regs[ra], >, &regs[ra+1]);
 
@@ -845,7 +853,7 @@ uc_ge(guru_vm *vm)
 	GV *regs = vm->state->regs;
 	U32 code = vm->bytecode;
 
-    U32 ra = GETARG_A(code);
+    U32 ra = GET_RA(code);
 
     ncmp(&regs[ra], >=, &regs[ra+1]);
 
@@ -865,8 +873,8 @@ uc_string(guru_vm *vm)
 	GV *regs = vm->state->regs;
 	U32 code = vm->bytecode;
 
-	U32 ra = GETARG_A(code);
-    U32 rb = GETARG_Bx(code);
+	U32 ra = GET_RA(code);
+    U32 rb = GET_Bx(code);
 
     U8  *str = (U8 *)VM_VAR(vm, rb);			// string pool var
     GV  ret  = guru_str_new(str);				// rc set to 1 already
@@ -890,8 +898,8 @@ uc_strcat(guru_vm *vm)
 	GV *regs = vm->state->regs;
 	U32 code = vm->bytecode;
 
-    U32 ra = GETARG_A(code);
-    U32 rb = GETARG_B(code);
+    U32 ra = GET_RA(code);
+    U32 rb = GET_RB(code);
 
     GV *va  = &regs[ra];
     GV *vb  = &regs[rb];
@@ -929,9 +937,9 @@ uc_array(guru_vm *vm)
 	GV *regs = vm->state->regs;
 	U32 code = vm->bytecode;
 
-    U32 ra  = GETARG_A(code);
-    U32 rb  = GETARG_B(code);
-    U32 n   = GETARG_C(code);
+    U32 ra  = GET_RA(code);
+    U32 rb  = GET_RB(code);
+    U32 n   = GET_RC(code);
 
     GV  ret = (GV)guru_array_new(n);	// ref_cnt is 1 already
     guru_array *h  = ret.array;
@@ -960,9 +968,9 @@ uc_hash(guru_vm *vm)
 	GV *regs = vm->state->regs;
 	U32 code = vm->bytecode;
 
-    U32 ra = GETARG_A(code);
-    U32 rb = GETARG_B(code);
-    U32 n  = GETARG_C(code);							// entries of hash
+    U32 ra = GET_RA(code);
+    U32 rb = GET_RB(code);
+    U32 n  = GET_RC(code);							// entries of hash
     U32 sz = sizeof(GV) * (n<<1);						// size of k,v pairs
 
     GV *p  = &regs[rb];
@@ -992,9 +1000,9 @@ uc_range(guru_vm *vm)
 #if GURU_USE_ARRAY
 	GV *regs = vm->state->regs;
 	U32 code = vm->bytecode;
-    U32 ra = GETARG_A(code);
-    U32 rb = GETARG_B(code);
-    U32 n  = GETARG_C(code);
+    U32 ra = GET_RA(code);
+    U32 rb = GET_RB(code);
+    U32 n  = GET_RC(code);
 
     GV *pb = &regs[rb];
     GV ret = guru_range_new(pb, pb+1, n);	// pb, pb+1 ref cnt will be increased
@@ -1018,9 +1026,9 @@ uc_lambda(guru_vm *vm)
 {
 	GV *regs = vm->state->regs;
 	U32 code = vm->bytecode;
-    int ra = GETARG_A(code);
-    int rb = GETARG_b(code);      		// sequence position in irep list
-    int rc = GETARG_C(code);    		// TODO: Add flags support for OP_LAMBDA
+    int ra = GET_RA(code);
+    int rb = GET_RB(code);      		// sequence position in irep list
+    int rc = GET_RC(code);    			// TODO: Add flags support for OP_LAMBDA
 
     guru_proc *prc = (guru_proc *)guru_alloc(sizeof(guru_proc));
 
@@ -1044,8 +1052,8 @@ uc_class(guru_vm *vm)
 	GV *regs = vm->state->regs;
 	U32 code = vm->bytecode;
 
-    U32 ra = GETARG_A(code);
-    U32 rb = GETARG_B(code);
+    U32 ra = GET_RA(code);
+    U32 rb = GET_RB(code);
 
     guru_class *super = (regs[ra+1].gt==GT_CLASS) ? regs[ra+1].cls : guru_class_object;
     const U8P  name   = VM_SYM(vm, rb);
@@ -1066,10 +1074,10 @@ uc_exec(guru_vm *vm)
 	U32 code  = vm->bytecode;
 	GV  *regs = vm->state->regs;
 
-    U32 ra = GETARG_A(code);					// receiver
-    U32 rb = GETARG_Bx(code);					// irep pointer
+    U32 ra = GET_RA(code);					// return register
+    U32 rb = GET_Bx(code);					// irep pointer
 
-    guru_irep *irep = VM_REPS(vm, rb);
+    guru_irep *irep = VM_REPS(vm, rb);			// child IREP[rb]
 
     vm_state_push(vm, irep, regs+ra, 0);		// push call stack
 }
@@ -1085,8 +1093,8 @@ uc_method(guru_vm *vm)
 {
 	GV  *regs = vm->state->regs;
 	U32 code  = vm->bytecode;
-    U32 ra = GETARG_A(code);
-    U32 rb = GETARG_B(code);
+    U32 ra = GET_RA(code);
+    U32 rb = GET_RB(code);
 
     assert(regs[ra].gt == GT_CLASS);		// enforce class checking
 
@@ -1095,14 +1103,16 @@ uc_method(guru_vm *vm)
     GS			sid  = name2id(VM_SYM(vm, rb));
     guru_proc 	*prc = proc_by_sid(&regs[ra], sid);
 
-    assert(prc == NULL);					// reject same name for now
-
+    if (prc != NULL) {
+    	// same proc name exists (in either current or parent class)
+    	// do nothing for now
+    }
     prc = regs[ra+1].proc;					// setup the new proc
 
     _LOCK;
 
     // add proc to class
-    prc->sid  = sid;
+    prc->sid  = sid;						// use the same sid if exists
     prc->next = cls->vtbl;					// add to top of vtable
     cls->vtbl = prc;
 
@@ -1125,7 +1135,7 @@ uc_tclass(guru_vm *vm)
 {
 	U32 code  = vm->bytecode;
 	GV  *regs = vm->state->regs;
-	U32 ra = GETARG_A(code);
+	U32 ra = GET_RA(code);
 
 	_RA_T(GT_CLASS, cls=vm->state->klass);
 }
@@ -1143,12 +1153,6 @@ uc_stop(guru_vm *vm)
 	vm->run  = VM_STATUS_STOP;	// VM suspended
 }
 
-__GURU__ void
-uc_hold(guru_vm *vm)
-{
-	vm->run = VM_STATUS_HOLD;	// exit guru_op loop
-}
-
 //===========================================================================================
 // GURU engine
 //===========================================================================================
@@ -1162,20 +1166,18 @@ uc_hold(guru_vm *vm)
 __GURU__ void
 ucode_prefetch(guru_vm *vm)
 {
-	vm->bytecode = VM_BYTECODE(vm);		// fetch from vm->state->pc
+	U32 b = vm->bytecode = VM_BYTECODE(vm);	// fetch from vm->state->pc
+	U32 n = b >> 7;	      					// operands
+	vm->opn = n;							// keep operands
+	vm->op  = b & 0x7f;      				// opcode (cannot take address from bitfield yet)
+	vm->ar  = *((GAR *)&n);        			// operands struct/union
 
-	U32 opn = vm->opn = vm->bytecode >> 7;      // operands
-	vm->op  = vm->bytecode & 0x7f;      		// opcode (cannot take address from bitfield yet)
-	vm->ar  = (GAR *)&opn;        				// operands struct/union
-
-	vm->state->pc++;					// advance program counter (ready for next fetch)
+	vm->state->pc++;				// advance program counter (ready for next fetch)
 }
 
 __GURU__ void
 ucode_exec(guru_vm *vm)
 {
-	if (threadIdx.x != 0) return;	// TODO: multi-thread [run|suspend] queues
-
 	//=======================================================================================
 	// GURU dispatcher unit
 	//=======================================================================================
@@ -1239,7 +1241,6 @@ ucode_exec(guru_vm *vm)
     case OP_TCLASS:     uc_tclass    (vm); break;
     // CONTROL
     case OP_STOP:       uc_stop      (vm); break;
-    case OP_HOLD:       uc_hold      (vm); break;
     case OP_NOP:        uc_nop       (vm); break;
     default:
     	PRINTF("?OP=0x%04x\n", vm->op);

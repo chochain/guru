@@ -20,48 +20,47 @@
 extern "C" {
 #endif
 
-#define MAXARG_Bx                   (0xffff)
-#define MAXARG_sBx                  (MAXARG_Bx>>1)
+#define MAX_Bx                  (0xffff)
+#define MAX_sBx                 (MAX_Bx>>1)
     
-#define GET_OPCODE(i)              ((i) & 0x7f)
+#define GET_OP(i)               ((i) & 0x7f)
 
 // common OPs
-#define GETARG_A(i)                (((i) >> 23) & 0x1ff)
-#define GETARG_B(i)                (((i) >> 14) & 0x1ff)
-#define GETARG_C(i)                (((i) >>  7) & 0x7f)
-#define GETARG_Bx(i)               (((i) >>  7) & 0xffff)
+#define GET_RA(i)               (((i) >> 23) & 0x1ff)
+#define GET_RB(i)               (((i) >> 14) & 0x1ff)
+#define GET_RC(i)               (((i) >>  7) & 0x7f)
+#define GET_Bx(i)               ((U16)((i) >>  7) & 0xffff)
 
-#define GETARG_sBx(i)              (GETARG_Bx(i)-MAXARG_sBx)
+#define GET_sBx(i)              (GET_Bx(i)-MAX_sBx)
 
 // special format for JUMP (25-bit address)
-#define GETARG_Ax(i)               (((i) >>  7) & 0x1ffffff)
+#define GET_Ax(i)               (((i) >>  7) & 0x1ffffff)
 
-#define GETARG_UNPACK_b(i,n1,n2)   ((((i)) >> (7+(n2))) & (((1<<(n1))-1)))
-#define GETARG_UNPACK_c(i,n1,n2)   ((int)((((mrb_code)(i)) >> 7) & (((1<<(n2))-1))))
-#define GETARG_b(i)                GETARG_UNPACK_b(i,14,2)
+#define GET_UNPACK_b(i,n1,n2)   ((((i)) >> (7+(n2))) & (((1<<(n1))-1)))
+#define GET_UNPACK_c(i,n1,n2)   ((int)((((mrb_code)(i)) >> 7) & (((1<<(n2))-1))))
+#define GET_b(i)                GET_UNPACK_b(i,14,2)
 
-#define MKOPCODE(op)               ((op & 0x7f)<<24)
-#define MKARG_A(c)                 ((c & 0x0ff)<<1  | (c & 0x01)>>8)
-#define MKARG_B(c)                 ((c & 0x1fc)<<6  | (c & 0x03)<<22)
-#define MKARG_C(c)                 ((c & 0x07e)<<15 | (c & 0x01)<<31)
+#define MK_OP(op)               ((op & 0x7f)<<24)
+#define MK_RA(c)                ((c & 0x0ff)<<1  | (c & 0x01)>>8)
+#define MK_RB(c)                ((c & 0x1fc)<<6  | (c & 0x03)<<22)
+#define MK_RC(c)                ((c & 0x07e)<<15 | (c & 0x01)<<31)
 
 // the following are not implemented
-#define MKARG_Bx(v)                ((mrb_code)((v) & 0xffff) << 7)
-#define MKARG_sBx(v)               MKARG_Bx((v)+MAXARG_sBx)
-#define MKARG_Ax(v)                ((mrb_code)((v) & 0x1ffffff) << 7)
-#define MKARG_PACK(b,n1,c,n2)      ((((b) & ((1<<n1)-1)) << (7+n2))|(((c) & ((1<<n2)-1)) << 7))
-#define MKARG_bc(b,c)              MKARG_PACK(b,14,c,2)
+#define MK_Bx(v)                ((mrb_code)((v) & 0xffff) << 7)
+#define MK_sBx(v)               MK_Bx((v) + MAX_sBx)
+#define MK_Ax(v)                ((mrb_code)((v) & 0x1ffffff) << 7)
+#define MK_PACK(b,n1,c,n2)      ((((b) & ((1<<n1)-1)) << (7+n2))|(((c) & ((1<<n2)-1)) << 7))
+#define MK_bc(b,c)              MK_PACK(b,14,c,2)
 
-#define MKOP_A(op,a)               (MKOPCODE(op)|MKARG_A(a))
-#define MKOP_AB(op,a,b)            (MKOP_A(op,a)|MKARG_B(b))
-#define MKOP_ABC(op,a,b,c)         (MKOP_AB(op,a,b)|MKARG_C(c))
-#define MKOP_ABx(op,a,bx)          (MKOP_A(op,a)|MKARG_Bx(bx))
-#define MKOP_Bx(op,bx)             (MKOPCODE(op)|MKARG_Bx(bx))
-#define MKOP_sBx(op,sbx)           (MKOPCODE(op)|MKARG_sBx(sbx))
-#define MKOP_AsBx(op,a,sbx)        (MKOP_A(op,a)|MKARG_sBx(sbx))
-#define MKOP_Ax(op,ax)             (MKOPCODE(op)|MKARG_Ax(ax))
-#define MKOP_Abc(op,a,b,c)         (MKOP_A(op,a)|MKARG_bc(b,c))
-
+#define OP_A(op,a)              (MK_OP(op)    |MK_RA(a))
+#define OP_AB(op,a,b)           (OP_A(op,a)   |MK_RB(b))
+#define OP_ABC(op,a,b,c)        (OP_AB(op,a,b)|MK_RC(c))
+#define OP_ABx(op,a,bx)         (OP_A(op,a)   |MK_RBx(bx))
+#define OP_Bx(op,bx)            (MK_OP(op)    |MK_Bx(bx))
+#define OP_sBx(op,sbx)          (MK_OP(op)    |MK_sBx(sbx))
+#define OP_AsBx(op,a,sbx)       (OP_A(op,a)   |MK_sBx(sbx))
+#define OP_Ax(op,ax)            (MK_OP(op)    |MK_Ax(ax))
+#define OP_Abc(op,a,b,c)        (OP_A(op,a)   |MK_bc(b,c))
 
 //================================================================
 /*!@brief
@@ -165,7 +164,8 @@ enum OPCODE {
     OP_RSVD2,     /*         reserved instruction #2                         */
     OP_RSVD3,     /*         reserved instruction #3                         */
     OP_RSVD4,     /*         reserved instruction #4                         */
-    OP_HOLD     = 0x50,  // using OP_HOLD inside guru only
+    // 0x50
+    OP_RESUME = 0x50,  // using OP_HOLD inside guru only
 };
 
 __GURU__ void ucode_prefetch(guru_vm *vm);
