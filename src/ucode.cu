@@ -40,12 +40,18 @@ __GURU__ U32 _mutex_uc;
 // becareful with the following macros, because they release regs[ra] first
 // so, make sure value is kept before the release
 //
-#define _ARG(r)         ((vm->ar.r))
-#define _R(r)			((vm)->state->regs[_ARG(r)])
 #define _RA(v)      	(ref_dec(&regs[ra]), regs[ra]=(v))
 #define _RA_X(r)    	(ref_dec(&regs[ra]), regs[ra]=*(r), ref_inc(r))
 #define _RA_T(t, e) 	(ref_dec(&regs[ra]), regs[ra].gt=(t), regs[ra].e)
-#define _RA_T2(t,e)     (_R(a).gt=(t), _R(a).e)
+
+#define _AR(r)          ((vm->ar.r))
+#define _Ax				((vm->bytecode>>7) & 0x1ffffff)
+#define _R0             (&(vm->state->regs[0]))
+#define _R(r)			(&(vm->state->regs[_AR(r)]))
+#define _RA2(v)			(ref_dec(_R(a)), *_R(a)=(v))
+#define _RA_X2(r)    	(ref_dec(_R(a)), *_R(a)=*(r), ref_inc(r))
+#define _RA_T2(t,e)     (_R(a)->gt=(t), _R(a)->e)
+
 #define SKIP(x)	        { guru_na(x); return; }
 #define QUIT(x)			{ vm->quit=1; guru_na(x); return; }
 //================================================================
@@ -68,12 +74,13 @@ uc_nop(guru_vm *vm)
 __GURU__ void
 uc_move(guru_vm *vm)
 {
+/*
 	GV *regs = vm->state->regs;
 	U32 code = vm->bytecode;
 	U32 ra = GET_RA(code);
 	U32 rb = GET_RB(code);
-
-    _RA_X(&regs[rb]); 	                	// [ra] <= [rb]
+*/
+    _RA_X2(_R(b)); 	                	// [ra] <= [rb]
 }
 
 //================================================================
@@ -85,11 +92,14 @@ uc_move(guru_vm *vm)
 __GURU__ void
 uc_loadl(guru_vm *vm)
 {
+/*
 	GV *regs = vm->state->regs;
 	U32 code = vm->bytecode;
 	U32 ra = GET_RA(code);
-    U32 rb = GET_Bx(code);
-    U32P p = VM_VAR(vm, rb);
+    U32 bx = GET_Bx(code);
+*/
+	U32  bx = _AR(bx);
+    U32P p  = VM_VAR(vm, bx);
     guru_obj obj;
 
     if (*p & 1) {
@@ -100,7 +110,7 @@ uc_loadl(guru_vm *vm)
     	obj.gt = GT_INT;
     	obj.i  = *p>>1;
     }
-    _RA(obj);
+    _RA2(obj);
 }
 
 //================================================================
@@ -120,7 +130,7 @@ uc_loadi(guru_vm *vm)
 
     _RA_T(GT_INT, i=sbx);
 */
-    GI sbx = _ARG(bx) - MAX_sBx;		// sBx
+    GI sbx = _AR(bx) - MAX_sBx;		// sBx
 
     _RA_T2(GT_INT, i=sbx);
 }
@@ -135,13 +145,16 @@ uc_loadi(guru_vm *vm)
 __GURU__ void
 uc_loadsym(guru_vm *vm)
 {
+/*
 	GV *regs = vm->state->regs;
 	U32 code = vm->bytecode;
     U32 ra  = GET_RA(code);
-    U32 rb  = GET_Bx(code);
-    GS  sid = name2id(VM_SYM(vm, rb));
+    U32 bx  = GET_Bx(code);
+*/
+	U32 bx  = _AR(bx);
+    GS  sid = name2id(VM_SYM(vm, bx));
 
-    _RA_T(GT_SYM, i=sid);
+	_RA_T2(GT_SYM, i=sid);
 }
 
 //================================================================
@@ -153,11 +166,12 @@ uc_loadsym(guru_vm *vm)
 __GURU__ void
 uc_loadnil(guru_vm *vm)
 {
+/*
 	GV *regs = vm->state->regs;
 	U32 code = vm->bytecode;
     U32 ra = GET_RA(code);
-
-    _RA_T(GT_NIL, i=0);
+*/
+    _RA_T2(GT_NIL, i=0);
 }
 
 //================================================================
@@ -169,11 +183,12 @@ uc_loadnil(guru_vm *vm)
 __GURU__ void
 uc_loadself(guru_vm *vm)
 {
+/*
 	GV *regs = vm->state->regs;
 	U32 code = vm->bytecode;
     U32 ra = GET_RA(code);
-
-    _RA(regs[0]);                   	// [ra] <= class
+*/
+    _RA2(*_R0);              		// [ra] <= class
 }
 
 //================================================================
@@ -185,11 +200,12 @@ uc_loadself(guru_vm *vm)
 __GURU__ void
 uc_loadt(guru_vm *vm)
 {
+/*
 	GV *regs = vm->state->regs;
 	U32 code = vm->bytecode;
     U32 ra = GET_RA(code);
-
-    _RA_T(GT_TRUE, i=0);
+*/
+    _RA_T2(GT_TRUE, i=0);
 }
 
 //================================================================
@@ -201,11 +217,12 @@ uc_loadt(guru_vm *vm)
 __GURU__ void
 uc_loadf(guru_vm *vm)
 {
+/*
 	GV *regs = vm->state->regs;
 	U32 code = vm->bytecode;
     U32 ra = GET_RA(code);
-
-    _RA_T(GT_FALSE, i=0);
+*/
+    _RA_T2(GT_FALSE, i=0);
 }
 
 //================================================================
@@ -217,15 +234,18 @@ uc_loadf(guru_vm *vm)
 __GURU__ void
 uc_getglobal(guru_vm *vm)
 {
+/*
 	GV *regs = vm->state->regs;
 	U32 code = vm->bytecode;
     U32 ra  = GET_RA(code);
-    U32 rb  = GET_Bx(code);
-    GS sid  = name2id(VM_SYM(vm, rb));
+    U32 bx  = GET_Bx(code);
+*/
+	U32 bx = _AR(bx);
+    GS sid  = name2id(VM_SYM(vm, bx));
 
     guru_obj *obj = global_object_get(sid);
 
-    _RA_X(obj);
+    _RA_X2(obj);
 }
 
 //================================================================
@@ -237,13 +257,16 @@ uc_getglobal(guru_vm *vm)
 __GURU__ void
 uc_setglobal(guru_vm *vm)
 {
+/*
 	GV *regs = vm->state->regs;
 	U32 code = vm->bytecode;
     U32 ra  = GET_RA(code);
-    U32 rb  = GET_Bx(code);
-    GS  sid = name2id(VM_SYM(vm, rb));
+    U32 bx  = GET_Bx(code);
+*/
+	U32 bx  = _AR(bx);
+    GS  sid = name2id(VM_SYM(vm, bx));
 
-    global_object_add(sid, &regs[ra]);
+    global_object_add(sid, _R(a));
 }
 
 //================================================================
@@ -255,16 +278,18 @@ uc_setglobal(guru_vm *vm)
 __GURU__ void
 uc_getiv(guru_vm *vm)
 {
+/*
 	GV *regs = vm->state->regs;
 	U32 code = vm->bytecode;
     U32 ra = GET_RA(code);
-    U32 rb = GET_Bx(code);
-
-    U8P name = VM_SYM(vm, rb);
+    U32 bx = GET_Bx(code);
+*/
+	U32 bx   = _AR(bx);
+    U8P name = VM_SYM(vm, bx);
     GS sid   = name2id(name+1);					// skip '@'
-    GV ret   = ostore_get(&regs[0], sid);
+    GV ret   = ostore_get(_R0, sid);
 
-    _RA(ret);
+    _RA2(ret);
 }
 
 //================================================================
@@ -276,15 +301,17 @@ uc_getiv(guru_vm *vm)
 __GURU__ void
 uc_setiv(guru_vm *vm)
 {
+/*
 	GV *regs = vm->state->regs;
 	U32 code = vm->bytecode;
     U32 ra = GET_RA(code);
-    U32 rb = GET_Bx(code);
-
-    U8P name = VM_SYM(vm, rb);
+    U32 bx = GET_Bx(code);
+*/
+	U32 bx   = _AR(bx);
+    U8P name = VM_SYM(vm, bx);
     GS  sid  = name2id(name+1);			// skip '@'
 
-    ostore_set(&regs[0], sid, &regs[ra]);
+    ostore_set(_R0, sid, _R(a));
 }
 
 //================================================================
@@ -296,15 +323,18 @@ uc_setiv(guru_vm *vm)
 __GURU__ void
 uc_getconst(guru_vm *vm)
 {
+/*
 	GV *regs = vm->state->regs;
 	U32 code = vm->bytecode;
     U32 ra  = GET_RA(code);
-    U32 rb  = GET_Bx(code);
-    GS  sid = name2id(VM_SYM(vm, rb));
+    U32 bx  = GET_Bx(code);
+*/
+	U32 bx  = _AR(bx);
+    GS  sid = name2id(VM_SYM(vm, bx));
 
     guru_obj *obj = const_object_get(sid);
 
-    _RA_X(obj);
+    _RA_X2(obj);
 }
 
 //================================================================
@@ -314,14 +344,18 @@ uc_getconst(guru_vm *vm)
   constset(Syms(Bx),R(A))
 */
 __GURU__ void
-uc_setconst(guru_vm *vm) {
+uc_setconst(guru_vm *vm)
+{
+/*
 	GV *regs = vm->state->regs;
 	U32 code = vm->bytecode;
     U32 ra  = GET_RA(code);
-    U32 rb  = GET_Bx(code);
-    GS  sid = name2id(VM_SYM(vm, rb));
+    U32 bx  = GET_Bx(code);
+*/
+	U32 bx  = _AR(bx);
+	GS  sid = name2id(VM_SYM(vm, bx));
 
-    const_object_add(sid, &regs[ra]);
+    const_object_add(sid, _R(a));
 }
 
 //================================================================
@@ -333,22 +367,26 @@ uc_setconst(guru_vm *vm) {
 __GURU__ void
 uc_getupvar(guru_vm *vm)
 {
+/*
 	GV *regs = vm->state->regs;
 	U32 code = vm->bytecode;
     U32 ra = GET_RA(code);
     U32 rb = GET_RB(code);
-    U32 rc = GET_RC(code);   		// UP
+    U32 rc = GET_RC(code);   	// level up
+*/
+	U32 b = _AR(b);
+	U32 c = _AR(c);
 
     guru_state *st = vm->state;
 
-    U32 n = (rc+1) << 1;			// depth of call stack
-    while (n > 0){					// walk up call stack
+    U32 n = (c+1) << 1;			// depth of call stack (2 for each level)
+    while (n > 0){				// walk up call stack
         st = st->prev;
         n--;
     }
-    GV *uregs = st->regs;			// outer scope register file
+    GV *uregs = st->regs;		// outer scope register file
 
-    _RA(uregs[rb]);          // ra <= up[rb]
+    _RA2(uregs[b]);          	// ra <= up[rb]
 }
 
 //================================================================
@@ -360,23 +398,27 @@ uc_getupvar(guru_vm *vm)
 __GURU__ void
 uc_setupvar(guru_vm *vm)
 {
+/*
 	GV *regs = vm->state->regs;
 	U32 code = vm->bytecode;
     U32 ra = GET_RA(code);
     U32 rb = GET_RB(code);
     U32 rc = GET_RC(code);   				// UP level
+*/
+	U32 b = _AR(b);
+	U32 c = _AR(c);
 
     guru_state *st = vm->state;
 
-    U32 n = (rc+1) << 1;					// 2 per outer scope level
+    U32 n = (c+1) << 1;						// 2 per outer scope level
     while (n > 0){
         st = st->prev;	CHECK_NULL(st);
         n--;
     }
     GV *uregs = st->regs;					// pointer to caller's register file
 
-    ref_dec(&uregs[rb]);
-    uregs[rb] = regs[ra];                   // update outer-scope vars
+    ref_dec(&uregs[b]);
+    uregs[b] = *_R(a);                   	// update outer-scope vars
 }
 
 //================================================================
@@ -388,8 +430,11 @@ uc_setupvar(guru_vm *vm)
 __GURU__ void
 uc_jmp(guru_vm *vm)
 {
-	U32 code = vm->bytecode;
-    vm->state->pc += GET_sBx(code) - 1;
+//	U32 code = vm->bytecode;
+//  vm->state->pc += GET_sBx(code) - 1;
+	U32 sbx = _AR(bx) - MAX_sBx;
+
+	vm->state->pc += sbx -1;
 }
 
 //================================================================
@@ -401,12 +446,18 @@ uc_jmp(guru_vm *vm)
 __GURU__ void
 uc_jmpif (guru_vm *vm)
 {
+/*
 	GV *regs = vm->state->regs;
 	U32 code = vm->bytecode;
 
     if (regs[GET_RA(code)].gt > GT_FALSE) {
         vm->state->pc += GET_sBx(code) - 1;
     }
+*/
+	U32 sbx = _AR(bx) - MAX_sBx;
+	if (_R(a)->gt > GT_FALSE) {
+		vm->state->pc += sbx - 1;
+	}
 }
 
 //================================================================
@@ -418,12 +469,18 @@ uc_jmpif (guru_vm *vm)
 __GURU__ void
 uc_jmpnot(guru_vm *vm)
 {
+/*
 	GV *regs = vm->state->regs;
 	U32 code = vm->bytecode;
 
 	if (regs[GET_RA(code)].gt <= GT_FALSE) {
         vm->state->pc += GET_sBx(code) - 1;
     }
+*/
+	U32 sbx = _AR(bx) - MAX_sBx;
+	if (_R(a)->gt <= GT_FALSE) {
+		vm->state->pc += sbx - 1;
+	}
 }
 
 
@@ -447,30 +504,33 @@ _wipe_stack(GV *r, U32 rc)
 __GURU__ void
 uc_send(guru_vm *vm)
 {
+/*
 	GV *regs = vm->state->regs;
 	U32 code = vm->bytecode;
     U32 ra = GET_RA(code);
     U32 rb = GET_RB(code);  						// proc.sid
     U32 rc = GET_RC(code);  						// number of params
-
-    U8  *sym = VM_SYM(vm, rb);						// get given symbol
+*/
+	U32 b    = _AR(b);
+	U32 c    = _AR(c);
+    U8  *sym = VM_SYM(vm, b);						// get given symbol
 	GS  sid  = name2id(sym); 						// get method sid of the current class
-    GV  *obj = regs+ra;								// call stack, obj is receiver object
+    GV  *obj = _R(a);								// call stack, obj is receiver object
 
 	guru_proc *m = (guru_proc *)proc_by_sid(obj, sid);
     if (m==0) {										// eethod not found
-    	_wipe_stack(regs+ra+1, rc+1);
+    	_wipe_stack(obj+1, c+1);
     	SKIP(sym); 									// bail out
     }
     else if (HAS_IREP(m)) {							// a Ruby-based IREP
-    	vm_state_push(vm, m->irep, regs+ra, rc);	// switch to callee's context
+    	vm_state_push(vm, m->irep, obj, c);			// switch to callee's context
     }
     else if (m->func==prc_call) {					// C-based prc_call (hacked handler, it needs vm->state)
-    	vm_proc_call(vm, obj, rc);					// push into call stack, obj at stack[0]
+    	vm_proc_call(vm, obj, c);					// push into call stack, obj at stack[0]
     }
     else {											// other default C-based methods
-    	m->func(obj, rc);
-    	_wipe_stack(regs+ra+1, rc+1);
+    	m->func(obj, c);
+    	_wipe_stack(obj+1, c+1);
     }
 }
 
@@ -483,10 +543,9 @@ uc_send(guru_vm *vm)
 __GURU__ void
 uc_call(guru_vm *vm)
 {
-	GV        *regs = vm->state->regs;
-	guru_irep *irep = regs[0].proc->irep;
+	guru_irep *irep = _R0->proc->irep;
 
-	vm_state_push(vm, irep, regs, 0);
+	vm_state_push(vm, irep, _R0, 0);
 }
 
 //================================================================
@@ -498,8 +557,11 @@ uc_call(guru_vm *vm)
 __GURU__ void
 uc_enter(guru_vm *vm)
 {
+/*
 	U32 code  = vm->bytecode;
     U32 ax    = GET_Ax(code);
+*/
+	U32 ax   = _Ax;
 
     U32 arg0 = (ax >> 13) & 0x1f;  // default args
     U32 argc = (ax >> 18) & 0x1f;  // given args
@@ -518,12 +580,17 @@ uc_enter(guru_vm *vm)
 __GURU__ void
 uc_return(guru_vm *vm)
 {
+/*
 	GV *regs = vm->state->regs;
 	U32 code = vm->bytecode;
     U32 ra   = GET_RA(code);
     GV  ret  = regs[ra];
-
     vm_state_pop(vm, ret, ra);		// pass return value
+*/
+	U32 a   = _AR(a);
+	GV  ret = *_R(a);
+
+    vm_state_pop(vm, ret, a);		// pass return value
 }
 
 //================================================================
@@ -535,15 +602,16 @@ uc_return(guru_vm *vm)
 __GURU__ void
 uc_blkpush(guru_vm *vm)
 {
+/*
 	GV *regs = vm->state->regs;
 	U32 code = vm->bytecode;
     U32 ra = GET_RA(code);
-
-    GV *prc = regs+1;       				// get proc, regs[0] is the class
+*/
+    GV *prc = vm->state->regs+1;       		// get proc, regs[0] is the class
 
     assert(prc->gt==GT_PROC);				// ensure
 
-    _RA(*prc);             					// ra <= proc
+    _RA2(*prc);             				// ra <= proc
 }
 
 //================================================================
@@ -555,11 +623,15 @@ uc_blkpush(guru_vm *vm)
 __GURU__ void
 uc_add(guru_vm *vm)
 {
+/*
 	GV *regs = vm->state->regs;
 	U32 code = vm->bytecode;
     U32 ra  = GET_RA(code);
     GV  *r0 = &regs[ra];
     GV  *r1 = &regs[ra+1];
+*/
+	GV *r0 = _R(a);
+	GV *r1 = r0+1;
 
     if (r0->gt==GT_INT) {
         if      (r1->gt==GT_INT) 	r0->i += r1->i;
@@ -591,16 +663,20 @@ uc_add(guru_vm *vm)
 __GURU__ void
 uc_addi(guru_vm *vm)
 {
+/*
 	GV *regs = vm->state->regs;
 	U32 code = vm->bytecode;
 	U32 ra = GET_RA(code);
 	U32 rc = GET_RC(code);
 
     GV *r0 = &regs[ra];
+*/
+	GV *r0 = _R(a);
+	U32 c  = _AR(c);
 
-    if (r0->gt==GT_INT)     	r0->i += rc;
+    if (r0->gt==GT_INT)     	r0->i += c;
 #if GURU_USE_FLOAT
-    else if (r0->gt==GT_FLOAT)	r0->f += rc;
+    else if (r0->gt==GT_FLOAT)	r0->f += c;
 #else
     else QUIT("Float class");
 #endif
@@ -615,12 +691,16 @@ uc_addi(guru_vm *vm)
 __GURU__ void
 uc_sub(guru_vm *vm)
 {
+/*
 	GV *regs = vm->state->regs;
 	U32 code = vm->bytecode;
     U32 ra = GET_RA(code);
 
     GV *r0 = &regs[ra];
     GV *r1 = &regs[ra+1];
+*/
+	GV *r0 = _R(a);
+	GV *r1 = r0+1;
 
     if (r0->gt==GT_INT) {
         if      (r1->gt==GT_INT) 	r0->i -= r1->i;
@@ -652,16 +732,20 @@ uc_sub(guru_vm *vm)
 __GURU__ void
 uc_subi(guru_vm *vm)
 {
+/*
 	GV *regs = vm->state->regs;
 	U32 code = vm->bytecode;
     U32 ra = GET_RA(code);
     U32 rc = GET_RC(code);
 
     GV *r0 = &regs[ra];
+*/
+	GV *r0 = _R(a);
+	U32 c  = _AR(c);
 
-    if (r0->gt==GT_INT) 		r0->i -= rc;
+    if (r0->gt==GT_INT) 		r0->i -= c;
 #if GURU_USE_FLOAT
-    else if (r0->gt==GT_FLOAT) 	r0->f -= rc;
+    else if (r0->gt==GT_FLOAT) 	r0->f -= c;
 #else
     else QUIT("Float class");
 #endif
@@ -676,11 +760,15 @@ uc_subi(guru_vm *vm)
 __GURU__ void
 uc_mul(guru_vm *vm)
 {
+/*
 	GV *regs = vm->state->regs;
 	U32 code = vm->bytecode;
     U32 ra = GET_RA(code);
     GV *r0 = &regs[ra];
     GV *r1 = &regs[ra+1];
+*/
+	GV *r0 = _R(a);
+	GV *r1 = r0+1;
 
     if (r0->gt==GT_INT) {
         if      (r1->gt==GT_INT) 	r0->i *= r1->i;
@@ -712,11 +800,15 @@ uc_mul(guru_vm *vm)
 __GURU__ void
 uc_div(guru_vm *vm)
 {
+/*
 	GV *regs = vm->state->regs;
 	U32 code = vm->bytecode;
     U32 ra = GET_RA(code);
     GV *r0 = &regs[ra];
     GV *r1 = &regs[ra+1];
+*/
+	GV *r0 = _R(a);
+	GV *r1 = r0+1;
 
     if (r0->gt==GT_INT) {
         if      (r1->gt==GT_INT) 	r0->i /= r1->i;
@@ -748,6 +840,7 @@ uc_div(guru_vm *vm)
 __GURU__ void
 uc_eq(guru_vm *vm)
 {
+/*
 	GV *regs = vm->state->regs;
 	U32 code = vm->bytecode;
     U32 ra = GET_RA(code);
@@ -755,6 +848,14 @@ uc_eq(guru_vm *vm)
 
     regs[ra+1].gt = GT_EMPTY;
     _RA_T(tt, i=0);
+*/
+	GV *r0 = _R(a);
+	GV *r1 = r0+1;
+
+    GT tt = GT_BOOL(guru_cmp(r0, r1)==0);
+    r1->gt = GT_EMPTY;
+
+    _RA_T2(tt, i=0);
 }
 
 // macro for comparators
@@ -791,13 +892,17 @@ do {													\
 __GURU__ void
 uc_lt(guru_vm *vm)
 {
+/*
 	GV *regs = vm->state->regs;
 	U32 code = vm->bytecode;
 	U32 ra = GET_RA(code);
+*/
+	GV *r0 = _R(a);
+	GV *r1 = r0+1;
 
-	ncmp(&regs[ra], <, &regs[ra+1]);
+	ncmp(r0, <, r1);
 
-    regs[ra+1].gt = GT_EMPTY;
+    r1->gt = GT_EMPTY;
 }
 
 //================================================================
@@ -809,13 +914,16 @@ uc_lt(guru_vm *vm)
 __GURU__ void
 uc_le(guru_vm *vm)
 {
+/*
 	GV *regs = vm->state->regs;
 	U32 code = vm->bytecode;
     U32 ra = GET_RA(code);
+*/
+	GV *r0 = _R(a);
+	GV *r1 = r0+1;
 
-    ncmp(&regs[ra], <=, &regs[ra+1]);
-
-    regs[ra+1].gt = GT_EMPTY;
+    ncmp(r0, <=, r1);
+    r1->gt = GT_EMPTY;
 }
 
 //================================================================
@@ -827,13 +935,17 @@ uc_le(guru_vm *vm)
 __GURU__ void
 uc_gt(guru_vm *vm)
 {
+/*
 	GV *regs = vm->state->regs;
 	U32 code = vm->bytecode;
     U32 ra = GET_RA(code);
+*/
+	GV *r0 = _R(a);
+	GV *r1 = r0+1;
 
-    ncmp(&regs[ra], >, &regs[ra+1]);
+    ncmp(r0, >, r1);
 
-    regs[ra+1].gt = GT_EMPTY;
+    r1->gt = GT_EMPTY;
 }
 
 //================================================================
@@ -845,14 +957,16 @@ uc_gt(guru_vm *vm)
 __GURU__ void
 uc_ge(guru_vm *vm)
 {
+/*
 	GV *regs = vm->state->regs;
 	U32 code = vm->bytecode;
-
     U32 ra = GET_RA(code);
+*/
+	GV *r0 = _R(a);
+	GV *r1 = r0+1;
 
-    ncmp(&regs[ra], >=, &regs[ra+1]);
-
-    regs[ra+1].gt = GT_EMPTY;
+    ncmp(r0, >=, r1);
+    r1->gt = GT_EMPTY;
 }
 
 //================================================================
@@ -865,16 +979,18 @@ __GURU__ void
 uc_string(guru_vm *vm)
 {
 #if GURU_USE_STRING
+/*
 	GV *regs = vm->state->regs;
 	U32 code = vm->bytecode;
 
 	U32 ra = GET_RA(code);
-    U32 rb = GET_Bx(code);
-
-    U8  *str = (U8 *)VM_VAR(vm, rb);			// string pool var
+    U32 bx = GET_Bx(code);
+*/
+	U32 bx   = _AR(bx);
+    U8  *str = (U8 *)VM_VAR(vm, bx);			// string pool var
     GV  ret  = guru_str_new(str);				// rc set to 1 already
 
-    _RA(ret);
+    _RA2(ret);
 #else
     QUIT("String class");
 #endif
@@ -890,6 +1006,7 @@ __GURU__ void
 uc_strcat(guru_vm *vm)
 {
 #if GURU_USE_STRING
+/*
 	GV *regs = vm->state->regs;
 	U32 code = vm->bytecode;
 
@@ -898,6 +1015,9 @@ uc_strcat(guru_vm *vm)
 
     GV *va  = &regs[ra];
     GV *vb  = &regs[rb];
+ */
+	GV *va = _R(a);
+	GV *vb = _R(b);
     GS sid  = name2id((U8P)"to_s");				// from global symbol pool
 
     guru_proc *pa = proc_by_sid(va, sid);
@@ -912,7 +1032,7 @@ uc_strcat(guru_vm *vm)
     ref_dec(vb);
     vb->gt = GT_EMPTY;
 
-    _RA_X(&ret);
+    _RA_X2(&ret);
 
 #else
     QUIT("String class");
@@ -929,6 +1049,7 @@ __GURU__ void
 uc_array(guru_vm *vm)
 {
 #if GURU_USE_ARRAY
+/*
 	GV *regs = vm->state->regs;
 	U32 code = vm->bytecode;
 
@@ -940,11 +1061,17 @@ uc_array(guru_vm *vm)
     guru_array *h  = ret.array;
 
     GV *s = &regs[rb];					// source elements
+*/
+    U32 n   = _AR(c);
+    GV  ret = (GV)guru_array_new(n);	// ref_cnt is 1 already
+    guru_array *h  = ret.array;
+
+    GV *s = _R(b);						// source elements
 	GV *d = h->data;					// target
 	for (U32 i=0; i<(n); i++, ref_inc(s), *d++=*s, s->gt=GT_EMPTY, s++);
     h->n = n;
 
-    _RA(ret);							// no need to ref_inc
+    _RA2(ret);							// no need to ref_inc
 #else
     QUIT("Array class");
 #endif
@@ -960,24 +1087,30 @@ __GURU__ void
 uc_hash(guru_vm *vm)
 {
 #if GURU_USE_ARRAY
+/*
 	GV *regs = vm->state->regs;
 	U32 code = vm->bytecode;
 
     U32 ra = GET_RA(code);
     U32 rb = GET_RB(code);
     U32 n  = GET_RC(code);							// entries of hash
-    U32 sz = sizeof(GV) * (n<<1);						// size of k,v pairs
+	U32 sz = sizeof(GV) * (n<<1);						// size of k,v pairs
 
     GV *p  = &regs[rb];
     GV ret = guru_hash_new(n);							// ref_cnt is already set to 1
     guru_hash  *h = ret.hash;
 
     MEMCPY((U8P)h->data, (U8P)p, sz);					// copy k,v pairs
+*/
+	U32 n  = _AR(c);
+    GV *p  = _R(b);
+    GV ret = guru_hash_new(n);							// ref_cnt is already set to 1
+    guru_hash  *h = ret.hash;
 
     for (U32 i=0; i<(h->n=(n<<1)); i++, p++) {
     	p->gt = GT_EMPTY;								// clean up call stack
     }
-    _RA(ret);						          			// set return value on stack top
+    _RA2(ret);						          			// set return value on stack top
 #else
     QUIT("Hash class");
 #endif
@@ -993,17 +1126,23 @@ __GURU__ void
 uc_range(guru_vm *vm)
 {
 #if GURU_USE_ARRAY
-	GV *regs = vm->state->regs;
+/*
+ 	GV *regs = vm->state->regs;
 	U32 code = vm->bytecode;
     U32 ra = GET_RA(code);
     U32 rb = GET_RB(code);
     U32 n  = GET_RC(code);
 
     GV *pb = &regs[rb];
-    GV ret = guru_range_new(pb, pb+1, n);	// pb, pb+1 ref cnt will be increased
-    regs[rb+1].gt = GT_EMPTY;
+*/
+	U32 n   = _AR(c);
+	GV  *p0 = _R(b);
+	GV  *p1 = p0+1;
 
-    _RA_X(&ret);							// release and  reassign
+    GV ret = guru_range_new(p0, p1, n);		// pb, pb+1 ref cnt will be increased
+    p1->gt = GT_EMPTY;
+
+    _RA_X2(&ret);							// release and  reassign
 #else
     QUIT("Range class");
 #endif
@@ -1018,18 +1157,21 @@ uc_range(guru_vm *vm)
 __GURU__ void
 uc_lambda(guru_vm *vm)
 {
+/*
 	GV *regs = vm->state->regs;
 	U32 code = vm->bytecode;
 	int ra = GET_RA(code);
     int rb = GET_b(code);      			// sequence position in irep list
+*/
+	U32 b = _AR(bx) >> 2;
 
     guru_proc *prc = (guru_proc *)guru_alloc(sizeof(guru_proc));
 
     prc->sid  = 0xffffffff;				// anonymous function
     prc->func = NULL;
-    prc->irep = VM_REPS(vm, rb);		// fetch from children irep list
+    prc->irep = VM_REPS(vm, b);			// fetch from children irep list
 
-    _RA_T(GT_PROC, proc=prc);			// regs[ra].proc = prc
+    _RA_T2(GT_PROC, proc=prc);			// regs[ra].proc = prc
 }
 
 //================================================================
@@ -1043,17 +1185,21 @@ uc_lambda(guru_vm *vm)
 __GURU__ void
 uc_class(guru_vm *vm)
 {
+/*
 	GV *regs = vm->state->regs;
 	U32 code = vm->bytecode;
 
     U32 ra = GET_RA(code);
     U32 rb = GET_RB(code);
+*/
+	U32 b = _AR(b);
+	GV *ra1 = _R(a)+1;
 
-    guru_class *super = (regs[ra+1].gt==GT_CLASS) ? regs[ra+1].cls : guru_class_object;
-    const U8P  name   = VM_SYM(vm, rb);
+    guru_class *super = (ra1->gt==GT_CLASS) ? ra1->cls : guru_class_object;
+    const U8P  name   = VM_SYM(vm, b);
     guru_class *cls   = guru_define_class(name, super);
 
-    _RA_T(GT_CLASS, cls=cls);
+    _RA_T2(GT_CLASS, cls=cls);
 }
 
 //================================================================
@@ -1065,15 +1211,18 @@ uc_class(guru_vm *vm)
 __GURU__ void
 uc_exec(guru_vm *vm)
 {
+/*
 	U32 code  = vm->bytecode;
 	GV  *regs = vm->state->regs;
 
-    U32 ra = GET_RA(code);					// return register
-    U32 rb = GET_Bx(code);					// irep pointer
+    U32 ra = GET_RA(code);						// return register
+    U32 bx = GET_Bx(code);						// irep index
+*/
+	U32 bx = _AR(bx);
 
-    guru_irep *irep = VM_REPS(vm, rb);			// child IREP[rb]
+    guru_irep *irep = VM_REPS(vm, bx);			// child IREP[rb]
 
-    vm_state_push(vm, irep, regs+ra, 0);		// push call stack
+    vm_state_push(vm, irep, _R(a), 0);			// push call stack
 }
 
 //================================================================
@@ -1085,23 +1234,28 @@ uc_exec(guru_vm *vm)
 __GURU__ void
 uc_method(guru_vm *vm)
 {
+/*
 	GV  *regs = vm->state->regs;
 	U32 code  = vm->bytecode;
     U32 ra = GET_RA(code);
     U32 rb = GET_RB(code);
     GV  *obj  = regs+ra;					// receiver object
+*/
+	U32 a    = _AR(a);
+	U32 b    = _AR(b);
+	GV  *obj = _R(a);
 
     assert(obj->gt == GT_CLASS);			// enforce class checking
 
     // check whether the name has been defined in current class (i.e. vm->state->klass)
-    GS	      sid  = name2id(VM_SYM(vm, rb));	// lookup symbol id (which should be registered already)
+    GS	      sid  = name2id(VM_SYM(vm, b));	// lookup symbol id (which should be registered already)
     guru_proc *prc = proc_by_sid(obj, sid);		// fetch proc from obj->klass->vtbl
 
     if (prc != NULL) {
     	// same proc name exists (in either current or parent class)
     	// do nothing for now
     }
-    prc = regs[ra+1].proc;					// use the proc specified by OP_LAMBDA
+    prc = (obj+1)->proc;					// use the proc specified by OP_LAMBDA
 
     _LOCK;
 
@@ -1113,7 +1267,7 @@ uc_method(guru_vm *vm)
 
     _UNLOCK;
 
-    _wipe_stack(regs+1, ra+1);
+    _wipe_stack(vm->state->regs+1, a+1);
 }
 
 //================================================================
@@ -1125,11 +1279,12 @@ uc_method(guru_vm *vm)
 __GURU__ void
 uc_tclass(guru_vm *vm)
 {
+/*
 	U32 code  = vm->bytecode;
 	GV  *regs = vm->state->regs;
 	U32 ra = GET_RA(code);
-
-	_RA_T(GT_CLASS, cls=vm->state->klass);
+*/
+	_RA_T2(GT_CLASS, cls=vm->state->klass);
 }
 
 //================================================================
