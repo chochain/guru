@@ -22,9 +22,11 @@ extern "C" {
 
 #define MAX_Bx                  (0xffff)
 #define MAX_sBx                 (MAX_Bx>>1)
-    
 #define GET_OP(i)               ((i) & 0x7f)
 
+/*
+ * bytecode decoder marcos, deprecated by guru3_7
+ *
 // common OPs
 #define GET_RA(i)               (((i) >> 23) & 0x1ff)
 #define GET_RB(i)               (((i) >> 14) & 0x1ff)
@@ -35,9 +37,6 @@ extern "C" {
 #define GET_Bx(i)               ((U16)((i) >>  7) & 0xffff)
 #define GET_sBx(i)              (GET_Bx(i)-MAX_sBx)
 #define GET_b(i)                (GET_Bx(i) >> 2)
-
-//(GET_UNPACK_b(i,14,2))
-
 
 #define GET_UNPACK_b(i,n1,n2)   (((i) >> (7+(n2))) & ((1<<(n1))-1))
 #define GET_UNPACK_c(i,n1,n2)   ((int)((((mrb_code)(i)) >> 7) & ((1<<(n2))-1)))
@@ -63,6 +62,7 @@ extern "C" {
 #define OP_AsBx(op,a,sbx)       (OP_A(op,a)   |MK_sBx(sbx))
 #define OP_Ax(op,ax)            (MK_OP(op)    |MK_Ax(ax))
 #define OP_Abc(op,a,b,c)        (OP_A(op,a)   |MK_bc(b,c))
+*/
 
 //================================================================
 /*!@brief
