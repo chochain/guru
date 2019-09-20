@@ -23,6 +23,7 @@ __GPU__  void		guru_class_init(void);
 
 __GURU__ GV 		guru_inspect(GV v[], GV *rcv);				// inspect
 __GURU__ GV 		guru_kind_of(GV v[], U32 argc);				// whether v1 is a kind of v0
+__GURU__ void     	guru_obj_del(GV *v);						// a facade to ostore_del
 
 // cross module c-function call (a hack for now)
 __GURU__ void		prc_call(GV v[], U32 argc);

@@ -12,7 +12,7 @@ INCDIRS=-I/usr/local/cuda/include -I./src
 
 SRC =   main.c 
 GURU= 	alloc32.cu guru.cu static.cu value.cu global.cu \
-		store.cu symbol.cu class.cu\
+		ostore.cu symbol.cu class.cu\
         puts32.cu load.cu \
 		vm.cu ucode.cu state.cu object.cu \
 		c_fixnum.cu c_string.cu c_range.cu c_array.cu c_hash.cu
@@ -55,7 +55,7 @@ value.o: value.cu       vm_config.h guru.h value.h alloc.h \
 
 global.o: global.cu	    vm_config.h guru.h value.h global.h
 
-store.o: store.cu vm_config.h guru.h alloc.h value.h store.h
+ostore.o: ostore.cu 	vm_config.h guru.h alloc.h value.h ostore.h
 
 symbol.o: symbol.cu 	vm_config.h guru.h alloc.h value.h symbol.h \
 						static.h c_array.h
@@ -63,13 +63,13 @@ symbol.o: symbol.cu 	vm_config.h guru.h alloc.h value.h symbol.h \
 class.o: class.cu	    vm_config.h guru.h value.h alloc.h static.h symbol.h global.h \
 						class.h
 
-load.o: load.cu         vm_config.h guru.h alloc.h store.h \
+load.o: load.cu         vm_config.h guru.h alloc.h ostore.h \
 						vm.h load.h
 
 state.o: state.cu		vm_config.h guru.h symbol.h \
 						vm.h state.h
 
-vm.o: vm.cu             vm_config.h guru.h alloc.h value.h static.h store.h \
+vm.o: vm.cu             vm_config.h guru.h alloc.h value.h static.h ostore.h \
 						ucode.h state.h vm.h load.h
 
 console.o: console.cu 	vm_config.h guru.h value.h console.h
@@ -80,11 +80,11 @@ puts.o: puts32.cu		vm_config.h guru.h alloc.h value.h symbol.h static.h global.h
 						puts.h $(EXTS)
 
 ucode.o: ucode.cu       vm_config.h guru.h alloc.h value.h static.h \
-						symbol.h store.h global.h class.h \
+						symbol.h ostore.h global.h class.h \
 						puts.h \
 						ucode.h vm.h $(EXTS)
 
-object.o: object.cu	    vm_config.h guru.h value.h alloc.h static.h symbol.h store.h \
+object.o: object.cu	    vm_config.h guru.h value.h alloc.h static.h symbol.h ostore.h \
 						global.h ucode.h vm.h class.h object.h \
 						puts.h \
 						c_fixnum.h $(EXTS)

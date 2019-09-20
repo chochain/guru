@@ -11,6 +11,7 @@
 #include <assert.h>
 #include "value.h"
 #include "alloc.h"
+#include "object.h"
 
 #if GURU_USE_STRING
 #include "c_string.h"
@@ -22,7 +23,7 @@
 #include "c_hash.h"
 #endif
 
-extern "C" __GURU__ void guru_store_del(GV *v);		// store.cu
+//extern "C" __GURU__ void guru_obj_del(GV *v);		// object.cu
 
 //================================================================
 /*! compare
@@ -254,13 +255,13 @@ guru_strcat(U8P d, const U8P s)
 __GURU__ GV *
 ref_dec(GV *v)
 {
-    if ((v->gt & GT_HAS_REF)==0) return v;	// simple objects
+    if ((v->gt & GT_HAS_REF)==0) return v;			// simple objects
 
-    CHECK_NULL(v->rc);						// is referenced?
-    if (--v->rc > 0) 			 return v;	// still used, keep going
+    CHECK_NULL(v->rc);								// is referenced?
+    if (--v->rc > 0) 			 return v;			// still used, keep going
 
     switch(v->gt) {
-    case GT_OBJ:		guru_store_del(v);	break;
+    case GT_OBJ:		guru_obj_del(v);	break;	// delete object instance
     case GT_PROC:	    guru_free(v->proc);	break;
 #if GURU_USE_STRING
     case GT_STR:		guru_str_del(v);	break;

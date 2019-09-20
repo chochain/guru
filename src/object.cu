@@ -18,13 +18,13 @@
 #include "alloc.h"
 #include "static.h"
 #include "symbol.h"
-#include "store.h"
 #include "global.h"
 #include "vm.h"
 #include "class.h"
 
 #include "ucode.h"
 #include "object.h"
+#include "ostore.h"
 
 #include "c_fixnum.h"
 
@@ -107,6 +107,14 @@ __GURU__ GV
 guru_kind_of(GV v[], U32 argc)		// whether v1 is a kind of v0
 {
 	return _send(v+argc, v+1, (U8P)"kind_of?", 1, v);
+}
+
+__GURU__ void
+guru_obj_del(GV *v)
+{
+	assert(v->gt==GT_OBJ);
+
+	ostore_del(v);
 }
 
 //================================================================
@@ -231,7 +239,7 @@ obj_getiv(GV v[], U32 argc)
     const U8P name = _get_callee(NULL);			// TODO:
     GS  sid  = name2id(name);
 
-    RETURN_VAL(guru_store_get(&v[0], sid));
+    RETURN_VAL(ostore_get(&v[0], sid));
 }
 
 //================================================================
@@ -243,7 +251,7 @@ obj_setiv(GV v[], U32 argc)
     U8P name = _get_callee(NULL);			// CC TODO: another way
     GS  sid  = name2id(name);
 
-    guru_store_set(&v[0], sid, &v[1]);
+    ostore_set(&v[0], sid, &v[1]);
 }
 
 //================================================================
@@ -342,7 +350,7 @@ obj_new(GV v[], U32 argc)
 {
 	assert(v[0].gt==GT_CLASS);						// ensure it is a class object
 
-    GV  obj = guru_store_new(v[0].cls, 0);			// temp space (i.e. call stack)
+    GV  obj = ostore_new(v[0].cls, 0);				// instenciate object (with zero space)
 	GS  sid  = name2id((U8P)"initialize"); 			// function sid
 
 	guru_proc *m = (guru_proc *)proc_by_sid(&obj, sid);

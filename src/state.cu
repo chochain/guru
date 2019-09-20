@@ -14,7 +14,6 @@
 #include <assert.h>
 
 #include "alloc.h"
-#include "store.h"
 #include "symbol.h"
 #include "ucode.h"
 #include "state.h"
@@ -75,12 +74,14 @@ vm_proc_call(guru_vm *vm, GV v[], U32 argc)
 {
 	assert(v[0].gt==GT_PROC);				// ensure it is a proc
 
-	guru_irep *irep = v[0].proc->irep;
+	guru_irep *irep = v[0].proc->irep;		// callee's IREP pointer
 
 	vm_state_push(vm, irep, v, argc);		// switch into callee's context
 }
 
-// Object.new
+/*
+ * temp cross module call, deprecated by GURU3_7 (to prc_call, obj_new)
+ *
 __GURU__ void
 vm_object_new(guru_vm *vm, GV v[], U32 argc)
 {
@@ -126,4 +127,4 @@ vm_object_new(guru_vm *vm, GV v[], U32 argc)
 //
 //    RETURN_VAL(obj);
 }
-
+*/
