@@ -162,6 +162,8 @@ vm_pool_init(U32 step)
 		vm->id    = i;
 		vm->step  = step;
 		vm->depth = vm->err  = 0;
+		vm->temp16= 0xeeee;
+		vm->temp32= 0xeeeeeeee;
 		vm->run   = VM_STATUS_FREE;		// VM not allocated
 	}
 #else

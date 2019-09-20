@@ -98,17 +98,26 @@ typedef struct {
 /*!@brief
   Virtual Machine
 */
-typedef struct VM {				// 24 + 32*reg bytes
-    U32	id   : 13;				// allocation control
-    U32	run  : 3;				// VM_STATUS_FREE, READY, RUN, HOLD
-    U32	err	 : 8;				// error code/condition
-    U32 depth: 7;				// depth of call stack
-    U32	step : 1;				// for single-step debug level
+typedef struct VM {				// 64 + 32*reg bytes
+    U32	id;						// allocation control
 
-    U32 op	 : 7;				// cached opcode
-    U32 opn  : 25;				// call stack depth
+    U16 depth;					// depth of call stack
+    U16	err;					// error code/condition
 
-    U32 bytecode;				// cached bytecode
+    U16	run  : 3;				// VM_STATUS_FREE, READY, RUN, HOLD
+    U16	step : 1;				// for single-step debug level
+    U16 flag : 12;				// reserved
+    U16 temp16;					// reserved
+
+    U32 temp32;					// reserved
+
+    union {
+        U32 bytecode;			// cached bytecode
+    	struct {
+    		U32 op	 : 7;		// cached opcode
+    		U32 opn  : 25;		// call stack depth
+    	};
+    };
     GAR ar;						// argument struct
 
     guru_state *state;			// VM state (callinfo) linked list

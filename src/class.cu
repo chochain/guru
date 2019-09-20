@@ -182,11 +182,12 @@ guru_define_method(guru_class *cls, const U8P name, guru_fptr cfunc)
 {
     if (cls==NULL) cls = guru_class_object;		// set default to Object.
 
-    guru_proc *prc = _alloc_proc(cls, name);
+    guru_proc *prc = _alloc_proc(cls, name);	// with sid assigned
 
     _LOCK;
 
     prc->func 	= cfunc;						// set function pointer
+    prc->irep   = NULL;
     prc->next 	= cls->vtbl;					// add as the new list head
     cls->vtbl 	= prc;
 

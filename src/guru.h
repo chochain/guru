@@ -186,10 +186,6 @@ typedef void (*guru_fptr)(guru_obj *obj, U32 argc);
 struct Irep;
 typedef struct RProc {				// 16-byte
     GS 	 				sid;		// u32
-//    union {
-//    	struct RIrep 		*irep;		// an IREP (Ruby code), defined in vm.h
-//    	guru_fptr  	 		func;		// or a raw C function
-//    };
     struct RIrep 		*irep;		// an IREP (Ruby code), defined in vm.h
     guru_fptr  	 		func;		// or a raw C function
     struct RProc 		*next;		// next function in linked list
@@ -199,7 +195,7 @@ typedef struct RProc {				// 16-byte
 #endif
 } guru_proc;
 
-#define IS_CFUNC(p)		(p->func)	//
+#define HAS_IREP(p)		(p->func==NULL)	//
 
 typedef struct RSes {				// 16-byte
 	U8P 				stdin;		// input stream
