@@ -30,15 +30,14 @@ extern "C" {
 #define GET_RB(i)               (((i) >> 14) & 0x1ff)
 #define GET_RC(i)               (((i) >>  7) & 0x7f)
 #define GET_Bx(i)               ((U16)((i) >>  7) & 0xffff)
-
 #define GET_sBx(i)              (GET_Bx(i)-MAX_sBx)
+#define GET_b(i)                (GET_UNPACK_b(i,14,2))
 
 // special format for JUMP (25-bit address)
 #define GET_Ax(i)               (((i) >>  7) & 0x1ffffff)
 
-#define GET_UNPACK_b(i,n1,n2)   ((((i)) >> (7+(n2))) & (((1<<(n1))-1)))
-#define GET_UNPACK_c(i,n1,n2)   ((int)((((mrb_code)(i)) >> 7) & (((1<<(n2))-1))))
-#define GET_b(i)                GET_UNPACK_b(i,14,2)
+#define GET_UNPACK_b(i,n1,n2)   (((i) >> (7+(n2))) & ((1<<(n1))-1))
+#define GET_UNPACK_c(i,n1,n2)   ((int)((((mrb_code)(i)) >> 7) & ((1<<(n2))-1)))
 
 #define MK_OP(op)               ((op & 0x7f)<<24)
 #define MK_RA(c)                ((c & 0x0ff)<<1  | (c & 0x01)>>8)

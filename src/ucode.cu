@@ -12,12 +12,12 @@
 #include <assert.h>
 
 #include "alloc.h"
-#include "store.h"
 #include "static.h"
 #include "symbol.h"
 #include "global.h"
 #include "ucode.h"
 #include "object.h"
+#include "ostore.h"
 #include "class.h"
 #include "state.h"
 
@@ -262,7 +262,7 @@ uc_getiv(guru_vm *vm)
 
     U8P name = VM_SYM(vm, rb);
     GS sid   = name2id(name+1);					// skip '@'
-    GV ret   = guru_store_get(&regs[0], sid);
+    GV ret   = ostore_get(&regs[0], sid);
 
     _RA(ret);
 }
@@ -284,7 +284,7 @@ uc_setiv(guru_vm *vm)
     U8P name = VM_SYM(vm, rb);
     GS  sid  = name2id(name+1);			// skip '@'
 
-    guru_store_set(&regs[0], sid, &regs[ra]);
+    ostore_set(&regs[0], sid, &regs[ra]);
 }
 
 //================================================================
@@ -403,6 +403,7 @@ uc_jmpif (guru_vm *vm)
 {
 	GV *regs = vm->state->regs;
 	U32 code = vm->bytecode;
+
     if (regs[GET_RA(code)].gt > GT_FALSE) {
         vm->state->pc += GET_sBx(code) - 1;
     }
@@ -419,7 +420,8 @@ uc_jmpnot(guru_vm *vm)
 {
 	GV *regs = vm->state->regs;
 	U32 code = vm->bytecode;
-    if (regs[GET_RA(code)].gt <= GT_FALSE) {
+
+	if (regs[GET_RA(code)].gt <= GT_FALSE) {
         vm->state->pc += GET_sBx(code) - 1;
     }
 }
@@ -433,11 +435,12 @@ uc_jmpnot(guru_vm *vm)
   OP_SENDB  R(A) := call(R(A),Syms(B),R(A+1),...,R(A+C),&R(A+C+1))
 */
 __GURU__ void
-_wipe_stack(GV *regs, U32 rc)
+_wipe_stack(GV *r, U32 rc)
 {
-    for (U32 i=0; i<=rc; i++) {			// sweep block parameters
-    	ref_dec(&regs[i]);
-    	regs[i].gt = GT_EMPTY;					// clean up for stat dumper
+    for (U32 i=0; i<rc; i++, r++) {		// sweep block parameters
+    	ref_dec(r);
+    	r->gt  = GT_EMPTY;				// clean up for stat dumper
+    	r->cls = NULL;
     }
 }
 
@@ -450,30 +453,24 @@ uc_send(guru_vm *vm)
     U32 rb = GET_RB(code);  						// proc.sid
     U32 rc = GET_RC(code);  						// number of params
 
-    GV  *obj = &regs[ra];							// message receiver object
-	GS  sid  = name2id(VM_SYM(vm, rb)); 			// function sid
+    U8  *sym = VM_SYM(vm, rb);						// get given symbol
+	GS  sid  = name2id(sym); 						// get method sid of the current class
+    GV  *obj = regs+ra;								// call stack, obj is receiver object
 
 	guru_proc *m = (guru_proc *)proc_by_sid(obj, sid);
-    if (m==0) {
-    	U8P sym = VM_SYM(vm, rb);
-    	_wipe_stack(regs+ra+1, rc);
-    	SKIP(sym); 									// function not found, bail out
+    if (m==0) {										// eethod not found
+    	_wipe_stack(regs+ra+1, rc+1);
+    	SKIP(sym); 									// bail out
     }
-
-    if (IS_CFUNC(m)) {
-    	if (m->func==prc_call) {					// because VM is not passed to dispatcher,
-    		vm_proc_call(vm, regs+ra, rc);			// special handling needed for call() and new()
-    	}
-//    	else if (m->func==obj_new) {
-//        	_object_new(vm, regs+ra, rc);			// change scope into new object
-//        }
-        else {
-        	m->func(obj, rc);						// call the C-func
-        }
-    	_wipe_stack(regs+ra+1, rc);
+    else if (HAS_IREP(m)) {							// a Ruby-based IREP
+    	vm_state_push(vm, m->irep, regs+ra, rc);	// switch to callee's context
     }
-    else {											// m->func is a Ruby function (aka IREP)
-    	vm_state_push(vm, m->irep, regs+ra, rc);	// append callinfo list
+    else if (m->func==prc_call) {					// C-based prc_call (hacked handler, it needs vm->state)
+    	vm_proc_call(vm, obj, rc);					// push into call stack, obj at stack[0]
+    }
+    else {											// other default C-based methods
+    	m->func(obj, rc);
+    	_wipe_stack(regs+ra+1, rc+1);
     }
 }
 
@@ -486,13 +483,11 @@ uc_send(guru_vm *vm)
 __GURU__ void
 uc_call(guru_vm *vm)
 {
-	GV *regs = vm->state->regs;
+	GV        *regs = vm->state->regs;
 	guru_irep *irep = regs[0].proc->irep;
 
 	vm_state_push(vm, irep, regs, 0);
 }
-
-
 
 //================================================================
 /*!@brief
@@ -504,10 +499,10 @@ __GURU__ void
 uc_enter(guru_vm *vm)
 {
 	U32 code  = vm->bytecode;
-    U32 param = GET_Ax(code);
+    U32 ax    = GET_Ax(code);
 
-    U32 arg0 = (param >> 13) & 0x1f;  // default args
-    U32 argc = (param >> 18) & 0x1f;  // given args
+    U32 arg0 = (ax >> 13) & 0x1f;  // default args
+    U32 argc = (ax >> 18) & 0x1f;  // given args
 
     if (arg0 > 0){
         vm->state->pc += vm->state->argc - argc;
@@ -544,11 +539,11 @@ uc_blkpush(guru_vm *vm)
 	U32 code = vm->bytecode;
     U32 ra = GET_RA(code);
 
-    GV *stack = regs + 1;       			// use regs[1] as the class
+    GV *prc = regs+1;       				// get proc, regs[0] is the class
 
-    assert(stack[0].gt==GT_PROC);			// ensure
+    assert(prc->gt==GT_PROC);				// ensure
 
-    _RA(*stack);             				// ra <= proc
+    _RA(*prc);             					// ra <= proc
 }
 
 //================================================================
@@ -908,7 +903,7 @@ uc_strcat(guru_vm *vm)
     guru_proc *pa = proc_by_sid(va, sid);
     guru_proc *pb = proc_by_sid(vb, sid);
 
-    if (pa) pa->func(va, 0);
+    if (pa) pa->func(va, 0);					// can it be an IREP?
     if (pb) pb->func(vb, 0);
 
     GV ret = guru_str_add(va, vb);				// ref counts updated
@@ -1009,7 +1004,6 @@ uc_range(guru_vm *vm)
     regs[rb+1].gt = GT_EMPTY;
 
     _RA_X(&ret);							// release and  reassign
-
 #else
     QUIT("Range class");
 #endif
@@ -1026,16 +1020,16 @@ uc_lambda(guru_vm *vm)
 {
 	GV *regs = vm->state->regs;
 	U32 code = vm->bytecode;
-    int ra = GET_RA(code);
-    int rb = GET_RB(code);      		// sequence position in irep list
-    int rc = GET_RC(code);    			// TODO: Add flags support for OP_LAMBDA
+	int ra = GET_RA(code);
+    int rb = GET_b(code);      			// sequence position in irep list
 
     guru_proc *prc = (guru_proc *)guru_alloc(sizeof(guru_proc));
 
-    prc->func = NULL;					// not a c-func (i.e. a Ruby func)
+    prc->sid  = 0xffffffff;				// anonymous function
+    prc->func = NULL;
     prc->irep = VM_REPS(vm, rb);		// fetch from children irep list
 
-    _RA_T(GT_PROC, proc=prc);
+    _RA_T(GT_PROC, proc=prc);			// regs[ra].proc = prc
 }
 
 //================================================================
@@ -1095,33 +1089,31 @@ uc_method(guru_vm *vm)
 	U32 code  = vm->bytecode;
     U32 ra = GET_RA(code);
     U32 rb = GET_RB(code);
+    GV  *obj  = regs+ra;					// receiver object
 
-    assert(regs[ra].gt == GT_CLASS);		// enforce class checking
+    assert(obj->gt == GT_CLASS);			// enforce class checking
 
-    // check whether the name has been defined in the same class
-    guru_class 	*cls = regs[ra].cls;
-    GS			sid  = name2id(VM_SYM(vm, rb));
-    guru_proc 	*prc = proc_by_sid(&regs[ra], sid);
+    // check whether the name has been defined in current class (i.e. vm->state->klass)
+    GS	      sid  = name2id(VM_SYM(vm, rb));	// lookup symbol id (which should be registered already)
+    guru_proc *prc = proc_by_sid(obj, sid);		// fetch proc from obj->klass->vtbl
 
     if (prc != NULL) {
     	// same proc name exists (in either current or parent class)
     	// do nothing for now
     }
-    prc = regs[ra+1].proc;					// setup the new proc
+    prc = regs[ra+1].proc;					// use the proc specified by OP_LAMBDA
 
     _LOCK;
 
     // add proc to class
-    prc->sid  = sid;						// use the same sid if exists
+    guru_class 	*cls = obj->cls;
+    prc->sid  = sid;						// assign sid to proc, overload if prc already exists
     prc->next = cls->vtbl;					// add to top of vtable
     cls->vtbl = prc;
 
     _UNLOCK;
 
-    for (U32 i=1; i<=ra+1; i++) {
-    	ref_dec(&regs[i]);
-    	regs[ra+1].gt = GT_EMPTY;
-    }
+    _wipe_stack(regs+1, ra+1);
 }
 
 //================================================================
@@ -1168,8 +1160,8 @@ ucode_prefetch(guru_vm *vm)
 {
 	U32 b = vm->bytecode = VM_BYTECODE(vm);	// fetch from vm->state->pc
 	U32 n = b >> 7;	      					// operands
-	vm->opn = n;							// keep operands
-	vm->op  = b & 0x7f;      				// opcode (cannot take address from bitfield yet)
+//	vm->opn = n;							// keep operands
+//	vm->op  = b & 0x7f;      				// opcode (cannot take address from bitfield yet)
 	vm->ar  = *((GAR *)&n);        			// operands struct/union
 
 	vm->state->pc++;				// advance program counter (ready for next fetch)
@@ -1204,8 +1196,8 @@ ucode_exec(guru_vm *vm)
     case OP_JMPIF:      uc_jmpif     (vm); break;
     case OP_JMPNOT:     uc_jmpnot    (vm); break;
     // CALL
-    case OP_SEND:       uc_send      (vm); break;
-    case OP_SENDB:      uc_send      (vm); break;  // reuse
+    case OP_SEND:
+    case OP_SENDB:      uc_send      (vm); break;
     case OP_CALL:       uc_call      (vm); break;
     case OP_ENTER:      uc_enter     (vm); break;
     case OP_RETURN:     uc_return    (vm); break;
