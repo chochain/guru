@@ -203,7 +203,7 @@ obj_eq3(GV v[], U32 argc)
 __GURU__ void
 obj_class(GV v[], U32 argc)
 {
-    GV ret = {.gt = GT_CLASS };
+    GV ret;  { ret.gt = GT_CLASS; }
     ret.cls = class_by_obj(v);
 
     RETURN_VAL(ret);
@@ -322,7 +322,7 @@ obj_kind_of(GV v[], U32 argc)
 __GURU__ void
 obj_to_s(GV v[], U32 argc)
 {
-	GV ret;
+	GV  ret;
 	U8P name;
 
     switch (v->gt) {
@@ -348,18 +348,7 @@ obj_to_s(GV v[], U32 argc)
 __GURU__ void
 obj_new(GV v[], U32 argc)
 {
-	assert(v[0].gt==GT_CLASS);						// ensure it is a class object
-
-    GV  obj = ostore_new(v[0].cls, 0);				// instenciate object (with zero space)
-	GS  sid  = name2id((U8P)"initialize"); 			// function sid
-
-	guru_proc *m = (guru_proc *)proc_by_sid(&obj, sid);
-
-	if (!m) return;
-
-	m->func(&obj, argc);							// call super#initialize
-
-	RETURN_VAL(obj);
+	assert(1==0);				// handled in ucode
 }
 
 __GURU__ void

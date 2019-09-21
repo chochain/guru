@@ -67,6 +67,7 @@ load.o: load.cu         vm_config.h guru.h alloc.h ostore.h \
 						vm.h load.h
 
 state.o: state.cu		vm_config.h guru.h symbol.h \
+						class.h ostore.h \
 						vm.h state.h
 
 vm.o: vm.cu             vm_config.h guru.h alloc.h value.h static.h ostore.h \

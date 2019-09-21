@@ -364,7 +364,7 @@ guru_realloc(void *p0, U32 sz)
 {
 	U32 bsz = sz + sizeof(used_block);						// include the header
 
-	CHECK_NULL(p0);
+	assert(p0);
 	CHECK_ALIGN(bsz);
 
     used_block *blk = (used_block *)BLK_HEAD(p0);
