@@ -67,22 +67,21 @@ _data(const GV *v)
 __GURU__ GV
 _blank(U32 len)
 {
+    GV  ret { .gt=GT_STR };					// some one referenced it
     U32 asz= len+1;		asz += -asz & 0x7;	// size to allocate
-    GV  ret = { .gt=GT_STR, .rc=1 };		// some one referenced it
     /*
       Allocate handle and string buffer.
     */
-    guru_str *h = (guru_str *)guru_alloc(sizeof(guru_str));
+    guru_str *h = ret.str = (guru_str *)guru_alloc(sizeof(guru_str));
     U8P      s  = (U8P)guru_alloc(asz);		// 8-byte aligned
 
     CHECK_ALIGN((U32A)h);
     CHECK_ALIGN((U32A)s);
 
     s[0] = '\0';							// empty new string
+    h->rc   = 1;
     h->len  = len;
     h->data = (char *)s;					// TODO: for DEBUG, change back to (U8P)
-
-    ret.str = h;
 
     return ret;
 }

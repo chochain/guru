@@ -23,10 +23,11 @@ extern "C" {
 /*!@brief
   Define Array handle.
 */
-typedef struct RArray {
-    U32  size : 16;	//!< data buffer size.
-    U32  n    : 16;	//!< # of stored.
-    GV 	 *data;		//!< pointer to allocated memory.
+typedef struct RArray {	// 16-byte
+    GURU_HDR;			// reference count
+    U16  size;			//!< data buffer size.
+    U16  n;				//!< # of stored.
+    GV 	 *data;			//!< pointer to allocated memory.
 
 } guru_array;
 

@@ -329,7 +329,7 @@ _show_regfile(guru_vm *vm, U32 lvl)
 	for (U32 i=0; i<=n; i++, v++) {
 		const char *t = _vtype[v->gt];
 		U8 c = i==lvl ? '|' : ' ';
-		if (v->gt & GT_HAS_REF)	printf("%s%d%c", t, v->rc, c);
+		if (v->gt & GT_HAS_REF)	printf("%s%d%c", t, v->self->rc, c);
 		else					printf("%s %c",  t, c);
     }
 	printf("]");

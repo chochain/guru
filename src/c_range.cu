@@ -37,15 +37,16 @@
 __GURU__ GV
 guru_range_new(GV *first, GV *last, int exclude_end)
 {
-    GV ret = {.gt = GT_RANGE, .rc = 1 };
+    GV ret  { .gt = GT_RANGE };
 
-    ret.range = (guru_range *)guru_alloc(sizeof(guru_range));
+    guru_range *r = ret.range = (guru_range *)guru_alloc(sizeof(guru_range));
 
-    if (exclude_end) ret.range->flag |= EXCLUDE_END;
-    else		     ret.range->flag &= ~EXCLUDE_END;
+    if (exclude_end) r->flag |= EXCLUDE_END;
+    else		     r->flag &= ~EXCLUDE_END;
 
-    ret.range->first = *first;
-    ret.range->last  = *last;
+    r->rc    = 1;
+    r->first = *first;
+    r->last  = *last;
     ref_inc(first);
     ref_inc(last);
 

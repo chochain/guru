@@ -30,9 +30,10 @@ typedef struct RStoreData {
 /*! Define instance data handle.
 */
 typedef struct RStore {
-    U32  size : 16;			//!< data buffer size.
-    U32  n    : 16;			//!< # of object stored.
-    guru_odata *data;	//!< pointer to allocated memory.
+    U32  rc;
+    U16  size;				//!< data buffer size.
+    U16  n;					//!< # of object stored.
+    guru_odata *data;		//!< pointer to allocated memory.
 } guru_ostore;
 
 __GURU__ guru_obj ostore_new(guru_class *cls, U32 size);

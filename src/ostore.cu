@@ -84,9 +84,11 @@ _new(U32 size)
 __GURU__ void
 _del(guru_ostore *st)
 {
+	if (st==NULL) return;
+
     guru_odata *d = st->data;
     for (U32 i=0; i<st->n; i++, d++) {		// free logical
-        ref_clr(&d->val);            // CC: was dec_ref 20181101
+        ref_clr(&d->val);           		// CC: was dec_ref 20181101
     }
     st->n = 0;
 
@@ -165,13 +167,15 @@ _get(guru_ostore *st, GS sid)
 __GURU__ GV
 ostore_new(guru_class *cls, U32 size)
 {
-    GV v = { .gt = GT_OBJ, .rc = 1 };
-    v.self = (guru_var *)guru_alloc(sizeof(guru_ostore));
+    GV ret { .gt = GT_OBJ };
 
-    v.self->ivar = _new(0);			// allocate internal kv handle
-    v.self->cls  = cls;
+    guru_var *v = ret.self = (guru_var *)guru_alloc(sizeof(guru_var));
 
-    return v;
+    v->rc    = 1;
+    v->ivar  = size ? _new(size) : NULL;	// allocate internal variable handle
+    v->cls   = cls;
+
+    return ret;
 }
 
 //================================================================

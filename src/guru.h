@@ -20,7 +20,6 @@ extern "C" {
 #define MUTEX_LOCK(p)  		while (atomicCAS((int *)&p, 0, 1)!=0)
 #define MUTEX_FREE(p)  		atomicExch((int *)&p, 0)
 #define CHECK_ALIGN(sz) 	assert((-(sz)&7)==0)
-#define CHECK_NULL(p)		assert((p))
 #else
 
 #define __GURU__
@@ -28,7 +27,6 @@ extern "C" {
 #define __HOST__
 #define __GPU__
 #define CHECK_ALIGN(sz) 	assert((-(sz)&3)==0)
-#define CHECK_NULL(p)		assert((p))
 #endif
 
 #define MAX_BUFFER_SIZE 4096		// 4K
@@ -70,24 +68,24 @@ extern "C" {
 
 typedef enum {
     /* primitive */
-    GT_EMPTY = 0,							// aka MRB_TT_UNDEF
+    GT_EMPTY   = 0x0,						// aka MRB_TT_UNDEF
     GT_NIL,									// aka MRB_TT_FREE
     GT_FALSE,								// (note) true/false threshold. see op_jmpif
     GT_TRUE,
-    GT_INT,									// 0x4
-    GT_FLOAT,								// 0x5
-    GT_SYM,									// 0x6
-    GT_CLASS,								// 0x7
-    GT_PROC,								// 0x8
+    GT_INT,
+    GT_FLOAT,
+    GT_SYM,
+    GT_CLASS,
+    GT_PROC,								// 0x08
 
-    GT_HAS_REF = 16,						// 0x10
+    GT_HAS_REF = 0x10,						// 0x10
 
     /* non-primitive */
-    GT_OBJ = GT_HAS_REF,					// 0x10
-    GT_ARRAY,								// 0x11
-    GT_STR,									// 0x12
-    GT_RANGE,								// 0x13
-    GT_HASH,								// 0x14
+    GT_OBJ = GT_HAS_REF,
+    GT_ARRAY,
+    GT_STR,
+    GT_RANGE,
+    GT_HASH
 } GT;
 
 #define GT_BOOL(v)		((v) ? GT_TRUE : GT_FALSE)
@@ -119,6 +117,30 @@ typedef U32 		GS;
 #define U8PSUB(p, n)	((U8*)(p) - (n))					// sub
 #define U8POFF(p1, p0)	((S32)((U8*)(p1) - (U8*)(p0)))	    // offset (downshift from 64-bit)
 
+//===============================================================================
+/*!@brief
+  Guru objects
+*/
+typedef struct {					// 16-bytes
+	GT  gt 		: 16;				// guru object type
+	U32 temp16 	: 16;				// reserved
+	U32 temp32;						// reserved
+    union {							// 64-bit
+		GI  	 		 i;			// TT_FIXNUM, SYMBOL
+		GF 	 	 		 f;			// TT_FLOAT
+        struct RClass    *cls;		// TT_CLASS
+        struct RProc     *proc;		// TT_PROC
+        struct RVar      *self;		// TT_OBJECT
+        struct RString   *str;		// TT_STRING
+#if GURU_USE_ARRAY
+        struct RArray    *array;	// TT_ARRAY
+        struct RRange    *range;	// TT_RANGE
+        struct RHash     *hash;		// TT_HASH
+#endif
+        U8       		 *sym;		// C-string (only loader use.)
+    };
+} GV, guru_obj;		// TODO: guru_val and guru_object shared the same structure for now
+
 //================================================================
 /*!@brief
   Guru class object.
@@ -132,58 +154,10 @@ typedef struct RClass {			// 16-byte
 #endif
 } guru_class;
 
-typedef struct RString {		// 8-byte
-	U32 			len;		//!< string length.
-	char 			*data;		//!< pointer to allocated buffer.
-} guru_str;
-
-//================================================================
-/*!@brief
-  physical store for Guru object instance.
-*/
-typedef struct RVar {			// 12-byte
-    struct RClass 	*cls;
-    struct RStore 	*ivar;
-    U8 			   	data[];		// here pointer, instead of *data pointer to somewhere else
-} guru_var;
-
-//================================================================
-/*!@brief
-  Guru proc object.
-*/
-#define GURU_HDR  		\
-	GT  	gt   : 8; 	\
-	U32		flag : 8;	\
-	U32		rc   : 16
-
-//===============================================================================
-/*!@brief
-  Guru objects
-*/
-typedef struct {					// 8-bytes
-	GT  	gt   : 8;				// guru object type
-	U32		flag : 8;				// special attribute flags
-	U32		rc   : 16;				// reference counter
-    union {
-        GI         		 i;			// TT_FIXNUM, SYMBOL
-        GF       		 f;			// TT_FLOAT
-        U8P       		 sym;		// C-string (only loader use.)
-        struct RClass    *cls;		// TT_CLASS
-        struct RVar      *self;		// TT_OBJECT
-        struct RProc     *proc;		// TT_PROC
-        struct RString   *str;		// TT_STRING
-#if GURU_USE_ARRAY
-        struct RArray    *array;	// TT_ARRAY
-        struct RRange    *range;	// TT_RANGE
-        struct RHash     *hash;		// TT_HASH
-#endif
-    };
-} GV, guru_obj;		// TODO: guru_val and guru_object shared the same structure for now
-
-typedef void (*guru_fptr)(guru_obj *obj, U32 argc);
-
 /* forward declaration */
+typedef void (*guru_fptr)(guru_obj *obj, U32 argc);
 struct Irep;
+
 typedef struct RProc {				// 16-byte
     GS 	 				sid;		// u32
     struct RIrep 		*irep;		// an IREP (Ruby code), defined in vm.h
@@ -196,6 +170,30 @@ typedef struct RProc {				// 16-byte
 } guru_proc;
 
 #define HAS_IREP(p)		(p->func==NULL)	//
+
+//================================================================
+/*!@brief
+  Guru proc object.
+*/
+#define GURU_HDR  		\
+	U32		rc;			\
+	U32		len
+
+typedef struct RString {			// 16-byte
+	GURU_HDR;
+	char 				*data;		//!< pointer to allocated buffer.
+} guru_str;
+
+//================================================================
+/*!@brief
+  physical store for Guru object instance.
+*/
+typedef struct RVar {				// 24-byte
+	GURU_HDR;
+    struct RClass 		*cls;
+    struct RStore 		*ivar;
+//    U8 	data[];					// raw 'here' if needed
+} guru_var;
 
 typedef struct RSes {				// 16-byte
 	U8P 				stdin;		// input stream
