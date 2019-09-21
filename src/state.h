@@ -24,7 +24,9 @@ __GURU__ void 	vm_state_push(guru_vm *vm, guru_irep *irep, GV *regs, U32 argc);
 __GURU__ void	vm_state_pop(guru_vm *vm, GV ret_val, U32 ra);
 
 // TODO: temp functions for call and new (due to VM passing required)
-__GURU__ void	vm_proc_call(guru_vm *vm, GV v[], U32 argc);
+//__GURU__ void	vm_proc_call(guru_vm *vm, GV v[], U32 argc);
+//__GURU__ void	vm_object_new(guru_vm *vm, GV v[], U32 argc);
+__GURU__ U32	vm_method_exec(guru_vm *vm, GV v[], U32 argc, guru_proc *prc);
 
 #ifdef __cplusplus
 }

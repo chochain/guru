@@ -109,7 +109,7 @@ guru_cmp(const GV *v1, const GV *v2)
 __GURU__ GI
 guru_atoi(U8P s, U32 base)
 {
-    U32 ret  = 0;
+    GI  ret  = 0;
     U32 sign = 0;
 
 REDO:
@@ -164,11 +164,11 @@ guru_atof(U8P s)
         state = (*s=='e' || *s=='E') ? 2 : ((*s=='.') ? 1 : state);
         s++;
     }
-    double ret = sign
+    GF ret = sign
     		* (v + (f==0 ? 0.0 : f * exp10((double)r)))
     		* (e==0 ? 1.0 : exp10((double)esign * e));
 
-    return (GF)ret;
+    return ret;
 #else
     return 0.0;
 #endif
@@ -257,8 +257,8 @@ ref_dec(GV *v)
 {
     if ((v->gt & GT_HAS_REF)==0) return v;			// simple objects
 
-    CHECK_NULL(v->rc);								// is referenced?
-    if (--v->rc > 0) 			 return v;			// still used, keep going
+    assert(v->self->rc);							// rc > 0
+    if (--v->self->rc > 0) return v;				// still used, keep going
 
     switch(v->gt) {
     case GT_OBJ:		guru_obj_del(v);	break;	// delete object instance
@@ -285,7 +285,7 @@ ref_dec(GV *v)
 __GURU__ GV *
 ref_inc(GV *v)
 {
-	if (v->gt & GT_HAS_REF) v->rc++;
+	if (v->gt & GT_HAS_REF) v->self->rc++;
 
 	return v;
 }
@@ -299,6 +299,12 @@ ref_inc(GV *v)
 __GURU__ void
 ref_clr(GV *v)
 {
+    if (v->gt & GT_HAS_REF) v->self->rc = 0;
     v->gt = GT_EMPTY;
-    v->rc = 0;
+}
+
+__GURU__ GV
+GURU_NIL_NEW()
+{
+	GV ret; { ret.gt = GT_NIL; } return ret;
 }

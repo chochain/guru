@@ -183,20 +183,17 @@ _clr(GV *kv)
 __GURU__ GV
 guru_hash_new(int size)
 {
-    GV ret = {.gt = GT_HASH};
+    GV ret;	{ ret.gt = GT_HASH; }
     /*
       Allocate handle and data buffer.
     */
-    guru_hash *h    = (guru_hash *)guru_alloc(sizeof(guru_hash));
+    guru_hash *h    = ret.hash = (guru_hash *)guru_alloc(sizeof(guru_hash));
     GV        *data = (GV *)guru_alloc(sizeof(GV) * (size<<1));
 
-    h->gt  	= GT_HASH;
     h->rc   = 1;
     h->size	= size<<1;
     h->n  	= 0;
     h->data = data;
-
-    ret.hash = h;
 
     return ret;
 }

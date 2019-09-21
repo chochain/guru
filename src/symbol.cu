@@ -130,7 +130,7 @@ _add_index(const U8P str)
 __GURU__ GV
 guru_sym_new(const U8P str)
 {
-    GV v   = {.gt = GT_SYM};
+    GV v; { v.gt = GT_SYM; }
     GS sid = _search_index(str);
 
     if (sid < MAX_SYMBOL_COUNT) {
@@ -215,7 +215,7 @@ c_all_symbols(GV v[], U32 argc)
     GV ret = guru_array_new(_sym_idx);
 
     for (U32 i=0; i < _sym_idx; i++) {
-        GV sym1 = {.gt = GT_SYM};
+        GV sym1; { sym1.gt = GT_SYM; }
         sym1.i = i;
         guru_array_push(&ret, &sym1);
     }

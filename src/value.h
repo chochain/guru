@@ -15,11 +15,12 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-__GURU__ S32  guru_cmp(const GV *v1, const GV *v2);
+__GURU__ S32  	guru_cmp(const GV *v1, const GV *v2);
 
-__GURU__ void ref_clr(GV *v);
-__GURU__ GV   *ref_dec(GV *v);
-__GURU__ GV   *ref_inc(GV *v);
+__GURU__ void 	ref_clr(GV *v);
+__GURU__ GV   	*ref_dec(GV *v);
+__GURU__ GV   	*ref_inc(GV *v);
+__GURU__ GV 	GURU_NIL_NEW();
 
 // macro for C call returns
 // Note: becareful, the following macros assume a "v" pointer to top of stack
@@ -33,9 +34,7 @@ __GURU__ GV   *ref_inc(GV *v);
 #define RETURN_INT(n)	{ v->gt=GT_INT;   v->i=(GI)(n); return; }
 #define RETURN_FLOAT(n)	{ v->gt=GT_FLOAT; v->f=(GF)(n); return; }
 
-// macro to create new built-in objects
-#define GURU_NIL_NEW()	((guru_obj) {.gt = GT_NIL})
-
+// macros to create new built-in objects
 #ifdef __GURU_CUDA__
 __GURU__ GI   		guru_atoi(U8P s, U32 base);
 __GURU__ GF			guru_atof(U8P s);

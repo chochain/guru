@@ -146,10 +146,10 @@ guru_define_class(const U8P name, guru_class *super)
 #ifdef GURU_DEBUG
     cls->name   = (char *)id2name(sid);				// retrive from symbol table
 #endif
+
     // register to global constant.
-    guru_obj obj = { .gt = GT_CLASS };
-    obj.cls = cls;
-    const_object_add(sid, &obj);
+    GV v; { v.gt = GT_CLASS; v.cls = cls; }
+    const_object_add(sid, &v);
 
     return cls;
 }

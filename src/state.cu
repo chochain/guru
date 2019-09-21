@@ -16,7 +16,10 @@
 #include "alloc.h"
 #include "symbol.h"
 #include "ucode.h"
+#include "class.h"
 #include "state.h"
+#include "object.h"
+#include "ostore.h"
 #include "vm.h"
 
 //================================================================
@@ -31,14 +34,17 @@ vm_state_push(guru_vm *vm, guru_irep *irep, GV *regs, U32 argc)
     guru_state *st  = (guru_state *)guru_alloc(sizeof(guru_state));
 
     switch(regs[0].gt) {
-    case GT_CLASS:
-    case GT_OBJ:   st->klass = regs[0].cls;			break;
+    case GT_CLASS: st->klass = regs[0].cls;			break;
     case GT_PROC:  st->klass = top->regs[0].cls; 	break;
-    default: CHECK_NULL(NULL);
+    case GT_OBJ:
+    	st->klass = regs[0].cls;
+    	ref_inc(&regs[0]);
+    	break;
+    default: assert(1==0);
     }
     st->irep  = irep;
     st->pc    = 0;
-    st->regs  = regs;
+    st->regs  = regs;			// TODO: should allocate another regfile
     st->argc  = argc;			// allocate local stack
 
     st->prev  = top;			// push into context stack
@@ -55,14 +61,18 @@ vm_state_push(guru_vm *vm, guru_irep *irep, GV *regs, U32 argc)
 __GURU__ void
 vm_state_pop(guru_vm *vm, GV ret_val, U32 ra)
 {
+    U32  ref = ret_val.gt & GT_HAS_REF;
     guru_state 	*st = vm->state;
 
     GV *r = st->regs + ra;		// TODO: check whether 2 is correct
-    for (U32 i=0; i<=st->argc; i++) {
-    	ref_dec(&r[i]);
-        r[i].gt = GT_EMPTY;
+    for (U32 i=0; i<=st->argc; i++, r++) {
+    	if (ref && ret_val.self != r->self) {
+        	ref_dec(r);
+    	}
+        r->gt   = GT_EMPTY;
+        r->self = NULL;
     }
-    st->regs[0] = ret_val;
+    st->regs[0] = ret_val;		// TODO: restore previous set of regfile
 
     vm->state = st->prev;		// restore previous state
     vm->depth--;
@@ -70,15 +80,63 @@ vm_state_pop(guru_vm *vm, GV ret_val, U32 ra)
 }
 
 __GURU__ void
-vm_proc_call(guru_vm *vm, GV v[], U32 argc)
+_vm_proc_call(guru_vm *vm, GV v[], U32 argc)
 {
-	assert(v[0].gt==GT_PROC);				// ensure it is a proc
+	assert(v[0].gt==GT_PROC);						// ensure it is a proc
 
-	guru_irep *irep = v[0].proc->irep;		// callee's IREP pointer
+	guru_irep *irep = v[0].proc->irep;				// callee's IREP pointer
 
-	vm_state_push(vm, irep, v, argc);		// switch into callee's context
+	vm_state_push(vm, irep, v, argc);				// switch into callee's context
 }
 
+__GURU__ void
+_vm_object_new(guru_vm *vm, GV v[], U32 argc)
+{
+	assert(v[0].gt==GT_CLASS);						// ensure it is a class object
+
+    GV  obj = ostore_new(v[0].cls, 0);				// instenciate object (with zero ivar)
+	GS  sid  = name2id((U8P)"initialize"); 			// search for custom initializer (or Object#c_nop)
+
+	guru_proc *init = (guru_proc *)proc_by_sid(&obj, sid);
+
+	if (vm_method_exec(vm, v, argc, init)) {		// run custom initializer if any
+		assert(1==0);
+	}
+	v[0] = obj;
+}
+
+__GURU__ void
+_wipe_stack(GV *r, U32 rc)
+{
+    for (U32 i=0; i<rc; i++, r++) {					// sweep block parameters
+    	ref_dec(r);
+    	r->gt  = GT_EMPTY;							// clean up for stat dumper
+    	r->cls = NULL;
+    }
+}
+
+__GURU__ U32
+vm_method_exec(guru_vm *vm, GV v[], U32 argc, guru_proc *prc)
+{
+    if (prc==0) {									// eethod not found
+    	_wipe_stack(v+1, argc+1);
+    	return 1; 									// bail out
+    }
+    else if (HAS_IREP(prc)) {						// a Ruby-based IREP
+    	vm_state_push(vm, prc->irep, v, argc);		// switch to callee's context
+    }
+    else if (prc->func==prc_call) {					// C-based prc_call (hacked handler, it needs vm->state)
+    	_vm_proc_call(vm, v, argc);					// push into call stack, obj at stack[0]
+    }
+    else if (prc->func==obj_new) {					// other default C-based methods
+    	_vm_object_new(vm, v, argc);
+    }
+    else {
+    	prc->func(v, argc);
+    	_wipe_stack(v+1, argc+1);
+    }
+    return 0;
+}
 /*
  * temp cross module call, deprecated by GURU3_7 (to prc_call, obj_new)
  *

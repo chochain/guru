@@ -69,7 +69,7 @@ uc_nop(guru_vm *vm)
 __GURU__ void
 uc_move(guru_vm *vm)
 {
-    _RA_X(_R(b)); 	 	// [ra] <= [rb]
+    _RA(*_R(b)); 	 	// [ra] <= [rb]
 }
 
 //================================================================
@@ -81,7 +81,7 @@ uc_move(guru_vm *vm)
 __GURU__ void
 uc_loadl(guru_vm *vm)
 {
-    U32P p = VM_VAR(vm, _AR(bx));
+    U32 *p = VM_VAR(vm, _AR(bx));
     guru_obj obj;
 
     if (*p & 1) {
@@ -144,7 +144,7 @@ uc_loadnil(guru_vm *vm)
 __GURU__ void
 uc_loadself(guru_vm *vm)
 {
-    _RA(*_R0);              		// [ra] <= class
+    _RA(*_R0);	              		// [ra] <= class
 }
 
 //================================================================
@@ -353,39 +353,19 @@ uc_jmpnot(guru_vm *vm)
   OP_SENDB  R(A) := call(R(A),Syms(B),R(A+1),...,R(A+C),&R(A+C+1))
 */
 __GURU__ void
-_wipe_stack(GV *r, U32 rc)
-{
-    for (U32 i=0; i<rc; i++, r++) {		// sweep block parameters
-    	ref_dec(r);
-    	r->gt  = GT_EMPTY;				// clean up for stat dumper
-    	r->cls = NULL;
-    }
-}
-
-__GURU__ void
 uc_send(guru_vm *vm)
 {
 	U32 _b   = _AR(b);
 	U32 _c   = _AR(c);
     U8  *sym = VM_SYM(vm, _b);						// get given symbol
 	GS  sid  = name2id(sym); 						// get method sid of the current class
-    GV  *obj = _R(a);								// call stack, obj is receiver object
+    GV  *v   = _R(a);								// call stack, obj is receiver object
 
-	guru_proc *m = (guru_proc *)proc_by_sid(obj, sid);
-    if (m==0) {										// eethod not found
-    	_wipe_stack(obj+1, _c+1);
-    	SKIP(sym); 									// bail out
-    }
-    else if (HAS_IREP(m)) {							// a Ruby-based IREP
-    	vm_state_push(vm, m->irep, obj, _c);		// switch to callee's context
-    }
-    else if (m->func==prc_call) {					// C-based prc_call (hacked handler, it needs vm->state)
-    	vm_proc_call(vm, obj, _c);					// push into call stack, obj at stack[0]
-    }
-    else {											// other default C-based methods
-    	m->func(obj, _c);
-    	_wipe_stack(obj+1, _c+1);
-    }
+	guru_proc *m = (guru_proc *)proc_by_sid(v, sid);
+
+	if (vm_method_exec(vm, v, _c, m)) {
+		SKIP(sym);
+	}
 }
 
 //================================================================
@@ -725,9 +705,9 @@ uc_string(guru_vm *vm)
 #if GURU_USE_STRING
 	U32 bx   = _AR(bx);
     U8  *str = (U8 *)VM_VAR(vm, bx);			// string pool var
-    GV  ret  = guru_str_new(str);				// rc set to 1 already
+    GV  v    = guru_str_new(str);				// rc set to 1 already
 
-    _RA(ret);
+    _RA(v);
 #else
     QUIT("String class");
 #endif
@@ -752,13 +732,13 @@ uc_strcat(guru_vm *vm)
     if (pa) pa->func(sa, 0);					// can it be an IREP?
     if (pb) pb->func(sb, 0);
 
-    GV ret = guru_str_add(sa, sb);				// ref counts updated
+    GV v = guru_str_add(sa, sb);				// ref counts updated
 
     ref_dec(sa);								// free both strings
     ref_dec(sb);
     sb->gt = GT_EMPTY;
 
-    _RA_X(&ret);
+    _RA_X(&v);
 
 #else
     QUIT("String class");
@@ -775,16 +755,16 @@ __GURU__ void
 uc_array(guru_vm *vm)
 {
 #if GURU_USE_ARRAY
-    U32 n   = _AR(c);
-    GV  ret = (GV)guru_array_new(n);	// ref_cnt is 1 already
-    guru_array *h  = ret.array;
+    U32 n = _AR(c);
+    GV  v = (GV)guru_array_new(n);		// ref_cnt is 1 already
+    guru_array *h = v.array;
 
     GV *s = _R(b);						// source elements
 	GV *d = h->data;					// target
 	for (U32 i=0; i<(n); i++, ref_inc(s), *d++=*s, s->gt=GT_EMPTY, s++);
     h->n = n;
 
-    _RA(ret);							// no need to ref_inc
+    _RA(v);								// no need to ref_inc
 #else
     QUIT("Array class");
 #endif
@@ -816,14 +796,14 @@ uc_hash(guru_vm *vm)
     MEMCPY((U8P)h->data, (U8P)p, sz);					// copy k,v pairs
 */
 	U32 n  = _AR(c);
-    GV *p  = _R(b);
-    GV ret = guru_hash_new(n);							// ref_cnt is already set to 1
-    guru_hash  *h = ret.hash;
+    GV  *p = _R(b);
+    GV  v  = guru_hash_new(n);							// ref_cnt is already set to 1
+    guru_hash  *h = v.hash;
 
     for (U32 i=0; i<(h->n=(n<<1)); i++, p++) {
     	p->gt = GT_EMPTY;								// clean up call stack
     }
-    _RA(ret);						          			// set return value on stack top
+    _RA(v);							          			// set return value on stack top
 #else
     QUIT("Hash class");
 #endif
@@ -841,10 +821,10 @@ uc_range(guru_vm *vm)
 #if GURU_USE_ARRAY
 	U32 n   = _AR(c);
 	GV  *p0 = _R(b), *p1 = p0+1;
-    GV  ret = guru_range_new(p0, p1, n);		// p0, p1 ref cnt will be increased
+    GV  v   = guru_range_new(p0, p1, n);		// p0, p1 ref cnt will be increased
     p1->gt = GT_EMPTY;
 
-    _RA_X(&ret);							// release and  reassign
+    _RA_X(&v);									// release and  reassign
 #else
     QUIT("Range class");
 #endif
@@ -881,18 +861,10 @@ uc_lambda(guru_vm *vm)
 __GURU__ void
 uc_class(guru_vm *vm)
 {
-/*
-	GV *regs = vm->state->regs;
-	U32 code = vm->bytecode;
-
-    U32 ra = GET_RA(code);
-    U32 rb = GET_RB(code);
-*/
-	U32 b = _AR(b);
 	GV *ra1 = _R(a)+1;
 
-    guru_class *super = (ra1->gt==GT_CLASS) ? ra1->cls : guru_class_object;
-    const U8P  name   = VM_SYM(vm, b);
+    guru_class *super = (ra1->gt==GT_CLASS) ? ra1->cls : vm->state->klass;
+    const U8P  name   = VM_SYM(vm, _AR(b));
     guru_class *cls   = guru_define_class(name, super);
 
     _RA_T(GT_CLASS, cls=cls);
@@ -907,16 +879,7 @@ uc_class(guru_vm *vm)
 __GURU__ void
 uc_exec(guru_vm *vm)
 {
-/*
-	U32 code  = vm->bytecode;
-	GV  *regs = vm->state->regs;
-
-    U32 ra = GET_RA(code);						// return register
-    U32 bx = GET_Bx(code);						// irep index
-*/
-	U32 bx = _AR(bx);
-
-    guru_irep *irep = VM_REPS(vm, bx);			// child IREP[rb]
+    guru_irep *irep = VM_REPS(vm, _AR(bx));		// child IREP[rb]
 
     vm_state_push(vm, irep, _R(a), 0);			// push call stack
 }
@@ -956,7 +919,12 @@ uc_method(guru_vm *vm)
 
     _UNLOCK;
 
-    _wipe_stack(_R0+1, _a+1);
+    GV *r = _R0+1;
+    for (U32 i=0; i<_a+1; i++, r++) {		// sweep block parameters
+    	ref_dec(r);
+    	r->gt  = GT_EMPTY;					// clean up for stat dumper
+    	r->cls = NULL;
+    }
 }
 
 //================================================================
