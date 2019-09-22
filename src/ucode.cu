@@ -36,7 +36,6 @@
 #define _UNLOCK		{ MUTEX_FREE(_mutex_uc); }
 
 __GURU__ U32 _mutex_uc;
-__GURU__ __INLINE__ GV *nop()	{ return NULL; }
 //
 // becareful with the following macros, because they release regs[ra] first
 // so, make sure value is kept before the release
@@ -44,13 +43,30 @@ __GURU__ __INLINE__ GV *nop()	{ return NULL; }
 #define _AR(r)          ((vm->ar.r))
 #define _R0             (&(vm->state->regs[0]))
 #define _R(r)			(&(vm->state->regs[_AR(r)]))
-#define _RA(v)			((((v).gt&GT_HAS_REF)  && (v).self !=_R(a)->self) ? ref_dec(_R(a)) : nop(), *_R(a)=(v))
-#define _RA_X(r)    	((((r)->gt&GT_HAS_REF) && (r)->self!=_R(a)->self) ? ref_dec(_R(a)) : nop(), *_R(a)=*(r), ref_inc(r))
+#define _RA(v)			((((v).gt &GT_HAS_REF)&&(v).self !=_R(a)->self) ? ref_dec(_R(a)) : nop(), *_R(a)=(v))
+#define _RA_X(r)    	((((r)->gt&GT_HAS_REF)&&(r)->self!=_R(a)->self) ? ref_dec(_R(a)) : nop(), *_R(a)=*(r), ref_inc(r))
 #define _RA_T(t,e)      (_R(a)->gt=(t), _R(a)->e)
 
 #define SKIP(x)	        { guru_na(x); return; }
 #define QUIT(x)			{ vm->quit=1; guru_na(x); return; }
 
+//================================================================
+/*!@brief
+  little endian to big endian converter
+*/
+__GURU__ __INLINE__ U32
+_bin_to_u32(const void *s)
+{
+#if GURU_32BIT_ALIGN_REQUIRED
+    U8P p = (U8P)s;
+    return (U32)(p[0]<<24) | (p[1]<<16) |  (p[2]<<8) | p[3];
+#else
+    U32 x = *((U32P)s);
+    return (x << 24) | ((x & 0xff00) << 8) | ((x >> 8) & 0xff00) | (x >> 24);
+#endif
+}
+
+__GURU__ __INLINE__ GV *nop()	{ return NULL; }
 
 //================================================================
 /*!@brief
@@ -60,6 +76,7 @@ __GURU__ __INLINE__ GV *nop()	{ return NULL; }
 __GURU__ void
 uc_nop(guru_vm *vm)
 {
+	// do nothing
 }
 
 //================================================================
@@ -71,7 +88,7 @@ uc_nop(guru_vm *vm)
 __GURU__ void
 uc_move(guru_vm *vm)
 {
-	_RA(*_R(b)); 	 	// [ra] <= [rb]
+	_RA_X(_R(b)); 	 			// [ra] <= [rb]
 }
 
 //================================================================
@@ -100,13 +117,15 @@ uc_loadl(guru_vm *vm)
 //================================================================
 /*!@brief
   OP_LOADI
+  Load 16-bit integer
 
   R(A) := sBx
 */
 __GURU__ void
 uc_loadi(guru_vm *vm)
 {
-    GI sbx = _AR(bx) - MAX_sBx;		// sBx
+    GI sbx = _AR(bx) - MAX_sBx;
+
     _RA_T(GT_INT, i=sbx);
 }
 
@@ -146,7 +165,7 @@ uc_loadnil(guru_vm *vm)
 __GURU__ void
 uc_loadself(guru_vm *vm)
 {
-    _RA(*_R0);	              		// [ra] <= class
+    _RA_X(_R0);	              		// [ra] <= class
 }
 
 //================================================================
@@ -280,7 +299,7 @@ uc_getupvar(guru_vm *vm)
 
     GV *ur = st->regs + _AR(b);		// outer scope register file
 
-    _RA(*ur);          				// ra <= up[rb]
+    _RA_X(ur);          			// ra <= up[rb]
 }
 
 //================================================================
@@ -299,6 +318,7 @@ uc_setupvar(guru_vm *vm)
     GV *ur = st->regs + _AR(b);				// pointer to caller's register file
 
     ref_dec(ur);
+    ref_inc(_R(a));
     *ur = *_R(a);                   		// update outer-scope vars
 }
 
@@ -432,7 +452,7 @@ uc_blkpush(guru_vm *vm)
 
     assert(prc->gt==GT_PROC);			// ensure
 
-    _RA(*prc);             				// ra <= proc
+    _RA_X(prc);             				// ra <= proc
 }
 
 //================================================================
@@ -737,11 +757,8 @@ uc_strcat(guru_vm *vm)
 
     GV v = guru_str_add(sa, sb);				// ref counts updated
 
-    ref_dec(sa);								// free both strings
-    ref_dec(sb);
     sb->gt = GT_EMPTY;
-
-    _RA_X(&v);
+    _RA(v);
 
 #else
     QUIT("String class");
@@ -827,7 +844,7 @@ uc_range(guru_vm *vm)
     GV  v   = guru_range_new(p0, p1, n);		// p0, p1 ref cnt will be increased
     p1->gt = GT_EMPTY;
 
-    _RA_X(&v);									// release and  reassign
+    _RA(v);										// release and  reassign
 #else
     QUIT("Range class");
 #endif

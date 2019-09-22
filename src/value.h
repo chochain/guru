@@ -25,14 +25,14 @@ __GURU__ GV 	GURU_NIL_NEW();
 // macro for C call returns
 // Note: becareful, the following macros assume a "v" pointer to top of stack
 //
-#define RETURN_VAL(n)	{ *v=(n); 		  return; }
-#define RETURN_NIL()	{ v->gt=GT_NIL;   return; }
-#define RETURN_FALSE()	{ v->gt=GT_FALSE; return; }
-#define RETURN_TRUE()	{ v->gt=GT_TRUE;  return; }
+#define RETURN_VAL(n)	{ ref_dec(v); *v=(n); 		  return; }
+#define RETURN_NIL()	{ ref_dec(v); v->gt=GT_NIL;   return; }
+#define RETURN_FALSE()	{ ref_dec(v); v->gt=GT_FALSE; return; }
+#define RETURN_TRUE()	{ ref_dec(v); v->gt=GT_TRUE;  return; }
      
-#define RETURN_BOOL(n)	{ v->gt=(n)?GT_TRUE:GT_FALSE;   return; }
-#define RETURN_INT(n)	{ v->gt=GT_INT;   v->i=(GI)(n); return; }
-#define RETURN_FLOAT(n)	{ v->gt=GT_FLOAT; v->f=(GF)(n); return; }
+#define RETURN_BOOL(n)	{ ref_dec(v); v->gt=(n)?GT_TRUE:GT_FALSE;   return; }
+#define RETURN_INT(n)	{ ref_dec(v); v->gt=GT_INT;   v->i=(GI)(n); return; }
+#define RETURN_FLOAT(n)	{ ref_dec(v); v->gt=GT_FLOAT; v->f=(GF)(n); return; }
 
 // macros to create new built-in objects
 #ifdef __GURU_CUDA__
