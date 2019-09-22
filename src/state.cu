@@ -24,8 +24,25 @@
 
 //================================================================
 /*!@brief
-  Push current status to callinfo stack
+  Clean up call stack
+*/
+__GURU__ void
+_wipe_stack(GV *r, U32 rc, GV *rv)
+{
+    U32 ref = rv && (rv->gt & GT_HAS_REF);
+    for (U32 i=0; i<rc; i++, r++) {
+    	if (r->gt & GT_HAS_REF) {
+    		if (ref && rv->self==r->self) { /* skip */ }
+    		else ref_dec(r);
+    	}
+        r->gt   = GT_EMPTY;
+        r->self = NULL;
+    }
+}
 
+//================================================================
+/*!@brief
+  Push current status to callinfo stack
 */
 __GURU__ void
 vm_state_push(guru_vm *vm, guru_irep *irep, GV *regs, U32 argc)
@@ -61,17 +78,10 @@ vm_state_push(guru_vm *vm, guru_irep *irep, GV *regs, U32 argc)
 __GURU__ void
 vm_state_pop(guru_vm *vm, GV ret_val, U32 ra)
 {
-    U32  ref = ret_val.gt & GT_HAS_REF;
     guru_state 	*st = vm->state;
 
-    GV *r = st->regs + ra;		// TODO: check whether 2 is correct
-    for (U32 i=0; i<=st->argc; i++, r++) {
-    	if (ref && ret_val.self != r->self) {
-        	ref_dec(r);
-    	}
-        r->gt   = GT_EMPTY;
-        r->self = NULL;
-    }
+    _wipe_stack(st->regs+ra, st->argc+1, &ret_val);
+
     st->regs[0] = ret_val;		// TODO: restore previous set of regfile
 
     vm->state = st->prev;		// restore previous state
@@ -105,21 +115,11 @@ _vm_object_new(guru_vm *vm, GV v[], U32 argc)
 	v[0] = obj;
 }
 
-__GURU__ void
-_wipe_stack(GV *r, U32 rc)
-{
-    for (U32 i=0; i<rc; i++, r++) {					// sweep block parameters
-    	ref_dec(r);
-    	r->gt  = GT_EMPTY;							// clean up for stat dumper
-    	r->cls = NULL;
-    }
-}
-
 __GURU__ U32
 vm_method_exec(guru_vm *vm, GV v[], U32 argc, guru_proc *prc)
 {
     if (prc==0) {									// eethod not found
-    	_wipe_stack(v+1, argc+1);
+    	_wipe_stack(v+1, argc+1, NULL);
     	return 1; 									// bail out
     }
     else if (HAS_IREP(prc)) {						// a Ruby-based IREP
@@ -133,7 +133,7 @@ vm_method_exec(guru_vm *vm, GV v[], U32 argc, guru_proc *prc)
     }
     else {
     	prc->func(v, argc);
-    	_wipe_stack(v+1, argc+1);
+    	_wipe_stack(v+1, argc+1, NULL);
     }
     return 0;
 }
