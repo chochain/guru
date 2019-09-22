@@ -51,7 +51,7 @@ _len(const GV *v)
 /*! get c-language string (U8P)
  */
 __GURU__ __INLINE__ U8P
-_data(const GV *v)
+_raw(const GV *v)
 {
     return (U8P)v->str->data;
 }
@@ -67,7 +67,7 @@ _data(const GV *v)
 __GURU__ GV
 _blank(U32 len)
 {
-    GV  ret { .gt=GT_STR };					// some one referenced it
+    GV  ret { .gt = GT_STR };				// some one referenced it
     U32 asz= len+1;		asz += -asz & 0x7;	// size to allocate
     /*
       Allocate handle and string buffer.
@@ -129,14 +129,14 @@ _dup(const GV *v0)
 __GURU__ S32
 _index(const GV *v, const GV *pattern, U32 offset)
 {
-    U8P p0 = _data(v) + offset;
-    U8P p1 = _data(pattern);
+    U8P p0 = _raw(v) + offset;
+    U8P p1 = _raw(pattern);
     U32 sz = _len(pattern);
     U32 nz = _len(v) - sz - offset;
 
     for (U32 i=0; nz>0 && i <= nz; i++, p0++) {
         if (MEMCMP(p0, p1, sz)==0) {
-            return p1 - _data(v);	// matched.
+            return p1 - _raw(v);	// matched.
         }
     }
     return -1;
@@ -152,7 +152,7 @@ _index(const GV *v, const GV *pattern, U32 offset)
 __GURU__ U32
 _strip(GV *v, U32 mode)
 {
-    U8P p0 = _data(v);
+    U8P p0 = _raw(v);
     U8P p1 = p0 + _len(v) - 1;
 
     // left-side
@@ -171,7 +171,7 @@ _strip(GV *v, U32 mode)
     U32 new_len = p1 - p0 + 1;
     if (_len(v)==new_len) return 0;
 
-    U8P buf = _data(v);
+    U8P buf = _raw(v);
     if (p0 != buf) {
     	MEMCPY(buf, p0, new_len);
     }
@@ -193,7 +193,7 @@ _strip(GV *v, U32 mode)
 __GURU__ int
 _chomp(GV *v)
 {
-    U8P p0 = _data(v);
+    U8P p0 = _raw(v);
     U8P p1 = p0 + _len(v) - 1;
 
     if (*p1=='\n') p1--;
@@ -202,7 +202,7 @@ _chomp(GV *v)
     U32 new_len = p1 - p0 + 1;
     if (_len(v)==new_len) return 0;
 
-    U8P buf = _data(v);
+    U8P buf = _raw(v);
     buf[new_len] = '\0';
     v->str->len = new_len;
 
@@ -335,7 +335,7 @@ str_mul(GV v[], U32 argc)
 
     U8P p = (U8P)ret.str->data;
     for (U32 i = 0; i < v[1].i; i++) {
-        MEMCPY(p, _data(v), sz);
+        MEMCPY(p, _raw(v), sz);
         p += sz;
     }
     *p = '\0';
@@ -365,7 +365,7 @@ str_to_i(GV v[], U32 argc)
         base = v[1].i;
         if (base < 2 || base > 36) return;	// raise ? ArgumentError
     }
-    GI i = guru_atoi(_data(v), base);
+    GI i = guru_atoi(_raw(v), base);
 
     RETURN_INT(i);
 }
@@ -374,7 +374,8 @@ str_to_i(GV v[], U32 argc)
 __GURU__ void
 str_to_s(GV v[], U32 argc)
 {
-	ref_inc(&v[0]);							// same string, one more ref
+    GV ret = _dup(v);
+    RETURN_VAL(ret);
 }
 
 #if GURU_USE_FLOAT
@@ -384,7 +385,7 @@ str_to_s(GV v[], U32 argc)
 __GURU__ void
 str_to_f(GV v[], U32 argc)
 {
-    GF d = ATOF(_data(v));
+    GF d = ATOF(_raw(v));
 
     RETURN_FLOAT(d);
 }
@@ -492,10 +493,10 @@ str_insert(GV v[], U32 argc)
         return;
     }
     U32 sz  = len1 + len2 - len + 1;
-    U8P str = (U8P)guru_realloc(_data(v), sz + (-sz & 7));			// 8-byte aligned
+    U8P str = (U8P)guru_realloc(_raw(v), sz + (-sz & 7));			// 8-byte aligned
 
     MEMCPY(str + nth + len2, str + nth + len, len1 - nth - len + 1);
-    MEMCPY(str + nth, (U8P)_data(val), len2);
+    MEMCPY(str + nth, (U8P)_raw(val), len2);
 
     v->str->len  = len1 + len2 - len;
     v->str->data = (char *)str;
@@ -572,7 +573,7 @@ str_inspect(GV v[], U32 argc)
 
     U8 buf[BUF_SIZE];
     U8P p = buf;
-    U8P s = (U8P)_data(v);
+    U8P s = (U8P)_raw(v);
 
     for (U32 i=0; i < _len(v); i++, s++) {
         if (*s >= ' ' && *s < 0x80) {
@@ -603,7 +604,7 @@ str_inspect(GV v[], U32 argc)
 __GURU__ void
 str_ord(GV v[], U32 argc)
 {
-    RETURN_INT(_data(v)[0]);
+    RETURN_INT(_raw(v)[0]);
 }
 
 //================================================================
@@ -709,7 +710,7 @@ str_strip_self(GV v[], U32 argc)
 __GURU__ void
 str_to_sym(GV v[], U32 argc)
 {
-    RETURN_VAL(guru_sym_new(_data(v)));
+    RETURN_VAL(guru_sym_new(_raw(v)));
 }
 
 //================================================================

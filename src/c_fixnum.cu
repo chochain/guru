@@ -10,6 +10,8 @@
 
   </pre>
 */
+#include <assert.h>
+
 #include "guru.h"
 #include "value.h"
 #include "static.h"
@@ -183,23 +185,19 @@ int_chr(GV v[], U32 argc)
 __GURU__ void
 int_to_s(GV v[], U32 argc)
 {
-	U32 i    = ARG_INT(0);
-    U32 bias = 'a' - 10;
-    U32 base = 10;
+    U32 aoff = 'a' - 10;
+    U32 base = argc ? ARG_INT(1) : 10;				// if base given
 
-    if (argc) {
-        base = ARG_INT(1);
-        if (base < 2 || base > 36) return;	// raise ? ArgumentError
-    }
-    U8  buf[64+2];							// int64 + terminate + 1
-    U8P p = buf + sizeof(buf) - 1;			// fill from the tail of the buffer
-    U32 x;
-    *p = '\0';
+    assert(base >=2 && base <= 36);
+
+    U8 buf[64+2];									// int64 + terminate + 1
+    U8 *p = buf + sizeof(buf) - 1;		*p='\0';	// fill from the tail of the buffer
+	S32 i = ARG_INT(0);
     do {
-        x = i % base;
-        *--p = (x < 10)? x + '0' : x + bias;
-        x /= base;
-    } while (x != 0);
+        U32 x = i % base;
+        *--p = (x < 10)? x + '0' : x + aoff;
+        i /= base;
+    } while (i>0);
 
     RETURN_VAL(guru_str_new(p));
 }
