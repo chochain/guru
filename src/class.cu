@@ -111,11 +111,10 @@ _name2class(const U8P name)
 __GURU__ guru_proc*
 proc_by_sid(GV *obj, GS sid)
 {
-    guru_class *cls = class_by_obj(obj);
     guru_proc  *p;
-    for (p=cls->vtbl; cls!=NULL; cls=cls->super) {			// walk up class hierarchy
-        for (p=cls->vtbl; p && (p->sid != sid); p=p->next);	// walk thru class vtbl
-        if (p) return p;
+    for (guru_class *cls=class_by_obj(obj); cls!=NULL; cls=cls->super) {	// search up hierarchy tree
+        for (p=cls->vtbl; p && (p->sid != sid); p=p->next);					// linear search thru class vtbl
+        if (p) return p;													// break if found
     }
     return NULL;
 }

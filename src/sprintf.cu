@@ -83,9 +83,8 @@ _next(guru_print *pf)
         if (ch == '%') {
             if (*pf->fstr == '%') {	// is "%%"
                 pf->fstr++;
-            } else {
-                goto PARSE_FLAG;
             }
+            else goto PARSE_FLAG;
         }
         *pf->p++ = ch;
     }

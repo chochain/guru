@@ -422,7 +422,7 @@ guru_free(void *ptr)
 __GURU__ void
 guru_memory_clr()
 {
-    used_block *p = (used_block *)_memory_pool;
+	used_block *p = (used_block *)_memory_pool;
     while (p) {
     	if (IS_USED(p)) {
     		guru_free(BLK_DATA(p));		// pointer to raw space
@@ -473,19 +473,16 @@ _dump_freelist()
 		if (!_free_list[i]) continue;
 
 		printf("%02x=>[", i);
-		free_block *b = _free_list[i];
-		U32 a = (U32A)b;						// take 32-bits only
-		while (b) {
-			assert((a&7)==0);
-			printf("%08x(%02x) ", a, b->bsz);	// 64-bit bleeds into 2nd param
+		for (free_block *b = _free_list[i]; b!=NULL; b=NEXT_FREE(b)) {
+			U32 a = (U32A)b;		// take 32-bits only, b is 64-bit will bleed into 2nd param
+			assert((a&7)==0);		// double check alignment
+			printf(" %08x(%02x)", a, b->bsz);
 			if (IS_USED(b)) {
-				printf("used");
-				break;
+				printf("<-USED?");
+				break;				// something is wrong (link is broken here)
 			}
-			b = NEXT_FREE(b);
-			a = (U32A)b;
 		}
-		printf("] ");
+		printf(" ] ");
 	}
 	printf("\n");
 }
@@ -514,7 +511,6 @@ _alloc_stat(U32 v[])
 	U32 total=0, nfree=0, free=0, nused=0, used=0, nblk=0, nfrag=0;
 
 	used_block *p = (used_block *)_memory_pool;
-
 	U32 flag = IS_FREE(p);				// starting block type
 	while (p) {	// walk the memory pool
 		if (flag != IS_FREE(p)) {       // supposed to be merged

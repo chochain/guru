@@ -48,7 +48,7 @@ _calc_hash(U8P str)
     U16 h = 0;
 
     while (*str != '\0') {
-        h = h * 37 + *str;
+        h = h * 37 + *str;		// a simplistic hashing algo
         str++;
     }
     return h;

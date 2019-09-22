@@ -111,19 +111,17 @@ _step(guru_vm *pool)
 
 	guru_vm *vm = pool+blockIdx.x;					// start up all VMs (with different blockIdx
 
-	if (vm->run!=VM_STATUS_RUN) return;				// free, ready, or hold
-
 	// start up instruction and dispatcher unit
-	do {
+	while (vm->run==VM_STATUS_RUN) {				// run my (i.e. blockIdx.x) VM
 		// add before_fetch hooks here
 		ucode_prefetch(vm);
 		// add before_exec hooks here
 		ucode_exec(vm);
 		// add after_exec hooks here
-	} while (!vm->step && vm->run==VM_STATUS_RUN);
-
-	if (vm->run==VM_STATUS_STOP) {					// the VM is completed
-		_free(vm);									// free up vm_state
+		if (vm->step) break;
+	}
+	if (vm->run==VM_STATUS_STOP) {					// whether my VM is completed
+		_free(vm);									// free up my vm_state, return VM to free pool
 	}
 	__syncthreads();								// sync all cooperating threads (to shared data)
 }

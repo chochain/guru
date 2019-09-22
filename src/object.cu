@@ -308,11 +308,10 @@ obj_kind_of(GV v[], U32 argc)
     }
     const guru_class *cls = class_by_obj(&v[0]);
 
-    do {
+    while (cls) {
         if (cls == v[1].cls) break;
-
         cls = cls->super;
-    } while (cls != NULL);
+    }
 }
 
 #if GURU_USE_STRING

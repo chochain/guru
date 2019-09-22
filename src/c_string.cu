@@ -132,14 +132,12 @@ _index(const GV *v, const GV *pattern, U32 offset)
     U8P p0 = _data(v) + offset;
     U8P p1 = _data(pattern);
     U32 sz = _len(pattern);
-    S32 try_cnt = _len(v) - sz - offset;
+    U32 nz = _len(v) - sz - offset;
 
-    while (try_cnt >= 0) {
+    for (U32 i=0; nz>0 && i <= nz; i++, p0++) {
         if (MEMCMP(p0, p1, sz)==0) {
             return p1 - _data(v);	// matched.
         }
-        try_cnt--;
-        p0++;
     }
     return -1;
 }
@@ -159,17 +157,15 @@ _strip(GV *v, U32 mode)
 
     // left-side
     if (mode & 0x01) {
-        while (p0 <= p1) {
-            if (*p0=='\0') break;
+    	for (; p0 <= p1; p0++) {
+            if (*p0=='\0') 		 break;
             if (!_is_space(*p0)) break;
-            p0++;
         }
     }
     // right-side
     if (mode & 0x02) {
-        while (p0 <= p1) {
+    	for (; p0 <= p1; p1--) {
             if (!_is_space(*p1)) break;
-            p1--;
         }
     }
     U32 new_len = p1 - p0 + 1;

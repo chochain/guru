@@ -893,33 +893,36 @@ uc_exec(guru_vm *vm)
 __GURU__ void
 uc_method(guru_vm *vm)
 {
-	U32 _a   = _AR(a);
-	U32 _b   = _AR(b);
 	GV  *obj = _R(a);
 
     assert(obj->gt == GT_CLASS);			// enforce class checking
 
     // check whether the name has been defined in current class (i.e. vm->state->klass)
-    GS	      sid  = name2id(VM_SYM(vm, _b));	// lookup symbol id (which should be registered already)
-    guru_proc *prc = proc_by_sid(obj, sid);		// fetch proc from obj->klass->vtbl
+    U8		  *sym = VM_SYM(vm, _AR(b));	// fetch name from IREP symbol table
+    GS	      sid  = name2id(sym);			// lookup symbol id (which should be registered already)
+    guru_proc *prc = proc_by_sid(obj, sid);	// fetch proc from obj->klass->vtbl
 
+#if GURU_DEBUG
     if (prc != NULL) {
+    	printf("WARN: %s#%s already defined\n", obj->cls->name, sym);
     	// same proc name exists (in either current or parent class)
     	// do nothing for now
     }
-    prc = (obj+1)->proc;					// use the proc specified by OP_LAMBDA
+#endif
+    prc = (obj+1)->proc;					// override (if exist) with proc by OP_LAMBDA
 
     _LOCK;
 
     // add proc to class
     guru_class 	*cls = obj->cls;
     prc->sid  = sid;						// assign sid to proc, overload if prc already exists
-    prc->next = cls->vtbl;					// add to top of vtable
-    cls->vtbl = prc;
+    prc->next = cls->vtbl;					// add to top of vtable, so it will be found first
+    cls->vtbl = prc;						// if there is a sub-class override
 
     _UNLOCK;
 
-    GV *r = _R0+1;
+	U32 _a = _AR(a);
+    GV  *r = _R0+1;
     for (U32 i=0; i<_a+1; i++, r++) {		// sweep block parameters
     	ref_dec(r);
     	r->gt  = GT_EMPTY;					// clean up for stat dumper
