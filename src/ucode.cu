@@ -36,6 +36,7 @@
 #define _UNLOCK		{ MUTEX_FREE(_mutex_uc); }
 
 __GURU__ U32 _mutex_uc;
+__GURU__ __INLINE__ GV *nop()	{ return NULL; }
 //
 // becareful with the following macros, because they release regs[ra] first
 // so, make sure value is kept before the release
@@ -43,16 +44,17 @@ __GURU__ U32 _mutex_uc;
 #define _AR(r)          ((vm->ar.r))
 #define _R0             (&(vm->state->regs[0]))
 #define _R(r)			(&(vm->state->regs[_AR(r)]))
-#define _RA(v)			(ref_dec(_R(a)), *_R(a)=(v))
-#define _RA_X(r)    	(ref_dec(_R(a)), *_R(a)=*(r), ref_inc(r))
+#define _RA(v)			((((v).gt&GT_HAS_REF)  && (v).self !=_R(a)->self) ? ref_dec(_R(a)) : nop(), *_R(a)=(v))
+#define _RA_X(r)    	((((r)->gt&GT_HAS_REF) && (r)->self!=_R(a)->self) ? ref_dec(_R(a)) : nop(), *_R(a)=*(r), ref_inc(r))
 #define _RA_T(t,e)      (_R(a)->gt=(t), _R(a)->e)
 
 #define SKIP(x)	        { guru_na(x); return; }
 #define QUIT(x)			{ vm->quit=1; guru_na(x); return; }
+
+
 //================================================================
 /*!@brief
   OP_NOP
-
   No operation
 */
 __GURU__ void
@@ -69,7 +71,7 @@ uc_nop(guru_vm *vm)
 __GURU__ void
 uc_move(guru_vm *vm)
 {
-    _RA(*_R(b)); 	 	// [ra] <= [rb]
+	_RA(*_R(b)); 	 	// [ra] <= [rb]
 }
 
 //================================================================
@@ -355,15 +357,13 @@ uc_jmpnot(guru_vm *vm)
 __GURU__ void
 uc_send(guru_vm *vm)
 {
-	U32 _b   = _AR(b);
-	U32 _c   = _AR(c);
-    U8  *sym = VM_SYM(vm, _b);						// get given symbol
+    U8  *sym = VM_SYM(vm, _AR(b));					// get given symbol
 	GS  sid  = name2id(sym); 						// get method sid of the current class
     GV  *v   = _R(a);								// call stack, obj is receiver object
 
 	guru_proc *m = (guru_proc *)proc_by_sid(v, sid);
 
-	if (vm_method_exec(vm, v, _c, m)) {
+	if (vm_method_exec(vm, v, _AR(c), m)) {
 		SKIP(sym);
 	}
 }
@@ -371,12 +371,15 @@ uc_send(guru_vm *vm)
 //================================================================
 /*!@brief
   OP_CALL
-
   R(A) := self.call(frame.argc, frame.argv)
+
+  TODO: no test case yet
 */
 __GURU__ void
 uc_call(guru_vm *vm)
 {
+	assert(1==0);				// should not be here, no test case yet!
+
 	guru_irep *irep = _R0->proc->irep;
 
 	vm_state_push(vm, irep, _R0, 0);
@@ -861,9 +864,9 @@ uc_lambda(guru_vm *vm)
 __GURU__ void
 uc_class(guru_vm *vm)
 {
-	GV *ra1 = _R(a)+1;
+	GV *r1 = _R(a)+1;
 
-    guru_class *super = (ra1->gt==GT_CLASS) ? ra1->cls : vm->state->klass;
+    guru_class *super = (r1->gt==GT_CLASS) ? r1->cls : vm->state->klass;
     const U8P  name   = VM_SYM(vm, _AR(b));
     guru_class *cls   = guru_define_class(name, super);
 
@@ -879,7 +882,8 @@ uc_class(guru_vm *vm)
 __GURU__ void
 uc_exec(guru_vm *vm)
 {
-    guru_irep *irep = VM_REPS(vm, _AR(bx));		// child IREP[rb]
+	assert(_R0->gt == GT_CLASS);				// check
+	guru_irep *irep = VM_REPS(vm, _AR(bx));		// child IREP[rb]
 
     vm_state_push(vm, irep, _R(a), 0);			// push call stack
 }
@@ -904,7 +908,7 @@ uc_method(guru_vm *vm)
 
 #if GURU_DEBUG
     if (prc != NULL) {
-    	printf("WARN: %s#%s already defined\n", obj->cls->name, sym);
+    	printf("WARN: %s#%s override base\n", obj->cls->name, sym);
     	// same proc name exists (in either current or parent class)
     	// do nothing for now
     }

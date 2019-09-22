@@ -111,6 +111,7 @@ _name2class(const U8P name)
 __GURU__ guru_proc*
 proc_by_sid(GV *obj, GS sid)
 {
+	// TODO: heavy-weight method, add a cache here to speed up lookup
     guru_proc  *p;
     for (guru_class *cls=class_by_obj(obj); cls!=NULL; cls=cls->super) {	// search up hierarchy tree
         for (p=cls->vtbl; p && (p->sid != sid); p=p->next);					// linear search thru class vtbl
