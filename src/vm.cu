@@ -323,7 +323,7 @@ _show_regfile(guru_vm *vm, U32 lvl)
 	}
 
 	v = vm->regfile;
-	printf("[");
+	printf("[ ");
 	for (U32 i=0; i<=n; i++, v++) {
 		const char *t = _vtype[v->gt];
 		U8 c = i==lvl ? '|' : ' ';

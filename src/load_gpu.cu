@@ -28,6 +28,74 @@
 #if !GURU_HOST_IMAGE
 //================================================================
 /*!@brief
+  Get 32bit value from memory big endian.
+
+  @param  s	Pointer of memory.
+  @return	32bit unsigned value.
+*/
+__GURU__ __INLINE__ U32
+_bin_to_u32(const void *s)
+{
+#if GURU_32BIT_ALIGN_REQUIRED
+    U8P p = (U8P)s;
+    return (U32)(p[0]<<24) | (p[1]<<16) |  (p[2]<<8) | p[3];
+#else
+    U32 x = *((U32P)s);
+    return (x << 24) | ((x & 0xff00) << 8) | ((x >> 8) & 0xff00) | (x >> 24);
+#endif
+}
+
+//================================================================
+/*!@brief
+  Get 16bit value from memory big endian.
+
+  @param  s	Pointer of memory.
+  @return	16bit unsigned value.
+*/
+__GURU__ __INLINE__ U16
+_bin_to_u16(const void *s)
+{
+#if GURU_32BIT_ALIGN_REQUIRED
+    U8P p = (U8P)s;
+    return (U16)(p[0]<<8) | p[1];
+#else
+    U16 x = *((U16P)s);
+    return (x << 8) | (x >> 8);
+#endif
+}
+
+/*!@brief
+  Set 16bit big endian value from memory.
+
+  @param  s Input value.
+  @param  bin Pointer of memory.
+  @return sizeof(U16).
+*/
+__GURU__ __INLINE__ void
+_u16_to_bin(U16 s, U8P bin)
+{
+    *bin++ = (s >> 8) & 0xff;
+    *bin   = s & 0xff;
+}
+
+/*!@brief
+  Set 32bit big endian value from memory.
+
+  @param  l Input value.
+  @param  bin Pointer of memory.
+  @return sizeof(U32).
+*/
+__GURU__ __INLINE__ void
+_u32_to_bin(U32 l, U8P bin)
+{
+    *bin++ = (l >> 24) & 0xff;
+    *bin++ = (l >> 16) & 0xff;
+    *bin++ = (l >> 8) & 0xff;
+    *bin   = l & 0xff;
+}
+
+//================================================================
+/*!@brief
   Parse header section.
 
   @param  vm    A pointer of VM.
