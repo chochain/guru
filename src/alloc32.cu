@@ -252,7 +252,7 @@ _find_free_index(U32 sz)
 
     // no previous block exist, create a new one
     U32 avl = _l2_map[l1];			    // check any 2nd level available
-    if (avl) {
+    if (avl >> l2) {
     	l2 = __fls(avl);				// get first available l2 index
     }
     else if ((avl = _l1_map)) {			// check if 1st level available
@@ -343,7 +343,7 @@ guru_alloc(U32 sz)
 
 	_split(blk, bsz);							// allocate the block, free up the rest
 #if GURU_DEBUG
-    U32P p = (U32P)BLK_DATA(blk);				// point to raw space allocated
+    U32 *p = (U32*)BLK_DATA(blk);				// point to raw space allocated
     sz >>= 2;
     for (U32 i=0; i < (sz>16 ? 16 : sz); i++) *p++ = 0xaaaaaaaa;
 #endif
