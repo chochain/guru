@@ -177,16 +177,15 @@ guru_atof(U8P s)
 __GURU__ U8P guru_i2s(U64 i, U32 base)
 {
     U32 bias = 'a' - 10;		// for base > 10
-
-    U8  buf[20+2];				// int64 + terminate + 1
+    U8  buf[64+2];				// int64 + terminate + 1
     U8P p = buf + sizeof(buf) - 1;
     U32 x;
     *p = '\0';
     do {
         x = i % 10;
         *--p = (x < 10)? x + '0' : x + bias;
-        x /= base;
-    } while (x != 0);
+        i /= base;
+    } while (i != 0);
 
     return p;
 }

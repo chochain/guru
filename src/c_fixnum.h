@@ -23,6 +23,9 @@ extern "C" {
 __GURU__ void guru_init_class_int();
 __GURU__ void guru_init_class_float();
 
+// cross module functions (called by Object#to_s)
+__GURU__ void int_to_s(GV v[], U32 argc);
+
 #ifdef __cplusplus
 }
 #endif

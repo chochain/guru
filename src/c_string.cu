@@ -279,9 +279,9 @@ guru_str_append_cstr(const GV *v0, const U8 *str)
     U32 sz  = len0 + len1 + 1;
     U32 bsz = sz + (-sz & 7);
 
-    U8P buf  = (U8P)guru_realloc(v0->str->data, bsz);	// 8-byte aligned
+    U8 *buf  = (U8*)guru_realloc(v0->str->data, bsz);	// 8-byte aligned
 
-    MEMCPY(buf + len0, v0, len1 + 1);
+    MEMCPY(buf + len0, str, len1 + 1);
 
     v0->str->size = bsz;
     v0->str->n 	  = len0 + len1;
@@ -576,18 +576,18 @@ str_index(GV v[], U32 argc)
 __GURU__ void
 str_inspect(GV v[], U32 argc)
 {
-	const char    *hex = "0123456789ABCDEF";
-    GV    ret  = guru_str_new("\"");
+	const char *hex = "0123456789ABCDEF";
+    GV ret  = guru_str_new("\"");
 
     U8 buf[BUF_SIZE];
-    U8P p = buf;
-    U8P s = (U8P)_raw(v);
+    U8 *p = buf;
+    U8 *s = (U8P)_raw(v);
 
     for (U32 i=0; i < _len(v); i++, s++) {
         if (*s >= ' ' && *s < 0x80) {
         	*p++ = *s;
         }
-        else {							// tiny isprint()
+        else {								// tiny isprint()
         	*p++ = '\\';
         	*p++ = 'x';
             *p++ = hex[*s >> 4];

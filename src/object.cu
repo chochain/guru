@@ -322,7 +322,8 @@ __GURU__ void
 obj_to_s(GV v[], U32 argc)
 {
 	GV  ret;
-	U8P name;
+	U8  *name;
+	GV  iv[2] = { { .gt=GT_INT }, { .gt=GT_INT } };
 
     switch (v->gt) {
     case GT_CLASS:
@@ -330,11 +331,18 @@ obj_to_s(GV v[], U32 argc)
     	ret = guru_str_new(name);
     	break;
     case GT_OBJ:
+    	iv[1].i = 16;
+    	iv[0].i = (U32A)v->self;
+    	int_to_s(iv, 1);
+
     	name = id2name(v->self->cls->sid);
-    	ret  = guru_str_new("#<0x");
+    	ret  = guru_str_new("#<");
     	guru_str_append_cstr(&ret, name);
-    	guru_str_append_cstr(&ret, guru_i2s((U64)v->self, 16));
+    	guru_str_append_cstr(&ret, ":0x");
+    	guru_str_append_cstr(&ret, (U8*)iv[0].str->data);
     	guru_str_append_cstr(&ret, ">");
+
+    	ref_clr(&iv[0]);
     	break;
     default:
     	ret = guru_str_new("");
