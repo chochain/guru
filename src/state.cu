@@ -27,10 +27,10 @@
   Clean up call stack
 */
 __GURU__ void
-_wipe_stack(GV *r, U32 rc, GV *rv)
+_wipe_stack(GV *r, U32 argc, GV *rv)
 {
     U32 ref = rv && (rv->gt & GT_HAS_REF);
-    for (U32 i=0; i<rc; i++, r++) {
+    for (U32 i=0; i<argc; i++, r++) {
 /*
     	if (r->gt & GT_HAS_REF) {
     		if (ref && rv->self==r->self) {}
@@ -54,7 +54,7 @@ vm_state_push(guru_vm *vm, guru_irep *irep, GV *regs, U32 argc)
     guru_state *st  = (guru_state *)guru_alloc(sizeof(guru_state));
 
     switch(regs[0].gt) {
-    case GT_OBJ:   ref_inc(&regs[0]);
+    case GT_OBJ:
     case GT_CLASS: st->klass = regs[0].cls;			break;
     case GT_PROC:  st->klass = top->regs[0].cls; 	break;
     default: assert(1==0);
@@ -85,7 +85,6 @@ vm_state_pop(guru_vm *vm, GV ret_val, U32 ra)
     st->regs[0] = ret_val;		// TODO: restore previous set of regfile
 
     vm->state = st->prev;		// restore previous state
-    ref_dec(st->regs);
     vm->depth--;
     guru_free(st);				// release memory block
 }

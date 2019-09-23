@@ -43,12 +43,36 @@ __GURU__ U32 _mutex_uc;
 #define _AR(r)          ((vm->ar.r))
 #define _R0             (&(vm->state->regs[0]))
 #define _R(r)			(&(vm->state->regs[_AR(r)]))
-#define _RA(v)			((((v).gt &GT_HAS_REF)&&(v).self !=_R(a)->self) ? ref_dec(_R(a)) : nop(), *_R(a)=(v))
-#define _RA_X(r)    	((((r)->gt&GT_HAS_REF)&&(r)->self!=_R(a)->self) ? ref_dec(_R(a)) : nop(), *_R(a)=*(r), ref_inc(r))
-#define _RA_T(t,e)      (_R(a)->gt=(t), _R(a)->e)
+//#define _RA(v)			((((v).gt &GT_HAS_REF)&&(v).self !=_R(a)->self) ? ref_dec(_R(a)) : nop(), *_R(a)=(v))
+//#define _RA_X(r)    	(ref_inc(r), (((r)->gt&GT_HAS_REF)&&(r)->self!=_R(a)->self) ? ref_dec(_R(a)) : nop(), *_R(a)=*(r))
+#define _RA(v)			(ref_dec(_R(a)), *_R(a)=(v))
+#define _RA_X(r)    	(ref_inc(r), ref_dec(_R(a)), *_R(a)=*(r))
+#define _RA_T(t,e)      (_R(a)->gt=(t), _R(a)->fil=0, _R(a)->e)
 
 #define SKIP(x)	        { guru_na(x); return; }
 #define QUIT(x)			{ vm->quit=1; guru_na(x); return; }
+
+__GURU__ __INLINE__ void
+RA(guru_vm *vm, GV v)
+{
+	GV  *ra = _R(a);
+	if (v.gt & GT_HAS_REF && v.self != ra->self) {
+		ref_dec(ra);
+	}
+	*ra = v;
+}
+
+__GURU__ __INLINE__ void
+RA_X(guru_vm *vm, GV *r)
+{
+	GV  *ra = _R(a);
+
+	ref_inc(r);
+	if (r->gt & GT_HAS_REF && r->self != ra->self) {
+		ref_dec(ra);
+	}
+	*ra = *r;
+}
 
 //================================================================
 /*!@brief
@@ -757,8 +781,10 @@ uc_strcat(guru_vm *vm)
 
     GV v = guru_str_add(sa, sb);				// ref counts updated
 
+    ref_dec(sb);
     sb->gt = GT_EMPTY;
-    _RA(v);
+
+    _RA(v);										// this will clean out sa
 
 #else
     QUIT("String class");
@@ -781,7 +807,11 @@ uc_array(guru_vm *vm)
 
     GV *s = _R(b);						// source elements
 	GV *d = h->data;					// target
-	for (U32 i=0; i<(n); i++, ref_inc(s), *d++=*s, s->gt=GT_EMPTY, s++);
+	for (U32 i=0; i<(n); i++, d++, s++) {
+		ref_inc(s);
+		*d = *s;
+		s->gt=GT_EMPTY;
+	}
     h->n = n;
 
     _RA(v);								// no need to ref_inc
@@ -1001,6 +1031,8 @@ ucode_prefetch(guru_vm *vm)
 __GURU__ void
 ucode_exec(guru_vm *vm)
 {
+	guru_state *st = vm->state;
+
 	//=======================================================================================
 	// GURU dispatcher unit
 	//=======================================================================================
