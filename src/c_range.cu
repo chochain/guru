@@ -37,7 +37,7 @@
 __GURU__ GV
 guru_range_new(GV *first, GV *last, int exclude_end)
 {
-    GV ret  { .gt = GT_RANGE };
+    GV ret;  { ret.gt=GT_RANGE; ret.fil=0; }
 
     guru_range *r = ret.range = (guru_range *)guru_alloc(sizeof(guru_range));
 

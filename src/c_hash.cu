@@ -183,7 +183,7 @@ _clr(GV *kv)
 __GURU__ GV
 guru_hash_new(int size)
 {
-    GV ret;	{ ret.gt = GT_HASH; }
+    GV ret;	{ ret.gt=GT_HASH, ret.fil=0xbbbbbbbb; }
     /*
       Allocate handle and data buffer.
     */

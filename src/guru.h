@@ -121,9 +121,8 @@ typedef U32 		GS;
   Guru objects
 */
 typedef struct {					// 16-bytes
-	GT  gt 		: 16;				// guru object type
-	U32 temp16 	: 16;				// reserved
-	U32 temp32;						// reserved
+	GT  gt 		: 32;				// guru object type
+	U32 fil;						// cached ref count
     union {							// 64-bit
 		GI  	 		 i;			// TT_FIXNUM, SYMBOL
 		GF 	 	 		 f;			// TT_FLOAT
@@ -144,8 +143,9 @@ typedef struct {					// 16-bytes
 /*!@brief
   Guru class object.
 */
-typedef struct RClass {			// 16-byte
-    GS       		sid;		// class name (symbol) id
+typedef struct RClass {			// 32-byte
+    GS       		sid;		// class name (symbol) id u32
+    U32				fil;		// reserved
     struct RClass 	*super;		// guru_class[super]
     struct RProc  	*vtbl;		// guru_proc[rprocs], linked list
 #if GURU_DEBUG
@@ -157,14 +157,15 @@ typedef struct RClass {			// 16-byte
 typedef void (*guru_fptr)(guru_obj *obj, U32 argc);
 struct Irep;
 
-typedef struct RProc {				// 16-byte
-    GS 	 				sid;		// u32
-    struct RIrep 		*irep;		// an IREP (Ruby code), defined in vm.h
-    guru_fptr  	 		func;		// or a raw C function
-    struct RProc 		*next;		// next function in linked list
+typedef struct RProc {			// 48-byte
+    GS 	 			sid;		// u32
+    U32				fil;		// reserved
+    struct RIrep 	*irep;		// an IREP (Ruby code), defined in vm.h
+    guru_fptr  	 	func;		// or a raw C function
+    struct RProc 	*next;		// next function in linked list
 #if GURU_DEBUG
-    char				*cname;		// classname
-    char  				*name;		// function name
+    char			*cname;		// classname
+    char  			*name;		// function name
 #endif
 } guru_proc;
 
@@ -176,22 +177,22 @@ typedef struct RProc {				// 16-byte
 */
 #define GURU_HDR  		\
 	U32		rc;			\
-	U32		len
+    U16  	size;		\
+    U16  	n
 
 typedef struct RString {			// 16-byte
 	GURU_HDR;
-	char 				*data;		//!< pointer to allocated buffer.
+	char 	*data;					//!< pointer to allocated buffer.
 } guru_str;
 
 //================================================================
 /*!@brief
   physical store for Guru object instance.
 */
-typedef struct RVar {				// 24-byte
+typedef struct RVar {				// 32-byte
 	GURU_HDR;
     struct RClass 		*cls;
     struct RStore 		*ivar;
-//    U8 	data[];					// raw 'here' if needed
 } guru_var;
 
 typedef struct RSes {				// 16-byte

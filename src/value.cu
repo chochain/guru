@@ -31,7 +31,7 @@
 __GURU__ S32
 _string_cmp(const GV *v1, const GV *v2)
 {
-	if (v1->str->len != v2->str->len) return -1;
+	if (v1->str->n != v2->str->n) return -1;
 
 	return STRCMP(v1->str->data, v2->str->data);
 }
@@ -285,7 +285,7 @@ ref_dec(GV *v)
 __GURU__ GV *
 ref_inc(GV *v)
 {
-	if (v->gt & GT_HAS_REF) v->self->rc++;
+	if (v->gt & GT_HAS_REF) (v->self->rc++);
 
 	return v;
 }
@@ -299,7 +299,7 @@ ref_inc(GV *v)
 __GURU__ void
 ref_clr(GV *v)
 {
-    if (v->gt & GT_HAS_REF) v->self->rc = 0;
+    if (v->gt & GT_HAS_REF) (v->fil = v->self->rc = 0);
     v->gt = GT_EMPTY;
 }
 

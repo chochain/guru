@@ -26,11 +26,12 @@ extern "C" {
 /*!@brief
   Define Range object (same the handles of other objects)
 */
-typedef struct RRange {		// 16-byte
-    GURU_HDR;
-    U32 flag;
-    GV 	first;
-    GV 	last;
+typedef struct RRange {		// 48-byte
+    GURU_HDR;				// 8-byte
+    U32	flag;
+    U32 temp;
+    GV 	first;				// 16-byte
+    GV 	last;				// 16-byte
 } guru_range;
 
 __GURU__ GV 		guru_range_new(GV *first, GV *last, int exclude_end);

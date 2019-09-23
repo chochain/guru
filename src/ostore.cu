@@ -167,7 +167,7 @@ _get(guru_ostore *st, GS sid)
 __GURU__ GV
 ostore_new(guru_class *cls, U32 size)
 {
-    GV ret { .gt = GT_OBJ };
+    GV ret; { ret.gt=GT_OBJ; ret.fil=0xffffffff; }
 
     guru_var *v = ret.self = (guru_var *)guru_alloc(sizeof(guru_var));
 

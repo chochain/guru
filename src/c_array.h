@@ -25,8 +25,6 @@ extern "C" {
 */
 typedef struct RArray {	// 16-byte
     GURU_HDR;			// reference count
-    U16  size;			//!< data buffer size.
-    U16  n;				//!< # of stored.
     GV 	 *data;			//!< pointer to allocated memory.
 
 } guru_array;

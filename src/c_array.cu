@@ -292,7 +292,7 @@ _join(GV v[], U32 argc, GV *src, GV *ret, GV *sep)
 __GURU__ GV
 guru_array_new(U32 sz)
 {
-    GV ret { .gt = GT_ARRAY };
+    GV ret; { ret.gt=GT_ARRAY; ret.fil=0xaaaaaaaa; }
 
     guru_array *h   = (guru_array *)guru_alloc(sizeof(guru_array));		// handle
     void       *ptr = guru_alloc(sizeof(GV) * sz);
