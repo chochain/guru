@@ -21,14 +21,13 @@
 
 */
 typedef enum {
-    GURU_GLOBAL_OBJECT = 1,
-    GURU_CONST_OBJECT,
+    GURU_CONST_OBJECT  = 0,				// for classes
+    GURU_GLOBAL_OBJECT					// Ruby global objects
 } _gtype;
 
-typedef struct _gobj_ {
+typedef struct _gobj_ {					// 32-bytes
     GS 			sid;
-    guru_obj 	obj;
-    _gtype 		gt	:8;
+    _gtype 		gt	:16;
 } _gobj;
 
 #define _LOCK		{ MUTEX_LOCK(_mutex_gobj); }
@@ -37,8 +36,9 @@ typedef struct _gobj_ {
 // max of global object in _global[]
 __GURU__ U32 	_mutex_gobj;
 
-__GURU__ U32 	_global_idx;
-__GURU__ _gobj 	_global[MAX_GLOBAL_COUNT];
+__GURU__ U32    _global_sz;
+__GURU__ _gobj 	_global_idx[MAX_GLOBAL_COUNT];
+__GURU__ GV 	_global[MAX_GLOBAL_COUNT];
 
 /* search */
 /* linear search is not efficient! */
@@ -46,38 +46,39 @@ __GURU__ _gobj 	_global[MAX_GLOBAL_COUNT];
 __GURU__ S32
 _get_idx(GS sid, _gtype gt)
 {
-	_gobj *obj = _global;
-    for (U32 i=0; i <_global_idx ; i++, obj++) {
-        if (obj->sid == sid && obj->gt == gt) return i;
+	_gobj *p = _global_idx;
+    for (U32 i=0; i <_global_sz ; i++, p++) {
+        if (p->sid == sid && p->gt == gt) return i;
     }
     return -1;
 }
 
-__GURU__ guru_obj *
+__GURU__ GV *
 _get_obj(GS sid, _gtype gt)
 {
-    S32 idx = _get_idx(sid, gt);
+    S32 i = _get_idx(sid, gt);
 
-    if (idx < 0) return NULL;
+    if (i < 0) return NULL;
 
-    return &_global[idx].obj;				// pointer to global object
+    return &_global[i];				// pointer to global object
 }
 
 __GURU__ void
-_add_obj(GS sid, guru_obj *obj, _gtype gt)
+_add_obj(GS sid, GV *v, _gtype gt)
 {
-    S32 idx = _get_idx(sid, gt);
+    S32 i = _get_idx(sid, gt);
 
     _LOCK;
 
-    if (idx < 0) {			// not found
-        idx = _global_idx++;
+    if (i < 0) {			// not found
+        i = _global_sz++;
     }
-    assert(idx < MAX_GLOBAL_COUNT);			// maybe raise ex
+    assert(i < MAX_GLOBAL_COUNT);			// maybe raise ex
 
-    _global[idx].sid = sid;
-    _global[idx].gt  = gt;
-    MEMCPY(&_global[idx].obj, obj, sizeof(guru_obj));				// deep copy
+    _global_idx[i].sid = sid;
+    _global_idx[i].gt  = gt;
+    GV *tgt = &_global[i];
+    MEMCPY(tgt, v, sizeof(GV));				// deep copy
 
     _UNLOCK;
 }
@@ -85,26 +86,26 @@ _add_obj(GS sid, guru_obj *obj, _gtype gt)
 /* add */
 /* TODO: Check reference count */
 __GURU__ void
-global_object_add(GS sid, guru_obj *obj)
+global_object_add(GS sid, GV *v)
 {
-    _add_obj(sid, obj, GURU_GLOBAL_OBJECT);
+    _add_obj(sid, v, GURU_GLOBAL_OBJECT);
 }
 
 __GURU__ void
-const_object_add(GS sid, guru_obj *obj)
+const_object_add(GS sid, GV *v)
 {
-    _add_obj(sid, obj, GURU_CONST_OBJECT);
+    _add_obj(sid, v, GURU_CONST_OBJECT);
 }
 
 /* get */
-__GURU__ guru_obj *
+__GURU__ GV *
 global_object_get(GS sid)
 {
     return _get_obj(sid, GURU_GLOBAL_OBJECT);
 }
 
 /* add const */
-__GURU__ guru_obj *
+__GURU__ GV *
 const_object_get(GS sid)
 {
     return _get_obj(sid, GURU_CONST_OBJECT);
@@ -116,7 +117,7 @@ guru_global_init(void)
 	if (blockIdx.x!=0 || threadIdx.x!=0) return;
 
 	_mutex_gobj = 0;
-	_global_idx = 0;
+	_global_sz  = 0;
 }
 
 
