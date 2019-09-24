@@ -86,7 +86,8 @@ __unmap(free_block *blk)
 
     if (blk->prev) {						// down link exists
     	// blk->prev->next = blk->next;
-    	PREV_FREE(blk)->next = U8POFF(NEXT_FREE(blk), PREV_FREE(blk));
+    	free_block *p = PREV_FREE(blk);
+    	p->next = blk->next ? U8POFF(NEXT_FREE(blk), p) : 0;
     }
     else {			// top of the link, clear the map first (i.e. make available)
         U32 l1, l2;
@@ -98,7 +99,8 @@ __unmap(free_block *blk)
     }
     if (blk->next) {						// up link
     	// blk->next->prev = blk->prev;
-    	NEXT_FREE(blk)->prev = U8POFF(PREV_FREE(blk), NEXT_FREE(blk));
+    	free_block *n = NEXT_FREE(blk);
+    	n->prev = blk->prev ? U8POFF(n, PREV_FREE(blk)) : 0;
     }
     blk->next = blk->prev = 0;				// wipe for debugging
 }
@@ -380,7 +382,7 @@ guru_realloc(void *p0, U32 sz)
     }
 
     // not big enough block found, new alloc and deep copy
-    void *p1 = guru_alloc(sz);
+    void *p1 = guru_alloc(bsz);
     memcpy(p1, p0, sz);										// deep copy
 
     guru_free(p0);											// reclaim block
