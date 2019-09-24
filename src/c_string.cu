@@ -649,6 +649,43 @@ str_to_sym(GV v[], U32 argc)
 }
 
 //================================================================
+//! Inspect
+#define BUF_SIZE 80
+
+__GURU__ void
+str_inspect(GV v[], U32 argc)
+{
+	const char *hex = "0123456789ABCDEF";
+    GV ret  = guru_str_new("\"");
+
+    U8 buf[BUF_SIZE];
+    U8 *p = buf;
+    U8 *s = (U8*)v->str->data;
+
+    for (U32 i=0; i < v->str->n; i++, s++) {
+        if (*s >= ' ' && *s < 0x80) {
+        	*p++ = *s;
+        }
+        else {								// tiny isprint()
+        	*p++ = '\\';
+        	*p++ = 'x';
+            *p++ = hex[*s >> 4];
+            *p++ = hex[*s & 0x0f];
+        }
+    	if ((p-buf) > BUF_SIZE-5) {			// flush buffer
+    		*p = '\0';
+    		guru_str_add_cstr(&ret, buf);
+    		p = buf;
+    	}
+    }
+    *p++ = '\"';
+    *p   = '\0';
+    guru_str_add_cstr(&ret, buf);
+
+    RETURN_VAL(ret);
+}
+
+//================================================================
 /*! initialize
  */
 __GURU__ void
