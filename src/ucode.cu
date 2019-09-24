@@ -21,16 +21,12 @@
 #include "class.h"
 #include "state.h"
 
-#if GURU_USE_STRING
 #include "c_string.h"
-#endif
-#if GURU_USE_ARRAY
-#include "c_range.h"
 #include "c_array.h"
 #include "c_hash.h"
-#endif
+#include "c_range.h"
 
-#include "puts.h"
+#include "inspect.h"
 
 #define _LOCK		{ MUTEX_LOCK(_mutex_uc); }
 #define _UNLOCK		{ MUTEX_FREE(_mutex_uc); }
@@ -779,12 +775,12 @@ uc_strcat(guru_vm *vm)
     if (pa) pa->func(sa, 0);					// can it be an IREP?
     if (pb) pb->func(sb, 0);
 
-    GV v = guru_str_add(sa, sb);				// ref counts updated
+    guru_str_add(ref_inc(sa), sb);		// ref counts increased as _dup updated
 
     ref_dec(sb);
     sb->gt = GT_EMPTY;
 
-    _RA(v);										// this will clean out sa
+    _RA(*sa);									// this will clean out sa
 
 #else
     QUIT("String class");

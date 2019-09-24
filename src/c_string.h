@@ -23,13 +23,12 @@ extern "C" {
 /*!@brief
   Define String handle.
 */
-__GURU__ GV 		guru_str_new(const U8 *str);				// U8P will require to many casting
-__GURU__ void       guru_str_del(GV *s);
-__GURU__ GV 		guru_str_add(const GV *v0, const GV *v1);
-__GURU__ void       guru_str_append(const GV *v0, const GV *v1);
-__GURU__ void       guru_str_append_cstr(const GV *v0, const U8 *str);
+__GURU__ GV 	guru_str_new(const U8 *str);				// U8P will require to many casting
+__GURU__ void   guru_str_del(GV *s);
+__GURU__ void   guru_str_add(GV *s0, GV *s1);
+__GURU__ void   guru_str_add_cstr(GV *s0, const U8 *str);
 
-__GURU__ void       guru_init_class_string(void);
+__GURU__ void   guru_init_class_string(void);
 
 #ifdef __cplusplus
 }

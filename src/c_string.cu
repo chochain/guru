@@ -16,9 +16,9 @@
 #include "alloc.h"
 #include "static.h"
 #include "symbol.h"
-#include "c_string.h"
 
-#include "puts.h"
+#include "c_string.h"
+#include "inspect.h"
 
 #if GURU_USE_STRING
 //================================================================
@@ -68,19 +68,19 @@ __GURU__ GV
 _blank(U32 len)
 {
     GV  ret; { ret.gt=GT_STR; ret.fil=0; }	// assuming some one acquires it
-    U32 bsz = len+1;	bsz += -bsz & 7;	// 8-byte aligned
+    U32 asz = len+1;	asz += -asz & 7;	// 8-byte aligned
     /*
       Allocate handle and string buffer.
     */
     guru_str *h = ret.str = (guru_str *)guru_alloc(sizeof(guru_str));
-    U8P      s  = (U8P)guru_alloc(bsz);		// 8-byte aligned
+    U8P      s  = (U8P)guru_alloc(asz);		// 8-byte aligned
 
     CHECK_ALIGN((U32A)h);
     CHECK_ALIGN((U32A)s);
 
     s[0] = '\0';							// empty new string
     h->rc   = 1;
-    h->size = bsz;
+    h->size = asz;
     h->n    = len;
     h->data = (char *)s;					// TODO: for DEBUG, change back to (U8P)
 
@@ -177,11 +177,11 @@ _strip(GV *v, U32 mode)
     	MEMCPY(buf, p0, new_len);
     }
     buf[new_len] = '\0';
-    U32 bsz = new_len + 1; 	bsz += -bsz & 7;		// 8-byte aligned
+    U32 asz = new_len + 1; 	asz += -asz & 7;		// 8-byte aligned
 
-    v->str->size = bsz;
+    v->str->size = asz;
     v->str->n    = new_len;
-    v->str->data = (char *)guru_realloc(buf, bsz);	// shrink suitable size.
+    v->str->data = (char *)guru_realloc(buf, asz);	// shrink suitable size.
 
     return 1;
 }
@@ -245,24 +245,23 @@ guru_str_del(GV *v)
   @param	error_code
 */
 __GURU__ void
-guru_str_append(const GV *v0, const GV *v1)
+guru_str_add(GV *s0, GV *s1)
 {
-    U32 len0 = v0->str->n;
-    U32 len1 = (v1->gt==GT_STR) ? v1->str->n : 1;
-    U32 bsz  = len0 + len1 + 1;		bsz += -bsz & 7;	// +'\0', 8-byte aligned
+    U32 len0 = s0->str->n;
+    U32 len1 = (s1->gt==GT_STR) ? s1->str->n : 1;
+    U32 asz  = len0 + len1 + 1;		asz += -asz & 7;	// +'\0', 8-byte aligned
+    U8  *buf = (U8*)guru_realloc(s0->str->data, asz);
 
-    U8P s = (U8P)guru_realloc(v0->str->data, bsz);
-
-    if (v1->gt==GT_STR) {								// append str2
-        MEMCPY(s + len0, v1->str->data, len1 + 1);
+    if (s1->gt==GT_STR) {								// append str2
+        MEMCPY(buf + len0, s1->str->data, len1 + 1);
     }
-    else if (v1->gt==GT_INT) {
-        s[len0]   = v1->i;
-        s[len0+1] = '\0';
+    else if (s1->gt==GT_INT) {
+        buf[len0]   = s1->i;
+        buf[len0+1] = '\0';
     }
-    v0->str->size = bsz;
-    v0->str->n    = len0 + len1;
-    v0->str->data = (char *)s;
+    s0->str->size = asz;
+    s0->str->n    = len0 + len1;
+    s0->str->data = (char *)buf;
 }
 
 //================================================================
@@ -272,43 +271,18 @@ guru_str_append(const GV *v0, const GV *v1)
   @param  s2	pointer to char (c_str)
 */
 __GURU__ void
-guru_str_append_cstr(const GV *v0, const U8 *str)
+guru_str_add_cstr(GV *s0, const U8 *str)
 {
-    U32 len0 = v0->str->n;
+    U32 len0 = s0->str->n;
     U32 len1 = STRLEN(str);
-    U32 sz  = len0 + len1 + 1;
-    U32 bsz = sz + (-sz & 7);
-
-    U8 *buf  = (U8*)guru_realloc(v0->str->data, bsz);	// 8-byte aligned
+    U32 asz  = len0 + len1 + 1;		asz += -asz & 7;	// 8-byte aligned
+    U8  *buf = (U8*)guru_realloc(s0->str->data, asz);
 
     MEMCPY(buf + len0, str, len1 + 1);
 
-    v0->str->size = bsz;
-    v0->str->n 	  = len0 + len1;
-    v0->str->data = (char *)buf;
-}
-
-//================================================================
-/*! add string (s1 + s2)
-
-  @param  vm	pointer to VM.
-  @param  s1	pointer to target value 1
-  @param  s2	pointer to target value 2
-  @return	new string as s1 + s2
-*/
-__GURU__ GV
-guru_str_add(const GV *v0, const GV *v1)
-{
-    guru_str *h0 = v0->str;
-    guru_str *h1 = v1->str;
-
-    GV  v  = _blank(h0->n + h1->n);
-    guru_str *s = v.str;
-
-    MEMCPY(s->data,         h0->data, h0->n);
-    MEMCPY(s->data + h0->n, h1->data, h1->n + 1);	// include the '\0'
-
-    return v;
+    s0->str->size = asz;
+    s0->str->n 	  = len0 + len1;
+    s0->str->data = (char *)buf;
 }
 
 //================================================================
@@ -321,8 +295,9 @@ str_add(GV v[], U32 argc)
         guru_na("str + other type");
     }
     else {
-    	RETURN_VAL(guru_str_add(v, v+1));
+    	guru_str_add(v, v+1);		// v+1 appended to v (i.e. the returned str)
     }
+    RETURN_VAL(v[0]);
 }
 
 //================================================================
@@ -396,15 +371,6 @@ str_to_f(GV v[], U32 argc)
     RETURN_FLOAT(d);
 }
 #endif
-
-//================================================================
-/*! (method) <<
- */
-__GURU__ void
-str_append(GV v[], U32 argc)
-{
-    guru_str_append(v, v+1);
-}
 
 //================================================================
 /*! (method) []
@@ -498,14 +464,13 @@ str_insert(GV v[], U32 argc)
         PRINTF("IndexError\n");  // raise?
         return;
     }
-    U32 sz  = len1 + len2 - len + 1;
-    U32 bsz = sz + (-sz & 7);										// 8-byte aligned
-    U8P str = (U8P)guru_realloc(_raw(v), bsz);
+    U32 asz = len1 + len2 - len + 1;	asz += -asz & 7;			// 8-byte aligned
+    U8P str = (U8P)guru_realloc(_raw(v), asz);
 
     MEMCPY(str + nth + len2, str + nth + len, len1 - nth - len + 1);
     MEMCPY(str + nth, (U8P)_raw(val), len2);
 
-    v->str->size = bsz;
+    v->str->size = asz;
     v->str->n    = len1 + len2 - len;
     v->str->data = (char *)str;
 }
@@ -566,44 +531,6 @@ str_index(GV v[], U32 argc)
     if (index < 0) RETURN_NIL();
 
     RETURN_INT(index);
-}
-
-//================================================================
-/*! (method) inspect
- */
-#define BUF_SIZE 80
-
-__GURU__ void
-str_inspect(GV v[], U32 argc)
-{
-	const char *hex = "0123456789ABCDEF";
-    GV ret  = guru_str_new("\"");
-
-    U8 buf[BUF_SIZE];
-    U8 *p = buf;
-    U8 *s = (U8P)_raw(v);
-
-    for (U32 i=0; i < _len(v); i++, s++) {
-        if (*s >= ' ' && *s < 0x80) {
-        	*p++ = *s;
-        }
-        else {								// tiny isprint()
-        	*p++ = '\\';
-        	*p++ = 'x';
-            *p++ = hex[*s >> 4];
-            *p++ = hex[*s & 0x0f];
-        }
-    	if ((p-buf) > BUF_SIZE-5) {			// flush buffer
-    		*p = '\0';
-    		guru_str_append_cstr(&ret, buf);
-    		p = buf;
-    	}
-    }
-    *p++ = '\"';
-    *p   = '\0';
-    guru_str_append_cstr(&ret, buf);
-
-    RETURN_VAL(ret);
 }
 
 //================================================================
@@ -733,16 +660,14 @@ guru_init_class_string()
     NEW_PROC("*",		str_mul);
     NEW_PROC("size",	str_len);
     NEW_PROC("length",	str_len);
-    NEW_PROC("to_i",	str_to_i);
-    NEW_PROC("to_s",    str_to_s);
-    NEW_PROC("<<",		str_append);
+    NEW_PROC("<<",		str_add);
     NEW_PROC("[]",		str_slice);
     NEW_PROC("[]=",		str_insert);
+    // op
     NEW_PROC("chomp",	str_chomp);
     NEW_PROC("chomp!",	str_chomp_self);
     NEW_PROC("dup",		str_dup);
     NEW_PROC("index",	str_index);
-    NEW_PROC("inspect",	str_inspect);
     NEW_PROC("ord",		str_ord);
     NEW_PROC("split",	str_split);
     NEW_PROC("lstrip",	str_lstrip);
@@ -751,11 +676,13 @@ guru_init_class_string()
     NEW_PROC("rstrip!",	str_rstrip_self);
     NEW_PROC("strip",	str_strip);
     NEW_PROC("strip!",	str_strip_self);
-    NEW_PROC("to_sym",	str_to_sym);
     NEW_PROC("intern",	str_to_sym);
-#if GURU_USE_FLOAT
+    // conversion methods
+    NEW_PROC("to_i",	str_to_i);
+    NEW_PROC("to_s",    str_to_s);
+    NEW_PROC("to_sym",	str_to_sym);
     NEW_PROC("to_f",	str_to_f);
-#endif
+    NEW_PROC("inspect",	str_inspect);
 
     guru_add_proc(guru_class_object, "sprintf",	str_sprintf);
     guru_add_proc(guru_class_object, "printf",	str_printf);

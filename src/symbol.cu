@@ -178,8 +178,8 @@ id2name(GS sid)
 
 #if GURU_USE_STRING
 // from c_string.cu
-extern "C" __GURU__ GV 		guru_str_new(const U8 *src);
-extern "C" __GURU__ void    guru_str_append_cstr(const GV *s1, const U8 *s2);
+extern "C" __GURU__ GV   guru_str_new(const U8 *src);
+extern "C" __GURU__ void guru_str_add_cstr(GV *s1, const U8 *s2);
 
 //================================================================
 /*! (method) inspect
@@ -189,7 +189,7 @@ c_sym_inspect(GV v[], U32 argc)
 {
     GV ret = guru_str_new(":");
 
-    guru_str_append_cstr(&ret, id2name(v[0].i));
+    guru_str_add_cstr(&ret, id2name(v[0].i));
 
     RETURN_VAL(ret);
 }
