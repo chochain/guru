@@ -76,8 +76,8 @@ _search(const GV v[], const GV *key)
 #ifndef GURU_HASH_SEARCH_LINER
 #define GURU_HASH_SEARCH_LINER
 #endif
-    GV *p = v->hash->data;
-    int         n = _size(v);
+    GV  *p = v->hash->data;
+    U32  n = _size(v);
 
 #ifdef GURU_HASH_SEARCH_LINER
     for (U32 i=0; i < n; i++, p+=2) {
@@ -185,13 +185,13 @@ guru_hash_new(int size)
     /*
       Allocate handle and data buffer.
     */
-    guru_hash *h    = ret.hash = (guru_hash *)guru_alloc(sizeof(guru_hash));
-    GV        *data = (GV *)guru_alloc(sizeof(GV) * (size<<1));
+    guru_hash *h   = ret.hash = (guru_hash *)guru_alloc(sizeof(guru_hash));
+    GV        *ptr = size ? (GV *)guru_alloc(sizeof(GV) * (size<<1)) : NULL;
 
     h->rc   = 1;
     h->size	= size<<1;
     h->n  	= 0;
-    h->data = data;
+    h->data = ptr;
 
     return ret;
 }

@@ -58,16 +58,18 @@ __GURU__ void
 _resize(guru_array *h, U32 ndx)
 {
     U32 nsz = 0;
-    if (ndx >= h->size) {			// need resize?
+    if (ndx >= h->size) {						// need resize?
         nsz = ndx;
     }
     else if (h->n >= h->size) {
-        nsz = h->n + 4;				// auto allocate extra 4 elements
+        nsz = h->n + 4;							// auto allocate extra 4 elements
     }
     if (nsz) {
-        GV *p1 = (GV *)guru_realloc(h->data, sizeof(GV) * nsz);
+    	U32 asz = sizeof(GV) * nsz;		asz += -asz & 7;	// should be 8-byte aligned already
+        h->data = h->data
+        	? (GV *)guru_realloc(h->data, asz)
+        	: (GV *)guru_alloc(asz);
         h->size = nsz;
-        h->data = p1;				// set to new pointer
         for (U32 i=h->n; i<nsz; i++) {			// lazy fill here, instead of when resized
             h->data[i] = GURU_NIL_NEW();		// prep newly allocated cells
         }
@@ -269,7 +271,7 @@ guru_array_new(U32 sz)
     GV ret; { ret.gt=GT_ARRAY; ret.fil=0xaaaaaaaa; }
 
     guru_array *h   = (guru_array *)guru_alloc(sizeof(guru_array));		// handle
-    void       *ptr = guru_alloc(sizeof(GV) * sz);
+    void       *ptr = sz ? guru_alloc(sizeof(GV) * sz) : NULL;			// empty array?
 
     h->rc   = 1;
     h->size = sz;
@@ -294,7 +296,7 @@ guru_array_del(GV *ary)
     for (U32 i=0; i < h->n; i++, p++) {
     	ref_dec(p);						// no more referenced by the array
     }
-    guru_free(h->data);
+    if (h->data) guru_free(h->data);
     guru_free(h);
 }
 
