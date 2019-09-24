@@ -37,6 +37,8 @@ __GURU__ void sym_inspect(GV v[], U32 argc)	{}
 
 #else
 
+__GURU__ GV	_to_s(GV v[], U32 n);			// forward declaration
+
 __GURU__ void
 guru_na(const U8 *msg)
 {
@@ -142,6 +144,19 @@ prc_inspect(GV v[], U32 argc)
     return ret;
 }
 
+//================================================================
+//! String class
+__GURU__ GV
+_str(GV v[], U32 argc)
+{
+	GV ret = guru_str_new("\"");
+	guru_str_add(&ret, v);
+	guru_str_add_cstr(&ret, "\"");
+
+	return ret;
+}
+
+
 #if GURU_USE_ARRAY
 //================================================================
 //! Array class
@@ -169,13 +184,16 @@ _join(GV v[], U32 argc, GV *src, GV *ret, GV *sep)
 __GURU__ GV
 _ary(GV v[], U32 argc)
 {
-	GV ret = guru_str_new("[");
-    GV vi, s1;
-    for (U32 i=0, n=v->array->n; i < n; i++) {
+    U32 n   = v->array->n;
+	GV  ret = guru_str_new("[");
+    GV  *vi = v->array->data;
+    for (U32 i=0; i < n; i++, vi++) {
         if (i != 0) guru_str_add_cstr(&ret, ", ");
-        vi = v->array->data[i];
-        s1 = guru_inspect(v+argc, &vi);
-        guru_str_add(&ret, &s1);
+
+        GV s  = _to_s(vi, argc);			// object to string (ref_cnt=1)
+        char *p = s.str->data;
+        guru_str_add(&ret, &s);
+        ref_dec(&s);					// release the string buffer
     }
     guru_str_add_cstr(&ret, "]");
 
@@ -264,27 +282,31 @@ _obj(GV v[], U32 argc)
 	return ret;
 }
 
+__GURU__ GV
+_to_s(GV v[], U32 n)
+{
+	switch (v->gt) {
+    case GT_NIL:
+    case GT_EMPTY:	return _nil(v, n);
+    case GT_FALSE:	return _false(v, n);
+    case GT_TRUE:	return _true(v, n);
+    case GT_INT: 	return _int(v, n);
+    case GT_FLOAT: 	return _flt(v, n);
+    case GT_CLASS:	return _class(v, n);
+    case GT_OBJ:	return _obj(v, n);
+    case GT_ARRAY:	return _ary(v, n);
+    case GT_STR: 	return _str(v, n);
+    case GT_HASH:  	return _hsh(v, n);
+    default: 		return guru_str_new("");
+    }
+}
 //================================================================
 //! Object#to_s factory function
 __GURU__ void
 gv_to_s(GV v[], U32 argc)
 {
-	GV  ret;
+	GV ret = _to_s(v, argc);
 
-	switch (v->gt) {
-    case GT_NIL:
-    case GT_EMPTY:	ret = _nil(v, argc);	break;
-    case GT_FALSE:	ret = _false(v, argc);	break;
-    case GT_TRUE:	ret = _true(v, argc);	break;
-    case GT_INT: 	ret = _int(v, argc);	break;
-    case GT_FLOAT: 	ret = _flt(v, argc);	break;
-    case GT_CLASS:	ret = _class(v, argc);	break;
-    case GT_OBJ:	ret = _obj(v, argc);	break;
-    case GT_ARRAY:	ret = _ary(v, argc);	break;
-    case GT_HASH:  	ret = _hsh(v, argc);	break;
-    case GT_STR: 	assert(1==0);			break;	// in c_string itself
-    default: 		ret = guru_str_new("");	break;
-    }
-    RETURN_VAL(ret);
+	RETURN_VAL(ret);
 }
 #endif	// GURU_USE_STRING
