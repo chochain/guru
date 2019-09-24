@@ -156,8 +156,3 @@ guru_p(GV *v, U32 argc)
     }
 }
 
-__GURU__ void
-guru_na(const U8 *msg)
-{
-	PRINTF("method not supported: %s\n", msg);
-}

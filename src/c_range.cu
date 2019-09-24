@@ -18,12 +18,10 @@
 #include "symbol.h"
 
 #include "ucode.h"
-#include "object.h"		// guru_kind_of, guru_inspect
+#include "object.h"		// guru_kind_of
 
 #include "c_range.h"
-#include "c_string.h"
-
-#include "puts.h"
+#include "inspect.h"
 
 //================================================================
 /*! constructor
@@ -132,30 +130,6 @@ rng_exclude_end(GV v[], U32 argc)
 {
     RETURN_BOOL(IS_EXCLUDE_END(v[0].range));
 }
-
-#if GURU_USE_STRING
-//================================================================
-/*! (method) inspect
- */
-__GURU__ void
-rng_inspect(GV v[], U32 argc)
-{
-    GV ret = guru_str_new(NULL);
-    if (!ret.str) {
-        RETURN_NIL();
-    }
-    GV v1, s1;
-    for (U32 i=0; i<2; i++) {
-        if (i != 0) guru_str_append_cstr(&ret, (U8P)"..");
-        v1 = (i == 0) ? v->range->first : v->range->last;
-        s1 = guru_inspect(v+argc, &v1);
-
-        guru_str_append(&ret, &s1);
-        ref_clr(&s1);					// free locally allocated memory
-    }
-    RETURN_VAL(ret);
-}
-#endif
 
 //================================================================
 /*! initialize

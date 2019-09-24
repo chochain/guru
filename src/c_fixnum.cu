@@ -15,12 +15,9 @@
 #include "guru.h"
 #include "value.h"
 #include "static.h"
-#include "c_fixnum.h"
 
-#if GURU_USE_STRING
-#include "c_string.h"
-#include "puts.h"
-#endif
+#include "c_fixnum.h"
+#include "inspect.h"
 
 // macro to fetch from stack objects
 #define ARG_INT(n)		(v[(n)].i)
@@ -167,42 +164,6 @@ int_to_f(GV v[], U32 argc)
 }
 #endif
 
-#if GURU_USE_STRING
-//================================================================
-/*! (method) chr
- */
-__GURU__ void
-int_chr(GV v[], U32 argc)
-{
-    U8 buf[2] = { (U8)ARG_INT(0), '\0' };
-
-    RETURN_VAL(guru_str_new(buf));
-}
-
-//================================================================
-/*! (method) to_s
- */
-__GURU__ void
-int_to_s(GV v[], U32 argc)
-{
-    U32 aoff = 'a' - 10;
-    U32 base = argc ? ARG_INT(1) : 10;				// if base given
-
-    assert(base >=2 && base <= 36);
-
-    U8 buf[64+2];									// int64 + terminate + 1
-    U8 *p = buf + sizeof(buf) - 1;		*p='\0';	// fill from the tail of the buffer
-	S32 i = ARG_INT(0);
-    do {
-        U32 x = i % base;
-        *--p = (x < 10)? x + '0' : x + aoff;
-        i /= base;
-    } while (i>0);
-
-    RETURN_VAL(guru_str_new(p));
-}
-#endif
-
 __GURU__ void
 guru_init_class_int(void)
 {
@@ -220,14 +181,10 @@ guru_init_class_int(void)
     NEW_PROC("<<", 		int_lshift);
     NEW_PROC(">>", 		int_rshift);
     NEW_PROC("abs",		int_abs);
-#if GURU_USE_FLOAT
     NEW_PROC("to_f",	int_to_f);
-#endif
-#if GURU_USE_STRING
     NEW_PROC("chr", 	int_chr);
-    NEW_PROC("inspect",	int_to_s);
     NEW_PROC("to_s", 	int_to_s);
-#endif
+    NEW_PROC("inspect",	int_to_s);
 }
 
 // Float
@@ -307,10 +264,8 @@ guru_init_class_float(void)
 #endif
     NEW_PROC("abs", 	flt__abs);
     NEW_PROC("to_i", 	flt__to_i);
-#if GURU_USE_STRING
     NEW_PROC("inspect", flt__to_s);
     NEW_PROC("to_s", 	flt__to_s);
-#endif
 }
 
 #endif

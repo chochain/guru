@@ -13,15 +13,10 @@
 #include "alloc.h"
 #include "object.h"
 
-#if GURU_USE_STRING
 #include "c_string.h"
-#endif
-
-#if GURU_USE_ARRAY
-#include "c_range.h"
 #include "c_array.h"
 #include "c_hash.h"
-#endif
+#include "c_range.h"
 
 //extern "C" __GURU__ void guru_obj_del(GV *v);		// object.cu
 

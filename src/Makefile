@@ -14,7 +14,7 @@ SRC =   main.c
 GURU= 	alloc32.cu guru.cu static.cu value.cu global.cu \
 		ostore.cu symbol.cu class.cu\
         puts32.cu load.cu \
-		vm.cu ucode.cu state.cu object.cu \
+		vm.cu ucode.cu state.cu object.cu inspect.cu \
 		c_fixnum.cu c_string.cu c_range.cu c_array.cu c_hash.cu
 GEXT=   c_string.h c_range.h c_array.h c_hash.h
 CUDA=   cuda.cu
@@ -107,6 +107,9 @@ c_range.o: c_range.cu 	vm_config.h guru.h alloc.h static.h symbol.h \
 
 c_hash.o: c_hash.cu 	vm_config.h guru.h alloc.h static.h \
 						c_hash.h c_array.h c_string.h 
+
+inspect.o: inspect.cu   vm_config.h guru.h value.h object.h symbol.h \
+                        c_fixnum.h c_string.h c_array.h c_range.h c_hash.h
 
 clean: 
 	$(RM) -R main.o $(LIB) $(OBJS) *~

@@ -21,9 +21,7 @@
 
 #include "c_hash.h"
 #include "c_array.h"
-#include "c_string.h"
-
-#include "puts.h"
+#include "inspect.h"
 
 /*
   function summary
@@ -443,40 +441,6 @@ hsh_values(GV v[], U32 argc)
     }
     RETURN_VAL(ret);
 }
-
-#if GURU_USE_STRING
-//================================================================
-__GURU__ void
-hsh_inspect(GV v[], U32 argc)
-{
-    GV blank = guru_str_new("");
-    GV comma = guru_str_new(", ");
-    GV ret   = guru_str_new("{");
-    if (!ret.str) {
-    	RETURN_NIL();
-    }
-
-    GV s[3];
-    GV *p = _data(v);
-    int         n = _size(v);
-    for (U32 i=0; i<n; i++, p+=2) {
-    	s[0] = (i==0) ? blank : comma;
-        s[1] = guru_inspect(v+argc, p);			// key
-        s[2] = guru_inspect(v+argc, p+1);		// value
-
-        guru_str_append(&ret, &s[0]);
-        guru_str_append(&ret, &s[1]);
-        guru_str_append_cstr(&ret, "=>");
-        guru_str_append(&ret, &s[2]);
-
-        ref_clr(&s[1]);							// free locally allocated memory
-        ref_clr(&s[2]);
-    }
-    guru_str_append_cstr(&ret, "}");
-
-    RETURN_VAL(ret);
-}
-#endif
 
 //================================================================
 /*! initialize
