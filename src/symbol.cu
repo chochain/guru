@@ -15,10 +15,8 @@
 #include "alloc.h"
 #include "static.h"
 #include "symbol.h"
-
-#if GURU_USE_ARRAY
+#include "inspect.h"
 #include "c_array.h"
-#endif
 
 #if !defined(GS_LINER) && !defined(GS_BTREE)
 #define GS_BTREE
@@ -176,41 +174,13 @@ id2name(GS sid)
     return (sid < _sym_idx) ? _sym[sid].cstr : NULL;
 }
 
-#if GURU_USE_STRING
-// from c_string.cu
-extern "C" __GURU__ GV   guru_str_new(const U8 *src);
-extern "C" __GURU__ void guru_str_add_cstr(GV *s1, const U8 *s2);
-
 //================================================================
-/*! (method) inspect
- */
+// call by symbol
+#if !GURU_USE_ARRAY
+__GURU__ void	sym_all(GV v[], U32 argc)	{}
+#else
 __GURU__ void
-c_sym_inspect(GV v[], U32 argc)
-{
-    GV ret = guru_str_new(":");
-
-    guru_str_add_cstr(&ret, id2name(v[0].i));
-
-    RETURN_VAL(ret);
-}
-
-
-//================================================================
-/*! (method) to_s
- */
-__GURU__ void
-c_sym_to_s(GV v[], U32 argc)
-{
-    v[0] = guru_str_new(id2name(v[0].i));
-}
-#endif
-
-#if GURU_USE_ARRAY
-//================================================================
-/*! (method) all_symbols
- */
-__GURU__ void
-c_all_symbols(GV v[], U32 argc)
+sym_all(GV v[], U32 argc)
 {
     GV ret = guru_array_new(_sym_idx);
 
@@ -221,7 +191,7 @@ c_all_symbols(GV v[], U32 argc)
     }
     RETURN_VAL(ret);
 }
-#endif
+#endif // GURU_USE_ARRAY
 
 //================================================================
 /*! initialize
@@ -230,16 +200,8 @@ __GURU__ void guru_init_class_symbol()  // << from symbol.cu
 {
     guru_class *c = guru_class_symbol = NEW_CLASS("Symbol", guru_class_object);
 
-#if GURU_USE_ARRAY
-    NEW_PROC("all_symbols", c_all_symbols);
-#endif
-#if GURU_USE_STRING
-    NEW_PROC("inspect", 	c_sym_inspect);
-    NEW_PROC("to_s", 		c_sym_to_s);
-    NEW_PROC("id2name", 	c_sym_to_s);
-#endif
+    NEW_PROC("id2name", 	gv_to_s);
+    NEW_PROC("to_s", 		gv_to_s);
+    NEW_PROC("inspect", 	sym_inspect);
+    NEW_PROC("all_symbols", sym_all);
 }
-
-
-
-

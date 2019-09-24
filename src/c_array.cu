@@ -632,9 +632,9 @@ ary_min(GV v[], U32 argc)
     GV *min, *max;
 
     _minmax(v, &min, &max);
-    if (min) {
-        RETURN_VAL(*min);
-    }
+
+    if (min) RETURN_VAL(*min);
+
     RETURN_NIL();
 }
 
@@ -648,9 +648,8 @@ ary_max(GV v[], U32 argc)
     GV *min, *max;
 
     _minmax(v, &min, &max);
-    if (max) {
-        RETURN_VAL(*max);
-    }
+    if (max) RETURN_VAL(*max);
+
     RETURN_NIL();
 }
 
@@ -674,6 +673,12 @@ ary_minmax(GV v[], U32 argc)
     RETURN_VAL(ret);
 }
 
+__GURU__ void
+ary_join(GV v[], U32 argc)
+{
+	guru_na("Array#join");
+}
+
 //================================================================
 /*! initialize
  */
@@ -686,26 +691,28 @@ guru_init_class_array()
     NEW_PROC("+",         ary_add);
     NEW_PROC("[]",        ary_get);
     NEW_PROC("at",        ary_get);
-    NEW_PROC("[]=",       ary_set);
-    NEW_PROC("<<",        ary_push);
-    NEW_PROC("clear",     ary_clr);
-    NEW_PROC("delete_at", ary_del_at);
-    NEW_PROC("empty?",    ary_empty);
     NEW_PROC("size",      ary_size);
     NEW_PROC("length",    ary_size);
     NEW_PROC("count",     ary_size);
     NEW_PROC("index",     ary_index);
     NEW_PROC("first",     ary_first);
     NEW_PROC("last",      ary_last);
+    NEW_PROC("empty?",    ary_empty);
+    NEW_PROC("min",       ary_min);
+    NEW_PROC("max",       ary_max);
+    NEW_PROC("minmax",    ary_minmax);
+
+    NEW_PROC("[]=",       ary_set);
+    NEW_PROC("<<",        ary_push);
+    NEW_PROC("clear",     ary_clr);
+    NEW_PROC("delete_at", ary_del_at);
     NEW_PROC("push",      ary_push);
     NEW_PROC("pop",       ary_pop);
     NEW_PROC("shift",     ary_shift);
     NEW_PROC("unshift",   ary_unshift);
     NEW_PROC("dup",       ary_dup);
-    NEW_PROC("min",       ary_min);
-    NEW_PROC("max",       ary_max);
-    NEW_PROC("minmax",    ary_minmax);
-    NEW_PROC("inspect",   ary_inspect);
-    NEW_PROC("to_s",      ary_inspect);
+
     NEW_PROC("join",      ary_join);
+    NEW_PROC("inspect",   gv_to_s);
+    NEW_PROC("to_s",      gv_to_s);
 }

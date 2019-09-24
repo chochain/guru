@@ -144,8 +144,6 @@ guru_init_class_range()
     NEW_PROC("last",         rng_last);
     NEW_PROC("exclude_end?", rng_exclude_end);
 
-#if GURU_USE_STRING
-    NEW_PROC("inspect",      rng_inspect);
-    NEW_PROC("to_s",         rng_inspect);
-#endif
+    NEW_PROC("to_s",         gv_to_s);
+    NEW_PROC("inspect",      gv_to_s);
 }

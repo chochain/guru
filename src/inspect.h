@@ -1,6 +1,6 @@
 /*! @file
   @brief
-  GURU Inspection functions for each classes
+  GURU Inspection functions for each classes (use Aspect programming instead of OO)
 
   <pre>
   Copyright (C) 2019- GreenII
@@ -21,23 +21,12 @@ extern "C" {
 #endif
 
 __GURU__ void guru_na(const U8 *msg);
+__GURU__ void gv_to_s(GV v[], U32 argc);
 
+// misc *_to_s functions
 __GURU__ void nil_inspect(GV v[], U32 argc);
-__GURU__ void nil_to_s(GV v[], U32 argc);
-__GURU__ void false_to_s(GV v[], U32 argc);
-__GURU__ void true_to_s(GV v[], U32 argc);
-
 __GURU__ void int_chr(GV v[], U32 argc);
-__GURU__ void int_to_s(GV v[], U32 argc);
-__GURU__ void prc_inspect(GV v[], U32 argc);
-__GURU__ void str_inspect(GV v[], U32 argc);
-
-__GURU__ void ary_inspect(GV v[], U32 argc);
-__GURU__ void ary_join(GV v[], U32 argc);
-__GURU__ void hsh_inspect(GV v[], U32 argc);
-__GURU__ void rng_inspect(GV v[], U32 argc);
-
-__GURU__ void obj_to_s(GV v[], U32 argc);
+__GURU__ void sym_inspect(GV v[], U32 argc);
 
 #ifdef __cplusplus
 }

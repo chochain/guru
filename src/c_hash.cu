@@ -467,8 +467,7 @@ guru_init_class_hash()
     NEW_PROC("merge",	    hsh_merge);
     NEW_PROC("merge!",	    hsh_merge_self);
     NEW_PROC("values",	    hsh_values);
-#if GURU_USE_STRING
-    NEW_PROC("inspect",		hsh_inspect);
-    NEW_PROC("to_s",	    hsh_inspect);
-#endif
+
+    NEW_PROC("inspect",		gv_to_s);
+    NEW_PROC("to_s",	    gv_to_s);
 }

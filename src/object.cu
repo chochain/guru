@@ -316,6 +316,14 @@ obj_new(GV v[], U32 argc)
 	assert(1==0);				// handled in ucode
 }
 
+//=====================================================================
+//! deprecated, use inspect#gv_to_s instead
+__GURU__ void
+obj_to_s(GV v[], U32 argc)
+{
+	assert(1==0);				// handled in ucode
+}
+
 __GURU__ void
 _init_class_object()
 {
@@ -334,10 +342,12 @@ _init_class_object()
     NEW_PROC("attr_accessor", 	obj_attr_accessor);
     NEW_PROC("is_a?",         	obj_kind_of);
     NEW_PROC("kind_of?",      	obj_kind_of);
-    NEW_PROC("inspect",       	obj_to_s);
-    NEW_PROC("to_s",          	obj_to_s);
+
     NEW_PROC("puts",          	obj_puts);
     NEW_PROC("print",         	obj_print);
+
+    NEW_PROC("to_s",          	gv_to_s);
+    NEW_PROC("inspect",       	gv_to_s);
 #if GURU_DEBUG
     NEW_PROC("p", 				obj_p);
 #endif
@@ -360,8 +370,9 @@ _init_class_proc()
     guru_class *c = guru_class_proc = NEW_CLASS("Proc", guru_class_object);
     // Methods
     NEW_PROC("call", 	prc_call);
-    NEW_PROC("inspect", prc_inspect);
-    NEW_PROC("to_s", 	prc_inspect);
+
+    NEW_PROC("to_s", 	gv_to_s);
+    NEW_PROC("inspect", gv_to_s);
 }
 
 //================================================================
@@ -387,7 +398,7 @@ _init_class_nil()
     // Methods
     NEW_PROC("!", 			nil_false_not);
     NEW_PROC("inspect", 	nil_inspect);
-    NEW_PROC("to_s", 		nil_to_s);
+    NEW_PROC("to_s", 		gv_to_s);
 }
 
 //================================================================
@@ -400,8 +411,8 @@ _init_class_false()
     guru_class *c = guru_class_false = NEW_CLASS("FalseClass", guru_class_object);
     // Methods
     NEW_PROC("!", 		nil_false_not);
-    NEW_PROC("inspect", false_to_s);
-    NEW_PROC("to_s",    false_to_s);
+    NEW_PROC("to_s",    gv_to_s);
+    NEW_PROC("inspect", gv_to_s);
 }
 
 __GURU__ void
@@ -410,8 +421,8 @@ _init_class_true()
     // Class
     guru_class *c = guru_class_true = NEW_CLASS("TrueClass", guru_class_object);
     // Methods
-    NEW_PROC("inspect", 	true_to_s);
-    NEW_PROC("to_s", 		true_to_s);
+    NEW_PROC("to_s", 		gv_to_s);
+    NEW_PROC("inspect", 	gv_to_s);
 }
 
 //================================================================

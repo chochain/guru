@@ -182,9 +182,11 @@ guru_init_class_int(void)
     NEW_PROC(">>", 		int_rshift);
     NEW_PROC("abs",		int_abs);
     NEW_PROC("to_f",	int_to_f);
+
     NEW_PROC("chr", 	int_chr);
-    NEW_PROC("to_s", 	int_to_s);
-    NEW_PROC("inspect",	int_to_s);
+
+    NEW_PROC("to_s", 	gv_to_s);
+    NEW_PROC("inspect",	gv_to_s);
 }
 
 // Float
@@ -221,7 +223,7 @@ flt__power(GV v[], U32 argc)
 /*! (method) abs
  */
 __GURU__ void
-flt__abs(GV v[], U32 argc)
+flt_abs(GV v[], U32 argc)
 {
     if (v[0].f < 0) {
         v[0].f = -v[0].f;
@@ -232,22 +234,11 @@ flt__abs(GV v[], U32 argc)
 /*! (method) to_i
  */
 __GURU__ void
-flt__to_i(GV v[], U32 argc)
+flt_to_i(GV v[], U32 argc)
 {
     GI i = (GI)ARG_FLOAT(0);
     RETURN_INT(i);
 }
-
-#if GURU_USE_STRING
-//================================================================
-/*! (method) to_s
- */
-__GURU__ void
-flt__to_s(GV v[], U32 argc)
-{
-	guru_na("float#to_s");
-}
-#endif
 
 //================================================================
 /*! initialize class Float
@@ -262,10 +253,11 @@ guru_init_class_float(void)
 #if GURU_USE_MATH
     NEW_PROC("**", 		flt__power);
 #endif
-    NEW_PROC("abs", 	flt__abs);
-    NEW_PROC("to_i", 	flt__to_i);
-    NEW_PROC("inspect", flt__to_s);
-    NEW_PROC("to_s", 	flt__to_s);
+    NEW_PROC("abs", 	flt_abs);
+    NEW_PROC("to_i", 	flt_to_i);
+
+    NEW_PROC("to_s", 	gv_to_s);
+    NEW_PROC("inspect", gv_to_s);
 }
 
 #endif
