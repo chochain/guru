@@ -27,9 +27,10 @@
   Clean up call stack
 */
 __GURU__ void
-_wipe_stack(GV *r, U32 vi, GV *rv)
+_wipe_stack(GV v[], U32 vi, GV *rv)
 {
     U32 ref = rv && (rv->gt & GT_HAS_REF);
+    GV  *r  = v;
     for (U32 i=0; i<vi; i++, r++) {
 /*
     	if (r->gt & GT_HAS_REF) {
@@ -74,14 +75,17 @@ vm_state_push(guru_vm *vm, guru_irep *irep, GV v[], U32 vi)
 /*!@brief
   Push current status to callinfo stack
 
+	@param 	vm
+	@param	ret_val - return_value
+	@param	rsz		- stack depth used
 */
 __GURU__ void
-vm_state_pop(guru_vm *vm, GV ret_val, U32 depth)
+vm_state_pop(guru_vm *vm, GV ret_val, U32 rsz)
 {
     guru_state 	*st = vm->state;
 
     ref_inc(&ret_val);			// to be referenced by the caller
-    _wipe_stack(st->regs, depth + st->argc + 1, &ret_val);		// pop off all elements from stack
+    _wipe_stack(st->regs, rsz + st->argc + 1, &ret_val);		// pop off all elements from stack
 
     st->regs[0] = ret_val;		// put return value on top of current stack
     vm->state = st->prev;		// restore previous state

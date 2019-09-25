@@ -137,7 +137,7 @@ _p(GV *v)
 }
 
 __GURU__ void
-guru_puts(GV *v, U32 vi)
+guru_puts(GV v[], U32 vi)
 {
     if (vi) {
     	for (U32 i=1; i <= vi; i++) {
@@ -148,7 +148,7 @@ guru_puts(GV *v, U32 vi)
 }
 
 __GURU__ void
-guru_p(GV *v, U32 vi)
+guru_p(GV v[], U32 vi)
 {
     for (U32 i=1; i <= vi; i++) {
         _p(&v[i]);

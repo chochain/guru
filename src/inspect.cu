@@ -28,12 +28,12 @@
 
 #if !GURU_USE_STRING
 __GURU__ void guru_na(const U8 *msg)		{}
-__GURU__ void gv_to_s(GV v[], U32 argc)		{}
+__GURU__ void gv_to_s(GV v[], U32 vi)		{}
 
-__GURU__ void int_chr(GV v[], U32 argc)		{}
-__GURU__ void nil_inspect(GV v[], U32 argc)	{}
-__GURU__ void sym_all(GV v[], U32 argc)     {}
-__GURU__ void sym_inspect(GV v[], U32 argc)	{}
+__GURU__ void int_chr(GV v[], U32 vi)		{}
+__GURU__ void nil_inspect(GV v[], U32 vi)	{}
+__GURU__ void sym_all(GV v[], U32 vi)     {}
+__GURU__ void sym_inspect(GV v[], U32 vi)	{}
 
 #else
 
@@ -48,13 +48,13 @@ guru_na(const U8 *msg)
 //================================================================
 //! Nil class
 __GURU__ void
-nil_inspect(GV v[], U32 argc)
+nil_inspect(GV v[], U32 vi)
 {
     RETURN_VAL(guru_str_new("nil"));
 }
 
 __GURU__ GV
-_nil(GV v[], U32 argc)
+_nil(GV v[], U32 vi)
 {
     return guru_str_new(NULL);
 }
@@ -62,7 +62,7 @@ _nil(GV v[], U32 argc)
 //================================================================
 //! False class
 __GURU__ GV
-_false(GV v[], U32 argc)
+_false(GV v[], U32 vi)
 {
     return guru_str_new("false");
 }
@@ -70,7 +70,7 @@ _false(GV v[], U32 argc)
 //================================================================
 //! True class
 __GURU__ GV
-_true(GV v[], U32 argc)
+_true(GV v[], U32 vi)
 {
     return guru_str_new("true");
 }
@@ -78,7 +78,7 @@ _true(GV v[], U32 argc)
 //================================================================
 //! Integer class
 __GURU__ void
-int_chr(GV v[], U32 argc)
+int_chr(GV v[], U32 vi)
 {
     U8 buf[2] = { (U8)v->i, '\0' };
 
@@ -86,10 +86,10 @@ int_chr(GV v[], U32 argc)
 }
 
 __GURU__ GV
-_int(GV v[], U32 argc)
+_int(GV v[], U32 vi)
 {
     U32 aoff = 'a' - 10;
-    U32 base = argc ? v[1].i : 10;				// if base given
+    U32 base = vi ? v[1].i : 10;				// if base given
 
     assert(base >=2 && base <= 36);
 
@@ -108,7 +108,7 @@ _int(GV v[], U32 argc)
 //================================================================
 // Float class not implemented yet
 __GURU__ GV
-_flt(GV v[], U32 argc)
+_flt(GV v[], U32 vi)
 {
 	GV ret { .gt=GT_FLOAT };
 
@@ -118,7 +118,7 @@ _flt(GV v[], U32 argc)
 //================================================================
 // Symbol class
 __GURU__ void
-sym_inspect(GV v[], U32 argc)
+sym_inspect(GV v[], U32 vi)
 {
     GV ret = guru_str_new(":");
 
@@ -128,7 +128,7 @@ sym_inspect(GV v[], U32 argc)
 }
 
 __GURU__ GV
-_sym(GV v[], U32 argc)
+_sym(GV v[], U32 vi)
 {
     return guru_str_new(id2name(v[0].i));
 }
@@ -136,7 +136,7 @@ _sym(GV v[], U32 argc)
 //================================================================
 //! Proc class
 __GURU__ GV
-prc_inspect(GV v[], U32 argc)
+prc_inspect(GV v[], U32 vi)
 {
 	GV  ret = guru_str_new("<#Proc:");
 	guru_str_add_cstr(&ret, guru_i2s((U64)v->proc, 16));
@@ -147,7 +147,7 @@ prc_inspect(GV v[], U32 argc)
 //================================================================
 //! String class
 __GURU__ GV
-_str(GV v[], U32 argc)
+_str(GV v[], U32 vi)
 {
 	GV ret = guru_str_new("\"");
 	guru_str_add(&ret, v);
@@ -161,7 +161,7 @@ _str(GV v[], U32 argc)
 //================================================================
 //! Array class
 __GURU__ void
-_join(GV v[], U32 argc, GV *src, GV *ret, GV *sep)
+_join(GV v[], U32 vi, GV *src, GV *ret, GV *sep)
 {
 	guru_array *h = src->array;
     if (h->n==0) return;
@@ -170,10 +170,10 @@ _join(GV v[], U32 argc, GV *src, GV *ret, GV *sep)
     GV  s1;
     while (1) {
         if (h->data[i].gt==GT_ARRAY) {		// recursive
-            _join(v, argc, &h->data[i], ret, sep);
+            _join(v, vi, &h->data[i], ret, sep);
         }
         else {
-            s1 = guru_inspect(v+argc, &h->data[i]);
+            s1 = guru_inspect(v+vi, &h->data[i]);
             guru_str_add(ret, &s1);
         }
         if (++i >= h->n) break;				// normal return.
@@ -182,7 +182,7 @@ _join(GV v[], U32 argc, GV *src, GV *ret, GV *sep)
 }
 
 __GURU__ GV
-_ary(GV v[], U32 argc)
+_ary(GV v[], U32 vi)
 {
     U32 n   = v->array->n;
     GV  *d  = v->array->data;
@@ -190,7 +190,7 @@ _ary(GV v[], U32 argc)
     for (U32 i=0; i < n; i++, d++) {
         if (i != 0) guru_str_add_cstr(&ret, ", ");
 
-        GV s = _to_s(d, argc);			// object to string (ref_cnt=1)
+        GV s = _to_s(d, vi);			// object to string (ref_cnt=1)
         guru_str_add(&ret, &s);
         ref_dec(&s);					// release the string buffer
     }
@@ -202,7 +202,7 @@ _ary(GV v[], U32 argc)
 //================================================================
 //! Hash class
 __GURU__ GV
-_hsh(GV v[], U32 argc)
+_hsh(GV v[], U32 vi)
 {
     GV blank = guru_str_new("");
     GV comma = guru_str_new(", ");
@@ -215,8 +215,8 @@ _hsh(GV v[], U32 argc)
     int n  = v->array->n;
     for (U32 i=0; i<n; i++, p+=2) {
     	s[0] = (i==0) ? blank : comma;
-        s[1] = guru_inspect(v+argc, p);			// key
-        s[2] = guru_inspect(v+argc, p+1);		// value
+        s[1] = guru_inspect(v+vi, p);			// key
+        s[2] = guru_inspect(v+vi, p+1);			// value
 
         guru_str_add(&ret, &s[0]);
         guru_str_add(&ret, &s[1]);
@@ -234,7 +234,7 @@ _hsh(GV v[], U32 argc)
 //================================================================
 //! Range class
 __GURU__ GV
-_rng(GV v[], U32 argc)
+_rng(GV v[], U32 vi)
 {
     GV ret = guru_str_new(NULL);
 
@@ -244,7 +244,7 @@ _rng(GV v[], U32 argc)
     for (U32 i=0; i<2; i++) {
         if (i != 0) guru_str_add_cstr(&ret, (U8P)"..");
         v1 = (i == 0) ? v->range->first : v->range->last;
-        s1 = guru_inspect(v+argc, &v1);
+        s1 = guru_inspect(v+vi, &v1);
 
         guru_str_add(&ret, &s1);
         ref_clr(&s1);					// free locally allocated memory
@@ -254,14 +254,14 @@ _rng(GV v[], U32 argc)
 #endif  // GURU_USE_ARRAY
 
 __GURU__ GV
-_class(GV v[], U32 argc)
+_class(GV v[], U32 vi)
 {
 	U8 *name = id2name(v->cls->sid);
 	return guru_str_new(name);
 }
 
 __GURU__ GV
-_obj(GV v[], U32 argc)
+_obj(GV v[], U32 vi)
 {
 	GV  iv[2] = { { .gt=GT_INT }, { .gt=GT_INT } };
 
@@ -302,9 +302,9 @@ _to_s(GV v[], U32 n)
 //================================================================
 //! Object#to_s factory function
 __GURU__ void
-gv_to_s(GV v[], U32 argc)
+gv_to_s(GV v[], U32 vi)
 {
-	GV ret = _to_s(v, argc);
+	GV ret = _to_s(v, vi);
 
 	RETURN_VAL(ret);
 }

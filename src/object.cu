@@ -46,13 +46,11 @@
   @param  argc		num of params.
 
   @example
-  // (int).to_s(16)
-  void c_int_to_s(GV v[], U32 vi)
+  void int_to_s(GV v[], U32 vi)
   {
-  GV *recv = &v[1];
-  GV arg1 = guru_int_value(16);
-  GV ret  = _send(vm, v, argc, recv, "to_s", 1, &arg1);
-  RETURN_VAL(ret);
+  	  GV *rcv = &v[1];
+  	  GV ret  = _send(v, rcv, "to_s", argc);
+  	  RETURN_VAL(ret);
   }
 */
 __GURU__ GV
