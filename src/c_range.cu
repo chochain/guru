@@ -69,17 +69,17 @@ guru_range_del(GV *v)
 /*! compare
  */
 __GURU__ int
-guru_range_cmp(const GV *v1, const GV *v2)
+guru_range_cmp(const GV *v0, const GV *v1)
 {
     int res;
 
-    res = guru_cmp(&v1->range->first, &v2->range->first);
+    res = guru_cmp(&v0->range->first, &v1->range->first);
     if (res != 0) return res;
 
-    res = guru_cmp(&v1->range->last, &v2->range->last);
+    res = guru_cmp(&v0->range->last, &v1->range->last);
     if (res != 0) return res;
 
-    return (int)IS_EXCLUDE_END(v2->range) - (int)IS_EXCLUDE_END(v1->range);
+    return (int)IS_EXCLUDE_END(v1->range) - (int)IS_EXCLUDE_END(v0->range);
 }
 
 //================================================================

@@ -15,7 +15,7 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-__GURU__ S32  	guru_cmp(const GV *v1, const GV *v2);
+__GURU__ S32  	guru_cmp(const GV *v0, const GV *v1);
 
 __GURU__ void 	ref_clr(GV *v);
 __GURU__ GV   	*ref_dec(GV *v);

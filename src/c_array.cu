@@ -351,10 +351,10 @@ guru_array_clr(GV *ary)
   @retval minus	v1 <  v2
 */
 __GURU__ S32
-guru_array_cmp(const GV *v0, const GV *v1)
+guru_array_cmp(const GV *a0, const GV *a1)
 {
-	guru_array *h0 = v0->array;
-	guru_array *h1 = v1->array;
+	guru_array *h0 = a0->array;
+	guru_array *h1 = a1->array;
 
 	S32 dif = (h0->n - h1->n);
 	if (dif) return dif;

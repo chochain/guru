@@ -24,11 +24,11 @@
 /*! compare
  */
 __GURU__ S32
-_string_cmp(const GV *v1, const GV *v2)
+_string_cmp(const GV *v0, const GV *v1)
 {
-	if (v1->str->n != v2->str->n) return -1;
+	if (v0->str->n != v1->str->n) return -1;
 
-	return STRCMP(v1->str->data, v2->str->data);
+	return STRCMP(v0->str->data, v1->str->data);
 }
 
 //================================================================
@@ -41,29 +41,29 @@ _string_cmp(const GV *v1, const GV *v2)
   @retval minus	v1 <  v2
 */
 __GURU__ S32
-guru_cmp(const GV *v1, const GV *v2)
+guru_cmp(const GV *v0, const GV *v1)
 {
-    if (v1->gt != v2->gt) { 						// GT different
+    if (v0->gt != v1->gt) { 						// GT different
 #if GURU_USE_FLOAT
-    	GF f1, f2;
+    	GF f0, f1;
 
-        if (v1->gt == GT_INT && v2->gt == GT_FLOAT) {
-            f1 = v1->i;
-            f2 = v2->f;
-            return -1 + (f1 == f2) + (f1 > f2)*2;	// caution: NaN == NaN is false
-        }
-        if (v1->gt == GT_FLOAT && v2->gt == GT_INT) {
+        if (v0->gt==GT_INT && v1->gt==GT_FLOAT) {
+            f0 = v0->i;
             f1 = v1->f;
-            f2 = v2->i;
-            return -1 + (f1 == f2) + (f1 > f2)*2;	// caution: NaN == NaN is false
+            return -1 + (f0 == f1) + (f0 > f1)*2;	// caution: NaN == NaN is false
+        }
+        if (v0->gt==GT_FLOAT && v1->gt==GT_INT) {
+            f0 = v0->f;
+            f1 = v1->i;
+            return -1 + (f0 == f1) + (f0 > f1)*2;	// caution: NaN == NaN is false
         }
 #endif
         // leak Empty?
-        if ((v1->gt == GT_EMPTY && v2->gt == GT_NIL) ||
-            (v1->gt == GT_NIL   && v2->gt == GT_EMPTY)) return 0;
+        if ((v0->gt==GT_EMPTY && v1->gt==GT_NIL) ||
+            (v0->gt==GT_NIL   && v1->gt==GT_EMPTY)) return 0;
 
         // other case
-        return v1->gt - v2->gt;
+        return v0->gt - v1->gt;
     }
 
     // check value
@@ -72,20 +72,20 @@ guru_cmp(const GV *v1, const GV *v2)
     case GT_FALSE:
     case GT_TRUE:   return 0;
     case GT_INT:
-    case GT_SYM: 	return v1->i - v2->i;
+    case GT_SYM: 	return v0->i - v1->i;
 
     case GT_CLASS:
     case GT_OBJ:
-    case GT_PROC:   return -1 + (v1->self == v2->self) + (v1->self > v2->self)*2;
-    case GT_STR: 	return _string_cmp(v1, v2);
+    case GT_PROC:   return -1 + (v0->self==v1->self) + (v0->self > v1->self)*2;
+    case GT_STR: 	return _string_cmp(v0, v1);
 
 #if GURU_USE_FLOAT
-    case GT_FLOAT:  return -1 + (v1->f==v2->f) + (v1->f > v2->f)*2;	// caution: NaN == NaN is false
+    case GT_FLOAT:  return -1 + (v0->f==v1->f) + (v0->f > v1->f)*2;	// caution: NaN == NaN is false
 #endif
 #if GURU_USE_ARRAY
-    case GT_ARRAY:  return guru_array_cmp(v1, v2);
-    case GT_RANGE:  return guru_range_cmp(v1, v2);
-    case GT_HASH:   return guru_hash_cmp(v1, v2);
+    case GT_ARRAY:  return guru_array_cmp(v0, v1);
+    case GT_RANGE:  return guru_range_cmp(v0, v1);
+    case GT_HASH:   return guru_hash_cmp(v0, v1);
 #endif
     default:
         return 1;

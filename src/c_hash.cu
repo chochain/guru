@@ -71,7 +71,7 @@ _resize(GV *kv, int size)
   @return	pointer to found key or NULL(not found).
 */
 __GURU__ GV*
-_search(const GV v[], const GV *key)
+_search(const GV *v, const GV *key)
 {
 #ifndef GURU_HASH_SEARCH_LINER
 #define GURU_HASH_SEARCH_LINER
