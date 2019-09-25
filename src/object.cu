@@ -47,7 +47,7 @@
 
   @example
   // (int).to_s(16)
-  void c_int_to_s(GV v[], U32 argc)
+  void c_int_to_s(GV v[], U32 vi)
   {
   GV *recv = &v[1];
   GV arg1 = guru_int_value(16);
@@ -99,9 +99,9 @@ guru_inspect(GV v[], GV *rcv)
 }
 
 __GURU__ GV
-guru_kind_of(GV v[], U32 argc)		// whether v1 is a kind of v0
+guru_kind_of(GV v[], U32 vi)		// whether v1 is a kind of v0
 {
-	return _send(v+argc, v+1, (U8P)"kind_of?", 1, v);
+	return _send(v+vi, v+1, (U8P)"kind_of?", 1, v);
 }
 
 __GURU__ void
@@ -114,7 +114,7 @@ guru_obj_del(GV *v)
 
 //================================================================
 __GURU__ void
-obj_nop(GV v[], U32 argc)
+obj_nop(GV v[], U32 vi)
 {
 	// do nothing
 }
@@ -124,9 +124,9 @@ obj_nop(GV v[], U32 argc)
 /*! (method) p
  */
 __GURU__ void
-obj_p(GV v[], U32 argc)
+obj_p(GV v[], U32 vi)
 {
-	guru_p(v, argc);
+	guru_p(v, vi);
 }
 #endif
 
@@ -134,25 +134,25 @@ obj_p(GV v[], U32 argc)
 /*! (method) puts
  */
 __GURU__ void
-obj_puts(GV v[], U32 argc)
+obj_puts(GV v[], U32 vi)
 {
-	guru_puts(v, argc);
+	guru_puts(v, vi);
 }
 
 //================================================================
 /*! (method) print
  */
 __GURU__ void
-obj_print(GV v[], U32 argc)
+obj_print(GV v[], U32 vi)
 {
-	guru_puts(v, argc);
+	guru_puts(v, vi);
 }
 
 //================================================================
 /*! (operator) !
  */
 __GURU__ void
-obj_not(GV v[], U32 argc)
+obj_not(GV v[], U32 vi)
 {
     RETURN_FALSE();
 }
@@ -161,7 +161,7 @@ obj_not(GV v[], U32 argc)
 /*! (operator) !=
  */
 __GURU__ void
-obj_neq(GV v[], U32 argc)
+obj_neq(GV v[], U32 vi)
 {
     S32 t = guru_cmp(&v[0], &v[1]);
     RETURN_BOOL(t);
@@ -171,7 +171,7 @@ obj_neq(GV v[], U32 argc)
 /*! (operator) <=>
  */
 __GURU__ void
-obj_cmp(GV v[], U32 argc)
+obj_cmp(GV v[], U32 vi)
 {
     S32 t = guru_cmp(&v[0], &v[1]);
     RETURN_INT(t);
@@ -181,13 +181,13 @@ obj_cmp(GV v[], U32 argc)
 /*! (operator) ===
  */
 __GURU__ void
-obj_eq3(GV v[], U32 argc)
+obj_eq3(GV v[], U32 vi)
 {
     if (v[0].gt != GT_CLASS) {
     	RETURN_BOOL(guru_cmp(v, v+1)==0);
     }
     else {
-    	GV ret = guru_kind_of(v, argc);
+    	GV ret = guru_kind_of(v, vi);
     	RETURN_VAL(ret);
     }
 }
@@ -196,7 +196,7 @@ obj_eq3(GV v[], U32 argc)
 /*! (method) class
  */
 __GURU__ void
-obj_class(GV v[], U32 argc)
+obj_class(GV v[], U32 vi)
 {
     GV ret;  { ret.gt = GT_CLASS; }
     ret.cls = class_by_obj(v);
@@ -229,7 +229,7 @@ _get_callee(GV v[])
 /*! (method) instance variable getter
  */
 __GURU__ void
-obj_getiv(GV v[], U32 argc)
+obj_getiv(GV v[], U32 vi)
 {
     const U8P name = _get_callee(v);			// TODO:
     GS sid = name2id(name);
@@ -241,7 +241,7 @@ obj_getiv(GV v[], U32 argc)
 /*! (method) instance variable setter
  */
 __GURU__ void
-obj_setiv(GV v[], U32 argc)
+obj_setiv(GV v[], U32 vi)
 {
     const U8P name = _get_callee(v);			// TODO:
     GS sid = name2id(name);
@@ -253,9 +253,9 @@ obj_setiv(GV v[], U32 argc)
 /*! (class method) access method 'attr_reader'
  */
 __GURU__ void
-obj_attr_reader(GV v[], U32 argc)
+obj_attr_reader(GV v[], U32 vi)
 {
-    for (U32 i = 1; i <= argc; i++) {
+    for (U32 i = 1; i <= vi; i++) {
         if (v[i].gt != GT_SYM) continue;	// TypeError raise?
 
         // define reader method
@@ -268,9 +268,9 @@ obj_attr_reader(GV v[], U32 argc)
 /*! (class method) access method 'attr_accessor'
  */
 __GURU__ void
-obj_attr_accessor(GV v[], U32 argc)
+obj_attr_accessor(GV v[], U32 vi)
 {
-    for (U32 i = 1; i <= argc; i++) {
+    for (U32 i = 1; i <= vi; i++) {
         if (v[i].gt != GT_SYM) continue;				// TypeError raise?
 
         // define reader method
@@ -297,7 +297,7 @@ obj_attr_accessor(GV v[], U32 argc)
 /*! (method) is_a, kind_of
  */
 __GURU__ void
-obj_kind_of(GV v[], U32 argc)
+obj_kind_of(GV v[], U32 vi)
 {
     if (v[1].gt != GT_CLASS) {
         RETURN_BOOL(0);
@@ -311,7 +311,7 @@ obj_kind_of(GV v[], U32 argc)
 }
 
 __GURU__ void
-obj_new(GV v[], U32 argc)
+obj_new(GV v[], U32 vi)
 {
 	assert(1==0);				// handled in ucode
 }
@@ -319,7 +319,7 @@ obj_new(GV v[], U32 argc)
 //=====================================================================
 //! deprecated, use inspect#gv_to_s instead
 __GURU__ void
-obj_to_s(GV v[], U32 argc)
+obj_to_s(GV v[], U32 vi)
 {
 	assert(1==0);				// handled in ucode
 }
@@ -357,7 +357,7 @@ _init_class_object()
 // ProcClass
 //================================================================
 __GURU__ void
-prc_call(GV v[], U32 argc)
+prc_call(GV v[], U32 vi)
 {
 	// not suppose to come here
 	assert(1==0);		// taken care by vm#op_send
@@ -382,7 +382,7 @@ _init_class_proc()
 /*! (method) !
  */
 __GURU__ void
-nil_false_not(GV v[], U32 argc)
+nil_false_not(GV v[], U32 vi)
 {
     v[0].gt = GT_TRUE;
 }

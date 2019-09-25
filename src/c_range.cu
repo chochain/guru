@@ -86,10 +86,10 @@ guru_range_cmp(const GV *v1, const GV *v2)
 /*! (method) ===
  */
 __GURU__ void
-rng_eq3(GV v[], U32 argc)
+rng_eq3(GV v[], U32 vi)
 {
     if (v[0].gt == GT_CLASS) {
-        GV ret = guru_kind_of(v, argc);
+        GV ret = guru_kind_of(v, vi);
         RETURN_VAL(ret);
     }
 
@@ -108,7 +108,7 @@ rng_eq3(GV v[], U32 argc)
 /*! (method) first
  */
 __GURU__ void
-rng_first(GV v[], U32 argc)
+rng_first(GV v[], U32 vi)
 {
     RETURN_VAL(v->range->first);
 }
@@ -117,7 +117,7 @@ rng_first(GV v[], U32 argc)
 /*! (method) last
  */
 __GURU__ void
-rng_last(GV v[], U32 argc)
+rng_last(GV v[], U32 vi)
 {
     RETURN_VAL(v->range->last);
 }
@@ -126,7 +126,7 @@ rng_last(GV v[], U32 argc)
 /*! (method) exclude_end?
  */
 __GURU__ void
-rng_exclude_end(GV v[], U32 argc)
+rng_exclude_end(GV v[], U32 vi)
 {
     RETURN_BOOL(IS_EXCLUDE_END(v[0].range));
 }

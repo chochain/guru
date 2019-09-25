@@ -154,7 +154,7 @@ typedef struct RClass {			// 32-byte
 } guru_class;
 
 /* forward declaration */
-typedef void (*guru_fptr)(guru_obj *obj, U32 argc);
+typedef void (*guru_fptr)(guru_obj *obj, U32 vi);
 struct Irep;
 
 typedef struct RProc {			// 48-byte

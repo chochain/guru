@@ -373,13 +373,13 @@ guru_array_cmp(const GV *v0, const GV *v1)
 /*! method new
  */
 __GURU__ void
-ary_new(GV v[], U32 argc)
+ary_new(GV v[], U32 vi)
 {
 	GV ret;
-    if (argc==0) {											// in case of new()
+    if (vi==0) {											// in case of new()
         ret = guru_array_new(0);
     }
-    else if (argc==1 && v[1].gt==GT_INT && v[1].i >= 0) {	// new(num)
+    else if (vi==1 && v[1].gt==GT_INT && v[1].i >= 0) {		// new(num)
         ret = guru_array_new(v[1].i);
 
         GV nil = GURU_NIL_NEW();
@@ -387,7 +387,7 @@ ary_new(GV v[], U32 argc)
             _set(&ret, v[1].i - 1, &nil);
         }
     }
-    else if (argc==2 && v[1].gt==GT_INT && v[1].i >= 0) {	// new(num, value)
+    else if (vi==2 && v[1].gt==GT_INT && v[1].i >= 0) {		// new(num, value)
         ret = guru_array_new(v[1].i);
         for (U32 i=0; i < v[1].i; i++) {
             _set(&ret, i, &v[2]);
@@ -404,7 +404,7 @@ ary_new(GV v[], U32 argc)
 /*! (operator) +
  */
 __GURU__ void
-ary_add(GV v[], U32 argc)
+ary_add(GV v[], U32 vi)
 {
     assert(v[0].gt==GT_ARRAY && v[1].gt==GT_ARRAY);		// array only (for now)
 
@@ -417,22 +417,22 @@ ary_add(GV v[], U32 argc)
     MEMCPY(ra,      h0->data, sizeof(GV) * n0);
     MEMCPY(ra + n0, h1->data, sizeof(GV) * n1);
 
-    ret.array->n = n0 + n1;			// reset element count
+    ret.array->n = n0 + n1;				// reset element count
 
-    RETURN_VAL(ret);				// both array will be released by caller's _wipe_stack
+    RETURN_VAL(ret);					// both array will be released by caller's _wipe_stack
 }
 
 //================================================================
 /*! (operator) []
  */
 __GURU__ void
-ary_get(GV v[], U32 argc)
+ary_get(GV v[], U32 vi)
 {
 	GV ret;
-    if (argc==1 && v[1].gt==GT_INT) {					// self[n] -> object | nil
+    if (vi==1 && v[1].gt==GT_INT) {		// self[n] -> object | nil
         ret = _get(v, v[1].i);
     }
-    else if (argc==2 &&			 						// self[idx, len] -> Array | nil
+    else if (vi==2 &&			 		// self[idx, len] -> Array | nil
     		v[1].gt==GT_INT &&
     		v[2].gt==GT_INT) {
         U32 len = v->array->n;
@@ -459,14 +459,14 @@ ary_get(GV v[], U32 argc)
 /*! (operator) []=
  */
 __GURU__ void
-ary_set(GV v[], U32 argc)
+ary_set(GV v[], U32 vi)
 {
 	GT gt1 = v[1].gt;
 	GT gt2 = v[2].gt;
-    if (argc==2 && gt1==GT_INT) {		// self[n] = val
+    if (vi==2 && gt1==GT_INT) {			// self[n] = val
         _set(v, v[1].i, &v[2]);
     }
-    else if (argc==3 &&					// self[n, len] = valu
+    else if (vi==3 &&					// self[n, len] = valu
     		gt1==GT_INT &&
     		gt2==GT_INT) {
     	guru_na("array[i,n]");
@@ -480,7 +480,7 @@ ary_set(GV v[], U32 argc)
 /*! (method) clear
  */
 __GURU__ void
-ary_clr(GV v[], U32 argc)
+ary_clr(GV v[], U32 vi)
 {
     guru_array_clr(v);
 }
@@ -489,7 +489,7 @@ ary_clr(GV v[], U32 argc)
 /*! (method) delete_at
  */
 __GURU__ void
-ary_del_at(GV v[], U32 argc)
+ary_del_at(GV v[], U32 vi)
 {
 	S32 n = v[1].i;
 
@@ -500,7 +500,7 @@ ary_del_at(GV v[], U32 argc)
 /*! (method) empty?
  */
 __GURU__ void
-ary_empty(GV v[], U32 argc)
+ary_empty(GV v[], U32 vi)
 {
     RETURN_BOOL(v->array->n==0);
 }
@@ -509,7 +509,7 @@ ary_empty(GV v[], U32 argc)
 /*! (method) size,length,count
  */
 __GURU__ void
-ary_size(GV v[], U32 argc)
+ary_size(GV v[], U32 vi)
 {
     RETURN_INT(v->array->n);
 }
@@ -518,7 +518,7 @@ ary_size(GV v[], U32 argc)
 /*! (method) index
  */
 __GURU__ void
-ary_index(GV v[], U32 argc)
+ary_index(GV v[], U32 vi)
 {
     guru_array *h = v->array;
     GV *p = h->data;
@@ -533,7 +533,7 @@ ary_index(GV v[], U32 argc)
 //================================================================
 /*! (method) first
  */
-__GURU__ void ary_first(GV v[], U32 argc)
+__GURU__ void ary_first(GV v[], U32 vi)
 {
     RETURN_VAL(_get(v, 0));
 }
@@ -542,7 +542,7 @@ __GURU__ void ary_first(GV v[], U32 argc)
 /*! (method) last
  */
 __GURU__ void
-ary_last(GV v[], U32 argc)
+ary_last(GV v[], U32 vi)
 {
     RETURN_VAL(_get(v, -1));
 }
@@ -551,7 +551,7 @@ ary_last(GV v[], U32 argc)
 /*! (method) push
  */
 __GURU__ void
-ary_push(GV v[], U32 argc)
+ary_push(GV v[], U32 vi)
 {
     guru_array_push(v, v+1);	// raise? ENOMEM
     v[1].gt = GT_EMPTY;
@@ -561,12 +561,12 @@ ary_push(GV v[], U32 argc)
 /*! (method) pop
  */
 __GURU__ void
-ary_pop(GV v[], U32 argc)
+ary_pop(GV v[], U32 vi)
 {
-    if (argc==0) {							// pop() -> object | nil
+    if (vi==0) {							// pop() -> object | nil
         RETURN_VAL(_pop(v));
     }
-    else if (argc==1 && v[1].gt==GT_INT) {	// pop(n) -> Array | nil
+    else if (vi==1 && v[1].gt==GT_INT) {	// pop(n) -> Array | nil
         guru_na("pop(n)");					// TODO: loop
     }
     else {
@@ -578,7 +578,7 @@ ary_pop(GV v[], U32 argc)
 /*! (method) unshift
  */
 __GURU__ void
-ary_unshift(GV v[], U32 argc)
+ary_unshift(GV v[], U32 vi)
 {
     _unshift(v, v+1);						// raise? IndexError or ENOMEM
     v[1].gt = GT_EMPTY;
@@ -588,12 +588,12 @@ ary_unshift(GV v[], U32 argc)
 /*! (method) shift
  */
 __GURU__ void
-ary_shift(GV v[], U32 argc)
+ary_shift(GV v[], U32 vi)
 {
-    if (argc==0) {							// shift() -> object | nil
+    if (vi==0) {							// shift() -> object | nil
         RETURN_VAL(_shift(v));
     }
-    else if (argc==1 && v[1].gt==GT_INT) {	// shift() -> Array | nil
+    else if (vi==1 && v[1].gt==GT_INT) {	// shift() -> Array | nil
         guru_na("shift(n)");				// TODO: loop
     }
     else {
@@ -605,7 +605,7 @@ ary_shift(GV v[], U32 argc)
 /*! (method) dup
  */
 __GURU__ void
-ary_dup(GV v[], U32 argc)
+ary_dup(GV v[], U32 vi)
 {
     guru_array *h0 = v[0].array;
 
@@ -621,7 +621,7 @@ ary_dup(GV v[], U32 argc)
 /*! (method) min
  */
 __GURU__ void
-ary_min(GV v[], U32 argc)
+ary_min(GV v[], U32 vi)
 {
     // Subset of Array#min, not support min(n).
     GV *min, *max;
@@ -637,7 +637,7 @@ ary_min(GV v[], U32 argc)
 /*! (method) max
  */
 __GURU__ void
-ary_max(GV v[], U32 argc)
+ary_max(GV v[], U32 vi)
 {
     // Subset of Array#max, not support max(n).
     GV *min, *max;
@@ -652,7 +652,7 @@ ary_max(GV v[], U32 argc)
 /*! (method) minmax
  */
 __GURU__ void
-ary_minmax(GV v[], U32 argc)
+ary_minmax(GV v[], U32 vi)
 {
     GV nil = GURU_NIL_NEW();
     GV ret = guru_array_new(2);
@@ -669,7 +669,7 @@ ary_minmax(GV v[], U32 argc)
 }
 
 __GURU__ void
-ary_join(GV v[], U32 argc)
+ary_join(GV v[], U32 vi)
 {
 	guru_na("Array#join");
 }

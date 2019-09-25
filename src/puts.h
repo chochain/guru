@@ -30,8 +30,8 @@
 extern "C" {
 #endif
 
-__GURU__ void guru_puts(GV *v, U32 argc);
-__GURU__ void guru_p(GV *v, U32 argc);
+__GURU__ void guru_puts(GV *v, U32 vi);
+__GURU__ void guru_p(GV *v, U32 vi);
 
 #ifdef __cplusplus
 }

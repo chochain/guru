@@ -177,10 +177,10 @@ id2name(GS sid)
 //================================================================
 // call by symbol
 #if !GURU_USE_ARRAY
-__GURU__ void	sym_all(GV v[], U32 argc)	{}
+__GURU__ void	sym_all(GV v[], U32 vi)	{}
 #else
 __GURU__ void
-sym_all(GV v[], U32 argc)
+sym_all(GV v[], U32 vi)
 {
     GV ret = guru_array_new(_sym_idx);
 

@@ -185,13 +185,12 @@ __GURU__ GV
 _ary(GV v[], U32 argc)
 {
     U32 n   = v->array->n;
+    GV  *d  = v->array->data;
 	GV  ret = guru_str_new("[");
-    GV  *vi = v->array->data;
-    for (U32 i=0; i < n; i++, vi++) {
+    for (U32 i=0; i < n; i++, d++) {
         if (i != 0) guru_str_add_cstr(&ret, ", ");
 
-        GV s  = _to_s(vi, argc);			// object to string (ref_cnt=1)
-        char *p = s.str->data;
+        GV s = _to_s(d, argc);			// object to string (ref_cnt=1)
         guru_str_add(&ret, &s);
         ref_dec(&s);					// release the string buffer
     }

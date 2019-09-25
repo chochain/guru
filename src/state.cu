@@ -27,10 +27,10 @@
   Clean up call stack
 */
 __GURU__ void
-_wipe_stack(GV *r, U32 argc, GV *rv)
+_wipe_stack(GV *r, U32 vi, GV *rv)
 {
     U32 ref = rv && (rv->gt & GT_HAS_REF);
-    for (U32 i=0; i<argc; i++, r++) {
+    for (U32 i=0; i<vi; i++, r++) {
 /*
     	if (r->gt & GT_HAS_REF) {
     		if (ref && rv->self==r->self) {}
@@ -48,21 +48,21 @@ _wipe_stack(GV *r, U32 argc, GV *rv)
   Push current status to callinfo stack
 */
 __GURU__ void
-vm_state_push(guru_vm *vm, guru_irep *irep, GV *regs, U32 argc)
+vm_state_push(guru_vm *vm, guru_irep *irep, GV v[], U32 vi)
 {
 	guru_state *top = vm->state;
     guru_state *st  = (guru_state *)guru_alloc(sizeof(guru_state));
 
-    switch(regs[0].gt) {
+    switch(v[0].gt) {
     case GT_OBJ:
-    case GT_CLASS: st->klass = regs[0].cls;			break;
+    case GT_CLASS: st->klass = v[0].cls;			break;
     case GT_PROC:  st->klass = top->regs[0].cls; 	break;
     default: assert(1==0);
     }
     st->irep  = irep;
     st->pc    = 0;
-    st->regs  = regs;			// TODO: should allocate another regfile
-    st->argc  = argc;			// allocate local stack
+    st->regs  = v;				// TODO: should allocate another regfile
+    st->argc  = vi;				// allocate local stack
 
     st->prev  = top;			// push into context stack
 
@@ -76,12 +76,12 @@ vm_state_push(guru_vm *vm, guru_irep *irep, GV *regs, U32 argc)
 
 */
 __GURU__ void
-vm_state_pop(guru_vm *vm, GV ret_val, U32 ra)
+vm_state_pop(guru_vm *vm, GV ret_val, U32 depth)
 {
     guru_state 	*st = vm->state;
 
     ref_inc(&ret_val);			// to be referenced by the caller
-    _wipe_stack(st->regs, ra + st->argc + 1, &ret_val);		// pop off all elements from stack
+    _wipe_stack(st->regs, depth + st->argc + 1, &ret_val);		// pop off all elements from stack
 
     st->regs[0] = ret_val;		// put return value on top of current stack
     vm->state = st->prev;		// restore previous state
@@ -90,17 +90,17 @@ vm_state_pop(guru_vm *vm, GV ret_val, U32 ra)
 }
 
 __GURU__ void
-_vm_proc_call(guru_vm *vm, GV v[], U32 argc)
+_vm_proc_call(guru_vm *vm, GV v[], U32 vi)
 {
 	assert(v[0].gt==GT_PROC);						// ensure it is a proc
 
 	guru_irep *irep = v[0].proc->irep;				// callee's IREP pointer
 
-	vm_state_push(vm, irep, v, argc);				// switch into callee's context
+	vm_state_push(vm, irep, v, vi);				// switch into callee's context
 }
 
 __GURU__ void
-_vm_object_new(guru_vm *vm, GV v[], U32 argc)
+_vm_object_new(guru_vm *vm, GV v[], U32 vi)
 {
 	assert(v[0].gt==GT_CLASS);						// ensure it is a class object
 
@@ -109,31 +109,31 @@ _vm_object_new(guru_vm *vm, GV v[], U32 argc)
 
 	guru_proc *init = (guru_proc *)proc_by_sid(&obj, sid);
 
-	if (vm_method_exec(vm, v, argc, init)) {		// run custom initializer if any
+	if (vm_method_exec(vm, v, vi, init)) {		// run custom initializer if any
 		assert(1==0);
 	}
 	v[0] = obj;
 }
 
 __GURU__ U32
-vm_method_exec(guru_vm *vm, GV v[], U32 argc, guru_proc *prc)
+vm_method_exec(guru_vm *vm, GV v[], U32 vi, guru_proc *prc)
 {
     if (prc==0) {									// method not found
-    	_wipe_stack(v+1, argc+1, NULL);
+    	_wipe_stack(v+1, vi+1, NULL);
     	return 1; 									// bail out
     }
     else if (HAS_IREP(prc)) {						// a Ruby-based IREP
-    	vm_state_push(vm, prc->irep, v, argc);		// switch to callee's context
+    	vm_state_push(vm, prc->irep, v, vi);		// switch to callee's context
     }
     else if (prc->func==prc_call) {					// C-based prc_call (hacked handler, it needs vm->state)
-    	_vm_proc_call(vm, v, argc);					// push into call stack, obj at stack[0]
+    	_vm_proc_call(vm, v, vi);					// push into call stack, obj at stack[0]
     }
     else if (prc->func==obj_new) {					// other default C-based methods
-    	_vm_object_new(vm, v, argc);
+    	_vm_object_new(vm, v, vi);
     }
     else {
-    	prc->func(v, argc);
-    	_wipe_stack(v+1, argc+1, NULL);
+    	prc->func(v, vi);
+    	_wipe_stack(v+1, vi+1, NULL);
     }
     return 0;
 }
@@ -141,7 +141,7 @@ vm_method_exec(guru_vm *vm, GV v[], U32 argc, guru_proc *prc)
  * temp cross module call, deprecated by GURU3_7 (to prc_call, obj_new)
  *
 __GURU__ void
-vm_object_new(guru_vm *vm, GV v[], U32 argc)
+vm_object_new(guru_vm *vm, GV v[], U32 vi)
 {
 	assert(v[0].gt==GT_CLASS);	// ensure it is a class object
 
@@ -162,7 +162,7 @@ vm_object_new(guru_vm *vm, GV v[], U32 argc)
         },
         {
         	sizeof(guru_irep)+4*sizeof(U32), 0,		// symbol table (for 2 symbols to align ISEQ block)
-        	OP_ABC(OP_SEND,0,0,argc),				// ISEQ block
+        	OP_ABC(OP_SEND,0,0,vi),					// ISEQ block
         	MK_OP(OP_STOP),							// keep the memory
         	0x74696e69,								// "initialize"
         	0x696c6169,

@@ -43,7 +43,7 @@ typedef struct RPrint {
 } guru_print;
 
 __GURU__ void guru_printf(const U8 *fstr, ...);							// fstr is always static string (char *)
-__GURU__ void guru_vprintf(const U8 *fstr, GV v[], U32 argc);
+__GURU__ void guru_vprintf(const U8 *fstr, GV v[], U32 vi);
 
 #ifdef __cplusplus
 }

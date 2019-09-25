@@ -257,7 +257,7 @@ guru_hash_cmp(const GV *v0, const GV *v1)
 /*! (method) new
  */
 __GURU__ void
-hsh_new(GV v[], U32 argc)
+hsh_new(GV v[], U32 vi)
 {
 	RETURN_VAL(guru_hash_new(0));
 }
@@ -266,13 +266,10 @@ hsh_new(GV v[], U32 argc)
 /*! (operator) []
  */
 __GURU__ void
-hsh_get(GV v[], U32 argc)
+hsh_get(GV v[], U32 vi)
 {
-    if (argc != 1) {
-    	assert(argc!=1);
-        return;	// raise ArgumentError.
-    }
-    GV ret = _get(v, v+1);
+	assert(vi==1);
+	GV ret = _get(v, v+1);
 
     RETURN_VAL(ret);
 }
@@ -281,12 +278,9 @@ hsh_get(GV v[], U32 argc)
 /*! (operator) []=
  */
 __GURU__ void
-hsh_set(GV v[], U32 argc)
+hsh_set(GV v[], U32 vi)
 {
-    if (argc != 2) {
-    	assert(argc!=2);
-        return;				// raise ArgumentError.
-    }
+	assert(vi==2);
     _set(v, v+1, v+2);		// k + v
 
     (v+1)->gt = GT_EMPTY;
@@ -298,7 +292,7 @@ hsh_set(GV v[], U32 argc)
 /*! (method) clear
  */
 __GURU__ void
-hsh_clr(GV v[], U32 argc)
+hsh_clr(GV v[], U32 vi)
 {
     _clr(v);
 }
@@ -307,7 +301,7 @@ hsh_clr(GV v[], U32 argc)
 /*! (method) dup
  */
 __GURU__ void
-hsh_dup(GV v[], U32 argc)
+hsh_dup(GV v[], U32 vi)
 {
     RETURN_VAL(_hash_dup(v));
 }
@@ -316,7 +310,7 @@ hsh_dup(GV v[], U32 argc)
 /*! (method) delete
  */
 __GURU__ void
-hsh_del(GV v[], U32 argc)
+hsh_del(GV v[], U32 vi)
 {
     // TODO : now, support only delete(key) -> object
     // TODO: re-index hash table if need.
@@ -327,7 +321,7 @@ hsh_del(GV v[], U32 argc)
 /*! (method) empty?
  */
 __GURU__ void
-hsh_empty(GV v[], U32 argc)
+hsh_empty(GV v[], U32 vi)
 {
     RETURN_BOOL(_size(v)==0);
 }
@@ -336,7 +330,7 @@ hsh_empty(GV v[], U32 argc)
 /*! (method) has_key?
  */
 __GURU__ void
-hsh_has_key(GV v[], U32 argc)
+hsh_has_key(GV v[], U32 vi)
 {
     RETURN_BOOL(_search(v, v+1)!=NULL);
 }
@@ -345,7 +339,7 @@ hsh_has_key(GV v[], U32 argc)
 /*! (method) has_value?
  */
 __GURU__ void
-hsh_has_value(GV v[], U32 argc)
+hsh_has_value(GV v[], U32 vi)
 {
     GV *p = _data(v);
     int         n = _size(v);
@@ -361,7 +355,7 @@ hsh_has_value(GV v[], U32 argc)
 /*! (method) key
  */
 __GURU__ void
-hsh_key(GV v[], U32 argc)
+hsh_key(GV v[], U32 vi)
 {
     GV *p = _data(v);
     int         n = _size(v);
@@ -377,7 +371,7 @@ hsh_key(GV v[], U32 argc)
 /*! (method) keys
  */
 __GURU__ void
-hsh_keys(GV v[], U32 argc)
+hsh_keys(GV v[], U32 vi)
 {
     GV *p  = _data(v);
     int         n  = _size(v);
@@ -393,7 +387,7 @@ hsh_keys(GV v[], U32 argc)
 /*! (method) size,length,count
  */
 __GURU__ void
-hsh_size(GV v[], U32 argc)
+hsh_size(GV v[], U32 vi)
 {
     RETURN_INT(_size(v));
 }
@@ -402,7 +396,7 @@ hsh_size(GV v[], U32 argc)
 /*! (method) merge
  */
 __GURU__ void
-hsh_merge(GV v[], U32 argc)		// non-destructive merge
+hsh_merge(GV v[], U32 vi)		// non-destructive merge
 {
     GV ret = _hash_dup(v);
     GV *p  = _data(v+1);
@@ -417,7 +411,7 @@ hsh_merge(GV v[], U32 argc)		// non-destructive merge
 /*! (method) merge!
  */
 __GURU__ void
-hsh_merge_self(GV v[], U32 argc)
+hsh_merge_self(GV v[], U32 vi)
 {
     GV *p  = _data(v+1);
     int         n  = _size(v+1);
@@ -430,7 +424,7 @@ hsh_merge_self(GV v[], U32 argc)
 /*! (method) values
  */
 __GURU__ void
-hsh_values(GV v[], U32 argc)
+hsh_values(GV v[], U32 vi)
 {
     GV *p  = _data(v);
     int         n  = _size(v);

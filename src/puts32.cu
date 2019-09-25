@@ -137,10 +137,10 @@ _p(GV *v)
 }
 
 __GURU__ void
-guru_puts(GV *v, U32 argc)
+guru_puts(GV *v, U32 vi)
 {
-    if (argc) {
-    	for (U32 i=1; i <= argc; i++) {
+    if (vi) {
+    	for (U32 i=1; i <= vi; i++) {
     		if (_print(&v[i])==0) PRINTF("\n");
     	}
     }
@@ -148,9 +148,9 @@ guru_puts(GV *v, U32 argc)
 }
 
 __GURU__ void
-guru_p(GV *v, U32 argc)
+guru_p(GV *v, U32 vi)
 {
-    for (U32 i=1; i <= argc; i++) {
+    for (U32 i=1; i <= vi; i++) {
         _p(&v[i]);
         PRINTF("\n");
     }

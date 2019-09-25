@@ -27,7 +27,7 @@
 /*! (operator) [] bit reference
  */
 __GURU__ void
-int_bitref(GV v[], U32 argc)
+int_bitref(GV v[], U32 vi)
 {
     if (0 <= v[1].i && v[1].i < 32) {
         RETURN_INT((v[0].i & (1 << v[1].i)) ? 1 : 0);
@@ -41,7 +41,7 @@ int_bitref(GV v[], U32 argc)
 /*! (operator) unary -
  */
 __GURU__ void
-int_negative(GV v[], U32 argc)
+int_negative(GV v[], U32 vi)
 {
     GI n = ARG_INT(0);
     RETURN_INT(-n);
@@ -51,7 +51,7 @@ int_negative(GV v[], U32 argc)
 /*! (operator) ** power
  */
 __GURU__ void
-int_power(GV v[], U32 argc)
+int_power(GV v[], U32 vi)
 {
     if (v[1].gt == GT_INT) {
         GI x = 1;
@@ -75,7 +75,7 @@ int_power(GV v[], U32 argc)
 /*! (operator) %
  */
 __GURU__ void
-int_mod(GV v[], U32 argc)
+int_mod(GV v[], U32 vi)
 {
     GI n = ARG_INT(1);
     RETURN_INT(v->i % n);
@@ -85,7 +85,7 @@ int_mod(GV v[], U32 argc)
 /*! (operator) &; bit operation AND
  */
 __GURU__ void
-int_and(GV v[], U32 argc)
+int_and(GV v[], U32 vi)
 {
     GI n = ARG_INT(1);
     RETURN_INT(v->i & n);
@@ -95,7 +95,7 @@ int_and(GV v[], U32 argc)
 /*! (operator) |; bit operation OR
  */
 __GURU__ void
-int_or(GV v[], U32 argc)
+int_or(GV v[], U32 vi)
 {
     GI n = ARG_INT(1);
     RETURN_INT(v->i | n);
@@ -105,7 +105,7 @@ int_or(GV v[], U32 argc)
 /*! (operator) ^; bit operation XOR
  */
 __GURU__ void
-int_xor(GV v[], U32 argc)
+int_xor(GV v[], U32 vi)
 {
     GI n = ARG_INT(1);
     RETURN_INT(v->i ^ n);
@@ -115,7 +115,7 @@ int_xor(GV v[], U32 argc)
 /*! (operator) ~; bit operation NOT
  */
 __GURU__ void
-int_not(GV v[], U32 argc)
+int_not(GV v[], U32 vi)
 {
     GI n = ARG_INT(0);
     RETURN_INT(~n);
@@ -125,7 +125,7 @@ int_not(GV v[], U32 argc)
 /*! (operator) <<; bit operation LEFT_SHIFT
  */
 __GURU__ void
-int_lshift(GV v[], U32 argc)
+int_lshift(GV v[], U32 vi)
 {
     GI n = ARG_INT(1);
     RETURN_INT(v->i << n);
@@ -135,7 +135,7 @@ int_lshift(GV v[], U32 argc)
 /*! (operator) >>; bit operation RIGHT_SHIFT
  */
 __GURU__ void
-int_rshift(GV v[], U32 argc)
+int_rshift(GV v[], U32 vi)
 {
     GI n = ARG_INT(1);
     RETURN_INT(v->i >> n);
@@ -145,7 +145,7 @@ int_rshift(GV v[], U32 argc)
 /*! (method) abs
  */
 __GURU__ void
-int_abs(GV v[], U32 argc)
+int_abs(GV v[], U32 vi)
 {
     if (v[0].i < 0) {
         v[0].i = -v[0].i;
@@ -157,7 +157,7 @@ int_abs(GV v[], U32 argc)
 /*! (method) to_f
  */
 __GURU__ void
-int_to_f(GV v[], U32 argc)
+int_to_f(GV v[], U32 vi)
 {
     GF f = ARG_INT(0);
     RETURN_FLOAT(f);
@@ -195,7 +195,7 @@ guru_init_class_int(void)
 /*! (operator) unary -
  */
 __GURU__ void
-flt__negative(GV v[], U32 argc)
+flt__negative(GV v[], U32 vi)
 {
     GF f = ARG_FLOAT(0);
     RETURN_FLOAT(-f);
@@ -206,7 +206,7 @@ flt__negative(GV v[], U32 argc)
 /*! (operator) ** power
  */
 __GURU__ void
-flt__power(GV v[], U32 argc)
+flt__power(GV v[], U32 vi)
 {
     GF n = 0;
     switch (v[1].gt) {
@@ -223,7 +223,7 @@ flt__power(GV v[], U32 argc)
 /*! (method) abs
  */
 __GURU__ void
-flt_abs(GV v[], U32 argc)
+flt_abs(GV v[], U32 vi)
 {
     if (v[0].f < 0) {
         v[0].f = -v[0].f;
@@ -234,7 +234,7 @@ flt_abs(GV v[], U32 argc)
 /*! (method) to_i
  */
 __GURU__ void
-flt_to_i(GV v[], U32 argc)
+flt_to_i(GV v[], U32 vi)
 {
     GI i = (GI)ARG_FLOAT(0);
     RETURN_INT(i);
