@@ -80,10 +80,10 @@ vm_state_pop(guru_vm *vm, GV ret_val, U32 ra)
 {
     guru_state 	*st = vm->state;
 
-    _wipe_stack(st->regs+ra, st->argc+1, &ret_val);
+    ref_inc(&ret_val);			// to be referenced by the caller
+    _wipe_stack(st->regs, ra + st->argc + 1, &ret_val);		// pop off all elements from stack
 
-    st->regs[0] = ret_val;		// TODO: restore previous set of regfile
-
+    st->regs[0] = ret_val;		// put return value on top of current stack
     vm->state = st->prev;		// restore previous state
     vm->depth--;
     guru_free(st);				// release memory block
