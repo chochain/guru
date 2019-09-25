@@ -291,13 +291,12 @@ guru_array_new(U32 sz)
 __GURU__ void
 guru_array_del(GV *ary)
 {
-    guru_array *h = ary->array;
-    GV *p = h->data;
-    for (U32 i=0; i < h->n; i++, p++) {
-    	ref_dec(p);						// no more referenced by the array
-    }
-    if (h->data) guru_free(h->data);
-    guru_free(h);
+    guru_array 	*h = ary->array;
+    GV 			*p = h->data;
+    for (U32 i=0; i < h->n; i++, ref_dec(p++));		// released element from the array
+
+    if (h->data) guru_free(h->data);				// release data block
+    guru_free(h);									// release header block
 }
 
 //================================================================
@@ -407,26 +406,20 @@ ary_new(GV v[], U32 argc)
 __GURU__ void
 ary_add(GV v[], U32 argc)
 {
-    assert(v[1].gt == GT_ARRAY);			// array only (for now)
+    assert(v[0].gt==GT_ARRAY && v[1].gt==GT_ARRAY);		// array only (for now)
 
-    guru_array *h0 = v[0].array;
-    guru_array *h1 = v[1].array;
+    guru_array 	*h0 = v[0].array, 	*h1 = v[1].array;
+    U32 		n0  = h0->n, 		n1  = h1->n;
 
-    U32 h0sz = sizeof(GV) * h0->n;
-    U32 h1sz = sizeof(GV) * h1->n;
+    GV ret = guru_array_new(n0 + n1);		// new array with ref count already set to 1
+    GV *ra = ret.array->data;
 
-    GV ret = guru_array_new(h0sz + h1sz);	// new array with ref count already set to 1
+    MEMCPY(ra,      h0->data, sizeof(GV) * n0);
+    MEMCPY(ra + n0, h1->data, sizeof(GV) * n1);
 
-    MEMCPY(ret.array->data,         h0->data, h0sz);
-    MEMCPY(ret.array->data + h0->n, h1->data, h1sz);
+    ret.array->n = n0 + n1;			// reset element count
 
-    ret.array->n = h0->n + h1->n;			// reset element count
-
-    // free both source arrays
-    ref_dec(v);
-    ref_dec(v+1);
-
-    RETURN_VAL(ret);
+    RETURN_VAL(ret);				// both array will be released by caller's _wipe_stack
 }
 
 //================================================================
