@@ -15,8 +15,9 @@
 #include "alloc.h"
 #include "static.h"
 #include "symbol.h"
-#include "inspect.h"
+#include "c_string.h"
 #include "c_array.h"
+#include "inspect.h"
 
 #if !defined(GS_LINER) && !defined(GS_BTREE)
 #define GS_BTREE
@@ -193,6 +194,13 @@ sym_all(GV v[], U32 vi)
 }
 #endif // GURU_USE_ARRAY
 
+__GURU__ void
+sym_to_s(GV v[], U32 vi)
+{
+	GV ret = guru_str_new(id2name(v->i));
+    RETURN_VAL(ret);
+}
+
 //================================================================
 /*! initialize
  */
@@ -201,7 +209,7 @@ __GURU__ void guru_init_class_symbol()  // << from symbol.cu
     guru_class *c = guru_class_symbol = NEW_CLASS("Symbol", guru_class_object);
 
     NEW_PROC("id2name", 	gv_to_s);
-    NEW_PROC("to_s", 		gv_to_s);
-    NEW_PROC("inspect", 	sym_inspect);
+    NEW_PROC("to_s", 		sym_to_s);	// no leading ':'
+    NEW_PROC("inspect", 	gv_to_s);
     NEW_PROC("all_symbols", sym_all);
 }
