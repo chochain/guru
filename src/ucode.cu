@@ -403,7 +403,7 @@ uc_send(guru_vm *vm)
 
 	guru_proc *m = (guru_proc *)proc_by_sid(v, sid);
 
-	if (vm_method_exec(vm, v, _AR(c), m)) {
+	if (vm_method_exec(vm, v, _AR(c), m)) {			// call stack will be wiped before return
 		SKIP(sym);
 	}
 }
@@ -499,7 +499,7 @@ uc_add(guru_vm *vm)
         if      (r1->gt==GT_INT) 	r0->f += r1->i;
         else if (r1->gt==GT_FLOAT)	r0->f += r1->f;
         else SKIP("Float + ?");
-#endif
+#endif // GURU_USE_FLOAT
     }
     else {    	// other case
     	uc_send(vm);			// should have already released regs[ra + n], ...
@@ -524,7 +524,7 @@ uc_addi(guru_vm *vm)
     else if (r0->gt==GT_FLOAT)	r0->f += n;
 #else
     else QUIT("Float class");
-#endif
+#endif // GURU_USE_FLOAT
 }
 
 //================================================================
@@ -551,7 +551,7 @@ uc_sub(guru_vm *vm)
         if      (r1->gt==GT_INT)	r0->f -= r1->i;
         else if (r1->gt==GT_FLOAT)	r0->f -= r1->f;
         else SKIP("Float - ?");
-#endif
+#endif // GURU_USE_FLOAT
     }
     else {  // other case
     	uc_send(vm);
@@ -576,7 +576,7 @@ uc_subi(guru_vm *vm)
     else if (r0->gt==GT_FLOAT) 	r0->f -= n;
 #else
     else QUIT("Float class");
-#endif
+#endif // GURU_USE_FLOAT
 }
 
 //================================================================
@@ -603,7 +603,7 @@ uc_mul(guru_vm *vm)
         if      (r1->gt==GT_INT) 	r0->f *= r1->i;
         else if (r1->gt==GT_FLOAT)  r0->f *= r1->f;
         else SKIP("Float * ?");
-#endif
+#endif // GURU_USE_FLOAT
     }
     else {   // other case
     	uc_send(vm);
@@ -635,7 +635,7 @@ uc_div(guru_vm *vm)
         if      (r1->gt==GT_INT) 	r0->f /= r1->i;
         else if (r1->gt==GT_FLOAT)	r0->f /= r1->f;
         else SKIP("Float / ?");
-#endif
+#endif // GURU_USE_FLOAT
     }
     else {   // other case
     	uc_send(vm);
@@ -753,7 +753,7 @@ uc_string(guru_vm *vm)
     _RA(v);
 #else
     QUIT("String class");
-#endif
+#endif // GURU_USE_STRING
 }
 
 //================================================================
@@ -766,13 +766,13 @@ __GURU__ void
 uc_strcat(guru_vm *vm)
 {
 #if GURU_USE_STRING
-    GS sid = name2id((U8P)"to_s");				// from global symbol pool
+    GS sid = name2id((U8P)"to_s");		// from global symbol pool
 	GV *sa = _R(a), *sb = _R(b);
 
     guru_proc *pa = proc_by_sid(sa, sid);
     guru_proc *pb = proc_by_sid(sb, sid);
 
-    if (pa) pa->func(sa, 0);					// can it be an IREP?
+    if (pa) pa->func(sa, 0);			// can it be an IREP?
     if (pb) pb->func(sb, 0);
 
     guru_str_add(ref_inc(sa), sb);		// ref counts increased as _dup updated
@@ -780,13 +780,21 @@ uc_strcat(guru_vm *vm)
     ref_dec(sb);
     sb->gt = GT_EMPTY;
 
-    _RA(*sa);									// this will clean out sa
+    _RA(*sa);							// this will clean out sa
 
 #else
     QUIT("String class");
-#endif
+#endif // GURU_USE_STRING
 }
 
+__GURU__ __INLINE__ void
+_stack_copy(GV *d, GV *s, U32 n)
+{
+	for (U32 i=0; i < n; i++, d++, s++) {
+		*d    = *ref_inc(s);			// now referenced by array/hash
+		s->gt = GT_EMPTY;				// DEBUG: clean element from call stack
+	}
+}
 //================================================================
 /*!@brief
   Create Array object
@@ -799,21 +807,14 @@ uc_array(guru_vm *vm)
 #if GURU_USE_ARRAY
     U32 n = _AR(c);
     GV  v = (GV)guru_array_new(n);		// ref_cnt is 1 already
-    guru_array *h = v.array;
 
-    GV *s = _R(b);						// source elements
-	GV *d = h->data;					// target
-	for (U32 i=0; i<(n); i++, d++, s++) {
-		ref_inc(s);
-		*d = *s;
-		s->gt=GT_EMPTY;
-	}
-    h->n = n;
+    guru_array *h = v.array;
+    _stack_copy(h->data, _R(b), h->n=n);
 
     _RA(v);								// no need to ref_inc
 #else
     QUIT("Array class");
-#endif
+#endif // GURU_USE_ARRAY
 }
 
 //================================================================
@@ -826,33 +827,16 @@ __GURU__ void
 uc_hash(guru_vm *vm)
 {
 #if GURU_USE_ARRAY
-/*
-	GV *regs = vm->state->regs;
-	U32 code = vm->bytecode;
+	U32 n   = _AR(c);						// number of kv pairs
+    GV  ret = guru_hash_new(n);				// ref_cnt is already set to 1
 
-    U32 ra = GET_RA(code);
-    U32 rb = GET_RB(code);
-    U32 n  = GET_RC(code);							// entries of hash
-	U32 sz = sizeof(GV) * (n<<1);						// size of k,v pairs
+    guru_hash *h = ret.hash;
+    _stack_copy(h->data, _R(b), h->n=(n<<1));
 
-    GV *p  = &regs[rb];
-    GV ret = guru_hash_new(n);							// ref_cnt is already set to 1
-    guru_hash  *h = ret.hash;
-
-    MEMCPY((U8P)h->data, (U8P)p, sz);					// copy k,v pairs
-*/
-	U32 n  = _AR(c);
-    GV  *p = _R(b);
-    GV  v  = guru_hash_new(n);							// ref_cnt is already set to 1
-    guru_hash  *h = v.hash;
-
-    for (U32 i=0; i<(h->n=(n<<1)); i++, p++) {
-    	p->gt = GT_EMPTY;								// clean up call stack
-    }
-    _RA(v);							          			// set return value on stack top
+    _RA(ret);							    // new hash on stack top
 #else
     QUIT("Hash class");
-#endif
+#endif // GURU_USE_ARRAY
 }
 
 //================================================================
@@ -873,7 +857,7 @@ uc_range(guru_vm *vm)
     _RA(v);										// release and  reassign
 #else
     QUIT("Range class");
-#endif
+#endif // GURU_USE_ARRAY
 }
 
 //================================================================
@@ -1033,7 +1017,7 @@ ucode_exec(guru_vm *vm)
 	// GURU dispatcher unit
 	//=======================================================================================
     switch (vm->op) {
-    // LOAD,STORE
+// LOAD,STORE
     case OP_LOADL:      uc_loadl     (vm); break;
     case OP_LOADI:      uc_loadi     (vm); break;
     case OP_LOADSYM:    uc_loadsym   (vm); break;
@@ -1041,7 +1025,7 @@ ucode_exec(guru_vm *vm)
     case OP_LOADSELF:   uc_loadself  (vm); break;
     case OP_LOADT:      uc_loadt     (vm); break;
     case OP_LOADF:      uc_loadf     (vm); break;
-    // VARIABLES
+// VARIABLES
     case OP_GETGLOBAL:  uc_getglobal (vm); break;
     case OP_SETGLOBAL:  uc_setglobal (vm); break;
     case OP_GETIV:      uc_getiv     (vm); break;
@@ -1050,18 +1034,18 @@ ucode_exec(guru_vm *vm)
     case OP_SETCONST:   uc_setconst  (vm); break;
     case OP_GETUPVAR:   uc_getupvar  (vm); break;
     case OP_SETUPVAR:   uc_setupvar  (vm); break;
-    // BRANCH
+// BRANCH
     case OP_JMP:        uc_jmp       (vm); break;
     case OP_JMPIF:      uc_jmpif     (vm); break;
     case OP_JMPNOT:     uc_jmpnot    (vm); break;
-    // CALL
+// CALL
     case OP_SEND:
     case OP_SENDB:      uc_send      (vm); break;
     case OP_CALL:       uc_call      (vm); break;
     case OP_ENTER:      uc_enter     (vm); break;
     case OP_RETURN:     uc_return    (vm); break;
     case OP_BLKPUSH:    uc_blkpush   (vm); break;
-    // ALU
+// ALU
     case OP_MOVE:       uc_move      (vm); break;
     case OP_ADD:        uc_add       (vm); break;
     case OP_ADDI:       uc_addi      (vm); break;
@@ -1074,23 +1058,19 @@ ucode_exec(guru_vm *vm)
     case OP_LE:         uc_le        (vm); break;
     case OP_GT:         uc_gt        (vm); break;
     case OP_GE:         uc_ge        (vm); break;
-    // BUILT-IN class (TODO: tensor)
-#if GURU_USE_STRING
+// BUILT-IN class (TODO: tensor)
     case OP_STRING:     uc_string    (vm); break;
     case OP_STRCAT:     uc_strcat    (vm); break;
-#endif
-#if GURU_USE_ARRAY
     case OP_ARRAY:      uc_array     (vm); break;
     case OP_HASH:       uc_hash      (vm); break;
     case OP_RANGE:      uc_range     (vm); break;
-#endif
-    // CLASS, PROC (STACK ops)
+// CLASS, PROC (STACK ops)
     case OP_LAMBDA:     uc_lambda    (vm); break;
     case OP_CLASS:      uc_class     (vm); break;
     case OP_EXEC:       uc_exec      (vm); break;
     case OP_METHOD:     uc_method    (vm); break;
     case OP_TCLASS:     uc_tclass    (vm); break;
-    // CONTROL
+// CONTROL
     case OP_STOP:       uc_stop      (vm); break;
     case OP_NOP:        uc_nop       (vm); break;
     default:
