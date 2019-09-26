@@ -346,27 +346,33 @@ guru_alloc(U32 sz)
   @param  size	request size
   @return void* pointer to allocated memory.
 */
+#define BLK_MAX_REALLOC	1024
 __GURU__ void*
 guru_realloc(void *p0, U32 sz)
 {
-	U32 bsz = sz + sizeof(used_block);						// include the header
+	U32 bsz = sz + sizeof(used_block);					// include the header
 
 	assert(p0);
 	CHECK_ALIGN(bsz);
 
     used_block *blk = (used_block *)BLK_HEAD(p0);
-    assert(IS_USED(blk));									// make sure it is used
+    assert(IS_USED(blk));								// make sure it is used
 
     if (bsz > blk->bsz) {
-    	_merge_with_next((free_block *)blk);				// try to get the block bigger
+    	_merge_with_next((free_block *)blk);			// try to get the block bigger
     }
-    if (bsz <= blk->bsz) return p0;							// big enough to fit
-
+    if (bsz == blk->bsz) return p0;						// fits right in
+    if (bsz < blk->bsz) {								// enough space now
+    	if (blk->bsz > BLK_MAX_REALLOC) {				// but is it too big?
+    		_split((free_block*)blk, bsz);				// allocate the block, free up the rest
+    	}
+    	return p0;
+    }
     // not big enough block found, new alloc and deep copy
     void *p1 = guru_alloc(bsz);
-    memcpy(p1, p0, sz);										// deep copy
+    memcpy(p1, p0, sz);									// deep copy
 
-    guru_free(p0);											// reclaim block
+    guru_free(p0);										// reclaim block
 
     return p1;
 }
