@@ -30,7 +30,7 @@ __GURU__ U8				*_memory_pool;
 
 // free memory bitmap
 __GURU__ U32 			_l1_map;								// use lower 24 bits
-__GURU__ U8 			_l2_map[L1_BITS];						// use all 16 bits
+__GURU__ U16 			_l2_map[L1_BITS];						// 8-bit now, TODO: 16-bit?
 __GURU__ free_block		*_free_list[FL_SLOTS];
 
 //================================================================
@@ -84,25 +84,34 @@ __unmap(free_block *blk)
 {
 	assert(IS_FREE(blk));					// ensure block is free
 
-    if (blk->prev) {						// down link exists
-    	// blk->prev->next = blk->next;
-    	free_block *p = PREV_FREE(blk);
-    	p->next = blk->next ? U8POFF(NEXT_FREE(blk), p) : 0;
-    }
-    else {			// top of the link, clear the map first (i.e. make available)
-        U32 l1, l2;
-        U32 index = __idx(blk->bsz, &l1, &l2);
-
-        if ((_free_list[index]=NEXT_FREE(blk))==NULL) {
-        	CLEAR_MAP(index);				// mark as unallocated
-        }
-    }
-    if (blk->next) {						// up link
+	U32 l1, l2;
+	U32 index 	  = __idx(blk->bsz, &l1, &l2);
+	free_block *n = _free_list[index] = NEXT_FREE(blk);
+    if (n) {								// up link
     	// blk->next->prev = blk->prev;
-    	free_block *n = NEXT_FREE(blk);
     	n->prev = blk->prev ? U8POFF(n, PREV_FREE(blk)) : 0;
+    	assert((n->prev&7)==0);
     }
-    blk->next = blk->prev = 0;				// wipe for debugging
+    else {									// 1st of the link
+        U32 l1x= L1(index);
+        U32 l2x= L2(index);
+        U32 t1 = TIC(l1x);
+        U32 t2 = TIC(l2x);
+        U32 m1 = L1_MAP(index);
+        U16 m2 = L2_MAP(index);
+
+        CLEAR_MAP(index);					// clear the index bit
+
+        U16 m2x = L2_MAP(index);
+        U32 m1x = L1_MAP(index);
+        t1 = m1x;
+    }
+    if (blk->prev) {						// down link
+    	free_block *p = PREV_FREE(blk);
+    	// blk->prev->next = blk->next;
+    	p->next = blk->next ? U8POFF(n, p) : 0;
+    }
+    blk->next = blk->prev = 0xeeeeeeee;		// wipe for debugging
 }
 
 //================================================================
@@ -161,7 +170,7 @@ _mark_free(free_block *blk)
     // update block attributes
     free_block *head = _free_list[index];
 
-    assert(head != blk);
+    assert(head!=blk);
 
     SET_FREE(blk);
     blk->next = head ? U8POFF(head, blk) : 0;			// setup linked list
@@ -182,31 +191,7 @@ _mark_used(U32 index)
     assert(blk);
     assert(IS_FREE(blk));
 
-    free_block *next = NEXT_FREE(blk);
-    if (next) {											// next free block exists
-        free_block *prev = PREV_FREE(blk);
-    	next->prev = prev ? U8POFF(prev, next) : 0;		// up link
-        assert((next->prev&7)==0);
-        _free_list[index] = next;						// take it out of free list
-    }
-    else {
-        U32 l1x= L1(index);
-        U32 l2x= L2(index);
-        U32 t1 = TIC(l1x);
-        U32 t2 = TIC(l2x);
-        U32 m1 = L1_MAP(index);
-        U16 m2 = L2_MAP(index);
-
-        CLEAR_MAP(index);								// release the index
-
-        U32 m1x = L1_MAP(index);
-        U16 m2x = L2_MAP(index);
-
-//        if ((L1_MAP(index)&L1_MASK)==0 && (L2_MAP(index)&L2_MASK)==0) {
-        if ((L2_MAP(index)&L2_MASK)==0) {				// CC:20190915 fix
-        	_free_list[index] = NULL;
-        }
-    }
+    __unmap(blk);
     SET_USED(blk);
 
     return blk;
@@ -490,22 +475,6 @@ _dump_freelist()
 }
 
 __GPU__ void
-_mmu_alloc(U8 **b, U32 sz)
-{
-	if (threadIdx.x!=0 || blockIdx.x!=0) return;
-
-	*b = (U8*)guru_alloc(sz);
-}
-
-__GPU__ void
-_mmu_free(U8 *b)
-{
-	if (threadIdx.x!=0 || blockIdx.x!=0) return;
-
-	guru_free(b);
-}
-
-__GPU__ void
 _alloc_stat(U32 v[])
 {
 	if (threadIdx.x!=0 || blockIdx.x!=0) return;
@@ -540,34 +509,6 @@ _alloc_stat(U32 v[])
 	v[6] = nfrag;
 
 	__syncthreads();
-}
-
-__HOST__ void
-guru_mmu_test()
-{
-	U32 a[] = { 0x10, 0x18, 0x20, 0x40, 0x20, 0x60 };
-	U32 f[] = { 0, 2, 4 };
-	U8 *p   = (U8 *)cuda_malloc(10*sizeof(U8P), 1);
-	U8 **b  = (U8**)p;
-
-	for (U32 i=0; i<sizeof(a)>>2; i++) {
-		printf("\nalloc 0x%02x", a[i]);
-		_mmu_alloc<<<1,1>>>(&b[i], a[i]);
-		_dump_freelist<<<1,1>>>();
-		printf("\t=>%p", b[i]);
-	}
-	for (U32 i=0; i<sizeof(f)>>2; i++) {
-		printf("\nfree %p", b[f[i]]);
-		_mmu_free<<<1,1>>>(b[f[i]]);
-		_dump_freelist<<<1,1>>>();
-	}
-	for (U32 i=0; i<sizeof(a)>>2; i++) {
-		printf("\nalloc 0x%02x", a[i]);
-		_mmu_alloc<<<1,1>>>(&b[i], a[i]);
-		_dump_freelist<<<1,1>>>();
-		printf("\t=>%p", b[i]);
-	}
-	return;
 }
 
 __HOST__ void
