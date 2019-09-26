@@ -8,15 +8,15 @@
 */
 #include <stdio.h>
 #include "gurux.h"
-#include "vmx.h"
 #include "load.h"
 #include "alloc.h"				// guru_malloc
+#include "vmx.h"
 
 // forward declaration for implementation
-extern "C" __GPU__ void guru_memory_init(void *ptr, U32 sz);
-extern "C" __GPU__ void guru_global_init(void);
-extern "C" __GPU__ void guru_class_init(void);
-extern "C" __GPU__ void guru_console_init(U8P buf, U32 sz);
+extern "C" __GPU__  void guru_memory_init(void *ptr, U32 sz);
+extern "C" __GPU__  void guru_global_init(void);
+extern "C" __GPU__  void guru_class_init(void);
+extern "C" __GPU__  void guru_console_init(U8P buf, U32 sz);
 
 U8P _guru_mem;				// guru global memory
 U8P _guru_out;				// guru output stream
@@ -127,5 +127,3 @@ guru_run(int trace)
 
 	return 0;
 }
-
-

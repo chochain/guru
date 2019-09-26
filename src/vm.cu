@@ -208,7 +208,7 @@ vm_main_start(U32 trace)
 	// add host hook here
 #if GURU_USE_CONSOLE
 		guru_console_flush(ses->out, ses->trace);	// dump output buffer
-#endif
+#endif // GURU_USE_CONSOLE
 	} while (_join());
 
 	if (trace) {

@@ -156,7 +156,7 @@ _build_image(U8 *src_u8, U8 * img)
             *(GF *)v = atof(buf);
             *v |= 1;							// mark as float  i.e. LSB=1
             break;
-#endif
+#endif // GURU_USE_FLOAT
         default:
         	*v = 0;								// other object are not supported yet
         	break;

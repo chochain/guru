@@ -213,7 +213,7 @@ _load_irep_1(mrbc_irep *irep, U8P *pos)
             obj->gt = GT_FLOAT;
             obj->f  = ATOF(buf);
         } break;
-#endif
+#endif // GURU_USE_FLOAT
         default:
         	obj->gt = GT_EMPTY;	// other object are not supported yet
         	break;

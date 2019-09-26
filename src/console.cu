@@ -108,7 +108,7 @@ guru_console_init(U8P buf, U32 sz)
 	_output_buf = _output_ptr = buf;
 
 	if (sz) _output_size = sz;					// set to new size
-#endif
+#endif // GURU_USE_CONSOLE
 }
 
 #define NEXTNODE(n)	((guru_print_node *)(node->data + node->size))
@@ -150,7 +150,7 @@ console_float(GF f)
 {
 	_write(GT_FLOAT, GT_EMPTY, sizeof(GF), (U8P)&f);
 }
-#endif
+#endif // GURU_USE_FLOAT
 
 //================================================================
 /*! output string
@@ -210,5 +210,5 @@ guru_console_flush(U8P output_buf, U32 trace)
 	}
 	guru_console_init<<<1,1>>>(output_buf, 0);
 	cudaDeviceSynchronize();
-#endif
+#endif // GURU_USE_CONSOLE
 }

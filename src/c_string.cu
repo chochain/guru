@@ -20,7 +20,7 @@
 #include "c_string.h"
 #include "inspect.h"
 
-#if GURU_USE_STRING
+#if     GURU_USE_STRING
 //================================================================
 /*! white space character test
 
@@ -359,7 +359,7 @@ str_to_s(GV v[], U32 vi)
     RETURN_VAL(ret);
 }
 
-#if GURU_USE_FLOAT
+#if     GURU_USE_FLOAT
 //================================================================
 /*! (method) to_f
  */
@@ -370,7 +370,7 @@ str_to_f(GV v[], U32 vi)
 
     RETURN_FLOAT(d);
 }
-#endif
+#endif // GURU_USE_FLOAT
 
 //================================================================
 /*! (method) []

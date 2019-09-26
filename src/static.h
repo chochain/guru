@@ -25,22 +25,23 @@ extern __GURU__ guru_class *guru_class_false;
 extern __GURU__ guru_class *guru_class_true;
 extern __GURU__ guru_class *guru_class_nil;
 extern __GURU__ guru_class *guru_class_int;
+extern __GURU__ guru_class *guru_class_symbol;
+extern __GURU__ guru_class *guru_class_proc;
+
 #if GURU_USE_FLOAT
 extern __GURU__ guru_class *guru_class_float;
 extern __GURU__ guru_class *guru_class_math;
-#endif
-extern __GURU__ guru_class *guru_class_symbol;
-
-extern __GURU__ guru_class *guru_class_proc;
+#endif // GURU_USE_FLOAT
 
 #if GURU_USE_STRING
 extern __GURU__ guru_class *guru_class_string;
-#endif
+#endif // GURU_USE_STRING
+
 #if GURU_USE_ARRAY
 extern __GURU__ guru_class *guru_class_array;
 extern __GURU__ guru_class *guru_class_range;
 extern __GURU__ guru_class *guru_class_hash;
-#endif
+#endif  // GURU_USE_ARRAY
 
 #ifdef __cplusplus
 }

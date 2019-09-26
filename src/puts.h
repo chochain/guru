@@ -24,7 +24,7 @@
 #else					// use CUDA printf function
 #include <stdio.h>
 #define PRINTF		printf
-#endif
+#endif // GURU_USE_CONSOLE
 
 #ifdef __cplusplus
 extern "C" {

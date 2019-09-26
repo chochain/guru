@@ -24,7 +24,7 @@
 #include "c_array.h"
 #include "c_range.h"
 #include "c_hash.h"
-#endif
+#endif // GURU_USE_ARRAY
 
 __GURU__ U32 _p(GV *v);				// forward declaration
 
@@ -48,7 +48,7 @@ _print(GV *v)
     case GT_INT: 	PRINTF("%d", v->i);		break;
 #if GURU_USE_FLOAT
     case GT_FLOAT:  PRINTF("%f", v->f);		break;
-#endif
+#endif // GURU_USE_FLOAT
     case GT_SYM: 	PRINTF("%s", id2name(v->i));			break;
     case GT_CLASS:  PRINTF("%s", id2name(v->cls->sid));  	break;
     case GT_OBJ:
@@ -67,7 +67,7 @@ _print(GV *v)
         	ret = 1;
         }
     } break;
-#endif
+#endif  // GURU_USE_STRING
 #if GURU_USE_ARRAY
     case GT_ARRAY:
         p = v->array->data;
@@ -92,7 +92,7 @@ _print(GV *v)
         }
         PRINTF("%c", '}');
         break;
-#endif
+#endif	// GURU_USE_ARRAY
     default: PRINTF("?vtype: %d", (int)v->gt); break;
     }
     return ret;
@@ -123,12 +123,12 @@ _p(GV *v)
         }
         PRINTF("%c", ']');
         break;
-#endif
+#endif // GURU_USE_ARRAY
 #if GURU_USE_STRING
     case GT_STR:
     	PRINTF("\"%s\"", GVSTR(v));
     	break;
-#endif
+#endif // GURU_USE_STRING
     default:
         _print(v);
         break;

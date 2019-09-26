@@ -134,7 +134,7 @@ typedef struct {					// 16-bytes
         struct RArray    *array;	// TT_ARRAY
         struct RRange    *range;	// TT_RANGE
         struct RHash     *hash;		// TT_HASH
-#endif
+#endif // GURU_USE_ARRAY
         U8       		 *sym;		// C-string (only loader use.)
     };
 } GV, guru_obj;		// TODO: guru_val and guru_object shared the same structure for now
@@ -150,7 +150,7 @@ typedef struct RClass {			// 32-byte
     struct RProc  	*vtbl;		// guru_proc[rprocs], linked list
 #if GURU_DEBUG
     char			*name;		// for debug. TODO: remove
-#endif
+#endif // GURU_DEBUG
 } guru_class;
 
 /* forward declaration */

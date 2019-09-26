@@ -176,7 +176,7 @@ __float(guru_print *pf, double value)
 
     return _size(pf);
 }
-#endif
+#endif // GURU_USE_FLOAT
 
 //================================================================
 /*! sprintf subcontract function for U8 '%s'
@@ -308,7 +308,7 @@ guru_printf(const U8 *fstr, ...)
         case 'E':
         case 'g':
         case 'G': ret = __float(pf, va_arg(ap, double)); 		 	break;
-#endif
+#endif // GURU_USE_FLOAT
         default:
             console_str("?format: ");
             console_char(pf->fmt.type);
@@ -356,7 +356,7 @@ guru_vprintf(const U8 *fstr, GV v[], U32 vi)		// << from c_string.cu
 #if GURU_USE_FLOAT
             } else if (v[i].gt==GT_FLOAT) {
                 ret = __int(pf, (GI)v[i].f, 10);
-#endif
+#endif // GURU_USE_FLOAT
             } else if (v[i].gt==GT_STR) {
                 GI ival = ATOI(GVSTR(&v[i]));
                 ret = __int(pf, ival, 10);
@@ -387,7 +387,7 @@ guru_vprintf(const U8 *fstr, GV v[], U32 vi)		// << from c_string.cu
             	ret = __float(pf, v[i].i);
             }
             break;
-#endif
+#endif // GURU_USE_FLOAT
         default: break;
         }
         i++;

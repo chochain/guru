@@ -17,6 +17,7 @@
 #include "static.h"
 
 #include "c_fixnum.h"
+#include "c_string.h"
 #include "inspect.h"
 
 // macro to fetch from stack objects
@@ -67,7 +68,7 @@ int_power(GV v[], U32 vi)
     else if (v[1].gt == GT_FLOAT) {
         RETURN_FLOAT(pow(v[0].i, v[1].f));
     }
-#endif
+#endif // GURU_USE_FLOAT && GURU_USE_MATH
 }
 
 
@@ -162,7 +163,19 @@ int_to_f(GV v[], U32 vi)
     GF f = ARG_INT(0);
     RETURN_FLOAT(f);
 }
-#endif
+#endif // GURU_USE_FLOAT
+
+#if !GURU_USE_STRING
+__GURU__ void int_chr(GV v[], U32 vi) {}
+#else
+__GURU__ void
+int_chr(GV v[], U32 vi)
+{
+    U8 buf[2] = { (U8)v->i, '\0' };
+
+    RETURN_VAL(guru_str_new(buf));
+}
+#endif // GURU_USE_STRING
 
 __GURU__ void
 guru_init_class_int(void)
@@ -184,7 +197,6 @@ guru_init_class_int(void)
     NEW_PROC("to_f",	int_to_f);
 
     NEW_PROC("chr", 	int_chr);
-
     NEW_PROC("to_s", 	gv_to_s);
     NEW_PROC("inspect",	gv_to_s);
 }
@@ -217,7 +229,7 @@ flt__power(GV v[], U32 vi)
 
     RETURN_FLOAT(pow(v[0].d, n));
 }
-#endif
+#endif // GURU_USE_MATH
 
 //================================================================
 /*! (method) abs
@@ -250,9 +262,9 @@ guru_init_class_float(void)
     guru_class *c = guru_class_float = NEW_CLASS("Float", guru_class_object);
 
     NEW_PROC("-@", 		flt__negative);
-#if GURU_USE_MATH
+#if     GURU_USE_MATH
     NEW_PROC("**", 		flt__power);
-#endif
+#endif // GURU_USE_MATH
     NEW_PROC("abs", 	flt_abs);
     NEW_PROC("to_i", 	flt_to_i);
 
@@ -260,4 +272,4 @@ guru_init_class_float(void)
     NEW_PROC("inspect", gv_to_s);
 }
 
-#endif
+#endif // GURU_USE_FLOAT

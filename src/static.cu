@@ -26,13 +26,13 @@ __GURU__ guru_class *guru_class_proc;
 #if GURU_USE_FLOAT
 __GURU__ guru_class *guru_class_float;
 __GURU__ guru_class *guru_class_math;
-#endif
+#endif // GURU_USE_FLOAT
 #if GURU_USE_STRING
 __GURU__ guru_class *guru_class_string;
-#endif
+#endif // GURU_USE_STRING
 #if GURU_USE_ARRAY
 __GURU__ guru_class *guru_class_array;
 __GURU__ guru_class *guru_class_range;
 __GURU__ guru_class *guru_class_hash;
-#endif
+#endif // GURU_USE_ARRAY
 

@@ -57,7 +57,7 @@ guru_cmp(const GV *v0, const GV *v1)
             f1 = v1->i;
             return -1 + (f0 == f1) + (f0 > f1)*2;	// caution: NaN == NaN is false
         }
-#endif
+#endif // GURU_USE_FLOAT
         // leak Empty?
         if ((v0->gt==GT_EMPTY && v1->gt==GT_NIL) ||
             (v0->gt==GT_NIL   && v1->gt==GT_EMPTY)) return 0;
@@ -81,12 +81,13 @@ guru_cmp(const GV *v0, const GV *v1)
 
 #if GURU_USE_FLOAT
     case GT_FLOAT:  return -1 + (v0->f==v1->f) + (v0->f > v1->f)*2;	// caution: NaN == NaN is false
-#endif
+#endif // GURU_USE_FLOAT
+
 #if GURU_USE_ARRAY
     case GT_ARRAY:  return guru_array_cmp(v0, v1);
     case GT_RANGE:  return guru_range_cmp(v0, v1);
     case GT_HASH:   return guru_hash_cmp(v0, v1);
-#endif
+#endif // GURU_USE_ARRAY
     default:
         return 1;
     }
@@ -166,7 +167,7 @@ guru_atof(U8P s)
     return ret;
 #else
     return 0.0;
-#endif
+#endif // GURU_USE_FLOAT
 }
 
 __GURU__ U8P guru_i2s(U64 i, U32 base)
@@ -257,14 +258,17 @@ ref_dec(GV *v)
     switch(v->gt) {
     case GT_OBJ:		guru_obj_del(v);	break;	// delete object instance
     case GT_PROC:	    guru_free(v->proc);	break;
+
 #if GURU_USE_STRING
     case GT_STR:		guru_str_del(v);	break;
-#endif
+#endif // GURU_USE_STRING
+
 #if GURU_USE_ARRAY
     case GT_ARRAY:	    guru_array_del(v);	break;
     case GT_RANGE:	    guru_range_del(v);	break;
     case GT_HASH:	    guru_hash_del(v);	break;
-#endif
+#endif // GURU_USE_ARRAY
+
     default: break;
     }
     return v;

@@ -66,7 +66,7 @@ class_by_obj(guru_obj *obj)
     case GT_INT:     cls = guru_class_int;		break;
 #if GURU_USE_FLOAT
     case GT_FLOAT:	 cls = guru_class_float; 	break;
-#endif
+#endif // GURU_USE_FLOAT
     case GT_SYM:  	 cls = guru_class_symbol;	break;
 
     case GT_OBJ:  	 cls = obj->self->cls; 		break;
@@ -74,12 +74,12 @@ class_by_obj(guru_obj *obj)
     case GT_PROC:	 cls = guru_class_proc;		break;
 #if GURU_USE_STRING
     case GT_STR:     cls = guru_class_string;	break;
-#endif
+#endif // GURU_USE_STRING
 #if GURU_USE_ARRAY
     case GT_ARRAY:   cls = guru_class_array; 	break;
     case GT_RANGE:	 cls = guru_class_range; 	break;
     case GT_HASH:	 cls = guru_class_hash;		break;
-#endif
+#endif  // GURU_USE_ARRAY
     default:		 cls = guru_class_object;	break;
     }
     return cls;
