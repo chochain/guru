@@ -61,45 +61,40 @@ _send(GV v[], GV *rcv, const U8P method, U32 argc, ...)
 
     guru_proc *m = proc_by_sid(rcv, sid);	// method of receiver object
 
-    if (m==0) {
-        PRINTF("No method. vtype=%d method='%s'\n", rcv->gt, method);
-        return GURU_NIL_NEW();
-    }
+    assert(m);
 
     // create call stack.
-    ref_clr(&regs[0]);
-    regs[0] = *rcv;					// create call stack, start with receiver object
-    ref_inc(rcv);
+    regs[0] = *ref_inc(rcv);		// create call stack, start with receiver object
 
     va_list ap;						// setup calling registers
     va_start(ap, argc);
     for (U32 i = 1; i <= argc+1; i++) {
-    	ref_clr(&regs[i]);
         regs[i] = (i>argc) ? GURU_NIL_NEW() : *va_arg(ap, GV *);
     }
     va_end(ap);
 
-    m->func(regs, argc);			// call method
-    GV ret = regs[0];				// copy result
+    m->func(regs, argc);			// call method, put return value in regs[0]
 
 #if GURU_DEBUG
-    for (U32 i=0; i<=argc+1; i++) {	// not really needed!
-    	regs[i].gt = GT_EMPTY;	// but, clean up the stack before returning
+    GV *r = v;						// _wipe_stack
+    for (U32 i=1; i<=argc+1; i++, r++) {
+    	r->gt 	= GT_EMPTY;			// clean up the stack
+    	r->self = NULL;
     }
 #endif
-    return ret;
+    RETURN_VAL(regs[0]);
 }
 
 __GURU__ GV
-guru_inspect(GV v[], GV *rcv)
+guru_inspect(GV v[], GV *obj)
 {
-	return _send(v, rcv, (U8P)"inspect", 0);
+	return _send(v, obj, (U8P)"inspect", 0);
 }
 
 __GURU__ GV
-guru_kind_of(GV v[], U32 vi)		// whether v1 is a kind of v0
+guru_kind_of(GV v[])		// whether v1 is a kind of v0
 {
-	return _send(v+vi, v+1, (U8P)"kind_of?", 1, v);
+	return _send(v, v+1, (U8P)"kind_of?", 1, v);
 }
 
 __GURU__ void
@@ -185,7 +180,7 @@ obj_eq3(GV v[], U32 vi)
     	RETURN_BOOL(guru_cmp(v, v+1)==0);
     }
     else {
-    	GV ret = guru_kind_of(v, vi);
+    	GV ret = guru_kind_of(v);
     	RETURN_VAL(ret);
     }
 }
@@ -375,15 +370,21 @@ _init_class_proc()
 
 //================================================================
 // Nil class
-
-//================================================================
-/*! (method) !
- */
 __GURU__ void
 nil_false_not(GV v[], U32 vi)
 {
     v[0].gt = GT_TRUE;
 }
+
+#if !GURU_USE_STRING
+__GURU__ void nil_inspect(GV v[], U32 vi) {}
+#else
+__GURU__ void
+nil_inspect(GV v[], U32 vi)
+{
+    RETURN_VAL(guru_str_new("nil"));
+}
+#endif	// GURU_USE_STRING
 
 //================================================================
 /*! Nil class
@@ -446,7 +447,7 @@ _init_all_class(void)
 
 #if GURU_USE_MATH
     guru_init_class_math();
-#endif
+#endif // GURU_USE_MATH
 }
 
 __GPU__ void

@@ -89,7 +89,7 @@ __GURU__ void
 rng_eq3(GV v[], U32 vi)
 {
     if (v[0].gt == GT_CLASS) {
-        GV ret = guru_kind_of(v, vi);
+        GV ret = guru_kind_of(v);
         RETURN_VAL(ret);
     }
 
