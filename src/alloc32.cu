@@ -360,11 +360,7 @@ guru_realloc(void *p0, U32 sz)
     if (bsz > blk->bsz) {
     	_merge_with_next((free_block *)blk);				// try to get the block bigger
     }
-    if (bsz == blk->bsz) return p0;							// same size, good fit
-    if (bsz < blk->bsz) {									// a little to big, split if we can
-        _split((free_block *)blk, bsz);						// keep only the first bsz bytes
-        return p0;
-    }
+    if (bsz <= blk->bsz) return p0;							// big enough to fit
 
     // not big enough block found, new alloc and deep copy
     void *p1 = guru_alloc(bsz);

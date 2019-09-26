@@ -225,6 +225,22 @@ guru_str_new(const U8 *src)			// cannot use U8P, need lots of casting
     return _new((U8P)src);
 }
 
+__GURU__ GV
+guru_str_buf(U32 sz)				// a string buffer
+{
+	GV ret = _blank(sz);
+	ret.str->n = 0;
+	return ret;
+}
+
+__GURU__ GV
+guru_str_clr(GV *s)
+{
+	assert(s->gt==GT_STR);
+	s->str->n = 0;
+	return *s;
+}
+
 //================================================================
 /*! destructor
 
@@ -656,7 +672,9 @@ __GURU__ void
 str_inspect(GV v[], U32 vi)
 {
 	const char *hex = "0123456789ABCDEF";
-    GV ret  = guru_str_new("\"");
+    GV ret = guru_str_buf(BUF_SIZE*2);
+
+    guru_str_add_cstr(&ret, "\"");
 
     U8 buf[BUF_SIZE];
     U8 *p = buf;

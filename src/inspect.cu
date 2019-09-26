@@ -224,10 +224,11 @@ _to_s(GV *s, GV v[], U32 n)
 }
 //================================================================
 //! Object#to_s factory function
+#define BUF_SIZE	1024
 __GURU__ void
 gv_to_s(GV v[], U32 vi)
 {
-	GV ret = guru_str_new("");
+	GV ret = guru_str_buf(BUF_SIZE);
 
 	_to_s(&ret, v, vi);
 
