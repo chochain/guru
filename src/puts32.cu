@@ -49,8 +49,8 @@ _print(GV *v)
 #if GURU_USE_FLOAT
     case GT_FLOAT:  PRINTF("%f", v->f);		break;
 #endif // GURU_USE_FLOAT
-    case GT_SYM: 	PRINTF("%s", id2name(v->i));			break;
-    case GT_CLASS:  PRINTF("%s", id2name(v->cls->sid));  	break;
+    case GT_SYM: 	PRINTF(":%s", id2name(v->i));			break;
+    case GT_CLASS:  PRINTF("%s",  id2name(v->cls->sid));  	break;
     case GT_OBJ:
     	PRINTF("#<%s:0x%08x>",
     		id2name(class_by_obj(v)->sid),
@@ -111,7 +111,7 @@ _p(GV *v)
     case GT_NIL: PRINTF("nil");		break;
     case GT_SYM:
         name = id2name(v->i);
-        STRCHR(name, ';') ? PRINTF("\"%s\"", name) : PRINTF("%s", name);
+        STRCHR(name, ';') ? PRINTF("\"%s\"", name) : PRINTF(":%s", name);
         break;
 #if GURU_USE_ARRAY
     case GT_ARRAY:

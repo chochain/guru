@@ -57,21 +57,21 @@
 __GURU__ void
 _resize(guru_array *h, U32 ndx)
 {
-    U32 nsz = 0;
+    U32 n = 0;
     if (ndx >= h->size) {						// need resize?
-        nsz = ndx;
+        n = ndx;
     }
     else if (h->n >= h->size) {
-        nsz = h->n + 4;							// auto allocate extra 4 elements
+        n = h->n + 4;							// auto allocate extra 4 elements
     }
-    if (nsz) {
-    	U32 asz = sizeof(GV) * nsz;		asz += -asz & 7;	// should be 8-byte aligned already
+    if (n) {
+    	U32 asz = sizeof(GV) * n;		asz += -asz & 7;	// should be 8-byte aligned already
         h->data = h->data
         	? (GV *)guru_realloc(h->data, asz)
         	: (GV *)guru_alloc(asz);
-        h->size = nsz;
-        for (U32 i=h->n; i<nsz; i++) {			// lazy fill here, instead of when resized
-            h->data[i] = GURU_NIL_NEW();		// prep newly allocated cells
+        h->size = n;
+        for (U32 i=h->n; i<n; i++) {			// DEBUG: lazy fill here, instead of when resized
+            h->data[i].gt = GT_EMPTY;
         }
     }
 }

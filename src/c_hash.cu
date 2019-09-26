@@ -212,8 +212,7 @@ _hash_dup(const GV *kv)
     GV  *s  = _data(kv);
     U32 n2  = ret.hash->n = n<<1;		// n pairs (k,v)
     for (U32 i=0; i < n2; i++) {
-    	ref_inc(s);						// one extra ref
-    	*d++ = *s++;
+    	*d++ = *ref_inc(s++);			// referenced by the new hash now
     }
     return ret;
 }
@@ -398,10 +397,10 @@ hsh_size(GV v[], U32 vi)
 __GURU__ void
 hsh_merge(GV v[], U32 vi)		// non-destructive merge
 {
-    GV ret = _hash_dup(v);
-    GV *p  = _data(v+1);
-    int         n  = _size(v+1);
-    for (U32 i=0; i<n; i++, p+=2) {
+    GV  ret = _hash_dup(v);
+    U32 n   = _size(v+1);
+    GV *p   = _data(v+1);
+    for (U32 i=0; i < n; i++, p+=2) {
         _set(&ret, p, p+1);
     }
     RETURN_VAL(ret);
