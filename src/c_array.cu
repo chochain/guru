@@ -221,13 +221,14 @@ _remove(GV *ary, S32 idx)
     U32 ndx = (idx < 0) ? h->n + idx : idx;
 
     if (ndx >= h->n) return GURU_NIL_NEW();
+    h->n--;
 
-    GV *v = ref_dec(&h->data[ndx]);
-    if (ndx < --h->n) {										// shrink by 1
-    	U32 blksz = sizeof(GV) * (h->n - ndx);
-        MEMCPY(v, v+1, blksz);								// lshift
-    }
-    return *v;
+    GV  *r  = ref_dec(&h->data[ndx]);			// release the object
+    GV  ret = *r;								// copy return value before it's overwritten
+    U32 nx = h->n - ndx;						// number of elements to move
+    if (nx) MEMCPY(r, r+1, nx*sizeof(GV));		// lshift
+
+    return ret;									// return the deleted item
 }
 
 //================================================================
@@ -553,7 +554,7 @@ ary_last(GV v[], U32 vi)
 __GURU__ void
 ary_push(GV v[], U32 vi)
 {
-    guru_array_push(v, v+1);	// raise? ENOMEM
+    guru_array_push(v, v+1);				// raise? ENOMEM
     v[1].gt = GT_EMPTY;
 }
 
