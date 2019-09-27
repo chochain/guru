@@ -164,9 +164,11 @@ typedef struct XVM {
 #endif 	// GURU_HOST_IMAGE
 
 #define VM_IREP(vm)    	((vm)->state->irep)
-#define VM_SYM(vm,n)    (U8PADD(VM_IREP(vm), *(U32*)U8PADD(VM_IREP(vm), VM_IREP(vm)->sym  + n*sizeof(U32))))
-#define VM_VAR(vm,n)	((U32P)U8PADD(VM_IREP(vm), *(U32*)U8PADD(VM_IREP(vm), VM_IREP(vm)->pool + n*sizeof(U32))))
-#define VM_REPS(vm,n)	((guru_irep*)U8PADD(VM_IREP(vm), *(U32*)U8PADD(VM_IREP(vm), VM_IREP(vm)->reps + n*sizeof(U32))))
+#define VMX(vm, tok)    ((U32*)U8PADD(VM_IREP(vm), VM_IREP(vm)->tok))
+#define VM_REPS(vm,n)	((guru_irep*)U8PADD(VM_IREP(vm), *(VMX(vm, reps)+n)))
+#define VM_SYM(vm,n)    ((U8*) U8PADD(VM_IREP(vm), *(VMX(vm, sym)+n)))
+#define VM_VAR(vm,n)	(*(VMX(vm, pool)+n))
+#define VM_STR(vm,n)	((U32*)U8PADD(VM_IREP(vm), VM_VAR(vm,n)))
 
 #if GURU_HOST_IMAGE
 #define VM_ISEQ(vm)	 	 (U8PADD(VM_IREP(vm), VM_IREP(vm)->iseq))
