@@ -38,8 +38,8 @@ guru_add_class(const char *name, guru_class *super, Vfunc vtbl[], int n)
 	guru_class *c = guru_define_class((U8*)name, super);
 
 	Vfunc *p = vtbl;
-	for (U32 i=0; i<n && p && p->cfunc; i++, p++) {
-		guru_define_method(c, (U8*)p->fname, p->cfunc);
+	for (U32 i=0; i<n && p && p->func; i++, p++) {
+		guru_define_method(c, (U8*)p->name, p->func);
 	}
 	return c;
 }
