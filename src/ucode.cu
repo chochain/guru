@@ -608,7 +608,7 @@ uc_mul(guru_vm *vm)
     else {   // other case
     	uc_send(vm);
     }
-    ref_clr(r1);
+    r1->gt = GT_EMPTY;
 }
 
 //================================================================
@@ -640,7 +640,7 @@ uc_div(guru_vm *vm)
     else {   // other case
     	uc_send(vm);
     }
-    ref_clr(r1);
+    r1->gt = GT_EMPTY;
 }
 
 //================================================================
