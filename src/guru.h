@@ -13,19 +13,23 @@ extern "C" {
 
 #ifdef __GURU_CUDA__
 #define __GURU__ 			__device__
-//#define __INLINE__			__forceinline__
-#define __INLINE__
 #define __HOST__			__host__
 #define __GPU__				__global__
 #define MUTEX_LOCK(p)  		while (atomicCAS((int *)&p, 0, 1)!=0)
 #define MUTEX_FREE(p)  		atomicExch((int *)&p, 0)
-#define CHECK_ALIGN(sz) 	assert((-(sz)&7)==0)
+#define ALIGN(sz) 			((sz) += -(sz) & 7)
+#define __INLINE__
+//#define __INLINE__			__forceinline__
+#define __UCODE__ 			__GURU__ __INLINE__ void
+
 #else
+
 #define __GURU__
 #define __INLINE__ 			inline
 #define __HOST__
 #define __GPU__
 #define CHECK_ALIGN(sz) 	assert((-(sz)&3)==0)
+
 #endif
 
 #define MAX_BUFFER_SIZE 4096		// 4K
@@ -154,14 +158,18 @@ typedef struct RClass {			// 32-byte
 } guru_class;
 
 /* forward declaration */
-typedef void (*guru_fptr)(guru_obj *obj, U32 vi);
+typedef void (*guru_fptr)(GV v[], U32 vi);
 struct Irep;
+struct Vfunc {
+	const char  *fname;			// raw string usually
+	guru_fptr 	cfunc;			// C-function pointer
+};
 
 typedef struct RProc {			// 48-byte
     GS 	 			sid;		// u32
     U32				fil;		// reserved
     struct RIrep 	*irep;		// an IREP (Ruby code), defined in vm.h
-    guru_fptr  	 	func;		// or a raw C function
+    guru_fptr 		func;		// or a raw C function
     struct RProc 	*next;		// next function in linked list
 #if GURU_DEBUG
     char			*cname;		// classname
@@ -204,12 +212,7 @@ typedef struct RSes {				// 16-byte
 } guru_ses;
 
 // internal methods which uses (const char *) for static string									// in class.cu
-__GURU__ guru_class *guru_add_class(const char *name, guru_class *super);						// use (char *) for static string
-__GURU__ guru_proc  *guru_add_proc(guru_class *cls, const char *name, guru_fptr cfunc);
-
-// macro for class and proc creation (assumption: guru_class *c is defined)
-#define NEW_CLASS(name, super)   	guru_add_class(name, super)
-#define NEW_PROC(name, cfunc)		guru_add_proc(c, name, cfunc)
+__GURU__ guru_class *guru_add_class(const char *name, guru_class *super, Vfunc vtbl[], int n);		// use (char *) for static string
 
 #ifdef __cplusplus
 }

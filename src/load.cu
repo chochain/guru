@@ -96,7 +96,7 @@ _build_image(U8 *src_u8, U8 *img)
 	guru_irep *src = (guru_irep *)src_u8;
 
 	// compute CUDA alignment memory block sizes
-    U32 irep_sz = sizeof(guru_irep) + (-sizeof(guru_irep) & 7);					// 8-byte alignment
+    U32 irep_sz = sizeof(guru_irep);  ALIGN(irep_sz);							// 8-byte alignment
     U32 reps_sz = sizeof(U32) * (src->c + (src->c & 1));
     U32 pool_sz = sizeof(U32) * (src->p + (src->p & 1));
     U32 sym_sz  = sizeof(U32) * (src->s + (src->s & 1));

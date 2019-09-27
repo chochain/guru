@@ -320,7 +320,7 @@ guru_alloc(U32 sz)
 {
     U32 bsz = sz + sizeof(used_block);			// logical => physical size
 
-    CHECK_ALIGN(bsz);							// assume caller already align the size
+    assert((bsz & 7)==0);						// assume caller already align the size
     CHECK_MINSZ(bsz);							// check minimum allocation size
 
 	_LOCK;
@@ -353,7 +353,7 @@ guru_realloc(void *p0, U32 sz)
 	U32 bsz = sz + sizeof(used_block);					// include the header
 
 	assert(p0);
-	CHECK_ALIGN(bsz);
+	assert((bsz & 7)==0);								// assume it is aligned already
 
     used_block *blk = (used_block *)BLK_HEAD(p0);
     assert(IS_USED(blk));								// make sure it is used
