@@ -373,7 +373,7 @@ guru_array_cmp(const GV *a0, const GV *a1)
 //================================================================
 /*! method new
  */
-__GURU__ void
+__CFUNC__
 ary_new(GV v[], U32 vi)
 {
 	GV ret;
@@ -404,7 +404,7 @@ ary_new(GV v[], U32 vi)
 //================================================================
 /*! (operator) +
  */
-__GURU__ void
+__CFUNC__
 ary_add(GV v[], U32 vi)
 {
     assert(v[0].gt==GT_ARRAY && v[1].gt==GT_ARRAY);		// array only (for now)
@@ -426,7 +426,7 @@ ary_add(GV v[], U32 vi)
 //================================================================
 /*! (operator) []
  */
-__GURU__ void
+__CFUNC__
 ary_get(GV v[], U32 vi)
 {
 	GV ret;
@@ -459,7 +459,7 @@ ary_get(GV v[], U32 vi)
 //================================================================
 /*! (operator) []=
  */
-__GURU__ void
+__CFUNC__
 ary_set(GV v[], U32 vi)
 {
 	GT gt1 = v[1].gt;
@@ -480,7 +480,7 @@ ary_set(GV v[], U32 vi)
 //================================================================
 /*! (method) clear
  */
-__GURU__ void
+__CFUNC__
 ary_clr(GV v[], U32 vi)
 {
     guru_array_clr(v);
@@ -489,7 +489,7 @@ ary_clr(GV v[], U32 vi)
 //================================================================
 /*! (method) delete_at
  */
-__GURU__ void
+__CFUNC__
 ary_del_at(GV v[], U32 vi)
 {
 	S32 n = v[1].i;
@@ -500,7 +500,7 @@ ary_del_at(GV v[], U32 vi)
 //================================================================
 /*! (method) empty?
  */
-__GURU__ void
+__CFUNC__
 ary_empty(GV v[], U32 vi)
 {
     RETURN_BOOL(v->array->n==0);
@@ -509,7 +509,7 @@ ary_empty(GV v[], U32 vi)
 //================================================================
 /*! (method) size,length,count
  */
-__GURU__ void
+__CFUNC__
 ary_size(GV v[], U32 vi)
 {
     RETURN_INT(v->array->n);
@@ -518,7 +518,7 @@ ary_size(GV v[], U32 vi)
 //================================================================
 /*! (method) index
  */
-__GURU__ void
+__CFUNC__
 ary_index(GV v[], U32 vi)
 {
     guru_array *h = v->array;
@@ -534,7 +534,7 @@ ary_index(GV v[], U32 vi)
 //================================================================
 /*! (method) first
  */
-__GURU__ void ary_first(GV v[], U32 vi)
+__CFUNC__ ary_first(GV v[], U32 vi)
 {
     RETURN_VAL(_get(v, 0));
 }
@@ -542,7 +542,7 @@ __GURU__ void ary_first(GV v[], U32 vi)
 //================================================================
 /*! (method) last
  */
-__GURU__ void
+__CFUNC__
 ary_last(GV v[], U32 vi)
 {
     RETURN_VAL(_get(v, -1));
@@ -551,7 +551,7 @@ ary_last(GV v[], U32 vi)
 //================================================================
 /*! (method) push
  */
-__GURU__ void
+__CFUNC__
 ary_push(GV v[], U32 vi)
 {
     guru_array_push(v, v+1);				// raise? ENOMEM
@@ -561,7 +561,7 @@ ary_push(GV v[], U32 vi)
 //================================================================
 /*! (method) pop
  */
-__GURU__ void
+__CFUNC__
 ary_pop(GV v[], U32 vi)
 {
     if (vi==0) {							// pop() -> object | nil
@@ -578,7 +578,7 @@ ary_pop(GV v[], U32 vi)
 //================================================================
 /*! (method) unshift
  */
-__GURU__ void
+__CFUNC__
 ary_unshift(GV v[], U32 vi)
 {
     _unshift(v, v+1);						// raise? IndexError or ENOMEM
@@ -588,7 +588,7 @@ ary_unshift(GV v[], U32 vi)
 //================================================================
 /*! (method) shift
  */
-__GURU__ void
+__CFUNC__
 ary_shift(GV v[], U32 vi)
 {
     if (vi==0) {							// shift() -> object | nil
@@ -605,7 +605,7 @@ ary_shift(GV v[], U32 vi)
 //================================================================
 /*! (method) dup
  */
-__GURU__ void
+__CFUNC__
 ary_dup(GV v[], U32 vi)
 {
     guru_array *h0 = v[0].array;
@@ -621,7 +621,7 @@ ary_dup(GV v[], U32 vi)
 //================================================================
 /*! (method) min
  */
-__GURU__ void
+__CFUNC__
 ary_min(GV v[], U32 vi)
 {
     // Subset of Array#min, not support min(n).
@@ -637,7 +637,7 @@ ary_min(GV v[], U32 vi)
 //================================================================
 /*! (method) max
  */
-__GURU__ void
+__CFUNC__
 ary_max(GV v[], U32 vi)
 {
     // Subset of Array#max, not support max(n).
@@ -652,7 +652,7 @@ ary_max(GV v[], U32 vi)
 //================================================================
 /*! (method) minmax
  */
-__GURU__ void
+__CFUNC__
 ary_minmax(GV v[], U32 vi)
 {
     GV nil = GURU_NIL_NEW();
@@ -669,7 +669,7 @@ ary_minmax(GV v[], U32 vi)
     RETURN_VAL(ret);
 }
 
-__GURU__ void
+__CFUNC__
 ary_join(GV v[], U32 vi)
 {
 	guru_na("Array#join");

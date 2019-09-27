@@ -21,6 +21,7 @@ extern "C" {
 #define __INLINE__
 //#define __INLINE__			__forceinline__
 #define __UCODE__ 			__GURU__ __INLINE__ void
+#define __CFUNC__			__GURU__ void
 
 #else
 
@@ -161,8 +162,8 @@ typedef struct RClass {			// 32-byte
 typedef void (*guru_fptr)(GV v[], U32 vi);
 struct Irep;
 struct Vfunc {
-	const char  *fname;			// raw string usually
-	guru_fptr 	cfunc;			// C-function pointer
+	const char  *name;			// raw string usually
+	guru_fptr 	func;			// C-function pointer
 };
 
 typedef struct RProc {			// 48-byte

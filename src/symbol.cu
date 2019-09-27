@@ -178,9 +178,9 @@ id2name(GS sid)
 //================================================================
 // call by symbol
 #if !GURU_USE_ARRAY
-__GURU__ void	sym_all(GV v[], U32 vi)	{}
+__CFUNC__	sym_all(GV v[], U32 vi)	{}
 #else
-__GURU__ void
+__CFUNC__
 sym_all(GV v[], U32 vi)
 {
     GV ret = guru_array_new(_sym_idx);
@@ -194,23 +194,24 @@ sym_all(GV v[], U32 vi)
 }
 #endif // GURU_USE_ARRAY
 
-__GURU__ void
+__CFUNC__
 sym_to_s(GV v[], U32 vi)
 {
 	GV ret = guru_str_new(id2name(v->i));
     RETURN_VAL(ret);
 }
 
-__GURU__ void _nop(GV v[], U32 vi) {}
+__CFUNC__ sym_nop(GV v[], U32 vi) {	/* do nothing */	}
 
 //================================================================
 /*! initialize
  */
-__GURU__ void guru_init_class_symbol()  // << from symbol.cu
+__GURU__ void
+guru_init_class_symbol()  // << from symbol.cu
 {
 	static Vfunc vtbl[] = {
 		{ "id2name", 	gv_to_s		},
-		{ "to_sym",      _nop		},
+		{ "to_sym",     sym_nop		},
 		{ "to_s", 		sym_to_s	}, 	// no leading ':'
 		{ "inspect", 	gv_to_s		},
 		{ "all_symbols", sym_all	}

@@ -255,7 +255,7 @@ guru_str_del(GV *v)
 
 //================================================================
 /*! append string (s1 += s2)
-
+z
   @param  s1	pointer to target value 1
   @param  s2	pointer to target value 2
   @param	error_code
@@ -304,7 +304,7 @@ guru_str_add_cstr(GV *s0, const U8 *str)
 //================================================================
 /*! (method) +
  */
-__GURU__ void
+__CFUNC__
 str_add(GV v[], U32 vi)
 {
     assert(v[1].gt == GT_STR);
@@ -318,7 +318,7 @@ str_add(GV v[], U32 vi)
 //================================================================
 /*! (method) *
  */
-__GURU__ void
+__CFUNC__
 str_mul(GV v[], U32 vi)
 {
 	U32 sz = _len(v);
@@ -342,7 +342,7 @@ str_mul(GV v[], U32 vi)
 //================================================================
 /*! (method) size, length
  */
-__GURU__ void
+__CFUNC__
 str_len(GV v[], U32 vi)
 {
     GI len = _len(v);
@@ -353,7 +353,7 @@ str_len(GV v[], U32 vi)
 //================================================================
 /*! (method) to_i
  */
-__GURU__ void
+__CFUNC__
 str_to_i(GV v[], U32 vi)
 {
     U32 base = 10;
@@ -367,7 +367,7 @@ str_to_i(GV v[], U32 vi)
 }
 
 //================================================================
-__GURU__ void
+__CFUNC__
 str_to_s(GV v[], U32 vi)
 {
     GV ret = _dup(v);
@@ -378,7 +378,7 @@ str_to_s(GV v[], U32 vi)
 //================================================================
 /*! (method) to_f
  */
-__GURU__ void
+__CFUNC__
 str_to_f(GV v[], U32 vi)
 {
     GF d = ATOF(_raw(v));
@@ -390,7 +390,7 @@ str_to_f(GV v[], U32 vi)
 //================================================================
 /*! (method) []
  */
-__GURU__ void
+__CFUNC__
 str_slice(GV v[], U32 vi)
 {
     GV *v1 = &v[1];
@@ -444,7 +444,7 @@ str_slice(GV v[], U32 vi)
 //================================================================
 /*! (method) []=
  */
-__GURU__ void
+__CFUNC__
 str_insert(GV v[], U32 vi)
 {
     S32 nth;
@@ -493,7 +493,7 @@ str_insert(GV v[], U32 vi)
 //================================================================
 /*! (method) chomp
  */
-__GURU__ void
+__CFUNC__
 str_chomp(GV v[], U32 vi)
 {
     GV ret = _dup(v);
@@ -504,7 +504,7 @@ str_chomp(GV v[], U32 vi)
 //================================================================
 /*! (method) chomp!
  */
-__GURU__ void
+__CFUNC__
 str_chomp_self(GV v[], U32 vi)
 {
     if (_chomp(v)==0) {
@@ -515,7 +515,7 @@ str_chomp_self(GV v[], U32 vi)
 //================================================================
 /*! (method) dup
  */
-__GURU__ void
+__CFUNC__
 str_dup(GV v[], U32 vi)
 {
     RETURN_VAL(_dup(v));
@@ -524,7 +524,7 @@ str_dup(GV v[], U32 vi)
 //================================================================
 /*! (method) index
  */
-__GURU__ void
+__CFUNC__
 str_index(GV v[], U32 vi)
 {
     S32 index;
@@ -551,7 +551,7 @@ str_index(GV v[], U32 vi)
 //================================================================
 /*! (method) ord
  */
-__GURU__ void
+__CFUNC__
 str_ord(GV v[], U32 vi)
 {
     RETURN_INT(_raw(v)[0]);
@@ -560,7 +560,7 @@ str_ord(GV v[], U32 vi)
 //================================================================
 /*! (method) split
  */
-__GURU__ void
+__CFUNC__
 str_split(GV v[], U32 vi)
 {
     guru_na("string#split");
@@ -569,7 +569,7 @@ str_split(GV v[], U32 vi)
 //================================================================
 /*! (method) sprintf
  */
-__GURU__ void
+__CFUNC__
 str_sprintf(GV v[], U32 vi)
 {
 	guru_na("string#sprintf");
@@ -578,7 +578,7 @@ str_sprintf(GV v[], U32 vi)
 //================================================================
 /*! (method) printf
  */
-__GURU__ void
+__CFUNC__
 str_printf(GV v[], U32 vi)
 {
 	guru_na("string#printf");
@@ -587,7 +587,7 @@ str_printf(GV v[], U32 vi)
 //================================================================
 /*! (method) lstrip
  */
-__GURU__ void
+__CFUNC__
 str_lstrip(GV v[], U32 vi)
 {
     GV ret = _dup(v);
@@ -600,7 +600,7 @@ str_lstrip(GV v[], U32 vi)
 //================================================================
 /*! (method) lstrip!
  */
-__GURU__ void
+__CFUNC__
 str_lstrip_self(GV v[], U32 vi)
 {
     if (_strip(v, 0x01)==0) {	// 1: left side only
@@ -611,7 +611,7 @@ str_lstrip_self(GV v[], U32 vi)
 //================================================================
 /*! (method) rstrip
  */
-__GURU__ void
+__CFUNC__
 str_rstrip(GV v[], U32 vi)
 {
     GV ret = _dup(v);
@@ -624,7 +624,7 @@ str_rstrip(GV v[], U32 vi)
 //================================================================
 /*! (method) rstrip!
  */
-__GURU__ void
+__CFUNC__
 str_rstrip_self(GV v[], U32 vi)
 {
     if (_strip(v, 0x02)==0) {				// 2: right side only
@@ -635,7 +635,7 @@ str_rstrip_self(GV v[], U32 vi)
 //================================================================
 /*! (method) strip
  */
-__GURU__ void
+__CFUNC__
 str_strip(GV v[], U32 vi)
 {
     GV ret = _dup(v);
@@ -646,7 +646,7 @@ str_strip(GV v[], U32 vi)
 //================================================================
 /*! (method) strip!
  */
-__GURU__ void
+__CFUNC__
 str_strip_self(GV v[], U32 vi)
 {
     if (_strip(v, 0x03)==0) {		// 3: left and right
@@ -657,7 +657,7 @@ str_strip_self(GV v[], U32 vi)
 //================================================================
 /*! (method) to_sym
  */
-__GURU__ void
+__CFUNC__
 str_to_sym(GV v[], U32 vi)
 {
     RETURN_VAL(guru_sym_new(_raw(v)));
@@ -667,7 +667,7 @@ str_to_sym(GV v[], U32 vi)
 //! Inspect
 #define BUF_SIZE 80
 
-__GURU__ void
+__CFUNC__
 str_inspect(GV v[], U32 vi)
 {
 	const char *hex = "0123456789ABCDEF";

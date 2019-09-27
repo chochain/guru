@@ -18,11 +18,8 @@
 #include "alloc.h"
 #include "static.h"
 #include "symbol.h"
-//#include "global.h"
-//#include "vm.h"
 #include "class.h"
 
-//#include "ucode.h"
 #include "object.h"
 #include "ostore.h"
 
@@ -105,7 +102,7 @@ guru_obj_del(GV *v)
 }
 
 //================================================================
-__GURU__ void
+__CFUNC__
 obj_nop(GV v[], U32 vi)
 {
 	// do nothing
@@ -115,7 +112,7 @@ obj_nop(GV v[], U32 vi)
 //================================================================
 /*! (method) p
  */
-__GURU__ void
+__CFUNC__
 obj_p(GV v[], U32 vi)
 {
 	guru_p(v, vi);
@@ -125,7 +122,7 @@ obj_p(GV v[], U32 vi)
 //================================================================
 /*! (method) puts
  */
-__GURU__ void
+__CFUNC__
 obj_puts(GV v[], U32 vi)
 {
 	guru_puts(v, vi);
@@ -134,7 +131,7 @@ obj_puts(GV v[], U32 vi)
 //================================================================
 /*! (method) print
  */
-__GURU__ void
+__CFUNC__
 obj_print(GV v[], U32 vi)
 {
 	guru_puts(v, vi);
@@ -143,7 +140,7 @@ obj_print(GV v[], U32 vi)
 //================================================================
 /*! (operator) !
  */
-__GURU__ void
+__CFUNC__
 obj_not(GV v[], U32 vi)
 {
     RETURN_FALSE();
@@ -152,7 +149,7 @@ obj_not(GV v[], U32 vi)
 //================================================================
 /*! (operator) !=
  */
-__GURU__ void
+__CFUNC__
 obj_neq(GV v[], U32 vi)
 {
     S32 t = guru_cmp(&v[0], &v[1]);
@@ -162,7 +159,7 @@ obj_neq(GV v[], U32 vi)
 //================================================================
 /*! (operator) <=>
  */
-__GURU__ void
+__CFUNC__
 obj_cmp(GV v[], U32 vi)
 {
     S32 t = guru_cmp(&v[0], &v[1]);
@@ -172,7 +169,7 @@ obj_cmp(GV v[], U32 vi)
 //================================================================
 /*! (operator) ===
  */
-__GURU__ void
+__CFUNC__
 obj_eq3(GV v[], U32 vi)
 {
     if (v[0].gt != GT_CLASS) {
@@ -187,7 +184,7 @@ obj_eq3(GV v[], U32 vi)
 //================================================================
 /*! (method) class
  */
-__GURU__ void
+__CFUNC__
 obj_class(GV v[], U32 vi)
 {
     GV ret;  { ret.gt = GT_CLASS; }
@@ -220,7 +217,7 @@ _get_callee(GV v[])
 //================================================================
 /*! (method) instance variable getter
  */
-__GURU__ void
+__CFUNC__
 obj_getiv(GV v[], U32 vi)
 {
     const U8P name = _get_callee(v);			// TODO:
@@ -232,7 +229,7 @@ obj_getiv(GV v[], U32 vi)
 //================================================================
 /*! (method) instance variable setter
  */
-__GURU__ void
+__CFUNC__
 obj_setiv(GV v[], U32 vi)
 {
     const U8P name = _get_callee(v);			// TODO:
@@ -244,7 +241,7 @@ obj_setiv(GV v[], U32 vi)
 //================================================================
 /*! (class method) access method 'attr_reader'
  */
-__GURU__ void
+__CFUNC__
 obj_attr_reader(GV v[], U32 vi)
 {
     for (U32 i = 1; i <= vi; i++) {
@@ -259,7 +256,7 @@ obj_attr_reader(GV v[], U32 vi)
 //================================================================
 /*! (class method) access method 'attr_accessor'
  */
-__GURU__ void
+__CFUNC__
 obj_attr_accessor(GV v[], U32 vi)
 {
     for (U32 i = 1; i <= vi; i++) {
@@ -287,7 +284,7 @@ obj_attr_accessor(GV v[], U32 vi)
 //================================================================
 /*! (method) is_a, kind_of
  */
-__GURU__ void
+__CFUNC__
 obj_kind_of(GV v[], U32 vi)
 {
     if (v[1].gt != GT_CLASS) {
@@ -301,7 +298,7 @@ obj_kind_of(GV v[], U32 vi)
     }
 }
 
-__GURU__ void
+__CFUNC__
 obj_new(GV v[], U32 vi)
 {
 	assert(1==0);				// handled in ucode
@@ -309,7 +306,7 @@ obj_new(GV v[], U32 vi)
 
 //=====================================================================
 //! deprecated, use inspect#gv_to_s instead
-__GURU__ void
+__CFUNC__
 obj_to_s(GV v[], U32 vi)
 {
 	assert(1==0);				// handled in ucode
@@ -348,7 +345,7 @@ _init_class_object()
 //================================================================
 // ProcClass
 //================================================================
-__GURU__ void
+__CFUNC__
 prc_call(GV v[], U32 vi)
 {
 	// not suppose to come here
@@ -370,16 +367,16 @@ _init_class_proc()
 
 //================================================================
 // Nil class
-__GURU__ void
+__CFUNC__
 nil_false_not(GV v[], U32 vi)
 {
     v[0].gt = GT_TRUE;
 }
 
 #if !GURU_USE_STRING
-__GURU__ void nil_inspect(GV v[], U32 vi) {}
+__CFUNC__ nil_inspect(GV v[], U32 vi) {}
 #else
-__GURU__ void
+__CFUNC__
 nil_inspect(GV v[], U32 vi)
 {
     RETURN_VAL(guru_str_new("nil"));

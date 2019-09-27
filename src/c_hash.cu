@@ -255,7 +255,7 @@ guru_hash_cmp(const GV *v0, const GV *v1)
 //================================================================
 /*! (method) new
  */
-__GURU__ void
+__CFUNC__
 hsh_new(GV v[], U32 vi)
 {
 	RETURN_VAL(guru_hash_new(0));
@@ -264,7 +264,7 @@ hsh_new(GV v[], U32 vi)
 //================================================================
 /*! (operator) []
  */
-__GURU__ void
+__CFUNC__
 hsh_get(GV v[], U32 vi)
 {
 	assert(vi==1);
@@ -276,7 +276,7 @@ hsh_get(GV v[], U32 vi)
 //================================================================
 /*! (operator) []=
  */
-__GURU__ void
+__CFUNC__
 hsh_set(GV v[], U32 vi)
 {
 	assert(vi==2);
@@ -290,7 +290,7 @@ hsh_set(GV v[], U32 vi)
 //================================================================
 /*! (method) clear
  */
-__GURU__ void
+__CFUNC__
 hsh_clr(GV v[], U32 vi)
 {
     _clr(v);
@@ -299,7 +299,7 @@ hsh_clr(GV v[], U32 vi)
 //================================================================
 /*! (method) dup
  */
-__GURU__ void
+__CFUNC__
 hsh_dup(GV v[], U32 vi)
 {
     RETURN_VAL(_hash_dup(v));
@@ -308,7 +308,7 @@ hsh_dup(GV v[], U32 vi)
 //================================================================
 /*! (method) delete
  */
-__GURU__ void
+__CFUNC__
 hsh_del(GV v[], U32 vi)
 {
     // TODO : now, support only delete(key) -> object
@@ -319,7 +319,7 @@ hsh_del(GV v[], U32 vi)
 //================================================================
 /*! (method) empty?
  */
-__GURU__ void
+__CFUNC__
 hsh_empty(GV v[], U32 vi)
 {
     RETURN_BOOL(_size(v)==0);
@@ -328,7 +328,7 @@ hsh_empty(GV v[], U32 vi)
 //================================================================
 /*! (method) has_key?
  */
-__GURU__ void
+__CFUNC__
 hsh_has_key(GV v[], U32 vi)
 {
     RETURN_BOOL(_search(v, v+1)!=NULL);
@@ -337,7 +337,7 @@ hsh_has_key(GV v[], U32 vi)
 //================================================================
 /*! (method) has_value?
  */
-__GURU__ void
+__CFUNC__
 hsh_has_value(GV v[], U32 vi)
 {
     GV *p = _data(v);
@@ -353,7 +353,7 @@ hsh_has_value(GV v[], U32 vi)
 //================================================================
 /*! (method) key
  */
-__GURU__ void
+__CFUNC__
 hsh_key(GV v[], U32 vi)
 {
     GV *p = _data(v);
@@ -369,7 +369,7 @@ hsh_key(GV v[], U32 vi)
 //================================================================
 /*! (method) keys
  */
-__GURU__ void
+__CFUNC__
 hsh_keys(GV v[], U32 vi)
 {
     GV *p  = _data(v);
@@ -385,7 +385,7 @@ hsh_keys(GV v[], U32 vi)
 //================================================================
 /*! (method) size,length,count
  */
-__GURU__ void
+__CFUNC__
 hsh_size(GV v[], U32 vi)
 {
     RETURN_INT(_size(v));
@@ -394,7 +394,7 @@ hsh_size(GV v[], U32 vi)
 //================================================================
 /*! (method) merge
  */
-__GURU__ void
+__CFUNC__
 hsh_merge(GV v[], U32 vi)		// non-destructive merge
 {
     GV  ret = _hash_dup(v);
@@ -409,7 +409,7 @@ hsh_merge(GV v[], U32 vi)		// non-destructive merge
 //================================================================
 /*! (method) merge!
  */
-__GURU__ void
+__CFUNC__
 hsh_merge_self(GV v[], U32 vi)
 {
     GV *p  = _data(v+1);
@@ -422,7 +422,7 @@ hsh_merge_self(GV v[], U32 vi)
 //================================================================
 /*! (method) values
  */
-__GURU__ void
+__CFUNC__
 hsh_values(GV v[], U32 vi)
 {
     GV *p  = _data(v);

@@ -27,7 +27,7 @@
 //================================================================
 /*! (operator) [] bit reference
  */
-__GURU__ void
+__CFUNC__
 int_bitref(GV v[], U32 vi)
 {
     if (0 <= v[1].i && v[1].i < 32) {
@@ -41,7 +41,7 @@ int_bitref(GV v[], U32 vi)
 //================================================================
 /*! (operator) unary -
  */
-__GURU__ void
+__CFUNC__
 int_negative(GV v[], U32 vi)
 {
     GI n = ARG_INT(0);
@@ -51,7 +51,7 @@ int_negative(GV v[], U32 vi)
 //================================================================
 /*! (operator) ** power
  */
-__GURU__ void
+__CFUNC__
 int_power(GV v[], U32 vi)
 {
     if (v[1].gt == GT_INT) {
@@ -75,7 +75,7 @@ int_power(GV v[], U32 vi)
 //================================================================
 /*! (operator) %
  */
-__GURU__ void
+__CFUNC__
 int_mod(GV v[], U32 vi)
 {
     GI n = ARG_INT(1);
@@ -85,7 +85,7 @@ int_mod(GV v[], U32 vi)
 //================================================================
 /*! (operator) &; bit operation AND
  */
-__GURU__ void
+__CFUNC__
 int_and(GV v[], U32 vi)
 {
     GI n = ARG_INT(1);
@@ -95,7 +95,7 @@ int_and(GV v[], U32 vi)
 //================================================================
 /*! (operator) |; bit operation OR
  */
-__GURU__ void
+__CFUNC__
 int_or(GV v[], U32 vi)
 {
     GI n = ARG_INT(1);
@@ -105,7 +105,7 @@ int_or(GV v[], U32 vi)
 //================================================================
 /*! (operator) ^; bit operation XOR
  */
-__GURU__ void
+__CFUNC__
 int_xor(GV v[], U32 vi)
 {
     GI n = ARG_INT(1);
@@ -115,7 +115,7 @@ int_xor(GV v[], U32 vi)
 //================================================================
 /*! (operator) ~; bit operation NOT
  */
-__GURU__ void
+__CFUNC__
 int_not(GV v[], U32 vi)
 {
     GI n = ARG_INT(0);
@@ -125,7 +125,7 @@ int_not(GV v[], U32 vi)
 //================================================================
 /*! (operator) <<; bit operation LEFT_SHIFT
  */
-__GURU__ void
+__CFUNC__
 int_lshift(GV v[], U32 vi)
 {
     GI n = ARG_INT(1);
@@ -135,7 +135,7 @@ int_lshift(GV v[], U32 vi)
 //================================================================
 /*! (operator) >>; bit operation RIGHT_SHIFT
  */
-__GURU__ void
+__CFUNC__
 int_rshift(GV v[], U32 vi)
 {
     GI n = ARG_INT(1);
@@ -145,7 +145,7 @@ int_rshift(GV v[], U32 vi)
 //================================================================
 /*! (method) abs
  */
-__GURU__ void
+__CFUNC__
 int_abs(GV v[], U32 vi)
 {
     if (v[0].i < 0) {
@@ -157,7 +157,7 @@ int_abs(GV v[], U32 vi)
 //================================================================
 /*! (method) to_f
  */
-__GURU__ void
+__CFUNC__
 int_to_f(GV v[], U32 vi)
 {
     GF f = ARG_INT(0);
@@ -166,9 +166,9 @@ int_to_f(GV v[], U32 vi)
 #endif // GURU_USE_FLOAT
 
 #if !GURU_USE_STRING
-__GURU__ void int_chr(GV v[], U32 vi) {}
+__CFUNC__ int_chr(GV v[], U32 vi) {}
 #else
-__GURU__ void
+__CFUNC__
 int_chr(GV v[], U32 vi)
 {
     U8 buf[2] = { (U8)v->i, '\0' };
@@ -210,8 +210,8 @@ guru_init_class_int(void)
 //================================================================
 /*! (operator) unary -
  */
-__GURU__ void
-flt__negative(GV v[], U32 vi)
+__CFUNC__
+flt_negative(GV v[], U32 vi)
 {
     GF f = ARG_FLOAT(0);
     RETURN_FLOAT(-f);
@@ -221,8 +221,8 @@ flt__negative(GV v[], U32 vi)
 //================================================================
 /*! (operator) ** power
  */
-__GURU__ void
-flt__power(GV v[], U32 vi)
+__CFUNC__
+flt_power(GV v[], U32 vi)
 {
     GF n = 0;
     switch (v[1].gt) {
@@ -238,7 +238,7 @@ flt__power(GV v[], U32 vi)
 //================================================================
 /*! (method) abs
  */
-__GURU__ void
+__CFUNC__
 flt_abs(GV v[], U32 vi)
 {
     if (v[0].f < 0) {
@@ -249,7 +249,7 @@ flt_abs(GV v[], U32 vi)
 //================================================================
 /*! (method) to_i
  */
-__GURU__ void
+__CFUNC__
 flt_to_i(GV v[], U32 vi)
 {
     GI i = (GI)ARG_FLOAT(0);
@@ -264,14 +264,14 @@ guru_init_class_float(void)
 {
     // Float
 	static Vfunc vtbl[] = {
-		{ "-@", 		flt__negative	},
+		{ "-@", 		flt_negative	},
 #if     GURU_USE_MATH
-		{ "**", 		flt__power		},
+		{ "**", 		flt_power		},
 #endif // GURU_USE_MATH
-		{ "abs", 	flt_abs				},
-		{ "to_i", 	flt_to_i			},
-		{ "to_s", 	gv_to_s				},
-		{ "inspect", gv_to_s			}
+		{ "abs", 		flt_abs			},
+		{ "to_i", 		flt_to_i		},
+		{ "to_s", 		gv_to_s			},
+		{ "inspect", 	gv_to_s			}
 	};
     guru_class_float = guru_add_class(
     	"Float", guru_class_object, vtbl, sizeof(vtbl)/sizeof(Vfunc)
