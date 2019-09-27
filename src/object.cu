@@ -26,7 +26,6 @@
 #include "object.h"
 #include "ostore.h"
 
-
 #include "c_fixnum.h"
 #include "c_string.h"
 #include "c_array.h"
@@ -82,7 +81,7 @@ _send(GV v[], GV *rcv, const U8P method, U32 argc, ...)
     	r->self = NULL;
     }
 #endif
-    RETURN_VAL(regs[0]);
+    return regs[0];
 }
 
 __GURU__ GV
@@ -270,8 +269,7 @@ obj_attr_accessor(GV v[], U32 vi)
         U8P name = id2name(v[i].i);
         guru_define_method(v[0].cls, name, obj_getiv);
 
-        U32 asz = STRLEN(name);		asz += -asz & 7;	// 8-byte aligned
-
+        U32 asz = STRLEN(name);	ALIGN(asz);				// 8-byte aligned
 
         // make string "....=" and define writer method.
         // TODO: consider using static buffer
@@ -320,30 +318,31 @@ obj_to_s(GV v[], U32 vi)
 __GURU__ void
 _init_class_object()
 {
-    // Class
-    guru_class *c = guru_class_object = NEW_CLASS("Object", NULL);
-
-    // Methods
-    NEW_PROC("initialize",    	obj_nop);
-    NEW_PROC("!",             	obj_not);
-    NEW_PROC("!=",            	obj_neq);
-    NEW_PROC("<=>",           	obj_cmp);
-    NEW_PROC("===",           	obj_eq3);
-    NEW_PROC("class",         	obj_class);
-    NEW_PROC("new",           	obj_new);
-    NEW_PROC("attr_reader",   	obj_attr_reader);
-    NEW_PROC("attr_accessor", 	obj_attr_accessor);
-    NEW_PROC("is_a?",         	obj_kind_of);
-    NEW_PROC("kind_of?",      	obj_kind_of);
-
-    NEW_PROC("puts",          	obj_puts);
-    NEW_PROC("print",         	obj_print);
-
-    NEW_PROC("to_s",          	gv_to_s);
-    NEW_PROC("inspect",       	gv_to_s);
+    static Vfunc vtbl[] = {
+    	{ "initialize", 	obj_nop 		},
+    	{ "!",				obj_not 		},
+    	{ "!=",          	obj_neq 		},
+    	{ "<=>",           	obj_cmp 		},
+    	{ "===",           	obj_eq3 		},
+    	{ "class",         	obj_class		},
+    	{ "new",           	obj_new 		},
+    	{ "attr_reader",   	obj_attr_reader },
+    	{ "attr_accessor", 	obj_attr_accessor	},
+    	{ "is_a?",         	obj_kind_of		},
+        { "kind_of?",      	obj_kind_of		},
+        { "puts",          	obj_puts 		},
+        { "print",         	obj_print		},
+        { "to_s",          	gv_to_s  		},
+        { "inspect",       	gv_to_s  		},
 #if GURU_DEBUG
-    NEW_PROC("p", 				obj_p);
+        { "p", 				obj_p    		},
+        { "sprintf",		str_sprintf		},
+        { "printf",			str_printf		}
 #endif
+     };
+    guru_class_object = guru_add_class(
+    	"Object", NULL, vtbl, sizeof(vtbl)/sizeof(Vfunc)
+    );
 }
 
 //================================================================
@@ -359,13 +358,14 @@ prc_call(GV v[], U32 vi)
 __GURU__ void
 _init_class_proc()
 {
-    // Class
-    guru_class *c = guru_class_proc = NEW_CLASS("Proc", guru_class_object);
-    // Methods
-    NEW_PROC("call", 	prc_call);
-
-    NEW_PROC("to_s", 	gv_to_s);
-    NEW_PROC("inspect", gv_to_s);
+    static Vfunc vtbl[] = {
+    	{ "call", 	prc_call	},
+    	{ "to_s", 	gv_to_s		},
+    	{ "inspect",gv_to_s		}
+    };
+    guru_class_proc = guru_add_class(
+    	"Proc", guru_class_object, vtbl, sizeof(vtbl)/sizeof(Vfunc)
+    );
 }
 
 //================================================================
@@ -392,12 +392,14 @@ nil_inspect(GV v[], U32 vi)
 __GURU__ void
 _init_class_nil()
 {
-    // Class
-    guru_class *c = guru_class_nil = NEW_CLASS("NilClass", guru_class_object);
-    // Methods
-    NEW_PROC("!", 			nil_false_not);
-    NEW_PROC("inspect", 	nil_inspect);
-    NEW_PROC("to_s", 		gv_to_s);
+    static Vfunc vtbl[] = {
+    	{ "!", 			nil_false_not	},
+    	{ "inspect", 	nil_inspect		},
+    	{ "to_s", 		gv_to_s			}
+    };
+    guru_class_nil = guru_add_class(
+    	"NilClass", guru_class_object, vtbl, sizeof(vtbl)/sizeof(Vfunc)
+    );
 }
 
 //================================================================
@@ -406,22 +408,26 @@ _init_class_nil()
 __GURU__ void
 _init_class_false()
 {
-    // Class
-    guru_class *c = guru_class_false = NEW_CLASS("FalseClass", guru_class_object);
-    // Methods
-    NEW_PROC("!", 		nil_false_not);
-    NEW_PROC("to_s",    gv_to_s);
-    NEW_PROC("inspect", gv_to_s);
+    static Vfunc vtbl[] = {
+    	{ "!", 		nil_false_not	},
+    	{ "to_s",    gv_to_s		},
+    	{ "inspect", gv_to_s		}
+    };
+    guru_class_false = guru_add_class(
+    	"FalseClass", guru_class_object, vtbl, sizeof(vtbl)/sizeof(Vfunc)
+    );
 }
 
 __GURU__ void
 _init_class_true()
 {
-    // Class
-    guru_class *c = guru_class_true = NEW_CLASS("TrueClass", guru_class_object);
-    // Methods
-    NEW_PROC("to_s", 		gv_to_s);
-    NEW_PROC("inspect", 	gv_to_s);
+	static Vfunc vtbl[] = {
+		{ "to_s", 		gv_to_s 	},
+		{ "inspect", 	gv_to_s		}
+	};
+    guru_class_true = guru_add_class(
+    	"TrueClass", guru_class_object, vtbl, sizeof(vtbl)/sizeof(Vfunc)
+    );
 }
 
 //================================================================

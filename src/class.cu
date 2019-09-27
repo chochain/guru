@@ -33,17 +33,15 @@ __GURU__ U32 _mutex_cls;
  * it uses (const U8 *) for static string
  */
 __GURU__ guru_class*
-guru_add_class(const char *name, guru_class *super)
+guru_add_class(const char *name, guru_class *super, Vfunc vtbl[], int n)
 {
-	// proxy to internal, since char * is often used for constructor
-	return guru_define_class((U8P)name, super);
-}
+	guru_class *c = guru_define_class((U8*)name, super);
 
-__GURU__ guru_proc*
-guru_add_proc(guru_class *cls, const char *name, guru_fptr cfunc)
-{
-	// proxy to internal function, since const char * is used often for constructors
-	return guru_define_method(cls, (U8P)name, cfunc);
+	Vfunc *p = vtbl;
+	for (U32 i=0; i<n && p && p->cfunc; i++, p++) {
+		guru_define_method(c, (U8*)p->fname, p->cfunc);
+	}
+	return c;
 }
 
 //================================================================
@@ -57,32 +55,29 @@ guru_add_proc(guru_class *cls, const char *name, guru_fptr cfunc)
 __GURU__ guru_class*
 class_by_obj(guru_obj *obj)
 {
-    guru_class *cls;
-
     switch (obj->gt) {
-    case GT_TRUE:	 cls = guru_class_true;		break;
-    case GT_FALSE:	 cls = guru_class_false; 	break;
-    case GT_NIL:	 cls = guru_class_nil;		break;
-    case GT_INT:     cls = guru_class_int;		break;
+    case GT_TRUE:	 return guru_class_true;
+    case GT_FALSE:	 return guru_class_false;
+    case GT_NIL:	 return guru_class_nil;
+    case GT_INT:     return guru_class_int;
 #if GURU_USE_FLOAT
-    case GT_FLOAT:	 cls = guru_class_float; 	break;
+    case GT_FLOAT:	 return	guru_class_float;
 #endif // GURU_USE_FLOAT
-    case GT_SYM:  	 cls = guru_class_symbol;	break;
+    case GT_SYM:  	 return guru_class_symbol;
 
-    case GT_OBJ:  	 cls = obj->self->cls; 		break;
-    case GT_CLASS:   cls = obj->cls;            break;
-    case GT_PROC:	 cls = guru_class_proc;		break;
+    case GT_OBJ:  	 return obj->self->cls;
+    case GT_CLASS:   return obj->cls;
+    case GT_PROC:	 return guru_class_proc;
 #if GURU_USE_STRING
-    case GT_STR:     cls = guru_class_string;	break;
+    case GT_STR:     return guru_class_string;
 #endif // GURU_USE_STRING
 #if GURU_USE_ARRAY
-    case GT_ARRAY:   cls = guru_class_array; 	break;
-    case GT_RANGE:	 cls = guru_class_range; 	break;
-    case GT_HASH:	 cls = guru_class_hash;		break;
+    case GT_ARRAY:   return guru_class_array;
+    case GT_RANGE:	 return guru_class_range;
+    case GT_HASH:	 return guru_class_hash;
 #endif  // GURU_USE_ARRAY
-    default:		 cls = guru_class_object;	break;
+    default:		 return guru_class_object;
     }
-    return cls;
 }
 
 //================================================================

@@ -441,26 +441,29 @@ hsh_values(GV v[], U32 vi)
 __GURU__ void
 guru_init_class_hash()
 {
-    guru_class *c = guru_class_hash = NEW_CLASS("Hash", guru_class_object);
+	static Vfunc vtbl[] = {
+		{ "new",	    hsh_new		},
+		{ "[]",			hsh_get		},
+		{ "[]=",	    hsh_set		},
+		{ "clear",		hsh_clr		},
+		{ "dup",	    hsh_dup 	},
+		{ "delete",	    hsh_del 	},
+		{ "empty?",	    hsh_empty	},
+		{ "has_key?",	hsh_has_key },
+		{ "has_value?",	hsh_has_value	},
+		{ "key",	    hsh_key		},
+		{ "keys",	    hsh_keys	},
+		{ "size",	    hsh_size	},
+		{ "length",	    hsh_size	},
+		{ "count",	    hsh_size	},
+		{ "merge",	    hsh_merge	},
+		{ "merge!",	    hsh_merge_self	},
+		{ "values",	    hsh_values 	},
 
-    NEW_PROC("new",	    	hsh_new);
-    NEW_PROC("[]",			hsh_get);
-    NEW_PROC("[]=",	    	hsh_set);
-    NEW_PROC("clear",		hsh_clr);
-    NEW_PROC("dup",	    	hsh_dup);
-    NEW_PROC("delete",	    hsh_del);
-    NEW_PROC("empty?",	    hsh_empty);
-    NEW_PROC("has_key?",	hsh_has_key);
-    NEW_PROC("has_value?",	hsh_has_value);
-    NEW_PROC("key",	    	hsh_key);
-    NEW_PROC("keys",	    hsh_keys);
-    NEW_PROC("size",	    hsh_size);
-    NEW_PROC("length",	    hsh_size);
-    NEW_PROC("count",	    hsh_size);
-    NEW_PROC("merge",	    hsh_merge);
-    NEW_PROC("merge!",	    hsh_merge_self);
-    NEW_PROC("values",	    hsh_values);
-
-    NEW_PROC("inspect",		gv_to_s);
-    NEW_PROC("to_s",	    gv_to_s);
+		{ "inspect",	gv_to_s 	},
+		{ "to_s",	    gv_to_s		}
+	};
+    guru_class_hash = guru_add_class(
+    	"Hash", guru_class_object, vtbl, sizeof(vtbl)/sizeof(Vfunc)
+    );
 }

@@ -137,13 +137,16 @@ rng_exclude_end(GV v[], U32 vi)
 __GURU__ void
 guru_init_class_range()
 {
-    guru_class *c = guru_class_range = NEW_CLASS("Range", guru_class_object);
+	static Vfunc vtbl[] = {
+		{ "===",          rng_eq3			},
+		{ "first",        rng_first			},
+		{ "last",         rng_last			},
+		{ "exclude_end?", rng_exclude_end	},
 
-    NEW_PROC("===",          rng_eq3);
-    NEW_PROC("first",        rng_first);
-    NEW_PROC("last",         rng_last);
-    NEW_PROC("exclude_end?", rng_exclude_end);
-
-    NEW_PROC("to_s",         gv_to_s);
-    NEW_PROC("inspect",      gv_to_s);
+		{ "to_s",         gv_to_s			},
+		{ "inspect",      gv_to_s			}
+	};
+    guru_class_range = guru_add_class(
+    	"Range", guru_class_object, vtbl, sizeof(vtbl)/sizeof(Vfunc)
+    );
 }

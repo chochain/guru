@@ -208,11 +208,14 @@ __GURU__ void _nop(GV v[], U32 vi) {}
  */
 __GURU__ void guru_init_class_symbol()  // << from symbol.cu
 {
-    guru_class *c = guru_class_symbol = NEW_CLASS("Symbol", guru_class_object);
-
-    NEW_PROC("id2name", 	gv_to_s);
-    NEW_PROC("to_sym",      _nop);
-    NEW_PROC("to_s", 		sym_to_s);	// no leading ':'
-    NEW_PROC("inspect", 	gv_to_s);
-    NEW_PROC("all_symbols", sym_all);
+	static Vfunc vtbl[] = {
+		{ "id2name", 	gv_to_s		},
+		{ "to_sym",      _nop		},
+		{ "to_s", 		sym_to_s	}, 	// no leading ':'
+		{ "inspect", 	gv_to_s		},
+		{ "all_symbols", sym_all	}
+	};
+    guru_class_symbol = guru_add_class(
+    	"Symbol", guru_class_object, vtbl, sizeof(vtbl)/sizeof(Vfunc)
+    );
 }

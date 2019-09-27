@@ -65,7 +65,7 @@ _resize(guru_array *h, U32 ndx)
         n = h->n + 4;							// auto allocate extra 4 elements
     }
     if (n) {
-    	U32 asz = sizeof(GV) * n;		asz += -asz & 7;	// should be 8-byte aligned already
+    	U32 asz = sizeof(GV)*n;		ALIGN(asz);	// should be 8-byte aligned already
         h->data = h->data
         	? (GV *)guru_realloc(h->data, asz)
         	: (GV *)guru_alloc(asz);
@@ -681,34 +681,37 @@ ary_join(GV v[], U32 vi)
 __GURU__ void
 guru_init_class_array()
 {
-    guru_class *c = guru_class_array = NEW_CLASS("Array", guru_class_object);
+	static Vfunc vtbl[] = {
+		{ "new",       ary_new		},
+		{ "+",         ary_add		},
+		{ "[]",        ary_get		},
+		{ "at",        ary_get		},
+		{ "size",      ary_size		},
+		{ "length",    ary_size		},
+		{ "count",     ary_size		},
+		{ "index",     ary_index	},
+		{ "first",     ary_first	},
+		{ "last",      ary_last		},
+		{ "empty?",    ary_empty	},
+		{ "min",       ary_min		},
+		{ "max",       ary_max		},
+		{ "minmax",    ary_minmax	},
 
-    NEW_PROC("new",       ary_new);
-    NEW_PROC("+",         ary_add);
-    NEW_PROC("[]",        ary_get);
-    NEW_PROC("at",        ary_get);
-    NEW_PROC("size",      ary_size);
-    NEW_PROC("length",    ary_size);
-    NEW_PROC("count",     ary_size);
-    NEW_PROC("index",     ary_index);
-    NEW_PROC("first",     ary_first);
-    NEW_PROC("last",      ary_last);
-    NEW_PROC("empty?",    ary_empty);
-    NEW_PROC("min",       ary_min);
-    NEW_PROC("max",       ary_max);
-    NEW_PROC("minmax",    ary_minmax);
+		{ "[]=",       ary_set		},
+		{ "<<",        ary_push		},
+		{ "clear",     ary_clr		},
+		{ "delete_at", ary_del_at	},
+		{ "push",      ary_push		},
+		{ "pop",       ary_pop		},
+		{ "shift",     ary_shift	},
+		{ "unshift",   ary_unshift	},
+		{ "dup",       ary_dup		},
 
-    NEW_PROC("[]=",       ary_set);
-    NEW_PROC("<<",        ary_push);
-    NEW_PROC("clear",     ary_clr);
-    NEW_PROC("delete_at", ary_del_at);
-    NEW_PROC("push",      ary_push);
-    NEW_PROC("pop",       ary_pop);
-    NEW_PROC("shift",     ary_shift);
-    NEW_PROC("unshift",   ary_unshift);
-    NEW_PROC("dup",       ary_dup);
-
-    NEW_PROC("join",      ary_join);
-    NEW_PROC("inspect",   gv_to_s);
-    NEW_PROC("to_s",      gv_to_s);
+		{ "join",      ary_join		},
+		{ "inspect",   gv_to_s		},
+		{ "to_s",      gv_to_s		}
+	};
+    guru_class_array = guru_add_class(
+    	"Array", guru_class_object, vtbl, sizeof(vtbl)/sizeof(Vfunc)
+    );
 }

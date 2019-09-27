@@ -181,24 +181,28 @@ __GURU__ void
 guru_init_class_int(void)
 {
     // int
-    guru_class *c = guru_class_int = NEW_CLASS("int", guru_class_object);
+	static Vfunc vtbl[] = {
+		{ "[]", 	int_bitref		},
+		{ "-@", 	int_negative	},
+		{ "**", 	int_power		},
+		{ "%", 		int_mod			},
+		{ "&", 		int_and			},
+		{ "|", 		int_or			},
+		{ "^", 		int_xor			},
+		{ "~", 		int_not			},
+		{ "<<", 	int_lshift		},
+		{ ">>", 	int_rshift		},
+		{ "abs",	int_abs			},
+		{ "to_f",	int_to_f		},
 
-    NEW_PROC("[]", 		int_bitref);
-    NEW_PROC("-@", 		int_negative);
-    NEW_PROC("**", 		int_power);
-    NEW_PROC("%", 		int_mod);
-    NEW_PROC("&", 		int_and);
-    NEW_PROC("|", 		int_or);
-    NEW_PROC("^", 		int_xor);
-    NEW_PROC("~", 		int_not);
-    NEW_PROC("<<", 		int_lshift);
-    NEW_PROC(">>", 		int_rshift);
-    NEW_PROC("abs",		int_abs);
-    NEW_PROC("to_f",	int_to_f);
+		{ "chr", 	int_chr			},
+		{ "to_s", 	gv_to_s			},
+		{ "inspect",gv_to_s			}
+	};
+    guru_class_int = guru_add_class(
+    	"int", guru_class_object, vtbl, sizeof(vtbl)/sizeof(Vfunc)
+    );
 
-    NEW_PROC("chr", 	int_chr);
-    NEW_PROC("to_s", 	gv_to_s);
-    NEW_PROC("inspect",	gv_to_s);
 }
 
 // Float
@@ -259,17 +263,19 @@ __GURU__ void
 guru_init_class_float(void)
 {
     // Float
-    guru_class *c = guru_class_float = NEW_CLASS("Float", guru_class_object);
-
-    NEW_PROC("-@", 		flt__negative);
+	static Vfunc vtbl[] = {
+		{ "-@", 		flt__negative	},
 #if     GURU_USE_MATH
-    NEW_PROC("**", 		flt__power);
+		{ "**", 		flt__power		},
 #endif // GURU_USE_MATH
-    NEW_PROC("abs", 	flt_abs);
-    NEW_PROC("to_i", 	flt_to_i);
-
-    NEW_PROC("to_s", 	gv_to_s);
-    NEW_PROC("inspect", gv_to_s);
+		{ "abs", 	flt_abs				},
+		{ "to_i", 	flt_to_i			},
+		{ "to_s", 	gv_to_s				},
+		{ "inspect", gv_to_s			}
+	};
+    guru_class_float = guru_add_class(
+    	"Float", guru_class_object, vtbl, sizeof(vtbl)/sizeof(Vfunc)
+    );
 }
 
 #endif // GURU_USE_FLOAT

@@ -68,15 +68,15 @@ __GURU__ GV
 _blank(U32 len)
 {
     GV  ret; { ret.gt=GT_STR; ret.fil=0; }	// assuming some one acquires it
-    U32 asz = len+1;	asz += -asz & 7;	// 8-byte aligned
+    U32 asz = len+1;	ALIGN(asz);			// 8-byte aligned
     /*
       Allocate handle and string buffer.
     */
     guru_str *h = ret.str = (guru_str *)guru_alloc(sizeof(guru_str));
     U8P      s  = (U8P)guru_alloc(asz);		// 8-byte aligned
 
-    CHECK_ALIGN((U32A)h);
-    CHECK_ALIGN((U32A)s);
+    assert(((U32A)h & 7)==0);
+    assert(((U32A)s & 7)==0);
 
     s[0] = '\0';							// empty new string
     h->rc   = 1;
@@ -177,7 +177,7 @@ _strip(GV *v, U32 mode)
     	MEMCPY(buf, p0, new_len);
     }
     buf[new_len] = '\0';
-    U32 asz = new_len + 1; 	asz += -asz & 7;		// 8-byte aligned
+    U32 asz = new_len + 1; 	ALIGN(asz);				// 8-byte aligned
 
     v->str->size = asz;
     v->str->n    = new_len;
@@ -265,7 +265,7 @@ guru_str_add(GV *s0, GV *s1)
 {
     U32 len0 = s0->str->n;
     U32 len1 = (s1->gt==GT_STR) ? s1->str->n : 1;
-    U32 asz  = len0 + len1 + 1;		asz += -asz & 7;	// +'\0', 8-byte aligned
+    U32 asz  = len0 + len1 + 1;		ALIGN(asz);			// +'\0', 8-byte aligned
     U8  *buf = (U8*)guru_realloc(s0->str->data, asz);
 
     if (s1->gt==GT_STR) {								// append str2
@@ -708,38 +708,38 @@ str_inspect(GV v[], U32 vi)
 __GURU__ void
 guru_init_class_string()
 {
-    guru_class *c = guru_class_string = NEW_CLASS("String", guru_class_object);
-
-    NEW_PROC("+",		str_add);
-    NEW_PROC("*",		str_mul);
-    NEW_PROC("size",	str_len);
-    NEW_PROC("length",	str_len);
-    NEW_PROC("<<",		str_add);
-    NEW_PROC("[]",		str_slice);
-    NEW_PROC("[]=",		str_insert);
-    // op
-    NEW_PROC("chomp",	str_chomp);
-    NEW_PROC("chomp!",	str_chomp_self);
-    NEW_PROC("dup",		str_dup);
-    NEW_PROC("index",	str_index);
-    NEW_PROC("ord",		str_ord);
-    NEW_PROC("split",	str_split);
-    NEW_PROC("lstrip",	str_lstrip);
-    NEW_PROC("lstrip!",	str_lstrip_self);
-    NEW_PROC("rstrip",	str_rstrip);
-    NEW_PROC("rstrip!",	str_rstrip_self);
-    NEW_PROC("strip",	str_strip);
-    NEW_PROC("strip!",	str_strip_self);
-    NEW_PROC("intern",	str_to_sym);
-    // conversion methods
-    NEW_PROC("to_i",	str_to_i);
-    NEW_PROC("to_s",    str_to_s);
-    NEW_PROC("to_sym",	str_to_sym);
-    NEW_PROC("to_f",	str_to_f);
-    NEW_PROC("inspect",	str_inspect);
-
-    guru_add_proc(guru_class_object, "sprintf",	str_sprintf);
-    guru_add_proc(guru_class_object, "printf",	str_printf);
+	static Vfunc vtbl[] = {
+		{ "+",		str_add			},
+		{ "*",		str_mul			},
+		{ "size",	str_len			},
+		{ "length",	str_len			},
+		{ "<<",		str_add			},
+		{ "[]",		str_slice		},
+		{ "[]=",	str_insert		},
+		// op
+		{ "chomp",	str_chomp		},
+		{ "chomp!",	str_chomp_self	},
+		{ "dup",	str_dup			},
+		{ "index",	str_index		},
+		{ "ord",	str_ord			},
+		{ "split",	str_split		},
+		{ "lstrip",	str_lstrip		},
+		{ "lstrip!",str_lstrip_self	},
+		{ "rstrip",	str_rstrip		},
+		{ "rstrip!",str_rstrip_self	},
+		{ "strip",	str_strip		},
+		{ "strip!",	str_strip_self	},
+		{ "intern",	str_to_sym		},
+		// conversion methods
+		{ "to_i",	str_to_i		},
+		{ "to_s",   str_to_s		},
+		{ "to_sym",	str_to_sym		},
+		{ "to_f",	str_to_f		},
+		{ "inspect",str_inspect		}
+	};
+    guru_class_string = guru_add_class(
+    	"String", guru_class_object, vtbl, sizeof(vtbl)/sizeof(Vfunc)
+    );
 }
 
 #endif // GURU_USE_STRING

@@ -33,6 +33,10 @@ __GURU__ void   guru_str_add_cstr(GV *s0, const U8 *str);
 
 __GURU__ void   guru_init_class_string(void);
 
+// cross module Vfunc (for object)
+__GURU__ void	str_sprintf(GV v[], U32 vi);
+__GURU__ void	str_printf(GV v[], U32 vi);
+
 #ifdef __cplusplus
 }
 #endif
