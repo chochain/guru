@@ -307,12 +307,11 @@ guru_str_add_cstr(GV *s0, const U8 *str)
 __GURU__ void
 str_add(GV v[], U32 vi)
 {
-    if (v[1].gt != GT_STR) {
-        guru_na("str + other type");
-    }
-    else {
-    	guru_str_add(v, v+1);		// v+1 appended to v (i.e. the returned str)
-    }
+    assert(v[1].gt == GT_STR);
+
+    ref_inc(v);
+    guru_str_add(v, v+1);		// v+1 appended to v (i.e. the returned str)
+
     RETURN_VAL(v[0]);
 }
 

@@ -147,7 +147,7 @@ _obj(GV *s, GV *v)
 
 	guru_str_add_cstr(s, "#<");
 	guru_str_add_cstr(s, name);
-	guru_str_add_cstr(s, ":0x");
+	guru_str_add_cstr(s, ":");
 	_ptr2hex(s, v->self);
 	guru_str_add_cstr(s, ">");
 }
