@@ -91,7 +91,7 @@ _check_header(U8P *pos)
 // building memory image, offset-based with alignment
 //
 __HOST__ U8 *
-_build_image(U8 *src_u8, U8 * img)
+_build_image(U8 *src_u8, U8 *img)
 {
 	guru_irep *src = (guru_irep *)src_u8;
 
@@ -105,22 +105,22 @@ _build_image(U8 *src_u8, U8 * img)
     U32 img_sz  = irep_sz + reps_sz + pool_sz + sym_sz + iseq_sz + stbl_sz;		// should be 8-byte aligned
 
     guru_irep *tgt = (guru_irep *)cuda_malloc(img_sz, 1);						// target CUDA IREP image (managed mem)
-    U8 * base = (U8P)tgt;								// keep target image pointer
+    U8 *base = (U8P)tgt;								// keep target image pointer
     if (!tgt) return NULL;
 
     // for debugging, blank out allocated memory
     memset(tgt, 0xaa, img_sz);
 
     // set CUDA memory pointers, and irep offsets
-	U8 * reps = U8PADD(tgt,  irep_sz);
-	U8 * pool = U8PADD(reps, reps_sz);
-	U8 * sym  = U8PADD(pool, pool_sz);
-	U8 * iseq = U8PADD(sym,  sym_sz);
-	U8 * stbl = U8PADD(iseq, iseq_sz);					// raw string table pointer
+	U8 *reps = U8PADD(tgt,  irep_sz);
+	U8 *pool = U8PADD(reps, reps_sz);
+	U8 *sym  = U8PADD(pool, pool_sz);
+	U8 *iseq = U8PADD(sym,  sym_sz);
+	U8 *stbl = U8PADD(iseq, iseq_sz);					// raw string table pointer
 
     // start building the CUDA image (with alignment)
     memcpy(tgt, src, irep_sz);							// copy IREP header block
-    memcpy(iseq, U8PADD(img, src->iseq), iseq_sz);		// copy ISEQ block
+    memcpy(iseq, img+src->iseq, iseq_sz);		        // copy ISEQ block
 
 	tgt->reps = U8POFF(reps, tgt);						// overwrite with new reps offset
     tgt->iseq = U8POFF(iseq, tgt);						// new iseq offset
@@ -128,11 +128,12 @@ _build_image(U8 *src_u8, U8 * img)
     tgt->sym  = U8POFF(sym,  tgt);						// new sym offset
 
     // build POOL block
-    U8 *  p = U8PADD(img, src->pool);					// point to source object pool
-    U32 * v = (U32 *)pool;
+    U8  *s = U8PADD(img, src->pool);					// point to source object pool
+    U32 *v = (U32 *)pool;
+    float f;
     for (U32 i=0; i < src->p; i++, v++) {
-        U32  tt = *p++;
-        U32  len = bin_to_u16(p);	p += sizeof(U16);
+        U32  tt = *s++;
+        U32  len = bin_to_u16(s);	s += sizeof(U16);
         U32  asz;								// adjusted size
         char buf[64+2];							// 64-bit number
 
@@ -140,40 +141,40 @@ _build_image(U8 *src_u8, U8 * img)
         case 0:									// IREP_TT_STRING
             asz = len + 1;						// '\0'
             asz += (-asz & 3);					// 4-byte aligned
-            memcpy(stbl, p, asz);				// duplicate the raw string
+            memcpy(stbl, s, asz);				// duplicate the raw string
         	*v = U8POFF(stbl, base);
         	stbl += asz;						// advance string table pointer
         	break;
         case 1: 								// IREP_TT_FIXNUM
-            memcpy(buf, p, len);
+            memcpy(buf, s, len);
             buf[len] = '\0';
             *v = atoi(buf)<<1;					// mark as number i.e. LSB=0
             break;
 #if GURU_USE_FLOAT
         case 2: 								// IREP_TT_FLOAT
-            memcpy(buf, p, len);
+            memcpy(buf, s, len);
             buf[len] = '\0';
-            *(GF *)v = atof(buf);
-            *v |= 1;							// mark as float  i.e. LSB=1
+            f  = atof(buf);
+            *v = *(U32*)&f | 1;					// mark as float  i.e. LSB=1
             break;
 #endif // GURU_USE_FLOAT
         default:
         	*v = 0;								// other object are not supported yet
         	break;
         }
-        p += len;
+        s += len;
     }
 
-    p = U8PADD(img, src->sym);					// build symbol table
+    s = U8PADD(img, src->sym);					// build symbol table
     v = (U32 *)sym;
     for (U32 i=0; i < src->s; i++, v++) {
-        U32 len = bin_to_u16(p)+1;	p += sizeof(U16);	// symbol_len+'\0'
+        U32 len = bin_to_u16(s)+1;	s += sizeof(U16);	// symbol_len+'\0'
         U32 asz = len + (-len & 3);				// 4-byte alignment
 
-    	memcpy(stbl, p, len ? len : 1);			// copy the symbol string
+    	memcpy(stbl, s, len ? len : 1);			// copy the symbol string
     	*v = U8POFF(stbl, base);
     	stbl += asz;							// advance string table pointer
-        p    += len;
+        s    += len;
     }
     tgt->size = U8POFF(stbl, tgt);
 

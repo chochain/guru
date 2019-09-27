@@ -120,18 +120,18 @@ uc_move(guru_vm *vm)
 __GURU__ void
 uc_loadl(guru_vm *vm)
 {
-    U32 *p = VM_VAR(vm, _AR(bx));
-    guru_obj obj;
+    U32 *v = &VM_VAR(vm, _AR(bx));
+    GV ret;
 
-    if (*p & 1) {
-    	obj.gt = GT_FLOAT;
-    	obj.f  = *(GF *)p;
+    if (*v & 1) {
+    	ret.gt = GT_FLOAT;
+    	ret.f  = *((GF*)v);
     }
     else {
-    	obj.gt = GT_INT;
-    	obj.i  = *p>>1;
+    	ret.gt = GT_INT;
+    	ret.i  = *v>>1;
     }
-    _RA(obj);
+    _RA(ret);
 }
 
 //================================================================
@@ -556,7 +556,7 @@ uc_sub(guru_vm *vm)
     else {  // other case
     	uc_send(vm);
     }
-    ref_clr(r1);
+    r1->gt = GT_EMPTY;
 }
 
 //================================================================
@@ -746,8 +746,7 @@ __GURU__ void
 uc_string(guru_vm *vm)
 {
 #if GURU_USE_STRING
-	U32 bx   = _AR(bx);
-    U8  *str = (U8 *)VM_VAR(vm, bx);			// string pool var
+    U8  *str = (U8 *)VM_STR(vm, _AR(bx));		// string pool var
     GV  v    = guru_str_new(str);				// rc set to 1 already
 
     _RA(v);
