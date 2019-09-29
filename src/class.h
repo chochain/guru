@@ -22,7 +22,6 @@ extern "C" {
 // external methods
 __GURU__ guru_class *guru_define_class(const U8P name, guru_class *super);
 __GURU__ guru_proc  *guru_define_method(guru_class *cls, const U8P name, guru_fptr cfunc);
-__GURU__ guru_proc 	*guru_alloc_proc(const U8P name);
 
 __GURU__ guru_class *class_by_obj(guru_obj *obj);
 __GURU__ guru_proc  *proc_by_sid(GV *obj, GS sid);

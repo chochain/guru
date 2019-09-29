@@ -439,14 +439,14 @@ _init_all_class(void)
     _init_class_false();
     _init_class_true();
 
-    guru_init_class_symbol();
-    guru_init_class_int();
-    guru_init_class_float();
+    guru_init_class_symbol();		// symbol.cu
+    guru_init_class_int();			// c_fixnum.cu
+    guru_init_class_float();		// c_fixnum.cu
 
-    guru_init_class_string();
-    guru_init_class_array();
-    guru_init_class_range();
-    guru_init_class_hash();
+    guru_init_class_string();		// c_string.cu
+    guru_init_class_array();		// c_array.cu
+    guru_init_class_range();		// c_range.cu
+    guru_init_class_hash();			// c_hash.cu
 
 #if GURU_USE_MATH
     guru_init_class_math();

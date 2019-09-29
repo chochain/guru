@@ -55,26 +55,26 @@ _fetch_bytecode(const U8P rite_fname)
 __HOST__ int
 guru_setup(int step, int trace)
 {
-	U8P mem = _guru_mem = (U8P)cuda_malloc(BLOCK_MEMORY_SIZE, 1);
+	U8P mem = _guru_mem = (U8P)cuda_malloc(BLOCK_MEMORY_SIZE, 1);	// allocate main block (i.e. RAM)
 	if (!_guru_mem) {
 		fprintf(stderr, "ERROR: failed to allocate device main memory block!\n");
 		return -1;
 	}
-	U8P out = _guru_out = (U8P)cuda_malloc(MAX_BUFFER_SIZE, 1);	// allocate output buffer
+	U8P out = _guru_out = (U8P)cuda_malloc(MAX_BUFFER_SIZE, 1);		// allocate output buffer
 	if (!_guru_out) {
 		fprintf(stderr, "ERROR: output buffer allocation error!\n");
 		return -2;
 	}
-	if (vm_pool_init(step)) {
+	if (vm_pool_init(step)) {										// allocate VM pool
 		fprintf(stderr, "ERROR: VM memory block allocation error!\n");
 		return -3;
 	}
 	_ses_list = NULL;
 
-	guru_memory_init<<<1,1>>>(mem, BLOCK_MEMORY_SIZE);			// setup memory management
-	guru_global_init<<<1,1>>>();								// setup static objects
-	guru_class_init<<<1,1>>>();									// setup basic classes
-	guru_console_init<<<1,1>>>(out, MAX_BUFFER_SIZE);			// initialize output buffer
+	guru_memory_init<<<1,1>>>(mem, BLOCK_MEMORY_SIZE);		// setup memory management
+	guru_global_init<<<1,1>>>();							// setup static objects (TODO: => dynamic?)
+	guru_class_init<<<1,1>>>();								// setup basic classes	(TODO: => ROM)
+	guru_console_init<<<1,1>>>(out, MAX_BUFFER_SIZE);		// initialize output buffer
 
 	U32 sz0, sz1;
 	cudaDeviceGetLimit((size_t *)&sz0, cudaLimitStackSize);
