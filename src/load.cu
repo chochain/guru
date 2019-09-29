@@ -114,7 +114,7 @@ _to_gv(GV v[], U32 n, U8 *p, bool sym)
         case 2: // Float (32-bit)
             memcpy(buf, p, len);
             buf[len] = '\0';
-            v->f    = atof(buf);
+            v->f    = (float)atof(buf);		// atof() returns double
             v->gt   = GT_FLOAT;
             break;
 #endif // GURU_USE_FLOAT

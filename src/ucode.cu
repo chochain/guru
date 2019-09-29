@@ -732,7 +732,7 @@ uc_string(guru_vm *vm)
 {
 #if GURU_USE_STRING
     GV v = VM_STR(vm, _AR(bx));
-    _RA(v);
+    _RA_X(&v);
 #else
     QUIT("String class");
 #endif // GURU_USE_STRING
@@ -1150,10 +1150,9 @@ ucode_exec(guru_vm *vm)
 		uc_stop,		//    OP_STOP,      stop VM
 		NULL			//    OP_ERR,       Bx      raise RuntimeError with message Lit(Bx)
 	};
-
-	guru_state *st = vm->state;
-	vtbl[vm->op](vm);
-
+    guru_state 	*st = vm->state;
+    GV 			*rf = vm->regfile;
+    vtbl[vm->op](vm);
 #endif // GURU_DEBUG
 }
 
