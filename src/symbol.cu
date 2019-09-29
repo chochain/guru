@@ -138,10 +138,10 @@ guru_sym_new(const U8P str)
     }
 
     // create symbol object dynamically.
-    U32 size = guru_strlen(str) + 1;
-    U8P buf  = (U8P)guru_alloc(size);
+    U32 asz = guru_strlen(str) + 1;		ALIGN(asz);
+    U8P buf = (U8P)guru_alloc(asz);
 
-    MEMCPY(buf, str, size);
+    MEMCPY(buf, str, asz);
     v.i = _add_index(buf);
 
     return v;
@@ -220,3 +220,21 @@ guru_init_class_symbol()  // << from symbol.cu
     	"Symbol", guru_class_object, vtbl, sizeof(vtbl)/sizeof(Vfunc)
     );
 }
+
+__GPU__ void
+_id2str(GS sid, U8 *str)
+{
+	if (blockIdx.x!=0 || threadIdx.x!=0) return;
+
+	U8 *s = id2name(sid);
+	STRCPY(str, s);
+}
+
+#if GURU_DEBUG
+__HOST__ void
+id2name_host(GS sid, U8 *str)
+{
+	_id2str<<<1,1>>>(sid, str);
+	cudaDeviceSynchronize();
+}
+#endif // GURU_DEBUG

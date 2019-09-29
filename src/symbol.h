@@ -23,6 +23,10 @@ __GURU__ U8P    id2name(GS sid);
 
 __GURU__ void 	guru_init_class_symbol();
 
+#if GURU_DEBUG
+__HOST__ void 	id2name_host(GS sid, U8 *str);	// ~= id2name, by host mode
+#endif // GURU_DEBUG
+
 #ifdef __cplusplus
 }
 #endif

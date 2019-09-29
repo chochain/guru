@@ -309,6 +309,9 @@ static const char *_opcode[] = {
     "ABORT"
 };
 
+#define OUTBUF_SIZE	256
+U8 *outbuf = NULL;
+
 __HOST__ int
 _match_irep(guru_irep *irep0, guru_irep *irep1, U8P idx)
 {
@@ -359,6 +362,18 @@ _show_regfile(guru_vm *vm, U32 lvl)
 #define bin2u32(x) ((x << 24) | ((x & 0xff00) << 8) | ((x >> 8) & 0xff00) | (x >> 24))
 
 __HOST__ void
+_show_func(guru_vm *vm, U32 code)
+{
+	if (outbuf==NULL) outbuf = (U8*)cuda_malloc(OUTBUF_SIZE, 1);	// lazy alloc
+
+	U32 rb   = (code >> 14) & 0x1ff;
+	GS  sid  = VM_SYM(vm, rb);
+
+	id2name_host(sid, outbuf);
+	printf(" #%s", outbuf);
+}
+
+__HOST__ void
 _show_ucode(guru_vm *vm)
 {
 	U16  pc    = vm->state->pc;						// program counter
@@ -382,11 +397,7 @@ _show_ucode(guru_vm *vm)
 		lvl += 2 + st->argc;
 	}
 	_show_regfile(vm, lvl);
-
-	if (op==OP_SEND || op==OP_SENDB) {				// display function name
-		U32 rb = (code >> 14) & 0x1ff;
-		printf(" #%d", VM_SYM(vm, rb));
-	}
+	if (op==OP_SEND || op==OP_SENDB) _show_func(vm, code);
 }
 
 __HOST__ void

@@ -72,9 +72,9 @@ __GURU__ U8P		guru_strcat(U8P d, const U8P s);
 #define MEMCMP(d, s, sz)  memcmp(d, s, sz)
 
 #define STRLEN(s)		  strlen(s)
-#define STRCPY(s1, s2)	  strcpy(s1, s2)
+#define STRCPY(d, s)	  strcpy(d, s)
 #define STRCMP(s1, s2)    strcmp(s1, s2)
-#define STRCHR(s, c)      strchr(s, c)
+#define STRCHR(d, c)      strchr(d, c)
 #define STRCAT(d, s)      strcat(d, s)
 #endif
 

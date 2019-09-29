@@ -216,9 +216,9 @@ guru_strlen(const U8P str)
 }
 
 __GURU__ void
-guru_strcpy(const U8P s1, const U8P s2)
+guru_strcpy(const U8P d, const U8P s)
 {
-    guru_memcpy(s1, s2, guru_strlen(s1));
+    guru_memcpy(d, s, guru_strlen(s));
 }
 
 __GURU__ S32
