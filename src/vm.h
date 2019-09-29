@@ -44,20 +44,20 @@ extern "C" {
 /*!@brief
   IREP Internal REPresentation
 */
-typedef struct RIrep {	// 32-byte
-    U32	size;			// size of entire IREP block
+typedef struct RIrep {			// 32-byte
+	U16 size;					// size of this IREP block
+    U16 nv; 		  			//!< # of local variables
+    U16 nr;						//!< # of register used
+    U16 r;						//!< # of child IREP blocks (into list below)
 
-    S32 reps;			//!< offset to array of child IREP's pointer.
-    S32 pool; 			//!< offset to array of POOL objects pointer.
-    S32	sym;			//!< offset to array of SYMBOLs
-    S32 iseq;			//!< offset to ISEQ (code) BLOCK
+    U32 i;						//!< # of bytecodes (by iseq below)
+    U16 p;						//!< # of objects in pool (into pool below)
+    U16	s;						//!< # of symbols (into sym below)
 
-    U32 i;				//!< # of bytecodes (by iseq below)
-    U16 c;				//!< # of child IREP blocks (into list below)
-    U16 p;				//!< # of objects in pool (into pool below)
-    U16	s;				//!< # of symbols (into sym below)
-    U8  nv; 		  	//!< # of local variables
-    U8  nr;				//!< # of register used
+    struct RIrep  	**reps;		//!< array of child IREP's pointer.
+    GV  			*pool; 		//!< array of POOL objects pointer.
+    							// ISEQ block follows here, and
+    							// REPS block after
 } guru_irep;
 
 //================================================================
@@ -98,18 +98,12 @@ typedef struct {
 /*!@brief
   Virtual Machine
 */
-typedef struct VM {				// 64 + 32*reg bytes
+typedef struct VM {				// 80-byte
     U32	id;						// allocation control
-
-    U16 depth;					// depth of call stack
-    U16	err;					// error code/condition
-
     U16	run  : 3;				// VM_STATUS_FREE, READY, RUN, HOLD
     U16	step : 1;				// for single-step debug level
-    U16 flag : 12;				// reserved
-    U16 temp16;					// reserved
-
-    U32 temp32;					// reserved
+    U16 depth: 4;				// reserved
+    U16 err;					// reserved
 
     union {
         U32 bytecode;			// cached bytecode
@@ -120,8 +114,8 @@ typedef struct VM {				// 64 + 32*reg bytes
     };
     GAR ar;						// argument struct
 
-    guru_state *state;			// VM state (callinfo) linked list
-    GV regfile[MAX_REGS_SIZE];	// TODO: change to a pointer
+    guru_state  *state;			// VM state (callinfo) linked list
+    GV 			*regfile;
 } guru_vm;
 
 #else	// !GURU_HOST_IMAGE
@@ -164,15 +158,14 @@ typedef struct XVM {
 #endif 	// GURU_HOST_IMAGE
 
 #define VM_IREP(vm)    	((vm)->state->irep)
-#define VMX(vm, tok)    ((U32*)U8PADD(VM_IREP(vm), VM_IREP(vm)->tok))
-#define VM_REPS(vm,n)	((guru_irep*)U8PADD(VM_IREP(vm), *(VMX(vm, reps)+n)))
-#define VM_SYM(vm,n)    ((U8*) U8PADD(VM_IREP(vm), *(VMX(vm, sym)+n)))
-#define VM_VAR(vm,n)	(*(VMX(vm, pool)+n))
-#define VM_STR(vm,n)	((U32*)U8PADD(VM_IREP(vm), VM_VAR(vm,n)))
+#define VM_REPS(vm,n)	((guru_irep*)VM_IREP(vm)->reps[(n)])
+#define VM_VAR(vm,n)	(VM_IREP(vm)->pool[VM_IREP(vm)->s + (n)])
+#define VM_STR(vm,n)	(VM_IREP(vm)->pool[VM_IREP(vm)->s + (n)])
+#define VM_SYM(vm,n)    (VM_IREP(vm)->pool[(n)].i)
 
 #if GURU_HOST_IMAGE
-#define VM_ISEQ(vm)	 	 (U8PADD(VM_IREP(vm), VM_IREP(vm)->iseq))
-#define VM_BYTECODE(vm) (_bin_to_u32(U8PADD(VM_ISEQ(vm), sizeof(U32) * (vm)->state->pc)))
+#define VM_ISEQ(vm)	 	((U32*)U8PADD(VM_IREP(vm), sizeof(guru_irep)))
+#define VM_BYTECODE(vm) (_bin_to_u32(VM_ISEQ(vm) + (vm)->state->pc))
 #else  // !GURU_HOST_IMAGE
 #define VM_ISEQ(vm)	 	 (VM_IREP(vm)->iseq)
 #define VM_BYTECODE(vm) (bin_to_u32(U8PADD(VM_ISEQ(vm), sizeof(U32) * (vm)->state->pc)))

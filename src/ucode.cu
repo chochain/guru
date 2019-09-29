@@ -120,17 +120,7 @@ uc_move(guru_vm *vm)
 __UCODE__
 uc_loadl(guru_vm *vm)
 {
-    U32 *v = &VM_VAR(vm, _AR(bx));
-    GV ret;
-
-    if (*v & 1) {
-    	ret.gt = GT_FLOAT;
-    	ret.f  = *((GF*)v);
-    }
-    else {
-    	ret.gt = GT_INT;
-    	ret.i  = *v>>1;
-    }
+	GV ret = VM_VAR(vm, _AR(bx));
     _RA(ret);
 }
 
@@ -159,7 +149,7 @@ uc_loadi(guru_vm *vm)
 __UCODE__
 uc_loadsym(guru_vm *vm)
 {
-    GS  sid = name2id(VM_SYM(vm, _AR(bx)));
+	GS sid = VM_SYM(vm, _AR(bx));
 
 	_RA_T(GT_SYM, i=sid);
 }
@@ -221,7 +211,7 @@ uc_loadf(guru_vm *vm)
 __UCODE__
 uc_getglobal(guru_vm *vm)
 {
-    GS sid  = name2id(VM_SYM(vm, _AR(bx)));
+    GS sid = VM_SYM(vm, _AR(bx));
 
     guru_obj *obj = global_object_get(sid);
 
@@ -237,7 +227,7 @@ uc_getglobal(guru_vm *vm)
 __UCODE__
 uc_setglobal(guru_vm *vm)
 {
-    GS sid = name2id(VM_SYM(vm, _AR(bx)));
+    GS sid = VM_SYM(vm, _AR(bx));
 
     global_object_add(sid, _R(a));
 }
@@ -251,9 +241,8 @@ uc_setglobal(guru_vm *vm)
 __UCODE__
 uc_getiv(guru_vm *vm)
 {
-    U8P name = VM_SYM(vm, _AR(bx));
-    GS  sid  = name2id(name+1);					// skip '@'
-    GV  ret  = ostore_get(_R0, sid);
+    GS sid = VM_SYM(vm, _AR(bx));
+    GV ret = ostore_get(_R0, sid);
 
     _RA(ret);
 }
@@ -267,9 +256,7 @@ uc_getiv(guru_vm *vm)
 __UCODE__
 uc_setiv(guru_vm *vm)
 {
-    U8P name = VM_SYM(vm, _AR(bx));
-    GS  sid  = name2id(name+1);			// skip '@'
-
+    GS sid = VM_SYM(vm, _AR(bx));
     ostore_set(_R0, sid, _R(a));
 }
 
@@ -282,7 +269,7 @@ uc_setiv(guru_vm *vm)
 __UCODE__
 uc_getconst(guru_vm *vm)
 {
-    GS  sid = name2id(VM_SYM(vm, _AR(bx)));
+    GS sid = VM_SYM(vm, _AR(bx));
 
     guru_obj *obj = const_object_get(sid);
 
@@ -298,7 +285,7 @@ uc_getconst(guru_vm *vm)
 __UCODE__
 uc_setconst(guru_vm *vm)
 {
-	GS sid = name2id(VM_SYM(vm, _AR(bx)));
+	GS sid = VM_SYM(vm, _AR(bx));
 
     const_object_add(sid, _R(a));
 }
@@ -397,14 +384,13 @@ uc_jmpnot(guru_vm *vm)
 __UCODE__
 uc_send(guru_vm *vm)
 {
-    U8  *sym = VM_SYM(vm, _AR(b));					// get given symbol
-	GS  sid  = name2id(sym); 						// get method sid of the current class
-    GV  *v   = _R(a);								// call stack, obj is receiver object
+    GS sid = VM_SYM(vm, _AR(b));					// get given symbol
+    GV *v  = _R(a);									// call stack, obj is receiver object
 
 	guru_proc *m = (guru_proc *)proc_by_sid(v, sid);
 
 	if (vm_method_exec(vm, v, _AR(c), m)) {			// call stack will be wiped before return
-		SKIP(sym);
+		SKIP(id2name(sid));
 	}
 }
 
@@ -745,9 +731,7 @@ __UCODE__
 uc_string(guru_vm *vm)
 {
 #if GURU_USE_STRING
-    U8  *str = (U8 *)VM_STR(vm, _AR(bx));		// string pool var
-    GV  v    = guru_str_new(str);				// rc set to 1 already
-
+    GV v = VM_STR(vm, _AR(bx));
     _RA(v);
 #else
     QUIT("String class");
@@ -892,7 +876,7 @@ uc_class(guru_vm *vm)
 	GV *r1 = _R(a)+1;
 
     guru_class *super = (r1->gt==GT_CLASS) ? r1->cls : vm->state->klass;
-    const U8P  name   = VM_SYM(vm, _AR(b));
+    const U8P  name   = id2name(VM_SYM(vm, _AR(b)));
     guru_class *cls   = guru_define_class(name, super);
 
     _RA_T(GT_CLASS, cls=cls);
@@ -927,13 +911,12 @@ uc_method(guru_vm *vm)
     assert(obj->gt == GT_CLASS);			// enforce class checking
 
     // check whether the name has been defined in current class (i.e. vm->state->klass)
-    U8		  *sym = VM_SYM(vm, _AR(b));	// fetch name from IREP symbol table
-    GS	      sid  = name2id(sym);			// lookup symbol id (which should be registered already)
+    GS sid = VM_SYM(vm, _AR(b));			// fetch name from IREP symbol table
     guru_proc *prc = proc_by_sid(obj, sid);	// fetch proc from obj->klass->vtbl
 
 #if GURU_DEBUG
     if (prc != NULL) {
-    	printf("WARN: %s#%s override base\n", obj->cls->name, sym);
+    	printf("WARN: %s#%s override base\n", obj->cls->name, id2name(sid));
     	// same proc name exists (in either current or parent class)
     	// do nothing for now
     }
@@ -1081,7 +1064,7 @@ ucode_exec(guru_vm *vm)
 	// GURU dispatcher unit
 	// using vtable (i.e. without switch branching)
 	//=======================================================================================
-    static UCODEP vtbl[] = {
+    static UCODE vtbl[] = {
 		NULL, 			// 	  OP_NOP = 0,
 	// 0x1 Register File
 		uc_move,		//    OP_MOVE       A B     R(A) := R(B)

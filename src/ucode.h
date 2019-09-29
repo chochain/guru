@@ -24,7 +24,7 @@ extern "C" {
 #define MAX_sBx                 (MAX_Bx>>1)
 #define GET_OP(i)               ((i) & 0x7f)
 
-typedef void (*UCODEP)(guru_vm *vm);				// microcode function prototype
+typedef void (*UCODE)(guru_vm *vm);				// microcode function prototype
 
 /*
  * bytecode decoder marcos, deprecated by guru3_7

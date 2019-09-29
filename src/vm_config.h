@@ -23,8 +23,8 @@
 #endif
 
 /* maximum size of registers, which determine how deep call stack can go */
-#ifndef MAX_REGS_SIZE
-#define MAX_REGS_SIZE 32
+#ifndef MAX_REGFILE_SIZE
+#define MAX_REGFILE_SIZE 32
 #endif
 
 /* maximum size of callinfo (callstack) */
@@ -66,6 +66,7 @@
 #define GURU_DEBUG					1
 #define BLOCK_MEMORY_SIZE 			(16*1024)
 #define GURU_64BIT_ALIGN_REQUIRED 	1
+#define CUDA_MIN_MEMBLOCK_SIZE		0x200
 #endif
 
 

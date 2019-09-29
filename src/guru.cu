@@ -111,7 +111,7 @@ __HOST__ int
 guru_run(int trace)
 {
 	for (guru_ses *ses=_ses_list; ses!=NULL; ses=ses->next) {
-		U8 *irep_img = guru_parse_bytecode(ses->stdin);		// build CUDA IREP image
+		U8 *irep_img = guru_parse_bytecode(ses->stdin);		// build CUDA IREP image (in Managed Mem)
 
 		if (irep_img) {
 			int vm_id = ses->id = vm_get(irep_img, trace);	// acquire a VM for the session

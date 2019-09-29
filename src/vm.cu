@@ -28,6 +28,8 @@
 #include "ucode.h"
 #include "load.h"
 #include "state.h"
+#include "c_string.h"
+#include "symbol.h"
 #include "vmx.h"
 #include "vm.h"
 
@@ -39,7 +41,7 @@ pthread_mutex_t 	_mutex_pool;
 #define _LOCK		(pthread_mutex_lock(&_mutex_pool))
 #define _UNLOCK		(cudaDeviceSynchronize(), pthread_mutex_unlock(&_mutex_pool))
 
-__HOST__ void _show_irep(guru_irep *irep, U32 ioff, char level, char *idx);		// forward declaration
+__HOST__ void _show_irep(guru_irep *irep, char level, char *idx);		// forward declaration
 __HOST__ void _trace(U32 level);												// forward declaration
 
 //================================================================
@@ -53,7 +55,9 @@ _ready(guru_vm *vm, guru_irep *irep)
 {
 	if (blockIdx.x!=0 || threadIdx.x!=0) return;		// single threaded
 
-	MEMSET(vm->regfile, 0, sizeof(vm->regfile));		// clean up registers
+	vm->regfile = irep->pool + irep->s + irep->p;
+
+	MEMSET(vm->regfile, 0, sizeof(GV) * (irep->nr + irep->nv));	// wipe registers
 
 	vm->regfile[0].gt  = GT_CLASS;						// regfile[0] is self
     vm->regfile[0].cls = guru_class_object;				// root class
@@ -77,21 +81,45 @@ _free(guru_vm *vm)
 	vm->run = VM_STATUS_FREE;							// release the vm
 }
 
+//================================================================
+// Transcode Pooled objects and Symbol table recursively
+// from source memory pointers to GV[] (i.e. regfile)
+//
+__GURU__ void
+__transcode(guru_irep *irep)
+{
+	GV *p = irep->pool;
+	for (U32 i=0; i < irep->s; i++, p++) {
+		*p = guru_sym_new(p->sym);
+	}
+	for (U32 i=0; i < irep->p; i++, p++) {
+		if (p->gt!=GT_STR) continue;
+		*p = guru_str_new(p->sym);
+	}
+	// use tail recursion (i.e. no call stack, so compiler optimization becomes possible)
+	for (U32 i=0; i < irep->r; i++) {
+		__transcode(irep->reps[i]);
+	}
+}
+
 __GPU__ void
 _fetch(guru_vm *pool, guru_irep *irep, int *vid)
 {
-	if (blockIdx.x!=0 || threadIdx.x!=0) return;		// single threaded
+	if (blockIdx.x!=0 || threadIdx.x!=0) return;	// single threaded
 
 	guru_vm *vm = pool;
 	int idx;
 
 	for (idx=0; idx<MIN_VM_COUNT; idx++, vm++) {
 		if (vm->run==VM_STATUS_FREE) {
-			vm->run = VM_STATUS_READY;				// reserve the VM
+			vm->run = VM_STATUS_READY;		// reserve the VM
 			break;
 		}
 	}
-	if (idx<MIN_VM_COUNT) _ready(vm, irep);
+	if (idx<MIN_VM_COUNT) {
+		__transcode(irep);					// recursively transcode Pooled objects and Symbol table
+		_ready(vm, irep);
+	}
 	else 				  idx = -1;
 
 	*vid = idx;
@@ -160,8 +188,6 @@ vm_pool_init(U32 step)
 		vm->id    = i;
 		vm->step  = step;
 		vm->depth = vm->err  = 0;
-		vm->temp16= 0xeeee;
-		vm->temp32= 0xeeeeeeee;
 		vm->run   = VM_STATUS_FREE;		// VM not allocated
 	}
 #else
@@ -235,7 +261,7 @@ vm_get(U8 *irep_img, U32 trace)
 		else {
 			printf("  vm[%d]:\n", *vid);
 			char c = 'a';
-			_show_irep(irep, 0, 'A', &c);
+			_show_irep(irep, 'A', &c);
 		}
 	}
 	return *vid;		// CUDA memory leak?
@@ -287,42 +313,39 @@ __HOST__ int
 _match_irep(guru_irep *irep0, guru_irep *irep1, U8P idx)
 {
 	if (irep0==irep1) return 1;
-
-	U8P  base = (U8P)irep0;
-	U32P off  = (U32P)U8PADD(base, irep0->reps);		// child irep offset array
-	for (U32 i=0; i<irep0->c; i++) {
+	for (U32 i=0; i<irep0->r; i++) {
 		*idx += 1;
-		if (_match_irep((guru_irep *)(base + off[i]), irep1, idx)) return 1;
+		if (_match_irep(irep0->reps[i], irep1, idx)) return 1;
 	}
 	return 0;		// not found
 }
 
 __HOST__ void
-_show_irep(guru_irep *irep, U32 ioff, char level, char *idx)
+_show_irep(guru_irep *irep, char level, char *n)
 {
-	printf("\tirep[%c]=%c%04x: size=%d, nreg=%d, nlocal=%d, pools=%d, syms=%d, reps=%d, ilen=%d\n",
-			*idx, level, ioff,
-			irep->size, irep->nr, irep->nv, irep->p, irep->s, irep->c, irep->i);
+	U32 a = (U32A)irep;
+	printf("\t%c irep[%c]=%08x: size=0x%x, nreg=%d, nlocal=%d, pools=%d, syms=%d, reps=%d, ilen=%d\n",
+			level, *n, a,
+			irep->size, irep->nr, irep->nv, irep->p, irep->s, irep->r, irep->i);
 
 	// dump all children ireps
-	U8  *base = (U8 *)irep;
-	U32 *off  = (U32 *)U8PADD(base, irep->reps);		// pointer to irep offset array
-	for (U32 i=0; i<irep->c; i++) {
-		*idx += 1;
-		_show_irep((guru_irep *)(base + off[i]), off[i], level+1, idx);
+	for (U32 i=0; i<irep->r; i++) {
+		*n += 1;
+		_show_irep(irep->reps[i], level+1, n);
 	}
 }
 
 __HOST__ void
 _show_regfile(guru_vm *vm, U32 lvl)
 {
-	U32 n;
-	GV  *v = &vm->regfile[MAX_REGS_SIZE-1];
-	for (n=MAX_REGS_SIZE-1; n>0; n--, v--) {
+	guru_irep *irep = VM_IREP(vm);
+	U32 n  = irep->nr + irep->nv;		// number of register used
+	GV  *v = &vm->regfile[n];
+	for (; n>0; n--, v--) {
 		if (v->gt!=GT_EMPTY) break;
 	}
 
-	v = vm->regfile;
+	v = &vm->regfile[0];
 	printf("[ ");
 	for (U32 i=0; i<=n; i++, v++) {
 		const char *t = _vtype[v->gt];
@@ -339,7 +362,7 @@ __HOST__ void
 _show_ucode(guru_vm *vm)
 {
 	U16  pc    = vm->state->pc;						// program counter
-	U32  *iseq = (U32*)VM_ISEQ(vm);
+	U32  *iseq = VM_ISEQ(vm);
 	U32  code  = bin2u32(*(iseq + pc));				// convert to big endian
 	U16  op    = code & 0x7f;       				// in HOST mode, GET_OPCODE() is DEVICE code
 	U8P  opc   = (U8P)_opcode[GET_OP(op)];
@@ -362,7 +385,7 @@ _show_ucode(guru_vm *vm)
 
 	if (op==OP_SEND || op==OP_SENDB) {				// display function name
 		U32 rb = (code >> 14) & 0x1ff;
-		printf(" #%s", VM_SYM(vm, rb));
+		printf(" #%d", VM_SYM(vm, rb));
 	}
 }
 

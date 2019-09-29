@@ -12,14 +12,16 @@ extern "C" {
 #endif
 
 #ifdef __GURU_CUDA__
+
 #define __GURU__ 			__device__
 #define __HOST__			__host__
 #define __GPU__				__global__
 #define MUTEX_LOCK(p)  		while (atomicCAS((int *)&p, 0, 1)!=0)
 #define MUTEX_FREE(p)  		atomicExch((int *)&p, 0)
-#define ALIGN(sz) 			((sz) += -(sz) & 7)
-#define __INLINE__
-//#define __INLINE__			__forceinline__
+#define ALIGN(sz) 			((sz) += -(sz) & 0x7)
+#define ALIGN64(sz)			((sz) += -(sz) & 0xf)
+//#define __INLINE__
+#define __INLINE__			__forceinline__
 #define __UCODE__ 			__GURU__ __INLINE__ void
 #define __CFUNC__			__GURU__ void
 
@@ -29,7 +31,7 @@ extern "C" {
 #define __INLINE__ 			inline
 #define __HOST__
 #define __GPU__
-#define CHECK_ALIGN(sz) 	assert((-(sz)&3)==0)
+#define ALIGN(sz) 			((sz) += -(sz) & 3)
 
 #endif
 
