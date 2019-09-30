@@ -11,7 +11,7 @@
 */
 #include <assert.h>
 
-#include "alloc.h"
+#include "mmu.h"
 #include "static.h"
 #include "symbol.h"
 #include "global.h"
@@ -190,7 +190,7 @@ uc_getglobal(guru_vm *vm)
 {
     GS sid = VM_SYM(vm, _AR(bx));
 
-    guru_obj *obj = global_object_get(sid);
+    guru_obj *obj = global_get(sid);
 
     _RA(*obj);
 }
@@ -206,7 +206,7 @@ uc_setglobal(guru_vm *vm)
 {
     GS sid = VM_SYM(vm, _AR(bx));
 
-    global_object_add(sid, _R(a));
+    global_set(sid, _R(a));
 }
 
 //================================================================
@@ -248,7 +248,7 @@ uc_getconst(guru_vm *vm)
 {
     GS sid = VM_SYM(vm, _AR(bx));
 
-    guru_obj *obj = const_object_get(sid);
+    guru_obj *obj = const_get(sid);
 
     _RA(*obj);
 }
@@ -264,7 +264,7 @@ uc_setconst(guru_vm *vm)
 {
 	GS sid = VM_SYM(vm, _AR(bx));
 
-    const_object_add(sid, _R(a));
+    const_set(sid, _R(a));
 }
 
 //================================================================
@@ -1055,7 +1055,7 @@ ucode_exec(guru_vm *vm)
 		uc_getglobal,	//    OP_GETGLOBAL  A Bx    R(A) := getglobal(Syms(Bx))
 		uc_setglobal,	//    OP_SETGLOBAL  A Bx    setglobal(Syms(Bx), R(A))
 		NULL,			//    OP_GETSPECIAL A Bx    R(A) := Special[Bx]
-		NULL,			//    OP_SETSPECIA	A Bx    Special[Bx] := R(A)
+		NULL,			//    OP_SETSPECIAL	A Bx    Special[Bx] := R(A)
 		uc_getiv,		//    OP_GETIV      A Bx    R(A) := ivget(Syms(Bx))
 		uc_setiv,		//    OP_SETIV      A Bx    ivset(Syms(Bx),R(A))
 		NULL,			//    OP_GETCV      A Bx    R(A) := cvget(Syms(Bx))

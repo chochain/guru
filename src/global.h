@@ -20,11 +20,11 @@ extern "C" {
 
 __GPU__  void 	guru_global_init(void);
 
-__GURU__ void 	global_object_add(GS sid, GV *v);
-__GURU__ void 	const_object_add(GS sid,  GV *v);
+__GURU__ void 	global_set(GS sid, GV *v);
+__GURU__ void 	const_set(GS sid,  GV *v);
 
-__GURU__ GV 	*global_object_get(GS sid);
-__GURU__ GV 	*const_object_get(GS sid);
+__GURU__ GV 	*global_get(GS sid);
+__GURU__ GV 	*const_get(GS sid);
     
 #ifdef __cplusplus
 }

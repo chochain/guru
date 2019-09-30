@@ -43,7 +43,7 @@ __GURU__ GV 	_global[MAX_GLOBAL_COUNT];
 /* linear search is not efficient! */
 /* TODO: Use binary search */
 __GURU__ S32
-_get_idx(GS sid, _gtype gt)
+_idx(GS sid, _gtype gt)
 {
 	_gidx *p = _global_idx;
     for (U32 i=0; i <_global_sz ; i++, p++) {
@@ -53,9 +53,9 @@ _get_idx(GS sid, _gtype gt)
 }
 
 __GURU__ GV *
-_get_obj(GS sid, _gtype gt)
+_get(GS sid, _gtype gt)
 {
-    S32 i = _get_idx(sid, gt);
+    S32 i = _idx(sid, gt);
 
     if (i < 0) return NULL;
 
@@ -63,9 +63,9 @@ _get_obj(GS sid, _gtype gt)
 }
 
 __GURU__ void
-_add_obj(GS sid, GV *v, _gtype gt)
+_set(GS sid, GV *v, _gtype gt)
 {
-    S32 i = _get_idx(sid, gt);
+    S32 i = _idx(sid, gt);
 
     _LOCK;
 
@@ -84,29 +84,29 @@ _add_obj(GS sid, GV *v, _gtype gt)
 /* add */
 /* TODO: Check reference count */
 __GURU__ void
-global_object_add(GS sid, GV *v)
+global_set(GS sid, GV *v)
 {
-    _add_obj(sid, v, GURU_GLOBAL_OBJECT);
+    _set(sid, v, GURU_GLOBAL_OBJECT);
 }
 
 __GURU__ void
-const_object_add(GS sid, GV *v)
+const_set(GS sid, GV *v)
 {
-    _add_obj(sid, v, GURU_CONST_OBJECT);
+    _set(sid, v, GURU_CONST_OBJECT);
 }
 
 /* get */
 __GURU__ GV *
-global_object_get(GS sid)
+global_get(GS sid)
 {
-    return _get_obj(sid, GURU_GLOBAL_OBJECT);
+    return _get(sid, GURU_GLOBAL_OBJECT);
 }
 
 /* add const */
 __GURU__ GV *
-const_object_get(GS sid)
+const_get(GS sid)
 {
-    return _get_obj(sid, GURU_CONST_OBJECT);
+    return _get(sid, GURU_CONST_OBJECT);
 }
 //
 __GPU__ void
