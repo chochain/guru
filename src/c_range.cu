@@ -33,9 +33,9 @@
 __GURU__ GV
 guru_range_new(GV *first, GV *last, int exclude_end)
 {
-    GV ret;  { ret.gt=GT_RANGE; ret.fil=0; }
+    GV v;  { v.gt=GT_RANGE; v.acl=ACL_HAS_REF; v.fil=0; }
 
-    guru_range *r = ret.range = (guru_range *)guru_alloc(sizeof(guru_range));
+    guru_range *r = v.range = (guru_range *)guru_alloc(sizeof(guru_range));
 
     if (exclude_end) r->flag |= EXCLUDE_END;
     else		     r->flag &= ~EXCLUDE_END;
@@ -46,7 +46,7 @@ guru_range_new(GV *first, GV *last, int exclude_end)
     ref_inc(first);
     ref_inc(last);
 
-    return ret;
+    return v;
 }
 
 //================================================================

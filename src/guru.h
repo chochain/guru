@@ -84,10 +84,8 @@ typedef enum {
     GT_CLASS,
     GT_PROC,								// 0x08
 
-    GT_HAS_REF = 0x10,						// 0x10
-
     /* non-primitive */
-    GT_OBJ = GT_HAS_REF,
+    GT_OBJ = 0x10,
     GT_ARRAY,
     GT_STR,
     GT_RANGE,
@@ -116,20 +114,23 @@ typedef uint8_t     *U8P;
 // guru simple types (non struct)
 typedef S32			GI;
 typedef F32	 		GF;
-typedef U32 		GS;
+typedef U16 		GS;
 
 // pointer arithmetic, this will not work in multiple segment implementation
 #define U8PADD(p, n)	((U8*)(p) + (n))					// add
 #define U8PSUB(p, n)	((U8*)(p) - (n))					// sub
 #define U8POFF(p1, p0)	((S32)((U8*)(p1) - (U8*)(p0)))	    // offset (downshift from 64-bit)
 
+#define ACL_HAS_REF		0x1
+#define ACL_READ_ONLY	0x2
 //===============================================================================
 /*!@brief
   Guru objects
 */
 typedef struct {					// 16-bytes
-	GT  gt 		: 32;				// guru object type
-	U32 fil;						// cached ref count
+	GT  gt 	: 16;					// guru object type
+	U32 acl : 16;					// object access control (i.e. ROM able
+	U32 fil;						// reserved
     union {							// 64-bit
 		GI  	 		 i;			// TT_FIXNUM, SYMBOL
 		GF 	 	 		 f;			// TT_FLOAT
@@ -151,8 +152,9 @@ typedef struct {					// 16-bytes
   Guru class object.
 */
 typedef struct RClass {			// 32-byte
-    GS       		sid;		// class name (symbol) id u32
-    U32				fil;		// reserved
+    GS       		sid;		// class name (symbol) id u16
+    U16				fil16;		// reserved
+    U32				fil32;		// reserved
     struct RClass 	*super;		// guru_class[super]
     struct RProc  	*vtbl;		// guru_proc[rprocs], linked list
 #if GURU_DEBUG
@@ -169,8 +171,9 @@ struct Vfunc {
 };
 
 typedef struct RProc {			// 48-byte
-    GS 	 			sid;		// u32
-    U32				fil;		// reserved
+    GS 	 			sid;		// u16
+    U16				fil16;		// reserved
+    U32				fil32;		// reserved
     struct RIrep 	*irep;		// an IREP (Ruby code), defined in vm.h
     guru_fptr 		func;		// or a raw C function
     struct RProc 	*next;		// next function in linked list

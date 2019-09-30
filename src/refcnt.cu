@@ -26,10 +26,11 @@
 __GURU__ GV *
 ref_dec(GV *v)
 {
-    if ((v->gt & GT_HAS_REF)==0) return v;			// simple objects
+    if (!(v->acl & ACL_HAS_REF)) return v;	// simple objects
+    if (v->acl & ACL_READ_ONLY)  return v;	// ROMable objects
 
-    assert(v->self->rc);							// rc > 0
-    if (--v->self->rc > 0) return v;				// still used, keep going
+    assert(v->self->rc);					// rc > 0
+    if (--v->self->rc > 0) return v;		// still used, keep going
 
     switch(v->gt) {
     case GT_OBJ:		guru_obj_del(v);	break;	// delete object instance
@@ -57,7 +58,9 @@ ref_dec(GV *v)
 __GURU__ GV *
 ref_inc(GV *v)
 {
-	if (v->gt & GT_HAS_REF) (v->self->rc++);
+	if ((v->acl&ACL_HAS_REF) && !(v->acl&ACL_READ_ONLY)) {
+		v->self->rc++;
+	}
 	return v;
 }
 

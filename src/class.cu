@@ -141,7 +141,7 @@ guru_define_class(const U8P name, guru_class *super)
 #endif
 
     // register to global constant.
-    GV v; { v.gt = GT_CLASS; v.fil=0xcccccccc; v.cls = cls; }
+    GV v; { v.gt = GT_CLASS; v.acl = 0; v.fil=0xcccccccc; v.cls = cls; }
     const_object_add(sid, &v);
 
     return cls;

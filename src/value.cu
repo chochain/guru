@@ -199,7 +199,7 @@ guru_strlen(const U8P str)
 __GURU__ void
 guru_strcpy(const U8P d, const U8P s)
 {
-    guru_memcpy(d, s, guru_strlen(s));
+    guru_memcpy(d, s, guru_strlen(s)+1);
 }
 
 __GURU__ S32
@@ -222,8 +222,5 @@ guru_strcat(U8P d, const U8P s)
     return d;
 }
 
-__GURU__ GV
-GURU_NIL_NEW()
-{
-	GV ret; { ret.gt = GT_NIL; } return ret;
-}
+__GURU__ GV NIL() 	{ GV v; { v.gt=GT_NIL;   v.acl=0; } return v; }
+__GURU__ GV EMPTY()	{ GV v; { v.gt=GT_EMPTY; v.acl=0; } return v; }

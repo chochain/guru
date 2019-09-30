@@ -22,7 +22,8 @@ extern "C" {
 /*! Define instance data.
 */
 typedef struct RStoreData {
-    GS  sid;	    		//!< symbol ID as key.
+    GS  sid;	    		//!< symbol ID as key. u16
+    U16 acl;				// reserved
     GV 	val;	    		//!< stored value.
 } guru_odata;
 

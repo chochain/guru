@@ -14,7 +14,7 @@
 #include <assert.h>
 
 #include "alloc.h"
-#include "static.h"		// prc_call, obj_new
+#include "static.h"		// static_prc_call, static_obj_new
 #include "refcnt.h"
 #include "symbol.h"		// id2name
 #include "ostore.h"
@@ -28,18 +28,12 @@
 __GURU__ void
 _wipe_stack(GV v[], U32 vi, GV *rv)
 {
-    U32 ref = rv && (rv->gt & GT_HAS_REF);
-    GV  *r  = v;
+    GV *r = v;
     for (U32 i=0; i<vi; i++, r++) {
-/*
-    	if (r->gt & GT_HAS_REF) {
-    		if (ref && rv->self==r->self) {}
-    		else ref_dec(r);
-    	}
-*/
     	ref_dec(r);
     	r->gt   = GT_EMPTY;
-        r->self = NULL;
+    	r->acl  = 0;
+    	r->self = NULL;
     }
 }
 

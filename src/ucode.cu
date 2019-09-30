@@ -40,36 +40,12 @@ __GURU__ U32 _mutex_uc;
 #define _AR(r)          ((vm->ar.r))
 #define _R0             (&(vm->state->regs[0]))
 #define _R(r)			(&(vm->state->regs[_AR(r)]))
-//#define _RA(v)			((((v).gt &GT_HAS_REF)&&(v).self !=_R(a)->self) ? ref_dec(_R(a)) : nop(), *_R(a)=(v))
-//#define _RA_X(r)    	(ref_inc(r), (((r)->gt&GT_HAS_REF)&&(r)->self!=_R(a)->self) ? ref_dec(_R(a)) : nop(), *_R(a)=*(r))
 #define _RA(v)			(ref_dec(_R(a)), *_R(a)=(v))
 #define _RA_X(r)    	(ref_inc(r), ref_dec(_R(a)), *_R(a)=*(r))
-#define _RA_T(t,e)      (_R(a)->gt=(t), _R(a)->fil=0, _R(a)->e)
+#define _RA_T(t,e)      (_R(a)->gt=(t), _R(a)->acl=0, _R(a)->fil=0, _R(a)->e)
 
 #define SKIP(x)	        { guru_na(x); return; }
 #define QUIT(x)			{ vm->quit=1; guru_na(x); return; }
-
-__UCODE__
-RA(guru_vm *vm, GV v)
-{
-	GV  *ra = _R(a);
-	if (v.gt & GT_HAS_REF && v.self != ra->self) {
-		ref_dec(ra);
-	}
-	*ra = v;
-}
-
-__UCODE__
-RA_X(guru_vm *vm, GV *r)
-{
-	GV  *ra = _R(a);
-
-	ref_inc(r);
-	if (r->gt & GT_HAS_REF && r->self != ra->self) {
-		ref_dec(ra);
-	}
-	*ra = *r;
-}
 
 //================================================================
 /*!@brief
@@ -491,7 +467,7 @@ uc_add(guru_vm *vm)
     else {    	// other case
     	uc_send(vm);			// should have already released regs[ra + n], ...
     }
-    r1->gt = GT_EMPTY;
+    *r1 = EMPTY();
 }
 
 //================================================================
@@ -543,7 +519,7 @@ uc_sub(guru_vm *vm)
     else {  // other case
     	uc_send(vm);
     }
-    r1->gt = GT_EMPTY;
+    *r1 = EMPTY();
 }
 
 //================================================================
@@ -595,7 +571,7 @@ uc_mul(guru_vm *vm)
     else {   // other case
     	uc_send(vm);
     }
-    r1->gt = GT_EMPTY;
+    *r1 = EMPTY();
 }
 
 //================================================================
@@ -627,7 +603,7 @@ uc_div(guru_vm *vm)
     else {   // other case
     	uc_send(vm);
     }
-    r1->gt = GT_EMPTY;
+    *r1 = EMPTY();
 }
 
 //================================================================
@@ -667,7 +643,7 @@ do {													\
 	else {												\
 		uc_send(vm);									\
 	}													\
-    r1->gt = GT_EMPTY;									\
+    *r1 = EMPTY();  									\
 } while (0)
 
 //================================================================
@@ -733,7 +709,7 @@ uc_string(guru_vm *vm)
 {
 #if GURU_USE_STRING
     GV v = VM_STR(vm, _AR(bx));
-    _RA_X(&v);
+    _RA(v);
 #else
     QUIT("String class");
 #endif // GURU_USE_STRING
@@ -749,21 +725,21 @@ __UCODE__
 uc_strcat(guru_vm *vm)
 {
 #if GURU_USE_STRING
-    GS sid = name2id((U8P)"to_s");		// from global symbol pool
+    GS sid = name2id((U8P)"to_s");				// from global symbol pool
 	GV *sa = _R(a), *sb = _R(b);
 
     guru_proc *pa = proc_by_sid(sa, sid);
     guru_proc *pb = proc_by_sid(sb, sid);
 
-    if (pa) pa->func(sa, 0);			// can it be an IREP?
+    if (pa) pa->func(sa, 0);							// can it be an IREP?
     if (pb) pb->func(sb, 0);
 
-    guru_str_add(ref_inc(sa), sb);		// ref counts increased as _dup updated
+    guru_str_add_cstr(ref_inc(sa), (U8*)sb->str->raw);	// ref counts increased as _dup updated
 
     ref_dec(sb);
-    sb->gt = GT_EMPTY;
+    *sb = EMPTY();
 
-    _RA(*sa);							// this will clean out sa
+    _RA(*sa);									// this will clean out sa
 
 #else
     QUIT("String class");
@@ -774,8 +750,8 @@ __UCODE__
 _stack_copy(GV *d, GV *s, U32 n)
 {
 	for (U32 i=0; i < n; i++, d++, s++) {
-		*d    = *ref_inc(s);			// now referenced by array/hash
-		s->gt = GT_EMPTY;				// DEBUG: clean element from call stack
+		*d = *ref_inc(s);			// now referenced by array/hash
+		*s = EMPTY();				// DEBUG: clean element from call stack
 	}
 }
 //================================================================
@@ -835,7 +811,7 @@ uc_range(guru_vm *vm)
 	U32 n   = _AR(c);
 	GV  *p0 = _R(b), *p1 = p0+1;
     GV  v   = guru_range_new(p0, p1, n);		// p0, p1 ref cnt will be increased
-    p1->gt = GT_EMPTY;
+    *p1 = EMPTY();
 
     _RA(v);										// release and  reassign
 #else
@@ -938,8 +914,7 @@ uc_method(guru_vm *vm)
     GV  *r = _R0+1;
     for (U32 i=0; i<_a+1; i++, r++) {		// sweep block parameters
     	ref_dec(r);
-    	r->gt  = GT_EMPTY;					// clean up for stat dumper
-    	r->cls = NULL;
+    	*r = EMPTY();						// clean up for stat dumper
     }
 }
 
@@ -1152,7 +1127,6 @@ ucode_exec(guru_vm *vm)
 		NULL			//    OP_ERR,       Bx      raise RuntimeError with message Lit(Bx)
 	};
     guru_state 	*st = vm->state;
-    GV 			*rf = vm->regfile;
     vtbl[vm->op](vm);
 #endif // GURU_DEBUG
 }
