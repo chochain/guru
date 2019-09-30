@@ -15,7 +15,7 @@
 */
 #include <stdio.h>
 #include <assert.h>
-#include "alloc.h"
+#include "mmu.h"
 
 // TLSF: Two-Level Segregated Fit allocator with O(1) time complexity.
 // Layer 1st(f), 2nd(s) model, and ignored last 4bit (i.e. smallest block is 16-bytes)
@@ -530,7 +530,7 @@ _alloc_stat(int v[])
 }
 
 __GPU__ void
-guru_memory_init(void *ptr, U32 sz)
+guru_mmu_init(void *ptr, U32 sz)
 {
 	if (threadIdx.x!=0 || blockIdx.x!=0) return;
 
@@ -567,7 +567,7 @@ guru_malloc_stat(int stat[])
 }
 
 __HOST__ void
-guru_dump_alloc_stat(void)
+guru_mmu_stat(void)
 {
 	int s[8];
 	guru_malloc_stat(s);

@@ -12,7 +12,7 @@
 #include <stdio.h>
 #include <assert.h>
 
-#include "alloc.h"		// includes guru.h
+#include "mmu.h"		// includes guru.h
 #include "static.h"
 #include "value.h"
 #include "symbol.h"

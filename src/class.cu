@@ -14,7 +14,7 @@
 #include <stdarg.h>
 
 #include "guru.h"
-#include "alloc.h"
+#include "mmu.h"
 #include "static.h"
 #include "value.h"
 #include "global.h"
@@ -87,7 +87,7 @@ class_by_obj(guru_obj *obj)
 __GURU__ guru_class*
 _name2class(const U8P name)
 {
-    guru_obj *obj = const_object_get(name2id(name));
+    guru_obj *obj = const_get(name2id(name));
 
     return (obj && obj->gt==GT_CLASS) ? obj->cls : NULL;
 }
@@ -142,7 +142,7 @@ guru_define_class(const U8P name, guru_class *super)
 
     // register to global constant.
     GV v; { v.gt = GT_CLASS; v.acl = 0; v.fil=0xcccccccc; v.cls = cls; }
-    const_object_add(sid, &v);
+    const_set(sid, &v);
 
     return cls;
 }

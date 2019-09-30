@@ -13,7 +13,7 @@
 */
 #include <assert.h>
 
-#include "alloc.h"
+#include "mmu.h"
 #include "static.h"		// static_prc_call, static_obj_new
 #include "refcnt.h"
 #include "symbol.h"		// id2name

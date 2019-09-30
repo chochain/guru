@@ -9,7 +9,7 @@
 
   </pre>
 */
-#include "alloc.h"
+#include "mmu.h"
 #include "value.h"
 #include "ostore.h"
 

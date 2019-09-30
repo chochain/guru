@@ -13,7 +13,7 @@
 
 #include "vm_config.h"
 #include "guru.h"
-#include "alloc.h"
+#include "mmu.h"
 #include "static.h"
 #include "value.h"
 

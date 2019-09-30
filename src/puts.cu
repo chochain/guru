@@ -13,7 +13,7 @@
 */
 #include "guru.h"
 #include "value.h"
-#include "alloc.h"
+#include "mmu.h"
 #include "symbol.h"
 #include "static.h"
 #include "global.h"

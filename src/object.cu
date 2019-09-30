@@ -15,7 +15,7 @@
 
 #include "guru.h"
 #include "value.h"
-#include "alloc.h"
+#include "mmu.h"
 #include "static.h"
 #include "symbol.h"
 #include "class.h"

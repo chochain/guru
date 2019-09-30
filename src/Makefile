@@ -13,7 +13,7 @@ INCDIRS=-I/usr/local/cuda/include -I./src
 SRC =   main.c 
 GEXT=   c_string.cu c_range.cu c_array.cu c_hash.cu inspect.cu
 GURU= 	static.cu global.cu console.cu \
-		alloc32.cu load.cu \
+		mmu32.cu load.cu \
 		guru.cu ostore.cu symbol.cu class.cu \
 		state.cu vm.cu \
 		sprintf.cu puts32.cu \
@@ -26,7 +26,7 @@ LIB = 	libguru.a
 SRCS = $(SRC:.c=.o)
 OBJS = $(GURU:.cu=.o) $(CUDA:.cu=.o)
 
-BASE = vm_config.h gurux.h guru.h alloc.h 
+BASE = vm_config.h gurux.h guru.h mmu.h 
 REFS = $(BASE) static.h value.h refcnt.h inspect.h
 EXTS = $(GEXT:.cu=.h)
 
@@ -56,7 +56,7 @@ console.o: console.cu 	vm_config.h guru.h console.h
 
 alloc.o: alloc.cu       $(BASE)
 
-alloc32.o: alloc32.cu   $(BASE) alloc32.h
+mmu32.o: mmu3232.cu   	$(BASE) mmu32.h
 
 load.o: load.cu         $(BASE) errorcode.h \
 						load.h

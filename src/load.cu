@@ -19,7 +19,7 @@
 #include <string.h>
 
 #include "guru.h"
-#include "alloc.h"
+#include "mmu.h"
 #include "errorcode.h"
 #include "load.h"
 

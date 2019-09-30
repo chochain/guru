@@ -13,7 +13,7 @@
 #include <stdarg.h>
 #include <assert.h>
 
-#include "alloc.h"
+#include "mmu.h"
 #include "value.h"
 #include "symbol.h"
 #include "console.h"

@@ -88,7 +88,7 @@ _int(GV *s, GV v[], U32 vi)
 __GURU__ void
 _ptr2hex(GV *s, void *ptr)
 {
-	GV iv[2] = { { .gt=GT_INT }, { .gt=GT_INT } };
+	GV iv[2]; { iv[0].gt=GT_INT; iv[1].gt=GT_INT; }
 	iv[1].i = 16;
 	iv[0].i = (U32A)ptr;
 

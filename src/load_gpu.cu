@@ -20,7 +20,7 @@
 
 #include "guru.h"
 #include "value.h"
-#include "alloc.h"
+#include "mmu.h"
 #include "errorcode.h"
 #include "vm.h"
 #include "load.h"

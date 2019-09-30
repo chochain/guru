@@ -23,7 +23,7 @@
 #include <stdio.h>
 #include <pthread.h>
 
-#include "alloc.h"
+#include "mmu.h"
 #include "static.h"
 #include "state.h"
 #include "symbol.h"
@@ -239,7 +239,7 @@ vm_main_start(U32 trace)
 
 	if (trace) {
 		printf("guru_session completed\n");
-		guru_dump_alloc_stat(trace);
+		guru_mmu_stat(trace);
 	}
 	return 0;
 }
@@ -418,7 +418,7 @@ _trace(U32 level)
 			printf("\n");
 		}
 	}
-	if (level>1) guru_dump_alloc_stat(level);
+	if (level>1) guru_mmu_stat(level);
 }
 
 #else

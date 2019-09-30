@@ -8,12 +8,12 @@
 */
 #include <stdio.h>
 #include "gurux.h"
-#include "alloc.h"				// guru_malloc
+#include "mmu.h"				// guru_malloc
 #include "load.h"				// guru_parse_bytecode
 #include "vmx.h"
 
 // forward declaration for implementation
-extern "C" __GPU__  void guru_memory_init(void *ptr, U32 sz);
+extern "C" __GPU__  void guru_mmu_init(void *ptr, U32 sz);
 extern "C" __GPU__  void guru_global_init(void);
 extern "C" __GPU__  void guru_class_init(void);
 extern "C" __GPU__  void guru_console_init(U8P buf, U32 sz);
@@ -71,7 +71,7 @@ guru_setup(int step, int trace)
 	}
 	_ses_list = NULL;
 
-	guru_memory_init<<<1,1>>>(mem, BLOCK_MEMORY_SIZE);		// setup memory management
+	guru_mmu_init<<<1,1>>>(mem, BLOCK_MEMORY_SIZE);		// setup memory management
 	guru_global_init<<<1,1>>>();							// setup static objects (TODO: => dynamic?)
 	guru_class_init<<<1,1>>>();								// setup basic classes	(TODO: => ROM)
 	guru_console_init<<<1,1>>>(out, MAX_BUFFER_SIZE);		// initialize output buffer
@@ -83,7 +83,7 @@ guru_setup(int step, int trace)
 
 	if (trace) {
 		printf("guru system initialized[defaultStackSize %d => %d]\n", sz0, sz1);
-		guru_dump_alloc_stat(trace);
+		guru_mmu_stat(trace);
 	}
 	return 0;
 }
