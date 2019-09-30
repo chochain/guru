@@ -15,18 +15,19 @@
 #include "static.h"
 #include "symbol.h"
 #include "global.h"
-#include "ucode.h"
-#include "object.h"
+#include "value.h"
+#include "inspect.h"
+
 #include "ostore.h"
 #include "class.h"
 #include "state.h"
+#include "ucode.h"
 
 #include "c_string.h"
 #include "c_array.h"
 #include "c_hash.h"
 #include "c_range.h"
 
-#include "inspect.h"
 
 #define _LOCK		{ MUTEX_LOCK(_mutex_uc); }
 #define _UNLOCK		{ MUTEX_FREE(_mutex_uc); }

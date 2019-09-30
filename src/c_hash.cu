@@ -15,9 +15,7 @@
 #include "guru.h"
 #include "alloc.h"
 #include "static.h"
-
-#include "vm.h"
-#include "object.h"
+#include "value.h"
 
 #include "c_hash.h"
 #include "c_array.h"
@@ -146,7 +144,7 @@ _remove(GV *kv, GV *key)
     GV *v = _search(kv, key);
     if (v==NULL) return GURU_NIL_NEW();
 
-    ref_clr(v);						// CC: was dec_refc 20181101
+    ref_dec(v);						// CC: was dec_refc 20181101
     GV ret = *(v+1);				// value
     guru_hash  *h  = kv->hash;
     h->n -= 2;

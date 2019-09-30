@@ -14,14 +14,12 @@
 #include <stdarg.h>
 
 #include "guru.h"
-#include "value.h"
 #include "alloc.h"
-#include "symbol.h"
-#include "global.h"
 #include "static.h"
-
+#include "value.h"
+#include "global.h"
+#include "symbol.h"
 #include "class.h"
-#include "puts.h"
 
 #define _LOCK		{ MUTEX_LOCK(_mutex_cls); }
 #define _UNLOCK 	{ MUTEX_FREE(_mutex_cls); }

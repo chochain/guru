@@ -66,7 +66,7 @@ _print(GV *v)
     	break;
 #if GURU_USE_STRING
     case GT_STR:
-    	U8P s   = GVSTR(v);
+    	U8P s   = v->str->data;
     	U32 len = STRLEN(s);
         console_str(s);
         if (len && s[len-1]=='\n') {
@@ -143,7 +143,7 @@ _p(GV *v)
 #endif // GURU_USE_ARRAY
 #if GURU_USE_STRING
     case GT_STR:
-        s = GVSTR(v);
+        s = v->str->data;
         console_char('"');
         for (U32 i=0; i < STRLEN(s); i++, s++) {
             if (*s>=' ' && *s < 0x80) console_char(*s);

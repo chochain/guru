@@ -11,19 +11,25 @@ LIBDIRS=-L/usr/local/cuda/lib64
 INCDIRS=-I/usr/local/cuda/include -I./src
 
 SRC =   main.c 
-GURU= 	alloc32.cu guru.cu static.cu value.cu global.cu \
-		ostore.cu symbol.cu class.cu\
-        puts32.cu load.cu \
-		vm.cu ucode.cu state.cu object.cu inspect.cu \
-		c_fixnum.cu c_string.cu c_range.cu c_array.cu c_hash.cu
-GEXT=   c_string.h c_range.h c_array.h c_hash.h
+GEXT=   c_string.cu c_range.cu c_array.cu c_hash.cu inspect.cu
+GURU= 	static.cu global.cu console.cu \
+		alloc32.cu load.cu \
+		guru.cu ostore.cu symbol.cu class.cu \
+		state.cu vm.cu \
+		sprintf.cu puts32.cu \
+        value.cu refcnt.cu \
+		ucode.cu c_fixnum.cu object.cu \
+		$(GEXT)
 CUDA=   cuda.cu
-
 LIB = 	libguru.a
 
 SRCS = $(SRC:.c=.o)
 OBJS = $(GURU:.cu=.o) $(CUDA:.cu=.o)
+
+BASE = vm_config.h gurux.h guru.h alloc.h 
+REFS = $(BASE) static.h value.h refcnt.h inspect.h
 EXTS = $(GEXT:.cu=.h)
+
 
 # default to .cu instead of .c
 %.o:%.cu;	$(NVCC) $(CUDAFLAGS) $<
@@ -42,74 +48,76 @@ main.o: main.c gurux.h
 
 cuda.o: cuda.cu
 
-alloc.o: alloc.cu       vm_config.h guru.h alloc.h
+static.o: static.cu	    vm_config.h guru.h static.h
 
-alloc32.o: alloc32.cu   vm_config.h guru.h alloc.h alloc32.h
+global.o: global.cu	    vm_config.h guru.h global.h
 
-guru.o: guru.cu         vm_config.h guru.h gurux.h alloc.h vmx.h
+console.o: console.cu 	vm_config.h guru.h console.h
 
-static.o: static.cu	    vm_config.h guru.h
+alloc.o: alloc.cu       $(BASE)
 
-value.o: value.cu       vm_config.h guru.h value.h alloc.h \
-						$(EXTS)
+alloc32.o: alloc32.cu   $(BASE) alloc32.h
 
-global.o: global.cu	    vm_config.h guru.h value.h global.h
+load.o: load.cu         $(BASE) errorcode.h \
+						load.h
 
-ostore.o: ostore.cu 	vm_config.h guru.h alloc.h value.h ostore.h
+guru.o: guru.cu         $(BASE) vmx.h load.h 
 
-symbol.o: symbol.cu 	vm_config.h guru.h alloc.h value.h symbol.h \
-						static.h c_array.h
+ostore.o: ostore.cu 	$(BASE) \
+						ostore.h
 
-class.o: class.cu	    vm_config.h guru.h value.h alloc.h static.h symbol.h global.h \
+symbol.o: symbol.cu 	$(REFS) \
+						c_string.h c_array.h \
+						symbol.h
+
+class.o: class.cu	    $(REFS) \
+						symbol.h global.h \
 						class.h
 
-load.o: load.cu         vm_config.h guru.h alloc.h ostore.h \
-						vm.h load.h
+state.o: state.cu		$(REFS) \
+						ostore.h symbol.h class.h \
+						state.h
 
-state.o: state.cu		vm_config.h guru.h symbol.h \
-						class.h ostore.h \
-						vm.h state.h
+vm.o: vm.cu             $(REFS) \
+						ostore.h state.h \
+						ucode.h c_string.h \
+						vm.h
 
-vm.o: vm.cu             vm_config.h guru.h alloc.h value.h static.h ostore.h \
-						ucode.h state.h vm.h load.h
+sprintf.o: sprintf.cu   $(REFS) \
+						symbol.h console.h \
+						sprintf.h
 
-console.o: console.cu 	vm_config.h guru.h value.h console.h
+puts.o: puts32.cu		$(REFS) symbol.h global.h \ 
+						$(EXTS) puts.h
 
-sprintf.o: sprintf.cu   vm_config.h guru.h alloc.h value.h symbol.h console.h sprintf.h
+value.o: value.cu       $(REFS) \
+						$(EXTS)
 
-puts.o: puts32.cu		vm_config.h guru.h alloc.h value.h symbol.h static.h global.h \
-						puts.h $(EXTS)
+refcnt.o: refcnt.cu     $(REFS) \
+						$(EXTS)
 
-ucode.o: ucode.cu       vm_config.h guru.h alloc.h value.h static.h \
+ucode.o: ucode.cu       $(REFS) \
 						symbol.h ostore.h global.h class.h \
-						puts.h \
-						ucode.h vm.h $(EXTS)
+						vm.h ucode.h \
+						$(EXTS)
 
-object.o: object.cu	    vm_config.h guru.h value.h alloc.h static.h symbol.h ostore.h \
+c_fixnum.o: c_fixnum.cu $(REFS) \
+						c_string.h c_fixnum.h
+
+object.o: object.cu	    $(REFS) symbol.h ostore.h \
 						global.h ucode.h vm.h class.h object.h \
-						puts.h \
 						c_fixnum.h $(EXTS)
 
-c_fixnum.o: c_fixnum.cu vm_config.h guru.h value.h static.h \
-						puts.h \
-						class.h c_fixnum.h
+c_string.o: c_string.cu $(REFS) symbol.h c_string.h
 
-c_string.o: c_string.cu vm_config.h guru.h value.h alloc.h static.h symbol.h \
-						puts.h \
-						c_string.h
+c_array.o: c_array.cu 	$(REFS) c_array.h
 
-c_array.o: c_array.cu 	vm_config.h guru.h alloc.h static.h ucode.h object.h \
-						puts.h \
-						c_array.h c_string.h
+c_hash.o: c_hash.cu 	$(REFS) c_array.h c_hash.h
 
-c_range.o: c_range.cu 	vm_config.h guru.h alloc.h static.h symbol.h \
-						puts.h c_range.h c_string.h
+c_range.o: c_range.cu 	$(REFS) object.h c_range.h
 
-c_hash.o: c_hash.cu 	vm_config.h guru.h alloc.h static.h \
-						c_hash.h c_array.h c_string.h 
-
-inspect.o: inspect.cu   vm_config.h guru.h value.h object.h symbol.h \
-                        c_fixnum.h c_string.h c_array.h c_range.h c_hash.h
+inspect.o: inspect.cu   $(REFS) object.h symbol.h \
+                        c_fixnum.h $(EXTS)
 
 clean: 
 	$(RM) -R main.o $(LIB) $(OBJS) *~

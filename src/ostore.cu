@@ -88,7 +88,7 @@ _del(guru_ostore *st)
 
     guru_odata *d = st->data;
     for (U32 i=0; i<st->n; i++, d++) {		// free logical
-        ref_clr(&d->val);           		// CC: was dec_ref 20181101
+        ref_dec(&d->val);
     }
     st->n = 0;
 
@@ -115,20 +115,22 @@ _set(guru_ostore *st, GS sid, GV *val)
     }
     // replace value ?
     if (d->sid == sid) {
-        ref_clr(&d->val);      								// CC: was dec_refc 20181101
+        ref_dec(&d->val);
         d->val = *val;
         return 0;
     }
     if (d->sid < sid) idx++;
 
 INSERT_VALUE:
-    if (st->n >= st->size) {								// need resize?
+    if ((st->n+1) >= st->size) {							// need resize?
         if (_resize(st, st->size + 5)) return -1;			// ENOMEM
     }
     d = st->data + idx;
     if (idx < st->n) {										// need more data?
-        int size = sizeof(guru_odata) * (st->n - idx);
-        MEMCPY(d+1, d, size);
+    	guru_odata *t = st->data + st->n;
+    	for (U32 i=st->n; i>idx; i--) {						// shift down
+    		*(t+1) = *t;
+    	}
     }
     d->sid = sid;
     d->val = *val;

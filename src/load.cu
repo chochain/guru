@@ -19,11 +19,9 @@
 #include <string.h>
 
 #include "guru.h"
-#include "value.h"
 #include "alloc.h"
 #include "errorcode.h"
 #include "load.h"
-#include "vm.h"
 
 #if GURU_HOST_IMAGE
 //================================================================

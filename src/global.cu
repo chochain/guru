@@ -10,7 +10,6 @@
   </pre>
 */
 #include <assert.h>
-#include "value.h"
 #include "global.h"
 /*
 
@@ -70,15 +69,14 @@ _add_obj(GS sid, GV *v, _gtype gt)
 
     _LOCK;
 
-    if (i < 0) {			// not found
+    if (i < 0) {							// not found
         i = _global_sz++;
     }
     assert(i < MAX_GLOBAL_COUNT);			// maybe raise ex
 
     _global_idx[i].sid = sid;
     _global_idx[i].gt  = gt;
-    GV *tgt = &_global[i];
-    MEMCPY(tgt, v, sizeof(GV));				// deep copy
+    _global[i] = *v;
 
     _UNLOCK;
 }
@@ -119,7 +117,3 @@ guru_global_init(void)
 	_mutex_gobj = 0;
 	_global_sz  = 0;
 }
-
-
-
-

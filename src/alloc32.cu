@@ -370,7 +370,7 @@ guru_realloc(void *p0, U32 sz)
     }
     // not big enough block found, new alloc and deep copy
     void *p1 = guru_alloc(bsz);
-    memcpy(p1, p0, sz);									// deep copy
+    memcpy(p1, p0, sz);									// deep copy, !!using CUDA provided memcpy
 
     guru_free(p0);										// reclaim block
 
@@ -443,7 +443,9 @@ cuda_malloc(U32 sz, U32 type)
     return mem;
 }
 
-#if GURU_DEBUG
+#if !GURU_DEBUG
+__HOST__ void guru_dump_alloc_stat(U32 trace);
+#else
 //================================================================
 /*! statistics
 

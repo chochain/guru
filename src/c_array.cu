@@ -15,9 +15,8 @@
 #include "guru.h"
 #include "alloc.h"
 #include "static.h"
+#include "value.h"
 
-#include "ucode.h"
-#include "object.h"
 #include "c_array.h"
 #include "inspect.h"
 

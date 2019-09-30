@@ -14,7 +14,6 @@
 #define GURU_SRC_VM_H_
 
 #include "guru.h"
-#include "value.h"
 
 #ifdef __cplusplus
 extern "C" {

@@ -10,7 +10,6 @@
   </pre>
 */
 #include <stdio.h>
-#include "value.h"
 #include "console.h"
 
 __GURU__ U32 _output_size;
@@ -26,17 +25,18 @@ __GURU__ volatile U32 _mutex_con;
 __GURU__ void
 _write(GT gt, GT fmt, U32 sz, U8P buf)
 {
-	if (threadIdx.x!=0) return;		// only thread 0 within a block can write
+	if (threadIdx.x!=0) return;						// only thread 0 within a block can write
 
 	_LOCK;
 
 	guru_print_node *n = (guru_print_node *)_output_ptr;
-	MEMCPY(n->data, buf, sz);
+	U8 *d = n->data, *s = buf;
+	for (U32 i=0; i<sz; i++, *d++=*s++);			// mini memcpy
 
-	n->id   = blockIdx.x;			// VM.id
+	n->id   = blockIdx.x;							// VM.id
 	n->gt   = gt;
 	n->fmt  = fmt;
-	n->size = sz + (-sz & 0x3);		// 32-bit alignment
+	n->size = sz + (-sz & 0x3);						// 32-bit alignment
 
 	_output_ptr  = U8PADD(n->data, n->size);		// advance pointer to next print block
 	*_output_ptr = (U8)GT_EMPTY;
@@ -160,11 +160,14 @@ console_float(GF f)
 __GURU__ void
 console_str(const U8 *str)
 {
-	_write(GT_STR, GT_EMPTY, guru_strlen((U8P)str)+1, (U8P)str);
+	U8 *p = (U8*)str;
+	U32 i;
+	for (i=0; *p++ != '\0'; i++);				// mini strlen
+	_write(GT_STR, GT_EMPTY, i+1, (U8P)str);
 }
 
 __HOST__ guru_print_node*
-_guru_host_print(guru_print_node *node, U32 trace)
+_host_print(guru_print_node *node, U32 trace)
 {
 	U8P fmt[80];
 	U8P buf[80];								// check buffer overflow
@@ -188,7 +191,7 @@ _guru_host_print(guru_print_node *node, U32 trace)
 		printf("%s", (char *)fmt);
 		for (U32 i=0; i<argc; i++) {
 			node = NEXTNODE(node);					// point to next parameter
-			node = _guru_host_print(node, trace);	// recursive call
+			node = _host_print(node, trace);	// recursive call
 		}
 		break;
 	default: printf("print node type not supported: %d", node->gt); break;
@@ -205,7 +208,7 @@ guru_console_flush(U8P output_buf, U32 trace)
 #if GURU_USE_CONSOLE
 	guru_print_node *node = (guru_print_node *)output_buf;
 	while (node->gt != GT_EMPTY) {			// 0
-		node = _guru_host_print(node, trace);
+		node = _host_print(node, trace);
 		node = NEXTNODE(node);
 	}
 	guru_console_init<<<1,1>>>(output_buf, 0);

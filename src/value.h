@@ -11,15 +11,12 @@
 #ifndef GURU_SRC_VALUE_H_
 #define GURU_SRC_VALUE_H_
 #include "guru.h"
+#include "refcnt.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 __GURU__ S32  	guru_cmp(const GV *v0, const GV *v1);
-
-__GURU__ void 	ref_clr(GV *v);
-__GURU__ GV   	*ref_dec(GV *v);
-__GURU__ GV   	*ref_inc(GV *v);
 __GURU__ GV 	GURU_NIL_NEW();
 
 // macro for C call returns
@@ -38,8 +35,6 @@ __GURU__ GV 	GURU_NIL_NEW();
 #ifdef __GURU_CUDA__
 __GURU__ GI   		guru_atoi(U8P s, U32 base);
 __GURU__ GF			guru_atof(U8P s);
-
-__GURU__ U8P 		guru_i2s(U64 i, U32 base);
 
 __GURU__ void 		guru_memcpy(U8P d, U8P s, U32 sz);
 __GURU__ void    	guru_memset(U8P d, U8  v, U32 sz);

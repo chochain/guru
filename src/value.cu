@@ -10,15 +10,12 @@
 */
 #include <assert.h>
 #include "value.h"
-#include "alloc.h"
 #include "object.h"
 
 #include "c_string.h"
 #include "c_array.h"
 #include "c_hash.h"
 #include "c_range.h"
-
-//extern "C" __GURU__ void guru_obj_del(GV *v);		// object.cu
 
 //================================================================
 /*! compare
@@ -28,7 +25,7 @@ _string_cmp(const GV *v0, const GV *v1)
 {
 	if (v0->str->n != v1->str->n) return -1;
 
-	return STRCMP(v0->str->data, v1->str->data);
+	return STRCMP(v0->str->raw, v1->str->raw);
 }
 
 //================================================================
@@ -170,22 +167,6 @@ guru_atof(U8P s)
 #endif // GURU_USE_FLOAT
 }
 
-__GURU__ U8P guru_i2s(U64 i, U32 base)
-{
-    U32 bias = 'a' - 10;		// for base > 10
-    U8  buf[64+2];				// int64 + terminate + 1
-    U8P p = buf + sizeof(buf) - 1;
-    U32 x;
-    *p = '\0';
-    do {
-        x = i % 10;
-        *--p = (x < 10)? x + '0' : x + bias;
-        i /= base;
-    } while (i != 0);
-
-    return p;
-}
-
 __GURU__ void
 guru_memcpy(U8P d, U8P s, U32 sz)
 {
@@ -239,66 +220,6 @@ __GURU__ U8P
 guru_strcat(U8P d, const U8P s)
 {
     return d;
-}
-
-//================================================================
-/*!@brief
-  Decrement reference counter
-
-  @param   v     Pointer to target GV
-*/
-__GURU__ GV *
-ref_dec(GV *v)
-{
-    if ((v->gt & GT_HAS_REF)==0) return v;			// simple objects
-
-    assert(v->self->rc);							// rc > 0
-    if (--v->self->rc > 0) return v;				// still used, keep going
-
-    switch(v->gt) {
-    case GT_OBJ:		guru_obj_del(v);	break;	// delete object instance
-    case GT_PROC:	    guru_free(v->proc);	break;
-
-#if GURU_USE_STRING
-    case GT_STR:		guru_str_del(v);	break;
-#endif // GURU_USE_STRING
-
-#if GURU_USE_ARRAY
-    case GT_ARRAY:	    guru_array_del(v);	break;
-    case GT_RANGE:	    guru_range_del(v);	break;
-    case GT_HASH:	    guru_hash_del(v);	break;
-#endif // GURU_USE_ARRAY
-
-    default: break;
-    }
-    return v;
-}
-
-//================================================================
-/*!@brief
-  Duplicate GV
-
-  @param   v     Pointer to GV
-*/
-__GURU__ GV *
-ref_inc(GV *v)
-{
-	if (v->gt & GT_HAS_REF) (v->self->rc++);
-
-	return v;
-}
-
-//================================================================
-/*!@brief
-  Release object related memory
-
-  @param   v     Pointer to target GV
-*/
-__GURU__ void
-ref_clr(GV *v)
-{
-    if (v->gt & GT_HAS_REF) (v->fil = v->self->rc = 0);
-    v->gt = GT_EMPTY;
 }
 
 __GURU__ GV

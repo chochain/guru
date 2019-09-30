@@ -60,7 +60,7 @@ _print(GV *v)
     case GT_PROC: 	PRINTF("#<Proc:%08x>", v->proc); break;
 #if GURU_USE_STRING
     case GT_STR: {
-    	U8 *s   = GVSTR(v);
+    	U8  *s  = (U8*)v->str->raw;
     	U32 len = STRLEN(s);
         PRINTF("%s", s);
         if (len && s[len-1]=='\n') {
@@ -126,7 +126,7 @@ _p(GV *v)
 #endif // GURU_USE_ARRAY
 #if GURU_USE_STRING
     case GT_STR:
-    	PRINTF("\"%s\"", GVSTR(v));
+    	PRINTF("\"%s\"", v->str->raw);
     	break;
 #endif // GURU_USE_STRING
     default:

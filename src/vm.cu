@@ -25,15 +25,13 @@
 
 #include "alloc.h"
 #include "static.h"
-#include "ucode.h"
-#include "load.h"
 #include "state.h"
-#include "c_string.h"
 #include "symbol.h"
 #include "vmx.h"
 #include "vm.h"
 
-#include "puts.h"
+#include "ucode.h"
+#include "c_string.h"
 
 guru_vm *_vm_pool;
 
@@ -57,7 +55,11 @@ _ready(guru_vm *vm, guru_irep *irep)
 
 	vm->regfile = irep->pool + irep->s + irep->p;
 
-	MEMSET(vm->regfile, 0, sizeof(GV) * (irep->nr + irep->nv));	// wipe registers
+	GV *r = vm->regfile;
+	for (U32 i=0; i<irep->nr + irep->nv; i++, r++) {	// wipe register
+		r->gt 	= GT_EMPTY;
+		r->self = NULL;
+	}
 
 	vm->regfile[0].gt  = GT_CLASS;						// regfile[0] is self
     vm->regfile[0].cls = guru_class_object;				// root class

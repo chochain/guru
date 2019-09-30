@@ -15,9 +15,7 @@
 #include "guru.h"
 #include "alloc.h"
 #include "static.h"
-#include "symbol.h"
-
-#include "ucode.h"
+#include "value.h"
 #include "object.h"		// guru_kind_of
 
 #include "c_range.h"
@@ -59,8 +57,8 @@ guru_range_new(GV *first, GV *last, int exclude_end)
 __GURU__ void
 guru_range_del(GV *v)
 {
-    ref_clr(&v->range->first);
-    ref_clr(&v->range->last);
+    ref_dec(&v->range->first);
+    ref_dec(&v->range->last);
 
     guru_free(v->range);
 }
