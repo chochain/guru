@@ -128,7 +128,7 @@ __GURU__ void
 _str(GV *s, GV *v)
 {
 	guru_str_add_cstr(s, "\"");
-	guru_str_add(s, v);
+	guru_str_add_cstr(s, (U8 *)v->str->raw);
 	guru_str_add_cstr(s, "\"");
 }
 

@@ -67,12 +67,12 @@ _raw(const GV *v)
 __GURU__ GV
 _blank(U32 len)
 {
-    GV  ret; { ret.gt=GT_STR; ret.fil=0; }	// assuming some one acquires it
+    GV  v; { v.gt=GT_STR; v.acl=ACL_HAS_REF; v.fil=0; }		// assuming some one acquires it
     U32 asz = len+1;	ALIGN(asz);			// 8-byte aligned
     /*
       Allocate handle and string buffer.
     */
-    guru_str *h = ret.str = (guru_str *)guru_alloc(sizeof(guru_str));
+    guru_str *h = v.str = (guru_str *)guru_alloc(sizeof(guru_str));
     U8P      s  = (U8P)guru_alloc(asz);		// 8-byte aligned
 
     assert(((U32A)h & 7)==0);
@@ -84,7 +84,7 @@ _blank(U32 len)
     h->n    = len;
     h->raw  = (char *)s;					// TODO: for DEBUG, change back to (U8P)
 
-    return ret;
+    return v;
 }
 
 __GURU__ GV
@@ -254,39 +254,37 @@ guru_str_del(GV *v)
 }
 
 //================================================================
-/*! append string (s1 += s2)
+/*! add string (s2 = s0 + s1)
 z
+  @param  s0	pointer to target value 0
   @param  s1	pointer to target value 1
-  @param  s2	pointer to target value 2
-  @param	error_code
 */
-__GURU__ void
+__GURU__ GV
 guru_str_add(GV *s0, GV *s1)
 {
-    U32 len0 = s0->str->n;
-    U32 len1 = (s1->gt==GT_STR) ? s1->str->n : 1;
-    U32 asz  = len0 + len1 + 1;		ALIGN(asz);			// +'\0', 8-byte aligned
-    U8  *buf = (U8*)guru_realloc(s0->str->raw, asz);
+	assert(s1->gt==GT_STR);
 
-    if (s1->gt==GT_STR) {								// append str2
-        MEMCPY(buf + len0, s1->str->raw, len1 + 1);
-    }
-    else if (s1->gt==GT_INT) {
-        buf[len0]   = s1->i;
-        buf[len0+1] = '\0';
-    }
-    s0->str->size = asz;
-    s0->str->n    = len0 + len1;
-    s0->str->raw = (char *)buf;
+    U32 len0 = s0->str->n;
+    U32 len1 = s1->str->n;
+    U32 asz  = len0 + len1 + 1;		ALIGN(asz);			// +'\0', 8-byte aligned
+
+    GV  ret  = _blank(asz);
+    U8  *buf = (U8*)ret.str->raw;
+    MEMCPY(buf, 	 s0->str->raw, len0);
+    MEMCPY(buf+len0, s1->str->raw, len1+1);
+
+    ret.str->n = len0 + len1;
+
+    return ret;
 }
 
 //================================================================
-/*! append c string (s1 += s2)
+/*! append c string (s0 += s1)
 
-  @param  s1	pointer to target value 1
-  @param  s2	pointer to char (c_str)
+  @param  s0	pointer to target value 1
+  @param  s1	pointer to char (c_str)
 */
-__GURU__ void
+__GURU__ GV
 guru_str_add_cstr(GV *s0, const U8 *str)
 {
     U32 len0 = s0->str->n;
@@ -299,6 +297,8 @@ guru_str_add_cstr(GV *s0, const U8 *str)
     s0->str->size = asz;
     s0->str->n 	  = len0 + len1;
     s0->str->raw  = (char *)buf;
+
+    return *s0;
 }
 
 //================================================================
@@ -309,10 +309,9 @@ str_add(GV v[], U32 vi)
 {
     assert(v[1].gt == GT_STR);
 
-    ref_inc(v);
-    guru_str_add(v, v+1);		// v+1 appended to v (i.e. the returned str)
+    GV ret = guru_str_add(v, v+1);
 
-    RETURN_VAL(v[0]);
+    RETURN_VAL(ret);
 }
 
 //================================================================
@@ -604,7 +603,7 @@ __CFUNC__
 str_lstrip_self(GV v[], U32 vi)
 {
     if (_strip(v, 0x01)==0) {	// 1: left side only
-        RETURN_VAL(GURU_NIL_NEW());
+        RETURN_VAL(NIL());
     }
 }
 
@@ -628,7 +627,7 @@ __CFUNC__
 str_rstrip_self(GV v[], U32 vi)
 {
     if (_strip(v, 0x02)==0) {				// 2: right side only
-        RETURN_VAL(GURU_NIL_NEW());			// keep refc
+        RETURN_VAL(NIL());			// keep refc
     }
 }
 
@@ -650,7 +649,7 @@ __CFUNC__
 str_strip_self(GV v[], U32 vi)
 {
     if (_strip(v, 0x03)==0) {		// 3: left and right
-        RETURN_VAL(GURU_NIL_NEW());	// keep refc
+        RETURN_VAL(NIL());	// keep refc
     }
 }
 

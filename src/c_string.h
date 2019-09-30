@@ -28,8 +28,8 @@ __GURU__ GV		guru_str_buf(U32 sz);						// a string buffer with given length
 __GURU__ GV		guru_str_clr(GV *s);						// reset str->n to zero
 
 __GURU__ void   guru_str_del(GV *s);
-__GURU__ void   guru_str_add(GV *s0, GV *s1);
-__GURU__ void   guru_str_add_cstr(GV *s0, const U8 *str);
+__GURU__ GV     guru_str_add(GV *s0, GV *s1);				//	return a new string
+__GURU__ GV     guru_str_add_cstr(GV *s0, const U8 *str);	//  return the same s0
 
 __GURU__ void   guru_init_class_string(void);
 
