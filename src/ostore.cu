@@ -218,7 +218,7 @@ ostore_get(guru_obj *obj, GS sid)
 {
     GV *v = _get(obj->self->ivar, sid);
 
-    if (!v) return GURU_NIL_NEW();
+    if (!v) return NIL();
 
     ref_inc(v);
     return *v;

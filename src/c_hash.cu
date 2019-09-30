@@ -128,7 +128,7 @@ _get(GV *kv, GV *key)
 {
     GV *v = _search(kv, key);
 
-    return v ? *(v+1) : GURU_NIL_NEW();
+    return v ? *(v+1) : NIL();
 }
 
 //================================================================
@@ -142,7 +142,7 @@ __GURU__ GV
 _remove(GV *kv, GV *key)
 {
     GV *v = _search(kv, key);
-    if (v==NULL) return GURU_NIL_NEW();
+    if (v==NULL) return NIL();
 
     ref_dec(v);						// CC: was dec_refc 20181101
     GV ret = *(v+1);				// value
@@ -179,11 +179,11 @@ _clr(GV *kv)
 __GURU__ GV
 guru_hash_new(int size)
 {
-    GV ret;	{ ret.gt=GT_HASH, ret.fil=0xbbbbbbbb; }
+    GV v;	{ v.gt=GT_HASH; v.acl=0; v.fil=0xbbbbbbbb; }
     /*
       Allocate handle and data buffer.
     */
-    guru_hash *h   = ret.hash = (guru_hash *)guru_alloc(sizeof(guru_hash));
+    guru_hash *h   = v.hash = (guru_hash *)guru_alloc(sizeof(guru_hash));
     GV        *ptr = size ? (GV *)guru_alloc(sizeof(GV) * (size<<1)) : NULL;
 
     h->rc   = 1;
@@ -191,7 +191,7 @@ guru_hash_new(int size)
     h->n  	= 0;
     h->data = ptr;
 
-    return ret;
+    return v;
 }
 
 //================================================================
@@ -280,8 +280,8 @@ hsh_set(GV v[], U32 vi)
 	assert(vi==2);
     _set(v, v+1, v+2);		// k + v
 
-    (v+1)->gt = GT_EMPTY;
-    (v+2)->gt = GT_EMPTY;
+    *(v+1) = EMPTY();
+    *(v+2) = EMPTY();
 }
 
 

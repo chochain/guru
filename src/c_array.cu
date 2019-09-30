@@ -70,7 +70,7 @@ _resize(guru_array *h, U32 ndx)
         	: (GV *)guru_alloc(asz);
         h->size = n;
         for (U32 i=h->n; i<n; i++) {			// DEBUG: lazy fill here, instead of when resized
-            h->data[i].gt = GT_EMPTY;
+            h->data[i] = EMPTY();
         }
     }
 }
@@ -121,7 +121,7 @@ _pop(GV *ary)
 {
     guru_array *h = ary->array;
 
-    if (h->n <= 0) return GURU_NIL_NEW();
+    if (h->n <= 0) return NIL();
 
     return *ref_dec(&h->data[--h->n]);
 }
@@ -151,7 +151,7 @@ _insert(GV *ary, S32 idx, GV *set_val)
 
     if (ndx >= h->n) {										// clear empty cells
         for (U32 i = h->n-1; i < ndx; i++) {
-            h->data[i] = GURU_NIL_NEW();
+            h->data[i] = NIL();
         }
         h->n = ndx;
     }
@@ -182,7 +182,7 @@ _shift(GV *ary)
 {
     guru_array *h = ary->array;
 
-    if (h->n <= 0) return GURU_NIL_NEW();
+    if (h->n <= 0) return NIL();
 
     GV *v = ref_dec(&h->data[0]);
     MEMCPY(h->data, h->data + 1, sizeof(GV)*(--h->n));		// lshift
@@ -203,7 +203,7 @@ _get(GV *ary, S32 idx)
     guru_array *h = ary->array;
     U32 ndx = (idx < 0) ? h->n + idx : idx;
 
-    return (ndx < h->n) ? h->data[ndx] : GURU_NIL_NEW();
+    return (ndx < h->n) ? h->data[ndx] : NIL();
 }
 
 //================================================================
@@ -219,7 +219,7 @@ _remove(GV *ary, S32 idx)
     guru_array *h = ary->array;
     U32 ndx = (idx < 0) ? h->n + idx : idx;
 
-    if (ndx >= h->n) return GURU_NIL_NEW();
+    if (ndx >= h->n) return NIL();
     h->n--;
 
     GV  *r  = ref_dec(&h->data[ndx]);			// release the object
@@ -268,7 +268,7 @@ _minmax(GV *ary, GV **pp_min_value, GV **pp_max_value)
 __GURU__ GV
 guru_array_new(U32 sz)
 {
-    GV ret; { ret.gt=GT_ARRAY; ret.fil=0xaaaaaaaa; }
+    GV v; { v.gt=GT_ARRAY; v.acl=ACL_HAS_REF; v.fil=0xaaaaaaaa; }
 
     guru_array *h   = (guru_array *)guru_alloc(sizeof(guru_array));		// handle
     void       *ptr = sz ? guru_alloc(sizeof(GV) * sz) : NULL;			// empty array?
@@ -278,9 +278,9 @@ guru_array_new(U32 sz)
     h->n  	= 0;
     h->data = (GV *)ptr;
 
-    ret.array = h;
+    v.array = h;
 
-    return ret;
+    return v;
 }
 
 //================================================================
@@ -382,7 +382,7 @@ ary_new(GV v[], U32 vi)
     else if (vi==1 && v[1].gt==GT_INT && v[1].i >= 0) {		// new(num)
         ret = guru_array_new(v[1].i);
 
-        GV nil = GURU_NIL_NEW();
+        GV nil = NIL();
         if (v[1].i > 0) {
             _set(&ret, v[1].i - 1, &nil);
         }
@@ -394,7 +394,7 @@ ary_new(GV v[], U32 vi)
         }
     }
     else {
-    	ret = GURU_NIL_NEW();
+    	ret = NIL();
     	guru_na("ArgumentError");
     }
     RETURN_VAL(ret);
@@ -450,7 +450,7 @@ ary_get(GV v[], U32 vi)
     }
     else {
         guru_na("case of Array#[]");
-    	ret = GURU_NIL_NEW();
+    	ret = NIL();
     }
     RETURN_VAL(ret);
 }
@@ -554,7 +554,7 @@ __CFUNC__
 ary_push(GV v[], U32 vi)
 {
     guru_array_push(v, v+1);				// raise? ENOMEM
-    v[1].gt = GT_EMPTY;
+    v[1] = EMPTY();
 }
 
 //================================================================
@@ -581,7 +581,7 @@ __CFUNC__
 ary_unshift(GV v[], U32 vi)
 {
     _unshift(v, v+1);						// raise? IndexError or ENOMEM
-    v[1].gt = GT_EMPTY;
+    v[1] = EMPTY();
 }
 
 //================================================================
@@ -654,7 +654,7 @@ ary_max(GV v[], U32 vi)
 __CFUNC__
 ary_minmax(GV v[], U32 vi)
 {
-    GV nil = GURU_NIL_NEW();
+    GV nil = NIL();
     GV ret = guru_array_new(2);
     GV *min, *max;
 
