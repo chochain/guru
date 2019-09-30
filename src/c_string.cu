@@ -12,9 +12,9 @@
 #include <stdio.h>
 #include <assert.h>
 
-#include "value.h"
-#include "alloc.h"
+#include "alloc.h"		// includes guru.h
 #include "static.h"
+#include "value.h"
 #include "symbol.h"
 
 #include "c_string.h"
@@ -53,7 +53,7 @@ _len(const GV *v)
 __GURU__ __INLINE__ U8P
 _raw(const GV *v)
 {
-    return (U8P)v->str->data;
+    return (U8P)v->str->raw;
 }
 
 //================================================================
@@ -82,7 +82,7 @@ _blank(U32 len)
     h->rc   = 1;
     h->size = asz;
     h->n    = len;
-    h->data = (char *)s;					// TODO: for DEBUG, change back to (U8P)
+    h->raw  = (char *)s;					// TODO: for DEBUG, change back to (U8P)
 
     return ret;
 }
@@ -94,7 +94,7 @@ _new(const U8P src)
 	GV  ret = _blank(len);
 
     // deep copy source string
-    if (src) MEMCPY(ret.str->data, src, len+1);		// plus '\0'
+    if (src) MEMCPY(ret.str->raw, src, len+1);		// plus '\0'
 
     return ret;
 }
@@ -114,7 +114,7 @@ _dup(const GV *v0)
 
     GV v1 = _blank(h0->n);					// refc already set to 1
 
-    MEMCPY(v1.str->data, h0->data, h0->n + 1);
+    MEMCPY(v1.str->raw, h0->raw, h0->n + 1);
 
     return v1;
 }
@@ -181,7 +181,7 @@ _strip(GV *v, U32 mode)
 
     v->str->size = asz;
     v->str->n    = new_len;
-    v->str->data = (char *)guru_realloc(buf, asz);	// shrink suitable size.
+    v->str->raw = (char *)guru_realloc(buf, asz);	// shrink suitable size.
 
     return 1;
 }
@@ -249,7 +249,7 @@ guru_str_clr(GV *s)
 __GURU__ void
 guru_str_del(GV *v)
 {
-    guru_free(v->str->data);
+    guru_free(v->str->raw);
     guru_free(v->str);
 }
 
@@ -266,10 +266,10 @@ guru_str_add(GV *s0, GV *s1)
     U32 len0 = s0->str->n;
     U32 len1 = (s1->gt==GT_STR) ? s1->str->n : 1;
     U32 asz  = len0 + len1 + 1;		ALIGN(asz);			// +'\0', 8-byte aligned
-    U8  *buf = (U8*)guru_realloc(s0->str->data, asz);
+    U8  *buf = (U8*)guru_realloc(s0->str->raw, asz);
 
     if (s1->gt==GT_STR) {								// append str2
-        MEMCPY(buf + len0, s1->str->data, len1 + 1);
+        MEMCPY(buf + len0, s1->str->raw, len1 + 1);
     }
     else if (s1->gt==GT_INT) {
         buf[len0]   = s1->i;
@@ -277,7 +277,7 @@ guru_str_add(GV *s0, GV *s1)
     }
     s0->str->size = asz;
     s0->str->n    = len0 + len1;
-    s0->str->data = (char *)buf;
+    s0->str->raw = (char *)buf;
 }
 
 //================================================================
@@ -292,13 +292,13 @@ guru_str_add_cstr(GV *s0, const U8 *str)
     U32 len0 = s0->str->n;
     U32 len1 = STRLEN(str);
     U32 asz  = len0 + len1 + 1;		asz += -asz & 7;	// 8-byte aligned
-    U8  *buf = (U8*)guru_realloc(s0->str->data, asz);
+    U8  *buf = (U8*)guru_realloc(s0->str->raw, asz);
 
     MEMCPY(buf + len0, str, len1 + 1);
 
     s0->str->size = asz;
     s0->str->n 	  = len0 + len1;
-    s0->str->data = (char *)buf;
+    s0->str->raw  = (char *)buf;
 }
 
 //================================================================
@@ -329,7 +329,7 @@ str_mul(GV v[], U32 vi)
     }
     GV ret = _blank(sz * v[1].i);
 
-    U8P p = (U8P)ret.str->data;
+    U8P p = (U8P)ret.str->raw;
     for (U32 i = 0; i < v[1].i; i++) {
         MEMCPY(p, _raw(v), sz);
         p += sz;
@@ -402,13 +402,13 @@ str_slice(GV v[], U32 vi)
         S32 ch = -1;
         if (idx >= 0) {
             if (idx < len) {
-                ch = *(v->str->data + idx);
+                ch = *(v->str->raw + idx);
             }
         }
         else {
             idx += len;
             if (idx >= 0) {
-                ch = *(v->str->data + idx);
+                ch = *(v->str->raw + idx);
             }
         }
         if (ch < 0) RETURN_NIL();
@@ -416,8 +416,8 @@ str_slice(GV v[], U32 vi)
         GV ret = _blank(1);
         if (!ret.str) RETURN_NIL();
 
-        ret.str->data[0] = ch;
-        ret.str->data[1] = '\0';
+        ret.str->raw[0] = ch;
+        ret.str->raw[1] = '\0';
 
         RETURN_VAL(ret);
     }
@@ -432,7 +432,7 @@ str_slice(GV v[], U32 vi)
         if (rlen < 0) RETURN_NIL();
 
         GV ret = _blank(rlen);
-        MEMCPY(ret.str->data, v->str->data+idx, rlen);
+        MEMCPY(ret.str->raw, v->str->raw+idx, rlen);
 
         RETURN_VAL(ret);
     }
@@ -487,7 +487,7 @@ str_insert(GV v[], U32 vi)
 
     v->str->size = asz;
     v->str->n    = len1 + len2 - len;
-    v->str->data = (char *)str;
+    v->str->raw = (char *)str;
 }
 
 //================================================================
@@ -677,7 +677,7 @@ str_inspect(GV v[], U32 vi)
 
     U8 buf[BUF_SIZE];
     U8 *p = buf;
-    U8 *s = (U8*)v->str->data;
+    U8 *s = (U8*)v->str->raw;
 
     for (U32 i=0; i < v->str->n; i++, s++) {
         if (*s >= ' ' && *s < 0x80) {

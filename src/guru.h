@@ -193,7 +193,7 @@ typedef struct RProc {			// 48-byte
 
 typedef struct RString {			// 16-byte
 	GURU_HDR;
-	char 	*data;					//!< pointer to allocated buffer.
+	char 	*raw;					//!< pointer to allocated buffer.
 } guru_str;
 
 //================================================================

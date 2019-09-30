@@ -8,8 +8,8 @@
 */
 #include <stdio.h>
 #include "gurux.h"
-#include "load.h"
 #include "alloc.h"				// guru_malloc
+#include "load.h"				// guru_parse_bytecode
 #include "vmx.h"
 
 // forward declaration for implementation
