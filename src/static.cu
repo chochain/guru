@@ -8,7 +8,9 @@
   This file is distributed under BSD 3-Clause License.
   </pre>
 */
+#include <assert.h>
 #include "guru.h"
+#include "static.h"
 
 /* Class Tree */
 __GURU__ guru_class *guru_class_object;
@@ -35,4 +37,20 @@ __GURU__ guru_class *guru_class_array;
 __GURU__ guru_class *guru_class_range;
 __GURU__ guru_class *guru_class_hash;
 #endif // GURU_USE_ARRAY
+
+__CFUNC__
+static_prc_call(GV v[], U32 vi)
+{
+	assert(1==0);		// taken care by vm#op_send
+}
+
+__CFUNC__
+static_obj_new(GV v[], U32 vi)
+{
+	assert(1==0);				// handled in ucode
+}
+
+
+
+
 

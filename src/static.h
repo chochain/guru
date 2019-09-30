@@ -43,6 +43,10 @@ extern __GURU__ guru_class *guru_class_range;
 extern __GURU__ guru_class *guru_class_hash;
 #endif  // GURU_USE_ARRAY
 
+// cross module c-function call (a hack for now)
+__CFUNC__ static_obj_new(GV v[], U32 vi);
+__CFUNC__ static_prc_call(GV v[], U32 vi);
+
 #ifdef __cplusplus
 }
 #endif

@@ -14,13 +14,12 @@
 #include <assert.h>
 
 #include "alloc.h"
-#include "symbol.h"
-#include "ucode.h"
-#include "class.h"
-#include "state.h"
-#include "object.h"
+#include "static.h"		// prc_call, obj_new
+#include "refcnt.h"
+#include "symbol.h"		// id2name
 #include "ostore.h"
-#include "vm.h"
+#include "class.h"		// proc_by_sid
+#include "state.h"
 
 //================================================================
 /*!@brief
@@ -129,10 +128,10 @@ vm_method_exec(guru_vm *vm, GV v[], U32 vi, guru_proc *prc)
     else if (HAS_IREP(prc)) {						// a Ruby-based IREP
     	vm_state_push(vm, prc->irep, v, vi);		// switch to callee's context
     }
-    else if (prc->func==prc_call) {					// C-based prc_call (hacked handler, it needs vm->state)
+    else if (prc->func==static_prc_call) {			// C-based prc_call (hacked handler, it needs vm->state)
     	_vm_proc_call(vm, v, vi);					// push into call stack, obj at stack[0]
     }
-    else if (prc->func==obj_new) {					// other default C-based methods
+    else if (prc->func==static_obj_new) {			// other default C-based methods
     	_vm_object_new(vm, v, vi);
     }
     else {

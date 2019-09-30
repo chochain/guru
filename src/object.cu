@@ -298,12 +298,6 @@ obj_kind_of(GV v[], U32 vi)
     }
 }
 
-__CFUNC__
-obj_new(GV v[], U32 vi)
-{
-	assert(1==0);				// handled in ucode
-}
-
 //=====================================================================
 //! deprecated, use inspect#gv_to_s instead
 __CFUNC__
@@ -322,7 +316,7 @@ _init_class_object()
     	{ "<=>",           	obj_cmp 		},
     	{ "===",           	obj_eq3 		},
     	{ "class",         	obj_class		},
-    	{ "new",           	obj_new 		},
+    	{ "new",           	static_obj_new 	},
     	{ "attr_reader",   	obj_attr_reader },
     	{ "attr_accessor", 	obj_attr_accessor	},
     	{ "is_a?",         	obj_kind_of		},
@@ -345,18 +339,12 @@ _init_class_object()
 //================================================================
 // ProcClass
 //================================================================
-__CFUNC__
-prc_call(GV v[], U32 vi)
-{
-	// not suppose to come here
-	assert(1==0);		// taken care by vm#op_send
-}
 
 __GURU__ void
 _init_class_proc()
 {
     static Vfunc vtbl[] = {
-    	{ "call", 	prc_call	},
+    	{ "call", 	static_prc_call	},		// in static.cu
     	{ "to_s", 	gv_to_s		},
     	{ "inspect",gv_to_s		}
     };
