@@ -53,17 +53,12 @@ _ready(guru_vm *vm, guru_irep *irep)
 {
 	if (blockIdx.x!=0 || threadIdx.x!=0) return;		// single threaded
 
-	vm->regfile = irep->pool + irep->s + irep->p;
-
 	GV *r = vm->regfile;
-	for (U32 i=0; i<irep->nr + irep->nv; i++, r++) {	// wipe register
-		r->gt 	= GT_EMPTY;
-		r->self = NULL;
+	for (U32 i=0; i<MAX_REGFILE_SIZE; i++, r++) {		// wipe register
+		r->gt  = (i==0) ? GT_CLASS : GT_EMPTY;			// reg[0] is "self"
+		r->cls = (i==0) ? guru_class_object : NULL;
+		r->acl = 0;
 	}
-
-	vm->regfile[0].gt  = GT_CLASS;						// regfile[0] is self
-    vm->regfile[0].cls = guru_class_object;				// root class
-
     vm->state = NULL;
     vm->run   = VM_STATUS_READY;
     vm->err   = 0;
@@ -91,12 +86,15 @@ __GURU__ void
 __transcode(guru_irep *irep)
 {
 	GV *p = irep->pool;
-	for (U32 i=0; i < irep->s; i++, p++) {
+	for (U32 i=0; i < irep->s; i++, p++) {		// symbol table
 		*p = guru_sym_new(p->sym);
+		p->acl |= ACL_READ_ONLY;
 	}
-	for (U32 i=0; i < irep->p; i++, p++) {
-		if (p->gt!=GT_STR) continue;
-		*p = guru_str_new(p->sym);
+	for (U32 i=0; i < irep->p; i++, p++) {		// pooled objects
+		if (p->gt==GT_STR) {
+			*p = guru_str_new(p->sym);
+		}
+		p->acl |= ACL_READ_ONLY;
 	}
 	// use tail recursion (i.e. no call stack, so compiler optimization becomes possible)
 	for (U32 i=0; i < irep->r; i++) {
@@ -355,8 +353,9 @@ _show_regfile(guru_vm *vm, U32 lvl)
 	for (U32 i=0; i<=n; i++, v++) {
 		const char *t = _vtype[v->gt];
 		U8 c = i==lvl ? '|' : ' ';
-		if (v->gt & GT_HAS_REF)	printf("%s%d%c", t, v->self->rc, c);
-		else					printf("%s %c",  t, c);
+		if (v->acl & ACL_READ_ONLY) 	printf("%s.%c",  t, c);
+		else if (v->acl & ACL_HAS_REF)	printf("%s%d%c", t, v->self->rc, c);
+		else							printf("%s %c",  t, c);
     }
 	printf("]");
 }

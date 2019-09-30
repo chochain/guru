@@ -114,7 +114,8 @@ typedef struct VM {				// 80-byte
     GAR ar;						// argument struct
 
     guru_state  *state;			// VM state (callinfo) linked list
-    GV 			*regfile;
+    U32 fil[2];					// reserved
+    GV 			regfile[MAX_REGFILE_SIZE];
 } guru_vm;
 
 #else	// !GURU_HOST_IMAGE
