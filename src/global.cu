@@ -24,10 +24,10 @@ typedef enum {
     GURU_GLOBAL_OBJECT					// Ruby global objects
 } _gtype;
 
-typedef struct _gobj_ {					// 32-bytes
+typedef struct {						// 32-bit
     GS 			sid;
-    _gtype 		gt	:16;
-} _gobj;
+    _gtype 		gt;
+} _gidx;
 
 #define _LOCK		{ MUTEX_LOCK(_mutex_gobj); }
 #define _UNLOCK		{ MUTEX_FREE(_mutex_gobj); }
@@ -36,7 +36,7 @@ typedef struct _gobj_ {					// 32-bytes
 __GURU__ U32 	_mutex_gobj;
 
 __GURU__ U32    _global_sz;
-__GURU__ _gobj 	_global_idx[MAX_GLOBAL_COUNT];
+__GURU__ _gidx 	_global_idx[MAX_GLOBAL_COUNT];
 __GURU__ GV 	_global[MAX_GLOBAL_COUNT];
 
 /* search */
@@ -45,7 +45,7 @@ __GURU__ GV 	_global[MAX_GLOBAL_COUNT];
 __GURU__ S32
 _get_idx(GS sid, _gtype gt)
 {
-	_gobj *p = _global_idx;
+	_gidx *p = _global_idx;
     for (U32 i=0; i <_global_sz ; i++, p++) {
         if (p->sid == sid && p->gt == gt) return i;
     }
