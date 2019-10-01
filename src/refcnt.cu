@@ -17,6 +17,22 @@
 #include "c_hash.h"
 #include "c_range.h"
 
+__GURU__ GV *
+ref_get(GV *v)
+{
+	if (HAS_NO_REF(v) || IS_READ_ONLY(v)) return v;
+
+	return v;
+}
+
+__GURU__ GV	*
+ref_free(GV *v)
+{
+	if (HAS_NO_REF(v) || IS_READ_ONLY(v)) return v;
+
+	return v;
+}
+
 //================================================================
 /*!@brief
   Decrement reference counter
@@ -26,10 +42,10 @@
 __GURU__ GV *
 ref_dec(GV *v)
 {
-    if (!(v->acl & ACL_HAS_REF)) return v;	// simple objects
-    if (v->acl & ACL_READ_ONLY)  return v;	// ROMable objects
+    if (HAS_NO_REF(v))  	return v;		// skip simple objects
+    if (IS_READ_ONLY(v)) 	return v;		// ROMable objects?
 
-    assert(v->self->rc);					// rc > 0
+    assert(v->self->rc);					// rc > 0?
     if (--v->self->rc > 0) return v;		// still used, keep going
 
     switch(v->gt) {
@@ -44,7 +60,7 @@ ref_dec(GV *v)
     case GT_HASH:	    guru_hash_del(v);	break;
 #endif // GURU_USE_ARRAY
 
-    default: break;
+    default: assert(1==0);
     }
     return v;
 }
@@ -58,7 +74,7 @@ ref_dec(GV *v)
 __GURU__ GV *
 ref_inc(GV *v)
 {
-	if ((v->acl&ACL_HAS_REF) && !(v->acl&ACL_READ_ONLY)) {
+	if (HAS_REF(v) && !IS_READ_ONLY(v)) {
 		v->self->rc++;
 	}
 	return v;

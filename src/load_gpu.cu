@@ -371,7 +371,7 @@ _show_decoder(mrbc_vm *vm)
 
 	for (U32 i=0; i<=last; i++, v++) {
 		printf("%2d.%s", i, _vtype[v->gt]);
-	    if (v->acl & ACL_HAS_REF) printf("_%d", v->self->rc);
+	    if (HAS_REF(v)) printf("_%d", v->self->rc);
 	    printf(" ");
     }
 	printf("]\n");

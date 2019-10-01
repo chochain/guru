@@ -144,7 +144,7 @@ INSERT_VALUE:
 
   @param  st	pointer to instance store handle.
   @param  sid	symbol ID.
-  @return		pointer to GV or NULL.
+  @return		pointer to GV .
 */
 __GURU__ GV*
 _get(guru_ostore *st, GS sid)
@@ -169,15 +169,15 @@ _get(guru_ostore *st, GS sid)
 __GURU__ GV
 ostore_new(guru_class *cls, U32 size)
 {
-    GV ret; { ret.gt=GT_OBJ; ret.fil=0xffffffff; }
+    GV v; { v.gt=GT_OBJ; v.acl = ACL_HAS_REF; v.fil=0xffffffff; }
 
-    guru_var *v = ret.self = (guru_var *)guru_alloc(sizeof(guru_var));
+    guru_var *r = v.self = (guru_var *)guru_alloc(sizeof(guru_var));
 
-    v->rc    = 1;
-    v->ivar  = size ? _new(size) : NULL;	// allocate internal variable handle
-    v->cls   = cls;
+    r->rc    = 1;
+    r->ivar  = size ? _new(size) : NULL;	// allocate internal variable handle
+    r->cls   = cls;
 
-    return ret;
+    return v;
 }
 
 //================================================================

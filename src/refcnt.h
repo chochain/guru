@@ -16,6 +16,9 @@
 extern "C" {
 #endif
 
+__GURU__ GV *ref_get(GV *v);
+__GURU__ GV	*ref_free(GV *v);
+
 __GURU__ GV *ref_dec(GV *v);
 __GURU__ GV *ref_inc(GV *v);
 

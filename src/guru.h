@@ -123,6 +123,10 @@ typedef U16 		GS;
 
 #define ACL_HAS_REF		0x1
 #define ACL_READ_ONLY	0x2
+
+#define HAS_REF(v)		((v)->acl & ACL_HAS_REF)
+#define HAS_NO_REF(v)	(!HAS_REF(v))
+#define IS_READ_ONLY(v)	((v)->acl & ACL_READ_ONLY)
 //===============================================================================
 /*!@brief
   Guru objects
