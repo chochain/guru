@@ -335,6 +335,7 @@ uc_jmpif (guru_vm *vm)
 	if (ra->gt > GT_FALSE) {
 		vm->state->pc += sbx;
 	}
+	*ra = EMPTY();
 }
 
 //================================================================
@@ -347,9 +348,11 @@ __UCODE__
 uc_jmpnot(guru_vm *vm)
 {
 	GI sbx = _AR(bx) - MAX_sBx -1;
-	if (_R(a)->gt <= GT_FALSE) {
+	GV *ra = _R(a);
+	if (ra->gt <= GT_FALSE) {
 		vm->state->pc += sbx;
 	}
+	*ra = EMPTY();
 }
 
 //================================================================
@@ -1154,7 +1157,7 @@ ucode_exec(guru_vm *vm)
     vtbl[vm->op](vm);
 
     if (vm->err && vm->depth>0) {						// simple exception handler
-    	vm->state->pc = vm->rescue[vm->depth-1];		// longjmp
+    	vm->state->pc = vm->rescue[--vm->depth];		// bubbling up
     	vm->err = 0;									// TODO: add exception type or code on stack
     }
 #endif // GURU_DEBUG
