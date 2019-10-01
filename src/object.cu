@@ -315,7 +315,8 @@ _init_class_object()
     	{ "<=>",           	obj_cmp 		},
     	{ "===",           	obj_eq3 		},
     	{ "class",         	obj_class		},
-    	{ "new",           	static_obj_new 	},
+//    	{ "new",           	obj_new 		},		// handled by vm#vm_method_exec
+//      { "raise",			obj_raise		},		// handled by vm#vm_method_exec
     	{ "attr_reader",   	obj_attr_reader },
     	{ "attr_accessor", 	obj_attr_accessor	},
     	{ "is_a?",         	obj_kind_of		},
@@ -343,7 +344,7 @@ __GURU__ void
 _init_class_proc()
 {
     static Vfunc vtbl[] = {
-    	{ "call", 	static_prc_call	},		// in static.cu
+//    	{ "call", 	prc_call	},		// handled  by ucode#uc_send
     	{ "to_s", 	gv_to_s		},
     	{ "inspect",gv_to_s		}
     };

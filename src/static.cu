@@ -38,18 +38,6 @@ __GURU__ guru_class *guru_class_range;
 __GURU__ guru_class *guru_class_hash;
 #endif // GURU_USE_ARRAY
 
-__CFUNC__
-static_prc_call(GV v[], U32 vi)
-{
-	assert(1==0);		// taken care by vm#op_send
-}
-
-__CFUNC__
-static_obj_new(GV v[], U32 vi)
-{
-	assert(1==0);				// handled in ucode
-}
-
 
 
 
