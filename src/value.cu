@@ -224,3 +224,5 @@ guru_strcat(U8P d, const U8P s)
 
 __GURU__ GV NIL() 	{ GV v; { v.gt=GT_NIL;   v.acl=0; } return v; }
 __GURU__ GV EMPTY()	{ GV v; { v.gt=GT_EMPTY; v.acl=0; } return v; }
+
+

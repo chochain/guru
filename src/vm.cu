@@ -61,7 +61,7 @@ _ready(guru_vm *vm, guru_irep *irep)
 	}
     vm->state = NULL;
     vm->run   = VM_STATUS_READY;
-    vm->err   = 0;
+    vm->depth = vm->err = 0;
 
     vm_state_push(vm, irep, vm->regfile, 0);
 }
@@ -297,9 +297,9 @@ static const char *_vtype[] = {
 
 static const char *_opcode[] = {
     "NOP ",	"MOVE",	"LOADL","LOADI","LOADSYM","LOADNIL","LOADSLF","LOADT",
-    "LOADF","GETGBL","SETGBL","","","GETIV","SETIV","",
-    "","GETCONS","SETCONS","","","GETUVAR","SETUVAR","JMP ",
-    "JMPIF","JMPNOT","","","","","","",
+    "LOADF","GETGBL","SETGBL","GETSPC","SETSPC","GETIV","SETIV","GETCV",
+    "SETCV","GETCONS","SETCONS","","","GETUVAR","SETUVAR","JMP ",
+    "JMPIF","JMPNOT","ONERR","RESCUE","POPERR","RAISE","EPUSH","EPOP",
     "SEND","SENDB","","CALL","","","ENTER","",
     "","RETURN","","BLKPUSH","ADD ","ADDI","SUB ","SUBI",
     "MUL ","DIV ","EQ  ","LT  ","LE  ","GT  ","GE  ","ARRAY",
@@ -353,9 +353,9 @@ _show_regfile(guru_vm *vm, U32 lvl)
 	for (U32 i=0; i<=n; i++, v++) {
 		const char *t = _vtype[v->gt];
 		U8 c = i==lvl ? '|' : ' ';
-		if (v->acl & ACL_READ_ONLY) 	printf("%s.%c",  t, c);
-		else if (v->acl & ACL_HAS_REF)	printf("%s%d%c", t, v->self->rc, c);
-		else							printf("%s %c",  t, c);
+		if (IS_READ_ONLY(v)) 	printf("%s.%c",  t, c);
+		else if (HAS_REF(v))	printf("%s%d%c", t, v->self->rc, c);
+		else					printf("%s %c",  t, c);
     }
 	printf("]");
 }

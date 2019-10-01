@@ -114,9 +114,12 @@ typedef struct VM {				// 80-byte
     GAR ar;						// argument struct
 
     guru_state  *state;			// VM state (callinfo) linked list
-    U32			fil[2];			// reserved
-    U8			rcnt[MAX_REGFILE_SIZE];
-    GV 			regfile[MAX_REGFILE_SIZE];
+    U32			fil[2];			// reserved (for alignment)
+
+    // TODO: pointers (for dynamic sizing), use array now for debugging
+    U32			rescue[8];					// ONERR/RESCUE return stack
+    U8			rcnt[MAX_REGFILE_SIZE];		// reference counters
+    GV 			regfile[MAX_REGFILE_SIZE];	// registers
 } guru_vm;
 
 #else	// !GURU_HOST_IMAGE

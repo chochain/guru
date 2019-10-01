@@ -330,7 +330,9 @@ __UCODE__
 uc_jmpif (guru_vm *vm)
 {
 	GI sbx = _AR(bx) - MAX_sBx - 1;
-	if (_R(a)->gt > GT_FALSE) {
+	GV *ra = _R(a);
+
+	if (ra->gt > GT_FALSE) {
 		vm->state->pc += sbx;
 	}
 }
@@ -350,6 +352,72 @@ uc_jmpnot(guru_vm *vm)
 	}
 }
 
+//================================================================
+/*!@brief
+  OP_ONERR
+
+  rescue_push(pc+sBx)
+*/
+__UCODE__
+uc_onerr(guru_vm *vm)
+{
+	GI sbx = _AR(bx) - MAX_sBx -1;
+
+	vm->rescue[vm->depth++] = vm->state->pc + sbx;
+}
+
+//================================================================
+/*!@brief
+  OP_RESCUE
+
+  if A (if C exception:=R(A) else R(A) := exception);
+*/
+__UCODE__
+uc_rescue(guru_vm *vm)
+{
+	U32 c   = _AR(c);				// exception 0:set, 1:get
+	GV  *v  = _R(a);				// object to receive the exception
+	GV  *v1 = v+1;					// exception message (if any)
+
+	if (c) 	{						// get
+		if (v->gt <= GT_FALSE) {	// TODO: not sure about this, CC - 20191001
+			_RA_X(v1);				// :StardardError symbol if not found in const (or NIL)
+		}
+		v1->gt  = GT_TRUE;			// here: modifying return stack directly is questionable!!
+		v1->acl = 0;
+	}
+	else _RA_X(v1);					// set
+}
+
+//================================================================
+/*!@brief
+  OP_POPERR
+
+  A.times{rescue_pop()}
+*/
+__UCODE__
+uc_poperr(guru_vm *vm)
+{
+	U32 a = _AR(a);
+
+	assert(vm->depth >= a);
+
+	vm->depth -= a;
+}
+
+//================================================================
+/*!@brief
+  OP_RAISE
+
+  raise(R(A))
+*/
+__UCODE__
+uc_raise(guru_vm *vm)
+{
+	GV *ra = _R(a);
+
+	_RA(*ra);
+}
 
 //================================================================
 /*!@brief
@@ -361,13 +429,11 @@ uc_jmpnot(guru_vm *vm)
 __UCODE__
 uc_send(guru_vm *vm)
 {
-    GS sid = VM_SYM(vm, _AR(b));					// get given symbol
-    GV *v  = _R(a);									// call stack, obj is receiver object
+    GS  sid = VM_SYM(vm, _AR(b));					// get given symbol
+    GV  *v  = _R(a);								// call stack, obj is receiver object
 
-	guru_proc *m = (guru_proc *)proc_by_sid(v, sid);
-
-	if (vm_method_exec(vm, v, _AR(c), m)) {			// call stack will be wiped before return
-		SKIP(id2name(sid));
+	if (vm_method_exec(vm, v, _AR(c), sid)) {		// in state.cu, call stack will be wiped before return
+	    SKIP(id2name(sid));
 	}
 }
 
@@ -618,6 +684,7 @@ uc_eq(guru_vm *vm)
 	GV *r0 = _R(a), *r1 = r0+1;
     GT tt = GT_BOOL(guru_cmp(r0, r1)==0);
 
+    *r1 = EMPTY();
     _RA_T(tt, i=0);
 }
 
@@ -1070,10 +1137,11 @@ ucode_exec(guru_vm *vm)
 		uc_jmp,			//    OP_JMP,       sBx     pc+=sBx
 		uc_jmpif,		//    OP_JMPIF,     A sBx   if R(A) pc+=sBx
 		uc_jmpnot,		//    OP_JMPNOT,    A sBx   if !R(A) pc+=sBx
-		uc_enter,		//    OP_ONERR,     sBx     rescue_push(pc+sBx)
-		NULL,			//    OP_RESCUE		A B C   if A (if C exc=R(A) else R(A) := exc);
-		NULL,			// 	  OP_POPERR,    A       A.times{rescue_pop()}
-		NULL,			//    OP_RAISE,     A       raise(R(A))
+	// 0x1a Exception Handler
+		uc_onerr,		//    OP_ONERR,     sBx     rescue_push(pc+sBx)
+		uc_rescue,		//    OP_RESCUE		A B C   if A (if C exc=R(A) else R(A) := exc);
+		uc_poperr,		// 	  OP_POPERR,    A       A.times{rescue_pop()}
+		uc_raise,		//    OP_RAISE,     A       raise(R(A))
 		NULL,			//    OP_EPUSH,     Bx      ensure_push(SEQ[Bx])
 		NULL,			//    OP_EPOP,      A       A.times{ensure_pop().call}
 	// 0x20 Stack
