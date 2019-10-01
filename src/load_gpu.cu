@@ -10,7 +10,6 @@
 
   </pre>
 */
-#include <assert.h>
 #include "vm_config.h"
 
 #include <stdio.h>

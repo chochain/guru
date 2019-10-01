@@ -10,8 +10,6 @@
 
   </pre>
 */
-#include <assert.h>
-
 #include "guru.h"
 #include "value.h"
 #include "static.h"

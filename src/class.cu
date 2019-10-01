@@ -10,9 +10,7 @@
 
   </pre>
 */
-#include <assert.h>
 #include <stdarg.h>
-
 #include "guru.h"
 #include "mmu.h"
 #include "static.h"

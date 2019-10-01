@@ -8,7 +8,6 @@
   This file is distributed under BSD 3-Clause License.
   </pre>
 */
-#include <assert.h>
 #include "value.h"
 #include "object.h"
 

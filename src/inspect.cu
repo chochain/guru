@@ -219,7 +219,7 @@ _to_s(GV *s, GV v[], U32 n)
     case GT_STR: 	_str(s, v);		break;
     case GT_HASH:  	_hsh(s, v);		break;
     case GT_RANGE:  _rng(s, v);		break;
-    default: 		assert(1==0);
+    default: assert(1==0);		// unknown type
     }
 }
 //================================================================
