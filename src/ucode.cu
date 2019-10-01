@@ -370,7 +370,9 @@ uc_onerr(guru_vm *vm)
 /*!@brief
   OP_RESCUE
 
-  if A (if C exception:=R(A) else R(A) := exception);
+  if (A)
+    if (C) R(A) := R(A+1)		get exception
+    else   R(A) := R(A+1)		set exception
 */
 __UCODE__
 uc_rescue(guru_vm *vm)
@@ -379,14 +381,17 @@ uc_rescue(guru_vm *vm)
 	GV  *v  = _R(a);				// object to receive the exception
 	GV  *v1 = v+1;					// exception message (if any)
 
-	if (c) 	{						// get
-		if (v->gt <= GT_FALSE) {	// TODO: not sure about this, CC - 20191001
-			_RA_X(v1);				// :StardardError symbol if not found in const (or NIL)
+	if (c) {						// 2nd: get cycle
+		if (v->gt==GT_EMPTY) {		// if exception is not given
+			_RA_X(v1);				// override exception (msg) if not given
 		}
 		v1->gt  = GT_TRUE;			// here: modifying return stack directly is questionable!!
 		v1->acl = 0;
 	}
-	else _RA_X(v1);					// set
+	else {							// 1st: set cycle
+		_RA_X(v1);					// keep exception in RA
+		*v1 = EMPTY();
+	}
 }
 
 //================================================================
@@ -506,38 +511,6 @@ uc_blkpush(guru_vm *vm)
 
 //================================================================
 /*!@brief
-  OP_ADD
-
-  R(A) := R(A)+R(A+1) (Syms[B]=:+,C=1)
-*/
-__UCODE__
-uc_add(guru_vm *vm)
-{
-	GV *r0 = _R(a), *r1 = r0+1;
-
-    if (r0->gt==GT_INT) {
-        if      (r1->gt==GT_INT) 	r0->i += r1->i;
-#if GURU_USE_FLOAT
-        else if (r1->gt==GT_FLOAT) {	// in case of Fixnum, Float
-            r0->gt = GT_FLOAT;
-            r0->f  = r0->i + r1->f;
-        }
-        else SKIP("Fixnum + ?");
-    }
-    else if (r0->gt==GT_FLOAT) {
-        if      (r1->gt==GT_INT) 	r0->f += r1->i;
-        else if (r1->gt==GT_FLOAT)	r0->f += r1->f;
-        else SKIP("Float + ?");
-#endif // GURU_USE_FLOAT
-    }
-    else {    	// other case
-    	uc_send(vm);			// should have already released regs[ra + n], ...
-    }
-    *r1 = EMPTY();
-}
-
-//================================================================
-/*!@brief
   OP_ADDI
 
   R(A) := R(A)+C (Syms[B]=:+)
@@ -554,38 +527,6 @@ uc_addi(guru_vm *vm)
 #else
     else QUIT("Float class");
 #endif // GURU_USE_FLOAT
-}
-
-//================================================================
-/*!@brief
-  OP_SUB
-
-  R(A) := R(A)-R(A+1) (Syms[B]=:-,C=1)
-*/
-__UCODE__
-uc_sub(guru_vm *vm)
-{
-	GV *r0 = _R(a), *r1 = r0+1;
-
-    if (r0->gt==GT_INT) {
-        if      (r1->gt==GT_INT) 	r0->i -= r1->i;
-#if GURU_USE_FLOAT
-        else if (r1->gt==GT_FLOAT) {		// in case of Fixnum, Float
-            r0->gt = GT_FLOAT;
-            r0->f  = r0->i - r1->f;
-        }
-        else SKIP("Fixnum - ?");
-    }
-    else if (r0->gt==GT_FLOAT) {
-        if      (r1->gt==GT_INT)	r0->f -= r1->i;
-        else if (r1->gt==GT_FLOAT)	r0->f -= r1->f;
-        else SKIP("Float - ?");
-#endif // GURU_USE_FLOAT
-    }
-    else {  // other case
-    	uc_send(vm);
-    }
-    *r1 = EMPTY();
 }
 
 //================================================================
@@ -608,6 +549,60 @@ uc_subi(guru_vm *vm)
 #endif // GURU_USE_FLOAT
 }
 
+//
+// arithmetic template (poorman's C++)
+//
+#define AOP(r0, OP, r1)					\
+do {									\
+	if (r0->gt==GT_INT) {				\
+		if      (r1->gt==GT_INT)   { 	\
+			r0->i = r0->i OP r1->i; 	\
+		}								\
+		else if (r1->gt==GT_FLOAT) {	\
+			r0->gt = GT_FLOAT;			\
+			r0->f  = r0->i OP r1->f;	\
+		}								\
+		else SKIP("Fixnum + ?");		\
+    }									\
+    else if (r0->gt==GT_FLOAT) {		\
+    	if      (r1->gt==GT_INT) 	{	\
+    		r0->f = r0->f OP r1->i;		\
+    	}								\
+    	else if (r1->gt==GT_FLOAT)	{	\
+    		r0->f = r0->f OP r1->f;		\
+    	}								\
+    	else SKIP("Float + ?");			\
+	}									\
+	else {	/* other cases */			\
+		uc_send(vm);					\
+	}									\
+	*r1 = EMPTY();						\
+} while(0)
+
+//================================================================
+/*!@brief
+  OP_ADD
+
+  R(A) := R(A)+R(A+1) (Syms[B]=:+,C=1)
+*/
+__UCODE__
+uc_add(guru_vm *vm)
+{
+	GV *r0 = _R(a), *r1 = r0+1;		AOP(r0, +, r1);
+}
+
+//================================================================
+/*!@brief
+  OP_SUB
+
+  R(A) := R(A)-R(A+1) (Syms[B]=:-,C=1)
+*/
+__UCODE__
+uc_sub(guru_vm *vm)
+{
+	GV *r0 = _R(a), *r1 = r0+1;		AOP(r0, -, r1);
+}
+
 //================================================================
 /*!@brief
   OP_MUL
@@ -617,27 +612,7 @@ uc_subi(guru_vm *vm)
 __UCODE__
 uc_mul(guru_vm *vm)
 {
-	GV *r0 = _R(a), *r1 = r0+1;
-
-    if (r0->gt==GT_INT) {
-        if      (r1->gt==GT_INT) 	r0->i *= r1->i;
-#if GURU_USE_FLOAT
-        else if (r1->gt==GT_FLOAT) {	// in case of Fixnum, Float
-            r0->gt = GT_FLOAT;
-            r0->f  = r0->i * r1->f;
-        }
-        else SKIP("Fixnum * ?");
-    }
-    else if (r0->gt==GT_FLOAT) {
-        if      (r1->gt==GT_INT) 	r0->f *= r1->i;
-        else if (r1->gt==GT_FLOAT)  r0->f *= r1->f;
-        else SKIP("Float * ?");
-#endif // GURU_USE_FLOAT
-    }
-    else {   // other case
-    	uc_send(vm);
-    }
-    *r1 = EMPTY();
+	GV *r0 = _R(a), *r1 = r0+1;		AOP(r0, *, r1);
 }
 
 //================================================================
@@ -651,25 +626,10 @@ uc_div(guru_vm *vm)
 {
 	GV *r0 = _R(a), *r1 = r0+1;
 
-    if (r0->gt==GT_INT) {
-        if      (r1->gt==GT_INT) 	r0->i /= r1->i;
-#if GURU_USE_FLOAT
-        else if (r1->gt==GT_FLOAT) {		// in case of Fixnum, Float
-            r0->gt = GT_FLOAT;
-            r0->f  = r0->i / r1->f;
-        }
-        else SKIP("Fixnum / ?");
-    }
-    else if (r0->gt==GT_FLOAT) {
-        if      (r1->gt==GT_INT) 	r0->f /= r1->i;
-        else if (r1->gt==GT_FLOAT)	r0->f /= r1->f;
-        else SKIP("Float / ?");
-#endif // GURU_USE_FLOAT
-    }
-    else {   // other case
-    	uc_send(vm);
-    }
-    *r1 = EMPTY();
+	if (r1->i!=0) AOP(r0, /, r1);
+	else {
+		vm->err = 1;
+	}
 }
 
 //================================================================
@@ -688,23 +648,23 @@ uc_eq(guru_vm *vm)
     _RA_T(tt, i=0);
 }
 
-// macro for comparators
-#define ncmp(r0, op, r1)								\
+// comparator template (poorman's C++)
+#define NCMP(r0, OP, r1)								\
 do {													\
 	if ((r0)->gt==GT_INT) {								\
 		if ((r1)->gt==GT_INT) {							\
-			(r0)->gt = GT_BOOL((r0)->i op (r1)->i);		\
+			(r0)->gt = GT_BOOL((r0)->i OP (r1)->i);		\
 		}												\
 		else if ((r1)->gt==GT_FLOAT) {					\
-			(r0)->gt = GT_BOOL((r0)->i op (r1)->f);		\
+			(r0)->gt = GT_BOOL((r0)->i OP (r1)->f);		\
 		}												\
 	}													\
 	else if ((r0)->gt==GT_FLOAT) {						\
 		if ((r1)->gt==GT_INT) {							\
-			(r0)->gt = GT_BOOL((r0)->f op (r1)->i);		\
+			(r0)->gt = GT_BOOL((r0)->f OP (r1)->i);		\
 		}												\
 		else if ((r1)->gt==GT_FLOAT) {					\
-			(r0)->gt = GT_BOOL((r0)->f op (r1)->f);		\
+			(r0)->gt = GT_BOOL((r0)->f OP (r1)->f);		\
 		}												\
 	}													\
 	else {												\
@@ -722,8 +682,7 @@ do {													\
 __UCODE__
 uc_lt(guru_vm *vm)
 {
-	GV *r0 = _R(a), *r1 = r0+1;
-	ncmp(r0, <, r1);
+	GV *r0 = _R(a), *r1 = r0+1;		NCMP(r0, <, r1);
 }
 
 //================================================================
@@ -735,8 +694,7 @@ uc_lt(guru_vm *vm)
 __UCODE__
 uc_le(guru_vm *vm)
 {
-	GV *r0 = _R(a), *r1 = r0+1;
-    ncmp(r0, <=, r1);
+	GV *r0 = _R(a), *r1 = r0+1;    NCMP(r0, <=, r1);
 }
 
 //================================================================
@@ -748,8 +706,7 @@ uc_le(guru_vm *vm)
 __UCODE__
 uc_gt(guru_vm *vm)
 {
-	GV *r0 = _R(a), *r1 = r0+1;
-    ncmp(r0, >, r1);
+	GV *r0 = _R(a), *r1 = r0+1;    NCMP(r0, >, r1);
 }
 
 //================================================================
@@ -761,8 +718,7 @@ uc_gt(guru_vm *vm)
 __UCODE__
 uc_ge(guru_vm *vm)
 {
-	GV *r0 = _R(a), *r1 = r0+1;
-    ncmp(r0, >=, r1);
+	GV *r0 = _R(a), *r1 = r0+1;    NCMP(r0, >=, r1);
 }
 
 //================================================================
@@ -1196,6 +1152,11 @@ ucode_exec(guru_vm *vm)
 	};
     guru_state 	*st = vm->state;
     vtbl[vm->op](vm);
+
+    if (vm->err && vm->depth>0) {						// simple exception handler
+    	vm->state->pc = vm->rescue[vm->depth-1];		// longjmp
+    	vm->err = 0;									// TODO: add exception type or code on stack
+    }
 #endif // GURU_DEBUG
 }
 

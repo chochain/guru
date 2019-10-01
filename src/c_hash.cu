@@ -395,6 +395,8 @@ hsh_size(GV v[], U32 vi)
 __CFUNC__
 hsh_merge(GV v[], U32 vi)		// non-destructive merge
 {
+	assert((v+1)->gt==GT_HASH);	// other types not supported yet
+
     GV  ret = _hash_dup(v);
     U32 n   = _size(v+1);
     GV *p   = _data(v+1);
@@ -410,8 +412,10 @@ hsh_merge(GV v[], U32 vi)		// non-destructive merge
 __CFUNC__
 hsh_merge_self(GV v[], U32 vi)
 {
-    GV *p  = _data(v+1);
-    int         n  = _size(v+1);
+	assert((v+1)->gt==GT_HASH);	// other types not supported yet
+
+	GV *p  = _data(v+1);
+    U32 n  = _size(v+1);
     for (U32 i=0; i<n; i++, p+=2) {
         _set(v, p, p+1);
     }

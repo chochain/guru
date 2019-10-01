@@ -73,8 +73,8 @@ _send(GV v[], GV *rcv, const U8P method, U32 argc, ...)
 
 #if GURU_DEBUG
     GV *r = v;						// _wipe_stack
-    for (U32 i=1; i<=argc+1; i++, r++) {
-    	*r = EMPTY();				// clean up the stack
+    for (U32 i=1; i<=argc+1; i++) {
+    	*r++ = EMPTY();				// clean up the stack
     }
 #endif
     return regs[0];
