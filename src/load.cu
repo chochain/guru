@@ -68,15 +68,25 @@ _check_header(U8P *pos)
 {
     const U8 * p = *pos;
 
-    if (memcmp(p, "RITE0004", 8) != 0) {
-        return LOAD_FILE_HEADER_ERROR_VERSION;
+    if (memcmp(p, "RITE000", 7)==0) {
+    	// Rite binary version
+    	// 0002: mruby 1.0
+    	// 0003: mruby 1.1, 1.2
+    	// 0004: mruby 1.3, 1.4
+    	// 0005: mruby 2.0
+    	U8 c = *(p+7);
+        if (c < '3' || c > '4') {
+        	return LOAD_FILE_HEADER_ERROR_VERSION;
+        }
     }
     /* Ignore CRC */
     /* Ignore size */
-
     if (memcmp(p + 14, "MATZ", 4) != 0) {
         return LOAD_FILE_HEADER_ERROR_MATZ;
     }
+    // Rite VM version
+    // 0000: mruby 1.x
+    // 0002: mruby 2.x
     if (memcmp(p + 18, "0000", 4) != 0) {
         return LOAD_FILE_HEADER_ERROR_VERSION;
     }
