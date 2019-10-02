@@ -4,14 +4,16 @@
 CC=gcc
 CCFLAGS= -Wall -Wpointer-arith -g -c -DGURU_DEBUG
 NVCC=nvcc
-CUDAFLAGS= -dc
+NVCC_FLAGS= --gpu-architecture=compute_30 --relocatable-device-code=true
+CUDAFLAGS= -default-stream=per-thread -arch=sm_30
 
-LIBS= -lopenblas -lpthread -lcudart -lcublas
+#LIBS= -lopenblas -lpthread -lcudart -lcublas
+LIBS= -lpthread -lcudart 
 LIBDIRS=-L/usr/local/cuda/lib64
 INCDIRS=-I/usr/local/cuda/include -I./src
 
 SRC =   main.c 
-GEXT=   c_string.cu c_range.cu c_array.cu c_hash.cu inspect.cu
+EXT =   c_string.cu c_range.cu c_array.cu c_hash.cu inspect.cu
 GURU= 	static.cu global.cu console.cu \
 		mmu32.cu load.cu \
 		guru.cu ostore.cu symbol.cu class.cu \
@@ -19,7 +21,7 @@ GURU= 	static.cu global.cu console.cu \
 		sprintf.cu puts32.cu \
         value.cu refcnt.cu \
 		ucode.cu c_fixnum.cu object.cu \
-		$(GEXT)
+		$(EXT)
 CUDA=   cuda.cu
 LIB = 	libguru.a
 
@@ -28,14 +30,14 @@ OBJS = $(GURU:.cu=.o) $(CUDA:.cu=.o)
 
 BASE = vm_config.h gurux.h guru.h mmu.h 
 REFS = $(BASE) static.h value.h refcnt.h inspect.h
-EXTS = $(GEXT:.cu=.h)
+EXTS = $(EXT:.cu=.h)
 
 
 # default to .cu instead of .c
-%.o:%.cu;	$(NVCC) $(CUDAFLAGS) $<
+%.o:%.cu;	$(NVCC) $(CUDAFLAGS) -dc $<
 
-all: $(LIB) $(SRCS)
-	$(NVCC) -arch=sm_61 -o guru $(SRCS) $(LIB)
+exe: $(LIB) $(SRCS)
+	$(NVCC) $(NVCC_FLAGS) -o guru $(SRCS) $(LIB)
 
 lib: $(OBJS)
 	$(MAKE) $(LIB)
@@ -56,7 +58,7 @@ console.o: console.cu 	vm_config.h guru.h console.h
 
 alloc.o: alloc.cu       $(BASE)
 
-mmu32.o: mmu3232.cu   	$(BASE) mmu32.h
+mmu32.o: mmu32.cu   	$(BASE) mmu32.h
 
 load.o: load.cu         $(BASE) errorcode.h \
 						load.h
@@ -87,7 +89,7 @@ sprintf.o: sprintf.cu   $(REFS) \
 						symbol.h console.h \
 						sprintf.h
 
-puts.o: puts32.cu		$(REFS) symbol.h global.h \ 
+puts.o: puts32.cu		$(REFS) symbol.h global.h \
 						$(EXTS) puts.h
 
 value.o: value.cu       $(REFS) \
