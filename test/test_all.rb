@@ -10,10 +10,11 @@ USAGE
 end
 
 MRUBY_PATH = "#{ENV['HOME']}/.rbenv/shims/"
+GURU_PATH = "#{ENV['HOME']}/lib/guru/Debug/"
 
 $mruby = File.join(MRUBY_PATH, 'ruby')
 $mrbc  = File.join(MRUBY_PATH, 'mrbc')
-$guru  = '../Debug/guru'
+$guru  = File.join(GURU_PATH,  'guru')
 
 [$mruby, $mrbc, $guru].each do |f|
     next if File.exists?(f)
@@ -21,32 +22,27 @@ $guru  = '../Debug/guru'
     exit -2
 end
 
-exit
+ARGV.each do |rb|
+    mrb = rb.gsub('.rb', '.mrb')
+    txt = rb.gsub('.rb', '.txt')
 
-ARGV.each do |file|
-  mrb_file = file.gsub('.rb', '.mrb')
-  txt_file = file.gsub('.rb', '.txt')
-
-  unless File.exists?(mrb_file) then
-    `#{$mrbc_exe} -v -E #{file} > #{txt_file}`
-  end
-
-  if File.mtime(file) > File.mtime(mrb_file) then
-    `#{$mrbc_exe} -v -E #{file} > #{txt_file}`
-  end
-
-  if File.exists?(mrb_file) then
-    result_mruby = `#{$mruby_exe} #{file}`
-    result_mrubyc = `#{$mrubyc_exe} #{mrb_file}`
-
-    if result_mruby == result_mrubyc then
-      puts "Success: #{file}"
-    else
-      puts "Fail: #{file}"
-      puts "=====mruby====="
-      puts result_mruby
-      puts "=====mruby/c====="
-      puts result_mrubyc
+    unless File.exists?(mrb) &&
+            File.mtime(rb) < File.mtime(mrb)
+        puts "#{$mrbc} --verbose -o #{mrb} #{rb} > #{txt}"
+        `#{$mrbc} --verbose -o #{mrb} #{rb} > #{txt}`
     end
-  end
+
+    next unless File.exists?(mrb)
+    
+    rst_mruby = `#{$mruby} #{rb}`
+    rst_guru  = `#{$guru}  #{mrb}`
+
+    if rst_mruby == rst_guru
+        puts "OK : #{rb}"
+    else
+        puts \
+        "Bad: #{rb}\n"+
+            "mruby #{'='*30} #{rb}\n#{rst_mruby}\n"+
+            "guru  #{'='*30} #{rb}\n#{rst_guru}\n"
+    end
 end

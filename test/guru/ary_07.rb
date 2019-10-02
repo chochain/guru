@@ -1,19 +1,8 @@
-def eachputs(ary)
-  i = 0
-  n = ary.size
-  while i<n do
-    puts ary[i]
-    i = i + 1
-  end
-end
-
-a = [1,2,3,4]
-eachputs(a)
-
+a = [ 1, 2, "3", "4"]
+    
+puts a.first
 puts a.last
-
-b = a.last(3)
-eachputs(b)
-
-c = a.last(1)
-eachputs(c)
+puts a.first(3)
+puts a.last(3)
+puts a.first(1)
+puts a.last(1)

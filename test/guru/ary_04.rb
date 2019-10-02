@@ -1,19 +1,17 @@
-def eachputs(ary)
-  i = 0
-  n = ary.size
-  while i<n do
-    puts ary[i]
-    i = i + 1
-  end
-end
+a = [0,1,"2"]
+b = [3, "4"]
+    
+puts a
+puts a + b
+puts a
 
-a = [0,1,2]
-eachputs(a)
+puts a+=b
+puts a
+    
+a += [5,"6"]
+puts a
 
-a.concat([3,4])
-eachputs(a)
+# a.concat([7, "8"])   # use += (.i.e. OP_ADD instead)
+# puts a
 
-b = [2,3,4]
-a.concat(b)
-eachputs(a)
-eachputs(b)
+

@@ -1,18 +1,9 @@
-def eachputs(ary)
-	i = 0
-	n = ary.size
-	while i<n do
-		puts ary[i]
-		i = i + 1
-	end
-end
-
 a = [1, 2, 3]
-eachputs a
+puts a
 
-a.replace([4,5])
-eachputs a
+a.replace([3,4])      # not sure what this is for
+puts a
 
-b=[6,7]
+b=[6, 7]
 a.replace(b)
-eachputs a
+puts a
