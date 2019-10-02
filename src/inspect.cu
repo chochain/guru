@@ -164,7 +164,7 @@ _ary(GV *s, GV *v)
     	guru_str_add_cstr(s, (const U8 *)(i==0 ? "[" : ", "));
     	_to_s(s, o++, 0);				// array element
 	}
-	if (n) guru_str_add_cstr(s, "]");
+	guru_str_add_cstr(s, (const U8 *)(n==0 ? "[]" : "]"));
 }
 
 //================================================================
@@ -183,7 +183,7 @@ _hsh(GV *s, GV *v)
         guru_str_add_cstr(s, "=>");
         _to_s(s, o++, 0);				// value
     }
-    if (n) guru_str_add_cstr(s, "}");
+    guru_str_add_cstr(s, (const U8 *)(n==0 ? "{}" : "}"));
 }
 
 //================================================================

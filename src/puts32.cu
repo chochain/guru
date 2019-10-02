@@ -26,78 +26,6 @@
 #include "c_hash.h"
 #endif // GURU_USE_ARRAY
 
-__GURU__ U32 _p(GV *v);				// forward declaration
-
-//================================================================
-/*! print - sub function
-  @param  v	pointer to target value.
-  @retval 0	normal return.
-  @retval 1	already output LF.
-*/
-__GURU__ U32
-_print(GV *v)
-{
-    GV *p;
-    U32 ret = 0;
-
-    switch (v->gt){
-    case GT_EMPTY:	PRINTF("(empty)");		break;
-    case GT_NIL:					    	break;
-    case GT_FALSE:	PRINTF("false");		break;
-    case GT_TRUE:	PRINTF("true");			break;
-    case GT_INT: 	PRINTF("%d", v->i);		break;
-#if GURU_USE_FLOAT
-    case GT_FLOAT:  PRINTF("%.7g", v->f);	break;		// 23-digit fraction ~= 1/16M => 7 digit
-#endif // GURU_USE_FLOAT
-    case GT_SYM: 	PRINTF(":%s", id2name(v->i));			break;
-    case GT_CLASS:  PRINTF("%s",  id2name(v->cls->sid));  	break;
-    case GT_OBJ:
-    	PRINTF("#<%s:%08x>",
-    		id2name(class_by_obj(v)->sid),
-    		(U32A)v->self
-    	);
-        break;
-    case GT_PROC: 	PRINTF("#<Proc:%08x>", v->proc); break;
-#if GURU_USE_STRING
-    case GT_STR: {
-    	U8  *s  = (U8*)v->str->raw;
-    	U32 len = STRLEN(s);
-        PRINTF("%s", s);
-        if (len && s[len-1]=='\n') {
-        	ret = 1;
-        }
-    } break;
-#endif  // GURU_USE_STRING
-#if GURU_USE_ARRAY
-    case GT_ARRAY:
-        p = v->array->data;
-        for (U32 i=0; i < v->array->n; i++, p++) {
-            if (i!=0) PRINTF("\n");
-            _p(p);
-        }
-        break;
-    case GT_RANGE:
-        _print(&v->range->first);
-        PRINTF("%s", IS_EXCLUDE_END(v->range) ? "..." : "..");
-        _print(&v->range->last);
-        break;
-    case GT_HASH:
-        PRINTF("%c", '{');
-        p = v->hash->data;
-        for (U32 i=0; i < v->hash->n; i+=2, p+=2) {
-            if (i!=0) PRINTF(", ");
-        	_p(p);
-            PRINTF("=>");
-            _p(p+1);
-        }
-        PRINTF("%c", '}');
-        break;
-#endif	// GURU_USE_ARRAY
-    default: PRINTF("?vtype: %d", (int)v->gt); break;
-    }
-    return ret;
-}
-
 //================================================================
 /*! p - sub function
  */
@@ -108,32 +36,86 @@ _p(GV *v)
 	U8P name;
 
     switch (v->gt){		// only when output different from print_sub
-    case GT_NIL: PRINTF("nil");		break;
+    case GT_NIL: 	PRINTF("nil");			break;
+    case GT_EMPTY:	PRINTF("(empty)");		break;
+    case GT_FALSE:	PRINTF("false");		break;
+    case GT_TRUE:	PRINTF("true");			break;
+    case GT_INT: 	PRINTF("%d", v->i);		break;
+#if GURU_USE_FLOAT
+    case GT_FLOAT:  PRINTF("%.7g", v->f);	break;		// 23-digit fraction ~= 1/16M => 7 digit
+#endif // GURU_USE_FLOAT
+    case GT_CLASS:  PRINTF("%s",  id2name(v->cls->sid));  	break;
+    case GT_OBJ:
+    	PRINTF("#<%s:%08x>",
+    		id2name(class_by_obj(v)->sid),
+    		(U32A)v->self
+    	);
+        break;
+    case GT_PROC: 	PRINTF("#<Proc:%08x>", v->proc); break;
     case GT_SYM:
         name = id2name(v->i);
         STRCHR(name, ';') ? PRINTF("\"%s\"", name) : PRINTF(":%s", name);
         break;
-#if GURU_USE_ARRAY
-    case GT_ARRAY:
-        PRINTF("%c", '[');
-        p = v->array->data;
-        for (U32 i=0; i < v->array->n; i++, p++) {
-            if (i!=0) PRINTF(", ");
-            _p(p);
-        }
-        PRINTF("%c", ']');
-        break;
-#endif // GURU_USE_ARRAY
 #if GURU_USE_STRING
     case GT_STR:
     	PRINTF("\"%s\"", v->str->raw);
     	break;
 #endif // GURU_USE_STRING
-    default:
-        _print(v);
+#if GURU_USE_ARRAY
+    case GT_ARRAY:
+        p = v->array->data;
+        for (U32 i=0; i < v->array->n; i++, p++) {
+            PRINTF(i==0 ? "[" : ", ");
+            _p(p);
+        }
+        PRINTF("]");
         break;
+    case GT_HASH:
+        p = v->hash->data;
+        for (U32 i=0; i < v->hash->n; i+=2, p+=2) {
+        	PRINTF(i==0 ? "{" : ", ");
+        	_p(p);
+            PRINTF("=>");
+            _p(p+1);
+        }
+        PRINTF("}");
+        break;
+    case GT_RANGE:
+        _p(&v->range->first);
+        PRINTF("%s", IS_EXCLUDE_END(v->range) ? "..." : "..");
+        _p(&v->range->last);
+        break;
+#endif // GURU_USE_ARRAY
+    default: PRINTF("?vtype: %d", (int)v->gt); break;
     }
     return 0;
+}
+
+//================================================================
+/*! print - sub function
+  @param  v	pointer to target value.
+  @retval 0	normal return.
+  @retval 1	already output LF.
+*/
+__GURU__ U32
+_print(GV *v)
+{
+    U32 ret = 0;
+
+    switch (v->gt){		// somehow, Ruby handled the following differently
+    case GT_NIL: /* print blank */    			break;
+    case GT_SYM: PRINTF(":%s", id2name(v->i));	break;
+    case GT_STR: {
+    	U8  *s  = (U8*)v->str->raw;
+    	U32 len = STRLEN(s);
+        PRINTF("%s", s);						// no double quote around
+        if (len && s[len-1]=='\n') {
+        	ret = 1;
+        }
+    } break;
+    default: ret = _p(v); 	break;
+    }
+    return ret;
 }
 
 __GURU__ void
