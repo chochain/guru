@@ -1,4 +1,5 @@
-
+# arithmetic and return
+    
 def add(a,b)
   c = a + b
   puts c

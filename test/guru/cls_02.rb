@@ -1,3 +1,5 @@
+# Class inheritance and function override
+    
 class MyClass
   def initialize
     puts "MyClass init"

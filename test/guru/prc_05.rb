@@ -1,4 +1,4 @@
-#  call with block
+#  yield
 
 def func
   yield

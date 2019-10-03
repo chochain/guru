@@ -1,3 +1,5 @@
+# Class puts
+    
 class MyClass
   def initialize(n)
     puts "class init"

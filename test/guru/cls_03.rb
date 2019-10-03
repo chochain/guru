@@ -1,3 +1,5 @@
+# Initialize with parameter
+    
 class MyClass
   def initialize(n)
     puts "class init"

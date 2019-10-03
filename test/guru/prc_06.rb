@@ -1,4 +1,5 @@
-
+# Define multiple functions
+    
 def add(a,b)
   c = a + b
   puts c

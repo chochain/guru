@@ -1,3 +1,5 @@
+# function call without ()
+    
 def out a
   puts a
 end

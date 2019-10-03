@@ -1,3 +1,5 @@
+# Define class
+    
 class MyClass
   def func
     puts "class func"
