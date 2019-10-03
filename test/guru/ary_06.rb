@@ -16,6 +16,7 @@ puts a[0]
 p a[3]
 puts a[7]
 
+
 puts a.at(0)
 puts a.at(3)
 puts a.at(7)

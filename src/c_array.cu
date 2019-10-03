@@ -95,7 +95,9 @@ _set(GV *ary, S32 idx, GV *val)
         ref_dec(&h->data[ndx]);					// release existing data
     }
     else {
-    	h->n = ndx+1;
+    	while (h->n < ndx+1) {
+    		h->data[h->n++] = NIL();			// filling the blanks
+    	}
     }
     h->data[ndx] = *ref_inc(val);				// keep the reference to the value
 }
@@ -198,12 +200,23 @@ _shift(GV *ary)
   @return			GV data at index position or Nil.
 */
 __GURU__ GV
-_get(GV *ary, S32 idx)
+_get(GV *v, U32 vi, S32 n1, S32 n2)
 {
-    guru_array *h = ary->array;
-    U32 ndx = (idx < 0) ? h->n + idx : idx;
+	guru_array *h = v->array;
 
-    return (ndx < h->n) ? h->data[ndx] : NIL();
+	n1 += (n1 < 0) ? h->n : 0;
+	if (vi<2) return (n1 < h->n) ? h->data[n1] : NIL();		// single element
+
+	n2 += (n2 < 0) ? h->n : 0;								// sliced array
+
+	U32 da = h->n - n1,										// remaining elements
+		dn = n2-n1+1,
+		sz = (dn > da) ? da : dn;
+	GV ret = guru_array_new(sz);
+    for (U32 i=n1; i <= n2 && i < h->n; i++) {
+    	_push(&ret, &h->data[i]);
+    }
+    return ret;
 }
 
 //================================================================
@@ -423,36 +436,37 @@ ary_add(GV v[], U32 vi)
 }
 
 //================================================================
+/*! (operator) -
+ */
+__CFUNC__
+ary_sub(GV v[], U32 vi)
+{
+    assert(v[0].gt==GT_ARRAY && v[1].gt==GT_ARRAY);		// array only (for now)
+
+    guru_array 	*h0 = v[0].array, 	*h1 = v[1].array;
+    U32 		n0  = h0->n,	  	n1  = h1->n;
+
+    GV ret = guru_array_new(n0);		// TODO: shrink after adding elements
+
+    GV *v0 = v[0].array->data;
+    for (U32 i=0; i < n0; i++, v0++) {
+    	GV *v1 = v[1].array->data;		// scan thrugh v1 array to find matching elements
+    	U32 j;
+    	for (j=0; j < n1 && guru_cmp(v0, v1++); j++);
+    	if (j>=n1) _push(&ret, v0);
+    }
+    RETURN_VAL(ret);					// both array will be released by caller's _wipe_stack
+}
+
+//================================================================
 /*! (operator) []
  */
 __CFUNC__
 ary_get(GV v[], U32 vi)
 {
-	GV ret;
-    if (vi==1 && v[1].gt==GT_INT) {		// self[n] -> object | nil
-        ret = _get(v, v[1].i);
-    }
-    else if (vi==2 &&			 		// self[idx, len] -> Array | nil
-    		v[1].gt==GT_INT &&
-    		v[2].gt==GT_INT) {
-        U32 len = v->array->n;
-        S32 idx = v[1].i;
-        U32 ndx = (idx < 0) ? idx + len : idx;
+	GV ret = _get(v, vi, v[1].i, v[1].i+v[2].i-1);
 
-        S32 sz = (v[2].i < (len - ndx)) ? v[2].i : (len - ndx);
-        if (sz < 0) RETURN_VAL(ret);
-
-        ret = guru_array_new(sz);
-        for (U32 i=0; i < sz; i++) {
-            GV val = _get(v, v[1].i + i);
-            guru_array_push(&ret, &val);
-        }
-    }
-    else {
-        guru_na("case of Array#[]");
-    	ret = NIL();
-    }
-    RETURN_VAL(ret);
+	RETURN_VAL(ret);
 }
 
 //================================================================
@@ -533,9 +547,12 @@ ary_index(GV v[], U32 vi)
 //================================================================
 /*! (method) first
  */
-__CFUNC__ ary_first(GV v[], U32 vi)
+__CFUNC__
+ary_first(GV v[], U32 vi)
 {
-    RETURN_VAL(_get(v, 0));
+	U32 n = v[1].gt==GT_INT;
+	GV  ret = _get(v, n ? 2 : 1, 0, n ? v[1].i-1 : 0);
+	RETURN_VAL(ret);
 }
 
 //================================================================
@@ -544,7 +561,9 @@ __CFUNC__ ary_first(GV v[], U32 vi)
 __CFUNC__
 ary_last(GV v[], U32 vi)
 {
-    RETURN_VAL(_get(v, -1));
+	U32 n = v[1].gt==GT_INT;
+	GV  ret = _get(v, n ? 2 : 1, n ? -v[1].i : -1, -1);
+	RETURN_VAL(ret);
 }
 
 //================================================================
@@ -554,7 +573,6 @@ __CFUNC__
 ary_push(GV v[], U32 vi)
 {
     guru_array_push(v, v+1);				// raise? ENOMEM
-    v[1] = EMPTY();
 }
 
 //================================================================
@@ -581,7 +599,6 @@ __CFUNC__
 ary_unshift(GV v[], U32 vi)
 {
     _unshift(v, v+1);						// raise? IndexError or ENOMEM
-    v[1] = EMPTY();
 }
 
 //================================================================
@@ -683,6 +700,7 @@ guru_init_class_array()
 	static Vfunc vtbl[] = {
 		{ "new",       ary_new		},
 		{ "+",         ary_add		},
+		{ "-",		   ary_sub      },
 		{ "[]",        ary_get		},
 		{ "at",        ary_get		},
 		{ "size",      ary_size		},

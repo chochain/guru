@@ -1,9 +1,10 @@
-a = [1, 2, 3]
+a = [1, 2, "3", "4", 5]
 puts a
+puts a[2]
+puts a[0,3]
+puts a[1,3]
+puts a[2,2]
 
-a.replace([3,4])      # not sure what this is for
-puts a
-
-b=[6, 7]
-a.replace(b)
-puts a
+#b=[6, 7]
+#a.replace(b)   # not sure what it is for
+#puts a
