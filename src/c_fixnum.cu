@@ -10,6 +10,7 @@
 
   </pre>
 */
+#include <assert.h>
 #include "guru.h"
 #include "value.h"
 #include "static.h"
@@ -19,8 +20,8 @@
 #include "inspect.h"
 
 // macro to fetch from stack objects
-#define ARG_INT(n)		(v[(n)].i)
-#define ARG_FLOAT(n)	(v[(n)].f)
+#define _INT(n)		(v[(n)].i)
+#define _FLOAT(n)	(v[(n)].f)
 
 //================================================================
 /*! (operator) [] bit reference
@@ -42,7 +43,7 @@ int_bitref(GV v[], U32 vi)
 __CFUNC__
 int_negative(GV v[], U32 vi)
 {
-    GI n = ARG_INT(0);
+    GI n = _INT(0);
     RETURN_INT(-n);
 }
 
@@ -52,15 +53,12 @@ int_negative(GV v[], U32 vi)
 __CFUNC__
 int_power(GV v[], U32 vi)
 {
-    if (v[1].gt == GT_INT) {
-        GI x = 1;
+    assert(v[1].gt==GT_INT);
 
-        if (v[1].i < 0) x = 0;
-        for (U32 i=0; i < v[1].i; i++) {
-            x *= v[0].i;;
-        }
-        RETURN_INT(x);
-    }
+    GI x = (_INT(1) < 0) ? 0 : 1;
+    for (U32 i=0; i < _INT(1); i++, x *= _INT(0));
+
+    RETURN_INT(x);
 
 #if GURU_USE_FLOAT && GURU_USE_MATH
     else if (v[1].gt == GT_FLOAT) {
@@ -76,7 +74,7 @@ int_power(GV v[], U32 vi)
 __CFUNC__
 int_mod(GV v[], U32 vi)
 {
-    GI n = ARG_INT(1);
+    GI n = _INT(1);
     RETURN_INT(v->i % n);
 }
 
@@ -86,7 +84,7 @@ int_mod(GV v[], U32 vi)
 __CFUNC__
 int_and(GV v[], U32 vi)
 {
-    GI n = ARG_INT(1);
+    GI n = _INT(1);
     RETURN_INT(v->i & n);
 }
 
@@ -96,7 +94,7 @@ int_and(GV v[], U32 vi)
 __CFUNC__
 int_or(GV v[], U32 vi)
 {
-    GI n = ARG_INT(1);
+    GI n = _INT(1);
     RETURN_INT(v->i | n);
 }
 
@@ -106,7 +104,7 @@ int_or(GV v[], U32 vi)
 __CFUNC__
 int_xor(GV v[], U32 vi)
 {
-    GI n = ARG_INT(1);
+    GI n = _INT(1);
     RETURN_INT(v->i ^ n);
 }
 
@@ -116,7 +114,7 @@ int_xor(GV v[], U32 vi)
 __CFUNC__
 int_not(GV v[], U32 vi)
 {
-    GI n = ARG_INT(0);
+    GI n = _INT(0);
     RETURN_INT(~n);
 }
 
@@ -126,7 +124,7 @@ int_not(GV v[], U32 vi)
 __CFUNC__
 int_lshift(GV v[], U32 vi)
 {
-    GI n = ARG_INT(1);
+    GI n = _INT(1);
     RETURN_INT(v->i << n);
 }
 
@@ -136,7 +134,7 @@ int_lshift(GV v[], U32 vi)
 __CFUNC__
 int_rshift(GV v[], U32 vi)
 {
-    GI n = ARG_INT(1);
+    GI n = _INT(1);
     RETURN_INT(v->i >> n);
 }
 
@@ -158,7 +156,7 @@ int_abs(GV v[], U32 vi)
 __CFUNC__
 int_to_f(GV v[], U32 vi)
 {
-    GF f = ARG_INT(0);
+    GF f = _INT(0);
     RETURN_FLOAT(f);
 }
 #endif // GURU_USE_FLOAT
@@ -211,7 +209,7 @@ guru_init_class_int(void)
 __CFUNC__
 flt_negative(GV v[], U32 vi)
 {
-    GF f = ARG_FLOAT(0);
+    GF f = _FLOAT(0);
     RETURN_FLOAT(-f);
 }
 
@@ -250,7 +248,7 @@ flt_abs(GV v[], U32 vi)
 __CFUNC__
 flt_to_i(GV v[], U32 vi)
 {
-    GI i = (GI)ARG_FLOAT(0);
+    GI i = (GI)_FLOAT(0);
     RETURN_INT(i);
 }
 
