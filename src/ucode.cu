@@ -440,9 +440,9 @@ uc_send(guru_vm *vm)
     GS  sid = VM_SYM(vm, _AR(b));					// get given symbol
     GV  *v  = _R(a);								// call stack, obj is receiver object
 
-	if (vm_method_exec(vm, v, _AR(c), sid)) {		// in state.cu, call stack will be wiped before return
-	    SKIP(id2name(sid));
-	}
+    if (vm_method_exec(vm, v, _AR(c), sid)) {		// in state.cu, call stack will be wiped before return
+    	SKIP(id2name(sid));
+    }
 }
 
 //================================================================
@@ -858,7 +858,7 @@ uc_lambda(guru_vm *vm)
 
     guru_proc *prc = (guru_proc *)guru_alloc(sizeof(guru_proc));
 
-    prc->sid  = 0xffffffff;				// anonymous function
+    prc->sid  = 0xffff;					// anonymous function
     prc->func = NULL;
     prc->irep = VM_REPS(vm, bz);		// fetch from children irep list
 
@@ -1153,6 +1153,7 @@ ucode_exec(guru_vm *vm)
 		uc_stop,		//    OP_STOP,      stop VM
 		NULL			//    OP_ERR,       Bx      raise RuntimeError with message Lit(Bx)
 	};
+
     guru_state 	*st = vm->state;
     vtbl[vm->op](vm);
 

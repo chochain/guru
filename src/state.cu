@@ -77,6 +77,27 @@ _proc_call(guru_vm *vm, GV v[], U32 vi)
 	vm_state_push(vm, irep, v, vi);					// switch into callee's context
 }
 
+__GURU__ U32
+_method_missing(guru_vm *vm, GV v[], U32 vi, GS sid)
+{
+	U8 *f = id2name(sid);
+
+	// function dispatcher
+	if      (__match("call", f)) { 					// C-based prc_call (hacked handler, it needs vm->state)
+		_proc_call(vm, v, vi);						// push into call stack, obj at stack[0]
+	}
+	else if (__match("new", f)) {					// other default C-based methods
+		_object_new(vm, v, vi);
+	}
+	else if (__match("raise", f)) {
+		_raise(vm, v, vi);
+	}
+	else {
+		_wipe_stack(v+1, vi+1, NULL);				// wipe call stack and return
+		return 1;
+	}
+	return 0;
+}
 //================================================================
 /*!@brief
   Push current status to callinfo stack
@@ -127,30 +148,20 @@ vm_state_pop(guru_vm *vm, GV ret_val, U32 rsz)
 __GURU__ U32
 vm_method_exec(guru_vm *vm, GV v[], U32 vi, GS sid)
 {
-	guru_proc *prc = (guru_proc *)proc_by_sid(&v[0], sid);
+    guru_proc *prc = (guru_proc *)proc_by_sid(&v[0], sid);
 
-    if (prc==0) {	// method not found
-    	U8 *fname = id2name(sid);
-		if (__match("call", fname)) {				// C-based prc_call (hacked handler, it needs vm->state)
-			_proc_call(vm, v, vi);					// push into call stack, obj at stack[0]
-		}
-		else if (__match("new", fname)) {			// other default C-based methods
-			_object_new(vm, v, vi);
-		}
-		else if (__match("raise", fname)) {
-			_raise(vm, v, vi);
-		}
-		else {
-			_wipe_stack(v+1, vi+1, NULL);
-			return 1;
-		}
+    if (prc==0) {
+    	return _method_missing(vm, v, vi, sid);
     }
-    else if (HAS_IREP(prc)) {						// a Ruby-based IREP
-    	vm_state_push(vm, prc->irep, v, vi);		// switch to callee's context
+
+    if (HAS_IREP(prc)) {						// a Ruby-based IREP
+    	vm_state_push(vm, prc->irep, v, vi);	// switch to callee's context
     }
     else {
-    	prc->func(v, vi);							// call C-based function
+    	prc->func(v, vi);						// call C-based function
     	_wipe_stack(v+1, vi+1, NULL);
     }
     return 0;
 }
+
+
