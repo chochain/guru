@@ -1,4 +1,5 @@
-
+# control loop (Branch Unit, i.e. BRU)
+    
 i = 2
 while i<8 do
   puts i

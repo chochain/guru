@@ -1,7 +1,9 @@
+# ALU (continue)
+    
 a = 10 % 4
 puts a
 
-a = 3<=>1
+a = 5<=>3
 puts a
 
 a = ~3

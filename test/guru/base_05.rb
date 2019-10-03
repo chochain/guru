@@ -1,6 +1,8 @@
-# for
+# for loop
+#   Range object
+#   LAMBDA, SENDB
+#   SETUPVAR, GETUPVAR
 
-for i in 1..10 do
+for i in 1..5 do
   puts i
 end
-

@@ -41,8 +41,8 @@ ARGV.each do |rb|
         puts "OK : #{rb}"
     else
         puts \
-        "Bad: #{rb}\n"+
-            "mruby #{'='*30} #{rb}\n#{rst_mruby}\n"+
-            "guru  #{'='*30} #{rb}\n#{rst_guru}\n"
+        "BAD: #{rb}\n"+
+            "mruby #{'-'*30} mruby #{rb}\n#{rst_mruby}\n"+
+            "guru  #{'+'*30} guru  #{rb}\n#{rst_guru}\n"
     end
 end
