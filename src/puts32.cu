@@ -34,6 +34,7 @@ _p(GV *v)
 {
 	GV  *p;
 	U8P name;
+	U32 n;
 
     switch (v->gt){		// only when output different from print_sub
     case GT_NIL: 	PRINTF("nil");			break;
@@ -44,14 +45,17 @@ _p(GV *v)
 #if GURU_USE_FLOAT
     case GT_FLOAT:  PRINTF("%.7g", v->f);	break;		// 23-digit fraction ~= 1/16M => 7 digit
 #endif // GURU_USE_FLOAT
-    case GT_CLASS:  PRINTF("%s",  id2name(v->cls->sid));  	break;
+    case GT_CLASS:
+    	name = id2name(v->cls->sid);
+    	PRINTF("%s", name);
+    	break;
     case GT_OBJ:
-    	PRINTF("#<%s:%08x>",
-    		id2name(class_by_obj(v)->sid),
-    		(U32A)v->self
-    	);
+    	name = id2name(class_by_obj(v)->sid);
+    	PRINTF("#<%s:%08x>", name, (U32A)v->self);
         break;
-    case GT_PROC: 	PRINTF("#<Proc:%08x>", v->proc); break;
+    case GT_PROC:
+    	PRINTF("#<Proc:%08x>", v->proc);
+    	break;
     case GT_SYM:
         name = id2name(v->i);
         STRCHR(name, ';') ? PRINTF("\"%s\"", name) : PRINTF(":%s", name);
@@ -64,21 +68,23 @@ _p(GV *v)
 #if GURU_USE_ARRAY
     case GT_ARRAY:
         p = v->array->data;
-        for (U32 i=0; i < v->array->n; i++, p++) {
+    	n = v->array->n;
+        for (U32 i=0; i < n; i++, p++) {
             PRINTF(i==0 ? "[" : ", ");
-            _p(p);
+            _p(p);			// recursive call
         }
-        PRINTF("]");
+        PRINTF(n==0 ? "[]" : "]");
         break;
     case GT_HASH:
         p = v->hash->data;
-        for (U32 i=0; i < v->hash->n; i+=2, p+=2) {
+    	n = v->hash->n;
+        for (U32 i=0; i < n; i+=2, p+=2) {
         	PRINTF(i==0 ? "{" : ", ");
         	_p(p);
             PRINTF("=>");
             _p(p+1);
         }
-        PRINTF("}");
+        PRINTF(n==0 ? "{}" : "}");
         break;
     case GT_RANGE:
         _p(&v->range->first);
@@ -103,7 +109,7 @@ _print(GV *v)
     U32 ret = 0;
 
     switch (v->gt){		// somehow, Ruby handled the following differently
-    case GT_NIL: /* print blank */    			break;
+    case GT_NIL: 		/* print blank */    	break;
     case GT_SYM: PRINTF(":%s", id2name(v->i));	break;
     case GT_STR: {
     	U8  *s  = (U8*)v->str->raw;
