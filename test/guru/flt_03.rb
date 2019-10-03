@@ -1,5 +1,4 @@
-# Float sample
-# MRUBYC_USE_FLOAT 1
+# comparator
 
 a = 1.0
 

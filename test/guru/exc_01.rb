@@ -1,10 +1,13 @@
+# exception capture block
+    
 x = begin
     a = 1
     b = 0
     c = a/b
-rescue => e
-    ":#{e}"
+rescue
+    2
 end
-puts x==":0"
+
+puts x==2
 
 

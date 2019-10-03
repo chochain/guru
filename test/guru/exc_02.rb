@@ -1,3 +1,5 @@
+# rescue in a function
+    
 def test(n)
     a = 4/n
 rescue

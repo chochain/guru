@@ -1,3 +1,5 @@
+# exception bubbling
+    
 def test(n)
     8 / begin
         a = 4/n

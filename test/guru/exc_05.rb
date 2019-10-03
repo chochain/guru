@@ -1,3 +1,5 @@
+# raise exception
+
 class Tester
     MAX = 3
     def test(n)

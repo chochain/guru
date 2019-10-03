@@ -12,7 +12,8 @@ SRC = \
 	$(wildcard ary_*.rb) \
 	$(wildcard hsh_*.rb) \
 	$(wildcard flt_*.rb) \
-	$(wildcard bool_*.rb)
+	$(wildcard bool_*.rb) \
+    $(wildcard exc_*.rb)
 
 MRBS = $(SRC:.rb=.mrb)
 TXTS = $(SRC:.rb=.txt)

@@ -1,8 +1,9 @@
-# Float sample
-# MRUBYC_USE_FLOAT 1
+# arithmetic
 
 a = 1.2 + 3.4
-puts a
-
 b = a - 3.4
+c = -a
+puts a
 puts b
+puts c
+    

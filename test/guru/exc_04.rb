@@ -1,3 +1,5 @@
+# exception in a class method
+#
 class Tester
     def test(n)
         a = 4/n
