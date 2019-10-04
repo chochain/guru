@@ -32,19 +32,16 @@
 __GURU__ U32
 _p(GV *v)
 {
-	GV  *p;
 	U8P name;
-	U32 n;
+	U32 cr = 1;
 
-    switch (v->gt){		// only when output different from print_sub
+	switch (v->gt){		// only when output different from print_sub
     case GT_NIL: 	PRINTF("nil");			break;
     case GT_EMPTY:	PRINTF("(empty)");		break;
     case GT_FALSE:	PRINTF("false");		break;
     case GT_TRUE:	PRINTF("true");			break;
     case GT_INT: 	PRINTF("%d", v->i);		break;
-#if GURU_USE_FLOAT
     case GT_FLOAT:  PRINTF("%.7g", v->f);	break;		// 23-digit fraction ~= 1/16M => 7 digit
-#endif // GURU_USE_FLOAT
     case GT_CLASS:
     	name = id2name(v->cls->sid);
     	PRINTF("%s", name);
@@ -60,24 +57,22 @@ _p(GV *v)
         name = id2name(v->i);
         STRCHR(name, ';') ? PRINTF("\"%s\"", name) : PRINTF(":%s", name);
         break;
-#if GURU_USE_STRING
     case GT_STR:
     	PRINTF("\"%s\"", v->str->raw);
     	break;
-#endif // GURU_USE_STRING
-#if GURU_USE_ARRAY
-    case GT_ARRAY:
-        p = v->array->data;
-    	n = v->array->n;
+    case GT_ARRAY: {
+        GV *p = v->array->data;
+    	U32 n = v->array->n;
         for (U32 i=0; i < n; i++, p++) {
             PRINTF(i==0 ? "[" : ", ");
             _p(p);			// recursive call
         }
         PRINTF(n==0 ? "[]" : "]");
-        break;
-    case GT_HASH:
-        p = v->hash->data;
-    	n = v->hash->n;
+        cr = 0;
+    } break;
+    case GT_HASH: {
+        GV *p = v->hash->data;
+    	U32 n = v->hash->n;
         for (U32 i=0; i < n; i+=2, p+=2) {
         	PRINTF(i==0 ? "{" : ", ");
         	_p(p);
@@ -85,16 +80,15 @@ _p(GV *v)
             _p(p+1);
         }
         PRINTF(n==0 ? "{}" : "}");
-        break;
+    } break;
     case GT_RANGE:
         _p(&v->range->first);
-        PRINTF("%s", IS_EXCLUDE_END(v->range) ? "..." : "..");
+        PRINTF("%s", IS_INCLUDE(v->range) ? ".." : "...");
         _p(&v->range->last);
         break;
-#endif // GURU_USE_ARRAY
     default: PRINTF("?vtype: %d", (int)v->gt); break;
     }
-    return 0;
+	return cr;
 }
 
 //================================================================
@@ -106,7 +100,7 @@ _p(GV *v)
 __GURU__ U32
 _print(GV *v)
 {
-    U32 ret = 0;
+	U32 cr = 1;
 
     switch (v->gt){		// somehow, Ruby handled the following differently
     case GT_NIL: 		/* print blank */    	break;
@@ -116,29 +110,34 @@ _print(GV *v)
     	U32 len = STRLEN(s);
         PRINTF("%s", s);						// no double quote around
         if (len && s[len-1]=='\n') {
-        	ret = 1;
+        	cr = 0;								// capture line-feed
         }
     } break;
-    default: ret = _p(v); 	break;
+    case GT_ARRAY: {							// =~ruby2.0  !~mruby1.4
+        GV *p = v->array->data;
+    	U32 n = v->array->n;
+        for (U32 i=0; i < n; i++, p++) {
+            if (_print(p)) PRINTF("\n");		// recursive call
+        }
+        cr = 0;
+    } break;
+    default: cr = _p(v); break;
     }
-    return ret;
+    return cr;
 }
 
 __GURU__ void
 guru_puts(GV v[], U32 vi)
 {
-    if (vi) {
-    	for (U32 i=1; i <= vi; i++) {
-    		if (_print(&v[i])==0) PRINTF("\n");
-    	}
+    for (U32 i=1; vi>0 && i <= vi; i++) {
+    	if (_print(&v[i])) PRINTF("\n");
     }
-    else PRINTF("\n");
 }
 
 __GURU__ void
 guru_p(GV v[], U32 vi)
 {
-    for (U32 i=1; i <= vi; i++) {
+    for (U32 i=1; vi>0 && i <= vi; i++) {
         _p(&v[i]);
         PRINTF("\n");
     }
