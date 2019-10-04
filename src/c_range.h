@@ -19,12 +19,12 @@
 extern "C" {
 #endif
 
-#define EXCLUDE_END				0x1
-#define IS_EXCLUDE_END(rng)		((rng)->flag & EXCLUDE_END)
+#define RANGE_INCLUDE		0x1
+#define IS_INCLUDE(rng)		((rng)->flag & RANGE_INCLUDE)
 
 //================================================================
 /*!@brief
-  Define Range object (same the handles of other objects)
+  Define Range object (same header of other objects)
 */
 typedef struct RRange {		// 48-byte
     GURU_HDR;				// 8-byte

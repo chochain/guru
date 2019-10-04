@@ -10,6 +10,7 @@
   </pre>
 */
 
+#include <assert.h>
 #include "vm_config.h"
 
 #include "guru.h"
@@ -31,14 +32,14 @@
   @return		range object.
 */
 __GURU__ GV
-guru_range_new(GV *first, GV *last, int exclude_end)
+guru_range_new(GV *first, GV *last, int inc)
 {
     GV v;  { v.gt=GT_RANGE; v.acl=ACL_HAS_REF; v.fil=0; }
 
     guru_range *r = v.range = (guru_range *)guru_alloc(sizeof(guru_range));
 
-    if (exclude_end) r->flag |= EXCLUDE_END;
-    else		     r->flag &= ~EXCLUDE_END;
+    if (inc) r->flag |= RANGE_INCLUDE;
+    else	 r->flag &= ~RANGE_INCLUDE;
 
     r->rc    = 1;
     r->first = *first;
@@ -77,7 +78,7 @@ guru_range_cmp(const GV *v0, const GV *v1)
     res = guru_cmp(&v0->range->last, &v1->range->last);
     if (res != 0) return res;
 
-    return (int)IS_EXCLUDE_END(v1->range) - (int)IS_EXCLUDE_END(v0->range);
+    return (int)IS_INCLUDE(v1->range) - (int)IS_INCLUDE(v0->range);
 }
 
 //================================================================
@@ -97,7 +98,7 @@ rng_eq3(GV v[], U32 vi)
     }
 
     int last = guru_cmp(v+1, &v->range->last);
-    int flag = IS_EXCLUDE_END(v->range) ? (last < 0) : (last <= 0);
+    int flag = IS_INCLUDE(v->range) ? (last<=0) : (last < 0);
 
     RETURN_BOOL(flag);
 }
@@ -126,7 +127,7 @@ rng_last(GV v[], U32 vi)
 __CFUNC__
 rng_exclude_end(GV v[], U32 vi)
 {
-    RETURN_BOOL(IS_EXCLUDE_END(v[0].range));
+    RETURN_BOOL(!IS_INCLUDE(v[0].range));
 }
 
 //================================================================
