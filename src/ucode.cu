@@ -27,6 +27,7 @@
 #include "c_array.h"
 #include "c_hash.h"
 #include "c_range.h"
+#include "iter.h"
 
 
 #define _LOCK		{ MUTEX_LOCK(_mutex_uc); }
@@ -365,7 +366,6 @@ __UCODE__
 uc_onerr(guru_vm *vm)
 {
 	GI sbx = _AR(bx) - MAX_sBx -1;
-
 	vm->rescue[vm->depth++] = vm->state->pc + sbx;
 }
 
@@ -490,10 +490,25 @@ uc_enter(guru_vm *vm)
 __UCODE__
 uc_return(guru_vm *vm)
 {
-	U32 n   = _AR(a);					// pc adjustment
-	GV  ret = *_R(a);
+	GV  ret = *_R(a);						// return value
+	U32 n   = _AR(a);						// pc adjustment
+	guru_state *st = vm->state;
 
-    vm_state_pop(vm, ret, n);			// pass return value
+	if (IS_ITERATOR(st)) {
+		GV *r0 = _R0;						// top of stack
+		GV *it = r0-1;						// iterator object
+		GV nv  = guru_iter_next(it);		// get next iterator element
+		if (nv.gt != GT_NIL) {
+			*(r0+1) = nv;
+			vm->state->pc = 0;
+			return;
+		}
+		// pop off iterator state
+		vm_state_pop(vm, ret, n);
+		vm->state->flag &= ~STATE_LOOP;
+		guru_iter_del(it);					// free the iterator object
+	}
+	vm_state_pop(vm, ret, n);				// pop callee's context
 }
 
 //================================================================
@@ -629,10 +644,10 @@ uc_div(guru_vm *vm)
 {
 	GV *r0 = _R(a), *r1 = r0+1;
 
-	if (r1->i!=0) AOP(r0, /, r1);
-	else {
+	if (r1->i==0) {
 		vm->err = 1;
 	}
+	else AOP(r0, /, r1);
 }
 
 //================================================================
@@ -834,9 +849,9 @@ __UCODE__
 uc_range(guru_vm *vm)
 {
 #if GURU_USE_ARRAY
-	U32 n   = _AR(c);
+	U32 x   = _AR(c);							// exclude_end
 	GV  *p0 = _R(b), *p1 = p0+1;
-    GV  v   = guru_range_new(p0, p1, n);		// p0, p1 ref cnt will be increased
+    GV  v   = guru_range_new(p0, p1, !x);		// p0, p1 ref cnt will be increased
     *p1 = EMPTY();
 
     _RA(v);										// release and  reassign
@@ -919,9 +934,8 @@ uc_method(guru_vm *vm)
 
 #if GURU_DEBUG
     if (prc != NULL) {
-    	printf("WARN: %s#%s override base\n", obj->cls->name, id2name(sid));
     	// same proc name exists (in either current or parent class)
-    	// do nothing for now
+		// printf("WARN: %s#%s override base\n", obj->cls->name, id2name(sid));
     }
 #endif
     prc = (obj+1)->proc;					// override (if exist) with proc by OP_LAMBDA

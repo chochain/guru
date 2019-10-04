@@ -19,6 +19,8 @@
 #include "ostore.h"
 #include "class.h"		// proc_by_sid
 #include "state.h"
+#include "c_range.h"
+#include "iter.h"
 
 //================================================================
 /*!@brief
@@ -77,6 +79,32 @@ _proc_call(guru_vm *vm, GV v[], U32 vi)
 	vm_state_push(vm, irep, v, vi);					// switch into callee's context
 }
 
+__GURU__ void
+_each(guru_vm *vm, GV v[], U32 vi)
+{
+	assert(v[1].gt==GT_PROC);						// ensure it is a code block
+
+	GV 			itr    = guru_iter_new(v, NULL);	// create iterator
+	U32        	pc0    = vm->state->pc;
+	guru_irep  	*irep0 = vm->state->irep;
+	guru_irep  	*irep1 = v[1].proc->irep;
+
+	// push stack out (space for iterator)
+	GV  *p0 = (v+1);
+	GV  *p1 = (p0 + 2 + vi);
+	for (U32 i=0; i<vi+1; i++, *p1--=*p0--);
+
+	// allocate iterator state
+	vm_state_push(vm, irep0, v+1, vi);
+	vm->state->pc = pc0;
+	*(v+2) = itr;
+
+	// switch into callee's context with v[1]=1st element
+	vm_state_push(vm, irep1, v+3, vi);
+	*(v+4) = itr.iter->ivar;
+	vm->state->flag |= STATE_LOOP;
+}
+
 __GURU__ U32
 _method_missing(guru_vm *vm, GV v[], U32 vi, GS sid)
 {
@@ -85,6 +113,9 @@ _method_missing(guru_vm *vm, GV v[], U32 vi, GS sid)
 	// function dispatcher
 	if      (__match("call", f)) { 					// C-based prc_call (hacked handler, it needs vm->state)
 		_proc_call(vm, v, vi);						// push into call stack, obj at stack[0]
+	}
+	else if (__match("each", f)) {
+		_each(vm, v, vi);
 	}
 	else if (__match("new", f)) {					// other default C-based methods
 		_object_new(vm, v, vi);
@@ -118,7 +149,7 @@ vm_state_push(guru_vm *vm, guru_irep *irep, GV v[], U32 vi)
     st->pc    = 0;
     st->regs  = v;				// TODO: should allocate another regfile
     st->argc  = vi;				// allocate local stack
-
+    st->flag  = 0;				// non-iterator
     st->prev  = top;			// push into context stack
 
     vm->state = st;				// TODO: use array-based stack

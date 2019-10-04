@@ -63,15 +63,20 @@ typedef struct RIrep {			// 32-byte
 /*!@brief
   Call information
 */
-typedef struct RState {			// 24-byte
+typedef struct RState {			// 20-byte
     U32 pc;						// program counter
-    U32 argc;  					// num of args
+    U8  argc;  					// num of args
+    U8  flag;					// iterator flag
+    U16 temp;					// reserved
 
     guru_class      *klass;		// current class
     GV      		*regs;		// pointer to current register (in VM register file)
     guru_irep       *irep;		// pointer to current irep block
     struct RState   *prev;		// previous state (call stack)
 } guru_state;					// VM context
+
+#define STATE_LOOP				0x1
+#define IS_ITERATOR(st)			((st)->flag & STATE_LOOP)
 
 //================================================================
 /* instructions: packed 32 bit      */

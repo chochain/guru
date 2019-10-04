@@ -83,6 +83,7 @@ typedef enum {
     GT_SYM,
     GT_CLASS,
     GT_PROC,								// 0x08
+    GT_ITER,
 
     /* non-primitive */
     GT_OBJ = 0x10,
@@ -136,12 +137,13 @@ typedef struct {					// 16-bytes
 	U32 acl : 16;					// object access control (i.e. ROM able
 	U32 fil;						// reserved
     union {							// 64-bit
-		GI  	 		 i;			// TT_FIXNUM, SYMBOL
-		GF 	 	 		 f;			// TT_FLOAT
-        struct RClass    *cls;		// TT_CLASS
-        struct RProc     *proc;		// TT_PROC
-        struct RVar      *self;		// TT_OBJECT
-        struct RString   *str;		// TT_STRING
+		GI  	 		 i;			// GT_INT, GT_SYM
+		GF 	 	 		 f;			// GT_FLOAT
+        struct RClass    *cls;		// GT_CLASS
+        struct RProc     *proc;		// GT_PROC
+        struct RVar      *self;		// GT_OBJ
+        struct RString   *str;		// GT_STR
+        struct RIter	 *iter;		// GT_ITER
 #if GURU_USE_ARRAY
         struct RArray    *array;	// TT_ARRAY
         struct RRange    *range;	// TT_RANGE

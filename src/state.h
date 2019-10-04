@@ -11,10 +11,10 @@
   2. internal state management functions
   </pre>
 */
-#include "guru.h"
-#include "vm.h"
 #ifndef GURU_SRC_STATE_H_
 #define GURU_SRC_STATE_H_
+#include "guru.h"
+#include "vm.h"
 
 #ifdef __cplusplus
 extern "C" {
