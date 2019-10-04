@@ -26,9 +26,11 @@
 __GURU__ void
 _inc(GV *v, GV *s)
 {
+	S32 i = s ? s->i : 1;
+
 	switch (v->gt) {
-	case GT_FLOAT:	v->f += s->i; 	break;
-	default: 		v->i += s->i;
+	case GT_FLOAT:	v->f += i; 	break;
+	default: 		v->i += i;
 	}
 }
 

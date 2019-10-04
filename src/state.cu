@@ -84,7 +84,7 @@ _each(guru_vm *vm, GV v[], U32 vi)
 {
 	assert(v[1].gt==GT_PROC);						// ensure it is a code block
 
-	GV 			itr    = guru_iter_new(v, NULL);	// create iterator
+	GV 			git    = guru_iter_new(v, NULL);	// create iterator
 	U32        	pc0    = vm->state->pc;
 	guru_irep  	*irep0 = vm->state->irep;
 	guru_irep  	*irep1 = v[1].proc->irep;
@@ -97,13 +97,14 @@ _each(guru_vm *vm, GV v[], U32 vi)
 	// allocate iterator state
 	vm_state_push(vm, irep0, v+1, vi);
 	vm->state->pc = pc0;
-	*(v+2) = itr;
+	*(v+2) = git;
 
 	// switch into callee's context with v[1]=1st element
 	vm_state_push(vm, irep1, v+3, vi);
-	*(v+4) = *ref_inc(itr.iter->ivar);
-	if (itr.iter->size==GT_HASH) {
-		*(v+5) = *ref_inc(itr.iter->ivar+1);
+	guru_iter *it = git.iter;
+	*(v+4) = *(it->ivar);
+	if (it->size==GT_HASH) {
+		*(v+5) = *(it->ivar+1);
 	}
 	vm->state->flag |= STATE_LOOP;
 }
