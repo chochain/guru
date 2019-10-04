@@ -14,7 +14,7 @@ INCDIRS=-I/usr/local/cuda/include -I./src
 
 SRC =   main.c 
 EXT =   c_string.cu c_range.cu c_array.cu c_hash.cu inspect.cu
-GURU= 	static.cu global.cu console.cu \
+GURU= 	static.cu global.cu console.cu iter.cu \
 		mmu32.cu load.cu \
 		guru.cu ostore.cu symbol.cu class.cu \
 		state.cu vm.cu \
@@ -120,6 +120,9 @@ c_range.o: c_range.cu 	$(REFS) object.h c_range.h
 
 inspect.o: inspect.cu   $(REFS) object.h symbol.h \
                         c_fixnum.h $(EXTS)
+
+iter.o: iter.cu         $(REFS) \
+						iter.h
 
 clean: 
 	$(RM) -R main.o $(LIB) $(OBJS) *~

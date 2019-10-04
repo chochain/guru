@@ -490,25 +490,26 @@ uc_enter(guru_vm *vm)
 __UCODE__
 uc_return(guru_vm *vm)
 {
-	GV  ret = *_R(a);						// return value
-	U32 n   = _AR(a);						// pc adjustment
+	GV  ret = *_R(a);							// return value
+	U32 n   = _AR(a);							// pc adjustment
 	guru_state *st = vm->state;
 
 	if (IS_ITERATOR(st)) {
-		GV *r0 = _R0;						// top of stack
-		GV *it = r0-1;						// iterator object
-		GV nv  = guru_iter_next(it);		// get next iterator element
-		if (nv.gt != GT_NIL) {
-			*(r0+1) = nv;
+		GV        *r0 = _R0;					// top of stack
+		guru_iter *it = (r0-1)->iter;
+		U32 nvar = guru_iter_next(r0-1);		// get next iterator element
+		if (nvar) {
+			*(r0+1) = *it->ivar;
+			if (nvar>1) *(r0+2) = *(it->ivar+1);
 			vm->state->pc = 0;
 			return;
 		}
 		// pop off iterator state
+		guru_iter_del(r0-1);					// free the iterator object
 		vm_state_pop(vm, ret, n);
 		vm->state->flag &= ~STATE_LOOP;
-		guru_iter_del(it);					// free the iterator object
 	}
-	vm_state_pop(vm, ret, n);				// pop callee's context
+	vm_state_pop(vm, ret, n);					// pop callee's context
 }
 
 //================================================================

@@ -101,7 +101,10 @@ _each(guru_vm *vm, GV v[], U32 vi)
 
 	// switch into callee's context with v[1]=1st element
 	vm_state_push(vm, irep1, v+3, vi);
-	*(v+4) = itr.iter->ivar;
+	*(v+4) = *ref_inc(itr.iter->ivar);
+	if (itr.iter->size==GT_HASH) {
+		*(v+5) = *ref_inc(itr.iter->ivar+1);
+	}
 	vm->state->flag |= STATE_LOOP;
 }
 

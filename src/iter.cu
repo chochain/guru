@@ -19,6 +19,7 @@
 #include "value.h"
 
 #include "c_array.h"
+#include "c_hash.h"
 #include "c_range.h"
 #include "iter.h"
 
@@ -41,29 +42,31 @@ _inc(GV *v, GV *s)
 __GURU__ GV
 guru_iter_new(GV *obj, GV *step)
 {
-	GV s; { s.gt=GT_INT;  s.acl=0; s.fil=0; s.i=1; }
     GV v; { v.gt=GT_ITER; v.acl=0; v.fil=0; }
 
     guru_iter *i = v.iter = (guru_iter *)guru_alloc(sizeof(guru_iter));
-    i->step = (step==NULL) ? s : *step;
+    i->step = step;
     i->size = obj->gt;			// reuse the field
 
+    i->range = ref_inc(obj);
     switch (obj->gt) {
     case GT_RANGE: {
-    	guru_range *r = obj->range;
-    	GV  v    = r->first;
-    	assert(v.gt==GT_INT||v.gt==GT_FLOAT);
+    	guru_range 	*r = obj->range;
+    	GV  		*v = &r->first;
+    	assert(v->gt==GT_INT||v->gt==GT_FLOAT);
 
-    	i->n     = v.i;
+    	i->n     = v->i;
     	i->ivar  = v;
-    	i->range = *ref_inc(obj);
     } break;
     case GT_ARRAY: {
     	guru_array *a = obj->array;
-    	i->n     = 1;
-    	i->ivar  = *ref_inc(&a->data[0]);
-    	i->range = *ref_inc(obj);
-
+    	i->n     = 0;
+    	i->ivar  = ref_inc(a->data);
+    } break;
+    case GT_HASH: {
+    	guru_hash *h = obj->hash;
+    	i->n	 = 0;
+    	i->ivar	 = ref_inc(h->data);	ref_inc(h->data+1);
     } break;
     default: assert(1==0);			// TODO: other types not supported yet
     }
@@ -72,31 +75,46 @@ guru_iter_new(GV *obj, GV *step)
 
 // return next iterator element
 //
-__GURU__ GV
+__GURU__ U32
 guru_iter_next(GV *obj)
 {
 	assert(obj->gt==GT_ITER);
 
 	guru_iter *it = obj->iter;
+	U32 nvar;
 	switch (it->size) {				// ranging object type (field reused)
 	case GT_RANGE: {
-		guru_range *r = it->range.range;
-		_inc(&it->ivar, &it->step);
+		guru_range *r = it->range->range;
+		_inc(it->ivar, it->step);
 		U32 out = IS_INCLUDE(r)
-			? guru_cmp(&it->ivar, &r->last) > 0
-			: guru_cmp(&it->ivar, &r->last) >= 0;
-		if (out) it->ivar = NIL();
+			? guru_cmp(it->ivar, &r->last) > 0
+			: guru_cmp(it->ivar, &r->last) >= 0;
+		nvar = (out) ? 0 : 1;
 	} break;
 	case GT_ARRAY: {
-		guru_array *a = it->range.array;
-		ref_dec(&a->data[it->n-1]);	// n=1-based (nth number of elements)
-		it->ivar = (it->n < a->n)
-			? *ref_inc(&a->data[it->n++])
-			: NIL();
+		guru_array *a = it->range->array;
+		GV         *d = &a->data[it->n];
+		ref_dec(d);
+		if ((it->n + 1) < a->n) {
+			it->n += nvar = 1;
+			it->ivar = ref_inc(++d);
+		}
+		else nvar=0;
+	} break;
+	case GT_HASH: {
+		guru_hash *h = it->range->hash;
+		GV        *d = &h->data[it->n];
+		ref_dec(d);
+		ref_dec(d+1);
+		if ((it->n+2) < h->n) {
+			it->n += nvar = 2;
+			it->ivar = ref_inc(d+=2);	ref_inc(d+1);
+		}
+		else nvar=0;
 	} break;
 	default: assert(1==0);			// TODO: other types not supported yet
 	}
-	return it->ivar;
+	return nvar;
 }
 
 //================================================================
@@ -107,6 +125,8 @@ guru_iter_next(GV *obj)
 __GURU__ void
 guru_iter_del(GV *v)
 {
-    ref_dec(&v->iter->range);
+	assert(v->gt==GT_ITER);
+
+    ref_dec(v->iter->range);
     guru_free(v->iter);
 }

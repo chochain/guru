@@ -25,13 +25,13 @@ extern "C" {
 */
 typedef struct RIter {		// 48-byte
     GURU_HDR;				// 8-byte
-    GV  ivar;
-    GV 	range;				// 16-byte
-    GV 	step;				// 16-byte
+    GV  *ivar;
+    GV 	*range;				// 16-byte
+    GV 	*step;				// 16-byte
 } guru_iter;
 
 __GURU__ GV 	guru_iter_new(GV *obj, GV *step);
-__GURU__ GV    	guru_iter_next(GV *iter);
+__GURU__ U32    guru_iter_next(GV *iter);
 __GURU__ void	guru_iter_del(GV *v);
 
 
