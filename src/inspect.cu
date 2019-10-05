@@ -85,8 +85,14 @@ _int(GV *s, GV v[], U32 vi)
     guru_str_add_cstr(s, p);
 }
 
+//================================================================
+/*! append c string (s0 += (U32A)ptr)
+
+  @param  s0	pointer to target value 1
+  @param  ptr	pointer
+*/
 __GURU__ void
-_ptr2hex(GV *s, void *ptr)
+_phex(GV *s, void *ptr)
 {
 	GV iv[2]; { iv[0].gt=GT_INT; iv[1].gt=GT_INT; }
 	iv[1].i = 16;
@@ -118,7 +124,7 @@ __GURU__ void
 _prc(GV *s, GV *v)
 {
 	guru_str_add_cstr(s, "<#Proc:");
-	_ptr2hex(s, v->proc);
+	_phex(s, v->proc);
 	guru_str_add_cstr(s, ">");
 }
 
@@ -148,7 +154,7 @@ _obj(GV *s, GV *v)
 	guru_str_add_cstr(s, "#<");
 	guru_str_add_cstr(s, name);
 	guru_str_add_cstr(s, ":");
-	_ptr2hex(s, v->self);
+	_phex(s, v->self);
 	guru_str_add_cstr(s, ">");
 }
 

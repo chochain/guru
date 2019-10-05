@@ -18,6 +18,7 @@
 #include "symbol.h"
 
 #include "c_string.h"
+#include "c_range.h"
 #include "inspect.h"
 
 #if     GURU_USE_STRING
@@ -386,54 +387,44 @@ str_to_f(GV v[], U32 vi)
 }
 #endif // GURU_USE_FLOAT
 
+__GURU__ GV
+_slice(GV *v, U32 i, U32 sz)
+{
+    GV  ret = _blank(sz+1);									//	'\0'
+    U8  *d  = (U8*)ret.str->raw;
+
+    MEMCPY(d, v->str->raw + i, sz);
+    *(d+sz) = '\0';
+
+    return ret;
+}
+
 //================================================================
 /*! (method) []
  */
 __CFUNC__
 str_slice(GV v[], U32 vi)
 {
+    U32 n  = v->str->n;
     GV *v1 = &v[1];
     GV *v2 = &v[2];
 
-    if (vi==1 && v1->gt==GT_INT) {		// slice(n) -> String | nil
-        U32 len = v->str->n;
-        S32 idx = v1->i;
-        S32 ch = -1;
-        if (idx >= 0) {
-            if (idx < len) {
-                ch = *(v->str->raw + idx);
-            }
-        }
-        else {
-            idx += len;
-            if (idx >= 0) {
-                ch = *(v->str->raw + idx);
-            }
-        }
-        if (ch < 0) RETURN_NIL();
-
-        GV ret = _blank(1);
-        if (!ret.str) RETURN_NIL();
-
-        ret.str->raw[0] = ch;
-        ret.str->raw[1] = '\0';
-
-        RETURN_VAL(ret);
+    if (vi==1 && v1->gt==GT_INT) {							// slice(n) -> String | nil
+        S32 i = v1->i;	i += (i < 0) ? n : 0;	i = (i< n) ? i : n;
+        RETURN_VAL(i<n ? _slice(v, i, 1) : NIL());
     }
     else if (vi==2 && v1->gt==GT_INT && v2->gt==GT_INT) { 	// slice(n, len) -> String | nil
-        U32 len = v->str->n;
-        S32 idx = v1->i;
-        if (idx < 0) idx += len;
-        if (idx < 0) RETURN_NIL();
-
-        S32 rlen = (v2->i < (len - idx)) ? v2->i : (len - idx);
-        // min(v2->i, (len-idx))
-        if (rlen < 0) RETURN_NIL();
-
-        GV ret = _blank(rlen);
-        MEMCPY(ret.str->raw, v->str->raw+idx, rlen);
-
-        RETURN_VAL(ret);
+    	S32 i = v1->i; 	i += (i < 0) ? n : 0;
+    	S32 sz = v2->i;	sz = (sz+i) < n ? sz : (n-i);
+    	RETURN_VAL(sz > 1 ? _slice(v, i, sz) : NIL());
+    }
+    else if (vi==1 && v1->gt==GT_RANGE) {
+    	guru_range *r = v1->range;
+    	assert(r->first.gt==GT_INT && r->last.gt==GT_INT);
+    	S32 i  = r->first.i;
+    	S32 sz = r->last.i-i + (IS_INCLUDE(r) ? 1 : 0);
+    	sz = (sz+i) < n ? sz : (n-i);
+    	RETURN_VAL(sz > 1 ? _slice(v, i, sz) : NIL());
     }
     else {
     	PRINTF("Not support such case in String#[].\n");
@@ -486,7 +477,7 @@ str_insert(GV v[], U32 vi)
 
     v->str->size = asz;
     v->str->n    = len1 + len2 - len;
-    v->str->raw = (char *)str;
+    v->str->raw  = (char *)str;
 }
 
 //================================================================
