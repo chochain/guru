@@ -61,17 +61,17 @@ _resize(guru_ostore *st, U32 size)
 /*! constructor
 
   @param  vm	pointer to VM.
-  @param  size	initial size.
+  @param  nlv	number of local variables
   @return instance store handle
 */
 __GURU__ guru_ostore *
-_new(U32 size)
+_new(U32 nlv)
 {
     guru_ostore *st = (guru_ostore *)guru_alloc(sizeof(guru_ostore));
 
-    st->data = (guru_odata *)guru_alloc(sizeof(guru_odata) * size);
-    st->size = size;
-    st->n    = 0;
+    st->data = (guru_odata *)guru_alloc(sizeof(guru_odata) * nlv);
+    st->size = nlv;		// number of local variables
+    st->n    = 0;		// currently zero allocated
 
     return st;
 }
@@ -163,18 +163,18 @@ _get(guru_ostore *st, GS sid)
 
   @param  vm    Pointer to VM.
   @param  cls	Pointer to Class (guru_class).
-  @param  size	size of additional data.
+  @param  nlv	number of local variables
   @return       guru_ostore object.
 */
 __GURU__ GV
-ostore_new(guru_class *cls, U32 size)
+ostore_new(guru_class *cls, U32 nlv)
 {
     GV v; { v.gt=GT_OBJ; v.acl = ACL_HAS_REF; v.fil=0xffffffff; }
 
     guru_var *r = v.self = (guru_var *)guru_alloc(sizeof(guru_var));
 
     r->rc    = 1;
-    r->ivar  = size ? _new(size) : NULL;	// allocate internal variable handle
+    r->ivar  = nlv ? _new(nlv) : NULL;	// allocate internal variable handle
     r->cls   = cls;
 
     return v;

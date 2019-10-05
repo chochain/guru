@@ -52,11 +52,11 @@ _object_new(guru_vm *vm, GV v[], U32 vi)
 {
 	assert(v[0].gt==GT_CLASS);						// ensure it is a class object
 
-    GV  obj = ostore_new(v[0].cls, 0);				// instenciate object (with zero ivar)
+    GV  obj = ostore_new(v[0].cls, 0);				// instanciate object (with zero ivar)
 	GS  sid  = name2id((U8P)"initialize"); 			// search for custom initializer (or Object#c_nop)
 
 	if (vm_method_exec(vm, v, vi, sid)) {			// run custom initializer if any
-		assert(1==0);
+		vm->err = 1;
 	}
 	v[0] = obj;
 }

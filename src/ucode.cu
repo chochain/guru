@@ -45,7 +45,8 @@ __GURU__ U32 _mutex_uc;
 #define _RA_X(r)    	(ref_inc(r), ref_dec(_R(a)), *_R(a)=*(r))
 #define _RA_T(t,e)      (_R(a)->gt=(t), _R(a)->acl=0, _R(a)->fil=0, _R(a)->e)
 
-#define SKIP(x)	        { guru_na(x); return; }
+#define SKIP(x)			{ guru_na(x); return; }
+#define RAISE(x)	    { _RA(guru_str_new(x)); vm->err = 1; return; }
 #define QUIT(x)			{ vm->quit=1; guru_na(x); return; }
 
 //================================================================
@@ -441,7 +442,13 @@ uc_send(guru_vm *vm)
     GV  *v  = _R(a);								// call stack, obj is receiver object
 
     if (vm_method_exec(vm, v, _AR(c), sid)) {		// in state.cu, call stack will be wiped before return
-    	SKIP(id2name(sid));
+    	GV buf = guru_str_buf(80);
+    	guru_str_add_cstr(&buf, "undefined method '");
+    	guru_str_add_cstr(&buf, id2name(sid));
+    	guru_str_add_cstr(&buf, "' for class #");
+    	guru_str_add_cstr(&buf, (U8*)class_by_obj(v)->name);
+    	*(v+1)  = buf;								// exception message
+    	vm->err = 1;								// raise exception
     }
 }
 
@@ -927,7 +934,7 @@ uc_method(guru_vm *vm)
 {
 	GV  *obj = _R(a);
 
-    assert(obj->gt == GT_CLASS);			// enforce class checking
+    assert(obj->gt==GT_OBJ || obj->gt == GT_CLASS);		// enforce class checking
 
     // check whether the name has been defined in current class (i.e. vm->state->klass)
     GS sid = VM_SYM(vm, _AR(b));			// fetch name from IREP symbol table
@@ -944,19 +951,14 @@ uc_method(guru_vm *vm)
     _LOCK;
 
     // add proc to class
-    guru_class 	*cls = obj->cls;
+    guru_class 	*cls = (obj->gt==GT_OBJ) ? obj->self->cls : obj->cls;	// singleton method, or class method
     prc->sid  = sid;						// assign sid to proc, overload if prc already exists
     prc->next = cls->vtbl;					// add to top of vtable, so it will be found first
     cls->vtbl = prc;						// if there is a sub-class override
 
     _UNLOCK;
 
-	U32 _a = _AR(a);
-    GV  *r = _R0+1;
-    for (U32 i=0; i<_a+1; i++, r++) {		// sweep block parameters
-    	ref_dec(r);
-    	*r = EMPTY();						// clean up for stat dumper
-    }
+    *(obj+1) = EMPTY();						// clean up proc
 }
 
 //================================================================
@@ -969,6 +971,26 @@ __UCODE__
 uc_tclass(guru_vm *vm)
 {
 	_RA_T(GT_CLASS, cls=vm->state->klass);
+}
+
+//================================================================
+/*!@brief
+  OP_SCLASS
+
+  R(A) := R(B).singleton_class
+*/
+__UCODE__
+uc_sclass(guru_vm *vm)
+{
+	GV *o = _R(b);
+	assert(o->gt==GT_CLASS || o->gt==GT_OBJ);	// for class method or singleton method
+
+	const U8P  name   = (U8P)"__single";
+	guru_class *super = class_by_obj(o);
+	guru_class *cls   = guru_define_class(name, super);
+
+	if (o->gt==GT_OBJ) 	o->self->cls = cls;		// singleton method
+	else				o->cls       = cls;		// for class method
 }
 
 //================================================================
@@ -1161,7 +1183,7 @@ ucode_exec(guru_vm *vm)
 		NULL,			//    OP_MODULE,    A B     R(A) := newmodule(R(A),Syms(B))
 		uc_exec,		//    OP_EXEC,      A Bx    R(A) := blockexec(R(A),SEQ[Bx])
 		uc_method,		//    OP_METHOD,    A B     R(A).newmethod(Syms(B),R(A+1))
-		NULL,			//    OP_SCLASS,    A B     R(A) := R(B).singleton_class
+		uc_sclass,		//    OP_SCLASS,    A B     R(A) := R(B).singleton_class
 		uc_tclass,		//    OP_TCLASS,    A       R(A) := target_class
 		NULL,			//    OP_DEBUG,     A B C   print R(A),R(B),R(C)
 	// 0x4a Exit
