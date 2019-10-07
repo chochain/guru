@@ -30,7 +30,7 @@
   @param  fstr	format string.
 */
 __GURU__ guru_print *
-_init(guru_print *pf, const U8P buf, U32 sz, const U8 *fstr)
+_init(guru_print *pf, U8 *buf, U32 sz, const U8 *fstr)
 {
     pf->fmt = (guru_print_fmt){0};
     pf->fstr= fstr;
@@ -162,8 +162,8 @@ __GURU__ int
 __float(guru_print *pf, double value)
 {
     U8  fstr[16];
-    U8P p0 = (U8P)pf->fstr;
-    U8P p1 = fstr + sizeof(fstr) - 1;
+    U8 *p0 = (U8*)pf->fstr;
+    U8 *p1 = fstr + sizeof(fstr) - 1;
 
     *p1 = '\0';
     while ((*--p1 = *--p0) != '%');
@@ -189,13 +189,13 @@ __float(guru_print *pf, double value)
   @note		not terminate ('\0') buffer tail.
 */
 __GURU__ S32
-__str(guru_print *pf, U8P str, U8 pad)
+__str(guru_print *pf, U8 *str, U8 pad)
 {
 	U32 len = STRLEN(str);
     S32 ret = 0;
 
     if (str == NULL) {
-        str = (U8P)"(null)";
+        str = (U8*)"(null)";
         len = 6;
     }
     if (pf->fmt.prec && len > pf->fmt.prec) len = pf->fmt.prec;
@@ -251,8 +251,8 @@ __int(guru_print *pf, GI value, U32 base)
     U32 bias_a = (pf->fmt.type == 'X') ? 'A' - 10 : 'a' - 10;
 
     // create string to local buffer
-    U8  buf[64+2];				// int64 + terminate + 1
-    U8P p = buf + sizeof(buf) - 1;
+    U8 buf[64+2];				// int64 + terminate + 1
+    U8 *p = buf + sizeof(buf) - 1;
     *p = '\0';
     do {
         U32 i = v % base;
@@ -273,7 +273,7 @@ __int(guru_print *pf, GI value, U32 base)
         pad = ' ';
         if (sign) *--p = sign;
     }
-    return __str(pf, (U8P)p, pad);
+    return __str(pf, (U8*)p, pad);
 }
 
 //================================================================

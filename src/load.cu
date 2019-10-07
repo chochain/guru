@@ -45,7 +45,7 @@
 __HOST__ U32
 bin_to_u32(const void *s)
 {
-    U32 x = *((U32P)s);
+    U32 x = *((U32*)s);
     return (x << 24) | ((x & 0xff00) << 8) | ((x >> 8) & 0xff00) | (x >> 24);
 }
 
@@ -64,9 +64,9 @@ bin_to_u16(const void *s)
 }
 
 __HOST__ int
-_check_header(U8P *pos)
+_check_header(U8 **pos)
 {
-    const U8 * p = *pos;
+    const U8 *p = *pos;
 
     if (memcmp(p, "RITE000", 7)==0) {
     	// Rite binary version
@@ -170,7 +170,7 @@ _to_gv(GV v[], U32 n, U8 *p, bool sym)
   </pre>
 */
 __HOST__ guru_irep*
-_build_image(U8P *src)							// pos will be advance to next IREP block
+_build_image(U8 **src)							// pos will be advance to next IREP block
 {
 	guru_irep irep;
     U8  *p = *src;
@@ -246,7 +246,7 @@ _build_image(U8P *src)							// pos will be advance to next IREP block
   </pre>
 */
 __HOST__ guru_irep*
-_load_irep(U8P *src)
+_load_irep(U8 **src)
 {
 	guru_irep *irep = _build_image(src);			// build CUDA image (in managed memory) from host image
 
@@ -266,9 +266,9 @@ _load_irep(U8P *src)
   @return int	zero if no error.
 */
 __HOST__ U32
-_load_lvar(U8P *pos)
+_load_lvar(U8 **pos)
 {
-    U8P p      = *pos;
+    U8  *p     = *pos;
     U32 sec_sz = bin_to_u32(p+sizeof(U32));
 
     // TODO: local variable is not supported yet
@@ -287,10 +287,10 @@ _load_lvar(U8P *pos)
 
 */
 __HOST__ U8 *
-guru_parse_bytecode(U8P src)
+guru_parse_bytecode(U8 *src)
 {
-	U8P *sp = (U8P *)&src;
-	int ret = _check_header(sp);
+	U8  **sp = (U8 **)&src;			// a pointer to pointer, so that we can pass and adjust the pointer
+	int ret  = _check_header(sp);
 
 	U8 *irep;
     while (ret==NO_ERROR) {

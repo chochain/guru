@@ -13,6 +13,7 @@
 #include <assert.h>
 
 #include "guru.h"
+#include "class.h"
 #include "value.h"
 #include "symbol.h"
 #include "object.h"
@@ -142,17 +143,14 @@ _str(GV *s, GV *v)
 __GURU__ void
 _cls(GV *s, GV *v)
 {
-	U8 *name = id2name(v->cls->sid);
-	guru_str_add_cstr(s, name);
+	guru_str_add_cstr(s, (U8*)v->cls->name);
 }
 
 __GURU__ void
 _obj(GV *s, GV *v)
 {
-	U8 *name = id2name(v->self->cls->sid);
-
 	guru_str_add_cstr(s, "#<");
-	guru_str_add_cstr(s, name);
+	guru_str_add_cstr(s, (U8*)class_by_obj(v)->name);
 	guru_str_add_cstr(s, ":");
 	_phex(s, v->self);
 	guru_str_add_cstr(s, ">");

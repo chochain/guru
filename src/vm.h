@@ -14,6 +14,7 @@
 #define GURU_SRC_VM_H_
 
 #include "guru.h"
+#include "class.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -140,7 +141,7 @@ typedef struct XIrep {
     U16	 	 slen;			//!< # of symbols (into sym below)
 
     U32P     iseq;			//!< ISEQ (code) BLOCK
-    U8P      sym;			//!< SYMBOL list
+    U8		 *sym;			//!< SYMBOL list
 
     mrbc_object   **pool; 	//!< array of POOL objects pointer.
     struct XIrep **list;	//!< array of child IREP's pointer.

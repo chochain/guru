@@ -34,31 +34,31 @@ __GURU__ GV     EMPTY();
 
 // macros to create new built-in objects
 #ifdef __GURU_CUDA__
-__GURU__ GI   		guru_atoi(U8P s, U32 base);
-__GURU__ GF			guru_atof(U8P s);
+__GURU__ GI   		guru_atoi(const U8 *s, U32 base);
+__GURU__ GF			guru_atof(const U8 *s);
 
-__GURU__ void 		guru_memcpy(U8P d, U8P s, U32 sz);
-__GURU__ void    	guru_memset(U8P d, U8  v, U32 sz);
-__GURU__ S32     	guru_memcmp(U8P d, U8P s, U32 sz);
+__GURU__ void 		guru_memcpy(U8 *d, const U8 *s, U32 sz);
+__GURU__ void    	guru_memset(U8 *d, U8  v, U32 sz);
+__GURU__ S32     	guru_memcmp(const U8 *d, const U8 *s, U32 sz);
 
-__GURU__ U32  		guru_strlen(const U8P s);
-__GURU__ void    	guru_strcpy(const U8P s1, const U8P s2);
-__GURU__ S32     	guru_strcmp(const U8P s1, const U8P s2);
-__GURU__ U8P		guru_strchr(U8P d, const U8 c);
-__GURU__ U8P		guru_strcat(U8P d, const U8P s);
+__GURU__ U32  		guru_strlen(const U8 *s);
+__GURU__ S32     	guru_strcmp(const U8 *s1, const U8 *s2);
+__GURU__ void    	guru_strcpy(U8 *s1, const U8 *s2);
+__GURU__ U8*		guru_strchr(U8 *d,  const U8 c);
+__GURU__ U8*		guru_strcat(U8 *d,  const U8 *s);
 
 #define ATOI(s)           guru_atoi(s, 10)
 #define ATOF(s)			  guru_atof(s)
 
-#define MEMCPY(d, s, sz)  guru_memcpy((U8P)(d), (U8P)(s), (U32)(sz))
-#define MEMSET(d, v, sz)  guru_memset((U8P)(d), (U8)(v),  (U32)(sz))
-#define MEMCMP(d, s, sz)  guru_memcmp((U8P)(d), (U8P)(s), (U32)(sz))
+#define MEMCPY(d, s, sz)  guru_memcpy((U8*)(d), (U8*)(s), (U32)(sz))
+#define MEMSET(d, v, sz)  guru_memset((U8*)(d), (U8)(v),  (U32)(sz))
+#define MEMCMP(d, s, sz)  guru_memcmp((U8*)(d), (U8*)(s), (U32)(sz))
 
-#define STRLEN(s)		  guru_strlen((U8P)(s))
-#define STRCPY(d, s)	  guru_strcpy((U8P)d, (U8P)s)
-#define STRCMP(d, s)      guru_strcmp((U8P)d, (U8P)s)
-#define STRCHR(d, c)      guru_strchr((U8P)d, (U8)c)
-#define STRCAT(d, s)      guru_strcat((U8P)d, (U8P)s)
+#define STRLEN(s)		  guru_strlen((U8*)(s))
+#define STRCPY(d, s)	  guru_strcpy((U8*)d, (U8*)s)
+#define STRCMP(d, s)      guru_strcmp((U8*)d, (U8*)s)
+#define STRCHR(d, c)      guru_strchr((U8*)d, (U8)c)
+#define STRCAT(d, s)      guru_strcat((U8*)d, (U8*)s)
 #else
 #define ATOI(s)			  atol(s)
 #define ATOF(s)			  atof(s)
@@ -75,7 +75,7 @@ __GURU__ U8P		guru_strcat(U8P d, const U8P s);
 #endif
 
 // basic C string functions for GV
-#define GVSTR(v) ((U8P)(v)->str->data)
+#define GVSTR(v) ((U8*)(v)->str->data)
 
 #ifdef __cplusplus
 }

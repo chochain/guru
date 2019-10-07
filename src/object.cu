@@ -14,11 +14,11 @@
 #include <stdarg.h>
 
 #include "guru.h"
+#include "class.h"
 #include "value.h"
 #include "mmu.h"
 #include "static.h"
 #include "symbol.h"
-#include "class.h"
 
 #include "object.h"
 #include "ostore.h"
@@ -50,7 +50,7 @@
   }
 */
 __GURU__ GV
-_send(GV v[], GV *rcv, const U8P method, U32 argc, ...)
+_send(GV v[], GV *rcv, const U8 *method, U32 argc, ...)
 {
     GV *regs = v + 2;	     		// allocate 2 for stack
     GS sid   = name2id(method);
@@ -83,13 +83,13 @@ _send(GV v[], GV *rcv, const U8P method, U32 argc, ...)
 __GURU__ GV
 guru_inspect(GV v[], GV *obj)
 {
-	return _send(v, obj, (U8P)"inspect", 0);
+	return _send(v, obj, (U8*)"inspect", 0);
 }
 
 __GURU__ GV
 guru_kind_of(GV v[])		// whether v1 is a kind of v0
 {
-	return _send(v, v+1, (U8P)"kind_of?", 1, v);
+	return _send(v, v+1, (U8*)"kind_of?", 1, v);
 }
 
 __GURU__ void
@@ -151,7 +151,7 @@ obj_not(GV v[], U32 vi)
 __CFUNC__
 obj_neq(GV v[], U32 vi)
 {
-    S32 t = guru_cmp(&v[0], &v[1]);
+    S32 t = guru_cmp(v, v+1);
     RETURN_BOOL(t);
 }
 
@@ -161,7 +161,7 @@ obj_neq(GV v[], U32 vi)
 __CFUNC__
 obj_cmp(GV v[], U32 vi)
 {
-    S32 t = guru_cmp(&v[0], &v[1]);
+    S32 t = guru_cmp(v, v+1);
     RETURN_INT(t);
 }
 
@@ -171,7 +171,7 @@ obj_cmp(GV v[], U32 vi)
 __CFUNC__
 obj_eq3(GV v[], U32 vi)
 {
-    if (v[0].gt != GT_CLASS) {
+    if (v->gt != GT_CLASS) {
     	RETURN_BOOL(guru_cmp(v, v+1)==0);
     }
     else {
@@ -198,7 +198,7 @@ obj_class(GV v[], U32 vi)
   @param  vm	Pointer to VM
   @return	string
 */
-__GURU__ U8P
+__GURU__ U8*
 _get_callee(GV v[])
 {
 #if 0
@@ -219,10 +219,10 @@ _get_callee(GV v[])
 __CFUNC__
 obj_getiv(GV v[], U32 vi)
 {
-    const U8P name = _get_callee(v);			// TODO:
+    const U8 *name = _get_callee(v);			// TODO:
     GS sid = name2id(name);
 
-    RETURN_VAL(ostore_get(&v[0], sid));
+    RETURN_VAL(ostore_get(v, sid));
 }
 
 //================================================================
@@ -231,10 +231,10 @@ obj_getiv(GV v[], U32 vi)
 __CFUNC__
 obj_setiv(GV v[], U32 vi)
 {
-    const U8P name = _get_callee(v);			// TODO:
+    const U8 *name = _get_callee(v);			// TODO:
     GS sid = name2id(name);
 
-    ostore_set(&v[0], sid, &v[1]);
+    ostore_set(v, sid, &v[1]);
 }
 
 //================================================================
@@ -243,12 +243,14 @@ obj_setiv(GV v[], U32 vi)
 __CFUNC__
 obj_attr_reader(GV v[], U32 vi)
 {
-    for (U32 i = 1; i <= vi; i++) {
-        if (v[i].gt != GT_SYM) continue;	// TypeError raise?
+	GV *v0 = v;
+	GV *p  = v+1;
+    for (U32 i = 0; i < vi; i++, p++) {
+        if (p->gt != GT_SYM) continue;	// TypeError raise?
 
         // define reader method
-        U8P name = id2name(v[i].i);
-        guru_define_method(v[0].cls, name, obj_getiv);
+        U8 *name = id2name(p->i);
+        guru_define_method(v0->cls, name, obj_getiv);
     }
 }
 
@@ -258,23 +260,25 @@ obj_attr_reader(GV v[], U32 vi)
 __CFUNC__
 obj_attr_accessor(GV v[], U32 vi)
 {
-    for (U32 i = 1; i <= vi; i++) {
-        if (v[i].gt != GT_SYM) continue;				// TypeError raise?
+	GV *v0 = v;
+	GV *p  = v+1;
+    for (U32 i=0; i < vi; i++, p++) {
+        if (p->gt != GT_SYM) continue;				// TypeError raise?
 
         // define reader method
-        U8P name = id2name(v[i].i);
-        guru_define_method(v[0].cls, name, obj_getiv);
+        U8 *name = id2name(p->i);
+        guru_define_method(v0->cls, name, obj_getiv);
 
         U32 asz = STRLEN(name);	ALIGN(asz);				// 8-byte aligned
 
         // make string "....=" and define writer method.
         // TODO: consider using static buffer
-        U8P buf = (U8P)guru_alloc(asz);
-        
+        U8 *buf = (U8*)guru_alloc(asz);
+
         STRCPY(buf, name);
         STRCAT(buf, "=");
         guru_sym_new(buf);
-        guru_define_method(v[0].cls, buf, obj_setiv);
+        guru_define_method(v0->cls, buf, obj_setiv);
 
         guru_free(buf);
     }
@@ -286,13 +290,13 @@ obj_attr_accessor(GV v[], U32 vi)
 __CFUNC__
 obj_kind_of(GV v[], U32 vi)
 {
-    if (v[1].gt != GT_CLASS) {
+    if ((v+1)->gt != GT_CLASS) {
         RETURN_BOOL(0);
     }
-    const guru_class *cls = class_by_obj(&v[0]);
+    const guru_class *cls = class_by_obj(v);
 
     while (cls) {
-        if (cls == v[1].cls) break;
+        if (cls == (v+1)->cls) break;
         cls = cls->super;
     }
 }
@@ -317,7 +321,7 @@ _init_class_object()
     	{ "class",         	obj_class		},
 //    	{ "new",           	obj_new 		},		// handled by vm#vm_method_exec
 //      { "raise",			obj_raise		},		// handled by vm#vm_method_exec
-    	{ "attr_reader",   	obj_attr_reader },
+    	{ "attr_reader",   	obj_attr_reader 	},
     	{ "attr_accessor", 	obj_attr_accessor	},
     	{ "is_a?",         	obj_kind_of		},
         { "kind_of?",      	obj_kind_of		},
@@ -358,7 +362,7 @@ _init_class_proc()
 __CFUNC__
 nil_false_not(GV v[], U32 vi)
 {
-    v[0].gt = GT_TRUE;
+    v->gt = GT_TRUE;
 }
 
 #if !GURU_USE_STRING

@@ -99,7 +99,7 @@ guru_cmp(const GV *v0, const GV *v1)
   @return	result.
 */
 __GURU__ GI
-guru_atoi(U8P s, U32 base)
+guru_atoi(const U8 *s, U32 base)
 {
     GI  ret  = 0;
     U32 sign = 0;
@@ -127,7 +127,7 @@ REDO:
 }
 
 __GURU__ GF
-guru_atof(U8P s)
+guru_atof(const U8 *s)
 {
 #if GURU_USE_FLOAT
     int sign = 1, esign = 1, state=0;
@@ -167,19 +167,19 @@ guru_atof(U8P s)
 }
 
 __GURU__ void
-guru_memcpy(U8P d, U8P s, U32 sz)
+guru_memcpy(U8 *d, const U8 *s, U32 sz)
 {
     for (U32 i=0; s && d && i<sz; i++, *d++ = *s++);
 }
 
 __GURU__ void
-guru_memset(U8P d, U8 v,  U32 sz)
+guru_memset(U8 *d, U8 v,  U32 sz)
 {
     for (U32 i=0; d && i<sz; i++, *d++ = v);
 }
 
 __GURU__ int
-guru_memcmp(U8P d, U8P s, U32 sz)
+guru_memcmp(const U8 *d, const U8 *s, U32 sz)
 {
 	U32 i;
     for (i=0; s && d && i<sz && *d++==*s++; i++);
@@ -188,7 +188,7 @@ guru_memcmp(U8P d, U8P s, U32 sz)
 }
 
 __GURU__ U32
-guru_strlen(const U8P str)
+guru_strlen(const U8 *str)
 {
 	U32 i;
 	for (i=0; str && str[i]!='\0'; i++);
@@ -196,27 +196,27 @@ guru_strlen(const U8P str)
 }
 
 __GURU__ void
-guru_strcpy(const U8P d, const U8P s)
+guru_strcpy(U8 *d, const U8 *s)
 {
     guru_memcpy(d, s, guru_strlen(s)+1);
 }
 
 __GURU__ S32
-guru_strcmp(const U8P s1, const U8P s2)
+guru_strcmp(const U8 *s1, const U8 *s2)
 {
     return guru_memcmp(s1, s2, guru_strlen(s1));
 }
 
-__GURU__ U8P
-guru_strchr(U8P s, const U8 c)
+__GURU__ U8*
+guru_strchr(U8 *s, const U8 c)
 {
     while (s && *s!='\0' && *s!=c) s++;
 
-    return (U8P)((*s==c) ? &s : NULL);
+    return (U8*)((*s==c) ? &s : NULL);
 }
 
-__GURU__ U8P
-guru_strcat(U8P d, const U8P s)
+__GURU__ U8*
+guru_strcat(U8 *d, const U8 *s)
 {
     return d;
 }

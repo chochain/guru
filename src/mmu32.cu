@@ -62,7 +62,7 @@ __ffs(U32 x)
   @retval int		index of free_blocks
 */
 __GURU__ U32
-__idx(U32 sz, U32P l1, U32P l2)
+__idx(U32 sz, U32 *l1, U32 *l2)
 {
 	U32 v = __fls(sz);
 	//U32 x = __ffs(sz);
@@ -293,7 +293,7 @@ _init_mmu(void *mem, U32 size)
     U32 bsz = size - sizeof(free_block);
 
     _mutex_mem	 = 0;
-    _memory_pool = (U8P)mem;
+    _memory_pool = (U8*)mem;
 
     // initialize entire memory pool as the first block
     free_block *blk  = (free_block *)_memory_pool;
@@ -518,7 +518,7 @@ _alloc_stat(U32 v[])
 __HOST__ void
 _get_alloc_stat(U32 stat[])
 {
-	U32P v;
+	U32 *v;
 	cudaMallocManaged(&v, 8*sizeof(int));				// allocate host memory
 
 	_alloc_stat<<<1,1>>>(v);

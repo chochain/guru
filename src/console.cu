@@ -10,11 +10,12 @@
   </pre>
 */
 #include <stdio.h>
+#include "class.h"
 #include "console.h"
 
 __GURU__ U32 _output_size;
-__GURU__ U8P _output_ptr;		// global output buffer for now, per session later
-__GURU__ U8P _output_buf;
+__GURU__ U8  *_output_ptr;		// global output buffer for now, per session later
+__GURU__ U8  *_output_buf;
 
 
 #define _LOCK		{ MUTEX_LOCK(_mutex_con); }
@@ -23,7 +24,7 @@ __GURU__ U8P _output_buf;
 __GURU__ volatile U32 _mutex_con;
 
 __GURU__ void
-_write(GT gt, GT fmt, U32 sz, U8P buf)
+_write(GT gt, GT fmt, U32 sz, U8 *buf)
 {
 	if (threadIdx.x!=0) return;						// only thread 0 within a block can write
 
@@ -44,7 +45,7 @@ _write(GT gt, GT fmt, U32 sz, U8P buf)
 	_UNLOCK;
 }
 
-__GURU__ U8P
+__GURU__ U8 *
 _console_va_arg(U8 *p)
 {
     U8 ch;
@@ -97,7 +98,7 @@ _dump_obj_size(void)
 }
 
 __GPU__ void
-guru_console_init(U8P buf, U32 sz)
+guru_console_init(U8 *buf, U32 sz)
 {
 #if GURU_USE_CONSOLE
 	if (threadIdx.x!=0 || blockIdx.x!=0) return;
@@ -122,19 +123,19 @@ __GURU__ void
 console_char(U8 c)
 {
 	U8 buf[2] = { c, '\0' };
-	_write(GT_STR, GT_EMPTY, 2, (U8P)buf);
+	_write(GT_STR, GT_EMPTY, 2, (U8*)buf);
 }
 
 __GURU__ void
 console_int(GI i)
 {
-	_write(GT_INT, GT_INT, sizeof(GI), (U8P)&i);
+	_write(GT_INT, GT_INT, sizeof(GI), (U8*)&i);
 }
 
 __GURU__ void
 console_hex(GI i)
 {
-	_write(GT_INT, GT_EMPTY, sizeof(GI), (U8P)&i);
+	_write(GT_INT, GT_EMPTY, sizeof(GI), (U8*)&i);
 }
 
 __GURU__ void
@@ -148,7 +149,7 @@ console_ptr(void *ptr)
 __GURU__ void
 console_float(GF f)
 {
-	_write(GT_FLOAT, GT_EMPTY, sizeof(GF), (U8P)&f);
+	_write(GT_FLOAT, GT_EMPTY, sizeof(GF), (U8*)&f);
 }
 #endif // GURU_USE_FLOAT
 
@@ -163,14 +164,14 @@ console_str(const U8 *str)
 	U8 *p = (U8*)str;
 	U32 i;
 	for (i=0; *p++ != '\0'; i++);				// mini strlen
-	_write(GT_STR, GT_EMPTY, i+1, (U8P)str);
+	_write(GT_STR, GT_EMPTY, i+1, (U8*)str);
 }
 
 __HOST__ guru_print_node*
 _host_print(guru_print_node *node, U32 trace)
 {
-	U8P fmt[80];
-	U8P buf[80];								// check buffer overflow
+	U8 fmt[80];
+	U8 buf[80];									// check buffer overflow
 	U32	argc;
 
 	if (trace) printf("<%d>", node->id);
@@ -182,12 +183,12 @@ _host_print(guru_print_node *node, U32 trace)
 		printf("%g", *((GF *)node->data));
 		break;
 	case GT_STR:
-		memcpy(buf, (U8P)node->data, node->size);
+		memcpy(buf, (U8*)node->data, node->size);
 		printf("%s", (char *)buf);
 		break;
 	case GT_RANGE:								// TODO: va_list needed here
 		argc = (int)node->fmt;
-		memcpy(fmt, (U8P)node->data, node->size);
+		memcpy(fmt, (U8*)node->data, node->size);
 		printf("%s", (char *)fmt);
 		for (U32 i=0; i<argc; i++) {
 			node = NEXTNODE(node);					// point to next parameter
@@ -203,7 +204,7 @@ _host_print(guru_print_node *node, U32 trace)
 }
 
 __HOST__ void
-guru_console_flush(U8P output_buf, U32 trace)
+guru_console_flush(U8 *output_buf, U32 trace)
 {
 #if GURU_USE_CONSOLE
 	guru_print_node *node = (guru_print_node *)output_buf;

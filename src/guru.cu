@@ -16,19 +16,19 @@
 extern "C" __GPU__  void guru_mmu_init(void *ptr, U32 sz);
 extern "C" __GPU__  void guru_global_init(void);
 extern "C" __GPU__  void guru_class_init(void);
-extern "C" __GPU__  void guru_console_init(U8P buf, U32 sz);
+extern "C" __GPU__  void guru_console_init(U8 *buf, U32 sz);
 
-U8P _guru_mem;				// guru global memory
-U8P _guru_out;				// guru output stream
-guru_ses *_ses_list = NULL; // session linked-list
+U8 *_guru_mem;					// guru global memory
+U8 *_guru_out;					// guru output stream
+guru_ses *_ses_list = NULL; 	// session linked-list
 
 //
 // _fetch_bytecode:
 //     	read raw bytecode from input file (or stream) into CUDA managed memory
 //		for later CUDA IREP image building
 //
-__HOST__ U8P
-_fetch_bytecode(const U8P rite_fname)
+__HOST__ U8 *
+_fetch_bytecode(const U8 *rite_fname)
 {
   FILE *fp = fopen((const char *)rite_fname, "rb");
 
@@ -42,7 +42,7 @@ _fetch_bytecode(const U8P rite_fname)
   size_t sz = ftell(fp);
   fseek(fp, 0, SEEK_SET);
 
-  U8P req = (U8P)cuda_malloc(sz, 1);			// allocate bytecode storage
+  U8 *req = (U8*)cuda_malloc(sz, 1);			// allocate bytecode storage
 
   if (req) {
 	  fread(req, sizeof(char), sz, fp);
@@ -55,12 +55,12 @@ _fetch_bytecode(const U8P rite_fname)
 __HOST__ int
 guru_setup(int step, int trace)
 {
-	U8P mem = _guru_mem = (U8P)cuda_malloc(BLOCK_MEMORY_SIZE, 1);	// allocate main block (i.e. RAM)
+	U8 *mem = _guru_mem = (U8*)cuda_malloc(BLOCK_MEMORY_SIZE, 1);	// allocate main block (i.e. RAM)
 	if (!_guru_mem) {
 		fprintf(stderr, "ERROR: failed to allocate device main memory block!\n");
 		return -1;
 	}
-	U8P out = _guru_out = (U8P)cuda_malloc(MAX_BUFFER_SIZE, 1);		// allocate output buffer
+	U8 *out = _guru_out = (U8*)cuda_malloc(MAX_BUFFER_SIZE, 1);		// allocate output buffer
 	if (!_guru_out) {
 		fprintf(stderr, "ERROR: output buffer allocation error!\n");
 		return -2;
@@ -96,7 +96,7 @@ guru_load(char *rite_name)
 
 	ses->stdout = _guru_out;
 
-	U8P ins = ses->stdin = _fetch_bytecode((U8P)rite_name);
+	U8 *ins = ses->stdin = _fetch_bytecode((U8*)rite_name);
 	if (!ins) {
 		fprintf(stderr, "ERROR: bytecode request allocation error!\n");
 		return -2;

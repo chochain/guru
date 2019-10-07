@@ -36,7 +36,7 @@ __GURU__ __INLINE__ U32
 _bin_to_u32(const void *s)
 {
 #if GURU_32BIT_ALIGN_REQUIRED
-    U8P p = (U8P)s;
+    U8 *p = (U8*)s;
     return (U32)(p[0]<<24) | (p[1]<<16) |  (p[2]<<8) | p[3];
 #else
     U32 x = *((U32P)s);
@@ -55,7 +55,7 @@ __GURU__ __INLINE__ U16
 _bin_to_u16(const void *s)
 {
 #if GURU_32BIT_ALIGN_REQUIRED
-    U8P p = (U8P)s;
+    U8 *p = (U8*)s;
     return (U16)(p[0]<<8) | p[1];
 #else
     U16 x = *((U16P)s);
@@ -71,7 +71,7 @@ _bin_to_u16(const void *s)
   @return sizeof(U16).
 */
 __GURU__ __INLINE__ void
-_u16_to_bin(U16 s, U8P bin)
+_u16_to_bin(U16 s, U8 *bin)
 {
     *bin++ = (s >> 8) & 0xff;
     *bin   = s & 0xff;
@@ -85,7 +85,7 @@ _u16_to_bin(U16 s, U8P bin)
   @return sizeof(U32).
 */
 __GURU__ __INLINE__ void
-_u32_to_bin(U32 l, U8P bin)
+_u32_to_bin(U32 l, U8 *bin)
 {
     *bin++ = (l >> 24) & 0xff;
     *bin++ = (l >> 16) & 0xff;
@@ -112,9 +112,9 @@ _u32_to_bin(U32 l, U8P bin)
   </pre>
 */
 __GURU__ int
-_load_header(U8P *pos)
+_load_header(U8 **pos)
 {
-    U8P p = *pos;
+    U8 *p = *pos;
 
     if (MEMCMP(p, "RITE0004", 8) != 0) {
         return LOAD_FILE_HEADER_ERROR_VERSION;
@@ -165,9 +165,9 @@ _load_header(U8P *pos)
   </pre>
 */
 __GURU__ U32
-_load_irep_1(mrbc_irep *irep, U8P *pos)
+_load_irep_1(mrbc_irep *irep, U8 **pos)
 {
-    U8 * p = U8PADD(*pos, 4);								// skip "IREP"
+    U8 *p = U8PADD(*pos, 4);								// skip "IREP"
 
     // nlocals,nregs,rlen
     irep->nlv  = _bin_to_u16(p);	p += sizeof(U16);		// number of local variables
@@ -242,7 +242,7 @@ _load_irep_1(mrbc_irep *irep, U8P *pos)
   @return       Pointer of allocated mrbc_irep or NULL
 */
 __GURU__ mrbc_irep*
-_load_irep_0(U8P *pos)
+_load_irep_0(U8 **pos)
 {
     // new irep
     mrbc_irep *irep = (mrbc_irep *)guru_alloc(sizeof(mrbc_irep));
@@ -274,9 +274,9 @@ _load_irep_0(U8P *pos)
   </pre>
 */
 __GURU__ int
-_load_irep(mrbc_vm *vm, U8P *pos)
+_load_irep(mrbc_vm *vm, U8 **pos)
 {
-    U8 * p = U8PADD(*pos, 4);							// 4 = skip "IREP"
+    U8 *p = U8PADD(*pos, 4);							// 4 = skip "IREP"
     int   sec_size = _bin_to_u32(p); p += sizeof(U32);
 
     if (MEMCMP(p, "0000", 4) != 0) {					// IREP version
@@ -302,9 +302,9 @@ _load_irep(mrbc_vm *vm, U8P *pos)
   @return int	zero if no error.
 */
 __GURU__ int
-_load_lvar(mrbc_vm *vm, U8P *pos)
+_load_lvar(mrbc_vm *vm, U8 **pos)
 {
-    U8P p = *pos;
+    U8 *p = *pos;
 
     /* size */
     *pos += _bin_to_u32(p+sizeof(U32));
@@ -321,7 +321,7 @@ _load_lvar(mrbc_vm *vm, U8P *pos)
 
 */
 __GPU__ void
-mrbc_parse_bytecode(mrbc_vm *vm, U8P ptr)
+mrbc_parse_bytecode(mrbc_vm *vm, U8 *ptr)
 {
 	if (threadIdx.x!=0 || blockIdx.x!=0) return;
 
@@ -348,7 +348,7 @@ _show_decoder(mrbc_vm *vm)
 	U32P iseq = vm->state->irep->iseq;
 	U16  opid = (*(iseq + pc) >> 24) & 0x7f;
 	GV   *v   = vm->regfile;
-	const U8P opc  = _opcode[GET_OPCODE(opid)];
+	const U8 *opc  = _opcode[GET_OPCODE(opid)];
 
 	int last=0;
 	for (U32 i=0; i<MAX_REGS_SIZE; i++, v++) {

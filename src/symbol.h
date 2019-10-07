@@ -17,9 +17,9 @@
 extern "C" {
 #endif
 
-__GURU__ GV 	guru_sym_new(const U8P str);
-__GURU__ GS   	name2id(const U8P str);
-__GURU__ U8P    id2name(GS sid);
+__GURU__ GV 	guru_sym_new(const U8 *str);
+__GURU__ GS   	name2id(const U8 *str);
+__GURU__ U8		*id2name(GS sid);
 
 __GURU__ void 	guru_init_class_symbol();
 

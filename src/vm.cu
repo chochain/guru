@@ -313,7 +313,7 @@ static const char *_opcode[] = {
 U8 *outbuf = NULL;
 
 __HOST__ int
-_match_irep(guru_irep *irep0, guru_irep *irep1, U8P idx)
+_match_irep(guru_irep *irep0, guru_irep *irep1, U8 *idx)
 {
 	if (irep0==irep1) return 1;
 	for (U32 i=0; i<irep0->r; i++) {
@@ -381,7 +381,7 @@ _show_ucode(guru_vm *vm)
 	U32  *iseq = VM_ISEQ(vm);
 	U32  code  = bin2u32(*(iseq + pc));				// convert to big endian
 	U16  op    = code & 0x7f;       				// in HOST mode, GET_OPCODE() is DEVICE code
-	U8P  opc   = (U8P)_opcode[GET_OP(op)];
+	U8   *opc  = (U8*)_opcode[GET_OP(op)];
 
 	guru_state *st    = vm->state;
 	guru_irep  *irep1 = st->irep;

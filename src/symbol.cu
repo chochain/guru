@@ -1,6 +1,6 @@
 /*! @file
   @brief
-  GURU Symbol class
+  GURU Symbol class (implemented as a string hasher)
 
   <pre>
   Copyright (C) 2019- GreenII
@@ -24,7 +24,7 @@
 #endif
 
 struct RTree {
-    U8P cstr;						//!< point to the symbol string.
+    U8  *cstr;						//!< point to the symbol string.
 #ifdef GS_BTREE						// array-based btree
     GS 	left;
     GS 	right;
@@ -42,7 +42,7 @@ __GURU__ struct RTree 	_sym[MAX_SYMBOL_COUNT];
   @return uint16_t	Hash value.
 */
 __GURU__ U16
-_calc_hash(U8P str)
+_calc_hash(const U8 *str)
 {
     U16 h = 0;
 
@@ -57,7 +57,7 @@ _calc_hash(U8P str)
 /*! search index table
  */
 __GURU__ U32
-_search_index(const U8P str)
+_search_index(const U8 *str)
 {
     U16 hash = _calc_hash(str);
 
@@ -84,7 +84,7 @@ _search_index(const U8P str)
 /*! add to index table (1-based index, i.e. list[0] is not used)
  */
 __GURU__ S32
-_add_index(const U8P str)
+_add_index(const U8 *str)
 {
     U32 hash = _calc_hash(str);
 
@@ -94,7 +94,7 @@ _add_index(const U8P str)
     // append table.
     U32 sid = _sym_idx++;				// add to next entry
     _sym[sid].hash = hash;
-    _sym[sid].cstr = str;
+    _sym[sid].cstr = (U8*)str;
 
 #ifdef GS_BTREE
     for (U32 i=0; ;) {					// array-based btree walker
@@ -127,7 +127,7 @@ _add_index(const U8P str)
   @return 	symbol object
 */
 __GURU__ GV
-guru_sym_new(const U8P str)
+guru_sym_new(const U8 *str)
 {
     GV v; { v.gt = GT_SYM; v.acl=0; v.fil=0; }
     GS sid = _search_index(str);
@@ -138,8 +138,8 @@ guru_sym_new(const U8P str)
     }
 
     // create symbol object dynamically.
-    U32 asz = guru_strlen(str) + 1;		ALIGN(asz);
-    U8P buf = (U8P)guru_alloc(asz);
+    U32 asz  = guru_strlen(str) + 1;		ALIGN(asz);
+    U8  *buf = (U8*)guru_alloc(asz);
 
     MEMCPY(buf, str, asz);
     v.i = _add_index(buf);
@@ -154,7 +154,7 @@ guru_sym_new(const U8P str)
   @return GS	Symbol value.
 */
 __GURU__ GS
-name2id(const U8P str)
+name2id(const U8 *str)
 {
     GS sid = _search_index(str);
     if (sid < MAX_SYMBOL_COUNT) return sid;
@@ -169,7 +169,7 @@ name2id(const U8P str)
   @return const char*	String.
   @retval NULL		Invalid sym_id was given.
 */
-__GURU__ U8P
+__GURU__ U8*
 id2name(GS sid)
 {
     return (sid < _sym_idx) ? _sym[sid].cstr : NULL;
