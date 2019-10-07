@@ -143,14 +143,16 @@ _str(GV *s, GV *v)
 __GURU__ void
 _cls(GV *s, GV *v)
 {
-	guru_str_add_cstr(s, (U8*)v->cls->name);
+	U8 *name = id2name(v->cls->sid);
+	guru_str_add_cstr(s, name);
 }
 
 __GURU__ void
 _obj(GV *s, GV *v)
 {
+	U8 *name = id2name(class_by_obj(v)->sid);
 	guru_str_add_cstr(s, "#<");
-	guru_str_add_cstr(s, (U8*)class_by_obj(v)->name);
+	guru_str_add_cstr(s, name);
 	guru_str_add_cstr(s, ":");
 	_phex(s, v->self);
 	guru_str_add_cstr(s, ">");

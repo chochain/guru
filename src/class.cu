@@ -44,8 +44,7 @@ class_by_obj(GV *v)
     case GT_FLOAT:	 return	guru_class_float;
 #endif // GURU_USE_FLOAT
     case GT_SYM:  	 return guru_class_symbol;
-
-    case GT_OBJ:  	 return class_by_obj(v);
+    case GT_OBJ:  	 return v->self->cls;
     case GT_CLASS:   return v->cls;
     case GT_PROC:	 return guru_class_proc;
 #if GURU_USE_STRING
@@ -72,7 +71,7 @@ _name2class(const U8 *name)
 	GS sid = name2id(name);
     GV *v  = const_get(sid);
 
-    return (v && v->gt==GT_CLASS) ? v->cls : NULL;
+    return (v->gt==GT_CLASS) ? v->cls : NULL;
 }
 
 //================================================================
@@ -85,14 +84,14 @@ _name2class(const U8 *name)
   @return proc pointer
 */
 __GURU__ guru_proc*
-proc_by_sid(GV *obj, GS sid)
+proc_by_sid(GV *v, GS sid)
 {
 	// TODO: heavy-weight method, add a cache here to speed up lookup
     guru_proc  *p;
-    for (guru_class *cls=class_by_obj(obj); cls!=NULL; cls=cls->super) {	// search up hierarchy tree
+    for (guru_class *cls=class_by_obj(v); cls!=NULL; cls=cls->super) {	// search up hierarchy tree
 //    	p = (obj->gt==GT_CLASS) ? cls->meta->vtbl : cls->vtbl;
-        for (p=cls->vtbl; p && (p->sid != sid); p=p->next);					// linear search thru class or meta vtbl
-        if (p) return p;													// break if found
+        for (p=cls->vtbl; p && (p->sid != sid); p=p->next);				// linear search thru class or meta vtbl
+        if (p) return p;												// break if found
     }
     return NULL;
 }
@@ -110,32 +109,42 @@ guru_define_class(const U8 *name, guru_class *super)
 {
     if (super == NULL) super = guru_class_object;  // set default to Object.
 
-    guru_class *cls = _name2class(name);
-    if (cls) return cls;
+    guru_class *cls1, *cls0 = _name2class(name);
+    if (cls0) return cls0;
 
-    GS sid = name2id(name);
-
-    // create a new class?
-    cls = (guru_class *)guru_alloc(sizeof(guru_class)*2);
-    cls->super 	= super;
-    cls->vtbl 	= NULL;
-    cls->cvar   = NULL;
-    cls->meta   = (cls+1);
+    // class does not exist, create a new one
+    GS sid0 = name2id(name);
+    cls0 = (guru_class *)guru_alloc(sizeof(guru_class)*2);
+    cls1 = cls0+1;
+    cls0->sid    = sid0;
+    cls0->super  = super;
+    cls0->vtbl 	 = NULL;
+    cls0->cvar   = NULL;
+    cls0->meta   = (cls0+1);
 #ifdef GURU_DEBUG
     // change to sid later
-    cls->name   = (char *)id2name(sid);				// retrive from symbol table
+    cls0->name   = (char *)id2name(sid0);		// retrive from stored symbol table
 #endif
+
     // meta class
-    (cls+1)->super = guru_class_object;
-    (cls+1)->vtbl  = NULL;							// stores class (static) methods
-    (cls+1)->cvar  = NULL;
-    (cls+1)->meta  = NULL;
+    U32 sz  = STRLEN(name)+1;
+    U8  buf[256];
+    MEMCPY(buf,   "Class:", 6);
+    MEMCPY(buf+6, name, sz);
+    GS sid1 = name2id(buf);
+    cls1->sid   = sid1;
+    cls1->super = guru_class_object;
+    cls1->vtbl  = NULL;							// stores class (static) methods
+    cls1->cvar  = NULL;
+    cls1->meta  = NULL;
 
     // register to global constant.
-    GV v; { v.gt = GT_CLASS; v.acl = 0; v.fil=0xcccccccc; v.cls = cls; }
-    const_set(sid, &v);
+    GV v0; { v0.gt = GT_CLASS; v0.acl = 0; v0.fil=0xcccccccc; v0.cls = cls0; }
+    GV v1; { v1.gt = GT_CLASS; v1.acl = 0; v1.fil=0xcccccccc; v1.cls = cls1; }
+    const_set(sid0, &v0);
+    const_set(sid1, &v1);
 
-    return cls;
+    return cls0;
 }
 
 __GURU__ guru_proc *
@@ -146,7 +155,7 @@ _alloc_proc(guru_class *cls, const U8 *name)
     proc->sid    = name2id(name);
     proc->next   = NULL;
 #ifdef GURU_DEBUG
-    proc->cname  = cls->name;
+    proc->cname  = (char *)id2name(cls->sid);
     proc->name   = (char *)id2name(proc->sid);
 #endif
     return proc;

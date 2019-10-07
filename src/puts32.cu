@@ -41,12 +41,14 @@ _p(GV *v)
     case GT_TRUE:	PRINTF("true");			break;
     case GT_INT: 	PRINTF("%d", v->i);		break;
     case GT_FLOAT:  PRINTF("%.7g", v->f);	break;		// 23-digit fraction ~= 1/16M => 7 digit
-    case GT_CLASS:
-    	PRINTF("%s", v->cls->name);
-    	break;
-    case GT_OBJ:
-    	PRINTF("#<%s:%08x>", class_by_obj(v)->name, (U32A)v->self);
-        break;
+    case GT_CLASS: {
+    	U8 *name = id2name(v->cls->sid);
+    	PRINTF("%s", name);
+    } break;
+    case GT_OBJ: {
+    	U8 *name = id2name(class_by_obj(v)->sid);
+    	PRINTF("#<%s:%08x>", name, (U32A)v->self);
+    } break;
     case GT_PROC:
     	PRINTF("#<Proc:%08x>", v->proc);
     	break;
