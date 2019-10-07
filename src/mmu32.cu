@@ -66,10 +66,10 @@ __idx(U32 sz, U32 *l1, U32 *l2)
 {
 	U32 v = __fls(sz);
 	//U32 x = __ffs(sz);
-    U32 m = v<BASE_BITS ? 0 : v - BASE_BITS + 1;
+	*l1 = v<BASE_BITS ? 0 : v - BASE_BITS + 1;	// 1st level index
 
-    *l1 = m>1 ? m - 1 : 0;					// 1st level index
-    *l2 = (sz >> (m+MN_BITS)) & L2_MASK; 	// 2nd level index (with lower bits)
+	U32 n = *l1<2 ? 0 : *l1 - 1;				// down shifting bit
+    *l2 = (sz >> (n+MN_BITS)) & L2_MASK; 		// 2nd level index (with lower bits)
 
     return INDEX(*l1, *l2);
 }
