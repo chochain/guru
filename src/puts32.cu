@@ -11,12 +11,12 @@
   </pre>
 */
 #include "guru.h"
+#include "class.h"
 #include "value.h"
 #include "mmu.h"
 #include "symbol.h"
 #include "static.h"
 #include "global.h"
-#include "class.h"
 
 #include "puts.h"
 
@@ -32,7 +32,6 @@
 __GURU__ U32
 _p(GV *v)
 {
-	U8P name;
 	U32 cr = 1;
 
 	switch (v->gt){		// only when output different from print_sub
@@ -43,20 +42,18 @@ _p(GV *v)
     case GT_INT: 	PRINTF("%d", v->i);		break;
     case GT_FLOAT:  PRINTF("%.7g", v->f);	break;		// 23-digit fraction ~= 1/16M => 7 digit
     case GT_CLASS:
-    	name = id2name(v->cls->sid);
-    	PRINTF("%s", name);
+    	PRINTF("%s", v->cls->name);
     	break;
     case GT_OBJ:
-    	name = id2name(class_by_obj(v)->sid);
-    	PRINTF("#<%s:%08x>", name, (U32A)v->self);
+    	PRINTF("#<%s:%08x>", class_by_obj(v)->name, (U32A)v->self);
         break;
     case GT_PROC:
     	PRINTF("#<Proc:%08x>", v->proc);
     	break;
-    case GT_SYM:
-        name = id2name(v->i);
+    case GT_SYM: {
+        U8 *name = id2name(v->i);
         STRCHR(name, ';') ? PRINTF("\"%s\"", name) : PRINTF(":%s", name);
-        break;
+    } break;
     case GT_STR:
     	PRINTF("\"%s\"", v->str->raw);
     	break;

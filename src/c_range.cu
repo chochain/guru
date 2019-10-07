@@ -87,7 +87,7 @@ guru_range_cmp(const GV *v0, const GV *v1)
 __CFUNC__
 rng_eq3(GV v[], U32 vi)
 {
-    if (v[0].gt == GT_CLASS) {
+    if (v->gt == GT_CLASS) {
         GV ret = guru_kind_of(v);
         RETURN_VAL(ret);
     }
@@ -127,7 +127,7 @@ rng_last(GV v[], U32 vi)
 __CFUNC__
 rng_exclude_end(GV v[], U32 vi)
 {
-    RETURN_BOOL(!IS_INCLUDE(v[0].range));
+    RETURN_BOOL(!IS_INCLUDE(v->range));
 }
 
 //================================================================
