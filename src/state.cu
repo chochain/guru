@@ -16,7 +16,7 @@
 #include "mmu.h"
 #include "refcnt.h"
 #include "symbol.h"		// id2name
-#include "ostore.h"
+#include "ostore.h"		// ostore_new
 #include "class.h"		// proc_by_sid
 #include "state.h"
 #include "c_range.h"
@@ -50,10 +50,10 @@ __match(const U8* s0, U8* s1)
 __GURU__ void
 _object_new(guru_vm *vm, GV v[], U32 vi)
 {
-	assert(v[0].gt==GT_CLASS);						// ensure it is a class object
+	assert(v->gt==GT_CLASS);						// ensure it is a class object
 
-    GV  obj = ostore_new(v[0].cls, 0);				// instanciate object (with zero ivar)
-	GS  sid  = name2id((U8P)"initialize"); 			// search for custom initializer (or Object#c_nop)
+    GV  obj = ostore_new(v->cls);					// instanciate object (with zero ivar)
+	GS  sid  = name2id((U8*)"initialize"); 			// search for custom initializer (or Object#c_nop)
 
 	if (vm_method_exec(vm, v, vi, sid)) {			// run custom initializer if any
 		vm->err = 1;
@@ -72,9 +72,9 @@ _raise(guru_vm *vm, GV v[], U32 vi)
 __GURU__ void
 _proc_call(guru_vm *vm, GV v[], U32 vi)
 {
-	assert(v[0].gt==GT_PROC);						// ensure it is a proc
+	assert(v->gt==GT_PROC);							// ensure it is a proc
 
-	guru_irep *irep = v[0].proc->irep;				// callee's IREP pointer
+	guru_irep *irep = v->proc->irep;				// callee's IREP pointer
 
 	vm_state_push(vm, irep, v, vi);					// switch into callee's context
 }
@@ -82,15 +82,16 @@ _proc_call(guru_vm *vm, GV v[], U32 vi)
 __GURU__ void
 _each(guru_vm *vm, GV v[], U32 vi)
 {
-	assert(v[1].gt==GT_PROC);						// ensure it is a code block
+	GV *v1 = v+1;
+	assert(v1->gt==GT_PROC);						// ensure it is a code block
 
 	GV 			git    = guru_iter_new(v, NULL);	// create iterator
 	U32        	pc0    = vm->state->pc;
 	guru_irep  	*irep0 = vm->state->irep;
-	guru_irep  	*irep1 = v[1].proc->irep;
+	guru_irep  	*irep1 = v1->proc->irep;
 
 	// push stack out (space for iterator)
-	GV  *p0 = (v+1);
+	GV  *p0 = v + 1;
 	GV  *p1 = (p0 + 2 + vi);
 	for (U32 i=0; i<vi+1; i++, *p1--=*p0--);
 
@@ -143,9 +144,9 @@ vm_state_push(guru_vm *vm, guru_irep *irep, GV v[], U32 vi)
 	guru_state *top = vm->state;
     guru_state *st  = (guru_state *)guru_alloc(sizeof(guru_state));
 
-    switch(v[0].gt) {
+    switch(v->gt) {
     case GT_OBJ:
-    case GT_CLASS: st->klass = v[0].cls;			break;
+    case GT_CLASS: st->klass = v->cls;				break;
     case GT_PROC:  st->klass = top->regs[0].cls; 	break;
     default: assert(1==0);
     }
@@ -183,7 +184,7 @@ vm_state_pop(guru_vm *vm, GV ret_val, U32 rsz)
 __GURU__ U32
 vm_method_exec(guru_vm *vm, GV v[], U32 vi, GS sid)
 {
-    guru_proc *prc = (guru_proc *)proc_by_sid(&v[0], sid);
+    guru_proc *prc = (guru_proc *)proc_by_sid(v, sid);
 
     if (prc==0) {
     	return _method_missing(vm, v, vi, sid);

@@ -1,6 +1,6 @@
 /*! @file
   @brief
-  GURU - object store
+  GURU - object store, object implementation
 
   <pre>
   Copyright (C) 2019- GreenII
@@ -13,34 +13,16 @@
 #ifndef GURU_SRC_OSTORE_H_
 #define GURU_SRC_OSTORE_H_
 #include "guru.h"
+#include "class.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-//================================================================
-/*! Define instance data.
-*/
-typedef struct RStoreData {
-    GS  sid;	    		//!< symbol ID as key. u16
-    U16 acl;				// reserved
-    GV 	val;	    		//!< stored value.
-} guru_odata;
-
-//================================================================
-/*! Define instance data handle.
-*/
-typedef struct RStore {
-    U32  rc;
-    U16  size;				//!< data buffer size.
-    U16  n;					//!< # of object stored.
-    guru_odata *data;		//!< pointer to allocated memory.
-} guru_ostore;
-
-__GURU__ guru_obj ostore_new(guru_class *cls, U32 size);
-__GURU__ void     ostore_del(GV *v);
-__GURU__ void     ostore_set(guru_obj *obj, GS sid, GV *v);
-__GURU__ guru_obj ostore_get(guru_obj *obj, GS sid);
+__GURU__ GV 	ostore_new(guru_class *cls);
+__GURU__ void   ostore_del(GV *v);
+__GURU__ void   ostore_set(GV *obj, GS sid, GV *val);
+__GURU__ GV 	ostore_get(GV *obj, GS sid);
 
 #ifdef __cplusplus
 }

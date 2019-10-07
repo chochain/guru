@@ -12,33 +12,17 @@
 */
 #include <stdarg.h>
 #include "guru.h"
+#include "class.h"
 #include "mmu.h"
 #include "static.h"
 #include "value.h"
 #include "global.h"
 #include "symbol.h"
-#include "class.h"
 
 #define _LOCK		{ MUTEX_LOCK(_mutex_cls); }
 #define _UNLOCK 	{ MUTEX_FREE(_mutex_cls); }
 
 __GURU__ U32 _mutex_cls;
-
-//================================================================
-/* methods to add core class/proc for GURU
- * it uses (const U8 *) for static string
- */
-__GURU__ guru_class*
-guru_add_class(const char *name, guru_class *super, Vfunc vtbl[], int n)
-{
-	guru_class *c = guru_define_class((U8*)name, super);
-
-	Vfunc *p = vtbl;
-	for (U32 i=0; i<n && p && p->func; i++, p++) {
-		guru_define_method(c, (U8*)p->name, p->func);
-	}
-	return c;
-}
 
 //================================================================
 /*!@brief
@@ -49,9 +33,9 @@ guru_add_class(const char *name, guru_class *super, Vfunc vtbl[], int n)
   @return pointer to guru_class
 */
 __GURU__ guru_class*
-class_by_obj(guru_obj *obj)
+class_by_obj(GV *v)
 {
-    switch (obj->gt) {
+    switch (v->gt) {
     case GT_TRUE:	 return guru_class_true;
     case GT_FALSE:	 return guru_class_false;
     case GT_NIL:	 return guru_class_nil;
@@ -61,8 +45,8 @@ class_by_obj(guru_obj *obj)
 #endif // GURU_USE_FLOAT
     case GT_SYM:  	 return guru_class_symbol;
 
-    case GT_OBJ:  	 return obj->self->cls;
-    case GT_CLASS:   return obj->cls;
+    case GT_OBJ:  	 return class_by_obj(v);
+    case GT_CLASS:   return v->cls;
     case GT_PROC:	 return guru_class_proc;
 #if GURU_USE_STRING
     case GT_STR:     return guru_class_string;
@@ -83,11 +67,12 @@ class_by_obj(guru_obj *obj)
   @return		pointer to class object.
 */
 __GURU__ guru_class*
-_name2class(const U8P name)
+_name2class(const U8 *name)
 {
-    guru_obj *obj = const_get(name2id(name));
+	GS sid = name2id(name);
+    GV *v  = const_get(sid);
 
-    return (obj && obj->gt==GT_CLASS) ? obj->cls : NULL;
+    return (v && v->gt==GT_CLASS) ? v->cls : NULL;
 }
 
 //================================================================
@@ -105,7 +90,8 @@ proc_by_sid(GV *obj, GS sid)
 	// TODO: heavy-weight method, add a cache here to speed up lookup
     guru_proc  *p;
     for (guru_class *cls=class_by_obj(obj); cls!=NULL; cls=cls->super) {	// search up hierarchy tree
-        for (p=cls->vtbl; p && (p->sid != sid); p=p->next);					// linear search thru class vtbl
+//    	p = (obj->gt==GT_CLASS) ? cls->meta->vtbl : cls->vtbl;
+        for (p=cls->vtbl; p && (p->sid != sid); p=p->next);					// linear search thru class or meta vtbl
         if (p) return p;													// break if found
     }
     return NULL;
@@ -120,7 +106,7 @@ proc_by_sid(GV *obj, GS sid)
   @param  super		super class.
 */
 __GURU__ guru_class*
-guru_define_class(const U8P name, guru_class *super)
+guru_define_class(const U8 *name, guru_class *super)
 {
     if (super == NULL) super = guru_class_object;  // set default to Object.
 
@@ -130,13 +116,20 @@ guru_define_class(const U8P name, guru_class *super)
     GS sid = name2id(name);
 
     // create a new class?
-    cls = (guru_class *)guru_alloc(sizeof(guru_class));
-    cls->sid    = sid;
+    cls = (guru_class *)guru_alloc(sizeof(guru_class)*2);
     cls->super 	= super;
     cls->vtbl 	= NULL;
+    cls->cvar   = NULL;
+    cls->meta   = (cls+1);
 #ifdef GURU_DEBUG
+    // change to sid later
     cls->name   = (char *)id2name(sid);				// retrive from symbol table
 #endif
+    // meta class
+    (cls+1)->super = guru_class_object;
+    (cls+1)->vtbl  = NULL;							// stores class (static) methods
+    (cls+1)->cvar  = NULL;
+    (cls+1)->meta  = NULL;
 
     // register to global constant.
     GV v; { v.gt = GT_CLASS; v.acl = 0; v.fil=0xcccccccc; v.cls = cls; }
@@ -146,7 +139,7 @@ guru_define_class(const U8P name, guru_class *super)
 }
 
 __GURU__ guru_proc *
-_alloc_proc(guru_class *cls, const U8P name)
+_alloc_proc(guru_class *cls, const U8 *name)
 {
     guru_proc *proc = (guru_proc *)guru_alloc(sizeof(guru_proc));
 
@@ -169,7 +162,7 @@ _alloc_proc(guru_class *cls, const U8P name)
   @param  cfunc		pointer to function.
 */
 __GURU__ guru_proc*
-guru_define_method(guru_class *cls, const U8P name, guru_fptr cfunc)
+guru_define_method(guru_class *cls, const U8 *name, guru_fptr cfunc)
 {
     if (cls==NULL) cls = guru_class_object;		// set default to Object.
 
@@ -186,3 +179,20 @@ guru_define_method(guru_class *cls, const U8P name, guru_fptr cfunc)
 
     return prc;
 }
+
+//================================================================
+/* methods to add core class/proc for GURU
+ * it uses (const U8 *) for static string
+ */
+__GURU__ guru_class*
+guru_add_class(const char *name, guru_class *super, Vfunc vtbl[], int n)
+{
+	guru_class *c = guru_define_class((U8*)name, super);
+
+	Vfunc *p = vtbl;
+	for (U32 i=0; i<n && p && p->func; i++, p++) {
+		guru_define_method(c, (U8*)p->name, p->func);
+	}
+	return c;
+}
+

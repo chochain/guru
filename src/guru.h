@@ -108,8 +108,8 @@ typedef uintptr_t   U32A;					// pointer address
 typedef double		F64;					// double precision float
 typedef float       F32;					// single precision float
 
-typedef uint32_t    *U32P;
-typedef uint8_t     *U8P;
+typedef uint32_t    U32;
+typedef uint8_t     U8;
 
 //===============================================================================
 // guru simple types (non struct)
@@ -130,43 +130,32 @@ typedef U16 		GS;
 #define IS_READ_ONLY(v)	((v)->acl & ACL_READ_ONLY)
 //===============================================================================
 /*!@brief
-  Guru objects
+  Guru VALUE and objects
+	gt  : object type (GURU_TYPE i.e. GT_*)
+	acl : access control (HAS_REF, READ_ONLY, ...)
+	sid : object store id for user defined objects (i.e. OBJ)
+
+  TODO: move gt into object themselves, keep fix+acl as lower 3-bits (CUDA is 32-bit ops)
 */
-typedef struct {					// 16-bytes
-	GT  gt 	: 16;					// guru object type
-	U32 acl : 16;					// object access control (i.e. ROM able
-	U32 fil;						// reserved
+typedef struct {					// 16-bytes (128 bits) for eaze of debugging
+	GT  	gt 	: 16;				// guru object type
+	U32 	acl : 16;				// object access control (i.e. ROM able
+	GS  	sid;					// object sid in ivar (only for user defined objects)
+	U16 	fil;					// reserved
     union {							// 64-bit
 		GI  	 		 i;			// GT_INT, GT_SYM
 		GF 	 	 		 f;			// GT_FLOAT
         struct RClass    *cls;		// GT_CLASS
         struct RProc     *proc;		// GT_PROC
+        struct RIter	 *iter;		// GT_ITER
         struct RVar      *self;		// GT_OBJ
         struct RString   *str;		// GT_STR
-        struct RIter	 *iter;		// GT_ITER
-#if GURU_USE_ARRAY
         struct RArray    *array;	// TT_ARRAY
         struct RRange    *range;	// TT_RANGE
         struct RHash     *hash;		// TT_HASH
-#endif // GURU_USE_ARRAY
         U8       		 *sym;		// C-string (only loader use.)
     };
-} GV, guru_obj;		// TODO: guru_val and guru_object shared the same structure for now
-
-//================================================================
-/*!@brief
-  Guru class object.
-*/
-typedef struct RClass {			// 32-byte
-    GS       		sid;		// class name (symbol) id u16
-    U16				fil16;		// reserved
-    U32				fil32;		// reserved
-    struct RClass 	*super;		// guru_class[super]
-    struct RProc  	*vtbl;		// guru_proc[rprocs], linked list
-#if GURU_DEBUG
-    char			*name;		// for debug. TODO: remove
-#endif // GURU_DEBUG
-} guru_class;
+} GV, guru_objx;		// TODO: guru_val and guru_object shared the same structure for now
 
 /* forward declaration */
 typedef void (*guru_fptr)(GV v[], U32 vi);
@@ -176,10 +165,29 @@ struct Vfunc {
 	guru_fptr 	func;			// C-function pointer
 };
 
+//================================================================
+/*!@brief
+  Guru object header. (i.e. Ruby's RBasic)
+    rc  : reference counter
+    size: storage space for built-in complex objects (i.e. ARRAY, HASH, STRING)
+    n   : actual number of elements in built-in object
+*/
+#define GURU_HDR  		\
+	U16		rc;			\
+    U16  	size;		\
+    U16  	n;			\
+    GS		sid
+
+//================================================================
+/*! Define instance data handle.
+*/
+typedef struct RObj {
+	GURU_HDR;
+    GV *data;				//!< pointer to allocated memory.
+} guru_obj;
+
 typedef struct RProc {			// 48-byte
-    GS 	 			sid;		// u16
-    U16				fil16;		// reserved
-    U32				fil32;		// reserved
+	GURU_HDR;					// sid is used
     struct RIrep 	*irep;		// an IREP (Ruby code), defined in vm.h
     guru_fptr 		func;		// or a raw C function
     struct RProc 	*next;		// next function in linked list
@@ -191,18 +199,9 @@ typedef struct RProc {			// 48-byte
 
 #define HAS_IREP(p)		(p->func==NULL)	//
 
-//================================================================
-/*!@brief
-  Guru proc object.
-*/
-#define GURU_HDR  		\
-	U32		rc;			\
-    U16  	size;		\
-    U16  	n
-
 typedef struct RString {			// 16-byte
 	GURU_HDR;
-	char 	*raw;					//!< pointer to allocated buffer.
+	char 				*raw;		//!< pointer to allocated buffer.
 } guru_str;
 
 //================================================================
@@ -212,19 +211,16 @@ typedef struct RString {			// 16-byte
 typedef struct RVar {				// 32-byte
 	GURU_HDR;
     struct RClass 		*cls;
-    struct RStore 		*ivar;
+    struct RObj 		*ivar;
 } guru_var;
 
 typedef struct RSes {				// 16-byte
-	U8P 				stdin;		// input stream
-	U8P 				stdout;		// output stream
+	U8					*stdin;		// input stream
+	U8	 				*stdout;	// output stream
 	U16 				id;
 	U16 				trace;
 	struct RSes 		*next;
 } guru_ses;
-
-// internal methods which uses (const char *) for static string									// in class.cu
-__GURU__ guru_class *guru_add_class(const char *name, guru_class *super, Vfunc vtbl[], int n);		// use (char *) for static string
 
 #ifdef __cplusplus
 }

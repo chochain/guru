@@ -13,6 +13,7 @@
 #define GURU_SRC_STATIC_H_
 
 #include "guru.h"
+#include "class.h"
 
 #ifdef __cplusplus
 extern "C" {

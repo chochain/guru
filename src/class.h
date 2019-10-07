@@ -19,12 +19,29 @@
 extern "C" {
 #endif
 
-// external methods
-__GURU__ guru_class *guru_define_class(const U8P name, guru_class *super);
-__GURU__ guru_proc  *guru_define_method(guru_class *cls, const U8P name, guru_fptr cfunc);
+//================================================================
+/*!@brief
+  Guru class object.
+*/
+typedef struct RClass {			// 32-byte
+    struct RClass 	*super;		// guru_class[super]
+    struct RProc  	*vtbl;		// guru_proc[rprocs], linked list
+#if GURU_DEBUG
+    char			*name;		// for debug. TODO: remove
+#endif // GURU_DEBUG
+    struct RObj  	*cvar;		// class var
+    struct RClass   *meta;		// guru meta class
+} guru_class;
 
-__GURU__ guru_class *class_by_obj(guru_obj *obj);
-__GURU__ guru_proc  *proc_by_sid(GV *obj, GS sid);
+// internal methods which uses (const char *) for static string									// in class.cu
+__GURU__ guru_class *guru_add_class(const char *name, guru_class *super, Vfunc vtbl[], int n);		// use (char *) for static string
+
+// external methods
+__GURU__ guru_class *guru_define_class(const U8 *name, guru_class *super);
+__GURU__ guru_proc  *guru_define_method(guru_class *cls, const U8 *name, guru_fptr cfunc);
+
+__GURU__ guru_class *class_by_obj(GV *v);
+__GURU__ guru_proc  *proc_by_sid(GV *v, GS sid);
 
 #ifdef __cplusplus
 }
