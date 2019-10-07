@@ -1,24 +1,21 @@
-# Class puts
+# Singleton Method
     
 class MyClass
-  def initialize(n)
-    puts "class init"
-    puts n
-  end
-  def func
-    puts "class func"
-  end
+    def myfunc
+        "here"
+    end
 end
 
-class MyClass2 < MyClass
-end    
+a = MyClass.new
+b = MyClass.new
+    
+def b.myfunc
+    "single"
+end
+    
+puts a.myfunc
+puts b.myfunc
 
-a = MyClass.new(5)
-a.func
-puts a
-puts a.to_s
 
-b = MyClass2.new(5)
-b.func
-puts b
-puts b.to_s
+
+
