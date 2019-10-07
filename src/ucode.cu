@@ -57,7 +57,7 @@ __GURU__ __INLINE__ U32
 _bin_to_u32(const void *s)
 {
 #if GURU_32BIT_ALIGN_REQUIRED
-    U8P p = (U8P)s;
+    U8 *p = (U8*)s;
     return (U32)(p[0]<<24) | (p[1]<<16) |  (p[2]<<8) | p[3];
 #else
     U32 x = *((U32P)s);
@@ -192,9 +192,9 @@ uc_getglobal(guru_vm *vm)
 {
     GS sid = VM_SYM(vm, _AR(bx));
 
-    guru_obj *obj = global_get(sid);
+    GV *v = global_get(sid);
 
-    _RA(*obj);
+    _RA(*v);
 }
 
 //================================================================
@@ -220,8 +220,11 @@ uc_setglobal(guru_vm *vm)
 __UCODE__
 uc_getiv(guru_vm *vm)
 {
+	GV *v = _R0;
+	assert(v->gt==GT_OBJ);
+
     GS sid = VM_SYM(vm, _AR(bx));
-    GV ret = ostore_get(_R0, sid);
+    GV ret = ostore_get(v, sid);
 
     _RA(ret);
 }
@@ -235,8 +238,47 @@ uc_getiv(guru_vm *vm)
 __UCODE__
 uc_setiv(guru_vm *vm)
 {
+	GV *v = _R0;
+	assert(v->gt==GT_OBJ);
+
     GS sid = VM_SYM(vm, _AR(bx));
-    ostore_set(_R0, sid, _R(a));
+    ostore_set(v, sid, _R(a));
+}
+
+//================================================================
+/*!@brief
+  OP_GETCV
+
+  R(A) := cvget(Syms(Bx))
+*/
+__UCODE__
+uc_getcv(guru_vm *vm)
+{
+	GV *v = _R0;
+	assert(v->gt==GT_CLASS);
+
+	GS sid = VM_SYM(vm, _AR(bx));
+	GV ret;
+	for (guru_class *cls=v->cls;
+			cls && (ret=ostore_get(v, sid)).gt!=GT_NIL; cls=cls->super);
+
+    _RA(ret);
+}
+
+//================================================================
+/*!@brief
+  OP_SETCV
+
+  cvset(Syms(Bx),R(A))
+*/
+__UCODE__
+uc_setcv(guru_vm *vm)
+{
+	GV *v = _R0;
+	assert(v->gt==GT_CLASS);
+
+    GS sid = VM_SYM(vm, _AR(bx));
+    ostore_set(v, sid, _R(a));
 }
 
 //================================================================
@@ -250,9 +292,9 @@ uc_getconst(guru_vm *vm)
 {
     GS sid = VM_SYM(vm, _AR(bx));
 
-    guru_obj *obj = const_get(sid);
+    GV *v = const_get(sid);
 
-    _RA(*obj);
+    _RA(*v);
 }
 
 //================================================================
@@ -430,6 +472,23 @@ uc_raise(guru_vm *vm)
 
 //================================================================
 /*!@brief
+  _undef
+
+  create undefined method error message (different between mruby1.4 and ruby2.x
+*/
+__GURU__ GV *
+_undef(GV *buf, GV *v, GS sid)
+{
+	guru_str_add_cstr(buf, "undefined method '");
+	guru_str_add_cstr(buf, id2name(sid));
+	guru_str_add_cstr(buf, "' for class #");
+	guru_str_add_cstr(buf, (U8*)class_by_obj(v)->name);
+
+	return buf;
+}
+
+//================================================================
+/*!@brief
   OP_SEND / OP_SENDB
 
   OP_SEND   R(A) := call(R(A),Syms(B),R(A+1),...,R(A+C))
@@ -442,12 +501,9 @@ uc_send(guru_vm *vm)
     GV  *v  = _R(a);								// call stack, obj is receiver object
 
     if (vm_method_exec(vm, v, _AR(c), sid)) {		// in state.cu, call stack will be wiped before return
+    	// put error message on return stack
     	GV buf = guru_str_buf(80);
-    	guru_str_add_cstr(&buf, "undefined method '");
-    	guru_str_add_cstr(&buf, id2name(sid));
-    	guru_str_add_cstr(&buf, "' for class #");
-    	guru_str_add_cstr(&buf, (U8*)class_by_obj(v)->name);
-    	*(v+1)  = buf;								// exception message
+    	*(v+1) = *_undef(&buf, v, sid);				// TODO: exception class
     	vm->err = 1;								// raise exception
     }
 }
@@ -578,8 +634,10 @@ uc_subi(guru_vm *vm)
 //
 // arithmetic template (poorman's C++)
 //
-#define AOP(r0, OP, r1)					\
+#define AOP(a, OP)						\
 do {									\
+	GV *r0 = _R(a);						\
+	GV *r1 = r0+1;						\
 	if (r0->gt==GT_INT) {				\
 		if      (r1->gt==GT_INT)   { 	\
 			r0->i = r0->i OP r1->i; 	\
@@ -614,7 +672,7 @@ do {									\
 __UCODE__
 uc_add(guru_vm *vm)
 {
-	GV *r0 = _R(a), *r1 = r0+1;		AOP(r0, +, r1);
+	AOP(a, +);
 }
 
 //================================================================
@@ -626,7 +684,7 @@ uc_add(guru_vm *vm)
 __UCODE__
 uc_sub(guru_vm *vm)
 {
-	GV *r0 = _R(a), *r1 = r0+1;		AOP(r0, -, r1);
+	AOP(a, -);
 }
 
 //================================================================
@@ -638,7 +696,7 @@ uc_sub(guru_vm *vm)
 __UCODE__
 uc_mul(guru_vm *vm)
 {
-	GV *r0 = _R(a), *r1 = r0+1;		AOP(r0, *, r1);
+	AOP(a, *);
 }
 
 //================================================================
@@ -650,12 +708,12 @@ uc_mul(guru_vm *vm)
 __UCODE__
 uc_div(guru_vm *vm)
 {
-	GV *r0 = _R(a), *r1 = r0+1;
+	GV *r1 = _R(a)+1;
 
 	if (r1->i==0) {
 		vm->err = 1;
 	}
-	else AOP(r0, /, r1);
+	else AOP(a, /);
 }
 
 //================================================================
@@ -675,8 +733,10 @@ uc_eq(guru_vm *vm)
 }
 
 // comparator template (poorman's C++)
-#define NCMP(r0, OP, r1)								\
+#define NCMP(a, OP)										\
 do {													\
+	GV *r0 = _R(a);										\
+	GV *r1 = r0+1;										\
 	if ((r0)->gt==GT_INT) {								\
 		if ((r1)->gt==GT_INT) {							\
 			(r0)->gt = GT_BOOL((r0)->i OP (r1)->i);		\
@@ -708,7 +768,7 @@ do {													\
 __UCODE__
 uc_lt(guru_vm *vm)
 {
-	GV *r0 = _R(a), *r1 = r0+1;		NCMP(r0, <, r1);
+	NCMP(a, <);
 }
 
 //================================================================
@@ -720,7 +780,7 @@ uc_lt(guru_vm *vm)
 __UCODE__
 uc_le(guru_vm *vm)
 {
-	GV *r0 = _R(a), *r1 = r0+1;    NCMP(r0, <=, r1);
+	NCMP(a, <=);
 }
 
 //================================================================
@@ -732,7 +792,7 @@ uc_le(guru_vm *vm)
 __UCODE__
 uc_gt(guru_vm *vm)
 {
-	GV *r0 = _R(a), *r1 = r0+1;    NCMP(r0, >, r1);
+	NCMP(a, >);
 }
 
 //================================================================
@@ -744,7 +804,7 @@ uc_gt(guru_vm *vm)
 __UCODE__
 uc_ge(guru_vm *vm)
 {
-	GV *r0 = _R(a), *r1 = r0+1;    NCMP(r0, >=, r1);
+	NCMP(a, >=);
 }
 
 //================================================================
@@ -774,7 +834,7 @@ __UCODE__
 uc_strcat(guru_vm *vm)
 {
 #if GURU_USE_STRING
-    GS sid = name2id((U8P)"to_s");				// from global symbol pool
+    GS sid = name2id((U8*)"to_s");				// from global symbol pool
 	GV *sa = _R(a), *sb = _R(b);
 
     guru_proc *pa = proc_by_sid(sa, sid);
@@ -902,7 +962,7 @@ uc_class(guru_vm *vm)
 	GV *r1 = _R(a)+1;
 
     guru_class *super = (r1->gt==GT_CLASS) ? r1->cls : vm->state->klass;
-    const U8P  name   = id2name(VM_SYM(vm, _AR(b)));
+    const U8   *name  = id2name(VM_SYM(vm, _AR(b)));
     guru_class *cls   = guru_define_class(name, super);
 
     _RA_T(GT_CLASS, cls=cls);
@@ -932,13 +992,13 @@ uc_exec(guru_vm *vm)
 __UCODE__
 uc_method(guru_vm *vm)
 {
-	GV  *obj = _R(a);
+	GV  *v = _R(a);
 
-    assert(obj->gt==GT_OBJ || obj->gt == GT_CLASS);		// enforce class checking
+    assert(v->gt==GT_OBJ || v->gt == GT_CLASS);	// enforce class checking
 
     // check whether the name has been defined in current class (i.e. vm->state->klass)
-    GS sid = VM_SYM(vm, _AR(b));			// fetch name from IREP symbol table
-    guru_proc *prc = proc_by_sid(obj, sid);	// fetch proc from obj->klass->vtbl
+    GS sid = VM_SYM(vm, _AR(b));				// fetch name from IREP symbol table
+    guru_proc *prc = proc_by_sid(v, sid);		// fetch proc from obj->klass->vtbl
 
 #if GURU_DEBUG
     if (prc != NULL) {
@@ -946,19 +1006,19 @@ uc_method(guru_vm *vm)
 		// printf("WARN: %s#%s override base\n", obj->cls->name, id2name(sid));
     }
 #endif
-    prc = (obj+1)->proc;					// override (if exist) with proc by OP_LAMBDA
+    prc = (v+1)->proc;							// override (if exist) with proc by OP_LAMBDA
 
     _LOCK;
 
     // add proc to class
-    guru_class 	*cls = (obj->gt==GT_OBJ) ? obj->self->cls : obj->cls;	// singleton method, or class method
-    prc->sid  = sid;						// assign sid to proc, overload if prc already exists
-    prc->next = cls->vtbl;					// add to top of vtable, so it will be found first
-    cls->vtbl = prc;						// if there is a sub-class override
+    guru_class 	*cls = class_by_obj(v);			// singleton method, or class method
+    prc->sid  = sid;							// assign sid to proc, overload if prc already exists
+    prc->next = cls->vtbl;						// add to top of vtable, so it will be found first
+    cls->vtbl = prc;							// if there is a sub-class override
 
     _UNLOCK;
 
-    *(obj+1) = EMPTY();						// clean up proc
+    *(v+1) = EMPTY();							// clean up proc
 }
 
 //================================================================
@@ -985,9 +1045,9 @@ uc_sclass(guru_vm *vm)
 	GV *o = _R(b);
 	assert(o->gt==GT_CLASS || o->gt==GT_OBJ);	// for class method or singleton method
 
-	const U8P  name   = (U8P)"__single";
-	guru_class *super = class_by_obj(o);
-	guru_class *cls   = guru_define_class(name, super);
+	const U8	*name  = (U8*)"__single";
+	guru_class 	*super = class_by_obj(o);
+	guru_class 	*cls   = guru_define_class(name, super);
 
 	if (o->gt==GT_OBJ) 	o->self->cls = cls;		// singleton method
 	else				o->cls       = cls;		// for class method
@@ -1121,8 +1181,8 @@ ucode_exec(guru_vm *vm)
 		NULL,			//    OP_SETSPECIAL	A Bx    Special[Bx] := R(A)
 		uc_getiv,		//    OP_GETIV      A Bx    R(A) := ivget(Syms(Bx))
 		uc_setiv,		//    OP_SETIV      A Bx    ivset(Syms(Bx),R(A))
-		NULL,			//    OP_GETCV      A Bx    R(A) := cvget(Syms(Bx))
-		NULL,			//    OP_SETCV      A Bx    cvset(Syms(Bx),R(A))
+		uc_getcv,		//    OP_GETCV      A Bx    R(A) := cvget(Syms(Bx))
+		uc_setcv,		//    OP_SETCV      A Bx    cvset(Syms(Bx),R(A))
 		uc_getconst,	//    OP_GETCONST   A Bx    R(A) := constget(Syms(Bx))
 		uc_setconst,	//    OP_SETCONST   A Bx    constset(Syms(Bx),R(A))
 		NULL,			//    OP_GETMCNST   A Bx    R(A) := R(A)::Syms(Bx)
