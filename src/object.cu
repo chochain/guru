@@ -200,11 +200,14 @@ obj_include(GV v[], U32 vi)
 {
 	assert(v[0].gt==GT_CLASS && v[1].gt==GT_CLASS);
 
-	guru_class *mod = (v+1)->cls;
 	guru_class *cls = v->cls;
+	guru_class *mod = (v+1)->cls;
 
-	mod->super = cls->super;
-	cls->super = mod;
+	guru_class *dup = (guru_class*)guru_alloc(sizeof(guru_class));
+	MEMCPY(dup, mod, sizeof(guru_class));		// deep copy so vtbl can be modified later
+
+	dup->super = cls->super;					// put module as the super-class
+	cls->super = dup;
 }
 
 //================================================================
