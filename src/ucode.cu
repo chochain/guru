@@ -479,10 +479,12 @@ uc_raise(guru_vm *vm)
 __GURU__ GV *
 _undef(GV *buf, GV *v, GS sid)
 {
+	U8 *name = id2name(class_by_obj(v)->sid);
+
 	guru_str_add_cstr(buf, "undefined method '");
 	guru_str_add_cstr(buf, id2name(sid));
 	guru_str_add_cstr(buf, "' for class #");
-	guru_str_add_cstr(buf, (U8*)class_by_obj(v)->name);
+	guru_str_add_cstr(buf, name);
 
 	return buf;
 }
@@ -950,11 +952,11 @@ uc_lambda(guru_vm *vm)
 
 //================================================================
 /*!@brief
-  OP_CLASS
+  OP_CLASS, OP_MODULE
 
   R(A) := newclass(R(A),Syms(B),R(A+1))
   Syms(B): class name
-  R(A+1): super class
+  R(A+1) : super class
 */
 __UCODE__
 uc_class(guru_vm *vm)
@@ -1003,7 +1005,7 @@ uc_method(guru_vm *vm)
 #if GURU_DEBUG
     if (prc != NULL) {
     	// same proc name exists (in either current or parent class)
-		// printf("WARN: %s#%s override base\n", obj->cls->name, id2name(sid));
+		printf("WARN: %s#%s override base\n", id2name(class_by_obj(v)->sid), id2name(sid));
     }
 #endif
     prc = (v+1)->proc;							// override (if exist) with proc by OP_LAMBDA
@@ -1240,7 +1242,7 @@ ucode_exec(guru_vm *vm)
 	// 0x42 Class
 		NULL,			//    OP_OCLASS,    A       R(A) := ::Object
 		uc_class,		//    OP_CLASS,     A B     R(A) := newclass(R(A),Syms(B),R(A+1))
-		NULL,			//    OP_MODULE,    A B     R(A) := newmodule(R(A),Syms(B))
+		uc_class,		//    OP_MODULE,    A B     R(A) := newmodule(R(A),Syms(B))
 		uc_exec,		//    OP_EXEC,      A Bx    R(A) := blockexec(R(A),SEQ[Bx])
 		uc_method,		//    OP_METHOD,    A B     R(A).newmethod(Syms(B),R(A+1))
 		uc_sclass,		//    OP_SCLASS,    A B     R(A) := R(B).singleton_class

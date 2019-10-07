@@ -193,6 +193,21 @@ obj_class(GV v[], U32 vi)
 }
 
 //================================================================
+/*! (method) include
+ */
+__CFUNC__
+obj_include(GV v[], U32 vi)
+{
+	assert(v[0].gt==GT_CLASS && v[1].gt==GT_CLASS);
+
+	guru_class *mod = (v+1)->cls;
+	guru_class *cls = v->cls;
+
+	mod->super = cls->super;
+	cls->super = mod;
+}
+
+//================================================================
 /*! get callee name
 
   @param  vm	Pointer to VM
@@ -319,8 +334,9 @@ _init_class_object()
     	{ "<=>",           	obj_cmp 		},
     	{ "===",           	obj_eq3 		},
     	{ "class",         	obj_class		},
-//    	{ "new",           	obj_new 		},		// handled by vm#vm_method_exec
-//      { "raise",			obj_raise		},		// handled by vm#vm_method_exec
+    	{ "include",		obj_include     },
+//    	{ "new",           	obj_new 		},		// handled by state#vm_method_exec
+//      { "raise",			obj_raise		},		// handled by state#vm_method_exec
     	{ "attr_reader",   	obj_attr_reader 	},
     	{ "attr_accessor", 	obj_attr_accessor	},
     	{ "is_a?",         	obj_kind_of		},

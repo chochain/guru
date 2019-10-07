@@ -304,7 +304,7 @@ static const char *_opcode[] = {
     "","RETURN","","BLKPUSH","ADD ","ADDI","SUB ","SUBI",
     "MUL ","DIV ","EQ  ","LT  ","LE  ","GT  ","GE  ","ARRAY",
     "","","","","","STRING","STRCAT","HASH",
-    "LAMBDA","RANGE","","CLASS","","EXEC","METHOD","SCLASS",
+    "LAMBDA","RANGE","","CLASS","MODULE","EXEC","METHOD","SCLASS",
     "TCLASS","","STOP","","","","","",
     "ABORT"
 };
