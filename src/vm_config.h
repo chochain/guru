@@ -39,7 +39,7 @@
 
 /* maximum size of global objects */
 #ifndef MAX_GLOBAL_COUNT
-#define MAX_GLOBAL_COUNT 20
+#define MAX_GLOBAL_COUNT 40
 #endif
 
 /* Configure environment */

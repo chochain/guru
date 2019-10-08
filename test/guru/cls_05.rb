@@ -1,22 +1,29 @@
-# Singleton Method
+# Class Method
     
 class MyClass
-    def self.myfunc
-        "class method"
+    def func
+        "here"
+    end
+    def self.myfunc1
+        "class method1"
+    end
+    def self.myfunc2
+        "class method2"
     end
 end
     
-puts MyClass.myfunc
+a = MyClass.new
+puts a.func
+puts MyClass.myfunc2
     
 x = begin
-    a = MyClass.new
-    a.myfunc
+    a.myfunc1
 rescue => e
     ":#{e}"
 end
-
-puts x[0,18]
-puts x[19,6]
+    
+# this works for both mruby1.4+, ruby2.0
+puts x[0,18]+x[19,7]
 
 
 

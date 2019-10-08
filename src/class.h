@@ -23,18 +23,20 @@ extern "C" {
 /*!@brief
   Guru class object.
 */
-typedef struct RClass {			// 32-byte
+typedef struct RClass {			// 52-byte
+	GURU_HDR;					// sid is used
     struct RClass 	*super;		// guru_class[super]
     struct RProc  	*vtbl;		// guru_proc[rprocs], linked list
+    struct RObj  	*cvar;		// class var
+    struct RClass   *meta;		// guru meta class
 #if GURU_DEBUG
     char			*name;		// for debug. TODO: remove
 #endif // GURU_DEBUG
-    struct RObj  	*cvar;		// class var
-    struct RClass   *meta;		// guru meta class
 } guru_class;
 
 // internal methods which uses (const char *) for static string									// in class.cu
 __GURU__ guru_class *guru_add_class(const char *name, guru_class *super, Vfunc vtbl[], int n);		// use (char *) for static string
+__GURU__ guru_class *guru_dup_class(guru_class *cls0);
 
 // external methods
 __GURU__ guru_class *guru_define_class(const U8 *name, guru_class *super);

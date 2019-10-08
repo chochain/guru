@@ -184,7 +184,8 @@ vm_state_pop(guru_vm *vm, GV ret_val, U32 rsz)
 __GURU__ U32
 vm_method_exec(guru_vm *vm, GV v[], U32 vi, GS sid)
 {
-    guru_proc *prc = (guru_proc *)proc_by_sid(v, sid);
+    guru_proc *prc = (guru_proc *)proc_by_sid(
+    	(v-1)->gt==GT_CLASS && v->gt==GT_CLASS ? SET_META(v) : v , sid);
 
     if (prc==0) {
     	return _method_missing(vm, v, vi, sid);
