@@ -842,7 +842,7 @@ uc_strcat(guru_vm *vm)
     guru_proc *pa = proc_by_sid(sa, sid);
     guru_proc *pb = proc_by_sid(sb, sid);
 
-    if (pa) pa->func(sa, 0);							// can it be an IREP?
+    if (pa) pa->func(sa, 0);					// can it be an IREP?
     if (pb) pb->func(sb, 0);
 
     guru_str_add_cstr(ref_inc(sa), (U8*)sb->str->raw);	// ref counts increased as _dup updated
@@ -964,7 +964,8 @@ uc_class(guru_vm *vm)
 	GV *r1 = _R(a)+1;
 
     guru_class *super = (r1->gt==GT_CLASS) ? r1->cls : vm->state->klass;
-    const U8   *name  = id2name(VM_SYM(vm, _AR(b)));
+    GS         sid    = VM_SYM(vm, _AR(b));
+    const U8   *name  = id2name(sid);
     guru_class *cls   = guru_define_class(name, super);
 
     _RA_T(GT_CLASS, cls=cls);
@@ -1005,7 +1006,7 @@ uc_method(guru_vm *vm)
 #if GURU_DEBUG
     if (prc != NULL) {
     	// same proc name exists (in either current or parent class)
-		printf("WARN: %s#%s override base\n", id2name(class_by_obj(v)->sid), id2name(sid));
+		// printf("WARN: %s#%s override base\n", id2name(class_by_obj(v)->sid), id2name(sid));
     }
 #endif
     prc = (v+1)->proc;							// override (if exist) with proc by OP_LAMBDA
@@ -1013,13 +1014,14 @@ uc_method(guru_vm *vm)
     _LOCK;
 
     // add proc to class
-    guru_class 	*cls = class_by_obj(v);			// singleton method, or class method
+    guru_class 	*cls = class_by_obj(v);
     prc->sid  = sid;							// assign sid to proc, overload if prc already exists
     prc->next = cls->vtbl;						// add to top of vtable, so it will be found first
     cls->vtbl = prc;							// if there is a sub-class override
 
     _UNLOCK;
 
+    CLR_META(v);								// clear SCLASS (meta) flag
     *(v+1) = EMPTY();							// clean up proc
 }
 
@@ -1045,14 +1047,22 @@ __UCODE__
 uc_sclass(guru_vm *vm)
 {
 	GV *o = _R(b);
-	assert(o->gt==GT_CLASS || o->gt==GT_OBJ);	// for class method or singleton method
+	if (o->gt==GT_OBJ) {						// singleton class (extending an object)
+		const U8   *name  = (U8*)"_single";
+		guru_class *super = class_by_obj(o);
+		guru_class *cls   = guru_define_class(name, super);
+		o->self->cls 	  = cls;
+	}
+	else if (o->gt==GT_CLASS) {					// meta class (for class methods)
+		if (o->cls->meta==NULL) {				// lazy allocation
+			const U8	*name = (U8*)"_meta";
+			guru_class 	*cls  = guru_define_class(name, guru_class_object);
+			o->cls->meta 	  = cls;
+		}
+	}
+	else assert(1==0);
 
-	const U8	*name  = (U8*)"__single";
-	guru_class 	*super = class_by_obj(o);
-	guru_class 	*cls   = guru_define_class(name, super);
-
-	if (o->gt==GT_OBJ) 	o->self->cls = cls;		// singleton method
-	else				o->cls       = cls;		// for class method
+	SET_META(o);								// set class with meta flag
 }
 
 //================================================================

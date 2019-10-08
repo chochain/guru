@@ -390,7 +390,7 @@ str_to_f(GV v[], U32 vi)
 __GURU__ GV
 _slice(GV *v, U32 i, U32 sz)
 {
-    GV  ret = _blank(sz+1);									//	'\0'
+    GV  ret = _blank(sz);									//	'\0'
     U8  *d  = (U8*)ret.str->raw;
 
     MEMCPY(d, v->str->raw + i, sz);
