@@ -881,7 +881,7 @@ uc_array(guru_vm *vm)
     guru_array *h = v.array;
     _stack_copy(h->data, _R(b), h->n=n);
 
-    _RA(v);								// no need to ref_inc
+    _RA(v);									// no need to ref_inc
 #else
     QUIT("Array class");
 #endif // GURU_USE_ARRAY
@@ -919,12 +919,12 @@ __UCODE__
 uc_range(guru_vm *vm)
 {
 #if GURU_USE_ARRAY
-	U32 x   = _AR(c);							// exclude_end
+	U32 x   = _AR(c);						// exclude_end
 	GV  *p0 = _R(b), *p1 = p0+1;
-    GV  v   = guru_range_new(p0, p1, !x);		// p0, p1 ref cnt will be increased
+    GV  v   = guru_range_new(p0, p1, !x);	// p0, p1 ref cnt will be increased
     *p1 = EMPTY();
 
-    _RA(v);										// release and  reassign
+    _RA(v);									// release and  reassign
 #else
     QUIT("Range class");
 #endif // GURU_USE_ARRAY
@@ -939,15 +939,15 @@ uc_range(guru_vm *vm)
 __UCODE__
 uc_lambda(guru_vm *vm)
 {
-	U32 bz = _AR(bx) >> 2;				// Bz, Cz a special decoder case
+	U32 bz = _AR(bx) >> 2;					// Bz, Cz a special decoder case
 
     guru_proc *prc = (guru_proc *)guru_alloc(sizeof(guru_proc));
 
-    prc->sid  = 0xffff;					// anonymous function
+    prc->sid  = 0xffff;						// anonymous function
     prc->func = NULL;
-    prc->irep = VM_REPS(vm, bz);		// fetch from children irep list
+    prc->irep = VM_REPS(vm, bz);			// fetch from children irep list
 
-    _RA_T(GT_PROC, proc=prc);			// regs[ra].proc = prc
+    _RA_T(GT_PROC, proc=prc);				// regs[ra].proc = prc
 }
 
 //================================================================
@@ -1021,7 +1021,7 @@ uc_method(guru_vm *vm)
 
     _UNLOCK;
 
-    CLR_META(v);								// clear SCLASS (meta) flag
+    CLR_SCLASS(v);								// clear SCLASS (meta) flag
     *(v+1) = EMPTY();							// clean up proc
 }
 
@@ -1047,22 +1047,22 @@ __UCODE__
 uc_sclass(guru_vm *vm)
 {
 	GV *o = _R(b);
-	if (o->gt==GT_OBJ) {						// singleton class (extending an object)
+	if (o->gt==GT_OBJ) {							// singleton class (extending an object)
 		const U8   *name  = (U8*)"_single";
 		guru_class *super = class_by_obj(o);
 		guru_class *cls   = guru_define_class(name, super);
 		o->self->cls 	  = cls;
 	}
-	else if (o->gt==GT_CLASS) {					// meta class (for class methods)
-		if (o->cls->meta==NULL) {				// lazy allocation
+	else if (o->gt==GT_CLASS) {						// meta class (for class methods)
+		if (o->cls->meta==NULL) {					// lazy allocation
 			const U8	*name = (U8*)"_meta";
 			guru_class 	*cls  = guru_define_class(name, guru_class_object);
-			o->cls->meta 	  = cls;
+			o->cls->meta  = cls;					// self pointing =~ meta class
+			SET_META(o);
 		}
 	}
 	else assert(1==0);
-
-	SET_META(o);								// set class with meta flag
+	SET_SCLASS(o);
 }
 
 //================================================================
@@ -1075,13 +1075,12 @@ uc_sclass(guru_vm *vm)
 __UCODE__
 uc_stop(guru_vm *vm)
 {
-	vm->run  = VM_STATUS_STOP;	// VM suspended
+	vm->run  = VM_STATUS_STOP;					// VM suspended
 }
 
 //===========================================================================================
 // GURU engine
 //===========================================================================================
-//================================================================
 /*!@brief
   GURU Instruction Unit - Prefetcher (fetch bytecode and decode)
 
@@ -1091,11 +1090,9 @@ uc_stop(guru_vm *vm)
 __GURU__ void
 ucode_prefetch(guru_vm *vm)
 {
-	U32 b = vm->bytecode = VM_BYTECODE(vm);	// fetch from vm->state->pc
-	U32 n = b >> 7;	      					// operands
-//	vm->opn = n;							// keep operands
-//	vm->op  = b & 0x7f;      				// opcode (cannot take address from bitfield yet)
-	vm->ar  = *((GAR *)&n);        			// operands struct/union
+	U32 b  = vm->bytecode = VM_BYTECODE(vm);	// fetch from vm->state->pc
+	U32 n  = b >> 7;	      					// operands
+	vm->ar = *((GAR *)&n);        				// operands struct/union
 
 	vm->state->pc++;				// advance program counter (ready for next fetch)
 }

@@ -45,7 +45,7 @@ class_by_obj(GV *v)
 #endif // GURU_USE_FLOAT
     case GT_SYM:  	 return guru_class_symbol;
     case GT_OBJ:  	 return v->self->cls;
-    case GT_CLASS:   return IS_META(v) ? v->cls->meta : v->cls;
+    case GT_CLASS:   return (IS_META(v) || IS_SCLASS(v)) ? v->cls->meta : v->cls;
     case GT_PROC:	 return guru_class_proc;
 #if GURU_USE_STRING
     case GT_STR:     return guru_class_string;
@@ -88,10 +88,7 @@ proc_by_sid(GV *v, GS sid)
 {
 	// TODO: heavy-weight method, use Dynamic Parallelism or a cache to speed up lookup
     guru_proc  *p;
-    guru_class *cls = (v->gt==GT_CLASS && IS_META(v))
-    	? v->cls->meta
-    	: class_by_obj(v);
-    for (; cls!=NULL; cls=cls->super) {	// search up hierarchy tree
+    for (guru_class *cls=class_by_obj(v); cls!=NULL; cls=cls->super) {	// search up hierarchy tree
         for (p=cls->vtbl; p && (p->sid != sid); p=p->next);				// linear search thru class or meta vtbl
         if (p) return p;												// break if found
     }
@@ -129,7 +126,7 @@ guru_define_class(const U8 *name, guru_class *super)
     cls->name   = (char *)id2name(sid);	// retrive from stored symbol table (the one caller passed might be destroyed)
 #endif
     GV v; { v.gt=GT_CLASS; v.fil=0xcccccccc; v.cls=cls; }
-    const_set(sid, &v);
+    const_set(sid, &v);					// register new class in constant cache
 
     return cls;
 }

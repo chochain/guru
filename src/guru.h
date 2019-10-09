@@ -124,14 +124,14 @@ typedef U16 		GS;
 
 #define ACL_HAS_REF		0x1
 #define ACL_READ_ONLY	0x2
-#define ACL_META		0x4
+#define ACL_SCLASS		0x4
 
 #define HAS_REF(v)		((v)->acl & ACL_HAS_REF)
 #define HAS_NO_REF(v)	(!HAS_REF(v))
 #define IS_READ_ONLY(v)	((v)->acl & ACL_READ_ONLY)
-#define IS_META(v)		(((v)->gt==GT_CLASS) && ((v)->acl & ACL_META))
-#define SET_META(v)		((v)->acl |=  ACL_META, v)
-#define CLR_META(v)		((v)->acl &= ~ACL_META, v)
+#define IS_SCLASS(v)	(((v)->gt==GT_CLASS) && ((v)->acl & ACL_SCLASS))
+#define SET_SCLASS(v)	((v)->acl |=  ACL_SCLASS, v)
+#define CLR_SCLASS(v)	((v)->acl &= ~ACL_SCLASS, v)
 
 //===============================================================================
 /*!@brief
