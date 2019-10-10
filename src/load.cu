@@ -118,14 +118,12 @@ _to_gv(GV v[], U32 n, U8 *p, bool sym)
             v->i   = atoi(buf);
             v->gt  = GT_INT;
             break;
-#if GURU_USE_FLOAT
         case 2: // Float (32-bit)
             memcpy(buf, p, len);
             buf[len] = '\0';
             v->f   = (float)atof(buf);		// atof() returns double
             v->gt  = GT_FLOAT;
             break;
-#endif // GURU_USE_FLOAT
         case 3: // Symbol
         	v->sym = p;
         	v->gt  = GT_SYM;

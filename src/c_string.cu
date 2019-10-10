@@ -68,7 +68,7 @@ _raw(const GV *v)
 __GURU__ GV
 _blank(U32 len)
 {
-    GV  v; { v.gt=GT_STR; v.acl=ACL_HAS_REF; v.fil=0; }		// assuming some one acquires it
+    GV  v; { v.gt=GT_STR; v.acl=ACL_HAS_REF; }		// assuming some one acquires it
     U32 asz = len+1;	ALIGN(asz);			// 8-byte aligned
     /*
       Allocate handle and string buffer.

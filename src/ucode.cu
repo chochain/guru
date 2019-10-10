@@ -43,7 +43,7 @@ __GURU__ U32 _mutex_uc;
 #define _R(r)			(&(vm->state->regs[_AR(r)]))
 #define _RA(v)			(ref_dec(_R(a)), *_R(a)=(v))
 #define _RA_X(r)    	(ref_inc(r), ref_dec(_R(a)), *_R(a)=*(r))
-#define _RA_T(t,e)      (_R(a)->gt=(t), _R(a)->acl=0, _R(a)->fil=0, _R(a)->e)
+#define _RA_T(t,e)      (_R(a)->gt=(t), _R(a)->acl=0, _R(a)->e)
 
 #define SKIP(x)			{ guru_na(x); return; }
 #define RAISE(x)	    { _RA(guru_str_new(x)); vm->err = 1; return; }
@@ -223,8 +223,10 @@ uc_getiv(guru_vm *vm)
 	GV *v = _R0;
 	assert(v->gt==GT_OBJ);
 
-    GS sid = VM_SYM(vm, _AR(bx));
-    GV ret = ostore_get(v, sid);
+    GS sid0  = VM_SYM(vm, _AR(bx));
+    U8 *name = id2name(sid0);			// attribute name with leading '@'
+    GS sid1  = name2id(name+1);			// skip the '@'
+    GV ret = ostore_get(v, sid1);
 
     _RA(ret);
 }
@@ -241,8 +243,12 @@ uc_setiv(guru_vm *vm)
 	GV *v = _R0;
 	assert(v->gt==GT_OBJ);
 
-    GS sid = VM_SYM(vm, _AR(bx));
-    ostore_set(v, sid, _R(a));
+    GS sid0  = VM_SYM(vm, _AR(bx));
+    U8 *name = id2name(sid0);			// attribute name with leading '@'
+    GS sid1  = name2id(name+1);			// skip the '@'
+    ostore_set(v, sid1, _R(a));
+
+    _RA(*v);
 }
 
 //================================================================
@@ -254,13 +260,15 @@ uc_setiv(guru_vm *vm)
 __UCODE__
 uc_getcv(guru_vm *vm)
 {
-	GV *v = _R0;
-	assert(v->gt==GT_CLASS);
-
+	GV *v  = _R0;
 	GS sid = VM_SYM(vm, _AR(bx));
+
+	assert(v->gt==GT_OBJ);
+
+	GV cv; { cv.gt=GT_CLASS; cv.cls=v->self->cls; }
 	GV ret;
-	for (guru_class *cls=v->cls;
-			cls && (ret=ostore_get(v, sid)).gt!=GT_NIL; cls=cls->super);
+	for (guru_class *cls=v->self->cls;
+			cls && (ret=ostore_get(&cv, sid)).gt!=GT_NIL; cls=cls->super);
 
     _RA(ret);
 }
@@ -279,6 +287,8 @@ uc_setcv(guru_vm *vm)
 
     GS sid = VM_SYM(vm, _AR(bx));
     ostore_set(v, sid, _R(a));
+
+    _RA(*v);
 }
 
 //================================================================
@@ -306,9 +316,12 @@ uc_getconst(guru_vm *vm)
 __UCODE__
 uc_setconst(guru_vm *vm)
 {
+	GV *v  = _R0;
 	GS sid = VM_SYM(vm, _AR(bx));
 
     const_set(sid, _R(a));
+
+    _RA(*v);
 }
 
 //================================================================
@@ -1054,10 +1067,10 @@ uc_sclass(guru_vm *vm)
 		o->self->cls 	  = cls;
 	}
 	else if (o->gt==GT_CLASS) {						// meta class (for class methods)
-		if (o->cls->meta==NULL) {					// lazy allocation
+		if (o->cls->cls==NULL) {					// lazy allocation
 			const U8	*name = (U8*)"_meta";
 			guru_class 	*cls  = guru_define_class(name, guru_class_object);
-			o->cls->meta  = cls;					// self pointing =~ meta class
+			o->cls->cls   = cls;					// self pointing =~ meta class
 			SET_META(o);
 		}
 	}

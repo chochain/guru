@@ -146,21 +146,21 @@ typedef struct {					// 16-bytes (128 bits) for eaze of debugging
 	GT  	gt 	: 16;				// guru object type
 	U32 	acl : 16;				// object access control (i.e. ROM able
 	GS  	sid;					// object sid in ivar (only for user defined objects)
-	U16 	fil;					// reserved
+	GS 		vid;					// variable idx (used by ostore)
     union {							// 64-bit
 		GI  	 		 i;			// GT_INT, GT_SYM
 		GF 	 	 		 f;			// GT_FLOAT
-        struct RClass    *cls;		// GT_CLASS
+        struct RObj      *self;		// GT_OBJ
+        struct RClass    *cls;		// GT_CLASS (shares same header with GT_OBJ)
         struct RProc     *proc;		// GT_PROC
         struct RIter	 *iter;		// GT_ITER
-        struct RVar      *self;		// GT_OBJ
         struct RString   *str;		// GT_STR
         struct RArray    *array;	// TT_ARRAY
         struct RRange    *range;	// TT_RANGE
         struct RHash     *hash;		// TT_HASH
         U8       		 *sym;		// C-string (only loader use.)
     };
-} GV, guru_objx;		// TODO: guru_val and guru_object shared the same structure for now
+} GV;
 
 /* forward declaration */
 typedef void (*guru_fptr)(GV v[], U32 vi);
@@ -186,10 +186,10 @@ struct Vfunc {
 //================================================================
 /*! Define instance data handle.
 */
-typedef struct RObj {
+typedef struct RVar {
 	GURU_HDR;
     GV *data;				//!< pointer to allocated memory.
-} guru_obj;
+} guru_var;
 
 typedef struct RProc {			// 48-byte
 	GURU_HDR;					// sid is used
@@ -213,11 +213,11 @@ typedef struct RString {			// 16-byte
 /*!@brief
   physical store for Guru object instance.
 */
-typedef struct RVar {				// 32-byte
+typedef struct RObj {				// 32-byte
 	GURU_HDR;
-    struct RClass 		*cls;
-    struct RObj 		*ivar;
-} guru_var;
+    struct RVar 		*ivar;		// DO NOT change here, shared structure with RClass
+    struct RClass 		*cls;		// DO NOT change here, shared structure with RClass
+} guru_obj;
 
 typedef struct RSes {				// 16-byte
 	U8					*stdin;		// input stream

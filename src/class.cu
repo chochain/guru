@@ -45,7 +45,7 @@ class_by_obj(GV *v)
 #endif // GURU_USE_FLOAT
     case GT_SYM:  	 return guru_class_symbol;
     case GT_OBJ:  	 return v->self->cls;
-    case GT_CLASS:   return (IS_META(v) || IS_SCLASS(v)) ? v->cls->meta : v->cls;
+    case GT_CLASS:   return (IS_META(v) || IS_SCLASS(v)) ? v->cls->cls : v->cls;
     case GT_PROC:	 return guru_class_proc;
 #if GURU_USE_STRING
     case GT_STR:     return guru_class_string;
@@ -117,15 +117,15 @@ guru_define_class(const U8 *name, guru_class *super)
     cls = (guru_class *)guru_alloc(sizeof(guru_class));
     cls->sid    = sid;
     cls->super  = super;
-    cls->vtbl 	= NULL;
-    cls->cvar   = NULL;
-    cls->meta   = NULL;					// lazy allocate when needed
+    cls->vtbl 	= NULL;					// head of list
+    cls->ivar   = NULL;					// lazily allocated when needed
+    cls->cls 	= NULL;					// meta-class, lazily allocated when needed
     cls->n      = 0;					// ~META_FLAG
 #ifdef GURU_DEBUG
     // change to sid later
     cls->name   = (char *)id2name(sid);	// retrive from stored symbol table (the one caller passed might be destroyed)
 #endif
-    GV v; { v.gt=GT_CLASS; v.fil=0xcccccccc; v.cls=cls; }
+    GV v; { v.gt=GT_CLASS; v.self=(guru_obj*)cls; }
     const_set(sid, &v);					// register new class in constant cache
 
     return cls;

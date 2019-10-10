@@ -187,7 +187,7 @@ __CFUNC__
 obj_class(GV v[], U32 vi)
 {
     GV ret;  { ret.gt = GT_CLASS; }
-    ret.cls = class_by_obj(v);
+    ret.self = (guru_obj*)class_by_obj(v);
 
     RETURN_VAL(ret);
 }
@@ -211,36 +211,12 @@ obj_include(GV v[], U32 vi)
 }
 
 //================================================================
-/*! get callee name
-
-  @param  vm	Pointer to VM
-  @return	string
-*/
-__GURU__ U8*
-_get_callee(GV v[])
-{
-#if 0
-    U32 code = *((U32*)VM_ISEQ(vm) + vm->state->pc - 1);
-
-    int rb = GETARG_B(code);  		// index of method sym
-
-    return _vm_symbol(vm, rb);
-#endif
-    guru_na("method not supported: callee\n");
-
-    return NULL;
-}
-
-//================================================================
 /*! (method) instance variable getter
  */
 __CFUNC__
 obj_getiv(GV v[], U32 vi)
 {
-    const U8 *name = _get_callee(v);			// TODO:
-    GS sid = name2id(name);
-
-    RETURN_VAL(ostore_get(v, sid));
+    RETURN_VAL(ostore_get(v, v->vid));			// attribute 'x'
 }
 
 //================================================================
@@ -249,10 +225,8 @@ obj_getiv(GV v[], U32 vi)
 __CFUNC__
 obj_setiv(GV v[], U32 vi)
 {
-    const U8 *name = _get_callee(v);			// TODO:
-    GS sid = name2id(name);
-
-    ostore_set(v, sid, &v[1]);
+    GS vid = v->vid;							// attribute 'x='
+    ostore_set(v, vid-1, v+1);					// attribute 'x'
 }
 
 //================================================================
@@ -261,14 +235,12 @@ obj_setiv(GV v[], U32 vi)
 __CFUNC__
 obj_attr_reader(GV v[], U32 vi)
 {
-	GV *v0 = v;
-	GV *p  = v+1;
-    for (U32 i = 0; i < vi; i++, p++) {
-        if (p->gt != GT_SYM) continue;	// TypeError raise?
+	GV *s = v+1;
+    for (U32 i = 0; i < vi; i++, s++) {
+        assert(s->gt==GT_SYM);
 
-        // define reader method
-        U8 *name = id2name(p->i);
-        guru_define_method(v0->cls, name, obj_getiv);
+        U8 *name = id2name(s->i);						// reader only
+        guru_define_method(v->cls, name, obj_getiv);
     }
 }
 
@@ -278,27 +250,14 @@ obj_attr_reader(GV v[], U32 vi)
 __CFUNC__
 obj_attr_accessor(GV v[], U32 vi)
 {
-	GV *v0 = v;
-	GV *p  = v+1;
-    for (U32 i=0; i < vi; i++, p++) {
-        if (p->gt != GT_SYM) continue;				// TypeError raise?
+	GV *s = v+1;
+    for (U32 i=0; i < vi; i++, s+=2) {
+        assert(s->gt==GT_SYM);
 
-        // define reader method
-        U8 *name = id2name(p->i);
-        guru_define_method(v0->cls, name, obj_getiv);
-
-        U32 asz = STRLEN(name);	ALIGN(asz);				// 8-byte aligned
-
-        // make string "....=" and define writer method.
-        // TODO: consider using static buffer
-        U8 *buf = (U8*)guru_alloc(asz);
-
-        STRCPY(buf, name);
-        STRCAT(buf, "=");
-        guru_sym_new(buf);
-        guru_define_method(v0->cls, buf, obj_setiv);
-
-        guru_free(buf);
+        U8 *a0 = id2name(s->i);							// reader
+        U8 *a1 = id2name(s->i+1);						// writer
+        guru_define_method(v->cls, a0, obj_getiv);
+        guru_define_method(v->cls, a1, obj_setiv);
     }
 }
 

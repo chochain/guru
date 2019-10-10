@@ -179,7 +179,7 @@ _clr(GV *kv)
 __GURU__ GV
 guru_hash_new(int size)
 {
-    GV v;	{ v.gt=GT_HASH; v.acl=ACL_HAS_REF; v.fil=0xbbbbbbbb; }
+    GV v;	{ v.gt=GT_HASH; v.acl=ACL_HAS_REF; }
     /*
       Allocate handle and data buffer.
     */

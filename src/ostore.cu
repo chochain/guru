@@ -13,7 +13,7 @@
 #include "value.h"
 #include "ostore.h"
 
-#define SET_VAL(d, val, sid)		(*d = *val, d->sid = sid)
+#define SET_VAL(d, vid, val)		(*(d)=*(val), (d)->vid=(vid))
 //================================================================
 /*! sorted array binary search
 
@@ -22,15 +22,15 @@
   @return		result. It's not necessarily found.
 */
 __GURU__ S32
-_bsearch(guru_obj *o, GS sid)
+_bsearch(guru_var *r, GS vid)
 {
-    int p0 = 0;
-    int p1 = o->n - 1;		if (p1 <= 0) return -1;
+    S32 p0 = 0;
+    S32 p1 = r->n - 1;		if (p1 < 0) return -1;
 
-    GV *v = o->data;
+    GV *v = r->data;
     while (p0 < p1) {
         int m = (p0 + p1) >> 1; 		// middle i.e. div by 2
-        if ((v+m)->sid < sid) {
+        if ((v+m)->vid < vid) {
             p0 = m + 1;
         } else {
             p1 = m;
@@ -47,12 +47,12 @@ _bsearch(guru_obj *o, GS sid)
   @return		0: success, 1: failed
 */
 __GURU__ U32
-_resize(guru_obj *o, U32 size)
+_resize(guru_var *r, U32 size)
 {
-    GV *d2 = (GV *)guru_realloc(o->data, sizeof(GV) * size);
+    GV *d2 = (GV *)guru_realloc(r->data, sizeof(GV) * size);
 
-    o->data = d2;
-    o->size = size;
+    r->data = d2;
+    r->size = size;
 
     return 0;
 }
@@ -64,16 +64,16 @@ _resize(guru_obj *o, U32 size)
   @param  nlv	number of local variables
   @return instance store handle
 */
-__GURU__ guru_obj *
+__GURU__ guru_var *
 _new(U32 nlv)
 {
-    guru_obj *o = (guru_obj *)guru_alloc(sizeof(guru_obj));
+    guru_var *r = (guru_var *)guru_alloc(sizeof(guru_var));
 
-    o->data = (GV *)guru_alloc(sizeof(GV) * nlv);
-    o->size = nlv;		// number of local variables
-    o->n    = 0;		// currently zero allocated
+    r->data = (GV *)guru_alloc(sizeof(GV) * nlv);
+    r->size = nlv;		// number of local variables
+    r->n    = 0;		// currently zero allocated
 
-    return o;
+    return r;
 }
 
 //================================================================
@@ -82,48 +82,47 @@ _new(U32 nlv)
   @param  st	pointer to instance store handle.
 */
 __GURU__ void
-_del(guru_obj *o)
+_del(guru_var *r)
 {
-	if (o==NULL) return;
+	if (r==NULL) return;
 
-    GV *d = o->data;
-    for (U32 i=0; i<o->n; i++, ref_dec(d++));
+    GV *d = r->data;
+    for (U32 i=0; i<r->n; i++, ref_dec(d++));
 
-    guru_free(o->data);					// free physical
-    guru_free(o);
+    guru_free(r->data);					// free physical
+    guru_free(r);
 }
 
 //================================================================
 /*! setter
 
   @param  st		pointer to instance store handle.
-  @param  sid		symbol id (as attribute name)
+  @param  vid		symbol id (as attribute name)
   @param  val		value to be set.
   @return			0: success, -1:failed
 */
 __GURU__ S32
-_set(guru_obj *o, GS sid, GV *val)
+_set(guru_var *r, GS vid, GV *val)
 {
-    S32 idx = _bsearch(o, sid);
-    GV *d   = o->data + idx;
+    S32 idx = _bsearch(r, vid);
     if (idx >= 0) {
-        ref_dec(d);					// replace existed attribute
-        SET_VAL(d, val, sid);
+    	GV *d = r->data+idx;
+        ref_dec(d);									// replace existed attribute
+        SET_VAL(d, vid, val);
         return 0;
     }
     // new attribute
-    if (d->sid < sid) idx++;
-    if ((o->n+1) >= o->size) {							// need resize?
-        if (_resize(o, o->size + 4)) return -1;			// allocation, error?
+    idx++;											// use next slot
+    if ((r->n+1) > r->size) {						// need resize?
+        if (_resize(r, r->size + 4)) return -1;		// allocation, error?
     }
-    if (idx < o->n) {									// need more data?
-    	GV *t = o->data + o->n;
-    	for (U32 i=o->n; i > idx; i--, t--) {			// shift out for insertion
-    		*(t) = *(t-1);
-    	}
+    // shift attributes out for insertion
+    GV *t = r->data + r->n;
+    for (U32 i=r->n; i > idx; i--, t--) {
+    	*(t) = *(t-1);
     }
-    SET_VAL(d, val, sid);
-    o->n++;
+    SET_VAL(r->data+idx, vid, val);
+    r->n++;
 
     return 0;
 }
@@ -136,35 +135,33 @@ _set(guru_obj *o, GS sid, GV *val)
   @return		pointer to GV .
 */
 __GURU__ GV*
-_get(guru_obj *o, GS sid)
+_get(guru_var *r, GS vid)
 {
-    S32 idx = _bsearch(o, sid);
+    S32 idx = _bsearch(r, vid);
     if (idx < 0) return NULL;
 
-    GV *d = o->data + idx;
-    if (d->sid != sid) return NULL;
+    GV *d = r->data + idx;
+    if (d->vid != vid) return NULL;
 
     return d;
 }
 
 //================================================================
-/*! guru_obj constructor
+/*! guru_var constructor
 
-  @param  vm    Pointer to VM.
   @param  cls	Pointer to Class (guru_class).
-  @param  nlv	number of local variables
-  @return       guru_ostore object.
+  @return       guru_ostore object with zero attribute
 */
 __GURU__ GV
 ostore_new(guru_class *cls)
 {
-    GV v; { v.gt=GT_OBJ; v.acl = ACL_HAS_REF; v.fil=0xffffffff; }
+    GV v; { v.gt=GT_OBJ; v.acl = ACL_HAS_REF; }
 
-    guru_var *r = v.self = (guru_var *)guru_alloc(sizeof(guru_var));
+    guru_obj *o = v.self = (guru_obj *)guru_alloc(sizeof(guru_obj));
 
-    r->rc    = 1;
-    r->ivar  = NULL;	// lazy allocation until _set is called
-    r->cls   = cls;
+    o->rc    = 1;
+    o->ivar  = NULL;	// attributes, lazy allocation until _set is called
+    o->cls   = cls;
 
     return v;
 }
@@ -177,45 +174,48 @@ ostore_new(guru_class *cls)
 __GURU__ void
 ostore_del(GV *v)
 {
-    _del(v->self->ivar);
-    guru_free(v->self);
+	guru_var *r = v->self->ivar;
+
+	if (r==NULL) return;
+
+    GV *d = r->data;
+    for (U32 i=0; i<r->n; i++, ref_dec(d++));
+
+    guru_free(r->data);					// free physical
+    guru_free(r);
 }
 
 //================================================================
 /*! instance variable setter
 
-  @param  obj	pointer to target.
-  @param  sid	key symbol ID.
-  @param  v		pointer to value.
+  @param  v		pointer to target.
+  @param  vid	attribute id.
+  @param  val	pointer to value.
 */
 __GURU__ void
-ostore_set(GV *v, GS sid, GV *val)
+ostore_set(GV *v, GS vid, GV *val)
 {
-	U32 is_o = v->gt==GT_OBJ;
-	guru_obj *o = is_o ? v->self->ivar : v->cls->cvar;
-	if (o==NULL) {		// lazy allocation
-		o = is_o
-			? (v->self->ivar = _new(1))
-			: (v->cls->cvar  = _new(1));
+	guru_var *r = v->self->ivar;		// RObj and RClass share same header
+	if (r==NULL) {
+		r = v->self->ivar = _new(1);	// lazy allocation
+		ref_inc(v);						// itself has been referenced now
 	}
-	_set(o, sid, val);
-    ref_inc(val);			// referenced by the object now
+	_set(r, vid, val);
+    ref_inc(val);						// referenced by the object now
 }
 
 //================================================================
 /*! instance variable getter
 
-  @param  obj	pointer to target.
-  @param  sid	key symbol ID.
+  @param  v		pointer to target.
+  @param  vid	attribute id.
   @return		value.
 */
 __GURU__ GV
-ostore_get(GV *v, GS sid)
+ostore_get(GV *v, GS vid)
 {
-	guru_obj *o = (v->gt==GT_OBJ) ? v->self->ivar : v->cls->cvar;
-
-	GV *val = _get(o, sid);
+	guru_var *r   = v->self->ivar;
+	GV 		 *val = r ? _get(r, vid) : NULL;
 
     return val ? *val : NIL();
 }
-

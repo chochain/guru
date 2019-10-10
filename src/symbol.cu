@@ -129,7 +129,7 @@ _add_index(const U8 *str)
 __GURU__ GV
 guru_sym_new(const U8 *str)
 {
-    GV v; { v.gt = GT_SYM; v.acl=0; v.fil=0; }
+    GV v; { v.gt = GT_SYM; v.acl=0; }
     GS sid = _search_index(str);
 
     if (sid < MAX_SYMBOL_COUNT) {

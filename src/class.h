@@ -23,13 +23,15 @@ extern "C" {
 /*!@brief
   Guru class object.
 */
-typedef struct RClass {			// 52-byte
+typedef struct RClass {			// 64-byte
 	GURU_HDR;					// n and sid is used
+	struct RVar		*ivar;		// DO NOT change here, shared structure with RObj
+	struct RClass	*cls;		// DO NOT change here, shared structure with RObj
+
     struct RClass 	*super;		// guru_class[super]
     struct RProc  	*vtbl;		// guru_proc[rprocs], linked list
-    struct RObj  	*cvar;		// class var
-    struct RClass   *meta;		// guru meta class
 #if GURU_DEBUG
+    U32				fil[2];		// reserved
     char			*name;		// for debug. TODO: remove
 #endif // GURU_DEBUG
 } guru_class;

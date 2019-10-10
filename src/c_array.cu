@@ -281,7 +281,7 @@ _minmax(GV *ary, GV **pp_min_value, GV **pp_max_value)
 __GURU__ GV
 guru_array_new(U32 sz)
 {
-    GV v; { v.gt=GT_ARRAY; v.acl=ACL_HAS_REF; v.fil=0xaaaaaaaa; }
+    GV v; { v.gt=GT_ARRAY; v.acl=ACL_HAS_REF; }
 
     guru_array *h   = (guru_array *)guru_alloc(sizeof(guru_array));		// handle
     void       *ptr = sz ? guru_alloc(sizeof(GV) * sz) : NULL;			// empty array?

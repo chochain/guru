@@ -44,7 +44,7 @@ _inc(GV *v, GV *s)
 __GURU__ GV
 guru_iter_new(GV *obj, GV *step)
 {
-    GV v; { v.gt=GT_ITER; v.acl=0; v.fil=0; }
+    GV v; { v.gt=GT_ITER; v.acl=0; }
 
     guru_iter *i = v.iter = (guru_iter *)guru_alloc(sizeof(guru_iter));
     i->step = step;
