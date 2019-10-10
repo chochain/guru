@@ -138,7 +138,7 @@ guru_sym_new(const U8 *str)
     }
 
     // create symbol object dynamically.
-    U32 asz  = guru_strlen(str) + 1;		ALIGN(asz);
+    U32 asz  = STRLEN(str) + 1;		ALIGN(asz);
     U8  *buf = (U8*)guru_alloc(asz);
 
     MEMCPY(buf, str, asz);

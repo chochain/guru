@@ -191,7 +191,7 @@ __float(guru_print *pf, double value)
 __GURU__ S32
 __str(guru_print *pf, U8 *str, U8 pad)
 {
-	U32 len = STRLEN(str);
+	U32 len = STRLENB(str);
     S32 ret = 0;
 
     if (str == NULL) {

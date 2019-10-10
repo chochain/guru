@@ -91,7 +91,7 @@ _blank(U32 len)
 __GURU__ GV
 _new(const U8 *src)
 {
-	U32 len = STRLEN(src);
+	U32 len = STRLENB(src);
 	GV  ret = _blank(len);
 
     // deep copy source string
@@ -289,7 +289,7 @@ __GURU__ GV
 guru_str_add_cstr(GV *s0, const U8 *str)
 {
     U32 len0 = s0->str->n;
-    U32 len1 = STRLEN(str);
+    U32 len1 = STRLENB(str);
     U32 asz  = len0 + len1 + 1;		asz += -asz & 7;	// 8-byte aligned
     U8  *buf = (U8*)guru_realloc(s0->str->raw, asz);
 

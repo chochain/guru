@@ -106,7 +106,7 @@ _print(GV *v)
     case GT_SYM: PRINTF(":%s", id2name(v->i));	break;
     case GT_STR: {
     	U8  *s  = (U8*)v->str->raw;
-    	U32 len = STRLEN(s);
+    	U32 len = STRLENB(s);
         PRINTF("%s", s);						// no double quote around
         if (len && s[len-1]=='\n') {
         	cr = 0;								// capture line-feed
