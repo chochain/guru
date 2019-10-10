@@ -188,7 +188,7 @@ struct Vfunc {
 */
 typedef struct RVar {
 	GURU_HDR;
-    GV *data;				//!< pointer to allocated memory.
+    GV *attr;					// attributes
 } guru_var;
 
 typedef struct RProc {			// 48-byte

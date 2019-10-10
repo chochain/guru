@@ -34,7 +34,7 @@
 __GURU__ GV
 guru_range_new(GV *first, GV *last, int inc)
 {
-    GV v;  { v.gt=GT_RANGE; v.acl=ACL_HAS_REF; v.fil=0; }
+    GV v;  { v.gt=GT_RANGE; v.acl=ACL_HAS_REF; }
 
     guru_range *r = v.range = (guru_range *)guru_alloc(sizeof(guru_range));
 

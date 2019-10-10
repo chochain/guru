@@ -52,8 +52,8 @@ _object_new(guru_vm *vm, GV v[], U32 vi)
 {
 	assert(v->gt==GT_CLASS);						// ensure it is a class object
 
-    GV  obj = ostore_new(v->cls);					// instanciate object (with zero ivar)
-	GS  sid  = name2id((U8*)"initialize"); 			// search for custom initializer (or Object#c_nop)
+    GV  obj = ostore_new(v->cls);					// instantiate object (with zero ivar)
+	GS  sid = name2id((U8*)"initialize"); 			// search for custom initializer (or Object#c_nop)
 
 	if (vm_method_exec(vm, v, vi, sid)) {			// run custom initializer if any
 		vm->err = 1;
@@ -189,11 +189,11 @@ vm_method_exec(guru_vm *vm, GV v[], U32 vi, GS sid)
     if (prc==0) {
     	return _method_missing(vm, v, vi, sid);
     }
-
     if (HAS_IREP(prc)) {						// a Ruby-based IREP
     	vm_state_push(vm, prc->irep, v, vi);	// switch to callee's context
     }
     else {
+    	if (v->gt==GT_OBJ) v->vid = sid;		// pass as parameter
     	prc->func(v, vi);						// call C-based function
     	_wipe_stack(v+1, vi+1, NULL);
     }

@@ -18,7 +18,7 @@
 /*! sorted array binary search
 
   @param  st	pointer to instance store handle.
-  @param  sid	symbol ID.
+  @param  vid	attribute id.
   @return		result. It's not necessarily found.
 */
 __GURU__ S32
@@ -27,9 +27,9 @@ _bsearch(guru_var *r, GS vid)
     S32 p0 = 0;
     S32 p1 = r->n - 1;		if (p1 < 0) return -1;
 
-    GV *v = r->data;
+    GV *v = r->attr;							// point at 1st attribute
     while (p0 < p1) {
-        int m = (p0 + p1) >> 1; 		// middle i.e. div by 2
+    	S32 m = (p0 + p1) >>1;					// middle i.e. div by 2
         if ((v+m)->vid < vid) {
             p0 = m + 1;
         } else {
@@ -49,9 +49,9 @@ _bsearch(guru_var *r, GS vid)
 __GURU__ U32
 _resize(guru_var *r, U32 size)
 {
-    GV *d2 = (GV *)guru_realloc(r->data, sizeof(GV) * size);
+    GV *v = (GV *)guru_realloc(r->attr, sizeof(GV) * size);
 
-    r->data = d2;
+    r->attr = v;
     r->size = size;
 
     return 0;
@@ -69,28 +69,11 @@ _new(U32 nlv)
 {
     guru_var *r = (guru_var *)guru_alloc(sizeof(guru_var));
 
-    r->data = (GV *)guru_alloc(sizeof(GV) * nlv);
+    r->attr = (GV *)guru_alloc(sizeof(GV) * nlv);
     r->size = nlv;		// number of local variables
     r->n    = 0;		// currently zero allocated
 
     return r;
-}
-
-//================================================================
-/*! destructor
-
-  @param  st	pointer to instance store handle.
-*/
-__GURU__ void
-_del(guru_var *r)
-{
-	if (r==NULL) return;
-
-    GV *d = r->data;
-    for (U32 i=0; i<r->n; i++, ref_dec(d++));
-
-    guru_free(r->data);					// free physical
-    guru_free(r);
 }
 
 //================================================================
@@ -105,23 +88,24 @@ __GURU__ S32
 _set(guru_var *r, GS vid, GV *val)
 {
     S32 idx = _bsearch(r, vid);
+    GV  *v;
     if (idx >= 0) {
-    	GV *d = r->data+idx;
-        ref_dec(d);									// replace existed attribute
-        SET_VAL(d, vid, val);
+    	v = r->attr + idx;
+        ref_dec(v);									// replace existed attribute
+        SET_VAL(v, vid, val);
         return 0;
     }
     // new attribute
-    idx++;											// use next slot
+    v = r->attr + (++idx);											// use next slot
     if ((r->n+1) > r->size) {						// need resize?
         if (_resize(r, r->size + 4)) return -1;		// allocation, error?
     }
     // shift attributes out for insertion
-    GV *t = r->data + r->n;
+    GV *t = r->attr + r->n;
     for (U32 i=r->n; i > idx; i--, t--) {
     	*(t) = *(t-1);
     }
-    SET_VAL(r->data+idx, vid, val);
+    SET_VAL(v, vid, val);
     r->n++;
 
     return 0;
@@ -138,12 +122,9 @@ __GURU__ GV*
 _get(guru_var *r, GS vid)
 {
     S32 idx = _bsearch(r, vid);
-    if (idx < 0) return NULL;
+    if (idx < 0 || (r->attr+idx)->vid != vid) return NULL;
 
-    GV *d = r->data + idx;
-    if (d->vid != vid) return NULL;
-
-    return d;
+    return r->attr+idx;
 }
 
 //================================================================
@@ -178,10 +159,10 @@ ostore_del(GV *v)
 
 	if (r==NULL) return;
 
-    GV *d = r->data;
+    GV *d = r->attr;
     for (U32 i=0; i<r->n; i++, ref_dec(d++));
 
-    guru_free(r->data);					// free physical
+    guru_free(r->attr);					// free physical
     guru_free(r);
 }
 
