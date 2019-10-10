@@ -54,7 +54,7 @@ guru_iter_new(GV *obj, GV *step)
     switch (obj->gt) {
     case GT_INT: {
     	i->n	 = obj->i;
-    	i->ivar  = (obj->i=1, obj);
+    	i->ivar  = (obj->i=0, obj);
     } break;
     case GT_RANGE: {
     	guru_range 	*r = obj->range;
@@ -91,7 +91,7 @@ guru_iter_next(GV *obj)
 	switch (it->size) {				// ranging object type (field reused)
 	case GT_INT: {
 		it->ivar->i += it->step ? it->step->i : 1;
-		nvar = (it->ivar->i <= it->n);
+		nvar = (it->ivar->i < it->n);
 	} break;
 	case GT_RANGE: {
 		guru_range *r = it->range->range;
