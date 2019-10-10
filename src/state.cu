@@ -119,7 +119,7 @@ _method_missing(guru_vm *vm, GV v[], U32 vi, GS sid)
 	if      (__match("call", f)) { 					// C-based prc_call (hacked handler, it needs vm->state)
 		_proc_call(vm, v, vi);						// push into call stack, obj at stack[0]
 	}
-	else if (__match("each", f)) {
+	else if (__match("each", f) || __match("times", f)) {
 		_each(vm, v, vi);
 	}
 	else if (__match("new", f)) {					// other default C-based methods

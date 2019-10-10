@@ -52,13 +52,17 @@ guru_iter_new(GV *obj, GV *step)
 
     i->range = ref_inc(obj);
     switch (obj->gt) {
+    case GT_INT: {
+    	i->n	 = obj->i;
+    	i->ivar  = (obj->i=1, obj);
+    } break;
     case GT_RANGE: {
     	guru_range 	*r = obj->range;
-    	GV  		*v = &r->first;
-    	assert(v->gt==GT_INT||v->gt==GT_FLOAT);
+    	GV  		*x = &r->first;
+    	assert(x->gt==GT_INT || x->gt==GT_FLOAT);
 
-    	i->n     = v->i;
-    	i->ivar  = v;
+    	i->n     = x->i;
+    	i->ivar  = x;
     } break;
     case GT_ARRAY: {
     	guru_array *a = obj->array;
@@ -85,6 +89,10 @@ guru_iter_next(GV *obj)
 	guru_iter *it = obj->iter;
 	U32 nvar;
 	switch (it->size) {				// ranging object type (field reused)
+	case GT_INT: {
+		it->ivar->i += it->step ? it->step->i : 1;
+		nvar = (it->ivar->i <= it->n);
+	} break;
 	case GT_RANGE: {
 		guru_range *r = it->range->range;
 		_inc(it->ivar, it->step);

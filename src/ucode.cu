@@ -580,7 +580,7 @@ uc_return(guru_vm *vm)
 		guru_iter *it = (r0-1)->iter;
 		U32 nvar = guru_iter_next(r0-1);		// get next iterator element
 		if (nvar && !bk) {
-			*(r0+1) = *it->ivar;
+			*(r0+1) = *it->ivar;				// fetch next loop index
 			if (nvar>1) *(r0+2) = *(it->ivar+1);
 			vm->state->pc = 0;
 			return;
