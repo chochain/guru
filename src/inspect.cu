@@ -76,12 +76,14 @@ _int(GV *s, GV v[], U32 vi)
 
     U8 buf[64+2];									// int64 + terminate + 1
     U8 *p = buf + sizeof(buf) - 1;		*p='\0';	// fill from the tail of the buffer
-	S32 i = v[0].i;
+    GI i  = v[0].i;
+	U8 sng = i<0 ? (i=-i, '-') : 0;
     do {
         U32 x = i % base;
         *--p = (x < 10)? x + '0' : x + aoff;
         i /= base;
     } while (i>0);
+    if (sng) *--p = sng;
 
     guru_str_add_cstr(s, p);
 }
@@ -107,7 +109,7 @@ _phex(GV *s, void *ptr)
 __GURU__ void
 _flt(GV *s, GV *v)
 {
-	guru_str_add_cstr(s, "FLOAT not supported yet");
+	guru_na("flt");
 }
 
 //================================================================
