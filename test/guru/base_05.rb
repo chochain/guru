@@ -10,3 +10,5 @@ end
 [ 1, 2, "X" ].each do |i|
     puts i
 end
+
+    

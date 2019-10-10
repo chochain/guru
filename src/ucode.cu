@@ -324,6 +324,17 @@ uc_setconst(guru_vm *vm)
     _RA(*v);
 }
 
+__GURU__ GV *
+_upvar(guru_vm *vm)
+{
+	U32 n = (_AR(c)+1) << 1;		// depth of call stack (2 for each level)
+
+	guru_state *st;
+	for (st=vm->state; st && n>0; st=st->prev, n--);	// walk up call stack
+
+	return st->regs + _AR(b);		// outer scope register file
+}
+
 //================================================================
 /*!@brief
   OP_GETUPVAR
@@ -333,13 +344,7 @@ uc_setconst(guru_vm *vm)
 __UCODE__
 uc_getupvar(guru_vm *vm)
 {
-    U32 n = (_AR(c)+1) << 1;		// depth of call stack (2 for each level)
-
-    guru_state *st;
-    for (st=vm->state; st && n>0; st=st->prev, n--);	// walk up call stack
-
-    GV *ur = st->regs + _AR(b);		// outer scope register file
-
+    GV *ur = _upvar(vm);			// outer scope register file
     _RA_X(ur);          			// ra <= up[rb]
 }
 
@@ -352,15 +357,12 @@ uc_getupvar(guru_vm *vm)
 __UCODE__
 uc_setupvar(guru_vm *vm)
 {
-    U32 n = (_AR(c) + 1) << 1;				// 2 per outer scope level
-
-    guru_state *st;
-    for (st=vm->state; st && n>0; st=st->prev, n--);
-    GV *ur = st->regs + _AR(b);				// pointer to caller's register file
+    GV *ur = _upvar(vm);			// pointer to caller's register file
+    GV *va = _R(a);
 
     ref_dec(ur);
-    ref_inc(_R(a));
-    *ur = *_R(a);                   		// update outer-scope vars
+    ref_inc(va);
+    *ur = *va;                   	// update outer-scope vars
 }
 
 //================================================================
@@ -570,13 +572,14 @@ uc_return(guru_vm *vm)
 {
 	GV  ret = *_R(a);							// return value
 	U32 n   = _AR(a);							// pc adjustment
+	U32 bk  = _AR(b);							// break
 	guru_state *st = vm->state;
 
 	if (IS_ITERATOR(st)) {
 		GV        *r0 = _R0;					// top of stack
 		guru_iter *it = (r0-1)->iter;
 		U32 nvar = guru_iter_next(r0-1);		// get next iterator element
-		if (nvar) {
+		if (nvar && !bk) {
 			*(r0+1) = *it->ivar;
 			if (nvar>1) *(r0+2) = *(it->ivar+1);
 			vm->state->pc = 0;
