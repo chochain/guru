@@ -218,6 +218,7 @@ guru_strchr(U8 *s, const U8 c)
 __GURU__ U8*
 guru_strcat(U8 *d, const U8 *s)
 {
+	guru_memcpy(d+guru_strlen(d), s, guru_strlen(s)+1);
     return d;
 }
 
