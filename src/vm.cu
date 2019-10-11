@@ -292,7 +292,7 @@ __HOST__ int vm_stop(U32 vid) { return _set_status(vid, VM_STATUS_STOP, VM_STATU
 static const char *_vtype[] = {
 	"___","nil","f  ","t  ","num","flt","sym","cls",	// 0x0
 	"prc","","","","","","","",							// 0x8
-	"obj","ary","str","rng","hsh"					    // 0x10
+	"obj","ary","str","rng","hsh","itr"					// 0x10
 };
 
 static const char *_opcode[] = {

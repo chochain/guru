@@ -90,22 +90,21 @@ _each(guru_vm *vm, GV v[], U32 vi)
 	guru_irep  	*irep0 = vm->state->irep;
 	guru_irep  	*irep1 = v1->proc->irep;
 
-	// push stack out (space for iterator)
-	GV  *p0 = v + 1;
-	GV  *p1 = (p0 + 2 + vi);
-	for (U32 i=0; i<vi+1; i++, *p1--=*p0--);
+	// push stack out (1 spaces for iterator)
+	GV  *p = v+1;
+	for (U32 i=0; i<vi+1; i++, *(p+1)=*p, p--);
 
 	// allocate iterator state
-	vm_state_push(vm, irep0, v+1, vi);
-	vm->state->pc = pc0;
-	*(v+2) = git;
+	vm_state_push(vm, irep0, v+2, vi);
+	vm->state->pc = pc0;							// keep current return address
+	*(v+1) = git;
 
 	// switch into callee's context with v[1]=1st element
-	vm_state_push(vm, irep1, v+3, vi);
+	vm_state_push(vm, irep1, v+2, vi);
 	guru_iter *it = git.iter;
-	*(v+4) = *(it->ivar);
+	*(v+3) = *(it->ivar);
 	if (it->size==GT_HASH) {
-		*(v+5) = *(it->ivar+1);
+		*(v+4) = *(it->ivar+1);
 	}
 	vm->state->flag |= STATE_LOOP;
 }

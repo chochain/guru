@@ -31,7 +31,7 @@ typedef struct RIter {		// 48-byte
 } guru_iter;
 
 __GURU__ GV 	guru_iter_new(GV *obj, GV *step);
-__GURU__ U32    guru_iter_next(GV *iter);
+__GURU__ U32    guru_iter_next(GV *v);
 __GURU__ void	guru_iter_del(GV *v);
 
 

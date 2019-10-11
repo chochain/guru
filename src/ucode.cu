@@ -570,27 +570,28 @@ uc_enter(guru_vm *vm)
 __UCODE__
 uc_return(guru_vm *vm)
 {
-	GV  ret = *_R(a);							// return value
-	U32 n   = _AR(a);							// pc adjustment
-	U32 bk  = _AR(b);							// break
+	GV  ret = *_R(a);								// return value
+	U32 n   = _AR(a);								// pc adjustment
+	U32 bk  = _AR(b);								// break
 	guru_state *st = vm->state;
 
 	if (IS_ITERATOR(st)) {
-		GV        *r0 = _R0;					// top of stack
-		guru_iter *it = (r0-1)->iter;
-		U32 nvar = guru_iter_next(r0-1);		// get next iterator element
+		GV *r0 = _R0;								// top of stack
+		GV *ri = r0 - 1;							// interator
+		U32 nvar = guru_iter_next(ri);				// get next iterator element
 		if (nvar && !bk) {
-			*(r0+1) = *it->ivar;				// fetch next loop index
-			if (nvar>1) *(r0+2) = *(it->ivar+1);
+			guru_iter *it = ri->iter;				// fetch iterator
+			*(r0+1) = *it->ivar;					// fetch next loop index
+			if (nvar>1) *(r0+2) = *(it->ivar+1);	// range
 			vm->state->pc = 0;
 			return;
 		}
 		// pop off iterator state
-		guru_iter_del(r0-1);					// free the iterator object
+		guru_iter_del(ri);
 		vm_state_pop(vm, ret, n);
 		vm->state->flag &= ~STATE_LOOP;
 	}
-	vm_state_pop(vm, ret, n);					// pop callee's context
+	vm_state_pop(vm, ret, n);						// pop callee's context
 }
 
 //================================================================

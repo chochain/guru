@@ -83,14 +83,14 @@ typedef enum {
     GT_SYM,
     GT_CLASS,
     GT_PROC,								// 0x08
-    GT_ITER,
 
     /* non-primitive */
     GT_OBJ = 0x10,
     GT_ARRAY,
     GT_STR,
     GT_RANGE,
-    GT_HASH
+    GT_HASH,
+    GT_ITER
 } GT;
 
 #define GT_BOOL(v)		((v) ? GT_TRUE : GT_FALSE)

@@ -44,11 +44,12 @@ _inc(GV *v, GV *s)
 __GURU__ GV
 guru_iter_new(GV *obj, GV *step)
 {
-    GV v; { v.gt=GT_ITER; v.acl=0; }
+    GV v; { v.gt=GT_ITER; v.acl=ACL_HAS_REF; }
 
     guru_iter *i = v.iter = (guru_iter *)guru_alloc(sizeof(guru_iter));
-    i->step = step;
+    i->rc   = 1;
     i->size = obj->gt;			// reuse the field
+    i->step = step;
 
     i->range = ref_inc(obj);
     switch (obj->gt) {
@@ -82,11 +83,11 @@ guru_iter_new(GV *obj, GV *step)
 // return next iterator element
 //
 __GURU__ U32
-guru_iter_next(GV *obj)
+guru_iter_next(GV *v)
 {
-	assert(obj->gt==GT_ITER);
+	assert(v->gt==GT_ITER);
 
-	guru_iter *it = obj->iter;
+	guru_iter *it = v->iter;
 	U32 nvar;
 	switch (it->size) {				// ranging object type (field reused)
 	case GT_INT: {
@@ -139,4 +140,5 @@ guru_iter_del(GV *v)
 
     ref_dec(v->iter->range);
     guru_free(v->iter);
+    *v = EMPTY();
 }

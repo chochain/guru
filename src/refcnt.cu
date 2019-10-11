@@ -16,6 +16,7 @@
 #include "c_array.h"
 #include "c_hash.h"
 #include "c_range.h"
+#include "iter.h"
 
 __GURU__ GV *
 ref_get(GV *v)
@@ -58,6 +59,7 @@ ref_dec(GV *v)
     case GT_ARRAY:	    guru_array_del(v);	break;
     case GT_RANGE:	    guru_range_del(v);	break;
     case GT_HASH:	    guru_hash_del(v);	break;
+    case GT_ITER:		guru_iter_del(v);	break;
 #endif // GURU_USE_ARRAY
 
     default: assert(1==0);
