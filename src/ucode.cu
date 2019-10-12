@@ -327,7 +327,7 @@ uc_setconst(guru_vm *vm)
 __GURU__ GV *
 _upvar(guru_vm *vm)
 {
-	U32 n = (_AR(c)+1) << 1;		// depth of call stack (2 for each level)
+	U32 n = (_AR(c)+1)<<1;			// depth of call stack (2 for each level)
 
 	guru_state *st;
 	for (st=vm->state; st && n>0; st=st->prev, n--);	// walk up call stack
@@ -438,20 +438,21 @@ uc_onerr(guru_vm *vm)
 __UCODE__
 uc_rescue(guru_vm *vm)
 {
-	U32 c   = _AR(c);				// exception 0:set, 1:get
-	GV  *v  = _R(a);				// object to receive the exception
-	GV  *v1 = v+1;					// exception message (if any)
+	U32 c  = _AR(c);				// exception 0:set, 1:get
+	GV  *v = _R(a);					// object to receive the exception
+	GV  *x = v + 1;					// exception on stack
 
 	if (c) {						// 2nd: get cycle
-		if (v->gt==GT_EMPTY) {		// if exception is not given
-			_RA_X(v1);				// override exception (msg) if not given
+		if (x->gt != GT_NIL) {		// if exception is not given
+			_RA_X(x);				// override exception (msg) if not given
 		}
-		v1->gt  = GT_TRUE;			// here: modifying return stack directly is questionable!!
-		v1->acl = 0;
+		x->gt  = GT_TRUE;			// here: modifying return stack directly is questionable!!
+		x->acl = 0;
 	}
 	else {							// 1st: set cycle
-		_RA_X(v1);					// keep exception in RA
-		*v1 = EMPTY();
+		if (v->gt==GT_CLASS) x++;
+		_RA_X(x);					// keep exception in RA
+		*(x) = EMPTY();
 	}
 }
 
@@ -494,12 +495,13 @@ uc_raise(guru_vm *vm)
 __GURU__ GV *
 _undef(GV *buf, GV *v, GS sid)
 {
-	U8 *name = id2name(class_by_obj(v)->sid);
+	U8 *fname = id2name(sid);
+	U8 *cname = id2name(class_by_obj(v)->sid);
 
 	guru_str_add_cstr(buf, "undefined method '");
-	guru_str_add_cstr(buf, id2name(sid));
+	guru_str_add_cstr(buf, fname);
 	guru_str_add_cstr(buf, "' for class #");
-	guru_str_add_cstr(buf, name);
+	guru_str_add_cstr(buf, cname);
 
 	return buf;
 }
@@ -539,7 +541,7 @@ uc_call(guru_vm *vm)
 
 	guru_irep *irep = _R0->proc->irep;
 
-	vm_state_push(vm, irep, _R0, 0);
+	vm_state_push(vm, irep, 0, _R0, 0);
 }
 
 //================================================================
@@ -576,8 +578,8 @@ uc_return(guru_vm *vm)
 	guru_state *st = vm->state;
 
 	if (IS_ITERATOR(st)) {
-		GV *r0 = _R0;								// top of stack
-		GV *ri = r0 - 1;							// interator
+		GV *r0 = _R0;
+		GV *ri = r0 - 1;
 		U32 nvar = guru_iter_next(ri);				// get next iterator element
 		if (nvar && !bk) {
 			guru_iter *it = ri->iter;				// fetch iterator
@@ -586,8 +588,10 @@ uc_return(guru_vm *vm)
 			vm->state->pc = 0;
 			return;
 		}
+		ret = *_R(a);								// fetch last returned value
+		guru_iter_del(ri);							// release iterator
+
 		// pop off iterator state
-		guru_iter_del(ri);
 		vm_state_pop(vm, ret, n);
 		vm->state->flag &= ~STATE_LOOP;
 	}
@@ -1000,7 +1004,7 @@ uc_exec(guru_vm *vm)
 	assert(_R0->gt == GT_CLASS);				// check
 	guru_irep *irep = VM_REPS(vm, _AR(bx));		// child IREP[rb]
 
-    vm_state_push(vm, irep, _R(a), 0);			// push call stack
+    vm_state_push(vm, irep, 0, _R(a), 0);		// push call stack
 }
 
 //================================================================
