@@ -19,6 +19,7 @@
 #include "ostore.h"		// ostore_new
 #include "class.h"		// proc_by_sid
 #include "state.h"
+#include "c_array.h"
 #include "c_range.h"
 #include "iter.h"
 
@@ -48,6 +49,83 @@ __match(const U8* s0, U8* s1)
 }
 
 __GURU__ void
+_proc_call(guru_vm *vm, GV v[], U32 vi)
+{
+	GV        *regs;
+	guru_proc *proc;
+	guru_irep *irep;
+	switch (v->gt) {
+	case GT_PROC: {
+		regs = v;
+		irep = v->proc->irep;
+	} break;
+	case GT_ARRAY: {
+		U32 a = vm->ar.a;
+		regs  = v->array->data + a;
+		vm_state_push(vm, vm->state->irep, vm->state->pc, v, vi);
+		proc = regs[1].proc;
+		irep = proc->irep;
+	} break;
+	default: assert(1==0);
+	}
+	vm_state_push(vm, irep, 0, regs, vi);			// switch into callee's context
+}
+
+__GURU__ void
+_lambda(guru_vm *vm, GV v[], U32 vi)
+{
+	assert(v->gt==GT_CLASS && (v+1)->gt==GT_PROC);	// ensure it is a proc
+
+	U32 a  = vm->ar.a;								// caller class and proc
+	U32 n  = a + vm->state->irep->nv;
+	GV  ep = guru_array_new(n);
+	GV  *r = v - a;
+	for (U32 i=0; i< n; i++, r++) {
+		guru_array_push(&ep, r);					// deep copy stack frame
+	}
+	*v        = ep;
+	(v+1)->gt = GT_EMPTY;
+}
+
+__GURU__ void
+_each(guru_vm *vm, GV v[], U32 vi)
+{
+	GV *v1 = v+1;
+	assert(v1->gt==GT_PROC);						// ensure it is a code block
+
+	U32			pc0    = vm->state->pc;
+	guru_irep  	*irep0 = vm->state->irep;
+	GV          *regs0 = vm->state->regs;
+	guru_irep 	*irep1 = v1->proc->irep;
+	GV 			git    = guru_iter_new(v, NULL);	// create iterator
+
+	// push stack out (1 space for iterator)
+	GV  *p = v1;
+	for (U32 i=0; i<vi+1; i++, *(p+1)=*p, p--);
+	*(v+1) = git;
+
+	// allocate iterator state (using same stack frame)
+	vm_state_push(vm, irep0, pc0, v+2, vi);
+
+	// switch into callee's context with v[1]=1st element
+	vm_state_push(vm, irep1, 0, v+2, vi);
+	guru_iter *it = git.iter;
+	*(v+3) = *(it->ivar);
+	if (it->size==GT_HASH) {
+		*(v+4) = *(it->ivar+1);
+	}
+	vm->state->flag |= STATE_LOOP;
+}
+
+__GURU__ void
+_raise(guru_vm *vm, GV v[], U32 vi)
+{
+	assert(vm->depth > 0);
+
+	vm->state->pc = vm->rescue[--vm->depth];		// pop from exception return stack
+}
+
+__GURU__ void
 _object_new(guru_vm *vm, GV v[], U32 vi)
 {
 	assert(v->gt==GT_CLASS);						// ensure it is a class object
@@ -61,54 +139,6 @@ _object_new(guru_vm *vm, GV v[], U32 vi)
 	v[0] = obj;
 }
 
-__GURU__ void
-_raise(guru_vm *vm, GV v[], U32 vi)
-{
-	assert(vm->depth > 0);
-
-	vm->state->pc = vm->rescue[--vm->depth];		// pop from exception return stack
-}
-
-__GURU__ void
-_proc_call(guru_vm *vm, GV v[], U32 vi)
-{
-	assert(v->gt==GT_PROC);							// ensure it is a proc
-
-	guru_irep *irep = v->proc->irep;				// callee's IREP pointer
-
-	vm_state_push(vm, irep, v, vi);					// switch into callee's context
-}
-
-__GURU__ void
-_each(guru_vm *vm, GV v[], U32 vi)
-{
-	GV *v1 = v+1;
-	assert(v1->gt==GT_PROC);						// ensure it is a code block
-
-	GV 			git    = guru_iter_new(v, NULL);	// create iterator
-	U32        	pc0    = vm->state->pc;
-	guru_irep  	*irep0 = vm->state->irep;
-	guru_irep  	*irep1 = v1->proc->irep;
-
-	// push stack out (1 spaces for iterator)
-	GV  *p = v+1;
-	for (U32 i=0; i<vi+1; i++, *(p+1)=*p, p--);
-
-	// allocate iterator state
-	vm_state_push(vm, irep0, v+2, vi);
-	vm->state->pc = pc0;							// keep current return address
-	*(v+1) = git;
-
-	// switch into callee's context with v[1]=1st element
-	vm_state_push(vm, irep1, v+2, vi);
-	guru_iter *it = git.iter;
-	*(v+3) = *(it->ivar);
-	if (it->size==GT_HASH) {
-		*(v+4) = *(it->ivar+1);
-	}
-	vm->state->flag |= STATE_LOOP;
-}
-
 __GURU__ U32
 _method_missing(guru_vm *vm, GV v[], U32 vi, GS sid)
 {
@@ -117,6 +147,9 @@ _method_missing(guru_vm *vm, GV v[], U32 vi, GS sid)
 	// function dispatcher
 	if      (__match("call", f)) { 					// C-based prc_call (hacked handler, it needs vm->state)
 		_proc_call(vm, v, vi);						// push into call stack, obj at stack[0]
+	}
+	else if (__match("lambda", f)) {
+		_lambda(vm, v, vi);
 	}
 	else if (__match("each", f) || __match("times", f)) {
 		_each(vm, v, vi);
@@ -138,7 +171,7 @@ _method_missing(guru_vm *vm, GV v[], U32 vi, GS sid)
   Push current status to callinfo stack
 */
 __GURU__ void
-vm_state_push(guru_vm *vm, guru_irep *irep, GV v[], U32 vi)
+vm_state_push(guru_vm *vm, guru_irep *irep, U32 pc, GV v[], U32 vi)
 {
 	guru_state *top = vm->state;
     guru_state *st  = (guru_state *)guru_alloc(sizeof(guru_state));
@@ -150,7 +183,7 @@ vm_state_push(guru_vm *vm, guru_irep *irep, GV v[], U32 vi)
     default: assert(1==0);
     }
     st->irep  = irep;
-    st->pc    = 0;
+    st->pc    = pc;
     st->regs  = v;				// TODO: should allocate another regfile
     st->argc  = vi;				// allocate local stack
     st->flag  = 0;				// non-iterator
@@ -189,7 +222,7 @@ vm_method_exec(guru_vm *vm, GV v[], U32 vi, GS sid)
     	return _method_missing(vm, v, vi, sid);
     }
     if (HAS_IREP(prc)) {						// a Ruby-based IREP
-    	vm_state_push(vm, prc->irep, v, vi);	// switch to callee's context
+    	vm_state_push(vm, prc->irep, 0, v, vi);	// switch to callee's context
     }
     else {
     	if (v->gt==GT_OBJ) {

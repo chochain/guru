@@ -25,9 +25,9 @@ extern "C" {
 */
 typedef struct RIter {		// 48-byte
     GURU_HDR;				// 8-byte
-    GV  *ivar;
-    GV 	*range;				// 16-byte
-    GV 	*step;				// 16-byte
+    GV  		*ivar;
+    GV 			*range;				// 16-byte
+    GV 			*step;				// 16-byte
 } guru_iter;
 
 __GURU__ GV 	guru_iter_new(GV *obj, GV *step);

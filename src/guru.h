@@ -81,11 +81,12 @@ typedef enum {
     GT_INT,
     GT_FLOAT,
     GT_SYM,
-    GT_CLASS,
-    GT_PROC,								// 0x08
+
+    GT_CLASS 	= 0x8,
+    GT_PROC,
 
     /* non-primitive */
-    GT_OBJ = 0x10,
+    GT_OBJ 		= 0x10,
     GT_ARRAY,
     GT_STR,
     GT_RANGE,
