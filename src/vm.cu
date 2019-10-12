@@ -63,7 +63,7 @@ _ready(guru_vm *vm, guru_irep *irep)
     vm->run   = VM_STATUS_READY;
     vm->depth = vm->err = 0;
 
-    vm_state_push(vm, irep, vm->regfile, 0);
+    vm_state_push(vm, irep, 0, vm->regfile, 0);
 }
 
 __GURU__ void
@@ -290,8 +290,8 @@ __HOST__ int vm_stop(U32 vid) { return _set_status(vid, VM_STATUS_STOP, VM_STATU
 #if GURU_DEBUG
 
 static const char *_vtype[] = {
-	"___","nil","f  ","t  ","num","flt","sym","cls",	// 0x0
-	"prc","","","","","","","",							// 0x8
+	"___","nil","f  ","t  ","num","flt","sym","",		// 0x0
+	"cls","prc","","","","","","",						// 0x8
 	"obj","ary","str","rng","hsh","itr"					// 0x10
 };
 
@@ -342,7 +342,7 @@ __HOST__ void
 _show_regfile(guru_vm *vm, U32 lvl)
 {
 	guru_irep *irep = VM_IREP(vm);
-	U32 n  = irep->nr + irep->nv;		// number of register used
+	U32 n  = lvl + irep->nr;			// number of register used
 	GV  *v = &vm->regfile[n];
 	for (; n>0; n--, v--) {
 		if (v->gt!=GT_EMPTY) break;
@@ -394,8 +394,8 @@ _show_ucode(guru_vm *vm)
 
 	U32 lvl=0;
 	while (st->prev != NULL) {
-		st = st->prev;
-		lvl += 2 + st->argc;
+		lvl += IS_ITERATOR(st) ? 0 : (st->irep->nv + 2);
+		st  = st->prev;
 	}
 	_show_regfile(vm, lvl);
 	if (op==OP_SEND || op==OP_SENDB) _show_func(vm, code);
