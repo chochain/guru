@@ -128,12 +128,12 @@ _raise(guru_vm *vm, GV v[], U32 vi)
 __GURU__ void
 _object_new(guru_vm *vm, GV v[], U32 vi)
 {
-	assert(v->gt==GT_CLASS);						// ensure it is a class object
+	assert(v->gt==GT_CLASS);					// ensure it is a class object
 
-    GV  obj = ostore_new(v->cls);					// instantiate object (with zero ivar)
-	GS  sid = name2id((U8*)"initialize"); 			// search for custom initializer (or Object#c_nop)
+    GV  obj = ostore_new(v->cls);				// instantiate object (with zero ivar)
+	GS  sid = name2id((U8*)"initialize"); 		// search for custom initializer (or Object#c_nop)
 
-	if (vm_method_exec(vm, v, vi, sid)) {			// run custom initializer if any
+	if (vm_method_exec(vm, v, vi, sid)) {		// run custom initializer if any
 		vm->err = 1;
 	}
 	v[0] = obj;
@@ -175,7 +175,7 @@ vm_state_push(guru_vm *vm, guru_irep *irep, U32 pc, GV v[], U32 vi)
 {
 	guru_state *top = vm->state;
     guru_state *st  = (guru_state *)guru_alloc(sizeof(guru_state));
-
+    U32        argc = top ? U8POFF(v, top->regs)/sizeof(GV) : vi;
     switch(v->gt) {
     case GT_OBJ:
     case GT_CLASS: st->klass = v->cls;				break;
@@ -184,12 +184,13 @@ vm_state_push(guru_vm *vm, guru_irep *irep, U32 pc, GV v[], U32 vi)
     }
     st->irep  = irep;
     st->pc    = pc;
-    st->regs  = v;				// TODO: should allocate another regfile
-    st->argc  = vi;				// allocate local stack
-    st->flag  = 0;				// non-iterator
-    st->prev  = top;			// push into context stack
+    st->regs  = v;			// TODO: should allocate another regfile
+//    st->argc  = vi;			// allocate local stack CC - 20191013
+    st->argc  = argc;		// allocate local stack
+    st->flag  = 0;			// non-iterator
+    st->prev  = top;		// push into context stack
 
-    vm->state = st;				// TODO: use array-based stack
+    vm->state = st;			// TODO: use array-based stack
 }
 
 //================================================================
@@ -221,14 +222,14 @@ vm_method_exec(guru_vm *vm, GV v[], U32 vi, GS sid)
     if (prc==0) {
     	return _method_missing(vm, v, vi, sid);
     }
-    if (HAS_IREP(prc)) {						// a Ruby-based IREP
-    	vm_state_push(vm, prc->irep, 0, v, vi);	// switch to callee's context
+    if (HAS_IREP(prc)) {								// a Ruby-based IREP
+    	vm_state_push(vm, prc->irep, 0, v, vi);			// switch to callee's context
     }
     else {
     	if (v->gt==GT_OBJ) {
-    		v->vid = sid;						// pass as parameter
+    		v->vid = sid;								// pass as parameter
     	}
-    	prc->func(v, vi);						// call C-based function
+    	prc->func(v, vi);								// call C-based function
     	_wipe_stack(v+1, vi+1, NULL);
     }
     return 0;

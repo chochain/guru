@@ -516,14 +516,14 @@ _undef(GV *buf, GV *v, GS sid)
 __UCODE__
 uc_send(guru_vm *vm)
 {
-    GS  sid = VM_SYM(vm, _AR(b));					// get given symbol
-    GV  *v  = _R(a);								// call stack, obj is receiver object
+    GS  sid = VM_SYM(vm, _AR(b));				// get given symbol
+    GV  *r  = _R(a);							// call stack, obj is receiver object
 
-    if (vm_method_exec(vm, v, _AR(c), sid)) {		// in state.cu, call stack will be wiped before return
+    if (vm_method_exec(vm, r, _AR(c), sid)) { 	// in state.cu, call stack will be wiped before return
     	// put error message on return stack
     	GV buf = guru_str_buf(80);
-    	*(v+1) = *_undef(&buf, v, sid);				// TODO: exception class
-    	vm->err = 1;								// raise exception
+    	*(r+1) = *_undef(&buf, r, sid);			// TODO: exception class
+    	vm->err = 1;							// raise exception
     }
 }
 
@@ -538,10 +538,6 @@ __UCODE__
 uc_call(guru_vm *vm)
 {
 	assert(1==0);				// should not be here, no test case yet!
-
-	guru_irep *irep = _R0->proc->irep;
-
-	vm_state_push(vm, irep, 0, _R0, 0);
 }
 
 //================================================================

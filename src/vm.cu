@@ -394,7 +394,8 @@ _show_ucode(guru_vm *vm)
 
 	U32 lvl=0;
 	while (st->prev != NULL) {
-		lvl += IS_ITERATOR(st) ? 0 : (st->irep->nv + 2);
+		lvl += st->argc;
+//		lvl += IS_ITERATOR(st) ? 2 : st->irep->nv;
 		st  = st->prev;
 	}
 	_show_regfile(vm, lvl);
