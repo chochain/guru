@@ -341,21 +341,28 @@ _show_irep(guru_irep *irep, char level, char *n)
 __HOST__ void
 _show_regfile(guru_vm *vm, U32 lvl)
 {
-	guru_irep *irep = VM_IREP(vm);
+	guru_irep  *irep = VM_IREP(vm);
+	guru_state *st   = vm->state;
 	U32 n  = lvl + irep->nr;			// number of register used
-	GV  *v = &vm->regfile[n];
+	GV  *v = &st->regs[irep->nr-1];
 	for (; n>0; n--, v--) {
+		if (n==lvl) {
+			v = &vm->regfile[n];
+		}
 		if (v->gt!=GT_EMPTY) break;
 	}
 
 	v = &vm->regfile[0];
 	printf("[ ");
-	for (U32 i=0; i<=n; i++, v++) {
+	for (U32 i=0; i < n; i++, v++) {
 		const char *t = _vtype[v->gt];
 		U8 c = i==lvl ? '|' : ' ';
 		if (IS_READ_ONLY(v)) 	printf("%s.%c",  t, c);
 		else if (HAS_REF(v))	printf("%s%d%c", t, v->self->rc, c);
 		else					printf("%s %c",  t, c);
+		if (i==lvl) {
+			v = vm->state->regs;
+		}
     }
 	printf("]");
 }
@@ -395,7 +402,6 @@ _show_ucode(guru_vm *vm)
 	U32 lvl=0;
 	while (st->prev != NULL) {
 		lvl += st->argc;
-//		lvl += IS_ITERATOR(st) ? 2 : st->irep->nv;
 		st  = st->prev;
 	}
 	_show_regfile(vm, lvl);

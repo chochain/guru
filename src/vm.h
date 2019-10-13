@@ -77,7 +77,9 @@ typedef struct RState {			// 20-byte
 } guru_state;					// VM context
 
 #define STATE_LOOP				0x1
+#define STATE_LAMBDA			0x2
 #define IS_ITERATOR(st)			((st)->flag & STATE_LOOP)
+#define IS_LAMBDA(st)			((st)->flag & STATE_LAMBDA)
 
 //================================================================
 /* instructions: packed 32 bit      */

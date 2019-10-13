@@ -327,12 +327,15 @@ uc_setconst(guru_vm *vm)
 __GURU__ GV *
 _upvar(guru_vm *vm)
 {
-	U32 n = (_AR(c)+1)<<1;			// depth of call stack (2 for each level)
+	U32 b = IS_LAMBDA(vm->state);
+	U32 n = (_AR(c)+1) << (b ? 0 : 1);	// depth of call stack (2 for each level)
 
 	guru_state *st;
 	for (st=vm->state; st && n>0; st=st->prev, n--);	// walk up call stack
 
-	return st->regs + _AR(b);		// outer scope register file
+	GV *regs = st->regs + (b ? 1 : 0);
+
+	return regs + _AR(b);			// outer scope register file
 }
 
 //================================================================
@@ -590,6 +593,9 @@ uc_return(guru_vm *vm)
 		// pop off iterator state
 		vm_state_pop(vm, ret, n);
 		vm->state->flag &= ~STATE_LOOP;
+	}
+	else if (IS_LAMBDA(st)) {
+		vm->state->flag &= ~STATE_LAMBDA;
 	}
 	vm_state_pop(vm, ret, n);						// pop callee's context
 }
