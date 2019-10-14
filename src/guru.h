@@ -91,7 +91,8 @@ typedef enum {
     GT_STR,
     GT_RANGE,
     GT_HASH,
-    GT_ITER
+    GT_ITER,
+    GT_LAMBDA
 } GT;
 
 #define GT_BOOL(v)		((v) ? GT_TRUE : GT_FALSE)
@@ -156,9 +157,10 @@ typedef struct {					// 16-bytes (128 bits) for eaze of debugging
         struct RProc     *proc;		// GT_PROC
         struct RIter	 *iter;		// GT_ITER
         struct RString   *str;		// GT_STR
-        struct RArray    *array;	// TT_ARRAY
-        struct RRange    *range;	// TT_RANGE
-        struct RHash     *hash;		// TT_HASH
+        struct RArray    *array;	// GT_ARRAY
+        struct RRange    *range;	// GT_RANGE
+        struct RHash     *hash;		// GT_HASH
+        struct RArray	 *lambda;	// GT_LAMBDA
         U8       		 *sym;		// C-string (only loader use.)
     };
 } GV;

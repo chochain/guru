@@ -51,17 +51,20 @@ __match(const U8* s0, U8* s1)
 __GURU__ void
 _proc_call(guru_vm *vm, GV v[], U32 vi)
 {
+
 	if (v->gt==GT_PROC) {
-		vm_state_push(vm, v->proc->irep, 0, v, vi);	// switch into callee's context
+		vm_state_push(vm, v->proc->irep, 0, v, vi);		// switch into callee's context
 		return;
 	}
-	assert(v->gt==GT_ARRAY);					// lambda
 
-	GV        *regs = v->array->data;			// class
-	guru_proc *proc = regs[vm->ar.a+1].proc;	// proc
-	guru_irep *irep = proc->irep;
+	assert(v->gt==GT_LAMBDA);
+	vm_state_push(vm, vm->state->irep, vm->state->pc, v, vi);	// switch into callee's context
 
-	vm_state_push(vm, irep, 0, regs, vi);		// switch into callee's context
+	GV			*regs = v->lambda->data;				// closure (stack frame) kept in memory
+	guru_proc 	*proc = regs[0].proc;					// proc as the first element
+	guru_irep	*irep = proc->irep;
+
+	vm_state_push(vm, irep, 0, regs, vi);				// switch into lambda
 	vm->state->flag |= STATE_LAMBDA;
 }
 
@@ -70,16 +73,7 @@ _lambda(guru_vm *vm, GV v[], U32 vi)
 {
 	assert(v->gt==GT_CLASS && (v+1)->gt==GT_PROC);	// ensure it is a proc
 
-	guru_state *st = vm->state;
-	U32 n  = (v+1)->proc->irep->nr;					// registers needed by lambda
-//	U32 n  = st->irep->nr + a;						// total number of registers used
-	GV  ep = guru_array_new(n);
-	guru_array_push(&ep, st->regs);					// keep the class
-	GV  *r = st->regs + 2;							// stack frame
-	for (U32 i=0; i< st->irep->nv; i++, r++) {
-		guru_array_push(&ep, r);					// deep copy stack frame
-	}
-	*v        = ep;
+	*v = guru_lambda_new(v, vm->ar.a);
 	(v+1)->gt = GT_EMPTY;
 }
 
@@ -96,7 +90,7 @@ _each(guru_vm *vm, GV v[], U32 vi)
 
 	// push stack out (1 space for iterator)
 	GV  *p = v1;
-	for (U32 i=0; i<vi+1; i++, *(p+1)=*p, p--);
+	for (U32 i=0; i<=vi; i++, *(p+1)=*p, p--);
 	*(v+1) = git;
 
 	// allocate iterator state (using same stack frame)
@@ -168,22 +162,23 @@ _method_missing(guru_vm *vm, GV v[], U32 vi, GS sid)
 __GURU__ void
 vm_state_push(guru_vm *vm, guru_irep *irep, U32 pc, GV v[], U32 vi)
 {
-	guru_state *top = vm->state;
-    guru_state *st  = (guru_state *)guru_alloc(sizeof(guru_state));
-    U32        argc = top ? U8POFF(v, top->regs)/sizeof(GV) : vi;	// stack offset
+	guru_state 	*top = vm->state;
+    guru_state 	*st  = (guru_state *)guru_alloc(sizeof(guru_state));
+    U32 		nv   = top	? U8POFF(v, top->regs)/sizeof(GV) : vi;		// stack frame depth
 
     switch(v->gt) {
     case GT_OBJ:
     case GT_CLASS: st->klass = v->cls;				break;
-    case GT_ARRAY:
-    case GT_PROC:  st->klass = top->regs[0].cls; 	break;
+    case GT_PROC:
+    case GT_LAMBDA: st->klass = top->regs[0].cls; 	break;
     default: assert(1==0);
     }
     st->irep  = irep;
     st->pc    = pc;
     st->regs  = v;			// TODO: should allocate another regfile
-    st->argc  = argc;		// allocate local stack
+    st->argc  = vi;			// argument count
     st->flag  = 0;			// non-iterator
+    st->nv    = nv;			// stack frame depth
     st->prev  = top;		// push into context stack
 
     vm->state = st;			// TODO: use array-based stack
@@ -202,12 +197,14 @@ vm_state_pop(guru_vm *vm, GV ret_val, U32 rsz)
 {
     guru_state 	*st = vm->state;
 
-    ref_inc(&ret_val);			// to be referenced by the caller
-    _wipe_stack(st->regs, rsz + st->argc + 1, &ret_val);		// pop off all elements from stack
+    if (!IS_LAMBDA(vm->state)) {	// keep lambda's stack frame
+        ref_inc(&ret_val);			// to be referenced by the caller
+    	_wipe_stack(st->regs, rsz + st->argc + 1, &ret_val);
+    	st->regs[0] = ret_val;		// put return value on top of current stack
+    }
 
-    st->regs[0] = ret_val;		// put return value on top of current stack
-    vm->state = st->prev;		// restore previous state
-    guru_free(st);				// release memory block
+    vm->state = st->prev;			// restore previous state
+    guru_free(st);					// release memory block
 }
 
 __GURU__ U32

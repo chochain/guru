@@ -324,18 +324,28 @@ uc_setconst(guru_vm *vm)
     _RA(*v);
 }
 
+
+//================================================================
+/*!@brief
+  get outer scope register file
+
+*/
 __GURU__ GV *
 _upvar(guru_vm *vm)
 {
-	U32 b = IS_LAMBDA(vm->state);
-	U32 n = (_AR(c)+1) << (b ? 0 : 1);	// depth of call stack (2 for each level)
-
-	guru_state *st;
-	for (st=vm->state; st && n>0; st=st->prev, n--);	// walk up call stack
-
-	GV *regs = st->regs + (b ? 1 : 0);
-
-	return regs + _AR(b);			// outer scope register file
+	guru_state *st = vm->state;
+	GV  *regs;
+	for (U32 i=0; i<=_AR(c); i++) {		// walk up stack frame
+		U32 m = IS_LAMBDA(st) ? 1 : 0;	// TODO: consolidate this with each_loop
+		if (m) {
+			st = st->prev;
+		}
+		else {
+			st = st->prev->prev;		// 1 extra for each_loop
+		}
+		regs = st->regs - m;
+	}
+	return regs + _AR(b);
 }
 
 //================================================================
@@ -547,18 +557,18 @@ uc_call(guru_vm *vm)
 /*!@brief
   OP_ENTER
 
-  arg setup according to flags (23=5:5:1:5:5:1:1)
+  arg setup according to flags (23=5:5:1:5:5:1:1)		// default parameter
 */
 __UCODE__
 uc_enter(guru_vm *vm)
 {
 	U32 ax   = (vm->bytecode>>7) & 0x1ffffff;			// a special decoder case
 
-	U32 arg0 = (ax >> 13) & 0x1f;  // default args
-    U32 argc = (ax >> 18) & 0x1f;  // given args
+	U32 opt  = (ax >> 13) & 0x1f;  						// has default args
+    U32 vi   = (ax >> 18) & 0x1f;  						// number of args given
 
-    if (arg0 > 0){
-        vm->state->pc += vm->state->argc - argc;
+    if (opt > 0){
+        vm->state->pc += vm->state->argc - vi;			// jmp table lookup
     }
 }
 
@@ -595,7 +605,8 @@ uc_return(guru_vm *vm)
 		vm->state->flag &= ~STATE_LOOP;
 	}
 	else if (IS_LAMBDA(st)) {
-		vm->state->flag &= ~STATE_LAMBDA;
+		vm_state_pop(vm, ret, n);
+		st->flag &= ~STATE_LAMBDA;					// clear the flag, switch back stack frame
 	}
 	vm_state_pop(vm, ret, n);						// pop callee's context
 }

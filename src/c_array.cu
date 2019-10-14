@@ -1,6 +1,6 @@
 /*! @file
   @brief
-  GURU Array class
+  GURU Array and Lambda classes
 
   <pre>
   Copyright (C) 2019- GreenII
@@ -17,6 +17,7 @@
 #include "static.h"
 #include "value.h"
 
+#include "vm.h"
 #include "c_array.h"
 #include "inspect.h"
 
@@ -310,6 +311,27 @@ guru_array_del(GV *ary)
 
     if (h->data) guru_free(h->data);				// release data block
     guru_free(h);									// release header block
+}
+
+//================================================================
+/*! Lambda constructor - this is a hack!
+
+  @param  v	pointer to register file
+  @param  a offset to return value
+*/
+__GURU__ GV
+guru_lambda_new(GV *v, U32 a)
+{
+	U32 n   = (v+1)->proc->irep->nr;
+	GV  ret = guru_array_new(n);
+	ret.gt  = GT_LAMBDA;
+
+	guru_array_push(&ret, (v+1));					// keep the proc at regs[0]
+	GV  *r = v - a + 2;								// top of stack frame
+	for (U32 i=0; i < a; i++, r++) {				// deep copy stack frame
+		guru_array_push(&ret, r);
+	}
+	return ret;
 }
 
 //================================================================
