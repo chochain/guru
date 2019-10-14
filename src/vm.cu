@@ -292,7 +292,7 @@ __HOST__ int vm_stop(U32 vid) { return _set_status(vid, VM_STATUS_STOP, VM_STATU
 static const char *_vtype[] = {
 	"___","nil","f  ","t  ","num","flt","sym","",		// 0x0
 	"cls","prc","","","","","","",						// 0x8
-	"obj","ary","str","rng","hsh","itr"					// 0x10
+	"obj","ary","str","rng","hsh","itr","lda"			// 0x10
 };
 
 static const char *_opcode[] = {
@@ -401,7 +401,7 @@ _show_ucode(guru_vm *vm)
 
 	U32 lvl=0;
 	while (st->prev != NULL) {
-		lvl += st->argc;
+		lvl += st->nv;
 		st  = st->prev;
 	}
 	_show_regfile(vm, lvl);

@@ -66,9 +66,10 @@ typedef struct RIrep {			// 32-byte
 */
 typedef struct RState {			// 20-byte
     U32 pc;						// program counter
-    U8  argc;  					// num of args
+    U8  argc;  					// number of arguments
     U8  flag;					// iterator flag
-    U16 temp;					// reserved
+    U8  nv;						// number of local vars (for screen dump)
+    U8  temp;					// reserved
 
     guru_class      *klass;		// current class
     GV      		*regs;		// pointer to current register (in VM register file)
