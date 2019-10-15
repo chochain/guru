@@ -79,8 +79,10 @@ typedef struct RState {			// 20-byte
 
 #define STATE_LOOP				0x1
 #define STATE_LAMBDA			0x2
-#define IS_ITERATOR(st)			((st)->flag & STATE_LOOP)
+#define STATE_NEW				0x8
+#define IS_LOOP(st)				((st)->flag & STATE_LOOP)
 #define IS_LAMBDA(st)			((st)->flag & STATE_LAMBDA)
+#define IS_NEW(st)				((st)->flag & STATE_NEW)
 
 //================================================================
 /* instructions: packed 32 bit      */

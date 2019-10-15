@@ -125,6 +125,7 @@ _object_new(guru_vm *vm, GV v[], U32 vi)
 	if (vm_method_exec(vm, v, vi, sid)) {		// run custom initializer if any
 		vm->err = 1;
 	}
+	vm->state->flag |= STATE_NEW;
 	v[0] = obj;
 }
 
@@ -151,7 +152,7 @@ _method_missing(guru_vm *vm, GV v[], U32 vi, GS sid)
 	}
 	else {
 		_wipe_stack(v+1, vi+1, NULL);				// wipe call stack and return
-		return 1;
+		return __match("private", f) ? 0 : 1;
 	}
 	return 0;
 }

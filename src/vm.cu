@@ -333,7 +333,7 @@ _show_irep(guru_irep *irep, char level, char *n)
 
 	// dump all children ireps
 	for (U32 i=0; i<irep->r; i++) {
-		*n += 1;
+		*n += (*n=='z') ? -57 : 1;		// a-z, A-Z
 		_show_irep(irep->reps[i], level+1, n);
 	}
 }

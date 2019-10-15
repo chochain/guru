@@ -366,7 +366,7 @@ _show_decoder(mrbc_vm *vm)
 	v = vm->regfile;	// rewind
 	int s[8];
 	guru_malloc_stat(s);
-	printf("%c%-4d%-8s%4d[", 'a'+lvl, pc, opc, s[3]);
+	printf("%c%-4d%-8s%4d[", 'A'+lvl, pc, opc, s[3]);
 
 	for (U32 i=0; i<=last; i++, v++) {
 		printf("%2d.%s", i, _vtype[v->gt]);

@@ -39,7 +39,7 @@
 
 /* maximum size of global objects */
 #ifndef MAX_GLOBAL_COUNT
-#define MAX_GLOBAL_COUNT 40
+#define MAX_GLOBAL_COUNT 80
 #endif
 
 /* Configure environment */
@@ -64,7 +64,7 @@
 
 #define __GURU_CUDA__
 #define GURU_DEBUG					1
-#define BLOCK_MEMORY_SIZE 			(16*1024)
+#define BLOCK_MEMORY_SIZE 			(64*1024)
 #define GURU_64BIT_ALIGN_REQUIRED 	1
 #define CUDA_MIN_MEMBLOCK_SIZE		0x200
 #endif

@@ -18,6 +18,7 @@
 #include "value.h"
 #include "inspect.h"
 
+#include "object.h"
 #include "ostore.h"
 #include "class.h"
 #include "state.h"
@@ -241,14 +242,12 @@ __UCODE__
 uc_setiv(guru_vm *vm)
 {
 	GV *v = _R0;
-	assert(v->gt==GT_OBJ);
+	assert(v->gt==GT_OBJ || IS_META(v));
 
     GS sid0  = VM_SYM(vm, _AR(bx));
     U8 *name = id2name(sid0);			// attribute name with leading '@'
     GS sid1  = name2id(name+1);			// skip the '@'
     ostore_set(v, sid1, _R(a));
-
-    _RA(*v);
 }
 
 //================================================================
@@ -287,8 +286,6 @@ uc_setcv(guru_vm *vm)
 
     GS sid = VM_SYM(vm, _AR(bx));
     ostore_set(v, sid, _R(a));
-
-    _RA(*v);
 }
 
 //================================================================
@@ -318,10 +315,11 @@ uc_setconst(guru_vm *vm)
 {
 	GV *v  = _R0;
 	GS sid = VM_SYM(vm, _AR(bx));
+	GV *ra = _R(a);
 
-    const_set(sid, _R(a));
+	ra->acl &= ~ACL_HAS_REF;		// set it to constant
 
-    _RA(*v);
+    const_set(sid, ra);
 }
 
 
@@ -581,12 +579,12 @@ uc_enter(guru_vm *vm)
 __UCODE__
 uc_return(guru_vm *vm)
 {
-	GV  ret = *_R(a);								// return value
 	U32 n   = _AR(a);								// pc adjustment
 	U32 bk  = _AR(b);								// break
-	guru_state *st = vm->state;
+	GV  ret;										// return value
 
-	if (IS_ITERATOR(st)) {
+	guru_state *st = vm->state;
+	if (IS_LOOP(st)) {
 		GV *r0 = _R0;
 		GV *ri = r0 - 1;
 		U32 nvar = guru_iter_next(ri);				// get next iterator element
@@ -603,6 +601,11 @@ uc_return(guru_vm *vm)
 		// pop off iterator state
 		vm_state_pop(vm, ret, n);
 		vm->state->flag &= ~STATE_LOOP;
+		ret = *_R0;									// return the object itself
+	}
+	else if (IS_NEW(st)) {
+	    vm->state->flag &= ~STATE_NEW;
+		ret = *ref_dec(_R0);						// return the object itself
 	}
 	else if (IS_LAMBDA(st)) {
 		vm_state_pop(vm, ret, n);
@@ -910,7 +913,7 @@ uc_array(guru_vm *vm)
 {
 #if GURU_USE_ARRAY
     U32 n = _AR(c);
-    GV  v = (GV)guru_array_new(n);		// ref_cnt is 1 already
+    GV  v = (GV)guru_array_new(n);			// ref_cnt is 1 already
 
     guru_array *h = v.array;
     _stack_copy(h->data, _R(b), h->n=n);
@@ -1088,12 +1091,7 @@ uc_sclass(guru_vm *vm)
 		o->self->cls 	  = cls;
 	}
 	else if (o->gt==GT_CLASS) {						// meta class (for class methods)
-		if (o->cls->cls==NULL) {					// lazy allocation
-			const U8	*name = (U8*)"_meta";
-			guru_class 	*cls  = guru_define_class(name, guru_class_object);
-			o->cls->cls   = cls;					// self pointing =~ meta class
-			SET_META(o);
-		}
+		guru_class_add_meta(o);						// lazily add metaclass if needed
 	}
 	else assert(1==0);
 	SET_SCLASS(o);

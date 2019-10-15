@@ -80,6 +80,20 @@ _send(GV v[], GV *rcv, const U8 *method, U32 argc, ...)
     return regs[0];
 }
 
+__GURU__ void
+guru_class_add_meta(GV *v)			// lazy add metaclass to a class
+{
+	assert(v->gt==GT_CLASS);
+
+	if (v->cls->cls!=NULL) return;
+
+	const U8	*name = (U8*)"_meta";
+	guru_class 	*cls  = guru_define_class(name, guru_class_object);
+	v->cls->cls   = cls;			// self pointing =~ metaclass
+
+	SET_META(v);
+}
+
 __GURU__ GV
 guru_inspect(GV v[], GV *obj)
 {
@@ -192,22 +206,36 @@ obj_class(GV v[], U32 vi)
     RETURN_VAL(ret);
 }
 
+__GURU__ void
+_extend(guru_class *cls, guru_class *mod)
+{
+	guru_class *dup = (guru_class*)guru_alloc(sizeof(guru_class));
+	MEMCPY(dup, mod, sizeof(guru_class));		// deep copy so vtbl can be modified later
+
+	dup->super = cls->super;					// put module as the super-class
+	cls->super = dup;
+}
+
 //================================================================
 /*! (method) include
  */
 __CFUNC__
 obj_include(GV v[], U32 vi)
 {
-	assert(v[0].gt==GT_CLASS && v[1].gt==GT_CLASS);
+	assert(v->gt==GT_CLASS && (v+1)->gt==GT_CLASS);
+	_extend(v->cls, (v+1)->cls);
+}
 
-	guru_class *cls = v->cls;
-	guru_class *mod = (v+1)->cls;
+//================================================================
+/*! (method) extend
+ */
+__CFUNC__
+obj_extend(GV v[], U32 vi)
+{
+	assert(v->gt==GT_CLASS && v[1].gt==GT_CLASS);
 
-	guru_class *dup = (guru_class*)guru_alloc(sizeof(guru_class));
-	MEMCPY(dup, mod, sizeof(guru_class));		// deep copy so vtbl can be modified later
-
-	dup->super = cls->super;					// put module as the super-class
-	cls->super = dup;
+	guru_class_add_meta(v);						// lazily add metaclass if needed
+	_extend(v->cls->cls, (v+1)->cls);			// add to class methods
 }
 
 //================================================================
@@ -227,6 +255,21 @@ obj_setiv(GV v[], U32 vi)
 {
     GS vid = v->vid;							// attribute 'x='
     ostore_set(v, vid-1, v+1);					// attribute 'x'
+}
+
+
+//================================================================
+/*! append '=' to create name for attr_writer
+ */
+__GURU__ U8 *
+_add_eq(GV *buf, U8 *s0)
+{
+    guru_str_add_cstr(buf, s0);
+    guru_str_add_cstr(buf, "=");
+
+    U32 sid = name2id((U8*)buf->str->raw);
+
+    return id2name(sid);
 }
 
 //================================================================
@@ -250,15 +293,19 @@ obj_attr_reader(GV v[], U32 vi)
 __CFUNC__
 obj_attr_accessor(GV v[], U32 vi)
 {
-	GV *s = v+1;
-    for (U32 i=0; i < vi; i++, s+=2) {
+    GV buf = guru_str_buf(80);
+	GV *s   = v+1;
+    for (U32 i=0; i < vi; i++, s++) {
         assert(s->gt==GT_SYM);
+        U8 *a0  = id2name(s->i);						// reader
+        U8 *a1  = _add_eq(&buf, a0);					// writer
 
-        U8 *a0 = id2name(s->i);							// reader
-        U8 *a1 = id2name(s->i+1);						// writer
         guru_define_method(v->cls, a0, obj_getiv);
         guru_define_method(v->cls, a1, obj_setiv);
+
+        guru_str_clr(&buf);
     }
+    guru_str_del(&buf);
 }
 
 //================================================================
@@ -297,6 +344,7 @@ _init_class_object()
     	{ "===",           	obj_eq3 		},
     	{ "class",         	obj_class		},
     	{ "include",		obj_include     },
+    	{ "extend",			obj_extend		},
 //    	{ "new",           	obj_new 		},		// handled by state#vm_method_exec
 //      { "raise",			obj_raise		},		// handled by state#vm_method_exec
     	{ "attr_reader",   	obj_attr_reader 	},
