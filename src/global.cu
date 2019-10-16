@@ -25,7 +25,7 @@ typedef enum {
 } _gtype;
 
 typedef struct {						// 32-bit
-    GS 			sid;
+    GS 			xid;
     _gtype 		gt;
 } _gidx;
 
@@ -44,19 +44,19 @@ __GURU__ GV		_nil { .gt = GT_NIL, .acl=0 };
 /* linear search is not efficient! */
 /* TODO: Use binary search */
 __GURU__ S32
-_idx(GS sid, _gtype gt)
+_idx(GS xid, _gtype gt)
 {
 	_gidx *p = _global_idx;
     for (U32 i=0; i <_global_sz ; i++, p++) {
-        if (p->sid == sid && p->gt == gt) return i;
+        if (p->xid == xid && p->gt == gt) return i;
     }
     return -1;
 }
 
 __GURU__ GV *
-_get(GS sid, _gtype gt)
+_get(GS xid, _gtype gt)
 {
-    S32 i = _idx(sid, gt);
+    S32 i = _idx(xid, gt);
 
     if (i < 0) return &_nil;		// not found
 
@@ -64,9 +64,9 @@ _get(GS sid, _gtype gt)
 }
 
 __GURU__ void
-_set(GS sid, GV *v, _gtype gt)
+_set(GS xid, GV *v, _gtype gt)
 {
-    S32 i = _idx(sid, gt);
+    S32 i = _idx(xid, gt);
 
     _LOCK;
 
@@ -75,7 +75,7 @@ _set(GS sid, GV *v, _gtype gt)
     }
     assert(i < MAX_GLOBAL_COUNT);			// maybe raise ex
 
-    _global_idx[i].sid = sid;
+    _global_idx[i].xid = xid;
     _global_idx[i].gt  = gt;
     _global[i] = *v;
 
@@ -85,29 +85,29 @@ _set(GS sid, GV *v, _gtype gt)
 /* add */
 /* TODO: Check reference count */
 __GURU__ void
-global_set(GS sid, GV *v)
+global_set(GS xid, GV *v)
 {
-    _set(sid, v, GURU_GLOBAL_OBJECT);
+    _set(xid, v, GURU_GLOBAL_OBJECT);
 }
 
 __GURU__ void
-const_set(GS sid, GV *v)
+const_set(GS xid, GV *v)
 {
-    _set(sid, v, GURU_CONST_OBJECT);
+    _set(xid, v, GURU_CONST_OBJECT);
 }
 
 /* get */
 __GURU__ GV *
-global_get(GS sid)
+global_get(GS xid)
 {
-    return _get(sid, GURU_GLOBAL_OBJECT);
+    return _get(xid, GURU_GLOBAL_OBJECT);
 }
 
 /* add const */
 __GURU__ GV *
-const_get(GS sid)
+const_get(GS xid)
 {
-    return _get(sid, GURU_CONST_OBJECT);
+    return _get(xid, GURU_CONST_OBJECT);
 }
 //
 __GPU__ void

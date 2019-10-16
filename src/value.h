@@ -41,11 +41,12 @@ __GURU__ void 		guru_memcpy(U8 *d, const U8 *s, U32 sz);
 __GURU__ void    	guru_memset(U8 *d, U8  v, U32 sz);
 __GURU__ S32     	guru_memcmp(const U8 *d, const U8 *s, U32 sz);
 
-__GURU__ U32  		guru_strlen(const U8 *s, U32 bytelen);
+__GURU__ U32  		guru_strlen(const U8 *s, U32 use_byte);
 __GURU__ S32     	guru_strcmp(const U8 *s1, const U8 *s2);
 __GURU__ void    	guru_strcpy(U8 *s1, const U8 *s2);
 __GURU__ U8*		guru_strchr(U8 *d,  const U8 c);
 __GURU__ U8*		guru_strcat(U8 *d,  const U8 *s);
+__GURU__ U8*     	guru_strcut(const U8 *s, U32 n);			// take n utf8 chars from the string
 
 #define ATOI(s)           guru_atoi(s, 10)
 #define ATOF(s)			  guru_atof(s)

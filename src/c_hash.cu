@@ -177,17 +177,17 @@ _clr(GV *kv)
   @return 	hash object
 */
 __GURU__ GV
-guru_hash_new(int size)
+guru_hash_new(int sz)
 {
     GV v;	{ v.gt=GT_HASH; v.acl=ACL_HAS_REF; }
     /*
       Allocate handle and data buffer.
     */
     guru_hash *h   = v.hash = (guru_hash *)guru_alloc(sizeof(guru_hash));
-    GV        *ptr = size ? (GV *)guru_alloc(sizeof(GV) * (size<<1)) : NULL;
+    GV        *ptr = sz ? (GV *)guru_alloc(sizeof(GV) * (sz<<1)) : NULL;
 
     h->rc   = 1;
-    h->size	= size<<1;
+    h->sz	= sz<<1;
     h->n  	= 0;
     h->data = ptr;
 

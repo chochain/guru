@@ -22,7 +22,8 @@
 __GURU__ S32
 _string_cmp(const GV *v0, const GV *v1)
 {
-	if (v0->str->n != v1->str->n) return -1;
+	S32 x  = (U32)v0->str->n - (U32)v1->str->n;
+	if (x) return x;
 
 	return STRCMP(v0->str->raw, v1->str->raw);
 }
@@ -167,52 +168,72 @@ guru_atof(const U8 *s)
 }
 
 __GURU__ void
-guru_memcpy(U8 *d, const U8 *s, U32 sz)
+guru_memcpy(U8 *d, const U8 *s, U32 bsz)
 {
-    for (U32 i=0; s && d && i<sz; i++, *d++ = *s++);
+    for (U32 i=0; s && d && i<bsz; i++, *d++ = *s++);
 }
 
 __GURU__ void
-guru_memset(U8 *d, U8 v,  U32 sz)
+guru_memset(U8 *d, U8 v,  U32 bsz)
 {
-    for (U32 i=0; d && i<sz; i++, *d++ = v);
+    for (U32 i=0; d && i<bsz; i++, *d++ = v);
 }
 
 __GURU__ int
-guru_memcmp(const U8 *d, const U8 *s, U32 sz)
+guru_memcmp(const U8 *d, const U8 *s, U32 bsz)
 {
 	U32 i;
-    for (i=0; s && d && i<sz && *d++==*s++; i++);
+    for (i=0; i<bsz && *d++==*s++; i++);
 
-    return i<sz;
+    return i<bsz ? (*d - *s) : 0;
+}
+
+__GURU__ __INLINE__ void
+_next_utf8(U8 **sp)
+{
+	U8  c = **sp;
+	U32 b = 0;
+	if      (c>0 && c<=127) 		b=1;
+	else if ((c & 0xE0) == 0xC0) 	b=2;
+	else if ((c & 0xF0) == 0xE0) 	b=3;
+	else if ((c & 0xF8) == 0xF0) 	b=4;
+	else *sp=NULL;					// invalid utf8
+
+	*sp+=b;
 }
 
 __GURU__ U32
-guru_strlen(const U8 *str, U32 byte)
+guru_strlen(const U8 *str, U32 use_byte)
 {
 	U32 n  = 0;
 	U8  *s = (U8*)str;
-	for (U32 i=0; *s!='\0'; i++) {
-		U8 c = *s;
-		if      (c>0 && c<=127) 		{ s+=1; n++; }
-		else if ((c & 0xE0) == 0xC0) 	{ s+=2; n++; }
-		else if ((c & 0xF0) == 0xE0) 	{ s+=3; n++; }
-		else if ((c & 0xF8) == 0xF0) 	{ s+=4; n++; }
-		else return 0;	// invalid utf8
+	for (U32 i=0; s && *s!='\0'; i++, n++) {
+		_next_utf8(&s);
 	}
-	return byte ? s - str : n;
+	return (s && use_byte) ? s - str : n;
+}
+
+__GURU__ U8 *
+guru_strcut(const U8 *str, U32 n)
+{
+	U8 *s = (U8*)str;
+	for (U32 i=0, c=0; n>0 && s && *s!='\0'; i++) {
+		_next_utf8(&s);
+		if (++c >= n) break;
+	}
+	return s;
 }
 
 __GURU__ void
 guru_strcpy(U8 *d, const U8 *s)
 {
-    guru_memcpy(d, s, guru_strlen(s,1)+1);
+    guru_memcpy(d, s, STRLENB(s)+1);
 }
 
 __GURU__ S32
 guru_strcmp(const U8 *s1, const U8 *s2)
 {
-    return guru_memcmp(s1, s2, guru_strlen(s1,1));
+    return guru_memcmp(s1, s2, STRLENB(s1));
 }
 
 __GURU__ U8*
@@ -226,7 +247,7 @@ guru_strchr(U8 *s, const U8 c)
 __GURU__ U8*
 guru_strcat(U8 *d, const U8 *s)
 {
-	guru_memcpy(d+guru_strlen(d,1), s, guru_strlen(s,1)+1);
+	guru_memcpy(d+STRLENB(d), s, STRLENB(s)+1);
     return d;
 }
 

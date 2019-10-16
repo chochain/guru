@@ -58,10 +58,10 @@ __GURU__ void
 _resize(guru_array *h, U32 ndx)
 {
     U32 n = 0;
-    if (ndx >= h->size) {						// need resize?
+    if (ndx >= h->sz) {							// need resize?
         n = ndx;
     }
-    else if (h->n >= h->size) {
+    else if (h->n >= h->sz) {
         n = h->n + 4;							// auto allocate extra 4 elements
     }
     if (n) {
@@ -69,7 +69,7 @@ _resize(guru_array *h, U32 ndx)
         h->data = h->data
         	? (GV *)guru_realloc(h->data, asz)
         	: (GV *)guru_alloc(asz);
-        h->size = n;
+        h->sz = n;
         for (U32 i=h->n; i<n; i++) {			// DEBUG: lazy fill here, instead of when resized
             h->data[i] = EMPTY();
         }
@@ -87,9 +87,9 @@ __GURU__ void
 _set(GV *ary, S32 idx, GV *val)
 {
     guru_array *h = ary->array;
-    U32 ndx = (idx < 0) ? h->size + idx : idx;
+    U32 ndx = (idx < 0) ? h->sz + idx : idx;
 
-    if (ndx >= h->size) {
+    if (ndx >= h->sz) {
         _resize(h, ndx + 4);					// adjust array size
     }
     if (ndx < h->n) {
@@ -108,8 +108,8 @@ _push(GV *ary, GV *set_val)
 {
     guru_array *h = ary->array;
 
-    if (h->n >= h->size) {
-        _resize(h, h->size + 6);
+    if (h->n >= h->sz) {
+        _resize(h, h->sz + 6);
     }
     h->data[h->n++] = *ref_inc(set_val);
 }
@@ -141,7 +141,7 @@ __GURU__ int
 _insert(GV *ary, S32 idx, GV *set_val)
 {
     guru_array *h = ary->array;
-    U32 ndx = 1 + (idx < 0) ? h->size+idx : idx;
+    U32 ndx = 1 + (idx < 0) ? h->sz+idx : idx;
     _resize(h, ndx);
 
     if (ndx < h->n) {										// move data
@@ -288,7 +288,7 @@ guru_array_new(U32 sz)
     void       *ptr = sz ? guru_alloc(sizeof(GV) * sz) : NULL;			// empty array?
 
     h->rc   = 1;
-    h->size = sz;
+    h->sz   = sz;
     h->n  	= 0;
     h->data = (GV *)ptr;
 

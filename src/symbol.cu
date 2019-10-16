@@ -45,10 +45,8 @@ __GURU__ U16
 _calc_hash(const U8 *str)
 {
     U16 h = 0;
-
-    while (*str != '\0') {
-        h = h * 37 + *str;		// a simplistic hashing algo
-        str++;
+    for (U32 i=0, b=STRLENB(str); i<b; i++) {
+        h = h * 37 + *str++;		// a simplistic hashing algo
     }
     return h;
 }
@@ -65,7 +63,7 @@ _search_index(const U8 *str)
     U32 i=0;
     do {
         if (_sym[i].hash==hash &&
-        	guru_strcmp(str, _sym[i].cstr)==0) {
+        	STRCMP(str, _sym[i].cstr)==0) {
             return i;
         }
         i = (hash < _sym[i].hash) ? _sym[i].left : _sym[i].right;
@@ -138,7 +136,7 @@ guru_sym_new(const U8 *str)
     }
 
     // create symbol object dynamically.
-    U32 asz  = STRLEN(str) + 1;		ALIGN(asz);
+    U32 asz  = STRLENB(str) + 1;	ALIGN(asz);
     U8  *buf = (U8*)guru_alloc(asz);
 
     MEMCPY(buf, str, asz);

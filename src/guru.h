@@ -132,8 +132,6 @@ typedef U16 		GS;
 #define HAS_NO_REF(v)	(!HAS_REF(v))
 #define IS_READ_ONLY(v)	((v)->acl & ACL_READ_ONLY)
 #define IS_SCLASS(v)	(((v)->gt==GT_CLASS) && ((v)->acl & ACL_SCLASS))
-#define SET_SCLASS(v)	((v)->acl |=  ACL_SCLASS, v)
-#define CLR_SCLASS(v)	((v)->acl &= ~ACL_SCLASS, v)
 
 //===============================================================================
 /*!@brief
@@ -147,8 +145,8 @@ typedef U16 		GS;
 typedef struct {					// 16-bytes (128 bits) for eaze of debugging
 	GT  	gt 	: 16;				// guru object type
 	U32 	acl : 16;				// object access control (i.e. ROM able
-	GS  	sid;					// object sid in ivar (only for user defined objects)
 	GS 		vid;					// variable idx (used by ostore)
+	U16  	temp;					// reserved
     union {							// 64-bit
 		GI  	 		 i;			// GT_INT, GT_SYM
 		GF 	 	 		 f;			// GT_FLOAT
@@ -178,19 +176,34 @@ struct Vfunc {
   Guru object header. (i.e. Ruby's RBasic)
     rc  : reference counter
     size: storage space for built-in complex objects (i.e. ARRAY, HASH, STRING)
+    meta: meta flag for class, iterator object type
     n   : actual number of elements in built-in object
+    b   : byte count for string
+    sid : symbol id for class, proc
+    xxx : reserved for class
 */
 #define GURU_HDR  		\
 	U16		rc;			\
-    U16  	size;		\
-    U16  	n;			\
-    GS		sid
+	union {				\
+		U16  	sz;		\
+		U16		meta;	\
+	};					\
+	union {				\
+		struct {		\
+			U16	b;		\
+			U16 n;		\
+    	};				\
+		struct {		\
+			U16 sid;	\
+			U16 xxx;	\
+    	};				\
+    };
 
 //================================================================
 /*! Define instance data handle.
 */
 typedef struct RVar {
-	GURU_HDR;
+	GURU_HDR;					// size: allocated size, n: byte count, sid: utf8 char count
     GV *attr;					// attributes
 } guru_var;
 
