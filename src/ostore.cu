@@ -47,12 +47,12 @@ _bsearch(guru_var *r, GS vid)
   @return		0: success, 1: failed
 */
 __GURU__ U32
-_resize(guru_var *r, U32 size)
+_resize(guru_var *r, U32 sz)
 {
-    GV *v = (GV *)guru_realloc(r->attr, sizeof(GV) * size);
+    GV *v = (GV *)guru_realloc(r->attr, sizeof(GV) * sz);
 
     r->attr = v;
-    r->size = size;
+    r->sz   = sz;
 
     return 0;
 }
@@ -70,7 +70,7 @@ _new(U32 nlv)
     guru_var *r = (guru_var *)guru_alloc(sizeof(guru_var));
 
     r->attr = (GV *)guru_alloc(sizeof(GV) * nlv);
-    r->size = nlv;		// number of local variables
+    r->sz   = nlv;		// number of local variables
     r->n    = 0;		// currently zero allocated
 
     return r;
@@ -96,9 +96,9 @@ _set(guru_var *r, GS vid, GV *val)
         return 0;
     }
     // new attribute
-    v = r->attr + (++idx);											// use next slot
-    if ((r->n+1) > r->size) {						// need resize?
-        if (_resize(r, r->size + 4)) return -1;		// allocation, error?
+    v = r->attr + (++idx);							// use next slot
+    if ((r->n+1) > r->sz) {						    // need resize?
+        if (_resize(r, r->sz + 4)) return -1;		// allocation, error?
     }
     // shift attributes out for insertion
     GV *t = r->attr + r->n;

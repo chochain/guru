@@ -48,7 +48,7 @@ guru_iter_new(GV *obj, GV *step)
 
     guru_iter *i = v.iter = (guru_iter *)guru_alloc(sizeof(guru_iter));
     i->rc   = 1;
-    i->size = obj->gt;			// reuse the field
+    i->meta = obj->gt;			// reuse the field
     i->step = step;
 
     i->range = ref_inc(obj);
@@ -89,7 +89,7 @@ guru_iter_next(GV *v)
 
 	guru_iter *it = v->iter;
 	U32 nvar;
-	switch (it->size) {				// ranging object type (field reused)
+	switch (it->meta) {				// ranging object type (field reused)
 	case GT_INT: {
 		it->ivar->i += it->step ? it->step->i : 1;
 		nvar = (it->ivar->i < it->n);

@@ -120,7 +120,7 @@ guru_define_class(const U8 *name, guru_class *super)
     cls->vtbl 	= NULL;					// head of list
     cls->ivar   = NULL;					// lazily allocated when needed
     cls->cls 	= NULL;					// meta-class, lazily allocated when needed
-    cls->n      = 0;					// ~META_FLAG
+    cls->meta   = 0;					// ~META_FLAG
 #ifdef GURU_DEBUG
     // change to sid later
     cls->name   = (char *)id2name(sid);	// retrive from stored symbol table (the one caller passed might be destroyed)

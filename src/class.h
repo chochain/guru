@@ -37,8 +37,8 @@ typedef struct RClass {			// 64-byte
 } guru_class;
 
 #define META_FLAG		0x1
-#define IS_META(v)		((v)->gt==GT_CLASS && ((v)->cls->n & META_FLAG))
-#define SET_META(v)		((v)->cls->n |= META_FLAG)
+#define IS_META(v)		((v)->gt==GT_CLASS && ((v)->cls->meta & META_FLAG))
+#define SET_META(v)		((v)->cls->meta |= META_FLAG)
 
 // external methods uses static string (const char *) 												// in class.cu
 __GURU__ guru_class *guru_add_class(const char *name, guru_class *super, Vfunc vtbl[], int n);		// use (char *) for static string

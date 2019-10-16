@@ -579,9 +579,9 @@ uc_enter(guru_vm *vm)
 __UCODE__
 uc_return(guru_vm *vm)
 {
+	GV  ret = *_R(a);								// return value
 	U32 n   = _AR(a);								// pc adjustment
 	U32 bk  = _AR(b);								// break
-	GV  ret;										// return value
 
 	guru_state *st = vm->state;
 	if (IS_LOOP(st)) {
@@ -605,7 +605,7 @@ uc_return(guru_vm *vm)
 	}
 	else if (IS_NEW(st)) {
 	    vm->state->flag &= ~STATE_NEW;
-		ret = *ref_dec(_R0);						// return the object itself
+		ret = *_R0;									// return the object itself
 	}
 	else if (IS_LAMBDA(st)) {
 		vm_state_pop(vm, ret, n);
@@ -1058,7 +1058,7 @@ uc_method(guru_vm *vm)
 
     _UNLOCK;
 
-    CLR_SCLASS(v);								// clear SCLASS (meta) flag
+    v->acl &= ~ACL_SCLASS;						// clear SCLASS (meta) flag
     *(v+1) = EMPTY();							// clean up proc
 }
 
@@ -1094,7 +1094,8 @@ uc_sclass(guru_vm *vm)
 		guru_class_add_meta(o);						// lazily add metaclass if needed
 	}
 	else assert(1==0);
-	SET_SCLASS(o);
+
+	o->acl |= ACL_SCLASS;
 }
 
 //================================================================

@@ -100,7 +100,7 @@ _each(guru_vm *vm, GV v[], U32 vi)
 	vm_state_push(vm, irep1, 0, v+2, vi);
 	guru_iter *it = git.iter;
 	*(v+3) = *(it->ivar);
-	if (it->size==GT_HASH) {
+	if (it->meta==GT_HASH) {
 		*(v+4) = *(it->ivar+1);
 	}
 	vm->state->flag |= STATE_LOOP;
@@ -165,7 +165,7 @@ vm_state_push(guru_vm *vm, guru_irep *irep, U32 pc, GV v[], U32 vi)
 {
 	guru_state 	*top = vm->state;
     guru_state 	*st  = (guru_state *)guru_alloc(sizeof(guru_state));
-    U32 		nv   = top	? U8POFF(v, top->regs)/sizeof(GV) : vi;		// stack frame depth
+    U32 		nv   = vm->ar.a;					// stack frame depth
 
     switch(v->gt) {
     case GT_OBJ:
