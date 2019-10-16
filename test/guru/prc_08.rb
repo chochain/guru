@@ -3,10 +3,11 @@
 def f
     a = 3
     lambda do |b|
-        puts a + b
+        a + b
     end
 end
 
 fx = f
-fx.call(5)
+puts fx.call(4)
+puts fx.call(5)
     
