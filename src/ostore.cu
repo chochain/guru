@@ -24,19 +24,19 @@
 __GURU__ S32
 _bsearch(guru_var *r, GS vid)
 {
-    S32 p0 = 0;
-    S32 p1 = r->n - 1;		if (p1 < 0) return -1;
+    S32 i0 = 0;
+    S32 i1 = r->n - 1;		if (i1 < 0) return -1;
 
     GV *v = r->attr;							// point at 1st attribute
-    while (p0 < p1) {
-    	S32 m = (p0 + p1) >>1;					// middle i.e. div by 2
+    while (i0 < i1) {
+    	S32 m = (i0 + i1) >>1;					// middle i.e. div by 2
         if ((v+m)->vid < vid) {
-            p0 = m + 1;
+            i0 = m + 1;
         } else {
-            p1 = m;
+            i1 = m;
         }
     }
-    return p0;
+    return i0;
 }
 
 //================================================================
@@ -88,9 +88,8 @@ __GURU__ S32
 _set(guru_var *r, GS vid, GV *val)
 {
     S32 idx = _bsearch(r, vid);
-    GV  *v;
-    if (idx >= 0) {
-    	v = r->attr + idx;
+    GV  *v  = r->attr + idx;
+    if (idx >= 0 && v->vid==vid) {
         ref_dec(v);									// replace existed attribute
         SET_VAL(v, vid, val);
         return 0;
@@ -122,9 +121,10 @@ __GURU__ GV*
 _get(guru_var *r, GS vid)
 {
     S32 idx = _bsearch(r, vid);
-    if (idx < 0 || (r->attr+idx)->vid != vid) return NULL;
+    GV  *v  = r->attr + idx;
+    if (idx < 0 || v->vid != vid) return NULL;
 
-    return r->attr+idx;
+    return v;
 }
 
 //================================================================
@@ -195,7 +195,8 @@ ostore_set(GV *v, GS vid, GV *val)
 __GURU__ GV
 ostore_get(GV *v, GS vid)
 {
-	guru_var *r   = v->self->ivar;
+//	(v->gt==GT_CLASS) ? v->cls->ivar : v->self->ivar (common struct)
+	guru_var *r = v->self->ivar;		// class or instance var
 	GV 		 *val = r ? _get(r, vid) : NULL;
 
     return val ? *val : NIL();

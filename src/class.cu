@@ -45,7 +45,7 @@ class_by_obj(GV *v)
 #endif // GURU_USE_FLOAT
     case GT_SYM:  	 return guru_class_symbol;
     case GT_OBJ:  	 return v->self->cls;
-    case GT_CLASS:   return (IS_META(v) || IS_SCLASS(v)) ? v->cls->cls : v->cls;
+    case GT_CLASS:   return IS_SCLASS(v) ? v->cls->cls : v->cls;
     case GT_PROC:	 return guru_class_proc;
 #if GURU_USE_STRING
     case GT_STR:     return guru_class_string;
@@ -88,7 +88,7 @@ proc_by_sid(GV *v, GS sid)
 {
 	// TODO: heavy-weight method, use Dynamic Parallelism or a cache to speed up lookup
     guru_proc  *p;
-    for (guru_class *cls=class_by_obj(v); cls!=NULL; cls=cls->super) {	// search up hierarchy tree
+    for (guru_class *cls=class_by_obj(v); cls; cls=cls->super) {	// search up hierarchy tree
         for (p=cls->vtbl; p && (p->sid != sid); p=p->next);				// linear search thru class or meta vtbl
         if (p) return p;												// break if found
     }

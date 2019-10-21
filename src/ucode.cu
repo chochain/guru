@@ -212,6 +212,15 @@ uc_setglobal(guru_vm *vm)
     global_set(sid, _R(a));
 }
 
+__GURU__ __INLINE__ GS
+_name2id_plus(guru_vm *vm)
+{
+    GS sid   = VM_SYM(vm, _AR(bx));
+    U8 *name = id2name(sid);			// attribute name with leading '@'
+
+    return name2id(name+1);				// skip the '@'
+}
+
 //================================================================
 /*!@brief
   OP_GETIV
@@ -222,12 +231,10 @@ __UCODE__
 uc_getiv(guru_vm *vm)
 {
 	GV *v = _R0;
-	assert(v->gt==GT_OBJ);
+//	assert(v->gt==GT_OBJ);
 
-    GS sid0  = VM_SYM(vm, _AR(bx));
-    U8 *name = id2name(sid0);			// attribute name with leading '@'
-    GS sid1  = name2id(name+1);			// skip the '@'
-    GV ret = ostore_get(v, sid1);
+    GS sid = _name2id_plus(vm);
+    GV ret = ostore_get(v, sid);
 
     _RA(ret);
 }
@@ -242,12 +249,10 @@ __UCODE__
 uc_setiv(guru_vm *vm)
 {
 	GV *v = _R0;
-	assert(v->gt==GT_OBJ || IS_META(v));
+	assert(v->gt==GT_OBJ || v->gt==GT_CLASS);
 
-    GS sid0  = VM_SYM(vm, _AR(bx));
-    U8 *name = id2name(sid0);			// attribute name with leading '@'
-    GS sid1  = name2id(name+1);			// skip the '@'
-    ostore_set(v, sid1, _R(a));
+    GS sid = _name2id_plus(vm);
+    ostore_set(v, sid, _R(a));
 }
 
 //================================================================
@@ -300,6 +305,7 @@ uc_getconst(guru_vm *vm)
     GS sid = VM_SYM(vm, _AR(bx));
 
     GV *v = const_get(sid);
+    if (v->gt==GT_CLASS) v->acl |= ACL_XCLASS;
 
     _RA(*v);
 }
@@ -434,7 +440,10 @@ uc_jmpnot(guru_vm *vm)
 __UCODE__
 uc_onerr(guru_vm *vm)
 {
+	assert(vm->depth < (MAX_RESCUE_STACK-1));
+
 	GI sbx = _AR(bx) - MAX_sBx -1;
+
 	vm->rescue[vm->depth++] = vm->state->pc + sbx;
 }
 
@@ -603,14 +612,14 @@ uc_return(guru_vm *vm)
 		vm->state->flag &= ~STATE_LOOP;
 		ret = *_R0;									// return the object itself
 	}
-	else if (IS_NEW(st)) {
-	    vm->state->flag &= ~STATE_NEW;
-		ret = *_R0;									// return the object itself
-	}
 	else if (IS_LAMBDA(st)) {
 		vm_state_pop(vm, ret, n);
-		st->flag &= ~STATE_LAMBDA;					// clear the flag, switch back stack frame
+		vm->state->flag &= ~STATE_LAMBDA;			// clear the flag, switch back stack frame
 	}
+	else if (IS_NEW(st)) {
+		ret = *_R0;									// return the object itself
+	}
+	ret.acl &= ~ACL_SCLASS;							// turn off SCLASS flag if any
 	vm_state_pop(vm, ret, n);						// pop callee's context
 }
 
@@ -1021,6 +1030,7 @@ uc_exec(guru_vm *vm)
 	guru_irep *irep = VM_REPS(vm, _AR(bx));		// child IREP[rb]
 
     vm_state_push(vm, irep, 0, _R(a), 0);		// push call stack
+    vm->state->flag |= STATE_EVAL;
 }
 
 //================================================================
@@ -1033,12 +1043,12 @@ __UCODE__
 uc_method(guru_vm *vm)
 {
 	GV  *v = _R(a);
-
     assert(v->gt==GT_OBJ || v->gt == GT_CLASS);	// enforce class checking
 
     // check whether the name has been defined in current class (i.e. vm->state->klass)
     GS sid = VM_SYM(vm, _AR(b));				// fetch name from IREP symbol table
-    guru_proc *prc = proc_by_sid(v, sid);		// fetch proc from obj->klass->vtbl
+    guru_class *cls = class_by_obj(v);			// get receiver class
+    guru_proc  *prc = proc_by_sid(v, sid);		// fetch proc from obj->klass->vtbl
 
 #if GURU_DEBUG
     if (prc != NULL) {
@@ -1051,14 +1061,13 @@ uc_method(guru_vm *vm)
     _LOCK;
 
     // add proc to class
-    guru_class 	*cls = class_by_obj(v);
     prc->sid  = sid;							// assign sid to proc, overload if prc already exists
     prc->next = cls->vtbl;						// add to top of vtable, so it will be found first
     cls->vtbl = prc;							// if there is a sub-class override
 
     _UNLOCK;
 
-    v->acl &= ~ACL_SCLASS;						// clear SCLASS (meta) flag
+    v->acl &= ~ACL_SCLASS;						// clear CLASS modification flags if any
     *(v+1) = EMPTY();							// clean up proc
 }
 
@@ -1088,7 +1097,7 @@ uc_sclass(guru_vm *vm)
 		const U8   *name  = (U8*)"_single";
 		guru_class *super = class_by_obj(o);
 		guru_class *cls   = guru_define_class(name, super);
-		o->self->cls 	  = cls;
+		o->self->cls = cls;
 	}
 	else if (o->gt==GT_CLASS) {						// meta class (for class methods)
 		guru_class_add_meta(o);						// lazily add metaclass if needed

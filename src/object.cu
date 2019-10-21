@@ -55,7 +55,7 @@ _send(GV v[], GV *rcv, const U8 *method, U32 argc, ...)
     GV *regs = v + 2;	     		// allocate 2 for stack
     GS sid   = name2id(method);
 
-    guru_proc *m = proc_by_sid(rcv, sid);	// method of receiver object
+    guru_proc *m = proc_by_sid(v, sid);		// find method for receiver object
 
     assert(m);
 
@@ -87,11 +87,11 @@ guru_class_add_meta(GV *v)			// lazy add metaclass to a class
 
 	if (v->cls->cls!=NULL) return;
 
+	// lazily create the metaclass
 	const U8	*name = (U8*)"_meta";
 	guru_class 	*cls  = guru_define_class(name, guru_class_object);
-	v->cls->cls   = cls;			// self pointing =~ metaclass
-
-	SET_META(v);
+	cls->meta |= CLASS_META;		// mark it as a metaclass
+	v->cls->cls = cls;				// self pointing =~ metaclass
 }
 
 __GURU__ GV
@@ -200,8 +200,10 @@ obj_eq3(GV v[], U32 vi)
 __CFUNC__
 obj_class(GV v[], U32 vi)
 {
+	assert(v->gt==GT_OBJ);
+
     GV ret;  { ret.gt = GT_CLASS; }
-    ret.self = (guru_obj*)class_by_obj(v);
+    ret.cls = class_by_obj(v);
 
     RETURN_VAL(ret);
 }
@@ -293,6 +295,8 @@ obj_attr_reader(GV v[], U32 vi)
 __CFUNC__
 obj_attr_accessor(GV v[], U32 vi)
 {
+	guru_class *cls = class_by_obj(v);					// fetch class
+
     GV buf = guru_str_buf(80);
 	GV *s   = v+1;
     for (U32 i=0; i < vi; i++, s++) {
@@ -300,8 +304,8 @@ obj_attr_accessor(GV v[], U32 vi)
         U8 *a0  = id2name(s->i);						// reader
         U8 *a1  = _add_eq(&buf, a0);					// writer
 
-        guru_define_method(v->cls, a0, obj_getiv);
-        guru_define_method(v->cls, a1, obj_setiv);
+        guru_define_method(cls, a0, obj_getiv);
+        guru_define_method(cls, a1, obj_setiv);
 
         guru_str_clr(&buf);
     }
@@ -314,6 +318,7 @@ obj_attr_accessor(GV v[], U32 vi)
 __CFUNC__
 obj_kind_of(GV v[], U32 vi)
 {
+	assert(v->gt==GT_OBJ);
     if ((v+1)->gt != GT_CLASS) {
         RETURN_BOOL(0);
     }

@@ -89,9 +89,10 @@ _each(guru_vm *vm, GV v[], U32 vi)
 	GV 			git    = guru_iter_new(v, NULL);	// create iterator
 
 	// push stack out (1 space for iterator)
-	GV  *p = v1;
-	for (U32 i=0; i<=vi; i++, *(p+1)=*p, p--);
+//	GV  *p = v1;
+//	for (U32 i=0; i<=vi; i++, *(p+1)=*p, p--);
 	*(v+1) = git;
+	*(v+2) = *vm->state->regs;
 
 	// allocate iterator state (using same stack frame)
 	vm_state_push(vm, irep0, pc0, v+2, vi);
@@ -111,7 +112,7 @@ _raise(guru_vm *vm, GV v[], U32 vi)
 {
 	assert(vm->depth > 0);
 
-	vm->state->pc = vm->rescue[--vm->depth];		// pop from exception return stack
+	vm->state->pc = vm->rescue[--vm->depth];	// pop from exception return stack
 }
 
 __GURU__ void
@@ -200,10 +201,9 @@ vm_state_pop(guru_vm *vm, GV ret_val, U32 rsz)
 
     if (!IS_LAMBDA(vm->state)) {	// keep lambda's stack frame
         ref_inc(&ret_val);			// to be referenced by the caller
-    	_wipe_stack(st->regs, rsz + st->argc + 1, &ret_val);
+    	_wipe_stack(st->regs, rsz + st->nv + 1, &ret_val);
     	st->regs[0] = ret_val;		// put return value on top of current stack
     }
-
     vm->state = st->prev;			// restore previous state
     guru_free(st);					// release memory block
 }
@@ -211,7 +211,7 @@ vm_state_pop(guru_vm *vm, GV ret_val, U32 rsz)
 __GURU__ U32
 vm_method_exec(guru_vm *vm, GV v[], U32 vi, GS sid)
 {
-    guru_proc *prc = (guru_proc *)proc_by_sid(v , sid);
+    guru_proc  *prc = proc_by_sid(v, sid);				// v->gt in [GT_OBJ, GT_CLASS]
 
     if (prc==0) {
     	return _method_missing(vm, v, vi, sid);

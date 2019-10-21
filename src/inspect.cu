@@ -152,6 +152,7 @@ _cls(GV *s, GV *v)
 __GURU__ void
 _obj(GV *s, GV *v)
 {
+	assert(v->gt==GT_OBJ);
 	U8 *name = id2name(class_by_obj(v)->sid);
 	guru_str_add_cstr(s, "#<");
 	guru_str_add_cstr(s, name);
