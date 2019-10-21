@@ -15,36 +15,16 @@
 #define GURU_SRC_VM_CONFIG_H_
 
 /* min, maximum number of VMs */
-#ifndef MIN_VM_COUNT
-#define MIN_VM_COUNT 2
-#endif
-#ifndef MAX_VM_COUNT
-#define MAX_VM_COUNT 10
-#endif
+#define MIN_VM_COUNT 		1
+#define MAX_VM_COUNT 		16
 
-/* maximum size of registers, which determine how deep call stack can go */
-#ifndef MAX_REGFILE_SIZE
-#define MAX_REGFILE_SIZE 32
-#endif
+/* maximum size of exception stack and registers, which determine how deep call stack can go */
+#define MAX_RESCUE_STACK 	8
+#define MAX_REGFILE_SIZE 	128
 
-/* maximum size of callinfo (callstack) */
-#ifndef MAX_CALL_STACK
-#define MAX_CALL_STACK 100
-#endif
-
-/* maximum number of symbols */
-#ifndef MAX_SYMBOL_COUNT
-#define MAX_SYMBOL_COUNT 200
-#endif
-
-/* maximum size of global objects */
-#ifndef MAX_GLOBAL_COUNT
-#define MAX_GLOBAL_COUNT 80
-#endif
-
-/* Configure environment */
-/* 0: NOT USE */
-/* 1: USE */
+/* max objects in symbol and global/constant caches allowed */
+#define MAX_SYMBOL_COUNT 	256
+#define MAX_GLOBAL_COUNT 	128
 
 /* Guru module support */
 #define GURU_DO_INSPECT     1
@@ -67,6 +47,7 @@
 #define BLOCK_MEMORY_SIZE 			(64*1024)
 #define GURU_64BIT_ALIGN_REQUIRED 	1
 #define CUDA_MIN_MEMBLOCK_SIZE		0x200
+
 #endif
 
 
