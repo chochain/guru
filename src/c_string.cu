@@ -532,13 +532,23 @@ str_index(GV v[], U32 vi)
         if (offset < 0) RETURN_NIL();
     }
     else {
-        RETURN_NIL();					// raise? ArgumentError
+        RETURN_NIL();						// raise? ArgumentError
     }
 
     index = _index(v, v+1, offset);
     if (index < 0) RETURN_NIL();
 
     RETURN_INT(index);
+}
+
+//================================================================
+/*! (method) include?
+ */
+__CFUNC__
+str_include(GV v[], U32 vi)
+{
+    if (_index(v, v+1, 0)<0) RETURN_FALSE()
+    else 					 RETURN_TRUE();
 }
 
 //================================================================
@@ -714,6 +724,7 @@ guru_init_class_string()
 		{ "chomp!",	str_chomp_self	},
 		{ "dup",	str_dup			},
 		{ "index",	str_index		},
+		{ "include?", str_include   },
 		{ "ord",	str_ord			},
 		{ "split",	str_split		},
 		{ "lstrip",	str_lstrip		},
