@@ -295,10 +295,24 @@ static const char *_vtype[] = {
 	"obj","ary","str","rng","hsh","itr","lda"			// 0x10
 };
 
+static const int _op_sym[] = {
+	OP_LOADI, OP_LOADSYM,
+	OP_GETGLOBAL, OP_SETGLOBAL, OP_GETCONST, OP_SETCONST,
+	OP_GETIV, OP_SETIV, OP_SETCV, OP_GETCV,
+	OP_STRING, OP_LOADL
+};
+#define SZ_SYM	(sizeof(_op_sym)/sizeof(int))
+
+static const int _op_exe[] = {
+	OP_SEND, OP_SENDB, OP_CLASS, OP_MODULE, OP_METHOD,
+	OP_MOVE, OP_ADDI, OP_SUBI
+};
+#define SZ_EXE	(sizeof(_op_exe)/sizeof(int))
+
 static const char *_opcode[] = {
     "NOP ",	"MOVE",	"LOADL","LOADI","LOADSYM","LOADNIL","LOADSLF","LOADT",
     "LOADF","GETGBL","SETGBL","GETSPC","SETSPC","GETIV","SETIV","GETCV",
-    "SETCV","GETCONS","SETCONS","","","GETUVAR","SETUVAR","JMP ",
+    "SETCV","GETCST","SETCST","","","GETUVAR","SETUVAR","JMP ",
     "JMPIF","JMPNOT","ONERR","RESCUE","POPERR","RAISE","EPUSH","EPOP",
     "SEND","SENDB","","CALL","","","ENTER","",
     "","RETURN","","BLKPUSH","ADD ","ADDI","SUB ","SUBI",
@@ -339,14 +353,14 @@ _show_irep(guru_irep *irep, char level, char *n)
 }
 
 __HOST__ void
-_show_regfile(guru_vm *vm, U32 lvl)
+_show_regfile(guru_vm *vm, U32 ri)
 {
 	guru_irep  *irep = VM_IREP(vm);
 	guru_state *st   = vm->state;
-	U32 n  = lvl + irep->nr;			// number of register used
+	U32 n  = ri + irep->nr;			// number of register used
 	GV  *v = &st->regs[irep->nr-1];
 	for (; n>0; n--, v--) {
-		if (n==lvl) {
+		if (n==ri) {
 			v = &vm->regfile[n];
 		}
 		if (v->gt!=GT_EMPTY) break;
@@ -356,11 +370,11 @@ _show_regfile(guru_vm *vm, U32 lvl)
 	printf("[ ");
 	for (U32 i=0; i < n; i++, v++) {
 		const char *t = _vtype[v->gt];
-		U8 c = i==lvl ? '|' : ' ';
+		U8 c = i==ri ? '|' : ' ';
 		if (IS_READ_ONLY(v)) 	printf("%s.%c",  t, c);
 		else if (HAS_REF(v))	printf("%s%d%c", t, v->self->rc, c);
 		else					printf("%s %c",  t, c);
-		if (i==lvl) {
+		if (i==ri) {
 			v = vm->state->regs;
 		}
     }
@@ -369,20 +383,42 @@ _show_regfile(guru_vm *vm, U32 lvl)
 
 #define bin2u32(x) ((x << 24) | ((x & 0xff00) << 8) | ((x >> 8) & 0xff00) | (x >> 24))
 
-__HOST__ void
-_show_func(guru_vm *vm, U32 code)
+__HOST__ int
+_find_op(const int *lst, int op, int n)
 {
-	if (outbuf==NULL) outbuf = (U8*)cuda_malloc(OUTBUF_SIZE, 1);	// lazy alloc
-
-	U32 rb   = (code >> 14) & 0x1ff;
-	GS  sid  = VM_SYM(vm, rb);
-
-	id2name_host(sid, outbuf);
-	printf(" #%s", outbuf);
+	for (U32 i=0; i<n; i++) {
+		if (op==lst[i]) return i;
+	}
+	return -1;
 }
 
 __HOST__ void
-_show_ucode(guru_vm *vm)
+_show_extra(guru_vm *vm, U32 code)
+{
+	U16  op = code & 0x7f;
+	int  si = _find_op(_op_sym, op, SZ_SYM);
+	int  ei = _find_op(_op_exe, op, SZ_EXE);
+	if (si<0 && ei<0) return;
+
+	U8  c  = (si>=0) ? ':' : '#';
+	int bn = si>=0 ? (code>>7) & 0xffff : (code>>14) & 0x1ff;
+
+	if 		(op==OP_MOVE) 	{ printf(" r%d<%d", (code>>23) & 0x1ff, bn);	return; }
+	else if (op==OP_STRING) { printf(" '%s'", VM_STR(vm, bn).str->raw);		return; }
+	else if (op==OP_LOADI) 	{ printf(" %d", bn - MAX_sBx);					return;	}
+	else if (op==OP_LOADL)	{ printf(" %g", VM_VAR(vm, bn).f);				return; }
+	else if (op==OP_ADDI ||
+			 op==OP_SUBI)   { printf(" %d", (code>>7) & 0x7f);				return; }
+
+	if (outbuf==NULL) outbuf = (U8*)cuda_malloc(OUTBUF_SIZE, 1);	// lazy alloc
+
+	GS sid = VM_SYM(vm, bn);
+	id2name_host(sid, outbuf);
+	printf(" %c%s", c, outbuf);
+}
+
+__HOST__ void
+_disasm(guru_vm *vm)
 {
 	U16  pc    = vm->state->pc;						// program counter
 	U32  *iseq = VM_ISEQ(vm);
@@ -399,13 +435,13 @@ _show_ucode(guru_vm *vm)
 	}
 	printf("%1d%c%-4d%-8s", vm->id, idx, pc, opc);
 
-	U32 lvl=0;
-	while (st->prev != NULL) {
-		lvl += st->nv;
-		st  = st->prev;
-	}
-	_show_regfile(vm, lvl);
-	if (op==OP_SEND || op==OP_SENDB) _show_func(vm, code);
+	U32 ri=0;
+	for (; st->prev; ri+=st->nv, st=st->prev);
+
+	_show_regfile(vm, ri);
+	_show_extra(vm, code);
+
+	printf("\n");
 }
 
 __HOST__ void
@@ -416,13 +452,10 @@ _trace(U32 level)
 	guru_vm *vm = _vm_pool;
 	for (U32 i=0; i<MIN_VM_COUNT; i++, vm++) {
 		if (vm->run==VM_STATUS_RUN && vm->step) {
-			guru_state *st = vm->state;
-			while (st->prev) {
+			for (guru_state *st=vm->state; st->prev; st=st->prev) {
 				printf("  ");
-				st = st->prev;
 			}
-			_show_ucode(vm);
-			printf("\n");
+			_disasm(vm);
 		}
 	}
 	if (level>1) guru_mmu_stat(level);
