@@ -296,23 +296,21 @@ static const char *_vtype[] = {
 };
 
 static const int _op_sym[] = {
-	OP_LOADI, OP_LOADSYM,
+	OP_LOADSYM,
 	OP_GETGLOBAL, OP_SETGLOBAL, OP_GETCONST, OP_SETCONST,
-	OP_GETIV, OP_SETIV, OP_SETCV, OP_GETCV,
-	OP_STRING, OP_LOADL
+	OP_GETIV, OP_SETIV, OP_SETCV, OP_GETCV
 };
 #define SZ_SYM	(sizeof(_op_sym)/sizeof(int))
 
 static const int _op_exe[] = {
-	OP_SEND, OP_SENDB, OP_CLASS, OP_MODULE, OP_METHOD,
-	OP_MOVE, OP_ADDI, OP_SUBI
+	OP_SEND, OP_SENDB, OP_CLASS, OP_MODULE, OP_METHOD
 };
 #define SZ_EXE	(sizeof(_op_exe)/sizeof(int))
 
 static const char *_opcode[] = {
     "NOP ",	"MOVE",	"LOADL","LOADI","LOADSYM","LOADNIL","LOADSLF","LOADT",
     "LOADF","GETGBL","SETGBL","GETSPC","SETSPC","GETIV","SETIV","GETCV",
-    "SETCV","GETCST","SETCST","","","GETUVAR","SETUVAR","JMP ",
+    "SETCV","GETCONS","SETCONS","","","GETUVAR","SETUVAR","JMP ",
     "JMPIF","JMPNOT","ONERR","RESCUE","POPERR","RAISE","EPUSH","EPOP",
     "SEND","SENDB","","CALL","","","ENTER","",
     "","RETURN","","BLKPUSH","ADD ","ADDI","SUB ","SUBI",
@@ -326,13 +324,23 @@ static const char *_opcode[] = {
 #define OUTBUF_SIZE	256
 U8 *outbuf = NULL;
 
+#define bin2u32(x) ((x << 24) | ((x & 0xff00) << 8) | ((x >> 8) & 0xff00) | (x >> 24))
 __HOST__ int
-_match_irep(guru_irep *irep0, guru_irep *irep1, U8 *idx)
+_find_op(const int *lst, int op, int n)
+{
+	for (U32 i=0; i<n; i++) {
+		if (op==lst[i]) return i;
+	}
+	return -1;
+}
+
+__HOST__ int
+_find_irep(guru_irep *irep0, guru_irep *irep1, U8 *idx)
 {
 	if (irep0==irep1) return 1;
 	for (U32 i=0; i<irep0->r; i++) {
 		*idx += 1;
-		if (_match_irep(irep0->reps[i], irep1, idx)) return 1;
+		if (_find_irep(irep0->reps[i], irep1, idx)) return 1;
 	}
 	return 0;		// not found
 }
@@ -353,7 +361,7 @@ _show_irep(guru_irep *irep, char level, char *n)
 }
 
 __HOST__ void
-_show_regfile(guru_vm *vm, U32 ri)
+_show_regs(guru_vm *vm, U32 ri)
 {
 	guru_irep  *irep = VM_IREP(vm);
 	guru_state *st   = vm->state;
@@ -381,44 +389,39 @@ _show_regfile(guru_vm *vm, U32 ri)
 	printf("]");
 }
 
-#define bin2u32(x) ((x << 24) | ((x & 0xff00) << 8) | ((x >> 8) & 0xff00) | (x >> 24))
-
-__HOST__ int
-_find_op(const int *lst, int op, int n)
-{
-	for (U32 i=0; i<n; i++) {
-		if (op==lst[i]) return i;
-	}
-	return -1;
-}
-
 __HOST__ void
-_show_extra(guru_vm *vm, U32 code)
+_show_decode(guru_vm *vm, U32 code)
 {
 	U16  op = code & 0x7f;
+	U32  n  = code>>7;
+	GAR  ar = *((GAR*)&n);
+
+	switch (op) {
+	case OP_MOVE: 	printf(" r%d<%d", ar.a, ar.b);					return;
+	case OP_STRING:	printf(" '%s'", VM_STR(vm, ar.bx).str->raw);	return;
+	case OP_LOADI:	printf(" %d", ar.bx - MAX_sBx);					return;
+	case OP_LOADL:	printf(" %g", VM_VAR(vm, ar.bx).f);				return;
+	case OP_ADDI:
+	case OP_SUBI:	printf(" %d", ar.c);							return;
+	case OP_GETUPVAR:
+	case OP_SETUPVAR:
+					printf(" ^%d+%d", ar.c+1, ar.b);				return;
+	}
+
 	int  si = _find_op(_op_sym, op, SZ_SYM);
 	int  ei = _find_op(_op_exe, op, SZ_EXE);
 	if (si<0 && ei<0) return;
 
-	U8  c  = (si>=0) ? ':' : '#';
-	int bn = si>=0 ? (code>>7) & 0xffff : (code>>14) & 0x1ff;
-
-	if 		(op==OP_MOVE) 	{ printf(" r%d<%d", (code>>23) & 0x1ff, bn);	return; }
-	else if (op==OP_STRING) { printf(" '%s'", VM_STR(vm, bn).str->raw);		return; }
-	else if (op==OP_LOADI) 	{ printf(" %d", bn - MAX_sBx);					return;	}
-	else if (op==OP_LOADL)	{ printf(" %g", VM_VAR(vm, bn).f);				return; }
-	else if (op==OP_ADDI ||
-			 op==OP_SUBI)   { printf(" %d", (code>>7) & 0x7f);				return; }
-
 	if (outbuf==NULL) outbuf = (U8*)cuda_malloc(OUTBUF_SIZE, 1);	// lazy alloc
 
-	GS sid = VM_SYM(vm, bn);
+	int bn  = si>=0 ? ar.bx : ar.b;
+	GS  sid = VM_SYM(vm, bn);
 	id2name_host(sid, outbuf);
-	printf(" %c%s", c, outbuf);
+	printf(" %c%s", (si>=0 ? ':' : '#'), outbuf);
 }
 
 __HOST__ void
-_disasm(guru_vm *vm)
+_disasm(guru_vm *vm, U32 level)
 {
 	U16  pc    = vm->state->pc;						// program counter
 	U32  *iseq = VM_ISEQ(vm);
@@ -431,15 +434,14 @@ _disasm(guru_vm *vm)
 
 	U8 idx = 'a';
 	if (st->prev) {
-		if (!_match_irep(st->prev->irep, irep1, &idx)) idx='?';
+		if (!_find_irep(st->prev->irep, irep1, &idx)) idx='?';
 	}
 	printf("%1d%c%-4d%-8s", vm->id, idx, pc, opc);
 
 	U32 ri=0;
 	for (; st->prev; ri+=st->nv, st=st->prev);
-
-	_show_regfile(vm, ri);
-	_show_extra(vm, code);
+	_show_regs(vm, ri);
+	_show_decode(vm, code);
 
 	printf("\n");
 }
@@ -455,7 +457,7 @@ _trace(U32 level)
 			for (guru_state *st=vm->state; st->prev; st=st->prev) {
 				printf("  ");
 			}
-			_disasm(vm);
+			_disasm(vm, level);
 		}
 	}
 	if (level>1) guru_mmu_stat(level);

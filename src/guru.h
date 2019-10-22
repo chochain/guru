@@ -41,37 +41,6 @@ extern "C" {
 /*!@brief
   define the value type.
 */
-#if 0 // mruby vtypes, x marks implemented by guru
-  MRB_TT_FALSE = 0,   /*   0 x */
-  MRB_TT_FREE,        /*   1 x */
-  MRB_TT_TRUE,        /*   2 x */
-  MRB_TT_FIXNUM,      /*   3 x */
-  MRB_TT_SYMBOL,      /*   4 x */
-  MRB_TT_UNDEF,       /*   5 x */
-  MRB_TT_FLOAT,       /*   6 x */
-
-  MRB_TT_CPTR,        /*   7   */
-  MRB_TT_OBJECT,      /*   8 x */
-  MRB_TT_CLASS,       /*   9 x */
-  MRB_TT_MODULE,      /*  10   */
-  MRB_TT_ICLASS,      /*  11   */
-  MRB_TT_SCLASS,      /*  12   */
-  MRB_TT_PROC,        /*  13 x */
-  MRB_TT_ARRAY,       /*  14 x */
-  MRB_TT_HASH,        /*  15 x */
-  MRB_TT_STRING,      /*  16 x */
-  MRB_TT_RANGE,       /*  17 x */
-
-  MRB_TT_EXCEPTION,   /*  18   */
-  MRB_TT_FILE,        /*  19   */
-  MRB_TT_ENV,         /*  20   */
-  MRB_TT_DATA,        /*  21   */
-  MRB_TT_FIBER,       /*  22   */
-  MRB_TT_ISTRUCT,     /*  23   */
-  MRB_TT_BREAK,       /*  24   */
-  MRB_TT_MAXDEFINE    /*  25   */
-#endif
-
 typedef enum {
     /* primitive */
     GT_EMPTY   = 0x0,						// aka MRB_TT_UNDEF
@@ -91,6 +60,7 @@ typedef enum {
     GT_STR,
     GT_RANGE,
     GT_HASH,
+
     GT_ITER,
     GT_LAMBDA
 } GT;

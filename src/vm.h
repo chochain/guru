@@ -79,9 +79,11 @@ typedef struct RState {			// 20-byte
 
 #define STATE_LOOP				0x1
 #define STATE_LAMBDA			0x2
+#define STATE_EVAL				0x4
 #define STATE_NEW				0x8
 #define IS_LOOP(st)				((st)->flag & STATE_LOOP)
 #define IS_LAMBDA(st)			((st)->flag & STATE_LAMBDA)
+#define IS_EVAL(st)				((st)->flag & STATE_EVAL)
 #define IS_NEW(st)				((st)->flag & STATE_NEW)
 
 //================================================================
@@ -128,8 +130,7 @@ typedef struct VM {				// 80-byte
     U32			fil[2];			// reserved (for alignment)
 
     // TODO: pointers (for dynamic sizing), use array now for debugging
-    U32			rescue[8];					// ONERR/RESCUE return stack
-    U8			rcnt[MAX_REGFILE_SIZE];		// reference counters
+    U32			rescue[MAX_RESCUE_STACK];	// ONERR/RESCUE return stack
     GV 			regfile[MAX_REGFILE_SIZE];	// registers
 } guru_vm;
 
