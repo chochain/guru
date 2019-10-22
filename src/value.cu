@@ -183,7 +183,7 @@ __GURU__ int
 guru_memcmp(const U8 *d, const U8 *s, U32 bsz)
 {
 	U32 i;
-    for (i=0; i<bsz && *d++==*s++; i++);
+    for (i=0; i<bsz && *d==*s; i++, d++, s++);
 
     return i<bsz ? (*d - *s) : 0;
 }
