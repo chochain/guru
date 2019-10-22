@@ -295,18 +295,6 @@ static const char *_vtype[] = {
 	"obj","ary","str","rng","hsh","itr","lda"			// 0x10
 };
 
-static const int _op_sym[] = {
-	OP_LOADSYM,
-	OP_GETGLOBAL, OP_SETGLOBAL, OP_GETCONST, OP_SETCONST,
-	OP_GETIV, OP_SETIV, OP_SETCV, OP_GETCV
-};
-#define SZ_SYM	(sizeof(_op_sym)/sizeof(int))
-
-static const int _op_exe[] = {
-	OP_SEND, OP_SENDB, OP_CLASS, OP_MODULE, OP_METHOD
-};
-#define SZ_EXE	(sizeof(_op_exe)/sizeof(int))
-
 static const char *_opcode[] = {
     "NOP ",	"MOVE",	"LOADL","LOADI","LOADSYM","LOADNIL","LOADSLF","LOADT",
     "LOADF","GETGBL","SETGBL","GETSPC","SETSPC","GETIV","SETIV","GETCV",
@@ -320,6 +308,38 @@ static const char *_opcode[] = {
     "TCLASS","","STOP","","","","","",
     "ABORT"
 };
+
+static const int _op_bru[] = {
+	OP_LOADNIL, OP_LOADSELF, OP_LOADT, OP_LOADF,
+    OP_POPERR, OP_RAISE,
+    OP_CALL, OP_RETURN, OP_BLKPUSH,
+    OP_LAMBDA, OP_TCLASS, OP_STOP
+};
+#define SZ_BRU 	(sizeof(_op_bru)/sizeof(int))
+
+static const int _op_alu[] = {
+	OP_ADD, OP_SUB, OP_MUL, OP_DIV,
+	OP_EQ, OP_LT, OP_LE, OP_GT, OP_GE,
+	OP_STRCAT, OP_RANGE
+};
+#define SZ_ALU	(sizeof(_op_alu)/sizeof(int))
+
+static const int _op_jmp[] = {
+	OP_JMP, OP_JMPIF, OP_JMPNOT, OP_ONERR
+};
+#define SZ_JMP	(sizeof(_op_jmp)/sizeof(int))
+
+static const int _op_sym[] = {
+	OP_LOADSYM,
+	OP_GETGLOBAL, OP_SETGLOBAL, OP_GETCONST, OP_SETCONST,
+	OP_GETIV, OP_SETIV, OP_SETCV, OP_GETCV
+};
+#define SZ_SYM	(sizeof(_op_sym)/sizeof(int))
+
+static const int _op_exe[] = {
+	OP_SEND, OP_SENDB, OP_CLASS, OP_MODULE, OP_METHOD
+};
+#define SZ_EXE	(sizeof(_op_exe)/sizeof(int))
 
 #define OUTBUF_SIZE	256
 U8 *outbuf = NULL;
@@ -373,7 +393,6 @@ _show_regs(guru_vm *vm, U32 ri)
 		}
 		if (v->gt!=GT_EMPTY) break;
 	}
-
 	v = &vm->regfile[0];
 	printf("[ ");
 	for (U32 i=0; i < n; i++, v++) {
@@ -395,29 +414,46 @@ _show_decode(guru_vm *vm, U32 code)
 	U16  op = code & 0x7f;
 	U32  n  = code>>7;
 	GAR  ar = *((GAR*)&n);
+	U32  a  = ar.a;
 
 	switch (op) {
-	case OP_MOVE: 	printf(" r%d<%d", ar.a, ar.b);					return;
-	case OP_STRING:	printf(" '%s'", VM_STR(vm, ar.bx).str->raw);	return;
-	case OP_LOADI:	printf(" %d", ar.bx - MAX_sBx);					return;
-	case OP_LOADL:	printf(" %g", VM_VAR(vm, ar.bx).f);				return;
+	case OP_MOVE: 		printf(" r%-2d <r%-17d", a, ar.b);							return;
+	case OP_STRING:		printf(" r%-2d ='%-17s", a, VM_STR(vm, ar.bx).str->raw);	return;
+	case OP_LOADI:		printf(" r%-2d =%-18d",  a, ar.bx - MAX_sBx);				return;
+	case OP_LOADL:		printf(" r%-2d =%-18g",  a, VM_VAR(vm, ar.bx).f);			return;
 	case OP_ADDI:
-	case OP_SUBI:	printf(" %d", ar.c);							return;
+	case OP_SUBI:		printf(" r%-2d ~%-18d",  a, ar.c);							return;
+	case OP_EXEC:		printf(" r%-2d +I%-17d", a, ar.bx+1);						return;
 	case OP_GETUPVAR:
-	case OP_SETUPVAR:
-					printf(" ^%d+%d", ar.c+1, ar.b);				return;
+	case OP_SETUPVAR:	printf(" r%-2d =r^%-2d+%-13d",  a, ar.c+1, ar.b);			return;
+	case OP_ARRAY:
+	case OP_HASH:		printf(" r%-2d =r%-2d..r%-12d", a, ar.b, ar.b+ar.c-1);		return;
+	case OP_SCLASS:		printf(" r%-22d", ar.b);									return;
+	case OP_ENTER:		printf(" @%-22d", 1 + vm->state->argc - (n>>18));			return;
+	case OP_RESCUE:
+		printf(" r%-2d =%1d?r%-15d", (ar.c ? a+1 : a), ar.c, (ar.c ? a : a+1));		return;
+	}
+	if (_find_op(_op_bru, op, SZ_BRU) >= 0) {
+		printf(" r%-22d", a);							return;
+	}
+	if (_find_op(_op_alu, op, SZ_ALU) >= 0) {
+		printf(" r%-2d ,r%-17d", a, a+1);				return;
+	}
+	if (_find_op(_op_jmp, op, SZ_JMP) >= 0) {
+		printf(" r%-2d @%-18d", a, vm->state->pc+(ar.bx - MAX_sBx));	return;
 	}
 
-	int  si = _find_op(_op_sym, op, SZ_SYM);
-	int  ei = _find_op(_op_exe, op, SZ_EXE);
-	if (si<0 && ei<0) return;
-
 	if (outbuf==NULL) outbuf = (U8*)cuda_malloc(OUTBUF_SIZE, 1);	// lazy alloc
-
-	int bn  = si>=0 ? ar.bx : ar.b;
-	GS  sid = VM_SYM(vm, bn);
-	id2name_host(sid, outbuf);
-	printf(" %c%s", (si>=0 ? ':' : '#'), outbuf);
+	if (_find_op(_op_sym, op, SZ_SYM) >= 0) {
+		GS  sid = VM_SYM(vm, ar.bx);
+		id2name_host(sid, outbuf);
+		printf(" r%-2d :%-18s", a, outbuf);				return;
+	}
+	if (_find_op(_op_exe, op, SZ_EXE) >= 0) {
+		GS  sid = VM_SYM(vm, ar.b);
+		id2name_host(sid, outbuf);
+		printf(" r%-2d #%-18s", a, outbuf);				return;
+	}
 }
 
 __HOST__ void
@@ -440,8 +476,8 @@ _disasm(guru_vm *vm, U32 level)
 
 	U32 ri=0;
 	for (; st->prev; ri+=st->nv, st=st->prev);
-	_show_regs(vm, ri);
 	_show_decode(vm, code);
+	_show_regs(vm, ri);
 
 	printf("\n");
 }
