@@ -15,15 +15,7 @@ end
 a = MyClass.new
 puts a.func
 puts MyClass.myfunc2
-    
-x = begin
-    a.myfunc1
-rescue => e
-    ":#{e}"
-end
-    
-# this works for both mruby1.4+, ruby2.0
-puts x[0,18]+x[19,7]
+puts (a.myfunc1 rescue "Err")
 
 
 

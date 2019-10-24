@@ -15,7 +15,4 @@ end
     
 puts a.myfunc
 puts b.myfunc
-
-
-
-
+    
