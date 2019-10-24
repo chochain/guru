@@ -22,6 +22,7 @@
 #include "mmu.h"
 #include "errorcode.h"
 #include "load.h"
+#include "state.h"
 
 #if GURU_HOST_IMAGE
 //================================================================

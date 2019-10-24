@@ -19,6 +19,7 @@
 #include "mmu.h"
 #include "static.h"
 #include "symbol.h"
+#include "state.h"
 
 #include "object.h"
 #include "ostore.h"
@@ -55,7 +56,8 @@ _send(GV v[], GV *rcv, const U8 *method, U32 argc, ...)
     GV *regs = v + 2;	     		// allocate 2 for stack
     GS sid   = name2id(method);
 
-    guru_proc *m = proc_by_sid(v, sid);		// find method for receiver object
+    guru_class *cls = class_by_obj(v);
+    guru_proc  *m   = proc_by_sid(cls, sid);		// find method for receiver object
 
     assert(m);
 
@@ -343,6 +345,7 @@ _init_class_object()
 {
     static Vfunc vtbl[] = {
     	{ "initialize", 	obj_nop 		},
+        { "private",		obj_nop			},			// do nothing now
     	{ "!",				obj_not 		},
     	{ "!=",          	obj_neq 		},
     	{ "<=>",           	obj_cmp 		},
@@ -350,10 +353,11 @@ _init_class_object()
     	{ "class",         	obj_class		},
     	{ "include",		obj_include     },
     	{ "extend",			obj_extend		},
-//    	{ "new",           	obj_new 		},		// handled by state#vm_method_exec
-//      { "raise",			obj_raise		},		// handled by state#vm_method_exec
+//    	{ "new",           	obj_new 		},			// handled by state#_method_missing
+//      { "raise",			obj_raise		},			// handled by state#_method_missing
     	{ "attr_reader",   	obj_attr_reader 	},
     	{ "attr_accessor", 	obj_attr_accessor	},
+//        { "lambda",			obj_lambda		},		// handled by state#_method_missing
     	{ "is_a?",         	obj_kind_of		},
         { "kind_of?",      	obj_kind_of		},
         { "puts",          	obj_puts 		},

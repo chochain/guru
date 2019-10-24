@@ -28,7 +28,7 @@
   Clean up call stack
 */
 __GURU__ void
-_wipe_stack(GV v[], U32 vi, GV *rv)
+_wipe_stack(GV v[], U32 vi)
 {
     GV *r = v;
     for (U32 i=0; i<vi; i++, r++) {
@@ -51,30 +51,19 @@ __match(const U8* s0, U8* s1)
 __GURU__ void
 _proc_call(guru_vm *vm, GV v[], U32 vi)
 {
+	guru_proc 	*prc  = v->proc;
+	guru_irep	*irep = prc->irep;
 
-	if (v->gt==GT_PROC) {
-		vm_state_push(vm, v->proc->irep, 0, v, vi);		// switch into callee's context
-		return;
+	if (AS_LAMBDA(prc)) {
+		vm_state_push(vm, vm->state->irep, vm->state->pc, prc->regs, vi);	// switch into callee's context
+		vm->state->nv = prc->n;
+		vm->state->flag |= STATE_LAMBDA;
+		vm_state_push(vm, irep, 0, v, vi);			// switch into lambda using closure stack frame
 	}
-
-	assert(v->gt==GT_LAMBDA);
-	vm_state_push(vm, vm->state->irep, vm->state->pc, v, vi);	// switch into callee's context
-
-	GV			*regs = v->lambda->data;				// closure (stack frame) kept in memory
-	guru_proc 	*proc = regs[0].proc;					// proc as the first element
-	guru_irep	*irep = proc->irep;
-
-	vm_state_push(vm, irep, 0, regs, vi);				// switch into lambda
-	vm->state->flag |= STATE_LAMBDA;
-}
-
-__GURU__ void
-_lambda(guru_vm *vm, GV v[], U32 vi)
-{
-	assert(v->gt==GT_CLASS && (v+1)->gt==GT_PROC);	// ensure it is a proc
-
-	*v = guru_lambda_new(v, vm->ar.a);
-	(v+1)->gt = GT_EMPTY;
+	else if (AS_IREP(prc)){
+		vm_state_push(vm, prc->irep, 0, v, vi);		// switch into callee's context
+	}
+	else assert(1==0);
 }
 
 __GURU__ void
@@ -96,6 +85,7 @@ _each(guru_vm *vm, GV v[], U32 vi)
 
 	// allocate iterator state (using same stack frame)
 	vm_state_push(vm, irep0, pc0, v+2, vi);
+	vm->state->flag |= STATE_LOOP;
 
 	// switch into callee's context with v[1]=1st element
 	vm_state_push(vm, irep1, 0, v+2, vi);
@@ -104,15 +94,6 @@ _each(guru_vm *vm, GV v[], U32 vi)
 	if (it->meta==GT_HASH) {
 		*(v+4) = *(it->ivar+1);
 	}
-	vm->state->flag |= STATE_LOOP;
-}
-
-__GURU__ void
-_raise(guru_vm *vm, GV v[], U32 vi)
-{
-	assert(vm->depth > 0);
-
-	vm->state->pc = vm->rescue[--vm->depth];	// pop from exception return stack
 }
 
 __GURU__ void
@@ -130,6 +111,31 @@ _object_new(guru_vm *vm, GV v[], U32 vi)
 	v[0] = obj;
 }
 
+__GURU__ void
+_lambda(guru_vm *vm, GV v[], U32 vi)
+{
+	assert(v->gt==GT_CLASS && (v+1)->gt==GT_PROC);		// ensure it is a proc
+
+	guru_proc *prc = (v+1)->proc;
+	prc->meta |= PROC_LAMBDA;
+
+	U32	n   = prc->n 	= vm->ar.a;
+	GV  *r  = prc->regs = (GV*)guru_alloc(sizeof(GV)*n);
+	GV  *r0 = vm->state->regs;
+	for (U32 i=0; i<n; *r++=*r0++, i++);
+
+    *v = *(v+1);
+	(v+1)->gt = GT_EMPTY;
+}
+
+__GURU__ void
+_raise(guru_vm *vm, GV v[], U32 vi)
+{
+	assert(vm->depth > 0);
+
+	vm->state->pc = vm->rescue[--vm->depth];	// pop from exception return stack
+}
+
 __GURU__ U32
 _method_missing(guru_vm *vm, GV v[], U32 vi, GS sid)
 {
@@ -139,21 +145,21 @@ _method_missing(guru_vm *vm, GV v[], U32 vi, GS sid)
 	if      (__match("call", f)) { 					// C-based prc_call (hacked handler, it needs vm->state)
 		_proc_call(vm, v, vi);						// push into call stack, obj at stack[0]
 	}
-	else if (__match("lambda", f)) {
-		_lambda(vm, v, vi);
-	}
 	else if (__match("each", f) || __match("times", f)) {
 		_each(vm, v, vi);
 	}
 	else if (__match("new", f)) {					// other default C-based methods
 		_object_new(vm, v, vi);
 	}
+	else if (__match("lambda", f)) {					// other default C-based methods
+		_lambda(vm, v, vi);
+	}
 	else if (__match("raise", f)) {
 		_raise(vm, v, vi);
 	}
 	else {
-		_wipe_stack(v+1, vi+1, NULL);				// wipe call stack and return
-		return __match("private", f) ? 0 : 1;
+		_wipe_stack(v+1, vi+1);						// wipe call stack and return
+		return 1;
 	}
 	return 0;
 }
@@ -166,24 +172,24 @@ vm_state_push(guru_vm *vm, guru_irep *irep, U32 pc, GV v[], U32 vi)
 {
 	guru_state 	*top = vm->state;
     guru_state 	*st  = (guru_state *)guru_alloc(sizeof(guru_state));
-    U32 		nv   = vm->ar.a;					// stack frame depth
+
+    if (top) top->nv = vm->ar.a;	// keep stack frame depth
 
     switch(v->gt) {
     case GT_OBJ:
-    case GT_CLASS: st->klass = v->cls;				break;
-    case GT_PROC:
-    case GT_LAMBDA: st->klass = top->regs[0].cls; 	break;
+    case GT_CLASS: 	st->klass = v->cls;				break;
+    case GT_PROC: 	st->klass = top->regs[0].cls; 	break;
     default: assert(1==0);
     }
     st->irep  = irep;
     st->pc    = pc;
-    st->regs  = v;			// TODO: should allocate another regfile
-    st->argc  = vi;			// argument count
-    st->flag  = 0;			// non-iterator
-    st->nv    = nv;			// stack frame depth
-    st->prev  = top;		// push into context stack
+    st->regs  = v;					// TODO: should allocate another regfile
+    st->argc  = vi;					// argument count
+    st->flag  = 0;					// non-iterator
+    st->nv    = irep->nr;			// register needed (for latest frame)
+    st->prev  = top;				// push into context stack
 
-    vm->state = st;			// TODO: use array-based stack
+    vm->state = st;					// TODO: use array-based stack
 }
 
 //================================================================
@@ -195,28 +201,29 @@ vm_state_push(guru_vm *vm, guru_irep *irep, U32 pc, GV v[], U32 vi)
 	@param	rsz		- stack depth used
 */
 __GURU__ void
-vm_state_pop(guru_vm *vm, GV ret_val, U32 rsz)
+vm_state_pop(guru_vm *vm, GV ret_val)
 {
     guru_state 	*st = vm->state;
 
-    if (!IS_LAMBDA(vm->state)) {	// keep lambda's stack frame
-        ref_inc(&ret_val);			// to be referenced by the caller
-    	_wipe_stack(st->regs, rsz + st->nv + 1, &ret_val);
-    	st->regs[0] = ret_val;		// put return value on top of current stack
+    if (!(st->flag & STATE_LAMBDA)) {
+    	ref_inc(&ret_val);								// to be referenced by the caller
+    	_wipe_stack(st->regs, st->irep->nr);
+    	st->regs[0] = ret_val;							// put return value on top of current stack
     }
-    vm->state = st->prev;			// restore previous state
-    guru_free(st);					// release memory block
+    vm->state = st->prev;								// restore previous state
+    guru_free(st);										// release memory block
 }
 
 __GURU__ U32
 vm_method_exec(guru_vm *vm, GV v[], U32 vi, GS sid)
 {
-    guru_proc  *prc = proc_by_sid(v, sid);				// v->gt in [GT_OBJ, GT_CLASS]
+	guru_class *cls = class_by_obj(v);
+    guru_proc  *prc = proc_by_sid(cls, sid);			// v->gt in [GT_OBJ, GT_CLASS]
 
     if (prc==0) {
     	return _method_missing(vm, v, vi, sid);
     }
-    if (HAS_IREP(prc)) {								// a Ruby-based IREP
+    if (AS_IREP(prc)) {									// a Ruby-based IREP
     	vm_state_push(vm, prc->irep, 0, v, vi);			// switch to callee's context
     }
     else {
@@ -224,7 +231,7 @@ vm_method_exec(guru_vm *vm, GV v[], U32 vi, GS sid)
     		v->vid = sid;								// pass as parameter
     	}
     	prc->func(v, vi);								// call C-based function
-    	_wipe_stack(v+1, vi+1, NULL);
+    	_wipe_stack(v+1, vi+1);
     }
     return 0;
 }

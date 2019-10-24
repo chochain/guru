@@ -60,9 +60,7 @@ typedef enum {
     GT_STR,
     GT_RANGE,
     GT_HASH,
-
-    GT_ITER,
-    GT_LAMBDA
+    GT_ITER
 } GT;
 
 #define GT_BOOL(v)		((v) ? GT_TRUE : GT_FALSE)
@@ -130,7 +128,6 @@ typedef struct {					// 16-bytes (128 bits) for eaze of debugging
         struct RArray    *array;	// GT_ARRAY
         struct RRange    *range;	// GT_RANGE
         struct RHash     *hash;		// GT_HASH
-        struct RArray	 *lambda;	// GT_LAMBDA
         U8       		 *sym;		// C-string (only loader use.)
     };
 } GV;
@@ -180,17 +177,25 @@ typedef struct RVar {
 } guru_var;
 
 typedef struct RProc {			// 48-byte
-	GURU_HDR;					// sid is used
-    struct RIrep 	*irep;		// an IREP (Ruby code), defined in vm.h
-    guru_fptr 		func;		// or a raw C function
-    struct RProc 	*next;		// next function in linked list
+	GURU_HDR;					// sid, meta, n are used
+    union {
+	    struct RIrep 	*irep;	// an IREP (Ruby code), defined in vm.h
+    	guru_fptr 		func;	// or a raw C function
+    };
+    union {
+    	struct RProc 	*next;	// next function in linked list
+    	GV 				*regs;	// register file for lambda
+    };
 #if GURU_DEBUG
     char			*cname;		// classname
     char  			*name;		// function name
 #endif
 } guru_proc;
 
-#define HAS_IREP(p)		(p->func==NULL)	//
+#define PROC_IREP		0x1
+#define PROC_LAMBDA		0x8
+#define AS_IREP(p)		((p)->meta & PROC_IREP)
+#define AS_LAMBDA(p)	((p)->meta & PROC_LAMBDA)
 
 typedef struct RString {			// 16-byte
 	GURU_HDR;
