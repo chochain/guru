@@ -338,18 +338,12 @@ __GURU__ GV *
 _upvar(guru_vm *vm)
 {
 	guru_state *st = vm->state;
-	GV  *regs;
 	for (U32 i=0; i<=_AR(c); i++) {		// walk up stack frame
-		U32 m = IS_LAMBDA(st) ? 1 : 0;	// TODO: consolidate this with each_loop
-		if (m) {
-			st = st->prev;
-		}
-		else {
-			st = st->prev->prev;		// 1 extra for each_loop
-		}
-		regs = st->regs - m;
+		st = IS_LAMBDA(st)
+			? st->prev
+			: st->prev->prev;			// 1 extra for each_loop
 	}
-	return regs + _AR(b);
+	return st->regs + _AR(b);
 }
 
 //================================================================
@@ -589,7 +583,6 @@ __UCODE__
 uc_return(guru_vm *vm)
 {
 	GV  ret = *_R(a);								// return value
-	U32 n   = _AR(a);								// pc adjustment
 	U32 bk  = _AR(b);								// break
 
 	guru_state *st = vm->state;
@@ -608,19 +601,17 @@ uc_return(guru_vm *vm)
 		guru_iter_del(ri);							// release iterator
 
 		// pop off iterator state
-		vm_state_pop(vm, ret, n);
-		vm->state->flag &= ~STATE_LOOP;
+		vm_state_pop(vm, ret);						// pop off ITERATOR state
 		ret = *_R0;									// return the object itself
 	}
 	else if (IS_LAMBDA(st)) {
-		vm_state_pop(vm, ret, n);
-		vm->state->flag &= ~STATE_LAMBDA;			// clear the flag, switch back stack frame
+		vm_state_pop(vm, ret);						// pop off LAMBDA state
 	}
 	else if (IS_NEW(st)) {
 		ret = *_R0;									// return the object itself
 	}
 	ret.acl &= ~ACL_SCLASS;							// turn off SCLASS flag if any
-	vm_state_pop(vm, ret, n);						// pop callee's context
+	vm_state_pop(vm, ret);							// pop callee's context
 }
 
 //================================================================
@@ -885,8 +876,8 @@ uc_strcat(guru_vm *vm)
     GS sid = name2id((U8*)"to_s");				// from global symbol pool
 	GV *sa = _R(a), *sb = _R(b);
 
-    guru_proc *pa = proc_by_sid(sa, sid);
-    guru_proc *pb = proc_by_sid(sb, sid);
+    guru_proc *pa = proc_by_sid(class_by_obj(sa), sid);
+    guru_proc *pb = proc_by_sid(class_by_obj(sb), sid);
 
     if (pa) pa->func(sa, 0);					// can it be an IREP?
     if (pb) pb->func(sb, 0);
@@ -989,8 +980,10 @@ uc_lambda(guru_vm *vm)
 
     guru_proc *prc = (guru_proc *)guru_alloc(sizeof(guru_proc));
 
+    prc->rc   = 0;
+    prc->meta = PROC_IREP;
     prc->sid  = 0xffff;						// anonymous function
-    prc->func = NULL;
+    prc->n    = 0;
     prc->irep = VM_REPS(vm, bz);			// fetch from children irep list
 
     _RA_T(GT_PROC, proc=prc);				// regs[ra].proc = prc
@@ -1042,13 +1035,13 @@ uc_exec(guru_vm *vm)
 __UCODE__
 uc_method(guru_vm *vm)
 {
-	GV  *v = _R(a);
+	GV *v  = _R(a);
     assert(v->gt==GT_OBJ || v->gt == GT_CLASS);	// enforce class checking
 
     // check whether the name has been defined in current class (i.e. vm->state->klass)
     GS sid = VM_SYM(vm, _AR(b));				// fetch name from IREP symbol table
     guru_class *cls = class_by_obj(v);			// get receiver class
-    guru_proc  *prc = proc_by_sid(v, sid);		// fetch proc from obj->klass->vtbl
+    guru_proc  *prc = proc_by_sid(cls, sid);	// fetch proc from obj->klass->vtbl
 
 #if GURU_DEBUG
     if (prc != NULL) {
@@ -1302,7 +1295,7 @@ ucode_exec(guru_vm *vm)
 		NULL			//    OP_ERR,       Bx      raise RuntimeError with message Lit(Bx)
 	};
 
-    guru_state 	*st = vm->state;
+    guru_state *st = vm->state;
     vtbl[vm->op](vm);
 
     if (vm->err && vm->depth>0) {						// simple exception handler
