@@ -14,11 +14,12 @@
 #define GURU_SRC_VM_H_
 
 #include "guru.h"
-#include "class.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+#if GURU_HOST_IMAGE
 
 // VM state machine (3-bit status)
 //
@@ -38,53 +39,6 @@ extern "C" {
 #define VM_STATUS_STOP  	2
 #define VM_STATUS_RUN   	4
 #define VM_STATUS_HOLD  	(VM_STATUS_RUN|VM_STATUS_READY)
-
-#if GURU_HOST_IMAGE
-//================================================================
-/*!@brief
-  IREP Internal REPresentation
-*/
-typedef struct RIrep {			// 32-byte
-	U16 size;					// size of this IREP block
-    U16 nv; 		  			//!< # of local variables
-    U16 nr;						//!< # of register used
-    U16 r;						//!< # of child IREP blocks (into list below)
-
-    U32 i;						//!< # of bytecodes (by iseq below)
-    U16 p;						//!< # of objects in pool (into pool below)
-    U16	s;						//!< # of symbols (into sym below)
-
-    struct RIrep  	**reps;		//!< array of child IREP's pointer.
-    GV  			*pool; 		//!< array of POOL objects pointer.
-    							// ISEQ block follows here, and
-    							// REPS block after
-} guru_irep;
-
-//================================================================
-/*!@brief
-  Call information
-*/
-typedef struct RState {			// 20-byte
-    U32 pc;						// program counter
-    U8  argc;  					// number of arguments
-    U8  flag;					// iterator flag
-    U8  nv;						// number of local vars (for screen dump)
-    U8  temp;					// reserved
-
-    guru_class      *klass;		// current class
-    GV      		*regs;		// pointer to current register (in VM register file)
-    guru_irep       *irep;		// pointer to current irep block
-    struct RState   *prev;		// previous state (call stack)
-} guru_state;					// VM context
-
-#define STATE_LOOP				0x1
-#define STATE_LAMBDA			0x2
-#define STATE_EVAL				0x4
-#define STATE_NEW				0x8
-#define IS_LOOP(st)				((st)->flag & STATE_LOOP)
-#define IS_LAMBDA(st)			((st)->flag & STATE_LAMBDA)
-#define IS_EVAL(st)				((st)->flag & STATE_EVAL)
-#define IS_NEW(st)				((st)->flag & STATE_NEW)
 
 //================================================================
 /* instructions: packed 32 bit      */
@@ -126,42 +80,19 @@ typedef struct VM {				// 80-byte
     };
     GAR ar;						// argument struct
 
-    guru_state  *state;			// VM state (callinfo) linked list
-    U32			fil[2];			// reserved (for alignment)
+    struct RState  	*state;		// VM state (callinfo) linked list
+    U32				fil[2];		// reserved (for alignment)
 
     // TODO: pointers (for dynamic sizing), use array now for debugging
     U32			rescue[MAX_RESCUE_STACK];	// ONERR/RESCUE return stack
     GV 			regfile[MAX_REGFILE_SIZE];	// registers
 } guru_vm;
 
-#else	// !GURU_HOST_IMAGE
-//
-// old MRBC implementation (on HOST with pointers)
-//
-typedef struct XIrep {
-    U16 	 nlv;   		//!< # of local variables
-    U16 	 nreg;			//!< # of register used
-    U16 	 rlen;			//!< # of child IREP blocks (into list below)
-    U16 	 ilen;			//!< # of bytecodes (by iseq below)
-    U16 	 plen;			//!< # of objects in pool (into pool below)
-    U16	 	 slen;			//!< # of symbols (into sym below)
+#define VM_IREP(vm)    	((vm)->state->irep)
+#define VM_ISEQ(vm)	 	((U32*)U8PADD(VM_IREP(vm), sizeof(guru_irep)))
+#define VM_BYTECODE(vm) (_bin_to_u32(VM_ISEQ(vm) + (vm)->state->pc))
 
-    U32P     iseq;			//!< ISEQ (code) BLOCK
-    U8		 *sym;			//!< SYMBOL list
-
-    mrbc_object   **pool; 	//!< array of POOL objects pointer.
-    struct XIrep **list;	//!< array of child IREP's pointer.
-} mrbc_irep;
-
-typedef struct XState {
-    U16        		pc;
-    U16        		argc;     	// num of args
-    guru_class      *klass;
-    GV      *reg;
-    mrbc_irep       *irep;
-    struct XState  *prev;
-} mrbc_state;
-
+#else   // !GURU_HOST_IMAGE
 typedef struct XVM {
     mrbc_irep       *irep;		// pointer to IREP tree
     mrbc_state      *state;		// VM state (callinfo) linked list
@@ -171,23 +102,18 @@ typedef struct XVM {
     volatile U8 	run;
     volatile U8		err;
 } mrbc_vm;
-#endif 	// GURU_HOST_IMAGE
 
 #define VM_IREP(vm)    	((vm)->state->irep)
+#define VM_ISEQ(vm)	 	 (VM_IREP(vm)->iseq)
+#define VM_BYTECODE(vm) (bin_to_u32(U8PADD(VM_ISEQ(vm), sizeof(U32) * (vm)->state->pc)))
+#endif 	// GURU_HOST_IMAGE
+
 #define VM_REPS(vm,n)	((guru_irep*)VM_IREP(vm)->reps[(n)])
 #define VM_VAR(vm,n)	(VM_IREP(vm)->pool[VM_IREP(vm)->s + (n)])
 #define VM_STR(vm,n)	(VM_IREP(vm)->pool[VM_IREP(vm)->s + (n)])
 #define VM_SYM(vm,n)    (VM_IREP(vm)->pool[(n)].i)
 
-#if GURU_HOST_IMAGE
-#define VM_ISEQ(vm)	 	((U32*)U8PADD(VM_IREP(vm), sizeof(guru_irep)))
-#define VM_BYTECODE(vm) (_bin_to_u32(VM_ISEQ(vm) + (vm)->state->pc))
-#else  // !GURU_HOST_IMAGE
-#define VM_ISEQ(vm)	 	 (VM_IREP(vm)->iseq)
-#define VM_BYTECODE(vm) (bin_to_u32(U8PADD(VM_ISEQ(vm), sizeof(U32) * (vm)->state->pc)))
-#endif
-
 #ifdef __cplusplus
 }
 #endif
-#endif
+#endif // GURU_SRC_VM_H_

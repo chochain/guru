@@ -20,8 +20,85 @@
 extern "C" {
 #endif
 
+#if GURU_HOST_IMAGE
+//================================================================
+/*!@brief
+  IREP Internal REPresentation
+*/
+typedef struct RIrep {			// 32-byte
+	U16 size;					// size of this IREP block
+    U16 nv; 		  			//!< # of local variables
+    U16 nr;						//!< # of register used
+    U16 r;						//!< # of child IREP blocks (into list below)
+
+    U32 i;						//!< # of bytecodes (by iseq below)
+    U16 p;						//!< # of objects in pool (into pool below)
+    U16	s;						//!< # of symbols (into sym below)
+
+    struct RIrep  	**reps;		//!< array of child IREP's pointer.
+    GV  			*pool; 		//!< array of POOL objects pointer.
+    							// ISEQ block follows here, and
+    							// REPS block after
+} guru_irep;
+
+//================================================================
+/*!@brief
+  Call information
+*/
+typedef struct RState {			// 20-byte
+    U32 pc;						// program counter
+    U8  argc;  					// number of arguments
+    U8  flag;					// iterator flag
+    U8  nv;						// number of local vars (for screen dump)
+    U8  temp;					// reserved
+
+    struct RClass 	*klass;		// current class
+    GV      		*regs;		// pointer to current register (in VM register file)
+    guru_irep       *irep;		// pointer to current irep block
+    struct RState   *prev;		// previous state (call stack)
+} guru_state;					// VM context
+
+#else	// !GURU_HOST_IMAGE
+//
+// old MRBC implementation (on HOST with pointers)
+//
+typedef struct XIrep {
+    U16 	 nlv;   		//!< # of local variables
+    U16 	 nreg;			//!< # of register used
+    U16 	 rlen;			//!< # of child IREP blocks (into list below)
+    U16 	 ilen;			//!< # of bytecodes (by iseq below)
+    U16 	 plen;			//!< # of objects in pool (into pool below)
+    U16	 	 slen;			//!< # of symbols (into sym below)
+
+    U32P     iseq;			//!< ISEQ (code) BLOCK
+    U8		 *sym;			//!< SYMBOL list
+
+    mrbc_object   **pool; 	//!< array of POOL objects pointer.
+    struct XIrep **list;	//!< array of child IREP's pointer.
+} mrbc_irep;
+
+typedef struct XState {
+    U16        		pc;
+    U16        		argc;     	// num of args
+    guru_class      *klass;
+    GV      *reg;
+    mrbc_irep       *irep;
+    struct XState  *prev;
+} mrbc_state;
+
+#endif	// GURU_HOST_IMAGE
+
+#define STATE_LOOP				0x1
+#define STATE_LAMBDA			0x2
+#define STATE_EVAL				0x4
+#define STATE_NEW				0x8
+#define IS_LOOP(st)				((st)->prev && (st)->prev->flag & STATE_LOOP)
+#define IS_LAMBDA(st)			((st)->prev && (st)->prev->flag & STATE_LAMBDA)
+#define IS_EVAL(st)				((st)->flag & STATE_EVAL)
+#define IS_NEW(st)				((st)->flag & STATE_NEW)
+
 __GURU__ void 	vm_state_push(guru_vm *vm, guru_irep *irep, U32 pc, GV *regs, U32 vi);
-__GURU__ void	vm_state_pop(guru_vm *vm, GV ret_val, U32 rsz);
+__GURU__ void	vm_state_pop(guru_vm *vm, GV ret_val);
 
 // TODO: temp functions for call and new (due to VM passing required)
 __GURU__ U32	vm_method_exec(guru_vm *vm, GV v[], U32 vi, GS sid);
