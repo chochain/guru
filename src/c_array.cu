@@ -314,27 +314,6 @@ guru_array_del(GV *ary)
 }
 
 //================================================================
-/*! Lambda constructor - this is a hack!
-
-  @param  v	pointer to register file
-  @param  a offset to return value
-*/
-__GURU__ GV
-guru_lambda_new(GV *v, U32 a)
-{
-	U32 n   = (v+1)->proc->irep->nr;
-	GV  ret = guru_array_new(n);
-	ret.gt  = GT_LAMBDA;
-
-	guru_array_push(&ret, (v+1));					// keep the proc at regs[0]
-	GV  *r = v - a + 2;								// top of stack frame
-	for (U32 i=0; i < a; i++, r++) {				// deep copy stack frame
-		guru_array_push(&ret, r);
-	}
-	return ret;
-}
-
-//================================================================
 /*! resize buffer
 
   @param  ary	pointer to target value

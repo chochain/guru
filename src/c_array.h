@@ -38,9 +38,6 @@ __GURU__ S32        guru_array_cmp(const GV *a0, const GV *a1);
 
 __GURU__ void       guru_init_class_array();
 
-__GURU__ GV 		guru_lambda_new(GV *v, U32 a);
-#define guru_lambda_del		guru_array_del
-
 #ifdef __cplusplus
 }
 #endif
