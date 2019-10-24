@@ -46,7 +46,7 @@ __GURU__ guru_class *guru_add_class(const char *name, guru_class *super, Vfunc v
 __GURU__ guru_class *guru_define_class(const U8 *name, guru_class *super);
 __GURU__ guru_proc  *guru_define_method(guru_class *cls, const U8 *name, guru_fptr cfunc);
 __GURU__ guru_class *class_by_obj(GV *v);
-__GURU__ guru_proc  *proc_by_sid(GV *v, GS sid);
+__GURU__ guru_proc  *proc_by_sid(guru_class *cls, GS sid);
 
 #ifdef __cplusplus
 }

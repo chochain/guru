@@ -84,11 +84,11 @@ _name2class(const U8 *name)
   @return proc pointer
 */
 __GURU__ guru_proc*
-proc_by_sid(GV *v, GS sid)
+proc_by_sid(guru_class *cls, GS sid)
 {
 	// TODO: heavy-weight method, use Dynamic Parallelism or a cache to speed up lookup
     guru_proc  *p;
-    for (guru_class *cls=class_by_obj(v); cls; cls=cls->super) {	// search up hierarchy tree
+    for (; cls; cls=cls->super) {	// search up hierarchy tree
         for (p=cls->vtbl; p && (p->sid != sid); p=p->next);				// linear search thru class or meta vtbl
         if (p) return p;												// break if found
     }
@@ -131,20 +131,6 @@ guru_define_class(const U8 *name, guru_class *super)
     return cls;
 }
 
-__GURU__ guru_proc *
-_alloc_proc(guru_class *cls, const U8 *name)
-{
-    guru_proc *proc = (guru_proc *)guru_alloc(sizeof(guru_proc));
-
-    proc->sid    = name2id(name);
-    proc->next   = NULL;
-#ifdef GURU_DEBUG
-    proc->cname  = (char *)id2name(cls->sid);
-    proc->name   = (char *)id2name(proc->sid);
-#endif
-    return proc;
-}
-
 //================================================================
 /*!@brief
   define class method or instance method.
@@ -159,16 +145,22 @@ guru_define_method(guru_class *cls, const U8 *name, guru_fptr cfunc)
 {
     if (cls==NULL) cls = guru_class_object;		// set default to Object.
 
-    guru_proc *prc = _alloc_proc(cls, name);	// with sid assigned
+    guru_proc *prc = (guru_proc *)guru_alloc(sizeof(guru_proc));
+
+    prc->meta = 0;								// C-function
+    prc->n    = 0;								// No LAMBDA register file
+    prc->sid  = name2id(name);
+    prc->func = cfunc;							// set function pointer
 
     _LOCK;
-
-    prc->func 	= cfunc;						// set function pointer
-    prc->irep   = NULL;
-    prc->next 	= cls->vtbl;					// add as the new list head
-    cls->vtbl 	= prc;
-
+    prc->next = cls->vtbl;						// add as the new list head
+    cls->vtbl = prc;
     _UNLOCK;
+
+#ifdef GURU_DEBUG
+    prc->cname  = (char *)id2name(cls->sid);
+    prc->name   = (char *)id2name(prc->sid);
+#endif
 
     return prc;
 }
