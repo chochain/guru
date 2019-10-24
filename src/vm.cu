@@ -55,8 +55,8 @@ _ready(guru_vm *vm, guru_irep *irep)
 
 	GV *r = vm->regfile;
 	for (U32 i=0; i<MAX_REGFILE_SIZE; i++, r++) {		// wipe register
-		r->gt  = (i==0) ? GT_CLASS : GT_EMPTY;			// reg[0] is "self"
-		r->cls = (i==0) ? guru_class_object : NULL;
+		r->gt  = (i>0) ? GT_EMPTY : GT_CLASS;			// reg[0] is "self"
+		r->cls = (i>0) ? NULL     : guru_class_object;
 		r->acl = 0;
 	}
     vm->state = NULL;
@@ -73,7 +73,7 @@ _free(guru_vm *vm)
 	if (vm->run!=VM_STATUS_STOP) 		 return;
 
 	while (vm->state) {									// pop off call stack
-		vm_state_pop(vm, vm->state->regs[1], 0);
+		vm_state_pop(vm, vm->state->regs[1]);
 	}
 	vm->run = VM_STATUS_FREE;							// release the vm
 }
@@ -292,7 +292,7 @@ __HOST__ int vm_stop(U32 vid) { return _set_status(vid, VM_STATUS_STOP, VM_STATU
 static const char *_vtype[] = {
 	"___","nil","f  ","t  ","num","flt","sym","",		// 0x0
 	"cls","prc","","","","","","",						// 0x8
-	"obj","ary","str","rng","hsh","itr","lda"			// 0x10
+	"obj","ary","str","rng","hsh","itr"					// 0x10
 };
 
 static const char *_opcode[] = {
@@ -381,31 +381,29 @@ _show_irep(guru_irep *irep, char level, char *n)
 }
 
 __HOST__ void
-_show_regs(guru_vm *vm, U32 ri)
+_show_regs(GV *v, U32 vi)
 {
-	guru_irep  *irep = VM_IREP(vm);
-	guru_state *st   = vm->state;
-	U32 n  = ri + irep->nr;			// number of register used
-	GV  *v = &st->regs[irep->nr-1];
-	for (; n>0; n--, v--) {
-		if (n==ri) {
-			v = &vm->regfile[n];
-		}
-		if (v->gt!=GT_EMPTY) break;
-	}
-	v = &vm->regfile[0];
-	printf("[ ");
-	for (U32 i=0; i < n; i++, v++) {
+	for (U32 i=0; i<vi; i++, v++) {
 		const char *t = _vtype[v->gt];
-		U8 c = i==ri ? '|' : ' ';
-		if (IS_READ_ONLY(v)) 	printf("%s.%c",  t, c);
-		else if (HAS_REF(v))	printf("%s%d%c", t, v->self->rc, c);
-		else					printf("%s %c",  t, c);
-		if (i==ri) {
-			v = vm->state->regs;
-		}
-    }
-	printf("]");
+		U8 c = (i==0) ? '|' : ' ';
+		if (IS_READ_ONLY(v)) 	printf("%c%s.",  c, t);
+		else if (HAS_REF(v))	printf("%c%s%d", c, t, v->self->rc);
+		else					printf("%c%s ",  c, t);
+	}
+}
+
+__HOST__ void
+_show_state_regs(guru_state *st, U32 depth)
+{
+	if (st->prev) _show_state_regs(st->prev, depth+1);		// back tracing recursion
+	if (st->prev==NULL) {									// root
+		printf(" %s ", _vtype[st->regs[0].gt]);
+	}
+	U32 n = st->nv;
+	if (depth==0) {											// top most
+		for (n=st->irep->nr; n>1 && st->regs[n].gt==GT_EMPTY; n--);
+	}
+	_show_regs(st->regs+1, n);
 }
 
 __HOST__ void
@@ -474,12 +472,10 @@ _disasm(guru_vm *vm, U32 level)
 	}
 	printf("%1d%c%-4d%-8s", vm->id, idx, pc, opc);
 
-	U32 ri=0;
-	for (; st->prev; ri+=st->nv, st=st->prev);
 	_show_decode(vm, code);
-	_show_regs(vm, ri);
-
-	printf("\n");
+	printf("[");
+	_show_state_regs(vm->state, 0);
+	printf("]\n");
 }
 
 __HOST__ void
