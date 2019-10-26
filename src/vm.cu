@@ -411,19 +411,20 @@ _show_decode(guru_vm *vm, U32 code)
 	U32  n  = code>>7;
 	GAR  ar = *((GAR*)&n);
 	U32  a  = ar.a;
+	U32  up = (ar.c+1)<<(IN_LAMBDA(vm->state) ? 0 : 1);
 
 	switch (op) {
-	case OP_MOVE: 		printf(" r%-2d <r%-17d", a, ar.b);							return;
+	case OP_MOVE: 		printf(" r%-2d =r%-17d", a, ar.b);							return;
 	case OP_STRING:		printf(" r%-2d ='%-17s", a, VM_STR(vm, ar.bx).str->raw);	return;
 	case OP_LOADI:		printf(" r%-2d =%-18d",  a, ar.bx - MAX_sBx);				return;
 	case OP_LOADL:		printf(" r%-2d =%-18g",  a, VM_VAR(vm, ar.bx).f);			return;
 	case OP_ADDI:
 	case OP_SUBI:		printf(" r%-2d ~%-18d",  a, ar.c);							return;
 	case OP_EXEC:		printf(" r%-2d +I%-17d", a, ar.bx+1);						return;
-	case OP_GETUPVAR:
-	case OP_SETUPVAR:	printf(" r%-2d =r^%-2d+%-13d",  a, ar.c+1, ar.b);			return;
+	case OP_GETUPVAR:   printf(" r%-2d =r^%-2d+%-13d",  a, up, ar.b);				return;
+	case OP_SETUPVAR:	printf(" r^%-2d+%-2d =r%-13d",  up, ar.b, a);				return;
 	case OP_ARRAY:
-	case OP_HASH:		printf(" r%-2d =r%-2d..r%-12d", a, ar.b, ar.b+ar.c-1);		return;
+	case OP_HASH:		printf(" r%-2d <r%-2d..r%-12d", a, ar.b, ar.b+ar.c-1);		return;
 	case OP_SCLASS:		printf(" r%-22d", ar.b);									return;
 	case OP_ENTER:		printf(" @%-22d", 1 + vm->state->argc - (n>>18));			return;
 	case OP_RESCUE:
