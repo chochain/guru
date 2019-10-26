@@ -332,6 +332,26 @@ obj_kind_of(GV v[], U32 vi)
     }
 }
 
+//================================================================
+/*! lambda function
+ */
+__CFUNC__
+obj_lambda(GV v[], U32 vi)
+{
+	assert(v->gt==GT_CLASS && (v+1)->gt==GT_PROC);		// ensure it is a proc
+
+	guru_proc *prc = (v+1)->proc;						// mark it as a lambda
+	prc->meta |= PROC_LAMBDA;
+
+	U32	n   = prc->n 	= vi+3;
+	GV  *r  = prc->regs = (GV*)guru_alloc(sizeof(GV)*n);
+	GV  *r0 = v - n;
+	for (U32 i=0; i<n; *r++=*r0++, i++);
+
+    *v = *(v+1);
+	(v+1)->gt = GT_EMPTY;
+}
+
 //=====================================================================
 //! deprecated, use inspect#gv_to_s instead
 __CFUNC__
@@ -357,7 +377,7 @@ _init_class_object()
 //      { "raise",			obj_raise		},			// handled by state#_method_missing
     	{ "attr_reader",   	obj_attr_reader 	},
     	{ "attr_accessor", 	obj_attr_accessor	},
-//        { "lambda",			obj_lambda		},		// handled by state#_method_missing
+        { "lambda",			obj_lambda		},
     	{ "is_a?",         	obj_kind_of		},
         { "kind_of?",      	obj_kind_of		},
         { "puts",          	obj_puts 		},

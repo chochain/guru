@@ -56,7 +56,6 @@ _proc_call(guru_vm *vm, GV v[], U32 vi)
 
 	if (AS_LAMBDA(prc)) {
 		vm_state_push(vm, vm->state->irep, vm->state->pc, prc->regs, vi);	// switch into callee's context
-		vm->state->nv = prc->n;
 		vm->state->flag |= STATE_LAMBDA;
 		vm_state_push(vm, irep, 0, v, vi);			// switch into lambda using closure stack frame
 	}
@@ -116,7 +115,7 @@ _lambda(guru_vm *vm, GV v[], U32 vi)
 {
 	assert(v->gt==GT_CLASS && (v+1)->gt==GT_PROC);		// ensure it is a proc
 
-	guru_proc *prc = (v+1)->proc;
+	guru_proc *prc = (v+1)->proc;						// mark it as a lambda
 	prc->meta |= PROC_LAMBDA;
 
 	U32	n   = prc->n 	= vm->ar.a;
@@ -173,8 +172,6 @@ vm_state_push(guru_vm *vm, guru_irep *irep, U32 pc, GV v[], U32 vi)
 	guru_state 	*top = vm->state;
     guru_state 	*st  = (guru_state *)guru_alloc(sizeof(guru_state));
 
-    if (top) top->nv = vm->ar.a;	// keep stack frame depth
-
     switch(v->gt) {
     case GT_OBJ:
     case GT_CLASS: 	st->klass = v->cls;				break;
@@ -186,8 +183,12 @@ vm_state_push(guru_vm *vm, guru_irep *irep, U32 pc, GV v[], U32 vi)
     st->regs  = v;					// TODO: should allocate another regfile
     st->argc  = vi;					// argument count
     st->flag  = 0;					// non-iterator
-    st->nv    = irep->nr;			// register needed (for latest frame)
     st->prev  = top;				// push into context stack
+
+    if (top) {						// keep stack frame depth
+    	top->nv = IS_LAMBDA(st)	? v->proc->n : vm->ar.a;
+    }
+    else st->nv = irep->nr;			// top most stack frame depth
 
     vm->state = st;					// TODO: use array-based stack
 }

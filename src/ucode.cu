@@ -563,13 +563,13 @@ uc_call(guru_vm *vm)
 __UCODE__
 uc_enter(guru_vm *vm)
 {
-	U32 ax   = (vm->bytecode>>7) & 0x1ffffff;			// a special decoder case
+	U32 ax  = (vm->bytecode>>7) & 0x1ffffff;			// a special decoder case
 
-	U32 opt  = (ax >> 13) & 0x1f;  						// has default args
-    U32 vi   = (ax >> 18) & 0x1f;  						// number of args given
+	U32 adj = (ax >> 13) & 0x1f;  						// has default args
+    U32 off = (ax >> 18) & 0x1f;  						// number of args given
 
-    if (opt > 0){
-        vm->state->pc += vm->state->argc - vi;			// jmp table lookup
+    if (adj){
+        vm->state->pc += vm->state->argc - off;			// jmp table lookup
     }
 }
 

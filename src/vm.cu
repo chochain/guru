@@ -386,24 +386,22 @@ _show_regs(GV *v, U32 vi)
 	for (U32 i=0; i<vi; i++, v++) {
 		const char *t = _vtype[v->gt];
 		U8 c = (i==0) ? '|' : ' ';
-		if (IS_READ_ONLY(v)) 	printf("%c%s.",  c, t);
-		else if (HAS_REF(v))	printf("%c%s%d", c, t, v->self->rc);
-		else					printf("%c%s ",  c, t);
+		if (IS_READ_ONLY(v)) 	printf("%s.%c",  t, c);
+		else if (HAS_REF(v))	printf("%s%d%c", t, v->self->rc, c);
+		else					printf("%s %c", t, c);
 	}
 }
 
 __HOST__ void
-_show_state_regs(guru_state *st, U32 depth)
+_show_state_regs(guru_state *st, U32 lvl)
 {
-	if (st->prev) _show_state_regs(st->prev, depth+1);		// back tracing recursion
-	if (st->prev==NULL) {									// root
-		printf(" %s ", _vtype[st->regs[0].gt]);
+	if (st->prev) _show_state_regs(st->prev, lvl+1);		// back tracing recursion
+	U32 n = st->nv;											// depth of current stack frame
+	if (lvl==0) {											// top most
+		for (n=st->irep->nr; n>0 && st->regs[n].gt==GT_EMPTY; n--);
+		n++;
 	}
-	U32 n = st->nv;
-	if (depth==0) {											// top most
-		for (n=st->irep->nr; n>1 && st->regs[n].gt==GT_EMPTY; n--);
-	}
-	_show_regs(st->regs+1, n);
+	_show_regs(st->regs, n);
 }
 
 __HOST__ void
