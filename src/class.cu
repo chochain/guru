@@ -46,9 +46,11 @@ class_by_obj(GV *v)
     case GT_SYM:  	 return guru_class_symbol;
     case GT_OBJ:  	 return v->self->cls;
     case GT_CLASS:
-    	return IS_BUILTIN(v) || IS_TCLASS(v)
+    	return IS_BUILTIN(v)
     		? v->cls
-    		: (v->cls->cls ? v->cls->cls : guru_class_object);
+    		: IS_SCLASS(v)
+    		    ? (v->cls->cls ? v->cls->cls : guru_class_object)
+    		    : v->cls;
     case GT_PROC:	 return guru_class_proc;
 #if GURU_USE_STRING
     case GT_STR:     return guru_class_string;

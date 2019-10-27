@@ -230,6 +230,7 @@ vm_method_exec(guru_vm *vm, GV v[], U32 vi, GS sid)
     	}
     	prc->func(v, vi);								// call C-based function
     	_wipe_stack(v+1, vi+1);
+    	v->acl &= ~ACL_NEW;								// clear NEW flag
     }
     return 0;
 }

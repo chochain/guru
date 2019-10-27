@@ -609,7 +609,7 @@ uc_return(guru_vm *vm)
 		ret = *_R0;									// return the object itself
 		ret.acl &= ~ACL_NEW;
 	}
-	ret.acl &= ~ACL_TCLASS;							// turn off SCLASS flag if any
+	ret.acl &= ~ACL_SCLASS;							// turn off SCLASS flag if any
 	vm_state_pop(vm, ret);							// pop callee's context
 }
 
@@ -1061,7 +1061,7 @@ uc_method(guru_vm *vm)
 
     _UNLOCK;
 
-    v->acl &= ~ACL_TCLASS;						// clear CLASS modification flags if any
+    v->acl &= ~ACL_SCLASS;						// clear CLASS modification flags if any
     *(v+1) = EMPTY();							// clean up proc
 }
 
@@ -1075,7 +1075,6 @@ __UCODE__
 uc_tclass(guru_vm *vm)
 {
 	_RA_T(GT_CLASS, cls=vm->state->klass);
-	_R(a)->acl |= ACL_TCLASS;
 }
 
 //================================================================
@@ -1098,6 +1097,8 @@ uc_sclass(guru_vm *vm)
 		guru_class_add_meta(o);						// lazily add metaclass if needed
 	}
 	else assert(1==0);
+
+	o->acl |= ACL_SCLASS;
 }
 
 //================================================================
