@@ -56,9 +56,7 @@ _send(GV v[], GV *rcv, const U8 *method, U32 argc, ...)
     GV *regs = v + 2;	     		// allocate 2 for stack
     GS sid   = name2id(method);
 
-    guru_class *cls = class_by_obj(v);
-    guru_proc  *m   = proc_by_sid(cls, sid);		// find method for receiver object
-
+    guru_proc  *m = proc_by_sid(v, sid);		// find method for receiver object
     assert(m);
 
     // create call stack.
@@ -204,7 +202,7 @@ obj_class(GV v[], U32 vi)
 {
 	assert(v->gt==GT_OBJ);
 
-    GV ret;  { ret.gt = GT_CLASS; }
+    GV ret;  { ret.gt = GT_CLASS; ret.acl=0; }
     ret.cls = class_by_obj(v);
 
     RETURN_VAL(ret);

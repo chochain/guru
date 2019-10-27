@@ -37,7 +37,9 @@ typedef struct RClass {			// 64-byte
 } guru_class;
 
 #define CLASS_META		0x1
+#define CLASS_USER		0x8
 #define IS_META(v)		((v)->gt==GT_CLASS && ((v)->cls->meta & CLASS_META))
+#define IS_BUILTIN(v)	((v)->gt==GT_CLASS && !((v)->cls->meta & CLASS_USER))
 
 // external methods uses static string (const char *) 												// in class.cu
 __GURU__ guru_class *guru_add_class(const char *name, guru_class *super, Vfunc vtbl[], int n);		// use (char *) for static string
@@ -46,7 +48,7 @@ __GURU__ guru_class *guru_add_class(const char *name, guru_class *super, Vfunc v
 __GURU__ guru_class *guru_define_class(const U8 *name, guru_class *super);
 __GURU__ guru_proc  *guru_define_method(guru_class *cls, const U8 *name, guru_fptr cfunc);
 __GURU__ guru_class *class_by_obj(GV *v);
-__GURU__ guru_proc  *proc_by_sid(guru_class *cls, GS sid);
+__GURU__ guru_proc  *proc_by_sid(GV *v, GS sid);
 
 #ifdef __cplusplus
 }

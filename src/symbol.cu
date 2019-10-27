@@ -184,7 +184,7 @@ sym_all(GV v[], U32 vi)
     GV ret = guru_array_new(_sym_idx);
 
     for (U32 i=0; i < _sym_idx; i++) {
-        GV sym1; { sym1.gt = GT_SYM; }
+        GV sym1; { sym1.gt = GT_SYM; sym1.acl=0; }
         sym1.i = i;
         guru_array_push(&ret, &sym1);
     }

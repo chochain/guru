@@ -94,14 +94,14 @@ typedef U16 		GS;
 
 #define ACL_HAS_REF		0x1
 #define ACL_READ_ONLY	0x2
-#define ACL_SCLASS		0x4
-#define ACL_XCLASS		0x8
+#define ACL_TCLASS		0x4
+#define ACL_NEW			0x8
 
 #define HAS_REF(v)		((v)->acl & ACL_HAS_REF)
 #define HAS_NO_REF(v)	(!HAS_REF(v))
 #define IS_READ_ONLY(v)	((v)->acl & ACL_READ_ONLY)
-#define IS_SCLASS(v)	((v)->acl & ACL_SCLASS)
-#define IS_XCLASS(v)	((v)->acl & ACL_XCLASS)
+#define IS_TCLASS(v)	((v)->acl & ACL_TCLASS)
+#define IS_NEW(v)		((v)->acl & ACL_NEW)
 
 //===============================================================================
 /*!@brief

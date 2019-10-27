@@ -1,6 +1,6 @@
 /*! @file
   @brief
-  GURU VM state management
+  GURU VM state transition management functions and missing functions (which needs VM)
 
   <pre>
   Copyright (C) 2019 GreenII
@@ -18,6 +18,7 @@
 #include "symbol.h"		// id2name
 #include "ostore.h"		// ostore_new
 #include "class.h"		// proc_by_sid
+#include "static.h"
 #include "state.h"
 #include "c_array.h"
 #include "c_range.h"
@@ -49,7 +50,7 @@ __match(const U8* s0, U8* s1)
 }
 
 __GURU__ void
-_proc_call(guru_vm *vm, GV v[], U32 vi)
+_call(guru_vm *vm, GV v[], U32 vi)
 {
 	guru_proc 	*prc  = v->proc;
 	guru_irep	*irep = prc->irep;
@@ -96,18 +97,15 @@ _each(guru_vm *vm, GV v[], U32 vi)
 }
 
 __GURU__ void
-_object_new(guru_vm *vm, GV v[], U32 vi)
+_new(guru_vm *vm, GV v[], U32 vi)
 {
 	assert(v->gt==GT_CLASS);					// ensure it is a class object
-
-    GV  obj = ostore_new(v->cls);				// instantiate object (with zero ivar)
-	GS  sid = name2id((U8*)"initialize"); 		// search for custom initializer (or Object#c_nop)
+	GV obj = v[0] = ostore_new(v->cls);			// instantiate object itself (with 0 var);
+	GS sid = name2id((U8*)"initialize"); 		// search for initializer
 
 	if (vm_method_exec(vm, v, vi, sid)) {		// run custom initializer if any
 		vm->err = 1;
 	}
-	vm->state->flag |= STATE_NEW;
-	v[0] = obj;
 }
 
 __GURU__ void
@@ -120,7 +118,7 @@ _lambda(guru_vm *vm, GV v[], U32 vi)
 
 	U32	n   = prc->n 	= vm->ar.a;
 	GV  *r  = prc->regs = (GV*)guru_alloc(sizeof(GV)*n);
-	GV  *r0 = vm->state->regs;
+	GV  *r0 = vm->state->regs;							// deep copy register file
 	for (U32 i=0; i<n; *r++=*r0++, i++);
 
     *v = *(v+1);
@@ -141,23 +139,23 @@ _method_missing(guru_vm *vm, GV v[], U32 vi, GS sid)
 	U8 *f = id2name(sid);
 
 	// function dispatcher
-	if      (__match("call", f)) { 					// C-based prc_call (hacked handler, it needs vm->state)
-		_proc_call(vm, v, vi);						// push into call stack, obj at stack[0]
+	if      (__match("call", f)) { 				// C-based prc_call (hacked handler, it needs vm->state)
+		_call(vm, v, vi);						// push into call stack, obj at stack[0]
 	}
 	else if (__match("each", f) || __match("times", f)) {
 		_each(vm, v, vi);
 	}
-	else if (__match("new", f)) {					// other default C-based methods
-		_object_new(vm, v, vi);
+	else if (__match("new", f)) {				// other default C-based methods
+		_new(vm, v, vi);						// create object
 	}
-	else if (__match("lambda", f)) {					// other default C-based methods
+	else if (__match("lambda", f)) {			// other default C-based methods
 		_lambda(vm, v, vi);
 	}
 	else if (__match("raise", f)) {
 		_raise(vm, v, vi);
 	}
 	else {
-		_wipe_stack(v+1, vi+1);						// wipe call stack and return
+		_wipe_stack(v+1, vi+1);					// wipe call stack and return
 		return 1;
 	}
 	return 0;
@@ -186,7 +184,7 @@ vm_state_push(guru_vm *vm, guru_irep *irep, U32 pc, GV v[], U32 vi)
     st->prev  = top;				// push into context stack
 
     if (top) {						// keep stack frame depth
-    	top->nv = IS_LAMBDA(st)	? v->proc->n : vm->ar.a;
+    	top->nv = IN_LAMBDA(st) ? v->proc->n : vm->ar.a;
     }
     else st->nv = irep->nr;			// top most stack frame depth
 
@@ -218,8 +216,7 @@ vm_state_pop(guru_vm *vm, GV ret_val)
 __GURU__ U32
 vm_method_exec(guru_vm *vm, GV v[], U32 vi, GS sid)
 {
-	guru_class *cls = class_by_obj(v);
-    guru_proc  *prc = proc_by_sid(cls, sid);			// v->gt in [GT_OBJ, GT_CLASS]
+    guru_proc  *prc = proc_by_sid(v, sid);				// v->gt in [GT_OBJ, GT_CLASS]
 
     if (prc==0) {
     	return _method_missing(vm, v, vi, sid);

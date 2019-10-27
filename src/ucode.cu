@@ -269,7 +269,7 @@ uc_getcv(guru_vm *vm)
 
 	assert(v->gt==GT_OBJ);
 
-	GV cv; { cv.gt=GT_CLASS; cv.cls=v->self->cls; }
+	GV cv; { cv.gt=GT_CLASS; cv.acl=0; cv.cls=v->self->cls; }
 	GV ret;
 	for (guru_class *cls=v->self->cls;
 			cls && (ret=ostore_get(&cv, sid)).gt!=GT_NIL; cls=cls->super);
@@ -303,9 +303,7 @@ __UCODE__
 uc_getconst(guru_vm *vm)
 {
     GS sid = VM_SYM(vm, _AR(bx));
-
-    GV *v = const_get(sid);
-    if (v->gt==GT_CLASS) v->acl |= ACL_XCLASS;
+    GV *v  = const_get(sid);
 
     _RA(*v);
 }
@@ -339,7 +337,7 @@ _upvar(guru_vm *vm)
 {
 	guru_state *st = vm->state;
 	for (U32 i=0; i<=_AR(c); i++) {		// walk up stack frame
-		st = IS_LAMBDA(st)
+		st = IN_LAMBDA(st)
 			? st->prev
 			: st->prev->prev;			// 1 extra for each_loop
 	}
@@ -586,7 +584,7 @@ uc_return(guru_vm *vm)
 	U32 bk  = _AR(b);								// break
 
 	guru_state *st = vm->state;
-	if (IS_LOOP(st)) {
+	if (IN_LOOP(st)) {
 		GV *r0 = _R0;
 		GV *ri = r0 - 1;
 		U32 nvar = guru_iter_next(ri);				// get next iterator element
@@ -604,13 +602,14 @@ uc_return(guru_vm *vm)
 		vm_state_pop(vm, ret);						// pop off ITERATOR state
 		ret = *_R0;									// return the object itself
 	}
-	else if (IS_LAMBDA(st)) {
+	else if (IN_LAMBDA(st)) {
 		vm_state_pop(vm, ret);						// pop off LAMBDA state
 	}
-	else if (IS_NEW(st)) {
+	else if (IS_NEW(_R0)) {
 		ret = *_R0;									// return the object itself
+		ret.acl &= ~ACL_NEW;
 	}
-	ret.acl &= ~ACL_SCLASS;							// turn off SCLASS flag if any
+	ret.acl &= ~ACL_TCLASS;							// turn off SCLASS flag if any
 	vm_state_pop(vm, ret);							// pop callee's context
 }
 
@@ -876,8 +875,8 @@ uc_strcat(guru_vm *vm)
     GS sid = name2id((U8*)"to_s");				// from global symbol pool
 	GV *sa = _R(a), *sb = _R(b);
 
-    guru_proc *pa = proc_by_sid(class_by_obj(sa), sid);
-    guru_proc *pb = proc_by_sid(class_by_obj(sb), sid);
+    guru_proc *pa = proc_by_sid(sa, sid);
+    guru_proc *pb = proc_by_sid(sb, sid);
 
     if (pa) pa->func(sa, 0);					// can it be an IREP?
     if (pb) pb->func(sb, 0);
@@ -1007,7 +1006,10 @@ uc_class(guru_vm *vm)
     const U8   *name  = id2name(sid);
     guru_class *cls   = guru_define_class(name, super);
 
+    cls->meta |= CLASS_USER;					// user defined (i.e. non-builtin) class
+
     _RA_T(GT_CLASS, cls=cls);
+    *r1 = EMPTY();
 }
 
 //================================================================
@@ -1023,7 +1025,6 @@ uc_exec(guru_vm *vm)
 	guru_irep *irep = VM_REPS(vm, _AR(bx));		// child IREP[rb]
 
     vm_state_push(vm, irep, 0, _R(a), 0);		// push call stack
-    vm->state->flag |= STATE_EVAL;
 }
 
 //================================================================
@@ -1040,13 +1041,13 @@ uc_method(guru_vm *vm)
 
     // check whether the name has been defined in current class (i.e. vm->state->klass)
     GS sid = VM_SYM(vm, _AR(b));				// fetch name from IREP symbol table
-    guru_class *cls = class_by_obj(v);			// get receiver class
-    guru_proc  *prc = proc_by_sid(cls, sid);	// fetch proc from obj->klass->vtbl
+    guru_class *cls = class_by_obj(v);			// fetch active class
+    guru_proc  *prc = proc_by_sid(v, sid);		// fetch proc from class or obj's vtbl
 
 #if GURU_DEBUG
     if (prc != NULL) {
     	// same proc name exists (in either current or parent class)
-		// printf("WARN: %s#%s override base\n", id2name(class_by_obj(v)->sid), id2name(sid));
+		// printf("WARN: %s#%s override base\n", id2name(cls->sid), id2name(sid));
     }
 #endif
     prc = (v+1)->proc;							// override (if exist) with proc by OP_LAMBDA
@@ -1060,7 +1061,7 @@ uc_method(guru_vm *vm)
 
     _UNLOCK;
 
-    v->acl &= ~ACL_SCLASS;						// clear CLASS modification flags if any
+    v->acl &= ~ACL_TCLASS;						// clear CLASS modification flags if any
     *(v+1) = EMPTY();							// clean up proc
 }
 
@@ -1074,6 +1075,7 @@ __UCODE__
 uc_tclass(guru_vm *vm)
 {
 	_RA_T(GT_CLASS, cls=vm->state->klass);
+	_R(a)->acl |= ACL_TCLASS;
 }
 
 //================================================================
@@ -1096,8 +1098,6 @@ uc_sclass(guru_vm *vm)
 		guru_class_add_meta(o);						// lazily add metaclass if needed
 	}
 	else assert(1==0);
-
-	o->acl |= ACL_SCLASS;
 }
 
 //================================================================

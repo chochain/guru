@@ -45,7 +45,10 @@ class_by_obj(GV *v)
 #endif // GURU_USE_FLOAT
     case GT_SYM:  	 return guru_class_symbol;
     case GT_OBJ:  	 return v->self->cls;
-    case GT_CLASS:   return IS_SCLASS(v) ? v->cls->cls : v->cls;
+    case GT_CLASS:
+    	return IS_BUILTIN(v) || IS_TCLASS(v)
+    		? v->cls
+    		: (v->cls->cls ? v->cls->cls : guru_class_object);
     case GT_PROC:	 return guru_class_proc;
 #if GURU_USE_STRING
     case GT_STR:     return guru_class_string;
@@ -84,13 +87,13 @@ _name2class(const U8 *name)
   @return proc pointer
 */
 __GURU__ guru_proc*
-proc_by_sid(guru_class *cls, GS sid)
+proc_by_sid(GV *v, GS sid)
 {
 	// TODO: heavy-weight method, use Dynamic Parallelism or a cache to speed up lookup
     guru_proc  *p;
-    for (; cls; cls=cls->super) {	// search up hierarchy tree
-        for (p=cls->vtbl; p && (p->sid != sid); p=p->next);				// linear search thru class or meta vtbl
-        if (p) return p;												// break if found
+    for (guru_class *cls=class_by_obj(v); cls; cls=cls->super) {// search up class hierarchy
+        for (p=cls->vtbl; p && (p->sid != sid); p=p->next);		// linear search thru class or meta vtbl
+        if (p) return p;										// break if found
     }
     return NULL;
 }
@@ -115,17 +118,18 @@ guru_define_class(const U8 *name, guru_class *super)
     GS sid = name2id(name);
 
     cls = (guru_class *)guru_alloc(sizeof(guru_class));
+    cls->rc     = 0;
+    cls->meta   = 0;					// ~META_FLAG
     cls->sid    = sid;
     cls->super  = super;
     cls->vtbl 	= NULL;					// head of list
     cls->ivar   = NULL;					// lazily allocated when needed
     cls->cls 	= NULL;					// meta-class, lazily allocated when needed
-    cls->meta   = 0;					// ~META_FLAG
 #ifdef GURU_DEBUG
     // change to sid later
     cls->name   = (char *)id2name(sid);	// retrive from stored symbol table (the one caller passed might be destroyed)
 #endif
-    GV v; { v.gt=GT_CLASS; v.self=(guru_obj*)cls; }
+    GV v; { v.gt=GT_CLASS; v.acl=0; v.self=(guru_obj*)cls; }
     const_set(sid, &v);					// register new class in constant cache
 
     return cls;

@@ -136,13 +136,14 @@ _get(guru_var *r, GS vid)
 __GURU__ GV
 ostore_new(guru_class *cls)
 {
-    GV v; { v.gt=GT_OBJ; v.acl = ACL_HAS_REF; }
+    GV v; { v.gt=GT_OBJ; v.acl = ACL_HAS_REF|ACL_NEW; }
 
     guru_obj *o = v.self = (guru_obj *)guru_alloc(sizeof(guru_obj));
 
     o->rc    = 1;
     o->ivar  = NULL;	// attributes, lazy allocation until _set is called
     o->cls   = cls;
+    o->sz    = o->n = 0;
 
     return v;
 }
