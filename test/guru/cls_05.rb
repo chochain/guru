@@ -15,7 +15,8 @@ end
 a = MyClass.new
 puts a.func
 puts MyClass.myfunc2
-puts (a.myfunc1 rescue "Err")
+puts (a.myfunc1 rescue 'Err')
+    
 
 
 
