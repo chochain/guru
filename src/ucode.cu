@@ -212,8 +212,12 @@ uc_setglobal(guru_vm *vm)
     global_set(sid, _R(a));
 }
 
+//================================================================
+/*!@brief
+  sid of attr name with '@' sign removed
+*/
 __GURU__ __INLINE__ GS
-_name2id_plus(guru_vm *vm)
+_name2id_wo_at_sign(guru_vm *vm)
 {
     GS sid   = VM_SYM(vm, _AR(bx));
     U8 *name = id2name(sid);			// attribute name with leading '@'
@@ -230,10 +234,10 @@ _name2id_plus(guru_vm *vm)
 __UCODE__
 uc_getiv(guru_vm *vm)
 {
-	GV *v = _R0;
-//	assert(v->gt==GT_OBJ);
+	GV *v  = _R0;
+	assert(v->gt==GT_OBJ || v->gt==GT_CLASS);
 
-    GS sid = _name2id_plus(vm);
+    GS sid = _name2id_wo_at_sign(vm);
     GV ret = ostore_get(v, sid);
 
     _RA(ret);
@@ -248,10 +252,10 @@ uc_getiv(guru_vm *vm)
 __UCODE__
 uc_setiv(guru_vm *vm)
 {
-	GV *v = _R0;
+	GV *v  = _R0;
 	assert(v->gt==GT_OBJ || v->gt==GT_CLASS);
 
-    GS sid = _name2id_plus(vm);
+    GS sid = _name2id_wo_at_sign(vm);
     ostore_set(v, sid, _R(a));
 }
 
@@ -605,11 +609,10 @@ uc_return(guru_vm *vm)
 	else if (IN_LAMBDA(st)) {
 		vm_state_pop(vm, ret);						// pop off LAMBDA state
 	}
-	else if (IS_NEW(_R0)) {
+	else if (IS_NEW(st)) {
 		ret = *_R0;									// return the object itself
-		ret.acl &= ~ACL_NEW;
 	}
-	ret.acl &= ~ACL_SCLASS;							// turn off SCLASS flag if any
+	ret.acl &= ~(ACL_SELF|ACL_SCLASS);				// turn off TCLASS and NEW flags if any
 	vm_state_pop(vm, ret);							// pop callee's context
 }
 
@@ -1006,7 +1009,7 @@ uc_class(guru_vm *vm)
     const U8   *name  = id2name(sid);
     guru_class *cls   = guru_define_class(name, super);
 
-    cls->meta |= CLASS_USER;					// user defined (i.e. non-builtin) class
+	cls->meta |= CLASS_USER;					// user defined (i.e. non-builtin) class
 
     _RA_T(GT_CLASS, cls=cls);
     *r1 = EMPTY();
@@ -1047,7 +1050,9 @@ uc_method(guru_vm *vm)
 #if GURU_DEBUG
     if (prc != NULL) {
     	// same proc name exists (in either current or parent class)
-		// printf("WARN: %s#%s override base\n", id2name(cls->sid), id2name(sid));
+#if CC_DEBUG
+		printf("WARN: %s#%s override base\n", id2name(cls->sid), id2name(sid));
+#endif // CC_DEBUG
     }
 #endif
     prc = (v+1)->proc;							// override (if exist) with proc by OP_LAMBDA
@@ -1061,7 +1066,7 @@ uc_method(guru_vm *vm)
 
     _UNLOCK;
 
-    v->acl &= ~ACL_SCLASS;						// clear CLASS modification flags if any
+    v->acl &= ~ACL_SELF;						// clear CLASS modification flags if any
     *(v+1) = EMPTY();							// clean up proc
 }
 
@@ -1074,7 +1079,11 @@ uc_method(guru_vm *vm)
 __UCODE__
 uc_tclass(guru_vm *vm)
 {
+	GV *ra = _R(a);
+
 	_RA_T(GT_CLASS, cls=vm->state->klass);
+	ra->acl |= ACL_SELF;
+	ra->acl &= ~ACL_SCLASS;
 }
 
 //================================================================
@@ -1099,6 +1108,7 @@ uc_sclass(guru_vm *vm)
 	else assert(1==0);
 
 	o->acl |= ACL_SCLASS;
+	o->acl &= ~ACL_SELF;
 }
 
 //================================================================

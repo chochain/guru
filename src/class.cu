@@ -10,6 +10,7 @@
 
   </pre>
 */
+#include <stdio.h>
 #include <stdarg.h>
 #include "guru.h"
 #include "class.h"
@@ -45,12 +46,12 @@ class_by_obj(GV *v)
 #endif // GURU_USE_FLOAT
     case GT_SYM:  	 return guru_class_symbol;
     case GT_OBJ:  	 return v->self->cls;
-    case GT_CLASS:
+    case GT_CLASS: {
+    	guru_class *scls = v->cls->cls ? v->cls->cls : guru_class_object;
     	return IS_BUILTIN(v)
     		? v->cls
-    		: IS_SCLASS(v)
-    		    ? (v->cls->cls ? v->cls->cls : guru_class_object)
-    		    : v->cls;
+    		: (IS_SCLASS(v) ? scls : (IS_SELF(v) ? v->cls : scls));
+    } break;
     case GT_PROC:	 return guru_class_proc;
 #if GURU_USE_STRING
     case GT_STR:     return guru_class_string;
@@ -93,9 +94,12 @@ proc_by_sid(GV *v, GS sid)
 {
 	// TODO: heavy-weight method, use Dynamic Parallelism or a cache to speed up lookup
     guru_proc  *p;
-    for (guru_class *cls=class_by_obj(v); cls; cls=cls->super) {// search up class hierarchy
-        for (p=cls->vtbl; p && (p->sid != sid); p=p->next);		// linear search thru class or meta vtbl
-        if (p) return p;										// break if found
+    for (guru_class *cls=class_by_obj(v); cls; cls=cls->super) {	// search up class hierarchy
+#if CC_DEBUG
+        printf("%p:%s\tsid=0x%02x, sc=%d self=%d\n", cls, cls->name, sid, IS_SCLASS(v), IS_SELF(v));
+#endif // CC_DEBUG
+        for (p=cls->vtbl; p && (p->sid != sid); p=p->next);			// linear search thru class or meta vtbl
+        if (p) return p;											// break if found
     }
     return NULL;
 }
@@ -133,7 +137,9 @@ guru_define_class(const U8 *name, guru_class *super)
 #endif
     GV v; { v.gt=GT_CLASS; v.acl=0; v.self=(guru_obj*)cls; }
     const_set(sid, &v);					// register new class in constant cache
-
+#if CC_DEBUG
+    printf("%p:%s defined\n", cls, name);
+#endif // CC_DEBUG
     return cls;
 }
 

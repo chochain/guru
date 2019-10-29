@@ -11,6 +11,7 @@
   2. internal state management functions
   </pre>
 */
+#include <stdio.h>
 #include <assert.h>
 
 #include "mmu.h"
@@ -106,6 +107,7 @@ _new(guru_vm *vm, GV v[], U32 vi)
 	if (vm_method_exec(vm, v, vi, sid)) {		// run custom initializer if any
 		vm->err = 1;
 	}
+	vm->state->flag |= STATE_NEW;
 }
 
 __GURU__ void
@@ -137,7 +139,9 @@ __GURU__ U32
 _method_missing(guru_vm *vm, GV v[], U32 vi, GS sid)
 {
 	U8 *f = id2name(sid);
-
+#if CC_DEBUG
+	printf("0x%02x:%s not found -------\n", sid, f);
+#endif // CC_DEBUG
 	// function dispatcher
 	if      (__match("call", f)) { 				// C-based prc_call (hacked handler, it needs vm->state)
 		_call(vm, v, vi);						// push into call stack, obj at stack[0]
@@ -225,12 +229,10 @@ vm_method_exec(guru_vm *vm, GV v[], U32 vi, GS sid)
     	vm_state_push(vm, prc->irep, 0, v, vi);			// switch to callee's context
     }
     else {
-    	if (v->gt==GT_OBJ) {
-    		v->vid = sid;								// pass as parameter
-    	}
+    	v->vid = sid;									// pass as parameter
     	prc->func(v, vi);								// call C-based function
     	_wipe_stack(v+1, vi+1);
-    	v->acl &= ~ACL_NEW;								// clear NEW flag
+    	v->acl &= ~(ACL_SCLASS|ACL_SELF);
     }
     return 0;
 }

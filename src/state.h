@@ -90,10 +90,12 @@ typedef struct XState {
 
 #define STATE_LOOP				0x1
 #define STATE_LAMBDA			0x2
+#define STATE_NEW				0x4
 
 #define IN_LOOP(st)				((st)->prev && (st)->prev->flag & STATE_LOOP)
 #define IN_LAMBDA(st)			((st)->prev && (st)->prev->flag & STATE_LAMBDA)
 #define IS_LAMBDA(st)			((st)->flag & STATE_LAMBDA)
+#define IS_NEW(st)				((st)->flag & STATE_NEW)
 
 __GURU__ void 	vm_state_push(guru_vm *vm, guru_irep *irep, U32 pc, GV *regs, U32 vi);
 __GURU__ void	vm_state_pop(guru_vm *vm, GV ret_val);

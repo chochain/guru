@@ -69,9 +69,10 @@ _new(U32 nlv)
 {
     guru_var *r = (guru_var *)guru_alloc(sizeof(guru_var));
 
-    r->attr = (GV *)guru_alloc(sizeof(GV) * nlv);
+    r->rc   = 0;
     r->sz   = nlv;		// number of local variables
     r->n    = 0;		// currently zero allocated
+    r->attr = (GV *)guru_alloc(sizeof(GV) * nlv);
 
     return r;
 }
@@ -98,6 +99,7 @@ _set(guru_var *r, GS vid, GV *val)
     v = r->attr + (++idx);							// use next slot
     if ((r->n+1) > r->sz) {						    // need resize?
         if (_resize(r, r->sz + 4)) return -1;		// allocation, error?
+        v = r->attr + idx;
     }
     // shift attributes out for insertion
     GV *t = r->attr + r->n;
@@ -136,7 +138,7 @@ _get(guru_var *r, GS vid)
 __GURU__ GV
 ostore_new(guru_class *cls)
 {
-    GV v; { v.gt=GT_OBJ; v.acl = ACL_HAS_REF|ACL_NEW; }
+    GV v; { v.gt=GT_OBJ; v.acl = ACL_HAS_REF|ACL_SELF; }
 
     guru_obj *o = v.self = (guru_obj *)guru_alloc(sizeof(guru_obj));
 
@@ -179,7 +181,7 @@ ostore_set(GV *v, GS vid, GV *val)
 {
 	guru_var *r = v->self->ivar;		// RObj and RClass share same header
 	if (r==NULL) {
-		r = v->self->ivar = _new(1);	// lazy allocation
+		r = v->self->ivar = _new(4);	// lazy allocation
 		ref_inc(v);						// itself has been referenced now
 	}
 	_set(r, vid, val);

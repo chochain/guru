@@ -264,7 +264,7 @@ obj_setiv(GV v[], U32 vi)
 /*! append '=' to create name for attr_writer
  */
 __GURU__ U8 *
-_add_eq(GV *buf, U8 *s0)
+_name_w_eq_sign(GV *buf, U8 *s0)
 {
     guru_str_add_cstr(buf, s0);
     guru_str_add_cstr(buf, "=");
@@ -280,12 +280,15 @@ _add_eq(GV *buf, U8 *s0)
 __CFUNC__
 obj_attr_reader(GV v[], U32 vi)
 {
+	assert(v->gt==GT_CLASS);
+	guru_class *cls = v->cls;							// fetch class
+
 	GV *s = v+1;
     for (U32 i = 0; i < vi; i++, s++) {
         assert(s->gt==GT_SYM);
 
         U8 *name = id2name(s->i);						// reader only
-        guru_define_method(v->cls, name, obj_getiv);
+        guru_define_method(cls, name, obj_getiv);
     }
 }
 
@@ -295,14 +298,17 @@ obj_attr_reader(GV v[], U32 vi)
 __CFUNC__
 obj_attr_accessor(GV v[], U32 vi)
 {
-	guru_class *cls = class_by_obj(v);					// fetch class
-
+	assert(v->gt==GT_CLASS);
+	guru_class *cls = IS_SCLASS(v) ? v->cls->cls : v->cls;		// fetch class
+#if CC_DEBUG
+    printf("%p:%s, sc=%d self=%d #attr_accessor\n", cls, cls->name, IS_SCLASS(v), IS_SELF(v));
+#endif // CC_DEBUG
     GV buf = guru_str_buf(80);
-	GV *s   = v+1;
+	GV *s  = v+1;
     for (U32 i=0; i < vi; i++, s++) {
         assert(s->gt==GT_SYM);
         U8 *a0  = id2name(s->i);						// reader
-        U8 *a1  = _add_eq(&buf, a0);					// writer
+        U8 *a1  = _name_w_eq_sign(&buf, a0);			// writer
 
         guru_define_method(cls, a0, obj_getiv);
         guru_define_method(cls, a1, obj_setiv);
