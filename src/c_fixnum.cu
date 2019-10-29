@@ -196,7 +196,7 @@ guru_init_class_int(void)
 		{ "inspect",gv_to_s			}
 	};
     guru_class_int = guru_add_class(
-    	"int", guru_class_object, vtbl, sizeof(vtbl)/sizeof(Vfunc)
+    	"Integer", guru_class_object, vtbl, sizeof(vtbl)/sizeof(Vfunc)
     );
 
 }
