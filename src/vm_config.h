@@ -48,6 +48,7 @@
 #define GURU_64BIT_ALIGN_REQUIRED 	1
 #define CUDA_MIN_MEMBLOCK_SIZE		0x200
 
+#define CC_DEBUG					1
 #endif
 
 

@@ -401,7 +401,7 @@ _show_state_regs(guru_state *st, U32 lvl)
 		for (n=st->irep->nr; n>0 && st->regs[n].gt==GT_EMPTY; n--);
 		n++;
 	}
-	_show_regs(st->regs, n);
+	_show_regs((st->flag & STATE_LOOP) ? st->regs-2 : st->regs, n);
 }
 
 __HOST__ void
@@ -424,7 +424,11 @@ _show_decode(guru_vm *vm, U32 code)
 	case OP_GETUPVAR:   printf(" r%-2d =r^%-2d+%-13d",  a, up, ar.b);				return;
 	case OP_SETUPVAR:	printf(" r^%-2d+%-2d =r%-13d",  up, ar.b, a);				return;
 	case OP_ARRAY:
-	case OP_HASH:		printf(" r%-2d <r%-2d..r%-12d", a, ar.b, ar.b+ar.c-1);		return;
+	case OP_HASH: {
+		if (ar.c<1)		printf(" r%-2d < %-17s", a, op==OP_ARRAY ? "[]" : "{}");
+		else			printf(" r%-2d <r%-2d..r%-12d", a, ar.b, ar.b+ar.c-1);
+		return;
+	} break;
 	case OP_SCLASS:		printf(" r%-22d", ar.b);									return;
 	case OP_ENTER:		printf(" @%-22d", 1 + vm->state->argc - (n>>18));			return;
 	case OP_RESCUE:
