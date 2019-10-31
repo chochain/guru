@@ -107,7 +107,7 @@ guru_iter_next(GV *v)
 		GV         *d = &a->data[it->n];
 		ref_dec(d);
 		if ((it->n + 1) < a->n) {
-			it->n += nvar = 1;
+			it->n += (nvar = 1);
 			it->ivar = ref_inc(++d);
 		}
 		else nvar=0;

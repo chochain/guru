@@ -240,7 +240,7 @@ uc_getiv(guru_vm *vm)
     GS sid = _name2id_wo_at_sign(vm);
     GV ret = ostore_get(v, sid);
 
-    _RA(ret);
+    _RA_X(&ret);
 }
 
 //================================================================
@@ -918,7 +918,7 @@ uc_array(guru_vm *vm)
     GV  v = (GV)guru_array_new(n);			// ref_cnt is 1 already
 
     guru_array *h = v.array;
-    _stack_copy(h->data, _R(b), h->n=n);
+    if ((h->n=n)>0) _stack_copy(h->data, _R(b), n);
 
     _RA(v);									// no need to ref_inc
 #else
@@ -940,7 +940,7 @@ uc_hash(guru_vm *vm)
     GV  ret = guru_hash_new(n);				// ref_cnt is already set to 1
 
     guru_hash *h = ret.hash;
-    _stack_copy(h->data, _R(b), h->n=(n<<1));
+    if ((h->n=(n<<1))>0) _stack_copy(h->data, _R(b), h->n);
 
     _RA(ret);							    // new hash on stack top
 #else
