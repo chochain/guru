@@ -529,20 +529,28 @@ ary_size(GV v[], U32 vi)
     RETURN_INT(v->array->n);
 }
 
+__GURU__ S32
+_index(GV v[])
+{
+    guru_array *h = v->array;
+    GV *p = h->data;
+    for (U32 i=0; i < h->n; i++, p++) {
+        if (guru_cmp(p, v+1)==0) {
+            return i;
+        }
+    }
+    return -1;
+}
+
 //================================================================
 /*! (method) index
  */
 __CFUNC__
 ary_index(GV v[], U32 vi)
 {
-    guru_array *h = v->array;
-    GV *p = h->data;
-    for (U32 i=0; i < h->n; i++, p++) {
-        if (guru_cmp(p, v+1)==0) {
-            RETURN_INT(i);
-        }
-    }
-    RETURN_NIL();
+	S32 i = _index(v);
+	if (i>=0) { RETURN_INT(i); }
+	else      { RETURN_NIL();  }
 }
 
 //================================================================
@@ -636,6 +644,17 @@ ary_dup(GV v[], U32 vi)
 }
 
 //================================================================
+/*! (method) include?
+ */
+__CFUNC__
+ary_include(GV v[], U32 vi)
+{
+    if (_index(v)<0) RETURN_FALSE()
+    else 		     RETURN_TRUE();
+}
+
+
+//================================================================
 /*! (method) min
  */
 __CFUNC__
@@ -724,6 +743,7 @@ guru_init_class_array()
 		{ "shift",     ary_shift	},
 		{ "unshift",   ary_unshift	},
 		{ "dup",       ary_dup		},
+		{ "include?",  ary_include  },
 
 		{ "join",      ary_join		},
 		{ "inspect",   gv_to_s		},
