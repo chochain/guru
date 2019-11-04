@@ -44,11 +44,11 @@
 
 #define __GURU_CUDA__
 #define GURU_DEBUG					1
-#define BLOCK_MEMORY_SIZE 			(64*1024)
+#define BLOCK_MEMORY_SIZE 			(128*1024)
 #define GURU_64BIT_ALIGN_REQUIRED 	1
 #define CUDA_MIN_MEMBLOCK_SIZE		0x200
 
-#define CC_DEBUG					1
+#define CC_DEBUG					0
 #endif
 
 
