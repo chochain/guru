@@ -23,17 +23,6 @@
 #include "c_range.h"
 #include "iter.h"
 
-__GURU__ void
-_inc(GV *v, GV *s)
-{
-	S32 i = s ? s->i : 1;
-
-	switch (v->gt) {
-	case GT_FLOAT:	v->f += i; 	break;
-	default: 		v->i += i;
-	}
-}
-
 //================================================================
 /*! constructor
 
@@ -58,12 +47,12 @@ guru_iter_new(GV *obj, GV *step)
     	i->ivar  = (obj->i=0, obj);
     } break;
     case GT_RANGE: {
-    	guru_range 	*r = obj->range;
-    	GV  		*x = &r->first;
-    	assert(x->gt==GT_INT || x->gt==GT_FLOAT);
+    	guru_range *r = obj->range;
+    	assert(r->first.gt==GT_INT || r->first.gt==GT_FLOAT);
 
-    	i->n     = x->i;
-    	i->ivar  = x;
+    	i->n     = 0;
+    	i->ivar  = (GV*)guru_alloc(sizeof(GV));
+    	*i->ivar = r->first;
     } break;
     case GT_ARRAY: {
     	guru_array *a = obj->array;
@@ -96,11 +85,16 @@ guru_iter_next(GV *v)
 	} break;
 	case GT_RANGE: {
 		guru_range *r = it->range->range;
-		_inc(it->ivar, it->step);
-		U32 out = IS_INCLUDE(r)
-			? guru_cmp(it->ivar, &r->last) > 0
-			: guru_cmp(it->ivar, &r->last) >= 0;
-		nvar = (out) ? 0 : 1;
+		U32 keep;
+		if (it->ivar->gt==GT_FLOAT) {
+			it->ivar->f += (it->step ? it->step->f : 1.0);
+			keep = IS_INCLUDE(r) ? (it->ivar->f <= r->last.f) : (it->ivar->f < r->last.f);
+		}
+		else {
+			it->ivar->i += (it->step ? it->step->i : 1);
+			keep = IS_INCLUDE(r) ? (it->ivar->i <= r->last.i) : (it->ivar->i < r->last.i);
+		}
+		nvar = (keep) ? 1 : 0;
 	} break;
 	case GT_ARRAY: {
 		guru_array *a = it->range->array;
@@ -137,8 +131,11 @@ __GURU__ void
 guru_iter_del(GV *v)
 {
 	assert(v->gt==GT_ITER);
+	guru_iter *it = v->iter;
 
-    ref_dec(v->iter->range);
-    guru_free(v->iter);
+	if (it->meta==GT_RANGE) guru_free(it->ivar);
+
+    ref_dec(it->range);
+    guru_free(it);
     *v = EMPTY();
 }
