@@ -625,9 +625,13 @@ uc_return(guru_vm *vm)
 __UCODE__
 uc_blkpush(guru_vm *vm)
 {
-    GV *prc = _R0+1;       				// get proc, regs[0] is the class
+	guru_state *st = vm->state;
+	for (U32 i=0; i<_AR(c); i++) {
+		st = st->prev->prev;
+	}
+    GV *prc = st->regs+st->argc+1;       	// get proc, regs[0] is the class
 
-    assert(prc->gt==GT_PROC);			// ensure
+    assert(prc->gt==GT_PROC);				// ensure
 
     _RA_X(prc);             				// ra <= proc
 }
