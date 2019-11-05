@@ -580,40 +580,15 @@ uc_enter(guru_vm *vm)
 
   return R(A) (B=normal,in-block return/break)
 */
-__GURU__ U32
-_next(guru_state *st)
-{
-	GV *r0 = st->regs;
-	GV *ri = r0 - 1;
-
-	U32 nvar = guru_iter_next(ri);				// get next iterator element
-	if (nvar==0) return 0;						// end of loop, bail
-
-	GV  *r = r0 + (nvar+1);						// wipe stack for next loop
-	U32 n  = st->irep->nr - (nvar+1);			// TODO: consolidate with state#_wipe_stack
-	for (U32 i=0; i<n; i++, r++) {
-		ref_dec(r);
-		r->gt  = GT_EMPTY;
-		r->acl = 0;
-	}
-
-	guru_iter *it = ri->iter;					// get iterator itself
-	*(r0+1) = *it->ivar;						// fetch next loop index
-	if (nvar>1) *(r0+2) = *(it->ivar+1);		// range
-	st->pc = 0;
-
-	return 1;
-}
-
 __UCODE__
 uc_return(guru_vm *vm)
 {
 	GV  ret = *_R(a);							// return value
-	U32 bk  = _AR(b);							// break
+	U32 brk = _AR(b);							// break
 
 	guru_state *st = vm->state;
 	if (IN_LOOP(st)) {
-		if (_next(st) && !bk) return;
+		if (vm_loop_next(vm) && !brk) return;	// continue
 
 		ret = *_R(a);							// fetch last returned value
 		guru_iter_del(st->regs - 1);			// release iterator

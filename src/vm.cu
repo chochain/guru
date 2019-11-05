@@ -424,11 +424,10 @@ _show_decode(guru_vm *vm, U32 code)
 	case OP_GETUPVAR:   printf(" r%-2d =r^%-2d+%-13d",  a, up, ar.b);				return;
 	case OP_SETUPVAR:	printf(" r^%-2d+%-2d =r%-13d",  up, ar.b, a);				return;
 	case OP_ARRAY:
-	case OP_HASH: {
+	case OP_HASH:
 		if (ar.c<1)		printf(" r%-2d < %-17s", a, op==OP_ARRAY ? "[]" : "{}");
 		else			printf(" r%-2d <r%-2d..r%-12d", a, ar.b, ar.b+ar.c-1);
 		return;
-	} break;
 	case OP_SCLASS:		printf(" r%-22d", ar.b);									return;
 	case OP_ENTER:		printf(" @%-22d", 1 + vm->state->argc - (n>>18));			return;
 	case OP_RESCUE:

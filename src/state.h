@@ -101,6 +101,7 @@ __GURU__ void 	vm_state_push(guru_vm *vm, guru_irep *irep, U32 pc, GV *regs, U32
 __GURU__ void	vm_state_pop(guru_vm *vm, GV ret_val);
 
 // TODO: temp functions for call and new (due to VM passing required)
+__GURU__ U32	vm_loop_next(guru_vm *vm);
 __GURU__ U32	vm_method_exec(guru_vm *vm, GV v[], U32 vi, GS sid);
 
 #ifdef __cplusplus

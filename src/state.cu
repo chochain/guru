@@ -218,6 +218,28 @@ vm_state_pop(guru_vm *vm, GV ret_val)
 }
 
 __GURU__ U32
+vm_loop_next(guru_vm *vm)
+{
+	guru_state *st = vm->state;
+	GV *r0 = st->regs;
+	GV *ri = r0 - 1;									// iterator pointer
+
+	U32 nvar = guru_iter_next(ri);						// get next iterator element
+	if (nvar==0) return 0;								// end of loop, bail
+
+	GV  *r = r0 + (nvar+1);								// wipe stack for next loop
+	U32 n  = st->irep->nr - (nvar+1);
+	_wipe_stack(r, n);
+
+	guru_iter *it = ri->iter;							// get iterator itself
+	*(r0+1) = *it->ivar;								// fetch next loop index
+	if (nvar>1) *(r0+2) = *(it->ivar+1);				// range
+	st->pc = 0;
+
+	return 1;
+}
+
+__GURU__ U32
 vm_method_exec(guru_vm *vm, GV v[], U32 vi, GS sid)
 {
     guru_proc  *prc = proc_by_sid(v, sid);				// v->gt in [GT_OBJ, GT_CLASS]
