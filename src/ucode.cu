@@ -240,7 +240,7 @@ uc_getiv(guru_vm *vm)
     GS sid = _name2id_wo_at_sign(vm);
     GV ret = ostore_get(v, sid);
 
-    _RA_X(&ret);
+    _RA(ret);
 }
 
 //================================================================
@@ -321,7 +321,6 @@ uc_getconst(guru_vm *vm)
 __UCODE__
 uc_setconst(guru_vm *vm)
 {
-	GV *v  = _R0;
 	GS sid = VM_SYM(vm, _AR(bx));
 	GV *ra = _R(a);
 
@@ -581,39 +580,56 @@ uc_enter(guru_vm *vm)
 
   return R(A) (B=normal,in-block return/break)
 */
+__GURU__ U32
+_next(guru_state *st)
+{
+	GV *r0 = st->regs;
+	GV *ri = r0 - 1;
+
+	U32 nvar = guru_iter_next(ri);				// get next iterator element
+	if (nvar==0) return 0;						// end of loop, bail
+
+	GV  *r = r0 + (nvar+1);						// wipe stack for next loop
+	U32 n  = st->irep->nr - (nvar+1);			// TODO: consolidate with state#_wipe_stack
+	for (U32 i=0; i<n; i++, r++) {
+		ref_dec(r);
+		r->gt  = GT_EMPTY;
+		r->acl = 0;
+	}
+
+	guru_iter *it = ri->iter;					// get iterator itself
+	*(r0+1) = *it->ivar;						// fetch next loop index
+	if (nvar>1) *(r0+2) = *(it->ivar+1);		// range
+	st->pc = 0;
+
+	return 1;
+}
+
 __UCODE__
 uc_return(guru_vm *vm)
 {
-	GV  ret = *_R(a);								// return value
-	U32 bk  = _AR(b);								// break
+	GV  ret = *_R(a);							// return value
+	U32 bk  = _AR(b);							// break
 
 	guru_state *st = vm->state;
 	if (IN_LOOP(st)) {
-		GV *r0 = _R0;
-		GV *ri = r0 - 1;
-		U32 nvar = guru_iter_next(ri);				// get next iterator element
-		if (nvar && !bk) {
-			guru_iter *it = ri->iter;				// fetch iterator
-			*(r0+1) = *it->ivar;					// fetch next loop index
-			if (nvar>1) *(r0+2) = *(it->ivar+1);	// range
-			vm->state->pc = 0;
-			return;
-		}
-		ret = *_R(a);								// fetch last returned value
-		guru_iter_del(ri);							// release iterator
+		if (_next(st) && !bk) return;
+
+		ret = *_R(a);							// fetch last returned value
+		guru_iter_del(st->regs - 1);			// release iterator
 
 		// pop off iterator state
-		vm_state_pop(vm, ret);						// pop off ITERATOR state
-		ret = *_R0;									// return the object itself
+		vm_state_pop(vm, ret);					// pop off ITERATOR state
+		ret = *_R0;								// return the object itself
 	}
 	else if (IN_LAMBDA(st)) {
-		vm_state_pop(vm, ret);						// pop off LAMBDA state
+		vm_state_pop(vm, ret);					// pop off LAMBDA state
 	}
 	else if (IS_NEW(st)) {
-		ret = *_R0;									// return the object itself
+		ret = *_R0;								// return the object itself
 	}
-	ret.acl &= ~(ACL_SELF|ACL_SCLASS);				// turn off TCLASS and NEW flags if any
-	vm_state_pop(vm, ret);							// pop callee's context
+	ret.acl &= ~(ACL_SELF|ACL_SCLASS);			// turn off TCLASS and NEW flags if any
+	vm_state_pop(vm, ret);						// pop callee's context
 }
 
 //================================================================
