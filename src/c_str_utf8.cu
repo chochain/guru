@@ -43,7 +43,7 @@ _is_space(U8 ch)
 /*! get size
  */
 __GURU__ __INLINE__ U32
-_len(const GV *v)
+_bsz(const GV *v)
 {
     return v->str->n;
 }
@@ -133,8 +133,8 @@ _index(const GV *v, const GV *pattern, U32 offset)
 {
     U8  *p0 = _raw(v) + offset;
     U8  *p1 = _raw(pattern);
-    U32 sz  = _len(pattern);
-    U32 nz  = _len(v) - sz - offset;
+    U32 sz  = _bsz(pattern);
+    U32 nz  = _bsz(v) - sz - offset;
 
     for (U32 i=0; nz>0 && i <= nz; i++, p0++) {
         if (MEMCMP(p0, p1, sz)==0) {
@@ -155,7 +155,7 @@ __GURU__ U32
 _strip(GV *v, U32 mode)
 {
     U8  *p0 = _raw(v);
-    U8  *p1 = p0 + _len(v) - 1;
+    U8  *p1 = p0 + _bsz(v) - 1;
 
     // left-side
     if (mode & 0x01) {
@@ -170,18 +170,18 @@ _strip(GV *v, U32 mode)
             if (!_is_space(*p1)) break;
         }
     }
-    U32 new_len = p1 - p0 + 1;
-    if (_len(v)==new_len) return 0;
+    U32 new_bsz = p1 - p0 + 1;
+    if (_bsz(v)==new_bsz) return 0;
 
     U8 *buf = _raw(v);
     if (p0 != buf) {
-    	MEMCPY(buf, p0, new_len);
+    	MEMCPY(buf, p0, new_bsz);
     }
-    buf[new_len] = '\0';
-    U32 asz = new_len + 1; 	ALIGN(asz);				// 8-byte aligned
+    buf[new_bsz] = '\0';
+    U32 asz = new_bsz + 1; 	ALIGN(asz);				// 8-byte aligned
 
     v->str->sz  = asz;
-    v->str->n   = new_len;
+    v->str->n   = new_bsz;
     v->str->raw = (char *)guru_realloc(buf, asz);	// shrink suitable size.
 
     return 1;
@@ -197,18 +197,18 @@ __GURU__ int
 _chomp(GV *v)
 {
     U8 *p0 = _raw(v);
-    U8 *p1 = p0 + _len(v) - 1;
+    U8 *p1 = p0 + _bsz(v) - 1;
 
     if (*p1=='\n') p1--;
     if (*p1=='\r') p1--;
 
-    U32 new_len = p1 - p0 + 1;
-    if (_len(v)==new_len) return 0;
+    U32 new_bsz = p1 - p0 + 1;
+    if (_bsz(v)==new_bsz) return 0;
 
     U8 *buf = _raw(v);
-    buf[new_len] = '\0';
+    buf[new_bsz] = '\0';
 
-    v->str->n = new_len;
+    v->str->n = new_bsz;
 
     return 1;
 }
@@ -321,7 +321,7 @@ str_add(GV v[], U32 vi)
 __CFUNC__
 str_mul(GV v[], U32 vi)
 {
-	U32 sz = _len(v);
+	U32 sz = _bsz(v);
 
     if (v[1].gt != GT_INT) {
         PRINTF("TypeError\n");	// raise?
@@ -345,7 +345,7 @@ str_mul(GV v[], U32 vi)
 __CFUNC__
 str_len(GV v[], U32 vi)
 {
-    GI len = _len(v);
+    GI len = STRLEN(_raw(v));
 
     RETURN_INT(len);
 }
@@ -528,7 +528,7 @@ str_index(GV v[], U32 vi)
     }
     else if (vi==2 && v[2].gt==GT_INT) {
         offset = v[2].i;
-        if (offset < 0) offset += _len(v);
+        if (offset < 0) offset += _bsz(v);
         if (offset < 0) RETURN_NIL();
     }
     else {
@@ -712,34 +712,34 @@ __GURU__ void
 guru_init_class_string()
 {
 	static Vfunc vtbl[] = {
-		{ "+",		str_add			},
-		{ "*",		str_mul			},
-		{ "size",	str_len			},
-		{ "length",	str_len			},
-		{ "<<",		str_add			},
-		{ "[]",		str_slice		},
-		{ "[]=",	str_insert		},
+		{ "+",			str_add			},
+		{ "*",			str_mul			},
+		{ "size",		str_len			},
+		{ "length",		str_len			},
+		{ "<<",			str_add			},
+		{ "[]",			str_slice		},
+		{ "[]=",		str_insert		},
 		// op
-		{ "chomp",	str_chomp		},
-		{ "chomp!",	str_chomp_self	},
-		{ "dup",	str_dup			},
-		{ "index",	str_index		},
-		{ "include?", str_include   },
-		{ "ord",	str_ord			},
-		{ "split",	str_split		},
-		{ "lstrip",	str_lstrip		},
-		{ "lstrip!",str_lstrip_self	},
-		{ "rstrip",	str_rstrip		},
-		{ "rstrip!",str_rstrip_self	},
-		{ "strip",	str_strip		},
-		{ "strip!",	str_strip_self	},
-		{ "intern",	str_to_sym		},
+		{ "chomp",		str_chomp		},
+		{ "chomp!",		str_chomp_self	},
+		{ "dup",		str_dup			},
+		{ "index",		str_index		},
+		{ "include?", 	str_include   	},
+		{ "ord",		str_ord			},
+		{ "split",		str_split		},
+		{ "lstrip",		str_lstrip		},
+		{ "lstrip!",	str_lstrip_self	},
+		{ "rstrip",		str_rstrip		},
+		{ "rstrip!",	str_rstrip_self	},
+		{ "strip",		str_strip		},
+		{ "strip!",		str_strip_self	},
+		{ "intern",		str_to_sym		},
 		// conversion methods
-		{ "to_i",	str_to_i		},
-		{ "to_s",   str_to_s		},
-		{ "to_sym",	str_to_sym		},
-		{ "to_f",	str_to_f		},
-		{ "inspect",str_inspect		}
+		{ "to_i",		str_to_i		},
+		{ "to_s",   	str_to_s		},
+		{ "to_sym",		str_to_sym		},
+		{ "to_f",		str_to_f		},
+		{ "inspect",	str_inspect		}
 	};
     guru_class_string = guru_add_class(
     	"String", guru_class_object, vtbl, sizeof(vtbl)/sizeof(Vfunc)
