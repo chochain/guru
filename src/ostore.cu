@@ -184,8 +184,7 @@ ostore_set(GV *v, GS vid, GV *val)
 		r = v->self->ivar = _new(4);	// lazy allocation
 		ref_inc(v);						// itself has been referenced now
 	}
-	_set(r, vid, val);
-    ref_inc(val);						// referenced by the object now
+	_set(r, vid, ref_inc(val));			// referenced by the object now
 }
 
 //================================================================
@@ -202,5 +201,5 @@ ostore_get(GV *v, GS vid)
 	guru_var *r = v->self->ivar;		// class or instance var
 	GV 		 *val = r ? _get(r, vid) : NULL;
 
-    return val ? *val : NIL();
+    return val ? *ref_inc(val) : NIL();
 }
