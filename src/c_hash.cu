@@ -55,12 +55,6 @@ _data(const GV *kv) {
 	return kv->hash->data;
 }
 
-__GURU__ __INLINE__ void
-_resize(GV *kv, int size)
-{
-	guru_array_resize(kv->array, size<<1);
-}
-
 //================================================================
 /*! search key
 
@@ -69,13 +63,13 @@ _resize(GV *kv, int size)
   @return	pointer to found key or NULL(not found).
 */
 __GURU__ GV*
-_search(const GV *v, const GV *key)
+_search(const GV *kv, const GV *key)
 {
 #ifndef GURU_HASH_SEARCH_LINER
 #define GURU_HASH_SEARCH_LINER
 #endif
-    GV  *p = v->hash->data;
-    U32  n = _size(v);
+    GV  *p = kv->hash->data;
+    U32  n = _size(kv);
 
 #ifdef GURU_HASH_SEARCH_LINER
     for (U32 i=0; i < n; i++, p+=2) {
@@ -256,7 +250,14 @@ guru_hash_cmp(const GV *v0, const GV *v1)
 __CFUNC__
 hsh_new(GV v[], U32 vi)
 {
-	RETURN_VAL(guru_hash_new(0));
+	GV ret;
+    if (vi==0) {											// in case of new()
+        ret = guru_hash_new(0);
+    }
+    else if (vi==1 && v[1].gt==GT_INT && v[1].i >= 0) {		// new(num)
+        ret = guru_hash_new(v[1].i);
+    }
+    RETURN_VAL(ret);
 }
 
 //================================================================
@@ -338,8 +339,8 @@ hsh_has_key(GV v[], U32 vi)
 __CFUNC__
 hsh_has_value(GV v[], U32 vi)
 {
-    GV *p = _data(v);
-    int         n = _size(v);
+    GV  *p = _data(v);
+    U32 n  = _size(v);
     for (U32 i=0; i<n; i++, p+=2) {
         if (guru_cmp(p+1, v+1)==0) {	// value to value
             RETURN_BOOL(1);
@@ -354,8 +355,8 @@ hsh_has_value(GV v[], U32 vi)
 __CFUNC__
 hsh_key(GV v[], U32 vi)
 {
-    GV *p = _data(v);
-    int         n = _size(v);
+    GV  *p = _data(v);
+    U32 n  = _size(v);
     for (U32 i=0; i<n; i++, p+=2) {
         if (guru_cmp(p+1, v+1)==0) {
             RETURN_VAL(*p);
