@@ -130,6 +130,22 @@ obj_p(GV v[], U32 vi)
 {
 	guru_p(v, vi);
 }
+
+//================================================================
+/*! Memory class (guru only, i.e. non-Ruby)
+ */
+__CFUNC__
+mem_stat(GV v[], U32 vi)
+{
+	GV  si; { si.gt=GT_INT; si.acl=0; }
+	GV  ret = guru_array_new(8);
+	U32 *s  = (U32*)guru_mmu_stat();
+	for (U32 i=0; i<8; i++, s++) {
+		si.i = *s;
+		guru_array_push(&ret, &si);
+	}
+	*v = ret;
+}
 #endif
 
 //================================================================
@@ -200,8 +216,6 @@ obj_eq3(GV v[], U32 vi)
 __CFUNC__
 obj_class(GV v[], U32 vi)
 {
-	assert(v->gt==GT_OBJ);
-
     GV ret;  { ret.gt = GT_CLASS; ret.acl=0; }
     ret.cls = class_by_obj(v);
 
@@ -390,6 +404,7 @@ _init_class_object()
         { "inspect",       	gv_to_s  		},
 #if GURU_DEBUG
         { "p", 				obj_p    		},
+    	{ "mem_stat",		mem_stat        },			// guru only (i.e. non-Ruby)
         { "sprintf",		str_sprintf		},
         { "printf",			str_printf		}
 #endif

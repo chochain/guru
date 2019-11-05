@@ -27,6 +27,7 @@ __GURU__ volatile U32 	_mutex_mem;
 
 // memory pool
 __GURU__ U8				*_memory_pool;
+__GURU__ guru_mstat		_mem_stat;
 
 // free memory bitmap
 __GURU__ U32 			_l1_map;								// use lower 24 bits
@@ -420,6 +421,36 @@ guru_mmu_clr()
     }
 }
 
+__GURU__ guru_mstat*
+guru_mmu_stat()
+{
+	used_block *p = (used_block *)_memory_pool;
+	guru_mstat *s = &_mem_stat;
+	memset(s, 0, sizeof(guru_mstat));	// wipe, !using CUDA provided memset
+
+	U32 flag = IS_FREE(p);				// starting block type
+	while (p) {	// walk the memory pool
+		if (flag != IS_FREE(p)) {       // supposed to be merged
+			s->nfrag++;
+			flag = IS_FREE(p);
+		}
+		s->total += p->bsz;
+		s->nblk  += 1;
+		if (IS_FREE(p)) {
+			s->nfree += 1;
+			s->free  += p->bsz;
+		}
+		else {
+			s->nused += 1;
+			s->used  += p->bsz;
+		}
+		p = (used_block *)BLK_AFTER(p);
+	}
+	s->total    += sizeof(free_block);
+	s->pct_used = (int)(100*(s->used+1)/s->total);
+	return s;
+}
+
 __GPU__ void
 guru_mmu_init(void *ptr, U32 sz)
 {
@@ -427,6 +458,7 @@ guru_mmu_init(void *ptr, U32 sz)
 
 	_init_mmu(ptr, sz);
 }
+
 
 __HOST__ void*
 cuda_malloc(U32 sz, U32 type)
@@ -444,7 +476,7 @@ cuda_malloc(U32 sz, U32 type)
 }
 
 #if !GURU_DEBUG
-__HOST__ void guru_mmu_stat(U32 trace);
+__HOST__ void show_mmu_stat(U32 trace);
 #else
 //================================================================
 /*! statistics
@@ -478,39 +510,14 @@ _dump_freelist()
 	printf("\n");
 }
 
+
 __GPU__ void
 _alloc_stat(U32 v[])
 {
 	if (threadIdx.x!=0 || blockIdx.x!=0) return;
 
-	U32 total=0, nfree=0, free=0, nused=0, used=0, nblk=0, nfrag=0;
-
-	used_block *p = (used_block *)_memory_pool;
-	U32 flag = IS_FREE(p);				// starting block type
-	while (p) {	// walk the memory pool
-		if (flag != IS_FREE(p)) {       // supposed to be merged
-			nfrag++;
-			flag = IS_FREE(p);
-		}
-		total += p->bsz;
-		nblk  += 1;
-		if (IS_FREE(p)) {
-			nfree += 1;
-			free  += p->bsz;
-		}
-		else {
-			nused += 1;
-			used  += p->bsz;
-		}
-		p = (used_block *)BLK_AFTER(p);
-	}
-	v[0] = total + sizeof(free_block);
-	v[1] = nfree;
-	v[2] = free;
-	v[3] = nused;
-	v[4] = used;
-	v[5] = nblk;
-	v[6] = nfrag;
+	guru_mstat *s = guru_mmu_stat();
+	memcpy(v, s, sizeof(guru_mstat));
 
 	__syncthreads();
 }
@@ -531,7 +538,7 @@ _get_alloc_stat(U32 stat[])
 }
 
 __HOST__ void
-guru_mmu_stat(U32 trace)
+show_mmu_stat(U32 trace)
 {
 	if (trace==0) return;
 
@@ -540,7 +547,7 @@ guru_mmu_stat(U32 trace)
 		_get_alloc_stat(s);
 
 		printf("%14smem=%d(0x%x): free=%d(0x%x), used=%d(0x%x), nblk=%d, nfrag=%d, %d%% allocated\n",
-			"", s[0], s[0], s[1], s[2], s[3], s[4], s[5], s[6], (int)(100*(s[4]+1)/s[0]));
+			"", s[0], s[0], s[1], s[2], s[3], s[4], s[5], s[6], s[7]);
 	}
 	if (trace & 2) {
 		_dump_freelist<<<1,1>>>();

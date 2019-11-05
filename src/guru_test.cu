@@ -74,7 +74,7 @@ guru_setup(int step, int trace)
 
 	if (trace) {
 		printf("guru system initialized[defaultStackSize %d => %d]\n", sz0, sz1);
-		guru_mmu_stat(trace);
+		show_mmu_stat(trace);
 	}
 	return 0;
 }
@@ -98,18 +98,18 @@ guru_run(int trace)
 	for (U32 i=0; i<sizeof(a)>>2; i++) {
 		printf("\nalloc %d=>0x%02x", i, a[i]);
 		_mmu_alloc<<<1,1>>>(&x[i], a[i]);
-		guru_mmu_stat(2);
+		show_mmu_stat(2);
 		printf("\t=>%p", x[i]);
 	}
 	for (U32 i=0, j=f[0]; i<sizeof(f)>>2; j=f[++i]) {
 		printf("\nfree %d=>%p", j, x[j]);
 		_mmu_free<<<1,1>>>(x[j]);
-		guru_mmu_stat(2);
+		show_mmu_stat(2);
 	}
 	for (U32 i=0; i<sizeof(b)>>2; i++) {
 		printf("\nalloc %d=>0x%02x", i, b[i]);
 		_mmu_alloc<<<1,1>>>(&x[i+6], b[i]);
-		guru_mmu_stat(2);
+		show_mmu_stat(2);
 		printf("\t=>%p", x[i+6]);
 	}
 	printf("\nmmu_test done!!!!!");

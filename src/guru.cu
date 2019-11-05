@@ -83,7 +83,7 @@ guru_setup(int step, int trace)
 
 	if (trace) {
 		printf("guru system initialized[defaultStackSize %d => %d]\n", sz0, sz1);
-		guru_mmu_stat(trace);
+		show_mmu_stat(trace);
 	}
 	return 0;
 }

@@ -239,7 +239,7 @@ vm_main_start(U32 trace)
 
 	if (trace) {
 		printf("guru_session completed\n");
-		guru_mmu_stat(trace);
+		show_mmu_stat(trace);
 	}
 	return 0;
 }
@@ -495,7 +495,7 @@ _trace(U32 level)
 			_disasm(vm, level);
 		}
 	}
-	if (level>1) guru_mmu_stat(level);
+	if (level>1) show_mmu_stat(level);
 }
 
 #else
