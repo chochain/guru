@@ -130,22 +130,6 @@ obj_p(GV v[], U32 vi)
 {
 	guru_p(v, vi);
 }
-
-//================================================================
-/*! Memory class (guru only, i.e. non-Ruby)
- */
-__CFUNC__
-mem_stat(GV v[], U32 vi)
-{
-	GV  si; { si.gt=GT_INT; si.acl=0; }
-	GV  ret = guru_array_new(8);
-	U32 *s  = (U32*)guru_mmu_stat();
-	for (U32 i=0; i<8; i++, s++) {
-		si.i = *s;
-		guru_array_push(&ret, &si);
-	}
-	*v = ret;
-}
 #endif
 
 //================================================================
@@ -404,7 +388,6 @@ _init_class_object()
         { "inspect",       	gv_to_s  		},
 #if GURU_DEBUG
         { "p", 				obj_p    		},
-    	{ "mem_stat",		mem_stat        },			// guru only (i.e. non-Ruby)
         { "sprintf",		str_sprintf		},
         { "printf",			str_printf		}
 #endif
@@ -493,6 +476,34 @@ _init_class_true()
     );
 }
 
+#if GURU_DEBUG
+//================================================================
+/*! System class (guru only, i.e. non-Ruby)
+ */
+__CFUNC__
+sys_mstat(GV v[], U32 vi)
+{
+	GV  si; { si.gt=GT_INT; si.acl=0; }
+	GV  ret = guru_array_new(8);
+	U32 *s  = (U32*)guru_mmu_stat();
+	for (U32 i=0; i<8; i++, s++) {
+		si.i = *s;
+		guru_array_push(&ret, &si);
+	}
+	*v = ret;
+}
+
+__GURU__ void
+_init_class_sys()
+{
+	static Vfunc vtbl[] = {
+		{ "mstat", 		sys_mstat	}
+	};
+    guru_class_true = guru_add_class(
+    	"Sys", guru_class_object, vtbl, sizeof(vtbl)/sizeof(Vfunc)
+    );
+}
+#endif // GURU_DEBUG
 //================================================================
 // initialize
 
@@ -504,6 +515,9 @@ _init_all_class(void)
     _init_class_proc();
     _init_class_false();
     _init_class_true();
+#if GURU_DEBUG
+    _init_class_sys();
+#endif
 
     guru_init_class_symbol();		// symbol.cu
     guru_init_class_int();			// c_fixnum.cu
