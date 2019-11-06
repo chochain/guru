@@ -61,16 +61,16 @@ def sq(a)
             k << "#{gua.sn[0]}#{gua.k}"
             v << "#{gua.sn[1]}#{gua.v}"
         end
-        puts "#{k.to_s}\n#{v.to_s}\n\n"
+        puts k.join('  ')+"\n"+v.join('  ')+"\n\n"
     end
 end
     
-P = '-'*60
+P = '-'*50
   
 puts '周易卦序    '+P
-sq(0..7) {|hi,lo| Yi.find_by_id(hi*8+lo)  }
+sq(0..7) {|hi,lo| Yi.find_by_id(hi*8+lo) }
 puts '邵雍先天卦序'+P  # see note 20111212
-sq(%w(天 澤 火 雷 風 水 山 地)) { |hi,lo| Yi.find_by_hilo(hi,lo) }
+sq(%w(地 雷 水 澤 山 火 風 天).reverse) { |hi,lo| Yi.find_by_hilo(hi,lo) }
 puts 'Binary卦序  '+P
 sq(0..7) {|hi,lo| Yi.find_by_hex((7-hi)*8+(7-lo)) }
 

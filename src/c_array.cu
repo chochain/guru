@@ -602,6 +602,22 @@ ary_pop(GV v[], U32 vi)
 }
 
 //================================================================
+/*! (method) pop
+ */
+__CFUNC__
+ary_reverse(GV v[], U32 vi)
+{
+	guru_array *a = v->array;
+	GV ret = guru_array_new(a->n);
+
+	GV *r  = a->data + a->n - 1;
+    for (U32 i=0; i<a->n; i++, r--) {
+    	guru_array_push(&ret, r);
+    }
+    RETURN_VAL(ret);
+}
+
+//================================================================
 /*! (method) unshift
  */
 __CFUNC__
@@ -705,12 +721,6 @@ ary_minmax(GV v[], U32 vi)
     RETURN_VAL(ret);
 }
 
-__CFUNC__
-ary_join(GV v[], U32 vi)
-{
-	guru_na("Array#join");
-}
-
 //================================================================
 /*! initialize
  */
@@ -744,10 +754,11 @@ guru_init_class_array()
 		{ "unshift",   ary_unshift	},
 		{ "dup",       ary_dup		},
 		{ "include?",  ary_include  },
+		{ "reverse",   ary_reverse  },
 
-		{ "join",      ary_join		},
+		{ "join",      gv_join		},
 		{ "inspect",   gv_to_s		},
-		{ "to_s",      gv_to_s		}
+		{ "to_s",      gv_to_s		},
 	};
     guru_class_array = guru_add_class(
     	"Array", guru_class_object, vtbl, sizeof(vtbl)/sizeof(Vfunc)

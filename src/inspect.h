@@ -22,6 +22,7 @@ extern "C" {
 
 __GURU__ void guru_na(const U8 *msg);
 __GURU__ void gv_to_s(GV v[], U32 vi);
+__GURU__ void gv_join(GV v[], U32 vi);
 
 #ifdef __cplusplus
 }

@@ -243,4 +243,21 @@ gv_to_s(GV v[], U32 vi)
 
 	RETURN_VAL(ret);
 }
+
+__GURU__ void
+gv_join(GV v[], U32 vi)
+{
+	assert(v->gt==GT_ARRAY);
+	guru_array *a = v->array;
+
+	GV ret = guru_str_buf(BUF_SIZE);
+	GV *r  = a->data;
+	for (U32 i=0; i<a->n; i++, r++) {
+		if (r->gt!=GT_STR)	_to_s(&ret, r, 0);
+		else guru_str_add_cstr(&ret, (U8 *)r->str->raw);
+		if (vi==0 || (i+1)>=a->n) continue;
+		guru_str_add_cstr(&ret, (U8 *)(v+1)->str->raw);
+	}
+	RETURN_VAL(ret);
+}
 #endif	// GURU_USE_STRING
