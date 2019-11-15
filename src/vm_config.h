@@ -27,12 +27,12 @@
 #define MAX_GLOBAL_COUNT 	128
 
 /* Guru module support */
-#define GURU_DO_INSPECT     1
-#define GURU_USE_CONSOLE	0
-#define GURU_USE_FLOAT  	1
 #define GURU_USE_STRING 	1
-#define GURU_USE_MATH   	0
+#define GURU_USE_CONSOLE	0
+
+#define GURU_USE_FLOAT  	1
 #define GURU_USE_ARRAY  	1
+#define GURU_USE_MATH   	0
 
 /* Hardware dependent flags */
 

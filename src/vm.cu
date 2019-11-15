@@ -35,9 +35,11 @@
 
 guru_vm *_vm_pool;
 
+#define _DSYNC		(cudaDeviceSynchronize())
+
 pthread_mutex_t 	_mutex_pool;
 #define _LOCK		(pthread_mutex_lock(&_mutex_pool))
-#define _UNLOCK		(cudaDeviceSynchronize(), pthread_mutex_unlock(&_mutex_pool))
+#define _UNLOCK		(pthread_mutex_unlock(&_mutex_pool))
 
 __HOST__ void _show_irep(guru_irep *irep, char level, char *idx);		// forward declaration
 __HOST__ void _trace(U32 level);												// forward declaration
@@ -102,6 +104,11 @@ __transcode(guru_irep *irep)
 	}
 }
 
+//================================================================
+// Fetch a VM for operation
+// Note: thread 0 is the master controller, no other thread can
+//       modify the VM status
+//
 __GPU__ void
 _fetch(guru_vm *pool, guru_irep *irep, int *vid)
 {
@@ -120,7 +127,7 @@ _fetch(guru_vm *pool, guru_irep *irep, int *vid)
 		__transcode(irep);					// recursively transcode Pooled objects and Symbol table
 		_ready(vm, irep);
 	}
-	else 				  idx = -1;
+	else idx = -1;
 
 	*vid = idx;
 }
@@ -209,7 +216,8 @@ _join() {
 	U32 i;
 	guru_vm *vm = _vm_pool;
 
-	_LOCK;
+	_DSYNC;											// ensure VM status change is caught, too heavy-handed
+	_LOCK;											// TODO: make it a per-VM (i.e. per-blockIdx) control
 	for (i=0; i<MIN_VM_COUNT; i++, vm++) {
 		if (vm->run==VM_STATUS_RUN) break;
 	}
@@ -223,19 +231,15 @@ vm_main_start(U32 trace)
 {
 	if (trace) printf("guru_session starting...\n");
 
-	// TODO: pthread
 	do {
 		_trace(trace);
-		cudaDeviceSynchronize();
-
 		_step<<<MIN_VM_COUNT, 1>>>(_vm_pool);
-		cudaDeviceSynchronize();
 
 	// add host hook here
 #if GURU_USE_CONSOLE
 		guru_console_flush(ses->out, ses->trace);	// dump output buffer
 #endif // GURU_USE_CONSOLE
-	} while (_join());
+	} while (_join());								// GPU device barrier + HOST pthread guard
 
 	if (trace) {
 		printf("guru_session completed\n");
@@ -250,8 +254,10 @@ vm_get(U8 *irep_img, U32 trace)
 	guru_irep *irep = (guru_irep *)irep_img;
 	int *vid = (int *)cuda_malloc(sizeof(int), 1);
 
+	_DSYNC;
 	_LOCK;
-	_fetch<<<1,1>>>(_vm_pool, irep, vid);
+	_fetch<<<1,1>>>(_vm_pool, irep, vid);	// vm status changed
+	_DSYNC;
 	_UNLOCK;
 
 	if (trace) {
