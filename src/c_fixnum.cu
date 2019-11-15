@@ -161,9 +161,6 @@ int_to_f(GV v[], U32 vi)
 }
 #endif // GURU_USE_FLOAT
 
-#if !GURU_USE_STRING
-__CFUNC__ int_chr(GV v[], U32 vi) {}
-#else
 __CFUNC__
 int_chr(GV v[], U32 vi)
 {
@@ -171,7 +168,6 @@ int_chr(GV v[], U32 vi)
 
     RETURN_VAL(guru_str_new(buf));
 }
-#endif // GURU_USE_STRING
 
 __GURU__ void
 guru_init_class_int(void)

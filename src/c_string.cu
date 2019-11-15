@@ -21,7 +21,8 @@
 #include "c_range.h"
 #include "inspect.h"
 
-#if     GURU_USE_STRING
+#if !GURU_USE_STRING
+#else
 //================================================================
 /*! white space character test
 

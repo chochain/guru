@@ -28,8 +28,10 @@
 #include "puts.h"
 
 #if !GURU_USE_STRING
-__GURU__ void guru_na(const U8 *msg)		{}
-__GURU__ void gv_to_s(GV v[], U32 vi)		{}
+__GURU__ void 	guru_na(const U8 *msg)		{}
+__GURU__ void 	gv_to_s(GV v[], U32 vi)		{}
+__GURU__ void	gv_join(GV v[], U32 vi)		{}
+
 #else
 
 __GURU__ void _to_s(GV *s, GV *v, U32 n);			// forward declaration

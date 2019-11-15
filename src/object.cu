@@ -390,7 +390,7 @@ _init_class_object()
         { "p", 				obj_p    		},
         { "sprintf",		str_sprintf		},
         { "printf",			str_printf		}
-#endif
+#endif // GURU_DEBUG
      };
     guru_class_object = guru_add_class(
     	"Object", NULL, vtbl, sizeof(vtbl)/sizeof(Vfunc)
@@ -422,15 +422,11 @@ nil_false_not(GV v[], U32 vi)
     v->gt = GT_TRUE;
 }
 
-#if !GURU_USE_STRING
-__CFUNC__ nil_inspect(GV v[], U32 vi) {}
-#else
 __CFUNC__
 nil_inspect(GV v[], U32 vi)
 {
     RETURN_VAL(guru_str_new("nil"));
 }
-#endif	// GURU_USE_STRING
 
 //================================================================
 /*! Nil class

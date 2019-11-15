@@ -34,9 +34,7 @@ extern __GURU__ guru_class *guru_class_float;
 extern __GURU__ guru_class *guru_class_math;
 #endif // GURU_USE_FLOAT
 
-#if GURU_USE_STRING
 extern __GURU__ guru_class *guru_class_string;
-#endif // GURU_USE_STRING
 
 #if GURU_USE_ARRAY
 extern __GURU__ guru_class *guru_class_array;

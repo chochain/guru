@@ -77,9 +77,7 @@ guru_cmp(const GV *v0, const GV *v1)
     case GT_CLASS:
     case GT_OBJ:
     case GT_PROC:   return -1 + (v0->self==v1->self) + (v0->self > v1->self)*2;
-#if GURU_USE_STRING
     case GT_STR: 	return _string_cmp(v0, v1);
-#endif // GURU_USE_STRING
 #if GURU_USE_ARRAY
     case GT_ARRAY:  return guru_array_cmp(v0, v1);
     case GT_RANGE:  return guru_range_cmp(v0, v1);

@@ -51,9 +51,7 @@ ref_dec(GV *v)
 
     switch(v->gt) {
     case GT_OBJ:		guru_obj_del(v);	break;	// delete object instance
-#if GURU_USE_STRING
     case GT_STR:		guru_str_del(v);	break;
-#endif // GURU_USE_STRING
 
 #if GURU_USE_ARRAY
     case GT_ARRAY:	    guru_array_del(v);	break;

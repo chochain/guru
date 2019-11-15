@@ -53,9 +53,8 @@ class_by_obj(GV *v)
     		: (IS_SCLASS(v) ? scls : (IS_SELF(v) ? v->cls : scls));
     } break;
     case GT_PROC:	 return guru_class_proc;
-#if GURU_USE_STRING
     case GT_STR:     return guru_class_string;
-#endif // GURU_USE_STRING
+
 #if GURU_USE_ARRAY
     case GT_ARRAY:   return guru_class_array;
     case GT_RANGE:	 return guru_class_range;

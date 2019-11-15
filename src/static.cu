@@ -28,9 +28,8 @@ __GURU__ guru_class *guru_class_proc;
 __GURU__ guru_class *guru_class_float;
 __GURU__ guru_class *guru_class_math;
 #endif // GURU_USE_FLOAT
-#if GURU_USE_STRING
+
 __GURU__ guru_class *guru_class_string;
-#endif // GURU_USE_STRING
 #if GURU_USE_ARRAY
 __GURU__ guru_class *guru_class_array;
 __GURU__ guru_class *guru_class_range;

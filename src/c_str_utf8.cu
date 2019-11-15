@@ -21,7 +21,23 @@
 #include "c_range.h"
 #include "inspect.h"
 
-#if     GURU_USE_STRING
+#if !GURU_USE_STRING
+//==============================================================================================================
+// Prototypes for compilation in case String class is not required (exe from 7.5M to 6.7M)
+//
+__GURU__ GV		guru_str_new(const U8 *src) { return NIL(); }			// cannot use U8P, need lots of casting
+__GURU__ GV		guru_str_buf(U32 sz)		{ return NIL(); }			// a string buffer
+__GURU__ GV		guru_str_clr(GV *s)			{ return NIL(); }
+__GURU__ void	guru_str_del(GV *v)			{}
+__GURU__ GV     guru_str_add(GV *s0, GV *s1)			 { return NIL(); }
+__GURU__ GV		guru_str_add_cstr(GV *s0, const U8 *str) { return NIL(); }
+
+__GURU__ void	guru_init_class_string()	{ guru_class_string = NULL; }
+
+__CFUNC__		str_sprintf(GV v[], U32 vi) {}
+__CFUNC__		str_printf(GV v[], U32 vi)	{}
+
+#else
 //================================================================
 /*! white space character test
 

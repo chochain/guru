@@ -852,12 +852,8 @@ uc_ge(guru_vm *vm)
 __UCODE__
 uc_string(guru_vm *vm)
 {
-#if GURU_USE_STRING
     GV v = VM_STR(vm, _AR(bx));
     _RA(v);
-#else
-    QUIT("String class");
-#endif // GURU_USE_STRING
 }
 
 //================================================================
@@ -869,7 +865,6 @@ uc_string(guru_vm *vm)
 __UCODE__
 uc_strcat(guru_vm *vm)
 {
-#if GURU_USE_STRING
     GS sid = name2id((U8*)"to_s");				// from global symbol pool
 	GV *sa = _R(a), *sb = _R(b);
 
@@ -885,10 +880,6 @@ uc_strcat(guru_vm *vm)
     *sb = EMPTY();
 
     _RA(*sa);									// this will clean out sa
-
-#else
-    QUIT("String class");
-#endif // GURU_USE_STRING
 }
 
 __UCODE__
