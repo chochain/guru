@@ -100,7 +100,6 @@ _dump_obj_size(void)
 __GPU__ void
 guru_console_init(U8 *buf, U32 sz)
 {
-#if GURU_USE_CONSOLE
 	if (threadIdx.x!=0 || blockIdx.x!=0) return;
 
 	guru_print_node *node = (guru_print_node *)buf;
@@ -109,7 +108,6 @@ guru_console_init(U8 *buf, U32 sz)
 	_output_buf = _output_ptr = buf;
 
 	if (sz) _output_size = sz;					// set to new size
-#endif // GURU_USE_CONSOLE
 }
 
 #define NEXTNODE(n)	((guru_print_node *)(node->data + node->size))
@@ -206,7 +204,7 @@ _host_print(guru_print_node *node, U32 trace)
 __HOST__ void
 guru_console_flush(U8 *output_buf, U32 trace)
 {
-#if GURU_USE_CONSOLE
+	cudaDeviceSynchronize();
 	guru_print_node *node = (guru_print_node *)output_buf;
 	while (node->gt != GT_EMPTY) {			// 0
 		node = _host_print(node, trace);
@@ -214,5 +212,4 @@ guru_console_flush(U8 *output_buf, U32 trace)
 	}
 	guru_console_init<<<1,1>>>(output_buf, 0);
 	cudaDeviceSynchronize();
-#endif // GURU_USE_CONSOLE
 }

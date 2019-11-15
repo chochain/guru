@@ -74,7 +74,9 @@ guru_setup(int step, int trace)
 	guru_mmu_init<<<1,1>>>(mem, BLOCK_MEMORY_SIZE);		// setup memory management
 	guru_global_init<<<1,1>>>();							// setup static objects (TODO: => dynamic?)
 	guru_class_init<<<1,1>>>();								// setup basic classes	(TODO: => ROM)
+#if GURU_USE_CONSOLE
 	guru_console_init<<<1,1>>>(out, MAX_BUFFER_SIZE);		// initialize output buffer
+#endif
 
 	U32 sz0, sz1;
 	cudaDeviceGetLimit((size_t *)&sz0, cudaLimitStackSize);
