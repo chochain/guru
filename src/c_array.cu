@@ -465,8 +465,16 @@ ary_sub(GV v[], U32 vi)
 __CFUNC__
 ary_get(GV v[], U32 vi)
 {
-	GV ret = _get(v, vi, v[1].i, v[1].i+v[2].i-1);
-
+	GV ret;
+	if (v->gt==GT_ARRAY) {
+		ret = _get(v, vi, v[1].i, v[1].i+v[2].i-1);
+	}
+	else {
+        ret = guru_array_new(vi);
+        for (U32 i=0; i < vi; i++) {
+            _set(&ret, i, v+1+i);
+        }
+	}
 	RETURN_VAL(ret);
 }
 
