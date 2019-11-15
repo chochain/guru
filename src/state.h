@@ -92,8 +92,8 @@ typedef struct XState {
 #define STATE_LAMBDA			0x2
 #define STATE_NEW				0x4
 
-#define IN_LOOP(st)				((st)->prev && (st)->prev->flag & STATE_LOOP)
-#define IN_LAMBDA(st)			((st)->prev && (st)->prev->flag & STATE_LAMBDA)
+#define IN_LOOP(st)				((st)->prev && ((st)->prev->flag & STATE_LOOP))
+#define IN_LAMBDA(st)			((st)->prev && ((st)->prev->flag & STATE_LAMBDA))
 #define IS_LAMBDA(st)			((st)->flag & STATE_LAMBDA)
 #define IS_NEW(st)				((st)->flag & STATE_NEW)
 

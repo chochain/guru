@@ -272,8 +272,8 @@ _split(free_block *blk, U32 bsz)
     free->psz = U8POFF(free, blk);						// positive offset to previous block
 
     if (aft) {
-        aft->psz = U8POFF(aft, free)|aft->flag&FREE_FLAG;		// backward offset (positive)
-        _merge_with_next(free);							// _combine if possible
+        aft->psz = U8POFF(aft, free)|(aft->flag&FREE_FLAG);		// backward offset (positive)
+        _merge_with_next(free);									// _combine if possible
     }
     _mark_free(free);			// add to free_list and set (free, tail, next, prev) fields
 
@@ -325,7 +325,6 @@ guru_alloc(U32 sz)
     CHECK_MINSZ(bsz);							// check minimum allocation size
 
 	_LOCK;
-
 	U32 index 		= _find_free_index(bsz);
 	free_block *blk = _mark_used(index);		// take the indexed block off free list
 
