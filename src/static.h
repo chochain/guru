@@ -21,6 +21,7 @@ extern "C" {
 
 /* Class Tree */
 extern __GURU__ guru_class *guru_class_object;
+extern __GURU__ guru_class *guru_class_sys;
 
 extern __GURU__ guru_class *guru_class_false;
 extern __GURU__ guru_class *guru_class_true;

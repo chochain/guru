@@ -13,6 +13,7 @@
 
 /* Class Tree */
 __GURU__ guru_class *guru_class_object;
+__GURU__ guru_class *guru_class_sys;
 
 /* Classes */
 __GURU__ guru_class *guru_class_false;
