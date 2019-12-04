@@ -24,25 +24,23 @@ extern "C" {
   Guru class object.
 */
 typedef struct RClass {			// 64-byte
-	GURU_HDR;					// n and sid is used
+	GURU_HDR;					// rc, n, sid are used
 	struct RVar		*ivar;		// DO NOT change here, shared structure with RObj
 	struct RClass	*cls;		// DO NOT change here, shared structure with RObj
+	struct RClass 	*super;		// guru_class[super]
+    guru_proc 		*vtbl;		// c-func array (in constant memory, rc is the number of functions)
 
-    struct RClass 	*super;		// guru_class[super]
-    struct RProc  	*vtbl;		// guru_proc[rprocs], linked list
+    guru_proc		*plist;		// guru_proc[rprocs], linked list
 #if GURU_DEBUG
-    U32				fil[2];		// reserved
     char			*name;		// for debug. TODO: remove
 #endif // GURU_DEBUG
 } guru_class;
 
-#define CLASS_META		0x1
 #define CLASS_USER		0x8
-#define IS_META(v)		((v)->gt==GT_CLASS && ((v)->cls->meta & CLASS_META))
-#define IS_BUILTIN(v)	((v)->gt==GT_CLASS && !((v)->cls->meta & CLASS_USER))
+#define IS_BUILTIN(cls)	(!(cls->meta & CLASS_USER))
 
-// external methods uses static string (const char *) 												// in class.cu
-__GURU__ guru_class *guru_add_class(const char *name, guru_class *super, Vfunc vtbl[], int n);		// use (char *) for static string
+// external methods uses static string (const char *) 													// in class.cu
+__GURU__ guru_class *guru_add_class(const char *name, guru_class *super, const Vfunc vtbl[], int n);	// use (char *) for static string
 
 // internal methods (used by ucode)
 __GURU__ guru_class *guru_define_class(const U8 *name, guru_class *super);

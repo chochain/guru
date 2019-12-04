@@ -48,10 +48,10 @@ class_by_obj(GV *v)
     case GT_OBJ:  	 return v->self->cls;
     case GT_CLASS: {
     	guru_class *scls = v->cls->cls ? v->cls->cls : guru_class_object;
-    	return IS_BUILTIN(v)
+    	return IS_BUILTIN(v->cls)
     		? v->cls
     		: (IS_SCLASS(v) ? scls : (IS_SELF(v) ? v->cls : scls));
-    } break;
+    }
     case GT_PROC:	 return guru_class_proc;
     case GT_STR:     return guru_class_string;
 
@@ -92,12 +92,19 @@ __GURU__ guru_proc*
 proc_by_sid(GV *v, GS sid)
 {
 	// TODO: heavy-weight method, use Dynamic Parallelism or a cache to speed up lookup
-    guru_proc  *p;
+    guru_proc  *p = NULL;
     for (guru_class *cls=class_by_obj(v); cls; cls=cls->super) {	// search up class hierarchy
 #if CC_DEBUG
         printf("%p:%s\tsid=0x%02x, sc=%d self=%d\n", cls, cls->name, sid, IS_SCLASS(v), IS_SELF(v));
 #endif // CC_DEBUG
-        for (p=cls->vtbl; p && (p->sid != sid); p=p->next);			// linear search thru class or meta vtbl
+        if (IS_BUILTIN(cls)) {
+        	for (U32 i=0; i<cls->rc; i++) {
+        		if (cls->vtbl[i].sid==sid) p=&cls->vtbl[i];
+        	}
+        }
+        else {
+        	for (p=cls->plist; p && (p->sid != sid); p=p->next);		// linear search thru class or meta vtbl
+        }
         if (p) return p;											// break if found
     }
     return NULL;
@@ -124,16 +131,17 @@ guru_define_class(const U8 *name, guru_class *super)
 
     cls = (guru_class *)guru_alloc(sizeof(guru_class));
     cls->rc     = 0;
-    cls->meta   = 0;					// ~META_FLAG
+    cls->meta   = 0;					// BUILT-IN classes
     cls->sid    = sid;
     cls->super  = super;
-    cls->vtbl 	= NULL;					// head of list
+    cls->plist  = NULL;					// head of list
     cls->ivar   = NULL;					// lazily allocated when needed
     cls->cls 	= NULL;					// meta-class, lazily allocated when needed
 #ifdef GURU_DEBUG
     // change to sid later
     cls->name   = (char *)id2name(sid);	// retrive from stored symbol table (the one caller passed might be destroyed)
 #endif
+
     GV v; { v.gt=GT_CLASS; v.acl=0; v.self=(guru_obj*)cls; }
     const_set(sid, &v);					// register new class in constant cache
 #if CC_DEBUG
@@ -164,8 +172,8 @@ guru_define_method(guru_class *cls, const U8 *name, guru_fptr cfunc)
     prc->func = cfunc;							// set function pointer
 
     _LOCK;
-    prc->next = cls->vtbl;						// add as the new list head
-    cls->vtbl = prc;
+    prc->next  = cls->plist;					// add as the new list head
+    cls->plist = prc;
     _UNLOCK;
 
 #ifdef GURU_DEBUG
@@ -177,19 +185,27 @@ guru_define_method(guru_class *cls, const U8 *name, guru_fptr cfunc)
 }
 
 //================================================================
-/* methods to add core class/proc for GURU
+/* methods to add builtin (ROM) class/proc for GURU
  * it uses (const U8 *) for static string
  */
 __GURU__ guru_class*
-guru_add_class(const char *name, guru_class *super, Vfunc vtbl[], int n)
+guru_add_class(const char *name, guru_class *super, const Vfunc vtbl[], int n)
 {
-	guru_class *c = guru_define_class((U8*)name, super);
-
-	Vfunc *p = vtbl;
-	for (U32 i=0; i<n && p && p->func; i++, p++) {
-		guru_define_method(c, (U8*)p->name, p->func);
-	}
-	return c;
+	guru_class *cls = guru_define_class((U8*)name, super);
+    guru_proc  *prc = (guru_proc *)guru_alloc(sizeof(guru_proc) * n);
+    cls->rc   = n;								// number of built-in functions
+    cls->vtbl = prc;							// built-in proc list
+    for (U32 i=0; i<n; i++, prc++) {
+    	prc->meta = 0;
+    	prc->n    = 0;
+    	prc->sid  = name2id((U8*)vtbl[i].name);
+    	prc->func = vtbl[i].func;
+#ifdef GURU_DEBUG
+    	prc->cname= (char *)id2name(cls->sid);
+    	prc->name = (char *)id2name(prc->sid);
+#endif
+    }
+	return cls;
 }
 
 
