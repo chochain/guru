@@ -12,12 +12,10 @@
 #include <assert.h>
 #include "global.h"
 /*
-
   GLobal objects are stored in '_global' array.
   '_global' array is decending order by sid.
   In case of searching a global object, binary search is used.
   In case of adding a global object, insertion sort is used.
-
 */
 typedef enum {
     GURU_CONST_OBJECT  = 0,				// for classes
@@ -43,20 +41,22 @@ __GURU__ GV		_nil { .gt = GT_NIL, .acl=0 };
 /* search */
 /* linear search is not efficient! */
 /* TODO: Use binary search */
-__GURU__ S32
-_idx(GS xid, _gtype gt)
+__GPU__ void
+_idx(S32 *idx, GS xid, _gtype gt)
 {
-	_gidx *p = _global_idx;
-    for (U32 i=0; i <_global_sz ; i++, p++) {
-        if (p->xid == xid && p->gt == gt) return i;
-    }
-    return -1;
+	S32    i = threadIdx.x;
+	_gidx *p = _global_idx + i;
+
+	if (i<_global_sz && p->xid == xid && p->gt == gt) *idx = i;
+
+	__syncthreads();		// sync all thread in the block (make sure idx is captured)
 }
 
 __GURU__ GV *
 _get(GS xid, _gtype gt)
 {
-    S32 i = _idx(xid, gt);
+	static S32 i = -1;
+	_idx<<<1,MAX_GLOBAL_COUNT>>>(&i, xid, gt);
 
     if (i < 0) return &_nil;		// not found
 
@@ -66,10 +66,10 @@ _get(GS xid, _gtype gt)
 __GURU__ void
 _set(GS xid, GV *v, _gtype gt)
 {
-    S32 i = _idx(xid, gt);
+    static S32 i = -1;
+    _idx<<<1,MAX_GLOBAL_COUNT>>>(&i, xid, gt);
 
     _LOCK;
-
     if (i < 0) {							// not found
         i = _global_sz++;
     }
@@ -78,7 +78,6 @@ _set(GS xid, GV *v, _gtype gt)
     _global_idx[i].xid = xid;
     _global_idx[i].gt  = gt;
     _global[i] = *v;
-
     _UNLOCK;
 }
 

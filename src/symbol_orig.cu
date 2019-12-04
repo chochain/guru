@@ -19,9 +19,21 @@
 #include "c_array.h"
 #include "inspect.h"
 
-__GURU__ U32 	_sym_idx;			// point to the last(free) sym_list array.
-__GURU__ U8*	_sym[MAX_SYMBOL_COUNT];
-__GURU__ U32	_sym_hash[MAX_SYMBOL_COUNT];
+#if !defined(GS_LINER) && !defined(GS_BTREE)
+#define GS_BTREE
+#endif
+
+struct RTree {
+    U8  *cstr;						//!< point to the symbol string.
+#ifdef GS_BTREE						// array-based btree
+    GS 	left;
+    GS 	right;
+#endif
+    U16	hash;						//!< hash value, returned by _calc_hash.
+};
+
+__GURU__ U32 			_sym_idx;	// point to the last(free) sym_list array.
+__GURU__ struct RTree 	_sym[MAX_SYMBOL_COUNT];
 
 //================================================================
 /*! Calculate hash value.
@@ -42,44 +54,67 @@ _calc_hash(const U8 *str)
 //================================================================
 /*! search index table
  */
-__GPU__ void
-__scan(S32 *idx, const U32 hash)
-{
-	S32 i = threadIdx.x;
-
-	if (i<MAX_SYMBOL_COUNT && _sym_hash[i]==hash) *idx = i;
-
-	__syncthreads();
-}
-
-__GURU__ S32
+__GURU__ U32
 _search_index(const U8 *str)
 {
-	U32 hash = _calc_hash(str);
+    U16 hash = _calc_hash(str);
 
-	static S32 idx  = -1;
-    __scan<<<1, MAX_SYMBOL_COUNT>>>(&idx, hash);
-
-    return idx;
+#ifdef GS_BTREE
+    U32 i=0;
+    do {
+        if (_sym[i].hash==hash &&
+        	STRCMP(str, _sym[i].cstr)==0) {
+            return i;
+        }
+        i = (hash < _sym[i].hash) ? _sym[i].left : _sym[i].right;
+    } while (i!=0);
+#else
+    for (U32 i=0; i < _sym_idx; i++) {
+        if (_sym[i].hash==hash && strcmp(str, _sym[i].cstr)==0) {
+            return i;
+        }
+    }
+#endif
+    return MAX_SYMBOL_COUNT;		// not found
 }
 
 //================================================================
 /*! add to index table (1-based index, i.e. list[0] is not used)
  */
-__GURU__ U32
+__GURU__ S32
 _add_index(const U8 *str)
 {
-    S32 idx = _search_index(str);
-    if (idx>=0) return idx;
+    U32 hash = _calc_hash(str);
+
+    // check overflow.
+    assert(_sym_idx < MAX_SYMBOL_COUNT);
 
     // append table.
-    idx = ++_sym_idx;
-    assert(idx<MAX_SYMBOL_COUNT);
+    U32 sid = _sym_idx++;				// add to next entry
+    _sym[sid].hash = hash;
+    _sym[sid].cstr = (U8*)str;
 
-    _sym[idx]      = (U8*)str;
-    _sym_hash[idx] = _calc_hash(str);
-
-    return idx;
+#ifdef GS_BTREE
+    for (U32 i=0; ;) {					// array-based btree walker
+        if (hash < _sym[i].hash) {
+            // left side
+            if (_sym[i].left==0) {		// left is empty?
+                _sym[i].left = sid;
+                break;
+            }
+            i = _sym[i].left;
+        }
+        else {
+            // right side
+            if (_sym[i].right==0) {		// right is empty?
+                _sym[i].right = sid;
+                break;
+            }
+            i = _sym[i].right;
+        }
+    }
+#endif
+    return sid;
 }
 
 //================================================================
@@ -93,9 +128,9 @@ __GURU__ GV
 guru_sym_new(const U8 *str)
 {
     GV v; { v.gt = GT_SYM; v.acl=0; }
+    GS sid = _search_index(str);
 
-    S32 sid  = _search_index(str);
-    if (sid >=0) {
+    if (sid < MAX_SYMBOL_COUNT) {
         v.i = sid;
         return v;					// already exist.
     }
@@ -119,8 +154,8 @@ guru_sym_new(const U8 *str)
 __GURU__ GS
 name2id(const U8 *str)
 {
-    S32 sid = _search_index(str);
-    if (sid>=0) return sid;
+    GS sid = _search_index(str);
+    if (sid < MAX_SYMBOL_COUNT) return sid;
 
     return _add_index(str);
 }
@@ -135,7 +170,7 @@ name2id(const U8 *str)
 __GURU__ U8*
 id2name(GS sid)
 {
-    return (sid < _sym_idx) ? _sym[sid] : NULL;
+    return (sid < _sym_idx) ? _sym[sid].cstr : NULL;
 }
 
 //================================================================
