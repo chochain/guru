@@ -19,11 +19,11 @@
 extern "C" __GPU__  void guru_mmu_init(void *ptr, U32 sz);
 extern "C" __GPU__  void guru_global_init(void);
 extern "C" __GPU__  void guru_class_init(void);
-extern "C" __GPU__  void guru_console_init(U8P buf, U32 sz);
+extern "C" __GPU__  void guru_console_init(U8 *buf, U32 sz);
 extern "C" __HOST__ int  vm_pool_init(U32 step);
 
-U8P _guru_mem;				// guru global memory
-U8P _guru_out;				// guru output stream
+U8 *_guru_mem;				// guru global memory
+U8 *_guru_out;				// guru output stream
 guru_ses *_ses_list = NULL; // session linked-list
 
 __GPU__ void
@@ -46,12 +46,12 @@ _mmu_free(U8 *b)
 __HOST__ int
 guru_setup(int step, int trace)
 {
-	U8P mem = _guru_mem = (U8P)cuda_malloc(BLOCK_MEMORY_SIZE, 1);
+	U8 *mem = _guru_mem = (U8*)cuda_malloc(BLOCK_MEMORY_SIZE, 1);
 	if (!_guru_mem) {
 		fprintf(stderr, "ERROR: failed to allocate device main memory block!\n");
 		return -1;
 	}
-	U8P out = _guru_out = (U8P)cuda_malloc(MAX_BUFFER_SIZE, 1);	// allocate output buffer
+	U8 *out = _guru_out = (U8*)cuda_malloc(MAX_BUFFER_SIZE, 1);	// allocate output buffer
 	if (!_guru_out) {
 		fprintf(stderr, "ERROR: output buffer allocation error!\n");
 		return -2;
@@ -62,9 +62,9 @@ guru_setup(int step, int trace)
 	}
 	_ses_list = NULL;
 
-	guru_mmu_init<<<1,1>>>(mem, BLOCK_MEMORY_SIZE);			// setup memory management
-//	guru_global_init<<<1,1>>>();								// setup static objects
-//	guru_class_init<<<1,1>>>();									// setup basic classes
+	guru_mmu_init<<<1,1>>>(mem, BLOCK_MEMORY_SIZE);				// setup memory management
+	guru_global_init<<<1,1>>>();								// setup static objects
+	guru_class_init<<<1,1>>>();									// setup basic classes
 //	guru_console_init<<<1,1>>>(out, MAX_BUFFER_SIZE);			// initialize output buffer
 
 	U32 sz0, sz1;
