@@ -90,7 +90,6 @@ guru_class_add_meta(GV *v)			// lazy add metaclass to a class
 	// lazily create the metaclass
 	const U8	*name = (U8*)"_meta";
 	guru_class 	*cls  = guru_define_class(name, guru_class_object);
-	cls->meta |= CLASS_META;		// mark it as a metaclass
 	v->cls->cls = cls;				// self pointing =~ metaclass
 }
 
@@ -362,57 +361,43 @@ obj_to_s(GV v[], U32 vi)
 	assert(1==0);				// handled in ucode
 }
 
-__GURU__ void
-_init_class_object()
-{
-    static Vfunc vtbl[] = {
-    	{ "initialize", 	obj_nop 		},
-        { "private",		obj_nop			},			// do nothing now
-    	{ "!",				obj_not 		},
-    	{ "!=",          	obj_neq 		},
-    	{ "<=>",           	obj_cmp 		},
-    	{ "===",           	obj_eq3 		},
-    	{ "class",         	obj_class		},
-    	{ "include",		obj_include     },
-    	{ "extend",			obj_extend		},
+__GURU__ __const__ Vfunc obj_vtbl[] = {
+	{ "initialize", 	obj_nop 		},
+    { "private",		obj_nop			},			// do nothing now
+	{ "!",				obj_not 		},
+	{ "!=",          	obj_neq 		},
+	{ "<=>",           	obj_cmp 		},
+	{ "===",           	obj_eq3 		},
+	{ "class",         	obj_class		},
+	{ "include",		obj_include     },
+	{ "extend",			obj_extend		},
 //    	{ "new",           	obj_new 		},			// handled by state#_method_missing
 //      { "raise",			obj_raise		},			// handled by state#_method_missing
-    	{ "attr_reader",   	obj_attr_reader 	},
-    	{ "attr_accessor", 	obj_attr_accessor	},
-        { "lambda",			obj_lambda		},
-    	{ "is_a?",         	obj_kind_of		},
-        { "kind_of?",      	obj_kind_of		},
-        { "puts",          	obj_puts 		},
-        { "print",         	obj_print		},
-        { "to_s",          	gv_to_s  		},
-        { "inspect",       	gv_to_s  		},
+	{ "attr_reader",   	obj_attr_reader 	},
+	{ "attr_accessor", 	obj_attr_accessor	},
+    { "lambda",			obj_lambda		},
+	{ "is_a?",         	obj_kind_of		},
+    { "kind_of?",      	obj_kind_of		},
+    { "puts",          	obj_puts 		},
+    { "print",         	obj_print		},
+    { "to_s",          	gv_to_s  		},
+    { "inspect",       	gv_to_s  		},
 #if GURU_DEBUG
-        { "p", 				obj_p    		},
-        { "sprintf",		str_sprintf		},
-        { "printf",			str_printf		}
+    { "p", 				obj_p    		},
+    { "sprintf",		str_sprintf		},
+    { "printf",			str_printf		}
 #endif // GURU_DEBUG
-     };
-    guru_class_object = guru_add_class(
-    	"Object", NULL, vtbl, sizeof(vtbl)/sizeof(Vfunc)
-    );
-}
+ };
 
 //================================================================
 // ProcClass
 //================================================================
 
-__GURU__ void
-_init_class_proc()
-{
-    static Vfunc vtbl[] = {
+__GURU__ __const__ Vfunc prc_vtbl[] = {
 //    	{ "call", 	prc_call	},		// handled  by ucode#uc_send
-    	{ "to_s", 	gv_to_s		},
-    	{ "inspect",gv_to_s		}
-    };
-    guru_class_proc = guru_add_class(
-    	"Proc", guru_class_object, vtbl, sizeof(vtbl)/sizeof(Vfunc)
-    );
-}
+	{ "to_s", 	gv_to_s		},
+	{ "inspect",gv_to_s		}
+};
 
 //================================================================
 // Nil class
@@ -431,46 +416,25 @@ nil_inspect(GV v[], U32 vi)
 //================================================================
 /*! Nil class
  */
-__GURU__ void
-_init_class_nil()
-{
-    static Vfunc vtbl[] = {
-    	{ "!", 			nil_false_not	},
-    	{ "inspect", 	nil_inspect		},
-    	{ "to_s", 		gv_to_s			}
-    };
-    guru_class_nil = guru_add_class(
-    	"NilClass", guru_class_object, vtbl, sizeof(vtbl)/sizeof(Vfunc)
-    );
-}
+__GURU__ __const__ Vfunc nil_vtbl[] = {
+	{ "!", 			nil_false_not	},
+	{ "inspect", 	nil_inspect		},
+	{ "to_s", 		gv_to_s			}
+};
 
 //================================================================
 /*! False class
  */
-__GURU__ void
-_init_class_false()
-{
-    static Vfunc vtbl[] = {
-    	{ "!", 		nil_false_not	},
-    	{ "to_s",    gv_to_s		},
-    	{ "inspect", gv_to_s		}
-    };
-    guru_class_false = guru_add_class(
-    	"FalseClass", guru_class_object, vtbl, sizeof(vtbl)/sizeof(Vfunc)
-    );
-}
+__GURU__ __const__ Vfunc false_vtbl[] = {
+	{ "!", 		nil_false_not	},
+	{ "to_s",    gv_to_s		},
+	{ "inspect", gv_to_s		}
+};
 
-__GURU__ void
-_init_class_true()
-{
-	static Vfunc vtbl[] = {
-		{ "to_s", 		gv_to_s 	},
-		{ "inspect", 	gv_to_s		}
-	};
-    guru_class_true = guru_add_class(
-    	"TrueClass", guru_class_object, vtbl, sizeof(vtbl)/sizeof(Vfunc)
-    );
-}
+__GURU__ __const__ Vfunc true_vtbl[] = {
+	{ "to_s", 		gv_to_s 	},
+	{ "inspect", 	gv_to_s		}
+};
 
 #if GURU_DEBUG
 //================================================================
@@ -489,30 +453,27 @@ sys_mstat(GV v[], U32 vi)
 	*v = ret;
 }
 
-__GURU__ void
-_init_class_sys()
-{
-	static Vfunc vtbl[] = {
-		{ "mstat", 		sys_mstat	}
-	};
-    guru_class_true = guru_add_class(
-    	"Sys", guru_class_object, vtbl, sizeof(vtbl)/sizeof(Vfunc)
-    );
-}
+__GURU__ __const__ Vfunc sys_vtbl[] = {
+	{ "mstat", 		sys_mstat	}
+};
+
 #endif // GURU_DEBUG
 //================================================================
 // initialize
-
+// TODO: move into ROM
+//
 __GURU__ void
 _init_all_class(void)
 {
-    _init_class_object();
-    _init_class_nil();
-    _init_class_proc();
-    _init_class_false();
-    _init_class_true();
+    guru_class *o =
+    	guru_class_object = guru_add_class("Object", NULL, obj_vtbl, VFSZ(obj_vtbl));
+
+    guru_class_nil   = guru_add_class("NilClass",   o, nil_vtbl,  VFSZ(nil_vtbl));
+    guru_class_proc  = guru_add_class("Proc",       o, prc_vtbl,  VFSZ(prc_vtbl));
+    guru_class_false = guru_add_class("FalseClass", o, false_vtbl,VFSZ(false_vtbl));
+    guru_class_true  = guru_add_class("TrueClass",  o, true_vtbl, VFSZ(true_vtbl));
 #if GURU_DEBUG
-    _init_class_sys();
+    guru_class_sys   = guru_add_class("Sys", 		o, sys_vtbl,  VFSZ(sys_vtbl));
 #endif
 
     guru_init_class_symbol();		// symbol.cu

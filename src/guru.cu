@@ -71,7 +71,7 @@ guru_setup(int step, int trace)
 	}
 	_ses_list = NULL;
 
-	guru_mmu_init<<<1,1>>>(mem, BLOCK_MEMORY_SIZE);		// setup memory management
+	guru_mmu_init<<<1,1>>>(mem, BLOCK_MEMORY_SIZE);			// setup memory management
 	guru_global_init<<<1,1>>>();							// setup static objects (TODO: => dynamic?)
 	guru_class_init<<<1,1>>>();								// setup basic classes	(TODO: => ROM)
 #if GURU_USE_CONSOLE

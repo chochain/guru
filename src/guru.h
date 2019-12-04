@@ -139,7 +139,7 @@ struct Vfunc {
 	const char  *name;			// raw string usually
 	guru_fptr 	func;			// C-function pointer
 };
-
+#define VFSZ(vtbl)		(sizeof(vtbl)/sizeof(Vfunc))
 //================================================================
 /*!@brief
   Guru object header. (i.e. Ruby's RBasic)
