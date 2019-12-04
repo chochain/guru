@@ -169,30 +169,31 @@ int_chr(GV v[], U32 vi)
     RETURN_VAL(guru_str_new(buf));
 }
 
+__GURU__ __const__ Vfunc int_vtbl[] = {
+	{ "[]", 	int_bitref		},
+	{ "-@", 	int_negative	},
+	{ "**", 	int_power		},
+	{ "%", 		int_mod			},
+	{ "&", 		int_and			},
+	{ "|", 		int_or			},
+	{ "^", 		int_xor			},
+	{ "~", 		int_not			},
+	{ "<<", 	int_lshift		},
+	{ ">>", 	int_rshift		},
+	{ "abs",	int_abs			},
+	{ "to_f",	int_to_f		},
+
+	{ "chr", 	int_chr			},
+	{ "to_s", 	gv_to_s			},
+	{ "inspect",gv_to_s			}
+};
+
 __GURU__ void
 guru_init_class_int(void)
 {
     // int
-	static Vfunc vtbl[] = {
-		{ "[]", 	int_bitref		},
-		{ "-@", 	int_negative	},
-		{ "**", 	int_power		},
-		{ "%", 		int_mod			},
-		{ "&", 		int_and			},
-		{ "|", 		int_or			},
-		{ "^", 		int_xor			},
-		{ "~", 		int_not			},
-		{ "<<", 	int_lshift		},
-		{ ">>", 	int_rshift		},
-		{ "abs",	int_abs			},
-		{ "to_f",	int_to_f		},
-
-		{ "chr", 	int_chr			},
-		{ "to_s", 	gv_to_s			},
-		{ "inspect",gv_to_s			}
-	};
     guru_class_int = guru_add_class(
-    	"Integer", guru_class_object, vtbl, sizeof(vtbl)/sizeof(Vfunc)
+    	"Integer", guru_class_object, int_vtbl, sizeof(int_vtbl)/sizeof(Vfunc)
     );
 
 }
@@ -251,23 +252,20 @@ flt_to_i(GV v[], U32 vi)
 //================================================================
 /*! initialize class Float
  */
+__GURU__ __const__ Vfunc flt_vtbl[] = {
+	{ "-@", 		flt_negative	},
+#if     GURU_USE_MATH
+	{ "**", 		flt_power		},
+#endif // GURU_USE_MATH
+	{ "abs", 		flt_abs			},
+	{ "to_i", 		flt_to_i		},
+	{ "to_s", 		gv_to_s			},
+	{ "inspect", 	gv_to_s			}
+};
 __GURU__ void
 guru_init_class_float(void)
 {
-    // Float
-	static Vfunc vtbl[] = {
-		{ "-@", 		flt_negative	},
-#if     GURU_USE_MATH
-		{ "**", 		flt_power		},
-#endif // GURU_USE_MATH
-		{ "abs", 		flt_abs			},
-		{ "to_i", 		flt_to_i		},
-		{ "to_s", 		gv_to_s			},
-		{ "inspect", 	gv_to_s			}
-	};
-    guru_class_float = guru_add_class(
-    	"Float", guru_class_object, vtbl, sizeof(vtbl)/sizeof(Vfunc)
-    );
+    guru_class_float = guru_add_class("Float", guru_class_object, flt_vtbl, VFSZ(flt_vtbl));
 }
 
 #endif // GURU_USE_FLOAT

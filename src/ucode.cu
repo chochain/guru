@@ -1046,9 +1046,9 @@ uc_method(guru_vm *vm)
     _LOCK;
 
     // add proc to class
-    prc->sid  = sid;							// assign sid to proc, overload if prc already exists
-    prc->next = cls->vtbl;						// add to top of vtable, so it will be found first
-    cls->vtbl = prc;							// if there is a sub-class override
+    prc->sid   = sid;							// assign sid to proc, overload if prc already exists
+    prc->next  = cls->plist;					// add to top of vtable, so it will be found first
+    cls->plist = prc;							// if there is a sub-class override
 
     _UNLOCK;
 
@@ -1129,6 +1129,94 @@ ucode_prefetch(guru_vm *vm)
 	vm->state->pc++;				// advance program counter (ready for next fetch)
 }
 
+__GURU__ __const__ UCODE ucode_vtbl[] = {
+	NULL, 			// 	  OP_NOP = 0,
+// 0x1 Register File
+	uc_move,		//    OP_MOVE       A B     R(A) := R(B)
+	uc_loadl,		//    OP_LOADL      A Bx    R(A) := Pool(Bx)
+	uc_loadi,		//    OP_LOADI      A sBx   R(A) := sBx
+	uc_loadsym,		//    OP_LOADSYM    A Bx    R(A) := Syms(Bx)
+	uc_loadnil,		//    OP_LOADNIL    A       R(A) := nil
+	uc_loadself,	//    OP_LOADSELF   A       R(A) := self
+	uc_loadt,		//    OP_LOADT      A       R(A) := true
+	uc_loadf,		//    OP_LOADF      A       R(A) := false
+// 0x9 Load/Store
+	uc_getglobal,	//    OP_GETGLOBAL  A Bx    R(A) := getglobal(Syms(Bx))
+	uc_setglobal,	//    OP_SETGLOBAL  A Bx    setglobal(Syms(Bx), R(A))
+	NULL,			//    OP_GETSPECIAL A Bx    R(A) := Special[Bx]
+	NULL,			//    OP_SETSPECIAL	A Bx    Special[Bx] := R(A)
+	uc_getiv,		//    OP_GETIV      A Bx    R(A) := ivget(Syms(Bx))
+	uc_setiv,		//    OP_SETIV      A Bx    ivset(Syms(Bx),R(A))
+	uc_getcv,		//    OP_GETCV      A Bx    R(A) := cvget(Syms(Bx))
+	uc_setcv,		//    OP_SETCV      A Bx    cvset(Syms(Bx),R(A))
+	uc_getconst,	//    OP_GETCONST   A Bx    R(A) := constget(Syms(Bx))
+	uc_setconst,	//    OP_SETCONST   A Bx    constset(Syms(Bx),R(A))
+	NULL,			//    OP_GETMCNST   A Bx    R(A) := R(A)::Syms(Bx)
+	NULL,			//    OP_SETMCNST   A Bx    R(A+1)::Syms(Bx) := R(A)
+	uc_getupvar,	//    OP_GETUPVAR   A B C   R(A) := uvget(B,C)
+	uc_setupvar,	//    OP_SETUPVAR   A B C   uvset(B,C,R(A))
+// 0x17 Branch Unit
+	uc_jmp,			//    OP_JMP,       sBx     pc+=sBx
+	uc_jmpif,		//    OP_JMPIF,     A sBx   if R(A) pc+=sBx
+	uc_jmpnot,		//    OP_JMPNOT,    A sBx   if !R(A) pc+=sBx
+// 0x1a Exception Handler
+	uc_onerr,		//    OP_ONERR,     sBx     rescue_push(pc+sBx)
+	uc_rescue,		//    OP_RESCUE		A B C   if A (if C exc=R(A) else R(A) := exc);
+	uc_poperr,		// 	  OP_POPERR,    A       A.times{rescue_pop()}
+	uc_raise,		//    OP_RAISE,     A       raise(R(A))
+	NULL,			//    OP_EPUSH,     Bx      ensure_push(SEQ[Bx])
+	NULL,			//    OP_EPOP,      A       A.times{ensure_pop().call}
+// 0x20 Stack
+	uc_send,		//    OP_SEND,      A B C   R(A) := call(R(A),Syms(B),R(A+1),...,R(A+C))
+	uc_send,		//    OP_SENDB,     A B C   R(A) := call(R(A),Syms(B),R(A+1),...,R(A+C),&R(A+C+1))*/
+	NULL,			//    OP_FSEND,     A B C   R(A) := fcall(R(A),Syms(B),R(A+1),...,R(A+C-1))
+	uc_call,		//    OP_CALL,      A       R(A) := self.call(frame.argc, frame.argv)
+	NULL,			//    OP_SUPER,     A C     R(A) := super(R(A+1),... ,R(A+C+1))
+	NULL,			//    OP_ARGARY,    A Bx    R(A) := argument array (16=6:1:5:4)
+	uc_enter,		//    OP_ENTER,     Ax      arg setup according to flags (23=5:5:1:5:5:1:1)
+	NULL,			//    OP_KARG,      A B C   R(A) := kdict[Syms(B)]; if C kdict.rm(Syms(B))
+	NULL,			//    OP_KDICT,     A C     R(A) := kdict
+	uc_return,		//    OP_RETURN,    A B     return R(A) (B=normal,in-block return/break)
+	NULL,			//    OP_TAILCALL,  A B C   return call(R(A),Syms(B),*R(C))
+	uc_blkpush,		//    OP_BLKPUSH,   A Bx    R(A) := block (16=6:1:5:4)
+// 0x2c ALU
+	uc_add,			//    OP_ADD,       A B C   R(A) := R(A)+R(A+1) (Syms[B]=:+,C=1)
+	uc_addi,		//    OP_ADDI,      A B C   R(A) := R(A)+C (Syms[B]=:+)
+	uc_sub,			//    OP_SUB,       A B C   R(A) := R(A)-R(A+1) (Syms[B]=:-,C=1)
+	uc_subi,		//    OP_SUBI,      A B C   R(A) := R(A)-C (Syms[B]=:-)
+	uc_mul,			//    OP_MUL,       A B C   R(A) := R(A)*R(A+1) (Syms[B]=:*,C=1)
+	uc_div,			//    OP_DIV,       A B C   R(A) := R(A)/R(A+1) (Syms[B]=:/,C=1)
+	uc_eq,			//    OP_EQ,        A B C   R(A) := R(A)==R(A+1) (Syms[B]=:==,C=1)
+	uc_lt,			//    OP_LT,        A B C   R(A) := R(A)<R(A+1)  (Syms[B]=:<,C=1)
+	uc_le,			//    OP_LE,        A B C   R(A) := R(A)<=R(A+1) (Syms[B]=:<=,C=1)
+	uc_gt,			//    OP_GT,        A B C   R(A) := R(A)>R(A+1)  (Syms[B]=:>,C=1)
+	uc_ge,			//    OP_GE,        A B C   R(A) := R(A)>=R(A+1) (Syms[B]=:>=,C=1)
+// 0x37 Complex Object
+	uc_array,		//    OP_ARRAY,     A B C   R(A) := ary_new(R(B),R(B+1)..R(B+C))
+	NULL,			//    OP_ARYCAT,    A B     ary_cat(R(A),R(B))
+	NULL,			//    OP_ARYPUSH,   A B     ary_push(R(A),R(B))
+	NULL,			//    OP_AREF,      A B C   R(A) := R(B)[C]
+	NULL,			//    OP_ASET,      A B C   R(B)[C] := R(A)
+	NULL,			//    OP_APOST,     A B C   *R(A),R(A+1)..R(A+C) := R(A)[B..]
+	uc_string,		//    OP_STRING,    A Bx    R(A) := str_dup(Lit(Bx))
+	uc_strcat,		//    OP_STRCAT,    A B     str_cat(R(A),R(B))
+	uc_hash,		//    OP_HASH,      A B C   R(A) := hash_new(R(B),R(B+1)..R(B+C))
+	uc_lambda,		//    OP_LAMBDA,    A Bz Cz R(A) := lambda(SEQ[Bz],Cz)
+	uc_range,		//    OP_RANGE,     A B C   R(A) := range_new(R(B),R(B+1),C)
+// 0x42 Class
+	NULL,			//    OP_OCLASS,    A       R(A) := ::Object
+	uc_class,		//    OP_CLASS,     A B     R(A) := newclass(R(A),Syms(B),R(A+1))
+	uc_class,		//    OP_MODULE,    A B     R(A) := newmodule(R(A),Syms(B))
+	uc_exec,		//    OP_EXEC,      A Bx    R(A) := blockexec(R(A),SEQ[Bx])
+	uc_method,		//    OP_METHOD,    A B     R(A).newmethod(Syms(B),R(A+1))
+	uc_sclass,		//    OP_SCLASS,    A B     R(A) := R(B).singleton_class
+	uc_tclass,		//    OP_TCLASS,    A       R(A) := target_class
+	NULL,			//    OP_DEBUG,     A B C   print R(A),R(B),R(C)
+// 0x4a Exit
+	uc_stop,		//    OP_STOP,      stop VM
+	NULL			//    OP_ERR,       Bx      raise RuntimeError with message Lit(Bx)
+};
+
 __GURU__ void
 ucode_exec(guru_vm *vm)
 {
@@ -1204,96 +1292,8 @@ ucode_exec(guru_vm *vm)
 	// GURU dispatcher unit
 	// using vtable (i.e. without switch branching)
 	//=======================================================================================
-    static UCODE vtbl[] = {
-		NULL, 			// 	  OP_NOP = 0,
-	// 0x1 Register File
-		uc_move,		//    OP_MOVE       A B     R(A) := R(B)
-		uc_loadl,		//    OP_LOADL      A Bx    R(A) := Pool(Bx)
-		uc_loadi,		//    OP_LOADI      A sBx   R(A) := sBx
-		uc_loadsym,		//    OP_LOADSYM    A Bx    R(A) := Syms(Bx)
-		uc_loadnil,		//    OP_LOADNIL    A       R(A) := nil
-		uc_loadself,	//    OP_LOADSELF   A       R(A) := self
-		uc_loadt,		//    OP_LOADT      A       R(A) := true
-		uc_loadf,		//    OP_LOADF      A       R(A) := false
-	// 0x9 Load/Store
-		uc_getglobal,	//    OP_GETGLOBAL  A Bx    R(A) := getglobal(Syms(Bx))
-		uc_setglobal,	//    OP_SETGLOBAL  A Bx    setglobal(Syms(Bx), R(A))
-		NULL,			//    OP_GETSPECIAL A Bx    R(A) := Special[Bx]
-		NULL,			//    OP_SETSPECIAL	A Bx    Special[Bx] := R(A)
-		uc_getiv,		//    OP_GETIV      A Bx    R(A) := ivget(Syms(Bx))
-		uc_setiv,		//    OP_SETIV      A Bx    ivset(Syms(Bx),R(A))
-		uc_getcv,		//    OP_GETCV      A Bx    R(A) := cvget(Syms(Bx))
-		uc_setcv,		//    OP_SETCV      A Bx    cvset(Syms(Bx),R(A))
-		uc_getconst,	//    OP_GETCONST   A Bx    R(A) := constget(Syms(Bx))
-		uc_setconst,	//    OP_SETCONST   A Bx    constset(Syms(Bx),R(A))
-		NULL,			//    OP_GETMCNST   A Bx    R(A) := R(A)::Syms(Bx)
-		NULL,			//    OP_SETMCNST   A Bx    R(A+1)::Syms(Bx) := R(A)
-		uc_getupvar,	//    OP_GETUPVAR   A B C   R(A) := uvget(B,C)
-		uc_setupvar,	//    OP_SETUPVAR   A B C   uvset(B,C,R(A))
-	// 0x17 Branch Unit
-		uc_jmp,			//    OP_JMP,       sBx     pc+=sBx
-		uc_jmpif,		//    OP_JMPIF,     A sBx   if R(A) pc+=sBx
-		uc_jmpnot,		//    OP_JMPNOT,    A sBx   if !R(A) pc+=sBx
-	// 0x1a Exception Handler
-		uc_onerr,		//    OP_ONERR,     sBx     rescue_push(pc+sBx)
-		uc_rescue,		//    OP_RESCUE		A B C   if A (if C exc=R(A) else R(A) := exc);
-		uc_poperr,		// 	  OP_POPERR,    A       A.times{rescue_pop()}
-		uc_raise,		//    OP_RAISE,     A       raise(R(A))
-		NULL,			//    OP_EPUSH,     Bx      ensure_push(SEQ[Bx])
-		NULL,			//    OP_EPOP,      A       A.times{ensure_pop().call}
-	// 0x20 Stack
-		uc_send,		//    OP_SEND,      A B C   R(A) := call(R(A),Syms(B),R(A+1),...,R(A+C))
-		uc_send,		//    OP_SENDB,     A B C   R(A) := call(R(A),Syms(B),R(A+1),...,R(A+C),&R(A+C+1))*/
-		NULL,			//    OP_FSEND,     A B C   R(A) := fcall(R(A),Syms(B),R(A+1),...,R(A+C-1))
-		uc_call,		//    OP_CALL,      A       R(A) := self.call(frame.argc, frame.argv)
-		NULL,			//    OP_SUPER,     A C     R(A) := super(R(A+1),... ,R(A+C+1))
-		NULL,			//    OP_ARGARY,    A Bx    R(A) := argument array (16=6:1:5:4)
-		uc_enter,		//    OP_ENTER,     Ax      arg setup according to flags (23=5:5:1:5:5:1:1)
-		NULL,			//    OP_KARG,      A B C   R(A) := kdict[Syms(B)]; if C kdict.rm(Syms(B))
-		NULL,			//    OP_KDICT,     A C     R(A) := kdict
-		uc_return,		//    OP_RETURN,    A B     return R(A) (B=normal,in-block return/break)
-		NULL,			//    OP_TAILCALL,  A B C   return call(R(A),Syms(B),*R(C))
-		uc_blkpush,		//    OP_BLKPUSH,   A Bx    R(A) := block (16=6:1:5:4)
-	// 0x2c ALU
-		uc_add,			//    OP_ADD,       A B C   R(A) := R(A)+R(A+1) (Syms[B]=:+,C=1)
-		uc_addi,		//    OP_ADDI,      A B C   R(A) := R(A)+C (Syms[B]=:+)
-		uc_sub,			//    OP_SUB,       A B C   R(A) := R(A)-R(A+1) (Syms[B]=:-,C=1)
-		uc_subi,		//    OP_SUBI,      A B C   R(A) := R(A)-C (Syms[B]=:-)
-		uc_mul,			//    OP_MUL,       A B C   R(A) := R(A)*R(A+1) (Syms[B]=:*,C=1)
-		uc_div,			//    OP_DIV,       A B C   R(A) := R(A)/R(A+1) (Syms[B]=:/,C=1)
-		uc_eq,			//    OP_EQ,        A B C   R(A) := R(A)==R(A+1) (Syms[B]=:==,C=1)
-		uc_lt,			//    OP_LT,        A B C   R(A) := R(A)<R(A+1)  (Syms[B]=:<,C=1)
-		uc_le,			//    OP_LE,        A B C   R(A) := R(A)<=R(A+1) (Syms[B]=:<=,C=1)
-		uc_gt,			//    OP_GT,        A B C   R(A) := R(A)>R(A+1)  (Syms[B]=:>,C=1)
-		uc_ge,			//    OP_GE,        A B C   R(A) := R(A)>=R(A+1) (Syms[B]=:>=,C=1)
-	// 0x37 Complex Object
-		uc_array,		//    OP_ARRAY,     A B C   R(A) := ary_new(R(B),R(B+1)..R(B+C))
-		NULL,			//    OP_ARYCAT,    A B     ary_cat(R(A),R(B))
-		NULL,			//    OP_ARYPUSH,   A B     ary_push(R(A),R(B))
-		NULL,			//    OP_AREF,      A B C   R(A) := R(B)[C]
-		NULL,			//    OP_ASET,      A B C   R(B)[C] := R(A)
-		NULL,			//    OP_APOST,     A B C   *R(A),R(A+1)..R(A+C) := R(A)[B..]
-		uc_string,		//    OP_STRING,    A Bx    R(A) := str_dup(Lit(Bx))
-		uc_strcat,		//    OP_STRCAT,    A B     str_cat(R(A),R(B))
-		uc_hash,		//    OP_HASH,      A B C   R(A) := hash_new(R(B),R(B+1)..R(B+C))
-		uc_lambda,		//    OP_LAMBDA,    A Bz Cz R(A) := lambda(SEQ[Bz],Cz)
-		uc_range,		//    OP_RANGE,     A B C   R(A) := range_new(R(B),R(B+1),C)
-	// 0x42 Class
-		NULL,			//    OP_OCLASS,    A       R(A) := ::Object
-		uc_class,		//    OP_CLASS,     A B     R(A) := newclass(R(A),Syms(B),R(A+1))
-		uc_class,		//    OP_MODULE,    A B     R(A) := newmodule(R(A),Syms(B))
-		uc_exec,		//    OP_EXEC,      A Bx    R(A) := blockexec(R(A),SEQ[Bx])
-		uc_method,		//    OP_METHOD,    A B     R(A).newmethod(Syms(B),R(A+1))
-		uc_sclass,		//    OP_SCLASS,    A B     R(A) := R(B).singleton_class
-		uc_tclass,		//    OP_TCLASS,    A       R(A) := target_class
-		NULL,			//    OP_DEBUG,     A B C   print R(A),R(B),R(C)
-	// 0x4a Exit
-		uc_stop,		//    OP_STOP,      stop VM
-		NULL			//    OP_ERR,       Bx      raise RuntimeError with message Lit(Bx)
-	};
-
     guru_state *st = vm->state;
-    vtbl[vm->op](vm);
+    ucode_vtbl[vm->op](vm);
 
     if (vm->err && vm->depth>0) {						// simple exception handler
     	vm->state->pc = vm->rescue[--vm->depth];		// bubbling up

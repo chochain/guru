@@ -441,32 +441,30 @@ hsh_values(GV v[], U32 vi)
 //================================================================
 /*! initialize
  */
+__GURU__ __const__ Vfunc hsh_vtbl[] = {
+	{ "new",	    hsh_new		},
+	{ "[]",			hsh_get		},
+	{ "[]=",	    hsh_set		},
+	{ "clear",		hsh_clr		},
+	{ "dup",	    hsh_dup 	},
+	{ "delete",	    hsh_del 	},
+	{ "empty?",	    hsh_empty	},
+	{ "has_key?",	hsh_has_key },
+	{ "has_value?",	hsh_has_value	},
+	{ "key",	    hsh_key		},
+	{ "keys",	    hsh_keys	},
+	{ "size",	    hsh_size	},
+	{ "length",	    hsh_size	},
+	{ "count",	    hsh_size	},
+	{ "merge",	    hsh_merge	},
+	{ "merge!",	    hsh_merge_self	},
+	{ "values",	    hsh_values 	},
+
+	{ "inspect",	gv_to_s 	},
+	{ "to_s",	    gv_to_s		}
+};
 __GURU__ void
 guru_init_class_hash()
 {
-	static Vfunc vtbl[] = {
-		{ "new",	    hsh_new		},
-		{ "[]",			hsh_get		},
-		{ "[]=",	    hsh_set		},
-		{ "clear",		hsh_clr		},
-		{ "dup",	    hsh_dup 	},
-		{ "delete",	    hsh_del 	},
-		{ "empty?",	    hsh_empty	},
-		{ "has_key?",	hsh_has_key },
-		{ "has_value?",	hsh_has_value	},
-		{ "key",	    hsh_key		},
-		{ "keys",	    hsh_keys	},
-		{ "size",	    hsh_size	},
-		{ "length",	    hsh_size	},
-		{ "count",	    hsh_size	},
-		{ "merge",	    hsh_merge	},
-		{ "merge!",	    hsh_merge_self	},
-		{ "values",	    hsh_values 	},
-
-		{ "inspect",	gv_to_s 	},
-		{ "to_s",	    gv_to_s		}
-	};
-    guru_class_hash = guru_add_class(
-    	"Hash", guru_class_object, vtbl, sizeof(vtbl)/sizeof(Vfunc)
-    );
+    guru_class_hash = guru_add_class("Hash", guru_class_object, hsh_vtbl, VFSZ(hsh_vtbl));
 }

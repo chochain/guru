@@ -732,43 +732,42 @@ ary_minmax(GV v[], U32 vi)
 //================================================================
 /*! initialize
  */
+__GURU__ __const__ Vfunc ary_vtbl[] = {
+	{ "new",       ary_new		},
+	{ "+",         ary_add		},
+	{ "-",		   ary_sub      },
+	{ "[]",        ary_get		},
+	{ "at",        ary_get		},
+	{ "size",      ary_size		},
+	{ "length",    ary_size		},
+	{ "count",     ary_size		},
+	{ "index",     ary_index	},
+	{ "first",     ary_first	},
+	{ "last",      ary_last		},
+	{ "empty?",    ary_empty	},
+	{ "min",       ary_min		},
+	{ "max",       ary_max		},
+	{ "minmax",    ary_minmax	},
+
+	{ "[]=",       ary_set		},
+	{ "<<",        ary_push		},
+	{ "clear",     ary_clr		},
+	{ "delete_at", ary_del_at	},
+	{ "push",      ary_push		},
+	{ "pop",       ary_pop		},
+	{ "shift",     ary_shift	},
+	{ "unshift",   ary_unshift	},
+	{ "dup",       ary_dup		},
+	{ "include?",  ary_include  },
+	{ "reverse",   ary_reverse  },
+
+	{ "join",      gv_join		},
+	{ "inspect",   gv_to_s		},
+	{ "to_s",      gv_to_s		},
+};
+
 __GURU__ void
 guru_init_class_array()
 {
-	static Vfunc vtbl[] = {
-		{ "new",       ary_new		},
-		{ "+",         ary_add		},
-		{ "-",		   ary_sub      },
-		{ "[]",        ary_get		},
-		{ "at",        ary_get		},
-		{ "size",      ary_size		},
-		{ "length",    ary_size		},
-		{ "count",     ary_size		},
-		{ "index",     ary_index	},
-		{ "first",     ary_first	},
-		{ "last",      ary_last		},
-		{ "empty?",    ary_empty	},
-		{ "min",       ary_min		},
-		{ "max",       ary_max		},
-		{ "minmax",    ary_minmax	},
-
-		{ "[]=",       ary_set		},
-		{ "<<",        ary_push		},
-		{ "clear",     ary_clr		},
-		{ "delete_at", ary_del_at	},
-		{ "push",      ary_push		},
-		{ "pop",       ary_pop		},
-		{ "shift",     ary_shift	},
-		{ "unshift",   ary_unshift	},
-		{ "dup",       ary_dup		},
-		{ "include?",  ary_include  },
-		{ "reverse",   ary_reverse  },
-
-		{ "join",      gv_join		},
-		{ "inspect",   gv_to_s		},
-		{ "to_s",      gv_to_s		},
-	};
-    guru_class_array = guru_add_class(
-    	"Array", guru_class_object, vtbl, sizeof(vtbl)/sizeof(Vfunc)
-    );
+    guru_class_array = guru_add_class("Array", guru_class_object, ary_vtbl, VFSZ(ary_vtbl));
 }

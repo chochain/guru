@@ -133,19 +133,18 @@ rng_exclude_end(GV v[], U32 vi)
 //================================================================
 /*! initialize
  */
+__GURU__ __const__ Vfunc rng_vtbl[] = {
+	{ "===",          rng_eq3			},
+	{ "first",        rng_first			},
+	{ "last",         rng_last			},
+	{ "exclude_end?", rng_exclude_end	},
+
+	{ "to_s",         gv_to_s			},
+	{ "inspect",      gv_to_s			}
+};
+
 __GURU__ void
 guru_init_class_range()
 {
-	static Vfunc vtbl[] = {
-		{ "===",          rng_eq3			},
-		{ "first",        rng_first			},
-		{ "last",         rng_last			},
-		{ "exclude_end?", rng_exclude_end	},
-
-		{ "to_s",         gv_to_s			},
-		{ "inspect",      gv_to_s			}
-	};
-    guru_class_range = guru_add_class(
-    	"Range", guru_class_object, vtbl, sizeof(vtbl)/sizeof(Vfunc)
-    );
+    guru_class_range = guru_add_class("Range", guru_class_object, rng_vtbl, VFSZ(rng_vtbl));
 }

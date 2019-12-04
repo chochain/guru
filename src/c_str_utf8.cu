@@ -724,42 +724,41 @@ str_inspect(GV v[], U32 vi)
 //================================================================
 /*! initialize
  */
+__GURU__ __const__ Vfunc str_vtbl[] = {
+	{ "+",			str_add			},
+	{ "*",			str_mul			},
+	{ "size",		str_len			},
+	{ "length",		str_len			},
+	{ "<<",			str_add			},
+	{ "[]",			str_slice		},
+	{ "[]=",		str_insert		},
+	// op
+	{ "chomp",		str_chomp		},
+	{ "chomp!",		str_chomp_self	},
+	{ "dup",		str_dup			},
+	{ "index",		str_index		},
+	{ "include?", 	str_include   	},
+	{ "ord",		str_ord			},
+	{ "split",		str_split		},
+	{ "lstrip",		str_lstrip		},
+	{ "lstrip!",	str_lstrip_self	},
+	{ "rstrip",		str_rstrip		},
+	{ "rstrip!",	str_rstrip_self	},
+	{ "strip",		str_strip		},
+	{ "strip!",		str_strip_self	},
+	{ "intern",		str_to_sym		},
+	// conversion methods
+	{ "to_i",		str_to_i		},
+	{ "to_s",   	str_to_s		},
+	{ "to_sym",		str_to_sym		},
+	{ "to_f",		str_to_f		},
+	{ "inspect",	str_inspect		}
+};
+
 __GURU__ void
 guru_init_class_string()
 {
-	static Vfunc vtbl[] = {
-		{ "+",			str_add			},
-		{ "*",			str_mul			},
-		{ "size",		str_len			},
-		{ "length",		str_len			},
-		{ "<<",			str_add			},
-		{ "[]",			str_slice		},
-		{ "[]=",		str_insert		},
-		// op
-		{ "chomp",		str_chomp		},
-		{ "chomp!",		str_chomp_self	},
-		{ "dup",		str_dup			},
-		{ "index",		str_index		},
-		{ "include?", 	str_include   	},
-		{ "ord",		str_ord			},
-		{ "split",		str_split		},
-		{ "lstrip",		str_lstrip		},
-		{ "lstrip!",	str_lstrip_self	},
-		{ "rstrip",		str_rstrip		},
-		{ "rstrip!",	str_rstrip_self	},
-		{ "strip",		str_strip		},
-		{ "strip!",		str_strip_self	},
-		{ "intern",		str_to_sym		},
-		// conversion methods
-		{ "to_i",		str_to_i		},
-		{ "to_s",   	str_to_s		},
-		{ "to_sym",		str_to_sym		},
-		{ "to_f",		str_to_f		},
-		{ "inspect",	str_inspect		}
-	};
-    guru_class_string = guru_add_class(
-    	"String", guru_class_object, vtbl, sizeof(vtbl)/sizeof(Vfunc)
-    );
+    guru_class_string = guru_add_class("String", guru_class_object, str_vtbl, VFSZ(str_vtbl));
 }
 
 #endif // GURU_USE_STRING
