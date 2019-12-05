@@ -17,7 +17,6 @@
 #include "class.h"
 #include "value.h"
 #include "mmu.h"
-#include "static.h"
 #include "symbol.h"
 #include "state.h"
 
@@ -89,7 +88,7 @@ guru_class_add_meta(GV *v)			// lazy add metaclass to a class
 
 	// lazily create the metaclass
 	const U8	*name = (U8*)"_meta";
-	guru_class 	*cls  = guru_define_class(name, guru_class_object);
+	guru_class 	*cls  = guru_define_class(name, guru_rom_get_class(GT_OBJ));
 	v->cls->cls = cls;				// self pointing =~ metaclass
 }
 
@@ -462,18 +461,29 @@ __GURU__ __const__ Vfunc sys_vtbl[] = {
 // initialize
 // TODO: move into ROM
 //
+typedef struct Vclass {
+	GT					cidx;
+	U8 					*cname;
+	guru_class 			*super;
+	const struct Vfunc	*vtbl;
+	U32					nfunc;
+} guru_class_tbl;
+
+//#define CLASS_DEF(cidx, cname, vtbl) { cidx, (U8*)cname, vtbl==obj_vtbl ? NULL : guru_class_object, vtbl, sizeof(vtbl)/sizeof(Vfunc) }
+#define CLASS_DEF(cname, vtbl)	{ guru_add_class(cname, guru_class_object, vtbl, sizeof(vtbl)/sizeof(Vfunc)) }
+extern "C" __GURU__ __const__ Vfunc *sym_vtbl;
+
 __GURU__ void
 _init_all_class(void)
 {
-    guru_class *o =
-    	guru_class_object = guru_add_class("Object", NULL, obj_vtbl, VFSZ(obj_vtbl));
+    guru_rom_set_class(GT_OBJ, 	"Object", 		GT_MAX, obj_vtbl, 	VFSZ(obj_vtbl));
 
-    guru_class_nil   = guru_add_class("NilClass",   o, nil_vtbl,  VFSZ(nil_vtbl));
-    guru_class_proc  = guru_add_class("Proc",       o, prc_vtbl,  VFSZ(prc_vtbl));
-    guru_class_false = guru_add_class("FalseClass", o, false_vtbl,VFSZ(false_vtbl));
-    guru_class_true  = guru_add_class("TrueClass",  o, true_vtbl, VFSZ(true_vtbl));
+    guru_rom_set_class(GT_NIL, 	"NilClass", 	GT_OBJ, nil_vtbl,  	VFSZ(nil_vtbl));
+    guru_rom_set_class(GT_PROC, "Proc",     	GT_OBJ, prc_vtbl,  	VFSZ(prc_vtbl));
+    guru_rom_set_class(GT_FALSE, "FalseClass", 	GT_OBJ, false_vtbl,	VFSZ(false_vtbl));
+    guru_rom_set_class(GT_TRUE,  "TrueClass",  	GT_OBJ, true_vtbl, 	VFSZ(true_vtbl));
 #if GURU_DEBUG
-    guru_class_sys   = guru_add_class("Sys", 		o, sys_vtbl,  VFSZ(sys_vtbl));
+    guru_rom_set_class(GT_EMPTY, "Sys", 		GT_OBJ, sys_vtbl,  	VFSZ(sys_vtbl));
 #endif
 
     guru_init_class_symbol();		// symbol.cu

@@ -60,7 +60,9 @@ typedef enum {
     GT_STR,
     GT_RANGE,
     GT_HASH,
-    GT_ITER
+    GT_ITER,
+
+    GT_MAX      = 0x20
 } GT;
 
 #define GT_BOOL(v)		((v) ? GT_TRUE : GT_FALSE)

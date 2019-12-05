@@ -15,7 +15,7 @@
 
 #include "guru.h"
 #include "mmu.h"
-#include "static.h"
+//#include "static.h"
 #include "value.h"
 
 #include "c_array.h"

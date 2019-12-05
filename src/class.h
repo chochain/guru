@@ -39,10 +39,9 @@ typedef struct RClass {			// 64-byte
 #define CLASS_USER		0x8
 #define IS_BUILTIN(cls)	(!(cls->meta & CLASS_USER))
 
-// external methods uses static string (const char *) 													// in class.cu
-__GURU__ guru_class *guru_add_class(const char *name, guru_class *super, const Vfunc vtbl[], int n);	// use (char *) for static string
+__GURU__ guru_class *guru_rom_get_class(GT cidx);
+__GURU__ guru_class *guru_rom_set_class(GT cidx, const char *name, GT super_cidx, const Vfunc vtbl[], int n);
 
-// internal methods (used by ucode)
 __GURU__ guru_class *guru_define_class(const U8 *name, guru_class *super);
 __GURU__ guru_proc  *guru_define_method(guru_class *cls, const U8 *name, guru_fptr cfunc);
 __GURU__ guru_class *class_by_obj(GV *v);

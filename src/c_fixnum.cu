@@ -13,7 +13,7 @@
 #include <assert.h>
 #include "guru.h"
 #include "value.h"
-#include "static.h"
+#include "class.h"
 
 #include "c_fixnum.h"
 #include "c_string.h"
@@ -191,9 +191,8 @@ __GURU__ __const__ Vfunc int_vtbl[] = {
 __GURU__ void
 guru_init_class_int(void)
 {
-    // int
-    guru_class_int = guru_add_class(
-    	"Integer", guru_class_object, int_vtbl, sizeof(int_vtbl)/sizeof(Vfunc)
+    guru_rom_set_class(
+    	GT_INT, "Integer", GT_OBJ, int_vtbl, sizeof(int_vtbl)/sizeof(Vfunc)
     );
 
 }
@@ -265,7 +264,7 @@ __GURU__ __const__ Vfunc flt_vtbl[] = {
 __GURU__ void
 guru_init_class_float(void)
 {
-    guru_class_float = guru_add_class("Float", guru_class_object, flt_vtbl, VFSZ(flt_vtbl));
+    guru_rom_set_class(GT_FLOAT, "Float", GT_OBJ, flt_vtbl, VFSZ(flt_vtbl));
 }
 
 #endif // GURU_USE_FLOAT

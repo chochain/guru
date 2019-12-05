@@ -24,7 +24,7 @@
 #include <pthread.h>
 
 #include "mmu.h"
-#include "static.h"
+#include "class.h"
 #include "state.h"
 #include "symbol.h"
 #include "vmx.h"
@@ -55,7 +55,7 @@ _ready(guru_vm *vm, guru_irep *irep)
 	GV *r = vm->regfile;
 	for (U32 i=0; i<MAX_REGFILE_SIZE; i++, r++) {		// wipe register
 		r->gt  = (i>0) ? GT_EMPTY : GT_CLASS;			// reg[0] is "self"
-		r->cls = (i>0) ? NULL     : guru_class_object;
+		r->cls = (i>0) ? NULL     : guru_rom_get_class(GT_OBJ);
 		r->acl = 0;
 	}
     vm->state = NULL;
@@ -230,7 +230,7 @@ vm_main_start(U32 trace)
 
 	do {
 		debug_trace(trace);
-		_step<<<MIN_VM_COUNT, 1>>>(_vm_pool);
+		_step<<<1,1>>>(_vm_pool);
 
 	// add host hook here
 #if GURU_USE_CONSOLE

@@ -12,7 +12,7 @@
 #include <assert.h>
 
 #include "mmu.h"
-#include "static.h"
+//#include "static.h"
 #include "symbol.h"
 #include "global.h"
 #include "value.h"

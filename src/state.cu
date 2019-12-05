@@ -19,7 +19,7 @@
 #include "symbol.h"		// id2name
 #include "ostore.h"		// ostore_new
 #include "class.h"		// proc_by_sid
-#include "static.h"
+//#include "static.h"
 #include "state.h"
 #include "c_array.h"
 #include "c_range.h"

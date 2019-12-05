@@ -13,7 +13,7 @@
 #include <assert.h>
 
 #include "mmu.h"		// includes guru.h
-#include "static.h"
+#include "class.h"
 #include "value.h"
 #include "symbol.h"
 
@@ -758,7 +758,7 @@ __GURU__ __const__ Vfunc str_vtbl[] = {
 __GURU__ void
 guru_init_class_string()
 {
-    guru_class_string = guru_add_class("String", guru_class_object, str_vtbl, VFSZ(str_vtbl));
+    guru_rom_set_class(GT_STR, "String", GT_OBJ, str_vtbl, VFSZ(str_vtbl));
 }
 
 #endif // GURU_USE_STRING

@@ -15,7 +15,7 @@
 
 #include "guru.h"
 #include "mmu.h"
-#include "static.h"
+#include "class.h"
 #include "value.h"
 #include "object.h"		// guru_kind_of
 
@@ -146,5 +146,5 @@ __GURU__ __const__ Vfunc rng_vtbl[] = {
 __GURU__ void
 guru_init_class_range()
 {
-    guru_class_range = guru_add_class("Range", guru_class_object, rng_vtbl, VFSZ(rng_vtbl));
+    guru_rom_set_class(GT_RANGE, "Range", GT_OBJ, rng_vtbl, VFSZ(rng_vtbl));
 }

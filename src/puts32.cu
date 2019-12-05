@@ -15,7 +15,7 @@
 #include "value.h"
 #include "mmu.h"
 #include "symbol.h"
-#include "static.h"
+//#include "static.h"
 #include "global.h"
 
 #include "puts.h"

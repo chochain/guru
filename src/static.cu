@@ -38,6 +38,3 @@ __GURU__ guru_class *guru_class_hash;
 #endif // GURU_USE_ARRAY
 
 
-
-
-

@@ -13,13 +13,13 @@
 
 #include "value.h"
 #include "mmu.h"
-#include "static.h"
+#include "class.h"
 #include "symbol.h"
 #include "c_string.h"
 #include "c_array.h"
 #include "inspect.h"
 
-__GURU__ U32 	_sym_idx;			// point to the last(free) sym_list array.
+__GURU__ U32 	_sym_idx = 0;					// point to the last(free) sym_list array.
 __GURU__ U8*	_sym[MAX_SYMBOL_COUNT];
 __GURU__ U32	_sym_hash[MAX_SYMBOL_COUNT];
 
@@ -64,16 +64,13 @@ _search_index(const U8 *str)
 }
 
 //================================================================
-/*! add to index table (1-based index, i.e. list[0] is not used)
+/*! add to index table (assume no entry exists)
  */
 __GURU__ U32
 _add_index(const U8 *str)
 {
-    S32 idx = _search_index(str);
-    if (idx>=0) return idx;
-
     // append table.
-    idx = ++_sym_idx;
+    U32 idx = _sym_idx++;
     assert(idx<MAX_SYMBOL_COUNT);
 
     _sym[idx]      = (U8*)str;
@@ -180,7 +177,7 @@ __GURU__ __const__ Vfunc sym_vtbl[] = {
 __GURU__ void
 guru_init_class_symbol()  // << from symbol.cu
 {
-    guru_class_symbol = guru_add_class("Symbol", guru_class_object, sym_vtbl, VFSZ(sym_vtbl));
+    guru_rom_set_class(GT_SYM, "Symbol", GT_OBJ, sym_vtbl, VFSZ(sym_vtbl));
 }
 
 __GPU__ void

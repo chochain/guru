@@ -14,7 +14,7 @@
 #include "vm_config.h"
 #include "guru.h"
 #include "mmu.h"
-#include "static.h"
+#include "class.h"
 #include "value.h"
 
 #include "c_hash.h"
@@ -466,5 +466,5 @@ __GURU__ __const__ Vfunc hsh_vtbl[] = {
 __GURU__ void
 guru_init_class_hash()
 {
-    guru_class_hash = guru_add_class("Hash", guru_class_object, hsh_vtbl, VFSZ(hsh_vtbl));
+    guru_rom_set_class(GT_HASH, "Hash", GT_OBJ, hsh_vtbl, VFSZ(hsh_vtbl));
 }

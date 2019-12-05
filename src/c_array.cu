@@ -14,7 +14,7 @@
 #include "vm_config.h"
 #include "guru.h"
 #include "mmu.h"
-#include "static.h"
+#include "class.h"
 #include "value.h"
 
 #include "vm.h"
@@ -769,5 +769,5 @@ __GURU__ __const__ Vfunc ary_vtbl[] = {
 __GURU__ void
 guru_init_class_array()
 {
-    guru_class_array = guru_add_class("Array", guru_class_object, ary_vtbl, VFSZ(ary_vtbl));
+    guru_rom_set_class(GT_ARRAY, "Array", GT_OBJ, ary_vtbl, VFSZ(ary_vtbl));
 }
