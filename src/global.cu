@@ -42,7 +42,7 @@ __GURU__ GV		_nil { .gt = GT_NIL, .acl=0 };
 /* linear search is not efficient! */
 /* TODO: Use binary search */
 __GPU__ void
-_idx(S32 *idx, GS xid, _gtype gt)
+__idx(S32 *idx, GS xid, _gtype gt)
 {
 	S32    i = threadIdx.x;
 	_gidx *p = _global_idx + i;
@@ -52,12 +52,18 @@ _idx(S32 *idx, GS xid, _gtype gt)
 	__syncthreads();		// sync all thread in the block (make sure idx is captured)
 }
 
+__GURU__ S32
+_find_idx(GS xid, _gtype gt)
+{
+	static S32 i = -1;
+	__idx<<<1,32*(1+(_global_sz>>5))>>>(&i, xid, gt);
+	return i;
+}
+
 __GURU__ GV *
 _get(GS xid, _gtype gt)
 {
-	static S32 i = -1;
-	_idx<<<1,MAX_GLOBAL_COUNT>>>(&i, xid, gt);
-
+	S32 i = _find_idx(xid, gt);
     if (i < 0) return &_nil;		// not found
 
     return &_global[i];				// pointer to global object
@@ -66,15 +72,12 @@ _get(GS xid, _gtype gt)
 __GURU__ void
 _set(GS xid, GV *v, _gtype gt)
 {
-    static S32 i = -1;
-    _idx<<<1,MAX_GLOBAL_COUNT>>>(&i, xid, gt);
+    S32 i = _find_idx(xid, gt);
+    assert(i < 0);
+    assert(i < MAX_GLOBAL_COUNT);	// maybe raise ex
 
     _LOCK;
-    if (i < 0) {							// not found
-        i = _global_sz++;
-    }
-    assert(i < MAX_GLOBAL_COUNT);			// maybe raise ex
-
+    i = _global_sz++;
     _global_idx[i].xid = xid;
     _global_idx[i].gt  = gt;
     _global[i] = *v;
