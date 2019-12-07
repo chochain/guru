@@ -136,7 +136,7 @@ obj_p(GV v[], U32 vi)
 __CFUNC__
 obj_puts(GV v[], U32 vi)
 {
-	guru_puts(v, vi);
+	guru_puts(v+1, vi);
 }
 
 //================================================================
@@ -145,7 +145,7 @@ obj_puts(GV v[], U32 vi)
 __CFUNC__
 obj_print(GV v[], U32 vi)
 {
-	guru_puts(v, vi);
+	guru_puts(v+1, vi);
 }
 
 //================================================================
@@ -476,14 +476,14 @@ extern "C" __GURU__ __const__ Vfunc *sym_vtbl;
 __GURU__ void
 _init_all_class(void)
 {
-    guru_rom_set_class(GT_OBJ, 	"Object", 		GT_MAX, obj_vtbl, 	VFSZ(obj_vtbl));
+    guru_rom_set_class(GT_OBJ, 	"Object", 		GT_EMPTY, 	obj_vtbl, 	VFSZ(obj_vtbl));
 
-    guru_rom_set_class(GT_NIL, 	"NilClass", 	GT_OBJ, nil_vtbl,  	VFSZ(nil_vtbl));
-    guru_rom_set_class(GT_PROC, "Proc",     	GT_OBJ, prc_vtbl,  	VFSZ(prc_vtbl));
-    guru_rom_set_class(GT_FALSE, "FalseClass", 	GT_OBJ, false_vtbl,	VFSZ(false_vtbl));
-    guru_rom_set_class(GT_TRUE,  "TrueClass",  	GT_OBJ, true_vtbl, 	VFSZ(true_vtbl));
+    guru_rom_set_class(GT_NIL, 	"NilClass", 	GT_OBJ, 	nil_vtbl,  	VFSZ(nil_vtbl));
+    guru_rom_set_class(GT_PROC, "Proc",     	GT_OBJ, 	prc_vtbl,  	VFSZ(prc_vtbl));
+    guru_rom_set_class(GT_FALSE, "FalseClass", 	GT_OBJ, 	false_vtbl,	VFSZ(false_vtbl));
+    guru_rom_set_class(GT_TRUE,  "TrueClass",  	GT_OBJ, 	true_vtbl, 	VFSZ(true_vtbl));
 #if GURU_DEBUG
-    guru_rom_set_class(GT_EMPTY, "Sys", 		GT_OBJ, sys_vtbl,  	VFSZ(sys_vtbl));
+    guru_rom_set_class(GT_SYS, 	 "Sys", 		GT_OBJ, 	sys_vtbl,  	VFSZ(sys_vtbl));
 #endif
 
     guru_init_class_symbol();		// symbol.cu
