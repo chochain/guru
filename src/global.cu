@@ -11,6 +11,7 @@
 */
 #include <assert.h>
 #include "global.h"
+#include "puts.h"
 /*
   GLobal objects are stored in '_global' array.
   '_global' array is decending order by sid.
@@ -31,9 +32,8 @@ typedef struct {						// 32-bit
 #define _UNLOCK		{ MUTEX_FREE(_mutex_gobj); }
 
 // max of global object in _global[]
-__GURU__ U32 	_mutex_gobj;
-
-__GURU__ U32    _global_sz;
+__GURU__ U32 	_mutex_gobj = 0;
+__GURU__ U32    _global_sz  = 0;
 __GURU__ _gidx 	_global_idx[MAX_GLOBAL_COUNT];
 __GURU__ GV 	_global[MAX_GLOBAL_COUNT];
 __GURU__ GV		_nil { .gt = GT_NIL, .acl=0 };
@@ -55,9 +55,13 @@ __idx(S32 *idx, GS xid, _gtype gt)
 __GURU__ S32
 _find_idx(GS xid, _gtype gt)
 {
-	static S32 i = -1;
-	__idx<<<1,32*(1+(_global_sz>>5))>>>(&i, xid, gt);
-	return i;
+	static S32 idx;			// warn: scoped outside of function
+
+	idx = -1;
+	__idx<<<1, 32*(1+(_global_sz>>5))>>>(&idx, xid, gt);
+	DEVSYNC();
+
+	return idx;
 }
 
 __GURU__ GV *
@@ -73,15 +77,23 @@ __GURU__ void
 _set(GS xid, GV *v, _gtype gt)
 {
     S32 i = _find_idx(xid, gt);
-    assert(i < 0);
-    assert(i < MAX_GLOBAL_COUNT);	// maybe raise ex
 
     _LOCK;
-    i = _global_sz++;
+    if (i<0) {
+    	i = _global_sz++;
+    	assert(i<MAX_GLOBAL_COUNT);	// maybe raise ex
+    }
+    else {
+    	assert(i<0);
+    }
     _global_idx[i].xid = xid;
     _global_idx[i].gt  = gt;
     _global[i] = *v;
     _UNLOCK;
+
+#if CC_DEBUG
+    printf("G[%d]=", i);	guru_puts(v, 1);
+#endif // CC_DEBUG
 }
 
 /* add */
@@ -110,13 +122,4 @@ __GURU__ GV *
 const_get(GS xid)
 {
     return _get(xid, GURU_CONST_OBJECT);
-}
-//
-__GPU__ void
-guru_global_init(void)
-{
-	if (blockIdx.x!=0 || threadIdx.x!=0) return;
-
-	_mutex_gobj = 0;
-	_global_sz  = 0;
 }

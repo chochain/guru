@@ -12,6 +12,7 @@
 */
 #include <stdio.h>
 #include <stdarg.h>
+#include <assert.h>
 #include "guru.h"
 #include "class.h"
 #include "mmu.h"
@@ -73,26 +74,28 @@ _name2class(const U8 *name)
   @return proc pointer
 */
 __GPU__ void
-__find_proc(guru_proc **prc, guru_class *cls, GS sid)
+__find_proc(S32 *idx, guru_class *cls, GS sid)
 {
 	U32 i = threadIdx.x;
-	if (i<cls->rc && cls->vtbl[i].sid==sid) *prc = &cls->vtbl[i];
+	if (i<cls->rc && cls->vtbl[i].sid==sid) *idx = i;
 	__syncthreads();
 }
 
 __GURU__ guru_proc*
 proc_by_sid(GV *v, GS sid)
 {
-    static guru_proc *p = NULL;
+	static S32 idx;		// warn: scoped outside of function
     for (guru_class *cls=class_by_obj(v); cls; cls=cls->super) {	// search up class hierarchy
 #if CC_DEBUG
         printf("%p:%s\tsid=0x%02x, sc=%d self=%d\n", cls, cls->name, sid, IS_SCLASS(v), IS_SELF(v));
 #endif // CC_DEBUG
         if (IS_BUILTIN(cls)) {
-        	__find_proc<<<1, 32*(1+(cls->rc>>5))>>>(&p, cls, sid);
+        	idx = -1;
+        	__find_proc<<<1, 32*(1+(cls->rc>>5))>>>(&idx, cls, sid);
+        	DEVSYNC();
+            if (idx>=0) return &cls->vtbl[idx];
         }
-        if (p) return p;
-
+    	guru_proc *p;
         for (p=cls->plist; p && (p->sid != sid); p=p->next);		// linear search thru class or meta vtbl
         if (p) return p;											// break if found
     }
@@ -188,7 +191,7 @@ __GURU__ guru_class _class_list[GT_MAX];
 
 __GURU__ guru_class*
 guru_rom_get_class(GT idx) {
-	return idx==GT_MAX ? NULL : &_class_list[idx];
+	return idx==GT_EMPTY ? NULL : &_class_list[idx];
 }
 
 __GURU__ guru_class*

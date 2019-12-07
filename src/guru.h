@@ -16,14 +16,15 @@ extern "C" {
 #define __GURU__ 			__device__
 #define __HOST__			__host__
 #define __GPU__				__global__
-#define MUTEX_LOCK(p)  		while (atomicCAS((int *)&p, 0, 1)!=0)
-#define MUTEX_FREE(p)  		atomicExch((int *)&p, 0)
-#define ALIGN(sz) 			((sz) += -(sz) & 0x7)
-#define ALIGN64(sz)			((sz) += -(sz) & 0xf)
 //#define __INLINE__
 #define __INLINE__			__forceinline__
 #define __UCODE__ 			__GURU__ __INLINE__ void
 #define __CFUNC__			__GURU__ void
+#define MUTEX_LOCK(p)  		while (atomicCAS((int *)&p, 0, 1)!=0)
+#define MUTEX_FREE(p)  		atomicExch((int *)&p, 0)
+#define ALIGN(sz) 			((sz) += -(sz) & 0x7)
+#define ALIGN64(sz)			((sz) += -(sz) & 0xf)
+#define DEVSYNC()			{ cudaDeviceSynchronize(); assert(cudaGetLastError()==cudaSuccess); }
 
 #else
 
@@ -53,6 +54,7 @@ typedef enum {
 
     GT_CLASS 	= 0x8,
     GT_PROC,
+    GT_SYS,
 
     /* non-primitive */
     GT_OBJ 		= 0x10,
@@ -62,7 +64,7 @@ typedef enum {
     GT_HASH,
     GT_ITER,
 
-    GT_MAX      = 0x20
+    GT_MAX      = 0x18
 } GT;
 
 #define GT_BOOL(v)		((v) ? GT_TRUE : GT_FALSE)

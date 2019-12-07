@@ -36,7 +36,6 @@
 guru_vm *_vm_pool;
 
 #define _DSYNC		(cudaDeviceSynchronize())
-
 pthread_mutex_t 	_mutex_pool;
 #define _LOCK		(pthread_mutex_lock(&_mutex_pool))
 #define _UNLOCK		(pthread_mutex_unlock(&_mutex_pool))

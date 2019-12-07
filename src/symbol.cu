@@ -29,10 +29,10 @@ __GURU__ U32	_sym_hash[MAX_SYMBOL_COUNT];
   @param  str		Target string.
   @return uint16_t	Hash value.
 */
-__GURU__ U16
+__GURU__ U32
 _calc_hash(const U8 *str)
 {
-    U16 h = 0;
+    U32 h = 0;
     for (U32 i=0, b=STRLENB(str); i<b; i++) {
         h = h * 37 + *str++;		// a simplistic hashing algo
     }
@@ -47,7 +47,7 @@ __scan(S32 *idx, const U32 hash)
 {
 	S32 i = threadIdx.x;
 
-	if (i<MAX_SYMBOL_COUNT && _sym_hash[i]==hash) *idx = i;
+	if (i<_sym_idx && _sym_hash[i]==hash) *idx = i;
 
 	__syncthreads();
 }
@@ -57,8 +57,11 @@ _search_index(const U8 *str)
 {
 	U32 hash = _calc_hash(str);
 
-	static S32 idx  = -1;
-    __scan<<<1, MAX_SYMBOL_COUNT>>>(&idx, hash);
+	static S32 idx;					// warn: scoped outside of this function
+
+	idx = -1;
+    __scan<<<1, 32*(1+(_sym_idx>>5))>>>(&idx, hash);
+	cudaDeviceSynchronize();
 
     return idx;
 }
@@ -70,41 +73,18 @@ __GURU__ U32
 _add_index(const U8 *str)
 {
     // append table.
-    U32 idx = _sym_idx++;
+    U32 idx  = _sym_idx++;
     assert(idx<MAX_SYMBOL_COUNT);
 
-    _sym[idx]      = (U8*)str;
-    _sym_hash[idx] = _calc_hash(str);
-
-    return idx;
-}
-
-//================================================================
-/*! constructor
-
-  @param  vm	pointer to VM.
-  @param  str	String
-  @return 	symbol object
-*/
-__GURU__ GV
-guru_sym_new(const U8 *str)
-{
-    GV v; { v.gt = GT_SYM; v.acl=0; }
-
-    S32 sid  = _search_index(str);
-    if (sid >=0) {
-        v.i = sid;
-        return v;					// already exist.
-    }
-
-    // create symbol object dynamically.
+    // deep copy the string (can shallow work?)
     U32 asz  = STRLENB(str) + 1;	ALIGN(asz);
     U8  *buf = (U8*)guru_alloc(asz);
 
     MEMCPY(buf, str, asz);
-    v.i = _add_index(buf);
+    _sym[idx]      = (U8*)buf;
+    _sym_hash[idx] = _calc_hash(str);
 
-    return v;
+    return idx;
 }
 
 //================================================================
@@ -117,9 +97,17 @@ __GURU__ GS
 name2id(const U8 *str)
 {
     S32 sid = _search_index(str);
-    if (sid>=0) return sid;
 
-    return _add_index(str);
+    if (sid<0) {    // create new symbol entry
+    	sid = _add_index(str);
+#if CC_DEBUG
+        printf("\sym[%2d]%08x=>%s\n", sid, _sym_hash[sid], _sym[sid]);
+    }
+    else {
+    	printf("\sym[%2d]%08x: %s\n", sid, _sym_hash[sid], _sym[sid]);
+#endif // CC_DEBUG
+    }
+    return sid;
 }
 
 //================================================================
@@ -136,6 +124,21 @@ id2name(GS sid)
 }
 
 //================================================================
+/*! constructor
+
+  @param  vm	pointer to VM.
+  @param  str	String
+  @return 	symbol object
+*/
+__GURU__ GV
+guru_sym_new(const U8 *str)
+{
+    GV v; { v.gt = GT_SYM; v.acl=0; v.i=name2id(str); }
+
+    return v;
+}
+
+//================================================================
 // call by symbol
 #if !GURU_USE_ARRAY
 __CFUNC__	sym_all(GV v[], U32 vi)	{}
@@ -146,8 +149,7 @@ sym_all(GV v[], U32 vi)
     GV ret = guru_array_new(_sym_idx);
 
     for (U32 i=0; i < _sym_idx; i++) {
-        GV sym1; { sym1.gt = GT_SYM; sym1.acl=0; }
-        sym1.i = i;
+        GV sym1; { sym1.gt = GT_SYM; sym1.acl=0; sym1.i=1; }
         guru_array_push(&ret, &sym1);
     }
     RETURN_VAL(ret);
@@ -194,6 +196,6 @@ __HOST__ void
 id2name_host(GS sid, U8 *str)
 {
 	_id2str<<<1,1>>>(sid, str);
-	cudaDeviceSynchronize();
+	DEVSYNC();
 }
 #endif // GURU_DEBUG

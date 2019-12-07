@@ -18,8 +18,6 @@
 extern "C" {
 #endif
 
-__GPU__  void 	guru_global_init(void);
-
 __GURU__ void 	global_set(GS xid, GV *v);
 __GURU__ void 	const_set(GS xid,  GV *v);
 
