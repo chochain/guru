@@ -14,7 +14,6 @@
 
 // forward declaration for implementation
 extern "C" __GPU__  void guru_mmu_init(void *ptr, U32 sz);
-extern "C" __GPU__  void guru_global_init(void);
 extern "C" __GPU__  void guru_class_init(void);
 extern "C" __GPU__  void guru_console_init(U8 *buf, U32 sz);
 
@@ -72,7 +71,6 @@ guru_setup(int step, int trace)
 	_ses_list = NULL;
 
 	guru_mmu_init<<<1,1>>>(mem, BLOCK_MEMORY_SIZE);			// setup memory management
-	guru_global_init<<<1,1>>>();							// setup static objects (TODO: => dynamic?)
 	guru_class_init<<<1,1>>>();								// setup basic classes	(TODO: => ROM)
 #if GURU_USE_CONSOLE
 	guru_console_init<<<1,1>>>(out, MAX_BUFFER_SIZE);		// initialize output buffer

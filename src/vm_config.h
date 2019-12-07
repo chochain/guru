@@ -24,7 +24,7 @@
 
 /* max objects in symbol and global/constant caches allowed */
 #define MAX_SYMBOL_COUNT 	256
-#define MAX_GLOBAL_COUNT 	128
+#define MAX_GLOBAL_COUNT 	64
 
 /* Guru module support */
 #define GURU_USE_STRING 	1

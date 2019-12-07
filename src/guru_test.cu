@@ -17,7 +17,6 @@
 #include "vmx.h"
 
 extern "C" __GPU__  void guru_mmu_init(void *ptr, U32 sz);
-extern "C" __GPU__  void guru_global_init(void);
 extern "C" __GPU__  void guru_class_init(void);
 extern "C" __GPU__  void guru_console_init(U8 *buf, U32 sz);
 extern "C" __HOST__ int  vm_pool_init(U32 step);
@@ -63,7 +62,6 @@ guru_setup(int step, int trace)
 	_ses_list = NULL;
 
 	guru_mmu_init<<<1,1>>>(mem, BLOCK_MEMORY_SIZE);				// setup memory management
-	guru_global_init<<<1,1>>>();								// setup static objects
 	guru_class_init<<<1,1>>>();									// setup basic classes
 //	guru_console_init<<<1,1>>>(out, MAX_BUFFER_SIZE);			// initialize output buffer
 

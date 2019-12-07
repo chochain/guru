@@ -128,7 +128,7 @@ _print(GV *v)
 __GURU__ void
 guru_puts(GV v[], U32 vi)
 {
-    for (U32 i=1; vi>0 && i <= vi; i++) {
+    for (U32 i=0; vi>0 && i < vi; i++) {
     	if (_print(&v[i])) PRINTF("\n");
     }
 }
