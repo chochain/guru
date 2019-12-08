@@ -107,6 +107,26 @@ guru_load(char *rite_name)
 	return 0;
 }
 
+float _time(int (*fp)(U32), int trace)
+{
+	cudaEvent_t _event_t0, _event_t1;
+	float ms = 0;
+
+	cudaEventCreate(&_event_t0);
+	cudaEventCreate(&_event_t1);
+	cudaEventRecord(_event_t0);
+
+	fp(trace);
+
+	cudaEventRecord(_event_t1);
+	cudaEventSynchronize(_event_t1);
+	cudaEventElapsedTime(&ms, _event_t0, _event_t1);
+	cudaEventDestroy(_event_t1);
+	cudaEventDestroy(_event_t0);
+
+	return ms;
+}
+
 __HOST__ int
 guru_run(int trace)
 {
@@ -123,7 +143,9 @@ guru_run(int trace)
 	}
 	// kick up main loop until all VM are done
 	// TODO: become a server which responses to IREP requests
-	vm_main_start(trace);
+	if (trace) printf("guru_session starting...\n");
+	float ms = _time(&vm_main_start, trace);
+	if (trace) printf("guru_session completed in %f ms.\n", ms);
 
 	return 0;
 }
