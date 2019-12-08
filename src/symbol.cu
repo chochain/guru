@@ -29,14 +29,40 @@ __GURU__ U32	_sym_hash[MAX_SYMBOL_COUNT];
   @param  str		Target string.
   @return uint16_t	Hash value.
 */
+__GPU__ void
+__hash(U32 h[], U32 hsz, const U8 *str)
+{
+	U32 i = threadIdx.x;
+
+	h[i] = (str[i]+1) * 1000003;	// simplistic hierarchical hashing
+	while (hsz>1) {
+		if (i<hsz) h[i] += h[i+hsz] * 1000003;
+		__syncthreads();
+		hsz = (hsz>>1) + (hsz&1);	// ensure an even number
+	}
+}
+
 __GURU__ U32
 _calc_hash(const U8 *str)
 {
-    U32 h = 0;
+	static U32 h[256];				// warn: scoped outside of function
+	U32 bsz = STRLENB(str)+1;		// include '\0' if odd length
+	if (bsz>2) {
+		__hash<<<1, 32*(1+(bsz>>6))>>>(h, bsz>>1, str);
+		DEVSYNC();
+		h[0] += h[1] * 1000003;		// save the last parallel cycle
+	}
+	else {
+		h[0] = (str[0]+1) * 1000003;
+	}
+	return h[0];
+/*
+	U32 h = 0;
     for (U32 i=0, b=STRLENB(str); i<b; i++) {
         h = h * 37 + *str++;		// a simplistic hashing algo
     }
     return h;
+*/
 }
 
 //================================================================
@@ -53,12 +79,9 @@ __scan(S32 *idx, const U32 hash)
 }
 
 __GURU__ S32
-_search_index(const U8 *str)
+_search_index(U32 hash)
 {
-	U32 hash = _calc_hash(str);
-
-	static S32 idx;					// warn: scoped outside of this function
-
+	static S32 idx;			// warn: scoped outside of function
 	idx = -1;
     __scan<<<1, 32*(1+(_sym_idx>>5))>>>(&idx, hash);
 	cudaDeviceSynchronize();
@@ -70,19 +93,20 @@ _search_index(const U8 *str)
 /*! add to index table (assume no entry exists)
  */
 __GURU__ U32
-_add_index(const U8 *str)
+_add_index(const U8 *str, U32 hash)
 {
-    // append table.
     U32 idx  = _sym_idx++;
     assert(idx<MAX_SYMBOL_COUNT);
-
+/*
     // deep copy the string (can shallow work?)
     U32 asz  = STRLENB(str) + 1;	ALIGN(asz);
     U8  *buf = (U8*)guru_alloc(asz);
 
     MEMCPY(buf, str, asz);
     _sym[idx]      = (U8*)buf;
-    _sym_hash[idx] = _calc_hash(str);
+*/
+    _sym[idx]      = (U8*)str;
+    _sym_hash[idx] = hash;
 
     return idx;
 }
@@ -96,15 +120,17 @@ _add_index(const U8 *str)
 __GURU__ GS
 name2id(const U8 *str)
 {
-    S32 sid = _search_index(str);
+	U32 hash = _calc_hash(str);
+    S32 sid  = _search_index(hash);
 
     if (sid<0) {    // create new symbol entry
-    	sid = _add_index(str);
+        sid  = _add_index(str, hash);
 #if CC_DEBUG
-        printf("\sym[%2d]%08x=>%s\n", sid, _sym_hash[sid], _sym[sid]);
+        printf("  sym[%2d]%08x=>%s\n", sid, _sym_hash[sid], _sym[sid]);
     }
     else {
-    	printf("\sym[%2d]%08x: %s\n", sid, _sym_hash[sid], _sym[sid]);
+    	printf("  sym[%2d]%08x: %s==%s\n", sid, hash, str, _sym[sid]);
+    	assert(STRCMP((const char *)str, (const char *)_sym[sid])==0);
 #endif // CC_DEBUG
     }
     return sid;

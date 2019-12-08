@@ -56,7 +56,6 @@ __GURU__ S32
 _find_idx(GS xid, _gtype gt)
 {
 	static S32 idx;			// warn: scoped outside of function
-
 	idx = -1;
 	__idx<<<1, 32*(1+(_global_sz>>5))>>>(&idx, xid, gt);
 	DEVSYNC();
@@ -84,7 +83,8 @@ _set(GS xid, GV *v, _gtype gt)
     	assert(i<MAX_GLOBAL_COUNT);	// maybe raise ex
     }
     else {
-    	assert(i<0);
+//    	assert(i<0);
+    	assert(1==1);
     }
     _global_idx[i].xid = xid;
     _global_idx[i].gt  = gt;

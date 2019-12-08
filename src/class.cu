@@ -85,9 +85,13 @@ __GURU__ guru_proc*
 proc_by_sid(GV *v, GS sid)
 {
 	static S32 idx;		// warn: scoped outside of function
-    for (guru_class *cls=class_by_obj(v); cls; cls=cls->super) {	// search up class hierarchy
 #if CC_DEBUG
-        printf("%p:%s\tsid=0x%02x, sc=%d self=%d\n", cls, cls->name, sid, IS_SCLASS(v), IS_SELF(v));
+	U8* fname = id2name(sid);
+    printf("proc_by_sid:%s=>%d(0x%02x)\n", fname, sid, sid);
+    for (guru_class *cls=class_by_obj(v); cls; cls=cls->super) {	// search up class hierarchy
+        printf("\t%p:sc=%d,self=%d:%s\n", cls, IS_SCLASS(v), IS_SELF(v), cls->name);
+#else
+    for (guru_class *cls=class_by_obj(v); cls; cls=cls->super) {	// search up class hierarchy
 #endif // CC_DEBUG
         if (IS_BUILTIN(cls)) {
         	idx = -1;
