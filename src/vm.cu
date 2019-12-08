@@ -35,7 +35,6 @@
 
 guru_vm *_vm_pool;
 
-#define _DSYNC		(cudaDeviceSynchronize())
 pthread_mutex_t 	_mutex_pool;
 #define _LOCK		(pthread_mutex_lock(&_mutex_pool))
 #define _UNLOCK		(pthread_mutex_unlock(&_mutex_pool))
@@ -212,7 +211,7 @@ _join() {
 	U32 i;
 	guru_vm *vm = _vm_pool;
 
-	_DSYNC;											// ensure VM status change is caught, too heavy-handed
+	cudaDeviceSynchronize();						// ensure VM status change is caught, too heavy-handed
 	_LOCK;											// TODO: make it a per-VM (i.e. per-blockIdx) control
 	for (i=0; i<MIN_VM_COUNT; i++, vm++) {
 		if (vm->run==VM_STATUS_RUN) break;
@@ -225,8 +224,6 @@ _join() {
 __HOST__ int
 vm_main_start(U32 trace)
 {
-	if (trace) printf("guru_session starting...\n");
-
 	do {
 		debug_trace(trace);
 		_step<<<1,1>>>(_vm_pool);
@@ -236,11 +233,8 @@ vm_main_start(U32 trace)
 		guru_console_flush(ses->out, ses->trace);	// dump output buffer
 #endif // GURU_USE_CONSOLE
 	} while (_join());								// GPU device barrier + HOST pthread guard
+	show_mmu_stat(trace);
 
-	if (trace) {
-		printf("guru_session completed\n");
-		show_mmu_stat(trace);
-	}
 	return 0;
 }
 
@@ -248,12 +242,14 @@ __HOST__ int
 vm_get(U8 *irep_img, U32 trace)
 {
 	guru_irep *irep = (guru_irep *)irep_img;
-	int *vid = (int *)cuda_malloc(sizeof(int), 1);
+	void *vm_id;
+	int  vid;
 
-	_DSYNC;
+	cudaMallocManaged(&vm_id, sizeof(int));			// allocate device memory, auto synchronize
 	_LOCK;
-	_fetch<<<1,1>>>(_vm_pool, irep, vid);	// vm status changed
-	_DSYNC;
+	_fetch<<<1,1>>>(_vm_pool, irep, (int*)vm_id);	// vm status changed
+	vid = *(int*)vm_id;
+	cudaFree(vm_id);								// free memory, auto synchronize
 	_UNLOCK;
 
 	if (trace) {
@@ -261,12 +257,12 @@ vm_get(U8 *irep_img, U32 trace)
 			printf("ERROR: no vm available!");
 		}
 		else {
-			printf("  vm[%d]:\n", *vid);
+			printf("  vm[%d]:\n", vid);
 			char c = 'a';
 			debug_show_irep(irep, 'A', &c);
 		}
 	}
-	return *vid;		// CUDA memory leak?
+	return vid;
 }
 
 __HOST__ int
