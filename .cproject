@@ -43,18 +43,26 @@
 							</tool>
 						</toolChain>
 					</folderInfo>
-					<fileInfo id="com.nvidia.cuda.ide.nine_zero.configuration.debug.1932823589.531798612" name="puts32.cu" rcbsApplicability="disable" resourcePath="src/puts32.cu" toolsToInvoke="nvcc.compiler.base.2018565872.1410758841">
-						<tool id="nvcc.compiler.base.2018565872.1410758841" name="NVCC Compiler" superClass="nvcc.compiler.base.2018565872"/>
+					<fileInfo id="com.nvidia.cuda.ide.nine_zero.configuration.debug.1932823589.815305044" name="guru.cu" rcbsApplicability="disable" resourcePath="src/guru.cu" toolsToInvoke="nvcc.compiler.base.2018565872.2101635236">
+						<tool id="nvcc.compiler.base.2018565872.2101635236" name="NVCC Compiler" superClass="nvcc.compiler.base.2018565872"/>
+					</fileInfo>
+					<fileInfo id="com.nvidia.cuda.ide.nine_zero.configuration.debug.1932823589.1941003415" name="static.h" rcbsApplicability="disable" resourcePath="src/static.h" toolsToInvoke="">
+						<tool customBuildStep="true" id="org.eclipse.cdt.managedbuilder.ui.rcbs.1691944607" name="Resource Custom Build Step">
+							<inputType id="org.eclipse.cdt.managedbuilder.ui.rcbs.inputtype.802555798" name="Resource Custom Build Step Input Type">
+								<additionalInput kind="additionalinputdependency" paths=""/>
+							</inputType>
+							<outputType id="org.eclipse.cdt.managedbuilder.ui.rcbs.outputtype.2017911838" name="Resource Custom Build Step Output Type"/>
+						</tool>
 					</fileInfo>
 					<sourceEntries>
-						<entry excluding="src/console.cu|test|src/alloc.cu|src/guru_test.cu|src/load_gpu.cu|src/puts.cu|src/sprintf.cu|src/c_string.cu|ext|orig" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
+						<entry excluding="src/guru_test.cu|src/static.h|src/static.cu|src/symbol_orig.cu|src/console.cu|test|src/alloc.cu|src/load_gpu.cu|src/puts.cu|src/sprintf.cu|src/c_string.cu|ext|orig" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
 					</sourceEntries>
 				</configuration>
 			</storageModule>
 			<storageModule moduleId="com.nvidia.cuda.ide.build.project.ICudaProjectConfiguration">
 				<executable devicelink="true">
-					<sass major="7" minor="5"/>
 					<ptx major="7" minor="5"/>
+					<sass major="7" minor="5"/>
 				</executable>
 				<editor-arch major="7" minor="5"/>
 			</storageModule>
@@ -80,7 +88,7 @@
 					<folderInfo id="com.nvidia.cuda.ide.nine_zero.configuration.release.421195039." name="/" resourcePath="">
 						<toolChain id="com.nvidia.cuda.ide.toolchain.nine_zero.exe.release.1028394050" name="CUDA Toolkit 10.0" superClass="com.nvidia.cuda.ide.toolchain.nine_zero.exe.release">
 							<targetPlatform archList="all" binaryParser="com.nvidia.cuda.ide.elf;com.nvidia.cuda.ide.macho;com.nvidia.cuda.ide.cubin" id="com.nvidia.cuda.ide.targetPlatform.2114761592" isAbstract="false" name="Debug Platform" osList="linux,macosx" superClass="com.nvidia.cuda.ide.targetPlatform"/>
-							<builder buildPath="${workspace_loc:/guru}/Release" id="com.nvidia.cuda.ide.builder.564402239" keepEnvironmentInBuildfile="false" managedBuildOn="true" name="CUDA Toolkit 10.0 Builder" superClass="com.nvidia.cuda.ide.builder"/>
+							<builder buildPath="${workspace_loc:/guru}/Release" id="com.nvidia.cuda.ide.builder.564402239" keepEnvironmentInBuildfile="false" managedBuildOn="true" name="CUDA Toolkit 10.1 Builder" superClass="com.nvidia.cuda.ide.builder"/>
 							<tool id="nvcc.compiler.base.2027151764" name="NVCC Compiler" superClass="nvcc.compiler.base">
 								<option id="nvcc.compiler.deviceDebug.344115381" name="Generate device debug information (-G)" superClass="nvcc.compiler.deviceDebug"/>
 								<option id="nvcc.compiler.option.level.964356668" name="Generate host debug information (-g)" superClass="nvcc.compiler.option.level"/>

@@ -7,5 +7,4 @@
   + refresh project
 + NSight
   + set workspace to ~/lib
-  + set to "exclude" directory property to ~/lib/guru/ext, ~/lib/guru/orig
-  
+  + set to "exclude" directory property to ~/lib/guru/ext, ~/lib/guru/orig, ~/lib/guru/test
