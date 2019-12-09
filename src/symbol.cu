@@ -21,6 +21,7 @@
 
 __GURU__ U32 	_sym_idx = 0;					// point to the last(free) sym_list array.
 __GURU__ U8*	_sym[MAX_SYMBOL_COUNT];
+__GURU__ U32	_sym_len[MAX_SYMBOL_COUNT];
 __GURU__ U32	_sym_hash[MAX_SYMBOL_COUNT];
 
 //================================================================
@@ -74,8 +75,6 @@ __scan(S32 *idx, const U32 hash)
 	S32 i = threadIdx.x;
 
 	if (i<_sym_idx && _sym_hash[i]==hash) *idx = i;
-
-	__syncthreads();
 }
 
 __GURU__ S32
@@ -89,6 +88,41 @@ _search_index(U32 hash)
     return idx;
 }
 
+__GURU__ bool _match[256];
+__GPU__ void
+__scan1_1(U32 x, const U8 *str)
+{
+	U32 i = threadIdx.x;
+	if (i<_sym_len[x] && _sym[x][i] != str[i]) _match[x] = false;
+}
+
+__GPU__ void
+__scan1(S32 *idx, const U8 *str)
+{
+	U32 x = threadIdx.x;
+	U32 i = threadIdx.y;
+
+	if (x>=_sym_idx) return;
+
+	_match[x] = true;
+	__scan1_1<<<1, 32*(1+(_sym_len[x]>>5))>>>(x, str);
+	cudaDeviceSynchronize();
+
+	if (_match[x]) *idx = x;
+}
+
+__GURU__ S32
+_search_index1(const U8 *str)
+{
+	static S32 idx;			// warn: scoped outside of function
+	dim3 dd(_sym_idx, 32);
+
+	idx = -1;
+    __scan1<<<1, dd>>>(&idx, str);
+	cudaDeviceSynchronize();
+
+    return idx;
+}
 //================================================================
 /*! add to index table (assume no entry exists)
  */
@@ -107,6 +141,7 @@ _add_index(const U8 *str, U32 hash)
 */
     _sym[idx]      = (U8*)str;
     _sym_hash[idx] = hash;
+    _sym_len[idx]  = STRLENB(str);
 
     return idx;
 }
@@ -122,6 +157,7 @@ name2id(const U8 *str)
 {
 	U32 hash = _calc_hash(str);
     S32 sid  = _search_index(hash);
+	//S32 sid = _search_index1(str);
 
     if (sid<0) {    // create new symbol entry
         sid  = _add_index(str, hash);
