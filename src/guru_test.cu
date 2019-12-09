@@ -15,6 +15,7 @@
 #include "mmu.h"
 #include "gurux.h"
 #include "vmx.h"
+#include "symbol.h"
 
 extern "C" __GPU__  void guru_mmu_init(void *ptr, U32 sz);
 extern "C" __GPU__  void guru_class_init(void);
@@ -40,6 +41,31 @@ _mmu_free(U8 *b)
 	if (threadIdx.x!=0 || blockIdx.x!=0) return;
 
 	guru_free(b);
+}
+
+__HOST__ void
+_time(const char *fname, int ncycle, void (*fp)())
+{
+	printf("%s starts here....\n", fname);
+
+	cudaEvent_t _event_t0, _event_t1;
+	float ms = 0;
+
+	cudaEventCreate(&_event_t0);
+	cudaEventCreate(&_event_t1);
+	cudaEventRecord(_event_t0);
+
+	for (int i=0; i<ncycle; i++) {
+		fp();
+	}
+
+	cudaEventRecord(_event_t1);
+	cudaEventSynchronize(_event_t1);
+	cudaEventElapsedTime(&ms, _event_t0, _event_t1);
+	cudaEventDestroy(_event_t1);
+	cudaEventDestroy(_event_t0);
+
+	printf("\n%s done in %f ms.\n", fname, ms);
 }
 
 __HOST__ int
@@ -83,8 +109,8 @@ guru_load(char *rite_fname)
 	return 0;
 }
 
-__HOST__ int
-guru_run(int trace)
+__HOST__ void
+guru_mem_test()
 {
 	U32 a[] = { 0x28, 0x8, 0x10, 0x38, 0x8, 0x10 };
 	U32 f[] = { 4, 1, 2 };
@@ -92,7 +118,6 @@ guru_run(int trace)
 	U8 *p   = (U8 *)cuda_malloc(12*sizeof(U8*), 1);
 	U8 **x  = (U8**)p;
 
-	printf("mmu_test starts here....");
 	for (U32 i=0; i<sizeof(a)>>2; i++) {
 		printf("\nalloc %d=>0x%02x", i, a[i]);
 		_mmu_alloc<<<1,1>>>(&x[i], a[i]);
@@ -110,7 +135,54 @@ guru_run(int trace)
 		show_mmu_stat(2);
 		printf("\t=>%p", x[i+6]);
 	}
-	printf("\nmmu_test done!!!!!");
+}
 
+__GURU__ const char *slist[] = {
+    "initialize",
+    "private",
+    "!",
+    "!=",
+    "<=>",
+    "===",
+    "class",
+    "include",
+    "extend",
+    "attr_reader",
+    "attr_accessor",
+    "lambda",
+    "is_a?",
+    "kind_of?",
+    "puts",
+    "print",
+    "to_s",
+    "inspect",
+    "p",
+    "sprintf",
+    "printf"
+};
+
+__GPU__ void
+_hash_test()
+{
+	if (threadIdx.x!=0) return;
+
+	U32 sid;
+	for (int i=0; i<sizeof(slist)/sizeof(char *); i++) {
+		sid = name2id((U8*)slist[i]);
+	}
+	sid = 0;
+}
+
+__HOST__ void
+guru_hash_test()
+{
+	_hash_test<<<1,1>>>();
+}
+
+__HOST__ int
+guru_run(int trace)
+{
+	//_time("mem_test", 10, &guru_mem_test);
+	_time("hash_test", 1000, &guru_hash_test);
 	return 0;
 }
