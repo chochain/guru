@@ -153,7 +153,6 @@ _step(guru_vm *pool)
 	if (vm->run==VM_STATUS_STOP) {					// whether my VM is completed
 		_free(vm);									// free up my vm_state, return VM to free pool
 	}
-	__syncthreads();								// sync all cooperating threads (to shared data)
 }
 
 #if !GURU_HOST_IMAGE

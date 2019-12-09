@@ -48,17 +48,15 @@ __idx(S32 *idx, GS xid, _gtype gt)
 	_gidx *p = _global_idx + i;
 
 	if (i<_global_sz && p->xid == xid && p->gt == gt) *idx = i;
-
-	__syncthreads();		// sync all thread in the block (make sure idx is captured)
 }
 
 __GURU__ S32
 _find_idx(GS xid, _gtype gt)
 {
-	static S32 idx;			// warn: scoped outside of function
+	static S32 idx;					// warn: scoped outside of function
 	idx = -1;
 	__idx<<<1, 32*(1+(_global_sz>>5))>>>(&idx, xid, gt);
-	DEVSYNC();
+	DEVSYNC();						// make sure idx is captured
 
 	return idx;
 }

@@ -78,7 +78,6 @@ __find_proc(S32 *idx, guru_class *cls, GS sid)
 {
 	U32 i = threadIdx.x;
 	if (i<cls->rc && cls->vtbl[i].sid==sid) *idx = i;
-	__syncthreads();
 }
 
 __GURU__ guru_proc*
