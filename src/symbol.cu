@@ -21,7 +21,6 @@
 
 __GURU__ U32 	_sym_idx = 0;					// point to the last(free) sym_list array.
 __GURU__ U8*	_sym[MAX_SYMBOL_COUNT];
-__GURU__ U32	_sym_len[MAX_SYMBOL_COUNT];
 __GURU__ U32	_sym_hash[MAX_SYMBOL_COUNT];
 
 //================================================================
@@ -30,97 +29,26 @@ __GURU__ U32	_sym_hash[MAX_SYMBOL_COUNT];
   @param  str		Target string.
   @return uint16_t	Hash value.
 */
-__GPU__ void
-__hash(U32 h[], U32 hsz, const U8 *str)
-{
-	U32 i = threadIdx.x;
-
-	h[i] = (str[i]+1) * 1000003;	// simplistic hierarchical hashing
-	while (hsz>1) {
-		if (i<hsz) h[i] += h[i+hsz] * 1000003;
-		__syncthreads();
-		hsz = (hsz>>1) + (hsz&1);	// ensure an even number
-	}
-}
-
 __GURU__ U32
-_calc_hash(const U8 *str)
+_loop_hash(const U8 *str)
 {
-	static U32 h[256];				// warn: scoped outside of function
-	U32 bsz = STRLENB(str)+1;		// include '\0' if odd length
-	if (bsz>2) {
-		__hash<<<1, 32*(1+(bsz>>6))>>>(h, bsz>>1, str);
-		DEVSYNC();
-		h[0] += h[1] * 1000003;		// save the last parallel cycle
-	}
-	else {
-		h[0] = (str[0]+1) * 1000003;
-	}
-	return h[0];
-/*
+	U32 bsz = STRLENB(str);
 	U32 h = 0;
-    for (U32 i=0, b=STRLENB(str); i<b; i++) {
-        h = h * 37 + *str++;		// a simplistic hashing algo
+    for (U32 i=0; i<bsz; i++) {
+        h = h * 1000003 + *str++;	// a simplistic hashing algo
     }
     return h;
-*/
 }
-
 //================================================================
 /*! search index table
  */
-__GPU__ void
-__scan(S32 *idx, const U32 hash)
-{
-	S32 i = threadIdx.x;
-
-	if (i<_sym_idx && _sym_hash[i]==hash) *idx = i;
-}
-
 __GURU__ S32
-_search_index(U32 hash)
+_loop_search(U32 hash)
 {
-	static S32 idx;			// warn: scoped outside of function
-	idx = -1;
-    __scan<<<1, 32*(1+(_sym_idx>>5))>>>(&idx, hash);
-	cudaDeviceSynchronize();
-
-    return idx;
-}
-
-__GURU__ bool _match[256];
-__GPU__ void
-__scan1_1(U32 x, const U8 *str)
-{
-	U32 i = threadIdx.x;
-	if (i<_sym_len[x] && _sym[x][i] != str[i]) _match[x] = false;
-}
-
-__GPU__ void
-__scan1(S32 *idx, const U8 *str)
-{
-	U32 x = threadIdx.x;
-	U32 i = threadIdx.y;
-
-	if (x>=_sym_idx) return;
-
-	_match[x] = true;
-	__scan1_1<<<1, 32*(1+(_sym_len[x]>>5))>>>(x, str);
-	cudaDeviceSynchronize();
-
-	if (_match[x]) *idx = x;
-}
-
-__GURU__ S32
-_search_index1(const U8 *str)
-{
-	static S32 idx;			// warn: scoped outside of function
-	dim3 dd(_sym_idx, 32);
-
-	idx = -1;
-    __scan1<<<1, dd>>>(&idx, str);
-	cudaDeviceSynchronize();
-
+	S32 idx = -1;
+    for (S32 i=0; i<_sym_idx && idx<0; i++) {
+    	if (_sym_hash[i]==hash) idx = i;
+    }
     return idx;
 }
 //================================================================
@@ -141,7 +69,6 @@ _add_index(const U8 *str, U32 hash)
 */
     _sym[idx]      = (U8*)str;
     _sym_hash[idx] = hash;
-    _sym_len[idx]  = STRLENB(str);
 
     return idx;
 }
@@ -155,18 +82,92 @@ _add_index(const U8 *str, U32 hash)
 __GURU__ GS
 name2id(const U8 *str)
 {
-	U32 hash = _calc_hash(str);
-    S32 sid  = _search_index(hash);
-	//S32 sid = _search_index1(str);
+	U32 hash = _loop_hash(str);				// loop: 0.28ms vs dyna: 0.95 ms/call
+	S32 sid  = _loop_search(hash);			// loop: 0.20ms vs dyna: 0.65 ms/call
 
-    if (sid<0) {    // create new symbol entry
-        sid  = _add_index(str, hash);
+    if (sid<0) {    						// create new symbol entry
+        sid  = _add_index(str, hash);		// 0.06 ms/call
 #if CC_DEBUG
         printf("  sym[%2d]%08x=>%s\n", sid, _sym_hash[sid], _sym[sid]);
     }
     else {
     	printf("  sym[%2d]%08x: %s==%s\n", sid, hash, str, _sym[sid]);
     	assert(STRCMP((const char *)str, (const char *)_sym[sid])==0);
+#endif // CC_DEBUG
+    }
+    return sid;
+}
+
+__GPU__ void
+_dyna_hash(U32 h[], U32 hsz, const U8 *str)
+{
+	U32 i = threadIdx.x;
+
+	h[i] = (str[i]+1) * 1000003;	// simplistic hierarchical hashing
+	while (hsz>1) {
+		if (i<hsz) h[i] += h[i+hsz] * 1000003;
+		__syncthreads();
+		hsz = (hsz>>1) + (hsz&1);	// ensure an even number
+	}
+}
+
+__GURU__ U32
+_dyna_hash_s(const U8 *str, cudaStream_t st)
+{
+	U32 bsz = STRLENB(str)+1;		// include '\0' if odd length
+	static U32 h[256];				// warn: scoped outside of function
+	if (bsz>2) {
+//		_dyna_hash<<<1, 32*(1+(bsz>>6)), 0, st>>>(h, bsz>>1, str);		// explicit sync
+		_dyna_hash<<<1, 32*(1+(bsz>>6))>>>(h, bsz>>1, str);				// implicit sync
+		cudaDeviceSynchronize();
+		h[0] += h[1] * 1000003;		// save the last parallel cycle
+	}
+	else {
+		h[0] = (str[0]+1) * 1000003;
+	}
+	return h[0];
+}
+
+__GPU__ void
+_dyna_search(S32 *idx, const U32 hash)
+{
+	S32 i = threadIdx.x;
+
+	if (i<_sym_idx && _sym_hash[i]==hash) *idx = i;
+}
+
+__GURU__ S32
+_dyna_search_s(U32 hash, cudaStream_t st)
+{
+	static S32 idx;			// warn: scoped outside of function
+	idx = -1;
+    // _dyna_search<<<1, 32*(1+(_sym_idx>>5)), 0, st>>>(&idx, hash);
+    _dyna_search<<<1, 32*(1+(_sym_idx>>5))>>>(&idx, hash);
+//	cudaDeviceSynchronize();
+    return idx;
+}
+
+__GURU__ GS
+name2id_s(const U8 *str, cudaStream_t st)
+{
+	U32 hash = _dyna_hash_s(str, st);				// orig: 0.28ms vs dyna: 0.95 ms/call
+	cudaError_t err;
+	if ((err=cudaGetLastError())!=cudaSuccess) {
+		printf("hashErr: %s\n", cudaGetErrorString(err));
+	}
+	S32 sid  = _dyna_search_s(hash, st);			// 0.63 ms/call
+	if ((err=cudaGetLastError())!=cudaSuccess) {
+		printf("searchErr: %s\n", cudaGetErrorString(err));
+	}
+
+    if (sid<0) {    								// create new symbol entry
+        sid  = _add_index(str, hash);				// 0.06 ms/call
+#if CC_DEBUG
+        printf("  sym[%2d]%08x=>%s\n", sid, _sym_hash[sid], _sym[sid]);
+    }
+    else {
+    	printf("  sym[%2d]%08x: %s==%s\n", sid, hash, str, _sym[sid]);
+//    	assert(STRCMP((const char *)str, (const char *)_sym[sid])==0);
 #endif // CC_DEBUG
     }
     return sid;

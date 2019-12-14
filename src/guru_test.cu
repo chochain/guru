@@ -42,32 +42,6 @@ _mmu_free(U8 *b)
 
 	guru_free(b);
 }
-
-__HOST__ void
-_time(const char *fname, int ncycle, void (*fp)())
-{
-	printf("%s starts here....\n", fname);
-
-	cudaEvent_t _event_t0, _event_t1;
-	float ms = 0;
-
-	cudaEventCreate(&_event_t0);
-	cudaEventCreate(&_event_t1);
-	cudaEventRecord(_event_t0);
-
-	for (int i=0; i<ncycle; i++) {
-		fp();
-	}
-
-	cudaEventRecord(_event_t1);
-	cudaEventSynchronize(_event_t1);
-	cudaEventElapsedTime(&ms, _event_t0, _event_t1);
-	cudaEventDestroy(_event_t1);
-	cudaEventDestroy(_event_t0);
-
-	printf("\n%s done in %f ms.\n", fname, ms);
-}
-
 __HOST__ int
 guru_setup(int step, int trace)
 {
@@ -107,6 +81,37 @@ __HOST__ int
 guru_load(char *rite_fname)
 {
 	return 0;
+}
+
+
+__HOST__ void
+_time(const char *fname, int ncycle, void (*fp)(cudaStream_t))
+{
+	printf("%s starts here....\n", fname);
+
+	cudaStream_t hst;
+	cudaStreamCreateWithFlags(&hst, cudaStreamNonBlocking);
+
+	cudaEvent_t _event_t0, _event_t1;
+	float ms = 0;
+
+	cudaEventCreate(&_event_t0);
+	cudaEventCreate(&_event_t1);
+	cudaEventRecord(_event_t0);
+
+	for (int i=0; i<ncycle; i++) {
+		fp(hst);
+	}
+
+	cudaEventRecord(_event_t1);
+	cudaEventSynchronize(_event_t1);
+	cudaEventElapsedTime(&ms, _event_t0, _event_t1);
+	cudaEventDestroy(_event_t1);
+	cudaEventDestroy(_event_t0);
+
+	cudaStreamDestroy(hst);
+
+	printf("\n%s done in %f ms.\n", fname, ms);
 }
 
 __HOST__ void
@@ -166,17 +171,22 @@ _hash_test()
 {
 	if (threadIdx.x!=0) return;
 
+	cudaStream_t dst;
+	cudaStreamCreateWithFlags(&dst, cudaStreamNonBlocking);	// device stream [create,destroy] overhead =~ 0.060ms
+
 	U32 sid;
 	for (int i=0; i<sizeof(slist)/sizeof(char *); i++) {
-		sid = name2id((U8*)slist[i]);
+		sid = name2id_s((U8*)slist[i], dst);
+//		sid = name2id((U8*)slist[i]);
 	}
-	sid = 0;
+	cudaStreamDestroy(dst);
 }
 
 __HOST__ void
-guru_hash_test()
+guru_hash_test(cudaStream_t hst)
 {
-	_hash_test<<<1,1>>>();
+	_hash_test<<<1,1, 0, hst>>>();
+	cudaStreamSynchronize(hst);
 }
 
 __HOST__ int
@@ -184,5 +194,7 @@ guru_run(int trace)
 {
 	//_time("mem_test", 10, &guru_mem_test);
 	_time("hash_test", 1000, &guru_hash_test);
+
+	cudaDeviceReset();
 	return 0;
 }
