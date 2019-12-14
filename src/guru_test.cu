@@ -174,11 +174,16 @@ _hash_test()
 	cudaStream_t dst;
 	cudaStreamCreateWithFlags(&dst, cudaStreamNonBlocking);	// device stream [create,destroy] overhead =~ 0.060ms
 
+	cudaEvent_t ev;
+	cudaEventCreateWithFlags(&ev, cudaEventDefault);
+
 	U32 sid;
 	for (int i=0; i<sizeof(slist)/sizeof(char *); i++) {
-		sid = name2id_s((U8*)slist[i], dst);
+		sid = name2id_s((U8*)slist[i], dst, ev);
 //		sid = name2id((U8*)slist[i]);
 	}
+
+	cudaEventDestroy(ev);
 	cudaStreamDestroy(dst);
 }
 

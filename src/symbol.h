@@ -18,7 +18,7 @@ extern "C" {
 #endif
 
 __GURU__ GS   	name2id(const U8 *str);
-__GURU__ GS   	name2id_s(const U8 *str, cudaStream_t st);
+__GURU__ GS   	name2id_s(const U8 *str, cudaStream_t st, cudaEvent_t ev);
 __GURU__ U8		*id2name(GS sid);
 
 __GURU__ void 	guru_init_class_symbol();

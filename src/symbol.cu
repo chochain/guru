@@ -45,11 +45,10 @@ _loop_hash(const U8 *str)
 __GURU__ S32
 _loop_search(U32 hash)
 {
-	S32 idx = -1;
-    for (S32 i=0; i<_sym_idx && idx<0; i++) {
-    	if (_sym_hash[i]==hash) idx = i;
+    for (S32 i=0; i<_sym_idx; i++) {
+    	if (_sym_hash[i]==hash) return i;
     }
-    return idx;
+    return -1;
 }
 //================================================================
 /*! add to index table (assume no entry exists)
@@ -99,67 +98,73 @@ name2id(const U8 *str)
 }
 
 __GPU__ void
-_dyna_hash(U32 h[], U32 hsz, const U8 *str)
+_dyna_hash(U32 *hash, U32 hsz, const U8 *str)
 {
 	U32 i = threadIdx.x;
 
-	h[i] = (str[i]+1) * 1000003;	// simplistic hierarchical hashing
+	extern __shared__ U32 h[];		// shared memory
+	h[i] = (str[i]+1) * 1000003;	// bank conflict?
 	while (hsz>1) {
 		if (i<hsz) h[i] += h[i+hsz] * 1000003;
 		__syncthreads();
 		hsz = (hsz>>1) + (hsz&1);	// ensure an even number
 	}
+	*hash = h[0] + h[1] * 1000003;
 }
 
 __GURU__ U32
 _dyna_hash_s(const U8 *str, cudaStream_t st)
 {
 	U32 bsz = STRLENB(str)+1;		// include '\0' if odd length
-	static U32 h[256];				// warn: scoped outside of function
+	static U32 hash;
 	if (bsz>2) {
-//		_dyna_hash<<<1, 32*(1+(bsz>>6)), 0, st>>>(h, bsz>>1, str);		// explicit sync
-		_dyna_hash<<<1, 32*(1+(bsz>>6))>>>(h, bsz>>1, str);				// implicit sync
+//		_dyna_hash<<<1, 32*(1+(bsz>>6)), sizeof(U32)*bsz, st>>>(&hash, bsz>>1, str);
+		_dyna_hash<<<1, 32*(1+(bsz>>6)), sizeof(U32)*bsz>>>(&hash, bsz>>1, str);
 		cudaDeviceSynchronize();
-		h[0] += h[1] * 1000003;		// save the last parallel cycle
 	}
 	else {
-		h[0] = (str[0]+1) * 1000003;
+		hash = (str[0]+1) * 1000003;
 	}
-	return h[0];
+	return hash;
 }
 
 __GPU__ void
-_dyna_search(S32 *idx, const U32 hash)
+_dyna_search(S32 *idx, const U32 hash, cudaEvent_t ev)
 {
 	S32 i = threadIdx.x;
 
-	if (i<_sym_idx && _sym_hash[i]==hash) *idx = i;
+	if (i<_sym_idx && _sym_hash[i]==hash) {
+		*idx = i;
+		cudaEventRecord(ev);
+	}
 }
 
 __GURU__ S32
-_dyna_search_s(U32 hash, cudaStream_t st)
+_dyna_search_s(U32 hash, cudaStream_t st, cudaEvent_t ev)
 {
 	static S32 idx;			// warn: scoped outside of function
+
 	idx = -1;
-    // _dyna_search<<<1, 32*(1+(_sym_idx>>5)), 0, st>>>(&idx, hash);
-    _dyna_search<<<1, 32*(1+(_sym_idx>>5))>>>(&idx, hash);
-//	cudaDeviceSynchronize();
+    _dyna_search<<<1, 32*(1+(_sym_idx>>5)), 0, st>>>(&idx, hash, ev);
+    //_dyna_search<<<1, 32*(1+(_sym_idx>>5))>>>(&idx, hash, ev1);
+    cudaStreamWaitEvent(st, ev, 0);
+
+	//cudaDeviceSynchronize();
     return idx;
 }
 
 __GURU__ GS
-name2id_s(const U8 *str, cudaStream_t st)
+name2id_s(const U8 *str, cudaStream_t st, cudaEvent_t ev)
 {
-	U32 hash = _dyna_hash_s(str, st);				// orig: 0.28ms vs dyna: 0.95 ms/call
 	cudaError_t err;
-	if ((err=cudaGetLastError())!=cudaSuccess) {
-		printf("hashErr: %s\n", cudaGetErrorString(err));
-	}
-	S32 sid  = _dyna_search_s(hash, st);			// 0.63 ms/call
-	if ((err=cudaGetLastError())!=cudaSuccess) {
-		printf("searchErr: %s\n", cudaGetErrorString(err));
-	}
-
+	U32 hash = _dyna_hash_s(str, st);				// orig: 0.28ms vs dyna: 0.95 ms/call
+//	if ((err=cudaGetLastError())!=cudaSuccess) {
+//		printf("hash: %s\n", cudaGetErrorString(err));
+//	}
+	S32 sid  = _dyna_search_s(hash, st, ev);		// 0.63 ms/call
+//	if ((err=cudaGetLastError())!=cudaSuccess) {
+//		printf("search: %s\n", cudaGetErrorString(err));
+//	}
     if (sid<0) {    								// create new symbol entry
         sid  = _add_index(str, hash);				// 0.06 ms/call
 #if CC_DEBUG
