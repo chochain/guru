@@ -18,6 +18,7 @@
 #include "c_string.h"
 #include "c_array.h"
 #include "inspect.h"
+#include "nvToolsExt.h"
 
 __GURU__ U32 	_sym_idx = 0;					// point to the last(free) sym_list array.
 __GURU__ U8*	_sym[MAX_SYMBOL_COUNT];
@@ -57,7 +58,9 @@ __GURU__ U32
 _add_index(const U8 *str, U32 hash)
 {
     U32 idx  = _sym_idx++;
-    assert(idx<MAX_SYMBOL_COUNT);
+
+    if (idx>=MAX_SYMBOL_COUNT)
+    	printf("tid %d: %s, %d\n", threadIdx.x, __FILE__, __LINE__);
 /*
     // deep copy the string (can shallow work?)
     U32 asz  = STRLENB(str) + 1;	ALIGN(asz);
@@ -156,6 +159,21 @@ _dyna_search_s(U32 hash, cudaStream_t st, cudaEvent_t ev)
 __GURU__ GS
 name2id_s(const U8 *str, cudaStream_t st, cudaEvent_t ev)
 {
+	U32 hash = _loop_hash(str);				// loop: 0.28ms vs dyna: 0.95 ms/call
+	S32 sid  = _loop_search(hash);			// loop: 0.20ms vs dyna: 0.65 ms/call
+
+	if (sid<0) {    						// create new symbol entry
+        sid  = _add_index(str, hash);		// 0.06 ms/call
+#if CC_DEBUG
+        printf("  sym[%2d]%08x=>%s\n", sid, _sym_hash[sid], _sym[sid]);
+    }
+    else {
+    	printf("  sym[%2d]%08x: %s==%s\n", sid, hash, str, _sym[sid]);
+    	assert(STRCMP((const char *)str, (const char *)_sym[sid])==0);
+#endif // CC_DEBUG
+    }
+    return sid;
+/*
 	cudaError_t err;
 	U32 hash = _dyna_hash_s(str, st);				// orig: 0.28ms vs dyna: 0.95 ms/call
 //	if ((err=cudaGetLastError())!=cudaSuccess) {
@@ -175,6 +193,7 @@ name2id_s(const U8 *str, cudaStream_t st, cudaEvent_t ev)
 //    	assert(STRCMP((const char *)str, (const char *)_sym[sid])==0);
 #endif // CC_DEBUG
     }
+*/
     return sid;
 }
 

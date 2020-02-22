@@ -45,6 +45,8 @@ _mmu_free(U8 *b)
 __HOST__ int
 guru_setup(int step, int trace)
 {
+	cudaDeviceReset();
+
 	U8 *mem = _guru_mem = (U8*)cuda_malloc(BLOCK_MEMORY_SIZE, 1);
 	if (!_guru_mem) {
 		fprintf(stderr, "ERROR: failed to allocate device main memory block!\n");
@@ -83,36 +85,6 @@ guru_load(char *rite_fname)
 	return 0;
 }
 
-
-__HOST__ void
-_time(const char *fname, int ncycle, void (*fp)(cudaStream_t))
-{
-	printf("%s starts here....\n", fname);
-
-	cudaStream_t hst;
-	cudaStreamCreateWithFlags(&hst, cudaStreamNonBlocking);
-
-	cudaEvent_t _event_t0, _event_t1;
-	float ms = 0;
-
-	cudaEventCreate(&_event_t0);
-	cudaEventCreate(&_event_t1);
-	cudaEventRecord(_event_t0);
-
-	for (int i=0; i<ncycle; i++) {
-		fp(hst);
-	}
-
-	cudaEventRecord(_event_t1);
-	cudaEventSynchronize(_event_t1);
-	cudaEventElapsedTime(&ms, _event_t0, _event_t1);
-	cudaEventDestroy(_event_t1);
-	cudaEventDestroy(_event_t0);
-
-	cudaStreamDestroy(hst);
-
-	printf("\n%s done in %f ms.\n", fname, ms);
-}
 
 __HOST__ void
 guru_mem_test()
@@ -166,32 +138,63 @@ __GURU__ const char *slist[] = {
     "printf"
 };
 
+__GURU__ const int GLIST_SIZE = sizeof(slist)/sizeof(char*);
+const int HLIST_SIZE = sizeof(slist)/sizeof(char*);
+
 __GPU__ void
-_hash_test()
+_hash_test(U32 *sid, U32 ncycle)
 {
-	if (threadIdx.x!=0) return;
+	int i = threadIdx.x;
+	if (i>=GLIST_SIZE) return;
 
-	cudaStream_t dst;
-	cudaStreamCreateWithFlags(&dst, cudaStreamNonBlocking);	// device stream [create,destroy] overhead =~ 0.060ms
-
-	cudaEvent_t ev;
-	cudaEventCreateWithFlags(&ev, cudaEventDefault);
-
-	U32 sid;
-	for (int i=0; i<sizeof(slist)/sizeof(char *); i++) {
-		sid = name2id_s((U8*)slist[i], dst, ev);
-//		sid = name2id((U8*)slist[i]);
+	for (int j=0; j<ncycle; j++) {
+		sid[i] = name2id_s((U8*)slist[i], 0, 0);
+		//	sid[i] = name2id_s((U8*)slist[i], st, ev);
 	}
-
-	cudaEventDestroy(ev);
-	cudaStreamDestroy(dst);
 }
 
 __HOST__ void
-guru_hash_test(cudaStream_t hst)
+guru_hash_test(int ncycle, cudaStream_t *hst, int N)
 {
-	_hash_test<<<1,1, 0, hst>>>();
-	cudaStreamSynchronize(hst);
+	U32 *sid = (U32*)cuda_malloc(sizeof(U32)*HLIST_SIZE, 1);
+
+	for (int i=0; i<N; i++) {
+		_hash_test<<<1, 32, 0, hst[i]>>>(sid, ncycle);		// using default sync stream
+	}
+
+	cuda_free(sid);
+}
+
+__HOST__ void
+_time(const char *fname, int ncycle, void (*fp)(int, cudaStream_t*, int))
+{
+	printf("%s starts here....\n", fname);
+
+	cudaEvent_t _event_t0, _event_t1;
+	float ms = 0;
+
+	cudaEventCreate(&_event_t0);
+	cudaEventCreate(&_event_t1);
+	cudaEventRecord(_event_t0);
+
+	const int N=4;
+
+	cudaStream_t hst[N];											// host streams
+	for (int i=0; i<N; i++)
+		cudaStreamCreateWithFlags(&hst[i], cudaStreamNonBlocking);	// overhead ~= 0.013ms
+
+	fp(ncycle, hst, N);
+
+	for (int i=0; i<N; i++)
+		cudaStreamDestroy(hst[i]);
+
+	cudaEventRecord(_event_t1);
+	cudaEventSynchronize(_event_t1);
+	cudaEventElapsedTime(&ms, _event_t0, _event_t1);
+	cudaEventDestroy(_event_t1);
+	cudaEventDestroy(_event_t0);
+
+	printf("\n%s done in %f ms.\n", fname, ms);
 }
 
 __HOST__ int
