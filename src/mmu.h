@@ -43,6 +43,7 @@ __GURU__ void 			guru_free(void *ptr);
 
 // CUDA memory management functions
 __HOST__ void 			*cuda_malloc(U32 sz, U32 mem_type);		// mem_type: 0=>managed, 1=>device
+__HOST__ void           cuda_free(void *mem);
 __HOST__ void 			show_mmu_stat(U32 trace);
 
 #ifdef __cplusplus

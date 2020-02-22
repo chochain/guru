@@ -474,6 +474,11 @@ cuda_malloc(U32 sz, U32 type)
     return mem;
 }
 
+__HOST__ void
+cuda_free(void *mem) {
+	cudaFree(mem);
+}
+
 #if !GURU_DEBUG
 __HOST__ void show_mmu_stat(U32 trace);
 #else
