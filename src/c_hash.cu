@@ -9,8 +9,6 @@
 
   </pre>
 */
-#include <assert.h>
-
 #include "vm_config.h"
 #include "guru.h"
 #include "mmu.h"
@@ -266,7 +264,7 @@ hsh_new(GV v[], U32 vi)
 __CFUNC__
 hsh_get(GV v[], U32 vi)
 {
-	assert(vi==1);
+	ASSERT(vi==1);
 	GV ret = _get(v, v+1);
 
     RETURN_VAL(ret);
@@ -278,7 +276,7 @@ hsh_get(GV v[], U32 vi)
 __CFUNC__
 hsh_set(GV v[], U32 vi)
 {
-	assert(vi==2);
+	ASSERT(vi==2);
     _set(v, v+1, v+2);		// k + v
 
     *(v+1) = EMPTY();
@@ -396,7 +394,7 @@ hsh_size(GV v[], U32 vi)
 __CFUNC__
 hsh_merge(GV v[], U32 vi)		// non-destructive merge
 {
-	assert((v+1)->gt==GT_HASH);	// other types not supported yet
+	ASSERT((v+1)->gt==GT_HASH);	// other types not supported yet
 
     GV  ret = _hash_dup(v);
     U32 n   = _size(v+1);
@@ -413,7 +411,7 @@ hsh_merge(GV v[], U32 vi)		// non-destructive merge
 __CFUNC__
 hsh_merge_self(GV v[], U32 vi)
 {
-	assert((v+1)->gt==GT_HASH);	// other types not supported yet
+	ASSERT((v+1)->gt==GT_HASH);	// other types not supported yet
 
 	GV *p  = _data(v+1);
     U32 n  = _size(v+1);

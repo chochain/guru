@@ -12,7 +12,6 @@
   </pre>
 */
 #include <stdio.h>
-#include <assert.h>
 
 #include "mmu.h"
 #include "refcnt.h"
@@ -64,14 +63,14 @@ _call(guru_vm *vm, GV v[], U32 vi)
 	else if (AS_IREP(prc)){
 		vm_state_push(vm, prc->irep, 0, v, vi);		// switch into callee's context
 	}
-	else assert(1==0);
+	else ASSERT(1==0);
 }
 
 __GURU__ void
 _each(guru_vm *vm, GV v[], U32 vi)
 {
 	GV *v1 = v+1;
-	assert(v1->gt==GT_PROC);						// ensure it is a code block
+	ASSERT(v1->gt==GT_PROC);						// ensure it is a code block
 
 	U32			pc0    = vm->state->pc;
 	guru_irep  	*irep0 = vm->state->irep;
@@ -100,7 +99,7 @@ _each(guru_vm *vm, GV v[], U32 vi)
 __GURU__ void
 _new(guru_vm *vm, GV v[], U32 vi)
 {
-	assert(v->gt==GT_CLASS);					// ensure it is a class object
+	ASSERT(v->gt==GT_CLASS);					// ensure it is a class object
 	GV obj = v[0] = ostore_new(v->cls);			// instantiate object itself (with 0 var);
 	GS sid = name2id((U8*)"initialize"); 		// search for initializer
 
@@ -113,7 +112,7 @@ _new(guru_vm *vm, GV v[], U32 vi)
 __GURU__ void
 _lambda(guru_vm *vm, GV v[], U32 vi)
 {
-	assert(v->gt==GT_CLASS && (v+1)->gt==GT_PROC);		// ensure it is a proc
+	ASSERT(v->gt==GT_CLASS && (v+1)->gt==GT_PROC);		// ensure it is a proc
 
 	guru_proc *prc = (v+1)->proc;						// mark it as a lambda
 	prc->meta |= PROC_LAMBDA;
@@ -130,7 +129,7 @@ _lambda(guru_vm *vm, GV v[], U32 vi)
 __GURU__ void
 _raise(guru_vm *vm, GV v[], U32 vi)
 {
-	assert(vm->depth > 0);
+	ASSERT(vm->depth > 0);
 
 	vm->state->pc = vm->rescue[--vm->depth];	// pop from exception return stack
 }
@@ -178,7 +177,7 @@ vm_state_push(guru_vm *vm, guru_irep *irep, U32 pc, GV v[], U32 vi)
     case GT_OBJ:
     case GT_CLASS: 	st->klass = v->cls;				break;
     case GT_PROC: 	st->klass = top->regs[0].cls; 	break;
-    default: assert(1==0);
+    default: ASSERT(1==0);
     }
     st->irep  = irep;
     st->pc    = pc;

@@ -24,7 +24,10 @@ extern "C" {
 #define MUTEX_FREE(p)  		atomicExch((int *)&p, 0)
 #define ALIGN(sz) 			((sz) += -(sz) & 0x7)
 #define ALIGN64(sz)			((sz) += -(sz) & 0xf)
-#define DEVSYNC()			{ cudaDeviceSynchronize(); assert(cudaGetLastError()==cudaSuccess); }
+
+#define ASSERT(X) \
+	if (!(X)) printf("tid %d: %s, %d\n", threadIdx.x, __FILE__, __LINE__);
+#define DEVSYNC()			{ cudaDeviceSynchronize(); ASSERT(cudaGetLastError()==cudaSuccess); }
 
 #else
 

@@ -8,7 +8,8 @@
   This file is distributed under BSD 3-Clause License.
   </pre>
 */
-#include <assert.h>
+#include <stdio.h>
+
 #include "object.h"
 #include "refcnt.h"
 
@@ -46,7 +47,7 @@ ref_dec(GV *v)
     if (HAS_NO_REF(v))  	return v;		// skip simple objects
     if (IS_READ_ONLY(v)) 	return v;		// ROMable objects?
 
-    assert(v->self->rc);					// rc > 0?
+    ASSERT(v->self->rc);					// rc > 0?
     if (--v->self->rc > 0) return v;		// still used, keep going
 
     switch(v->gt) {
@@ -60,7 +61,7 @@ ref_dec(GV *v)
     case GT_ITER:		guru_iter_del(v);	break;
 #endif // GURU_USE_ARRAY
 
-    default: assert(1==0);
+    default: ASSERT(1==0);
     }
     return v;
 }

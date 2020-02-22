@@ -10,7 +10,6 @@
 
   </pre>
 */
-#include <assert.h>
 #include <stdarg.h>
 
 #include "guru.h"
@@ -56,7 +55,7 @@ _send(GV v[], GV *rcv, const U8 *method, U32 argc, ...)
     GS sid   = name2id(method);
 
     guru_proc  *m = proc_by_sid(v, sid);		// find method for receiver object
-    assert(m);
+    ASSERT(m);
 
     // create call stack.
     regs[0] = *ref_inc(rcv);		// create call stack, start with receiver object
@@ -82,7 +81,7 @@ _send(GV v[], GV *rcv, const U8 *method, U32 argc, ...)
 __GURU__ void
 guru_class_add_meta(GV *v)			// lazy add metaclass to a class
 {
-	assert(v->gt==GT_CLASS);
+	ASSERT(v->gt==GT_CLASS);
 
 	if (v->cls->cls!=NULL) return;
 
@@ -107,7 +106,7 @@ guru_kind_of(GV v[])		// whether v1 is a kind of v0
 __GURU__ void
 guru_obj_del(GV *v)
 {
-	assert(v->gt==GT_OBJ);
+	ASSERT(v->gt==GT_OBJ);
 
 	ostore_del(v);
 }
@@ -220,7 +219,7 @@ _extend(guru_class *cls, guru_class *mod)
 __CFUNC__
 obj_include(GV v[], U32 vi)
 {
-	assert(v->gt==GT_CLASS && (v+1)->gt==GT_CLASS);
+	ASSERT(v->gt==GT_CLASS && (v+1)->gt==GT_CLASS);
 	_extend(v->cls, (v+1)->cls);
 }
 
@@ -230,7 +229,7 @@ obj_include(GV v[], U32 vi)
 __CFUNC__
 obj_extend(GV v[], U32 vi)
 {
-	assert(v->gt==GT_CLASS && v[1].gt==GT_CLASS);
+	ASSERT(v->gt==GT_CLASS && v[1].gt==GT_CLASS);
 
 	guru_class_add_meta(v);						// lazily add metaclass if needed
 	_extend(v->cls->cls, (v+1)->cls);			// add to class methods
@@ -276,12 +275,12 @@ _name_w_eq_sign(GV *buf, U8 *s0)
 __CFUNC__
 obj_attr_reader(GV v[], U32 vi)
 {
-	assert(v->gt==GT_CLASS);
+	ASSERT(v->gt==GT_CLASS);
 	guru_class *cls = v->cls;							// fetch class
 
 	GV *s = v+1;
     for (U32 i = 0; i < vi; i++, s++) {
-        assert(s->gt==GT_SYM);
+        ASSERT(s->gt==GT_SYM);
 
         U8 *name = id2name(s->i);						// reader only
         guru_define_method(cls, name, obj_getiv);
@@ -294,7 +293,7 @@ obj_attr_reader(GV v[], U32 vi)
 __CFUNC__
 obj_attr_accessor(GV v[], U32 vi)
 {
-	assert(v->gt==GT_CLASS);
+	ASSERT(v->gt==GT_CLASS);
 	guru_class *cls = IS_SCLASS(v) ? v->cls->cls : v->cls;		// fetch class
 #if CC_DEBUG
     printf("%p:%s, sc=%d self=%d #attr_accessor\n", cls, cls->name, IS_SCLASS(v), IS_SELF(v));
@@ -302,7 +301,7 @@ obj_attr_accessor(GV v[], U32 vi)
     GV buf = guru_str_buf(80);
 	GV *s  = v+1;
     for (U32 i=0; i < vi; i++, s++) {
-        assert(s->gt==GT_SYM);
+        ASSERT(s->gt==GT_SYM);
         U8 *a0  = id2name(s->i);						// reader
         U8 *a1  = _name_w_eq_sign(&buf, a0);			// writer
 
@@ -320,7 +319,7 @@ obj_attr_accessor(GV v[], U32 vi)
 __CFUNC__
 obj_kind_of(GV v[], U32 vi)
 {
-	assert(v->gt==GT_OBJ);
+	ASSERT(v->gt==GT_OBJ);
     if ((v+1)->gt != GT_CLASS) {
         RETURN_BOOL(0);
     }
@@ -338,7 +337,7 @@ obj_kind_of(GV v[], U32 vi)
 __CFUNC__
 obj_lambda(GV v[], U32 vi)
 {
-	assert(v->gt==GT_CLASS && (v+1)->gt==GT_PROC);		// ensure it is a proc
+	ASSERT(v->gt==GT_CLASS && (v+1)->gt==GT_PROC);		// ensure it is a proc
 
 	guru_proc *prc = (v+1)->proc;						// mark it as a lambda
 	prc->meta |= PROC_LAMBDA;
@@ -357,7 +356,7 @@ obj_lambda(GV v[], U32 vi)
 __CFUNC__
 obj_to_s(GV v[], U32 vi)
 {
-	assert(1==0);				// handled in ucode
+	ASSERT(1==0);				// handled in ucode
 }
 
 __GURU__ __const__ Vfunc obj_vtbl[] = {

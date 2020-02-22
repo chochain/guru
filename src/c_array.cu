@@ -9,8 +9,6 @@
 
   </pre>
 */
-#include <assert.h>
-
 #include "vm_config.h"
 #include "guru.h"
 #include "mmu.h"
@@ -420,7 +418,7 @@ ary_new(GV v[], U32 vi)
 __CFUNC__
 ary_add(GV v[], U32 vi)
 {
-    assert(v[0].gt==GT_ARRAY && v[1].gt==GT_ARRAY);		// array only (for now)
+    ASSERT(v[0].gt==GT_ARRAY && v[1].gt==GT_ARRAY);		// array only (for now)
 
     guru_array 	*h0 = v[0].array, 	*h1 = v[1].array;
     U32 		n0  = h0->n, 		n1  = h1->n;
@@ -442,7 +440,7 @@ ary_add(GV v[], U32 vi)
 __CFUNC__
 ary_sub(GV v[], U32 vi)
 {
-    assert(v[0].gt==GT_ARRAY && v[1].gt==GT_ARRAY);		// array only (for now)
+    ASSERT(v[0].gt==GT_ARRAY && v[1].gt==GT_ARRAY);		// array only (for now)
 
     guru_array 	*h0 = v[0].array, 	*h1 = v[1].array;
     U32 		n0  = h0->n,	  	n1  = h1->n;

@@ -9,8 +9,6 @@
 
   </pre>
 */
-#include <assert.h>
-
 #include "value.h"
 #include "mmu.h"
 #include "class.h"
@@ -18,7 +16,6 @@
 #include "c_string.h"
 #include "c_array.h"
 #include "inspect.h"
-#include "nvToolsExt.h"
 
 __GURU__ U32 	_sym_idx = 0;					// point to the last(free) sym_list array.
 __GURU__ U8*	_sym[MAX_SYMBOL_COUNT];
@@ -94,7 +91,7 @@ name2id(const U8 *str)
     }
     else {
     	printf("  sym[%2d]%08x: %s==%s\n", sid, hash, str, _sym[sid]);
-    	assert(STRCMP((const char *)str, (const char *)_sym[sid])==0);
+    	ASSERT(STRCMP((const char *)str, (const char *)_sym[sid])==0);
 #endif // CC_DEBUG
     }
     return sid;
@@ -169,7 +166,7 @@ name2id_s(const U8 *str, cudaStream_t st, cudaEvent_t ev)
     }
     else {
     	printf("  sym[%2d]%08x: %s==%s\n", sid, hash, str, _sym[sid]);
-    	assert(STRCMP((const char *)str, (const char *)_sym[sid])==0);
+    	ASSERT(STRCMP((const char *)str, (const char *)_sym[sid])==0);
 #endif // CC_DEBUG
     }
     return sid;
@@ -190,7 +187,7 @@ name2id_s(const U8 *str, cudaStream_t st, cudaEvent_t ev)
     }
     else {
     	printf("  sym[%2d]%08x: %s==%s\n", sid, hash, str, _sym[sid]);
-//    	assert(STRCMP((const char *)str, (const char *)_sym[sid])==0);
+//    	ASSERT(STRCMP((const char *)str, (const char *)_sym[sid])==0);
 #endif // CC_DEBUG
     }
 */
@@ -283,6 +280,7 @@ __HOST__ void
 id2name_host(GS sid, U8 *str)
 {
 	_id2str<<<1,1>>>(sid, str);
-	DEVSYNC();
+
+	cudaDeviceSynchronize();
 }
 #endif // GURU_DEBUG

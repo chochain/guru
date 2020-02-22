@@ -12,7 +12,6 @@
 */
 #include <stdio.h>
 #include <stdarg.h>
-#include <assert.h>
 #include "guru.h"
 #include "class.h"
 #include "mmu.h"

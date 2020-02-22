@@ -14,7 +14,7 @@
   </pre>
 */
 #include <stdio.h>
-#include <assert.h>
+//#include <assert.h>
 #include "mmu.h"
 
 // TLSF: Two-Level Segregated Fit allocator with O(1) time complexity.
@@ -116,10 +116,10 @@ __nlz16(uint16_t x)
 __GURU__ __INLINE__ int
 __calc_index(int l1, int l2)
 {
-    assert(l1 >= 0);
-    assert(l1 <= L1_BITS);
-    assert(l2 >= 0);
-    assert(l2 <= L2_MASK);
+    ASSERT(l1 >= 0);
+    ASSERT(l1 <= L1_BITS);
+    ASSERT(l2 >= 0);
+    ASSERT(l2 <= L2_MASK);
 
     return (l1 << L2_BITS) | l2;
 }
@@ -247,7 +247,7 @@ _mark_free(free_block *target)
 __GURU__ void
 _merge_blocks(free_block *p0, free_block *p1)
 {
-    assert(p0 < p1);
+    ASSERT(p0 < p1);
 
     // merge ptr1 and ptr2
     p0->tail  = p1->tail;
@@ -341,8 +341,8 @@ _mark_used(int index)
 __GURU__ void
 _init_mmu(void *mem, unsigned int size)
 {
-    assert(size != 0);
-    assert(size < 0x80000000);		// 2G max
+    ASSERT(size != 0);
+    ASSERT(size < 0x80000000);		// 2G max
 
     _mutex_mem		  = 0;
     _memory_pool      = (uint8_t *)mem;
@@ -377,7 +377,7 @@ mrbc_alloc(U32 size)
 #endif
     // check minimum alloc size. if need.
 #if GURU_DEBUG
-    assert(alloc_size >= XX_BLOCK);
+    ASSERT(alloc_size >= XX_BLOCK);
 #else
     if (alloc_size < XX_BLOCK) {
         alloc_size = XX_BLOCK;

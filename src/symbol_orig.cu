@@ -9,8 +9,6 @@
 
   </pre>
 */
-#include <assert.h>
-
 #include "value.h"
 #include "mmu.h"
 #include "static.h"
@@ -87,7 +85,7 @@ _add_index(const U8 *str)
     U32 hash = _calc_hash(str);
 
     // check overflow.
-    assert(_sym_idx < MAX_SYMBOL_COUNT);
+    ASSERT(_sym_idx < MAX_SYMBOL_COUNT);
 
     // append table.
     U32 sid = _sym_idx++;				// add to next entry

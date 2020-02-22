@@ -9,8 +9,6 @@
   2. the core opcode dispatcher
   </pre>
 */
-#include <assert.h>
-
 #include "mmu.h"
 //#include "static.h"
 #include "symbol.h"
@@ -235,7 +233,7 @@ __UCODE__
 uc_getiv(guru_vm *vm)
 {
 	GV *v  = _R0;
-	assert(v->gt==GT_OBJ || v->gt==GT_CLASS);
+	ASSERT(v->gt==GT_OBJ || v->gt==GT_CLASS);
 
     GS sid = _name2id_wo_at_sign(vm);
     GV ret = ostore_get(v, sid);
@@ -253,7 +251,7 @@ __UCODE__
 uc_setiv(guru_vm *vm)
 {
 	GV *v  = _R0;
-	assert(v->gt==GT_OBJ || v->gt==GT_CLASS);
+	ASSERT(v->gt==GT_OBJ || v->gt==GT_CLASS);
 
     GS sid = _name2id_wo_at_sign(vm);
     ostore_set(v, sid, _R(a));
@@ -271,7 +269,7 @@ uc_getcv(guru_vm *vm)
 	GV *v  = _R0;
 	GS sid = VM_SYM(vm, _AR(bx));
 
-	assert(v->gt==GT_OBJ);
+	ASSERT(v->gt==GT_OBJ);
 
 	GV cv; { cv.gt=GT_CLASS; cv.acl=0; cv.cls=v->self->cls; }
 	GV ret;
@@ -291,7 +289,7 @@ __UCODE__
 uc_setcv(guru_vm *vm)
 {
 	GV *v = _R0;
-	assert(v->gt==GT_CLASS);
+	ASSERT(v->gt==GT_CLASS);
 
     GS sid = VM_SYM(vm, _AR(bx));
     ostore_set(v, sid, _R(a));
@@ -435,7 +433,7 @@ uc_jmpnot(guru_vm *vm)
 __UCODE__
 uc_onerr(guru_vm *vm)
 {
-	assert(vm->depth < (MAX_RESCUE_STACK-1));
+	ASSERT(vm->depth < (MAX_RESCUE_STACK-1));
 
 	GI sbx = _AR(bx) - MAX_sBx -1;
 
@@ -482,7 +480,7 @@ uc_poperr(guru_vm *vm)
 {
 	U32 a = _AR(a);
 
-	assert(vm->depth >= a);
+	ASSERT(vm->depth >= a);
 
 	vm->depth -= a;
 }
@@ -552,7 +550,7 @@ uc_send(guru_vm *vm)
 __UCODE__
 uc_call(guru_vm *vm)
 {
-	assert(1==0);				// should not be here, no test case yet!
+	ASSERT(1==0);				// should not be here, no test case yet!
 }
 
 //================================================================
@@ -622,7 +620,7 @@ uc_blkpush(guru_vm *vm)
 	}
     GV *prc = st->regs+st->argc+1;       	// get proc, regs[0] is the class
 
-    assert(prc->gt==GT_PROC);				// ensure
+    ASSERT(prc->gt==GT_PROC);				// ensure
 
     _RA_X(prc);             				// ra <= proc
 }
@@ -1010,7 +1008,7 @@ uc_class(guru_vm *vm)
 __UCODE__
 uc_exec(guru_vm *vm)
 {
-	assert(_R0->gt == GT_CLASS);				// check
+	ASSERT(_R0->gt == GT_CLASS);				// check
 	guru_irep *irep = VM_REPS(vm, _AR(bx));		// child IREP[rb]
 
     vm_state_push(vm, irep, 0, _R(a), 0);		// push call stack
@@ -1026,7 +1024,7 @@ __UCODE__
 uc_method(guru_vm *vm)
 {
 	GV *v  = _R(a);
-    assert(v->gt==GT_OBJ || v->gt == GT_CLASS);	// enforce class checking
+    ASSERT(v->gt==GT_OBJ || v->gt == GT_CLASS);	// enforce class checking
 
     // check whether the name has been defined in current class (i.e. vm->state->klass)
     GS sid = VM_SYM(vm, _AR(b));				// fetch name from IREP symbol table
@@ -1091,7 +1089,7 @@ uc_sclass(guru_vm *vm)
 	else if (o->gt==GT_CLASS) {						// meta class (for class methods)
 		guru_class_add_meta(o);						// lazily add metaclass if needed
 	}
-	else assert(1==0);
+	else ASSERT(1==0);
 
 	o->acl |= ACL_SCLASS;
 	o->acl &= ~ACL_SELF;

@@ -9,10 +9,9 @@
 
   </pre>
 */
+#include <stdio.h>
 
-#include <assert.h>
 #include "vm_config.h"
-
 #include "guru.h"
 #include "mmu.h"
 //#include "static.h"
@@ -48,7 +47,7 @@ guru_iter_new(GV *obj, GV *step)
     } break;
     case GT_RANGE: {
     	guru_range *r = obj->range;
-    	assert(r->first.gt==GT_INT || r->first.gt==GT_FLOAT);
+    	ASSERT(r->first.gt==GT_INT || r->first.gt==GT_FLOAT);
 
     	i->n     = 0;
     	i->ivar  = (GV*)guru_alloc(sizeof(GV));
@@ -64,7 +63,7 @@ guru_iter_new(GV *obj, GV *step)
     	i->n	 = 0;
     	i->ivar	 = ref_inc(h->data);	ref_inc(h->data+1);
     } break;
-    default: assert(1==0);			// TODO: other types not supported yet
+    default: ASSERT(1==0);			// TODO: other types not supported yet
     }
     return v;
 }
@@ -74,7 +73,7 @@ guru_iter_new(GV *obj, GV *step)
 __GURU__ U32
 guru_iter_next(GV *v)
 {
-	assert(v->gt==GT_ITER);
+	ASSERT(v->gt==GT_ITER);
 
 	guru_iter *it = v->iter;
 	U32 nvar;
@@ -117,7 +116,7 @@ guru_iter_next(GV *v)
 		}
 		else nvar=0;
 	} break;
-	default: assert(1==0);			// TODO: other types not supported yet
+	default: ASSERT(1==0);			// TODO: other types not supported yet
 	}
 	return nvar;
 }
@@ -130,7 +129,7 @@ guru_iter_next(GV *v)
 __GURU__ void
 guru_iter_del(GV *v)
 {
-	assert(v->gt==GT_ITER);
+	ASSERT(v->gt==GT_ITER);
 	guru_iter *it = v->iter;
 
 	if (it->meta==GT_RANGE) guru_free(it->ivar);

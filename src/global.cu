@@ -9,7 +9,6 @@
 
   </pre>
 */
-#include <assert.h>
 #include "global.h"
 #include "puts.h"
 /*
@@ -78,11 +77,11 @@ _set(GS xid, GV *v, _gtype gt)
     _LOCK;
     if (i<0) {
     	i = _global_sz++;
-    	assert(i<MAX_GLOBAL_COUNT);	// maybe raise ex
+    	ASSERT(i<MAX_GLOBAL_COUNT);	// maybe raise ex
     }
     else {
-//    	assert(i<0);
-    	assert(1==1);
+//    	ASSERT(i<0);
+    	ASSERT(1==1);
     }
     _global_idx[i].xid = xid;
     _global_idx[i].gt  = gt;

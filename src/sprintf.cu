@@ -10,8 +10,8 @@
 
   </pre>
 */
+#include <stdio.h>
 #include <stdarg.h>
-#include <assert.h>
 
 #include "mmu.h"
 #include "value.h"
@@ -203,8 +203,8 @@ __str(guru_print *pf, U8 *str, U8 pad)
     S32 tw = len;
     if (pf->fmt.width > len) tw = pf->fmt.width;
 
-    assert(len <= _size(pf));
-    assert(tw  <= _size(pf));
+    ASSERT(len <= _size(pf));
+    ASSERT(tw  <= _size(pf));
 
     S32 n_pad = tw - len;
 

@@ -10,8 +10,6 @@
 
   </pre>
 */
-#include <assert.h>
-
 #include "guru.h"
 #include "class.h"
 #include "value.h"
@@ -74,7 +72,7 @@ _int(GV *s, GV v[], U32 vi)
     U32 aoff = 'a' - 10;
     U32 base = vi ? v[1].i : 10;				// if base given
 
-    assert(base >=2 && base <= 36);
+    ASSERT(base >=2 && base <= 36);
 
     U8 buf[64+2];									// int64 + terminate + 1
     U8 *p = buf + sizeof(buf) - 1;		*p='\0';	// fill from the tail of the buffer
@@ -154,7 +152,7 @@ _cls(GV *s, GV *v)
 __GURU__ void
 _obj(GV *s, GV *v)
 {
-	assert(v->gt==GT_OBJ);
+	ASSERT(v->gt==GT_OBJ);
 	U8 *name = id2name(class_by_obj(v)->sid);
 	guru_str_add_cstr(s, "#<");
 	guru_str_add_cstr(s, name);
@@ -183,7 +181,7 @@ _ary(GV *s, GV *v)
 __GURU__ void
 _hsh(GV *s, GV *v)
 {
-    assert(v->gt==GT_HASH);
+    ASSERT(v->gt==GT_HASH);
 
     int n  = v->array->n;
     GV  *o = v->array->data;
@@ -202,7 +200,7 @@ _hsh(GV *s, GV *v)
 __GURU__ void
 _rng(GV *s, GV *v)
 {
-    assert(v->gt==GT_RANGE);
+    ASSERT(v->gt==GT_RANGE);
 
     for (U32 i=0; i<2; i++) {
         guru_str_add_cstr(s, (const U8 *)(i==0 ? "" : ".."));
@@ -230,7 +228,7 @@ _to_s(GV *s, GV v[], U32 n)
     case GT_STR: 	_str(s, v);		break;
     case GT_HASH:  	_hsh(s, v);		break;
     case GT_RANGE:  _rng(s, v);		break;
-    default: assert(1==0);		// unknown type
+    default: ASSERT(1==0);		// unknown type
     }
 }
 //================================================================
@@ -249,7 +247,7 @@ gv_to_s(GV v[], U32 vi)
 __GURU__ void
 gv_join(GV v[], U32 vi)
 {
-	assert(v->gt==GT_ARRAY);
+	ASSERT(v->gt==GT_ARRAY);
 	guru_array *a = v->array;
 
 	GV ret = guru_str_buf(BUF_SIZE);

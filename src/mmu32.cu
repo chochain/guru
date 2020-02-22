@@ -12,7 +12,6 @@
   </pre>
 */
 #include <stdio.h>
-#include <assert.h>
 #include "mmu.h"
 #include "mmu32.h"
 
@@ -83,7 +82,7 @@ __idx(U32 sz, U32 *l1, U32 *l2)
 __GURU__ void
 __unmap(free_block *blk)
 {
-	assert(IS_FREE(blk));					// ensure block is free
+	ASSERT(IS_FREE(blk));					// ensure block is free
 
 	U32 l1, l2;
 	U32 index 	  = __idx(blk->bsz, &l1, &l2);
@@ -91,7 +90,7 @@ __unmap(free_block *blk)
     if (n) {								// up link
     	// blk->next->prev = blk->prev;
     	n->prev = blk->prev ? U8POFF(n, PREV_FREE(blk)) : 0;
-    	assert((n->prev&7)==0);
+    	ASSERT((n->prev&7)==0);
     }
     else {									// 1st of the link
         U32 l1x= L1(index);
@@ -125,8 +124,8 @@ __unmap(free_block *blk)
 __GURU__ void
 __pack(free_block *b0, free_block *b1)
 {
-	assert((free_block*)BLK_AFTER(b0)==b1);
-	assert(IS_FREE(b1));
+	ASSERT((free_block*)BLK_AFTER(b0)==b1);
+	ASSERT(IS_FREE(b1));
 
 	// remove b0, b1 from free list first (sizes will not change)
     __unmap(b1);
@@ -151,7 +150,7 @@ __pack(free_block *b0, free_block *b1)
 __GURU__ void
 _mark_free(free_block *blk)
 {
-	assert(IS_USED(blk));
+	ASSERT(IS_USED(blk));
 
 	U32 l1, l2;
 	U32 index = __idx(blk->bsz, &l1, &l2);
@@ -171,15 +170,15 @@ _mark_free(free_block *blk)
     // update block attributes
     free_block *head = _free_list[index];
 
-    assert(head!=blk);
+    ASSERT(head!=blk);
 
     SET_FREE(blk);
     blk->next = head ? U8POFF(head, blk) : 0;			// setup linked list
-    assert((blk->next&7)==0);
+    ASSERT((blk->next&7)==0);
     blk->prev = 0;
     if (head) {											// non-end block, add backward link
     	head->prev = U8POFF(blk, head);
-        assert((head->prev&7)==0);
+        ASSERT((head->prev&7)==0);
     	SET_FREE(head);									// turn the free flag back on
     }
     _free_list[index] = blk;							// new head of the linked list
@@ -189,8 +188,8 @@ __GURU__ free_block*
 _mark_used(U32 index)
 {
     free_block *blk  = _free_list[index];
-    assert(blk);
-    assert(IS_FREE(blk));
+    ASSERT(blk);
+    ASSERT(IS_FREE(blk));
 
     __unmap(blk);
     SET_USED(blk);
@@ -260,7 +259,7 @@ _find_free_index(U32 sz)
 __GURU__ void
 _split(free_block *blk, U32 bsz)
 {
-	assert(IS_USED(blk));
+	ASSERT(IS_USED(blk));
 
     if ((bsz + MIN_BLOCK + sizeof(free_block)) > blk->bsz) return;	// too small to split 											// too small to split
 
@@ -289,7 +288,7 @@ _split(free_block *blk, U32 bsz)
 __GURU__ void
 _init_mmu(void *mem, U32 size)
 {
-    assert(size > 0);
+    ASSERT(size > 0);
 
     U32 bsz = size - sizeof(free_block);
 
@@ -321,7 +320,7 @@ guru_alloc(U32 sz)
 {
     U32 bsz = sz + sizeof(used_block);			// logical => physical size
 
-    assert((bsz & 7)==0);						// assume caller already align the size
+    ASSERT((bsz & 7)==0);						// assume caller already align the size
     CHECK_MINSZ(bsz);							// check minimum allocation size
 
 	_LOCK;
@@ -352,11 +351,11 @@ guru_realloc(void *p0, U32 sz)
 {
 	U32 bsz = sz + sizeof(used_block);					// include the header
 
-	assert(p0);
-	assert((bsz & 7)==0);								// assume it is aligned already
+	ASSERT(p0);
+	ASSERT((bsz & 7)==0);								// assume it is aligned already
 
     used_block *blk = (used_block *)BLK_HEAD(p0);
-    assert(IS_USED(blk));								// make sure it is used
+    ASSERT(IS_USED(blk));								// make sure it is used
 
     if (bsz > blk->bsz) {
     	_merge_with_next((free_block *)blk);			// try to get the block bigger
@@ -502,7 +501,7 @@ _dump_freelist()
 		printf("%02x=>[", i);
 		for (free_block *b = _free_list[i]; b!=NULL; b=NEXT_FREE(b)) {
 			U32 a = (U32A)b;		// take 32-bits only, b is 64-bit will bleed into 2nd param
-			assert((a&7)==0);		// double check alignment
+			ASSERT((a&7)==0);		// double check alignment
 			printf(" %08x(%02x)", a, b->bsz);
 			if (IS_USED(b)) {
 				printf("<-USED?");

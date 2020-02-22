@@ -100,7 +100,7 @@ typedef struct free_block {			// 16-bytes (i.e. mininum allocation per block)
 #define SET_MAP(i)      { SET_L1(i); SET_L2(i); }
 #define CLEAR_MAP(i)	{ CLR_L2(i); if ((L2_MAP(i))==0) CLR_L1(i); }
 
-#define CHECK_MINSZ(sz)	assert((sz)>=MIN_BLOCK)
+#define CHECK_MINSZ(sz)	ASSERT((sz)>=MIN_BLOCK)
 
 #ifdef __cplusplus
 }

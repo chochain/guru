@@ -10,7 +10,6 @@
   </pre>
 */
 #include <stdio.h>
-#include <assert.h>
 
 #include "mmu.h"		// includes guru.h
 #include "class.h"
@@ -92,8 +91,8 @@ _blank(U32 bsz)
     guru_str *h = v.str = (guru_str *)guru_alloc(sizeof(guru_str));
     U8       *s = (U8*)guru_alloc(asz);		// 8-byte aligned
 
-    assert(((U32A)h & 7)==0);
-    assert(((U32A)s & 7)==0);
+    ASSERT(((U32A)h & 7)==0);
+    ASSERT(((U32A)s & 7)==0);
 
     s[0]   = '\0';						// empty new string
     h->rc  = 1;
@@ -253,7 +252,7 @@ guru_str_buf(U32 sz)				// a string buffer
 __GURU__ GV
 guru_str_clr(GV *s)
 {
-	assert(s->gt==GT_STR);
+	ASSERT(s->gt==GT_STR);
 	s->str->n = 0;
 	return *s;
 }
@@ -279,7 +278,7 @@ z
 __GURU__ GV
 guru_str_add(GV *s0, GV *s1)
 {
-	assert(s1->gt==GT_STR);
+	ASSERT(s1->gt==GT_STR);
 
     U32 bsz0 = s0->str->n;
     U32 bsz1 = s1->str->n;
@@ -324,7 +323,7 @@ guru_str_add_cstr(GV *s0, const U8 *str)
 __CFUNC__
 str_add(GV v[], U32 vi)
 {
-    assert(v[1].gt == GT_STR);
+    ASSERT(v[1].gt == GT_STR);
 
     GV ret = guru_str_add(v, v+1);
 
@@ -439,7 +438,7 @@ str_slice(GV v[], U32 vi)
     }
     else if (vi==1 && v1->gt==GT_RANGE) {
     	guru_range *r = v1->range;
-    	assert(r->first.gt==GT_INT && r->last.gt==GT_INT);
+    	ASSERT(r->first.gt==GT_INT && r->last.gt==GT_INT);
     	S32 i  = r->first.i;
     	S32 sz = r->last.i-i + (IS_INCLUDE(r) ? 1 : 0);
     	sz = (sz+i) < n ? sz : (n-i);

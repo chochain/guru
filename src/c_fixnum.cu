@@ -10,7 +10,6 @@
 
   </pre>
 */
-#include <assert.h>
 #include "guru.h"
 #include "value.h"
 #include "class.h"
@@ -53,7 +52,7 @@ int_negative(GV v[], U32 vi)
 __CFUNC__
 int_power(GV v[], U32 vi)
 {
-    assert(v[1].gt==GT_INT);
+    ASSERT(v[1].gt==GT_INT);
 
     GI x = (_INT(1) < 0) ? 0 : 1;
     for (U32 i=0; i < _INT(1); i++, x *= _INT(0));
