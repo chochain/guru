@@ -4,8 +4,9 @@
 CC=gcc
 CCFLAGS= -Wall -Wpointer-arith -g -c -DGURU_DEBUG
 NVCC=nvcc
-NVCC_FLAGS= --gpu-architecture=compute_30 --relocatable-device-code=true
-CUDAFLAGS= -default-stream=per-thread -arch=sm_30
+NVCC_FLAGS= --default-stream per-thread --gpu-architecture=compute_61 --relocatable-device-code=true
+CUDAFLAGS= --default-stream per-thread -arch=sm_61 --std=c++11 -DGURU_DEBUG
+#CUDAFLAGS= -arch=sm_61 -std=c++11
 
 #LIBS= -lopenblas -lpthread -lcudart -lcublas
 LIBS= -lpthread -lcudart 
@@ -13,14 +14,16 @@ LIBDIRS=-L/usr/local/cuda/lib64
 INCDIRS=-I/usr/local/cuda/include -I./src
 
 SRC =   main.c 
-EXT =   c_string.cu c_range.cu c_array.cu c_hash.cu inspect.cu
-GURU= 	static.cu global.cu console.cu iter.cu \
+EXT =   c_range.cu c_array.cu c_hash.cu inspect.cu
+GURU= 	guru_test.cu vm_debug.cu \
+        static.cu global.cu console.cu iter.cu \
 		mmu32.cu load.cu \
-		guru.cu ostore.cu symbol.cu class.cu \
+		ostore.cu symbol.cu class.cu \
 		state.cu vm.cu \
 		sprintf.cu puts32.cu \
         value.cu refcnt.cu \
-		ucode.cu c_fixnum.cu object.cu \
+		ucode.cu object.cu \
+        c_fixnum.cu c_str_utf8.cu \
 		$(EXT)
 CUDA=   cuda.cu
 LIB = 	libguru.a
@@ -63,7 +66,12 @@ mmu32.o: mmu32.cu   	$(BASE) mmu32.h
 load.o: load.cu         $(BASE) errorcode.h \
 						load.h
 
-guru.o: guru.cu         $(BASE) vmx.h load.h 
+guru.o: guru.cu         $(BASE) vmx.h load.h
+
+guru_test.o: guru_test.cu    $(BASE) vmx.h load.h
+
+vm_debug.o: vm_debug.cu $(BASE) state.h symbol.h ucode.h \
+                        vm_debug.h
 
 ostore.o: ostore.cu 	$(BASE) \
 						ostore.h
@@ -110,7 +118,7 @@ object.o: object.cu	    $(REFS) symbol.h ostore.h \
 						global.h ucode.h vm.h class.h object.h \
 						c_fixnum.h $(EXTS)
 
-c_string.o: c_string.cu $(REFS) symbol.h c_string.h
+c_str_utf8.o: c_str_utf8.cu $(REFS) symbol.h c_string.h
 
 c_array.o: c_array.cu 	$(REFS) c_array.h
 
