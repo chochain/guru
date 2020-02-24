@@ -115,7 +115,7 @@ proc_by_sid(GV *v, GS sid)
 __GURU__ void
 _define_class(const U8 *name, guru_class *cls, guru_class *super)
 {
-	GS sid = name2id(name);
+	GS sid = new_sym(name);
 
     cls->rc     = 0;
     cls->meta   = 0;					// BUILT-IN classes
@@ -126,7 +126,7 @@ _define_class(const U8 *name, guru_class *cls, guru_class *super)
     cls->ivar   = NULL;					// lazily allocated when needed
     cls->cls 	= NULL;					// meta-class, lazily allocated when needed
 #ifdef GURU_DEBUG
-    cls->name   = (char *)id2name(sid);	// retrive from stored symbol table (the one caller passed might be destroyed)
+    cls->name   = (char *)id2name(sid);	// retrieve from stored symbol table (the one caller passed might be destroyed)
 #endif
 
     GV v; { v.gt=GT_CLASS; v.acl=0; v.self=(guru_obj*)cls; }
@@ -169,7 +169,7 @@ guru_define_method(guru_class *cls, const U8 *name, guru_fptr cfunc)
 
     prc->meta  = 0;								// C-function
     prc->n     = 0;								// No LAMBDA register file
-    prc->sid   = name2id(name);
+    prc->sid   = new_sym(name);
     prc->func  = cfunc;							// set function pointer
 
     _LOCK;
@@ -210,7 +210,7 @@ guru_rom_set_class(GT cidx, const char *name, GT super_cidx, const Vfunc vtbl[],
     for (U32 i=0; i<n; i++, prc++) {
     	prc->meta = 0;
     	prc->n    = 0;
-    	prc->sid  = name2id((U8*)vtbl[i].name);
+    	prc->sid  = new_sym((U8*)vtbl[i].name);
     	prc->func = vtbl[i].func;
 #ifdef GURU_DEBUG
     	prc->cname= (char *)id2name(cls->sid);

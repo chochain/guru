@@ -52,9 +52,9 @@ __GURU__ GV
 _send(GV v[], GV *rcv, const U8 *method, U32 argc, ...)
 {
     GV *regs = v + 2;	     		// allocate 2 for stack
-    GS sid   = name2id(method);
+    GS sid   = name2id(method);		// symbol lookup
 
-    guru_proc  *m = proc_by_sid(v, sid);		// find method for receiver object
+    guru_proc  *m = proc_by_sid(v, sid);	// find method for receiver object
     ASSERT(m);
 
     // create call stack.
@@ -264,7 +264,7 @@ _name_w_eq_sign(GV *buf, U8 *s0)
     guru_str_add_cstr(buf, s0);
     guru_str_add_cstr(buf, "=");
 
-    U32 sid = name2id((U8*)buf->str->raw);
+    U32 sid = new_sym((U8*)buf->str->raw);		// create the symbol
 
     return id2name(sid);
 }
@@ -276,7 +276,7 @@ __CFUNC__
 obj_attr_reader(GV v[], U32 vi)
 {
 	ASSERT(v->gt==GT_CLASS);
-	guru_class *cls = v->cls;							// fetch class
+	guru_class *cls = v->cls;					// fetch class
 
 	GV *s = v+1;
     for (U32 i = 0; i < vi; i++, s++) {
@@ -475,14 +475,14 @@ extern "C" __GURU__ __const__ Vfunc *sym_vtbl;
 __GURU__ void
 _init_all_class(void)
 {
-    guru_rom_set_class(GT_OBJ, 	"Object", 		GT_EMPTY, 	obj_vtbl, 	VFSZ(obj_vtbl));
+    guru_rom_set_class(GT_OBJ,	"Object", 		GT_EMPTY, 	obj_vtbl, 	VFSZ(obj_vtbl));
 
     guru_rom_set_class(GT_NIL, 	"NilClass", 	GT_OBJ, 	nil_vtbl,  	VFSZ(nil_vtbl));
     guru_rom_set_class(GT_PROC, "Proc",     	GT_OBJ, 	prc_vtbl,  	VFSZ(prc_vtbl));
-    guru_rom_set_class(GT_FALSE, "FalseClass", 	GT_OBJ, 	false_vtbl,	VFSZ(false_vtbl));
-    guru_rom_set_class(GT_TRUE,  "TrueClass",  	GT_OBJ, 	true_vtbl, 	VFSZ(true_vtbl));
+    guru_rom_set_class(GT_FALSE,"FalseClass", 	GT_OBJ, 	false_vtbl,	VFSZ(false_vtbl));
+    guru_rom_set_class(GT_TRUE, "TrueClass",  	GT_OBJ, 	true_vtbl, 	VFSZ(true_vtbl));
 #if GURU_DEBUG
-    guru_rom_set_class(GT_SYS, 	 "Sys", 		GT_OBJ, 	sys_vtbl,  	VFSZ(sys_vtbl));
+    guru_rom_set_class(GT_SYS, 	"Sys", 			GT_OBJ, 	sys_vtbl,  	VFSZ(sys_vtbl));
 #endif
 
     guru_init_class_symbol();		// symbol.cu
