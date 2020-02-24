@@ -11,7 +11,7 @@
 extern "C" {
 #endif
 
-#ifdef __GURU_CUDA__
+#if defined(__CUDACC__)
 
 #define __GURU__ 			__device__
 #define __HOST__			__host__
@@ -26,7 +26,7 @@ extern "C" {
 #define ALIGN64(sz)			((sz) += -(sz) & 0xf)
 
 #define ASSERT(X) \
-	if (!(X)) printf("tid %d: %s, %d\n", threadIdx.x, __FILE__, __LINE__);
+	if (!(X)) printf("ASSERT tid %d: line %d in %s\n", threadIdx.x, __LINE__, __FILE__);
 #define DEVSYNC()			{ cudaDeviceSynchronize(); ASSERT(cudaGetLastError()==cudaSuccess); }
 
 #else
@@ -36,10 +36,11 @@ extern "C" {
 #define __HOST__
 #define __GPU__
 #define ALIGN(sz) 			((sz) += -(sz) & 3)
+#define ASSERT(X) 			assert(x)
 
 #endif
 
-#define MAX_BUFFER_SIZE 4096		// 4K
+#define MAX_BUFFER_SIZE 	4096			// 4K
 
 //================================================================
 /*!@brief

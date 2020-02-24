@@ -34,21 +34,20 @@
 #define GURU_USE_ARRAY  	1
 #define GURU_USE_MATH   	0
 
-/* Hardware dependent flags */
-
 /* 32it alignment is required */
 /* 0: Byte alignment */
 /* 1: 32bit alignment */
 #define GURU_32BIT_ALIGN_REQUIRED 	1
 #define GURU_HOST_IMAGE				1
-
-#define __GURU_CUDA__
 #define GURU_DEBUG					1
 #define BLOCK_MEMORY_SIZE 			(128*1024)
 #define GURU_64BIT_ALIGN_REQUIRED 	1
-#define CUDA_MIN_MEMBLOCK_SIZE		0x200
 
 #define CC_DEBUG					0
+
+/* Hardware dependent flags */
+#define CUDA_MIN_MEMBLOCK_SIZE		0x200
+
 #endif
 
 
