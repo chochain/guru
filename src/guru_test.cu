@@ -138,30 +138,34 @@ __GURU__ const char *slist[] = {
     "printf"
 };
 
-__GURU__ const int GLIST_SIZE = sizeof(slist)/sizeof(char*);
-const int HLIST_SIZE = sizeof(slist)/sizeof(char*);
+const int LIST_SIZE = sizeof(slist)/sizeof(char*);
 
 __GPU__ void
-_hash_test(U32 *sid, U32 ncycle)
+_hash_test(U32 *sid, U32 ncycle, cudaStream_t st)
 {
 	int i = threadIdx.x;
-	if (i>=GLIST_SIZE) return;
+	if (i>=LIST_SIZE) return;
 
-	for (int j=0; j<ncycle; j++) {
-		sid[i] = name2id_s((U8*)slist[i], 0, 0);
-		//	sid[i] = name2id_s((U8*)slist[i], st, ev);
+	for (int n=0; n<ncycle; n++) {
+		sid[i] = name2id_s((U8*)slist[i], st);
 	}
 }
 
 __HOST__ void
 guru_hash_test(int ncycle, cudaStream_t *hst, int N)
 {
-	U32 *sid = (U32*)cuda_malloc(sizeof(U32)*HLIST_SIZE, 1);
+	U32 *sid = (U32*)cuda_malloc(sizeof(U32)*N*LIST_SIZE, 1);
 
 	for (int i=0; i<N; i++) {
-		_hash_test<<<1, 32, 0, hst[i]>>>(sid, ncycle);		// using default sync stream
+		_hash_test<<<1, 32, 0, hst[i]>>>(&sid[i*LIST_SIZE], ncycle, hst[i]);		// using default sync stream
 	}
-
+	cudaDeviceSynchronize();
+	for (int i=0; i<N; i++) {
+		for (int j=0; j<LIST_SIZE; j++) {
+			U32 x = j+i*LIST_SIZE;
+			printf("%d:%d\n", x, sid[x]);
+		}
+	}
 	cuda_free(sid);
 }
 
@@ -177,7 +181,7 @@ _time(const char *fname, int ncycle, void (*fp)(int, cudaStream_t*, int))
 	cudaEventCreate(&_event_t1);
 	cudaEventRecord(_event_t0);
 
-	const int N=4;
+	const int N=1;
 
 	cudaStream_t hst[N];											// host streams
 	for (int i=0; i<N; i++)
@@ -201,7 +205,7 @@ __HOST__ int
 guru_run(int trace)
 {
 	//_time("mem_test", 10, &guru_mem_test);
-	_time("hash_test", 1000, &guru_hash_test);
+	_time("hash_test", 1, &guru_hash_test);
 
 	cudaDeviceReset();
 	return 0;
