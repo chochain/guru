@@ -205,27 +205,28 @@ typedef struct RProc {			// 48-byte
 #define AS_IREP(p)		((p)->meta & PROC_IREP)
 #define AS_LAMBDA(p)	((p)->meta & PROC_LAMBDA)
 
-typedef struct RString {			// 16-byte
+typedef struct RString {		// 16-byte
 	GURU_HDR;
-	char 				*raw;		//!< pointer to allocated buffer.
+	U32				hash;
+	char 			*raw;		//!< pointer to allocated buffer.
 } guru_str;
 
 //================================================================
 /*!@brief
   physical store for Guru object instance.
 */
-typedef struct RObj {				// 32-byte
+typedef struct RObj {			// 32-byte
 	GURU_HDR;
-    struct RVar 		*ivar;		// DO NOT change here, shared structure with RClass
-    struct RClass 		*cls;		// DO NOT change here, shared structure with RClass
+    struct RVar 	*ivar;		// DO NOT change here, shared structure with RClass
+    struct RClass 	*cls;		// DO NOT change here, shared structure with RClass
 } guru_obj;
 
-typedef struct RSes {				// 16-byte
-	U8					*stdin;		// input stream
-	U8	 				*stdout;	// output stream
-	U16 				id;
-	U16 				trace;
-	struct RSes 		*next;
+typedef struct RSes {			// 16-byte
+	U8				*stdin;		// input stream
+	U8	 			*stdout;	// output stream
+	U16 			id;
+	U16 			trace;
+	struct RSes 	*next;
 } guru_ses;
 
 #ifdef __cplusplus

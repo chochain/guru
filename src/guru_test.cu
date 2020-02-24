@@ -115,6 +115,9 @@ guru_mem_test()
 }
 
 __GURU__ const char *slist[] = {
+	"p",
+	"sprintf",
+	"printf",
     "initialize",
     "private",
     "!",
@@ -132,22 +135,19 @@ __GURU__ const char *slist[] = {
     "puts",
     "print",
     "to_s",
-    "inspect",
-    "p",
-    "sprintf",
-    "printf"
+    "inspect"
 };
 
 const int LIST_SIZE = sizeof(slist)/sizeof(char*);
 
 __GPU__ void
-_hash_test(U32 *sid, U32 ncycle, cudaStream_t st)
+_hash_test(U32 *sid, U32 ncycle)
 {
-	int i = threadIdx.x;
-	if (i>=LIST_SIZE) return;
+	int tid = threadIdx.x;
+	if (tid>=LIST_SIZE) return;
 
 	for (int n=0; n<ncycle; n++) {
-		sid[i] = name2id_s((U8*)slist[i], st);
+		sid[tid] = name2id((U8*)slist[tid]);
 	}
 }
 
@@ -157,15 +157,17 @@ guru_hash_test(int ncycle, cudaStream_t *hst, int N)
 	U32 *sid = (U32*)cuda_malloc(sizeof(U32)*N*LIST_SIZE, 1);
 
 	for (int i=0; i<N; i++) {
-		_hash_test<<<1, 32, 0, hst[i]>>>(&sid[i*LIST_SIZE], ncycle, hst[i]);		// using default sync stream
+		_hash_test<<<1, 32, 0, hst[i]>>>(&sid[i*LIST_SIZE], ncycle);		// using default sync stream
 	}
 	cudaDeviceSynchronize();
+
 	for (int i=0; i<N; i++) {
 		for (int j=0; j<LIST_SIZE; j++) {
 			U32 x = j+i*LIST_SIZE;
 			printf("%d:%d\n", x, sid[x]);
 		}
 	}
+
 	cuda_free(sid);
 }
 
