@@ -17,6 +17,9 @@
 #include "c_array.h"
 #include "inspect.h"
 
+#define DYNA_HASH_THRESHOLD     128
+#define DYNA_SEARCH_THRESHOLD 	128				// meta-parameter
+
 #define _LOCK	{ MUTEX_LOCK(_mutex_sym); }
 #define _FREE	{ MUTEX_FREE(_mutex_sym); }
 
@@ -34,9 +37,8 @@ __GURU__ U32	_sym_hash[MAX_SYMBOL_COUNT];
 #define HASH_K 1000003
 
 __GURU__ U32
-_loop_hash(const U8 *str)
+_loop_hash(U32 bsz, const U8 *str)
 {
-	U32 bsz = STRLENB(str);
 	U32 h   = 0;
     for (U32 i=0; i<bsz/4; i++, str+=4) {
         h = h * HASH_K + *(U32*)str;			// a simplistic hashing algo
@@ -82,58 +84,54 @@ _add_index(const U8 *str, U32 hash)
 	return idx;
 }
 
-__GURU__ GS
-new_sym(const U8 *str)						// create new symbol
-{
-	U32 hash = _loop_hash(str);
-	S32 sid  = _loop_search(hash);
-	if (sid<0) {
-		sid  = _add_index(str, hash);
-	}
-#if CC_DEBUG
-	printf("  sym[%2d]%08x: %s==%s\n", sid, hash, str, _sym[sid]);
-#endif // CC_DEBUG
-
-	return sid;
-}
-
 //================================================================
 /*! Calculate hash value
 
   @param  str		Target string.
   @return GS	Symbol value.
 */
-__GURU__ U32 _dyna_hsh[32];				// for dynamic parallel search
 __GPU__ void
-_dyna_hash0(U32 *hash, U32 sz, const U8 *str)
+_dyna_hash(U32 *h, U32 sz, const U8 *str)
 {
-	U32 i  = threadIdx.x;
-	U32 *h = _dyna_hsh;
-	U32 n  = sz>64 ? 32 : sz>>1;
-
-	h[i] = (str[i]+1) * HASH_K;		// bank conflict?
-	for (U32 off=n; off>1; off>>=1) {
-		if (i<off) h[i] = h[i]*HASH_K + str[off+i];
+	U32 tid = threadIdx.x;
+	if (tid<sz) {
+		h[tid]    = str[tid];
+		h[tid+32] = str[tid+32];
 	}
-	*hash += h[0] + h[1];
+	else {
+		h[tid] = h[tid+32] = 0;
+	}
+	for (U32 n=32; n>0; n>>=1) {			// =~ shfl_down_sync()
+		if (tid<n) h[tid] = h[tid]*HASH_K + str[n+tid];
+		__syncthreads();					// sync child threads for next loop
+	}
 }
 
 __GURU__ U32
-_dyna_hash(const U8 *str)
+_hash(const U8 *str)
 {
-	U32 bsz  =STRLENB(str);	bsz+=bsz&1;	// include '\0' if odd length
-	static U32 hash;
-	hash = 0;
+	U32 bsz  = STRLENB(str);
+	U32 hash = 0;
+	if (bsz < DYNA_HASH_THRESHOLD) return _loop_hash(bsz, str);
+
+	bsz += bsz&1;							// include '\0' if odd length
+
+	U32 *dh  = (U32*)malloc(sizeof(U32)*64);
+	cudaStream_t st;
+	cudaStreamCreateWithFlags(&st, cudaStreamNonBlocking);	// wrapper overhead ~= 84us
 	for (U32 i=0; i<bsz; i+=64) {
-		_dyna_hash0<<<1,32>>>(&hash, bsz-i, &str[i]);
+		_dyna_hash<<<1,32,0,st>>>(dh, bsz-i, &str[i]);
+		cudaDeviceSynchronize();			// sync
+		hash = hash * HASH_K + dh[0];
 	}
-	cudaDeviceSynchronize();
+	cudaStreamDestroy(st);
+	free(dh);
 
 	return hash;
 }
 
 __GPU__ void
-_dyna_search0(S32 *idx, const U32 hash)
+_dyna_search(S32 *idx, const U32 hash)
 {
 	U32 tid = threadIdx.x + blockIdx.x*blockDim.x;
 
@@ -144,8 +142,10 @@ _dyna_search0(S32 *idx, const U32 hash)
 
 __GURU__ S32 _dyna_idx[32];		// for dynamic parallel search
 __GURU__ S32
-_dyna_search(U32 hash)
+_search(U32 hash)
 {
+	if (_sym_idx<DYNA_SEARCH_THRESHOLD) return _loop_search(hash);
+
 	U32 tid  = threadIdx.x;
 	S32 *idx = &_dyna_idx[tid];
 
@@ -155,28 +155,35 @@ _dyna_search(U32 hash)
 	cudaStream_t st;
 	cudaStreamCreateWithFlags(&st, cudaStreamNonBlocking);	// wrapper overhead ~= 84us
 	{
-		_dyna_search0<<<bc, tc, 0, st>>>(idx, hash);		// spawn
+		_dyna_search<<<bc, tc, 0, st>>>(idx, hash);	// spawn
+		cudaDeviceSynchronize();					// sync all child threads in the block
 	}
-	cudaDeviceSynchronize();	// sync all child threads in the block
 	cudaStreamDestroy(st);
 
-	__syncthreads();			// sync parent threads
 	return *idx;				// each parent thread gets one result back
 }
 
-#define DYNA_HASH_THRESHOLD     128
-#define DYNA_SEARCH_THRESHOLD 	128			// meta-parameter
+__GURU__ GS
+new_sym(const U8 *str)			// create new symbol
+{
+	U32 hash = _hash(str);
+	S32 sid  = _search(hash);
+	if (sid<0) {
+		sid  = _add_index(str, hash);
+	}
+#if CC_DEBUG
+	printf("  sym[%2d]%08x: %s==%s\n", sid, hash, str, _sym[sid]);
+#endif // CC_DEBUG
+
+	return sid;
+}
 
 __GURU__ GS
 name2id(const U8 *str)
 {
-//	U32 hash = _dyna_hash(str);				// loop: 0.28ms vs dyna: 0.95 ms/call
-//	return 0;
-
-	U32 hash = _loop_hash(str);				// loop: 0.28ms vs dyna: 0.95 ms/call
-	S32 sid  = (_sym_idx>DYNA_SEARCH_THRESHOLD)
-		? _dyna_search(hash)				// 100us/c
-		: _loop_search(hash);				// 50us/c
+	U32 hash = _hash(str);
+	return hash;
+	S32 sid  = _search(hash);
 
 #if CC_DEBUG
     printf("  sym[%2d]%08x=>%s\n", sid, _sym_hash[sid], _sym[sid]);

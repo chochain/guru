@@ -47,6 +47,8 @@ guru_setup(int step, int trace)
 {
 	cudaDeviceReset();
 
+	return 0;
+
 	U8 *mem = _guru_mem = (U8*)cuda_malloc(BLOCK_MEMORY_SIZE, 1);
 	if (!_guru_mem) {
 		fprintf(stderr, "ERROR: failed to allocate device main memory block!\n");
@@ -152,19 +154,27 @@ _hash_test(U32 *sid, U32 ncycle)
 }
 
 __HOST__ void
-guru_hash_test(int ncycle, cudaStream_t *hst, int N)
+guru_hash_test(int ncycle)
 {
+	const int N=1;				// number of streams
 	U32 *sid = (U32*)cuda_malloc(sizeof(U32)*N*LIST_SIZE, 1);
+
+	cudaStream_t hst[N];											// host streams
+	for (int i=0; i<N; i++)
+		cudaStreamCreateWithFlags(&hst[i], cudaStreamNonBlocking);	// overhead ~= 0.013ms
 
 	for (int i=0; i<N; i++) {
 		_hash_test<<<1, 32, 0, hst[i]>>>(&sid[i*LIST_SIZE], ncycle);		// using default sync stream
 	}
 	cudaDeviceSynchronize();
 
+	for (int i=0; i<N; i++)
+		cudaStreamDestroy(hst[i]);
+
 	for (int i=0; i<N; i++) {
 		for (int j=0; j<LIST_SIZE; j++) {
 			U32 x = j+i*LIST_SIZE;
-			printf("%d:%d\n", x, sid[x]);
+			printf("%2d:%08x\n", x, sid[x]);
 		}
 	}
 
@@ -172,7 +182,7 @@ guru_hash_test(int ncycle, cudaStream_t *hst, int N)
 }
 
 __HOST__ void
-_time(const char *fname, int ncycle, void (*fp)(int, cudaStream_t*, int))
+_time(const char *fname, int ncycle, void (*fp)(int))
 {
 	printf("%s starts here....\n", fname);
 
@@ -183,16 +193,7 @@ _time(const char *fname, int ncycle, void (*fp)(int, cudaStream_t*, int))
 	cudaEventCreate(&_event_t1);
 	cudaEventRecord(_event_t0);
 
-	const int N=1;
-
-	cudaStream_t hst[N];											// host streams
-	for (int i=0; i<N; i++)
-		cudaStreamCreateWithFlags(&hst[i], cudaStreamNonBlocking);	// overhead ~= 0.013ms
-
-	fp(ncycle, hst, N);
-
-	for (int i=0; i<N; i++)
-		cudaStreamDestroy(hst[i]);
+	fp(ncycle);
 
 	cudaEventRecord(_event_t1);
 	cudaEventSynchronize(_event_t1);
