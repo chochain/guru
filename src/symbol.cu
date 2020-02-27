@@ -17,14 +17,14 @@
 #include "c_array.h"
 #include "inspect.h"
 
-#define DYNA_HASH_THRESHOLD     128
-#define DYNA_SEARCH_THRESHOLD 	128				// meta-parameter
+#define DYNA_HASH_THRESHOLD     1
+#define DYNA_SEARCH_THRESHOLD 	1				// meta-parameter
 
 #define _LOCK	{ MUTEX_LOCK(_mutex_sym); }
 #define _FREE	{ MUTEX_FREE(_mutex_sym); }
 
 __GURU__ U32    _mutex_sym = 0;
-__GURU__ U32 	_sym_idx = 0;					// point to the last(free) sym_list array.
+__GURU__ S32 	_sym_idx = 0;					// point to the last(free) sym_list array.
 __GURU__ U8*	_sym[MAX_SYMBOL_COUNT];
 __GURU__ U32	_sym_hash[MAX_SYMBOL_COUNT];
 
@@ -39,9 +39,10 @@ __GURU__ U32	_sym_hash[MAX_SYMBOL_COUNT];
 __GURU__ U32
 _loop_hash(U32 bsz, const U8 *str)
 {
-	U32 h   = 0;
+	// a simple polynomial hashing algorithm
+	U32 h = 0;
     for (U32 i=0; i<bsz/4; i++, str+=4) {
-        h = h * HASH_K + *(U32*)str;			// a simplistic hashing algo
+        h = h * HASH_K + *(U32*)str;
     }
     for (U32 i=0; i<bsz%4; i++) {
     	h = h * HASH_K + *str++;
@@ -91,43 +92,35 @@ _add_index(const U8 *str, U32 hash)
   @return GS	Symbol value.
 */
 __GPU__ void
-_dyna_hash(U32 *h, U32 sz, const U8 *str)
+_dyna_hash(U32 *hash, U32 mask, const U8 *str)
 {
 	U32 tid = threadIdx.x;
-	if (tid<sz) {
-		h[tid]    = str[tid];
-		h[tid+32] = str[tid+32];
+	U32 h   = str[tid];							// move each of them into register
+	for (U32 n=16; n>0; n>>=1) {
+		h += HASH_K*__shfl_down_sync(mask, h, n, 32);
 	}
-	else {
-		h[tid] = h[tid+32] = 0;
-	}
-	for (U32 n=32; n>0; n>>=1) {			// =~ shfl_down_sync()
-		if (tid<n) h[tid] = h[tid]*HASH_K + str[n+tid];
-		__syncthreads();					// sync child threads for next loop
-	}
+	if (tid==0) *hash = (*hash*HASH_K + h);		// send it back to parent kernel
 }
 
 __GURU__ U32
 _hash(const U8 *str)
 {
-	U32 bsz  = STRLENB(str);
-	U32 hash = 0;
+	static U32 _warp_h[32];
+
+	U32 bsz = STRLENB(str);
 	if (bsz < DYNA_HASH_THRESHOLD) return _loop_hash(bsz, str);
 
-	bsz += bsz&1;							// include '\0' if odd length
-
-	U32 *dh  = (U32*)malloc(sizeof(U32)*64);
+	U32 *h = &_warp_h[threadIdx.x];	*h = 0;		// each calling thread takes a slot
 	cudaStream_t st;
 	cudaStreamCreateWithFlags(&st, cudaStreamNonBlocking);	// wrapper overhead ~= 84us
-	for (U32 i=0; i<bsz; i+=64) {
-		_dyna_hash<<<1,32,0,st>>>(dh, bsz-i, &str[i]);
-		cudaDeviceSynchronize();			// sync
-		hash = hash * HASH_K + dh[0];
+	for (U32 i=0; i<bsz; i+=32) {
+		U32 mask = 0xffffffff >> (bsz>(i+32) ? 0 : (32+i)-bsz);
+		_dyna_hash<<<1,32,0,st>>>(h, mask, &str[i]);
+		cudaDeviceSynchronize();				// sync
 	}
 	cudaStreamDestroy(st);
-	free(dh);
 
-	return hash;
+	return *h;
 }
 
 __GPU__ void
@@ -136,18 +129,18 @@ _dyna_search(S32 *idx, const U32 hash)
 	U32 tid = threadIdx.x + blockIdx.x*blockDim.x;
 
 	if (tid<_sym_idx && _sym_hash[tid]==hash) {
-		*idx = tid;				// capture the index
+		*idx = tid;								// capture the index
 	}
 }
 
-__GURU__ S32 _dyna_idx[32];		// for dynamic parallel search
 __GURU__ S32
 _search(U32 hash)
 {
+	static S32 _warp_i[32];
+
 	if (_sym_idx<DYNA_SEARCH_THRESHOLD) return _loop_search(hash);
 
-	U32 tid  = threadIdx.x;
-	S32 *idx = &_dyna_idx[tid];
+	S32 *idx = &_warp_i[threadIdx.x];	*idx = -1;
 
 	U32 tc = 32;				// Pascal:512, Volta:1024 max threads/block
 	U32 bc = (_sym_idx>>5)+1;	// P104: 20, P102: 30 quad-issue SMs (i.e. 4 blocks/issue)
@@ -166,15 +159,18 @@ _search(U32 hash)
 __GURU__ GS
 new_sym(const U8 *str)			// create new symbol
 {
+	U32 tid  = threadIdx.x;
 	U32 hash = _hash(str);
 	S32 sid  = _search(hash);
 	if (sid<0) {
 		sid  = _add_index(str, hash);
-	}
 #if CC_DEBUG
-	printf("  sym[%2d]%08x: %s==%s\n", sid, hash, str, _sym[sid]);
+	    printf("%2d> sym[%2d]%08x: %s\n", tid, sid, _sym_hash[sid], _sym[sid]);
+	}
+	else {
+		printf("%2d> sym[%2d]%08x: %s==%s\n", tid, sid, hash, str, _sym[sid]);
 #endif // CC_DEBUG
-
+	}
 	return sid;
 }
 
@@ -182,11 +178,10 @@ __GURU__ GS
 name2id(const U8 *str)
 {
 	U32 hash = _hash(str);
-	return hash;
 	S32 sid  = _search(hash);
 
 #if CC_DEBUG
-    printf("  sym[%2d]%08x=>%s\n", sid, _sym_hash[sid], _sym[sid]);
+    printf("%2d> sym[%2d]%08x=>%s\n", threadIdx.x, sid, _sym_hash[sid], _sym[sid]);
 #endif // CC_DEBUG
 
 	return sid;					// different value for each parent thread
