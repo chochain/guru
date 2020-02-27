@@ -320,10 +320,10 @@ guru_alloc(U32 sz)
 {
     U32 bsz = sz + sizeof(used_block);			// logical => physical size
 
+	_LOCK;
     ASSERT((bsz & 7)==0);						// assume caller already align the size
     CHECK_MINSZ(bsz);							// check minimum allocation size
 
-	_LOCK;
 	U32 index 		= _find_free_index(bsz);
 	free_block *blk = _mark_used(index);		// take the indexed block off free list
 
@@ -521,8 +521,6 @@ _alloc_stat(U32 v[])
 
 	guru_mstat *s = guru_mmu_stat();
 	memcpy(v, s, sizeof(guru_mstat));
-
-	__syncthreads();
 }
 
 __HOST__ void

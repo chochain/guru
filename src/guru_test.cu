@@ -47,8 +47,6 @@ guru_setup(int step, int trace)
 {
 	cudaDeviceReset();
 
-	return 0;
-
 	U8 *mem = _guru_mem = (U8*)cuda_malloc(BLOCK_MEMORY_SIZE, 1);
 	if (!_guru_mem) {
 		fprintf(stderr, "ERROR: failed to allocate device main memory block!\n");
@@ -208,7 +206,7 @@ __HOST__ int
 guru_run(int trace)
 {
 	//_time("mem_test", 10, &guru_mem_test);
-	_time("hash_test", 1, &guru_hash_test);
+	_time("hash_test", 100, &guru_hash_test);
 
 	cudaDeviceReset();
 	return 0;
