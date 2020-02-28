@@ -35,17 +35,20 @@ __GURU__ free_block		*_free_list[FL_SLOTS];
 
 //================================================================
 // most significant bit that is set
+// __xls(i) = 32-__ffs(__brev(i))
+//
 __GURU__ __INLINE__ U32
-__fls(U32 x)
+__xls(U32 x)
 {
 	U32 n;
 	asm("bfind.u32 %0, %1;\n\t" : "=r"(n) : "r"(x));
 	return n;
 }
-
 // least significant bit that is set
+// __xfs(i) = __ffs(i)+1;
+//
 __GURU__ __INLINE__ U32
-__ffs(U32 x)
+__xfs(U32 x)
 {
 	U32 n;
 	asm(
@@ -59,13 +62,12 @@ __ffs(U32 x)
 /*! calc f and s, and returns fli,sli of free_blocks
 
   @param  alloc_size	alloc size
-  @retval int		index of free_blocks
+  @retval int			index of free_blocks
 */
 __GURU__ U32
 __idx(U32 sz, U32 *l1, U32 *l2)
 {
-	U32 v = __fls(sz);
-	//U32 x = __ffs(sz);
+	U32 v = __xls(sz);
 	*l1 = v<BASE_BITS ? 0 : v - BASE_BITS + 1;	// 1st level index
 
 	U32 n = *l1<2 ? 0 : *l1 - 1;				// down shifting bit
@@ -240,11 +242,11 @@ _find_free_index(U32 sz)
     // no previous block exist, create a new one
     U32 avl = _l2_map[l1];			    // check any 2nd level available
     if (avl >> l2) {
-    	l2 = __fls(avl);				// get first available l2 index
+    	l2 = __xls(avl);				// get first available l2 index
     }
     else if ((avl = _l1_map)) {			// check if 1st level available
-        l1 = __fls(avl);        		// allocate new 1st & 2nd level indices
-        l2 = __fls(_l2_map[l1]);
+        l1 = __xls(avl);        		// allocate new 1st & 2nd level indices
+        l2 = __xls(_l2_map[l1]);
     }
     else return -1;						// out of memory
     return INDEX(l1, l2);               // index to freelist head
