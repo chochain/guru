@@ -115,6 +115,7 @@ guru_mem_test()
 }
 
 __GURU__ const char *slist[] = {
+//	"This is only a test, do not panic. This is only a test, do not panic. This is only a test, do not panic.",
 	"p",
 	"sprintf",
 	"printf",

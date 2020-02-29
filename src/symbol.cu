@@ -94,12 +94,31 @@ _add_index(const U8 *str, U32 hash)
 __GPU__ void
 _dyna_hash(U32 *hash, U32 mask, const U8 *str)
 {
-	U32 tid = threadIdx.x;
-	U32 h   = str[tid];							// move each of them into register
+	U32 i = threadIdx.x;			// row-major
+	U32 h = str[i];
+
 	for (U32 n=16; n>0; n>>=1) {
-		h += HASH_K*__shfl_down_sync(mask, h, n, 32);
+		h += HASH_K*__shfl_down_sync(mask, h, n, 32);		// shuffle down
 	}
-	if (tid==0) *hash = (*hash*HASH_K + h);		// send it back to parent kernel
+	if (i==0) *hash = h;
+}
+
+__GPU__ void
+_dyna_hash2d(U32 *hash, U32 *mask, U32 bsz, const U8 *str)
+{
+	U32 i = threadIdx.x + threadIdx.y * blockDim.x;			// row-major
+	U32 hi= str[i];
+
+	for (U32 n=blockDim.x>>1; n>0; n>>=1) {
+		hi += HASH_K*__shfl_down_sync(mask[i<bsz?0:1], hi, n, blockDim.x);		// shuffle down
+	}
+	if (threadIdx.x!=0) return;
+
+	U32 hj = hi;
+	for (U32 n=blockDim.y>>1; n>0; n>>=1) {
+		hj += HASH_K*__shfl_down_sync(mask[1], hj, n, blockDim.y);		// shuffle down
+	}
+	if (threadIdx.y==0) *hash = hj;
 }
 
 __GURU__ U32
@@ -110,13 +129,16 @@ _hash(const U8 *str)
 	U32 bsz = STRLENB(str);
 	if (bsz < DYNA_HASH_THRESHOLD) return _loop_hash(bsz, str);
 
-	U32 *h = &_warp_h[threadIdx.x];	*h = 0;		// each calling thread takes a slot
+	U32 *h = &_warp_h[threadIdx.x]; *h = 0;					// each calling thread takes a slot
+
 	cudaStream_t st;
 	cudaStreamCreateWithFlags(&st, cudaStreamNonBlocking);	// wrapper overhead ~= 84us
-	for (U32 i=0; i<bsz; i+=32) {
-		U32 mask = 0xffffffff >> (bsz>(i+32) ? 0 : (32+i)-bsz);
-		_dyna_hash<<<1,32,0,st>>>(h, mask, &str[i]);
-		cudaDeviceSynchronize();				// sync
+	{
+		for (U32 i=0; i<bsz; i+=32) {
+			U32 mask = (i+32)<bsz ? 0xffffffff : 1<<(bsz-i) - 1;
+			_dyna_hash<<<1,32,0,st>>>(h, mask, &str[i]);
+			cudaDeviceSynchronize();							// sync all children threads
+		}
 	}
 	cudaStreamDestroy(st);
 
@@ -126,10 +148,10 @@ _hash(const U8 *str)
 __GPU__ void
 _dyna_search(S32 *idx, const U32 hash)
 {
-	U32 tid = threadIdx.x + blockIdx.x*blockDim.x;
+	U32 i = threadIdx.x + blockIdx.x*blockDim.x;
 
-	if (tid<_sym_idx && _sym_hash[tid]==hash) {
-		*idx = tid;								// capture the index
+	if (i<_sym_idx && _sym_hash[i]==hash) {
+		*idx = i;				// capture the index
 	}
 }
 
@@ -148,8 +170,8 @@ _search(U32 hash)
 	cudaStream_t st;
 	cudaStreamCreateWithFlags(&st, cudaStreamNonBlocking);	// wrapper overhead ~= 84us
 	{
-		_dyna_search<<<bc, tc, 0, st>>>(idx, hash);	// spawn
-		cudaDeviceSynchronize();					// sync all child threads in the block
+		_dyna_search<<<bc, tc, 0, st>>>(idx, hash);			// spawn
+		cudaDeviceSynchronize();							// sync all child threads in the block
 	}
 	cudaStreamDestroy(st);
 
@@ -159,16 +181,16 @@ _search(U32 hash)
 __GURU__ GS
 new_sym(const U8 *str)			// create new symbol
 {
-	U32 tid  = threadIdx.x;
+	U32 i    = threadIdx.x;
 	U32 hash = _hash(str);
 	S32 sid  = _search(hash);
 	if (sid<0) {
 		sid  = _add_index(str, hash);
 #if CC_DEBUG
-	    printf("%2d> sym[%2d]%08x: %s\n", tid, sid, _sym_hash[sid], _sym[sid]);
+	    printf("%2d> sym[%2d]%08x: %s\n", i, sid, _sym_hash[sid], _sym[sid]);
 	}
 	else {
-		printf("%2d> sym[%2d]%08x: %s==%s\n", tid, sid, hash, str, _sym[sid]);
+		printf("%2d> sym[%2d]%08x: %s==%s\n", i, sid, hash, str, _sym[sid]);
 #endif // CC_DEBUG
 	}
 	return sid;
