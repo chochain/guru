@@ -107,22 +107,23 @@ __transcode(guru_irep *irep)
 __GPU__ void
 _fetch(guru_vm *pool, guru_irep *irep, int *vid)
 {
+	*vid = -1;
+
 	if (blockIdx.x!=0 || threadIdx.x!=0) return;	// single threaded
+	if (!pool) return;								// not initialized yet
 
 	guru_vm *vm = pool;
 	int idx;
-
 	for (idx=0; idx<MIN_VM_COUNT; idx++, vm++) {
 		if (vm->run==VM_STATUS_FREE) {
 			vm->run = VM_STATUS_READY;		// reserve the VM
 			break;
 		}
 	}
-	if (idx<MIN_VM_COUNT) {
-		__transcode(irep);					// recursively transcode Pooled objects and Symbol table
-		_ready(vm, irep);
-	}
-	else idx = -1;
+	if (idx>=MIN_VM_COUNT) return;
+
+	__transcode(irep);		// recursively transcode Pooled objects and Symbol table
+	_ready(vm, irep);
 
 	*vid = idx;
 }
@@ -135,11 +136,9 @@ _fetch(guru_vm *pool, guru_irep *irep, int *vid)
   @retval 0  No error.
 */
 __GPU__ void
-_step(guru_vm *pool)
+_step(guru_vm *vm)
 {
 	if (threadIdx.x != 0) return;					// TODO: single thread for now
-
-	guru_vm *vm = pool+blockIdx.x;					// start up all VMs (with different blockIdx
 
 	// start up instruction and dispatcher unit
 	while (vm->run==VM_STATUS_RUN) {				// run my (i.e. blockIdx.x) VM
@@ -210,7 +209,6 @@ _join() {
 	U32 i;
 	guru_vm *vm = _vm_pool;
 
-	cudaDeviceSynchronize();						// ensure VM status change is caught, too heavy-handed
 	_LOCK;											// TODO: make it a per-VM (i.e. per-blockIdx) control
 	for (i=0; i<MIN_VM_COUNT; i++, vm++) {
 		if (vm->run==VM_STATUS_RUN) break;
@@ -220,42 +218,32 @@ _join() {
 	return (i<MIN_VM_COUNT) ? 1 : 0;
 }
 
-__HOST__ void
-_time(const char *fname, int ncycle, void (*fp)(int))
-{
-	printf("%s starts here....\n", fname);
-
-	cudaEvent_t _event_t0, _event_t1;
-	float ms = 0;
-
-	cudaEventCreate(&_event_t0);
-	cudaEventCreate(&_event_t1);
-	cudaEventRecord(_event_t0);
-
-
-	cudaEventRecord(_event_t1);
-	cudaEventSynchronize(_event_t1);
-	cudaEventElapsedTime(&ms, _event_t0, _event_t1);
-	cudaEventDestroy(_event_t1);
-	cudaEventDestroy(_event_t0);
-
-	printf("\n%s done in %f ms.\n", fname, ms);
-}
-
 __HOST__ int
 vm_main_start()
 {
-	do {
-		debug_disasm();
-		_step<<<1,1>>>(_vm_pool);
+	cudaStream_t hst[MIN_VM_COUNT];
+	for (int i=0; i<MIN_VM_COUNT; i++)
+		cudaStreamCreateWithFlags(&hst[i], cudaStreamNonBlocking);
 
-	// add host hook here
+	do {
+		// add pre-hook here
+		guru_vm *vm = _vm_pool;
+		for (int i=0; i<MIN_VM_COUNT; i++, vm++) {
+			if (vm->run != VM_STATUS_RUN) continue;
+
+			debug_disasm(i);
+			_step<<<1,1,0,hst[i]>>>(vm);
+		}
+		cudaDeviceSynchronize();
+
 #if GURU_USE_CONSOLE
 		guru_console_flush(ses->out, ses->trace);	// dump output buffer
-#endif // GURU_USE_CONSOLE
-	} while (_join());								// GPU device barrier + HOST pthread guard
+#endif  // GURU_USE_CONSOLE
+		// add post-hook here
+	} while(_join());								// GPU device barrier + HOST pthread guard
 
-	debug_mmu_stat();
+	for (int i=0; i<MIN_VM_COUNT; i++)
+		cudaStreamDestroy(hst[i]);
 
 	return 0;
 }
@@ -268,19 +256,17 @@ vm_get(U8 *irep_img)
 	int  vid;
 
 	cudaMallocManaged(&vm_id, sizeof(int));			// allocate device memory, auto synchronize
+
 	_LOCK;
 	_fetch<<<1,1>>>(_vm_pool, irep, (int*)vm_id);	// vm status changed
+	cudaDeviceSynchronize();
 	vid = *(int*)vm_id;
-	cudaFree(vm_id);								// free memory, auto synchronize
 	_UNLOCK;
 
-	if (vid>=0) {
-		printf("  vm[%d]:\n", vid);
-		debug_show_irep(irep);
-	}
-	else {
-		printf("ERROR: no vm available!");
-	}
+	cudaFree(vm_id);								// free memory, auto synchronize
+
+	debug_vm_irep(vid);
+
 	return vid;
 }
 
