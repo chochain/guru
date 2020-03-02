@@ -226,18 +226,16 @@ debug_init(U32 flag)
 	cudaEventCreate(&_event_t0);
 	cudaEventCreate(&_event_t1);
 	cudaEventRecord(_event_t0);
-
-	if (flag<1) return;
-
-	show_mmu_stat(_debug);
 }
 
 __HOST__ void
-debug_show_irep(guru_irep *irep) {
-	if (_debug<1) return;
+debug_vm_irep(S32 vm_id)
+{
+	if (vm_id<0 || _debug<1) return;
 
+	printf("  vm[%d]:\n", vm_id);
 	char c = 'a';
-	_show_irep(irep, 'A', &c);
+	_show_irep(_vm_pool[vm_id].state->irep, 'A', &c);
 }
 
 __HOST__ void
@@ -247,19 +245,16 @@ debug_mmu_stat()
 }
 
 __HOST__ void
-debug_disasm()
+debug_disasm(S32 vm_id)
 {
-	if (_debug<1) return;
+	if (_debug<1 || vm_id<0) return;
 
-	guru_vm *vm = _vm_pool;
-	for (U32 i=0; i<MIN_VM_COUNT; i++, vm++) {
-		if (vm->run==VM_STATUS_RUN && vm->step) {
-			for (guru_state *st=vm->state; st->prev; st=st->prev) {
-				printf("  ");
-			}
-			_disasm(vm, _debug);
-		}
-	}
+	guru_vm *vm = &_vm_pool[vm_id];
+
+	for (guru_state *st=vm->state; st->prev; st=st->prev) printf("  ");
+
+	_disasm(vm, _debug);
+
 	if (_debug>1) show_mmu_stat(_debug);
 }
 
