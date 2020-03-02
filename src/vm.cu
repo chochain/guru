@@ -85,13 +85,13 @@ __transcode(guru_irep *irep)
 	GV *p = irep->pool;
 	for (U32 i=0; i < irep->s; i++, p++) {		// symbol table
 		*p = guru_sym_new(p->sym);
-		p->acl |= ACL_READ_ONLY;
+		p->acl |= ACL_READ_ONLY;				// rom-based
 	}
 	for (U32 i=0; i < irep->p; i++, p++) {		// pooled objects
 		if (p->gt==GT_STR) {
 			*p = guru_str_new(p->sym);
 		}
-		p->acl |= ACL_READ_ONLY;
+		p->acl |= ACL_READ_ONLY;				// rom-based
 	}
 	// use tail recursion (i.e. no call stack, so compiler optimization becomes possible)
 	for (U32 i=0; i < irep->r; i++) {
@@ -220,11 +220,33 @@ _join() {
 	return (i<MIN_VM_COUNT) ? 1 : 0;
 }
 
+__HOST__ void
+_time(const char *fname, int ncycle, void (*fp)(int))
+{
+	printf("%s starts here....\n", fname);
+
+	cudaEvent_t _event_t0, _event_t1;
+	float ms = 0;
+
+	cudaEventCreate(&_event_t0);
+	cudaEventCreate(&_event_t1);
+	cudaEventRecord(_event_t0);
+
+
+	cudaEventRecord(_event_t1);
+	cudaEventSynchronize(_event_t1);
+	cudaEventElapsedTime(&ms, _event_t0, _event_t1);
+	cudaEventDestroy(_event_t1);
+	cudaEventDestroy(_event_t0);
+
+	printf("\n%s done in %f ms.\n", fname, ms);
+}
+
 __HOST__ int
-vm_main_start(U32 trace)
+vm_main_start()
 {
 	do {
-		debug_trace(trace);
+		debug_disasm();
 		_step<<<1,1>>>(_vm_pool);
 
 	// add host hook here
@@ -232,13 +254,14 @@ vm_main_start(U32 trace)
 		guru_console_flush(ses->out, ses->trace);	// dump output buffer
 #endif // GURU_USE_CONSOLE
 	} while (_join());								// GPU device barrier + HOST pthread guard
-	show_mmu_stat(trace);
+
+	debug_mmu_stat();
 
 	return 0;
 }
 
 __HOST__ int
-vm_get(U8 *irep_img, U32 trace)
+vm_get(U8 *irep_img)
 {
 	guru_irep *irep = (guru_irep *)irep_img;
 	void *vm_id;
@@ -251,15 +274,12 @@ vm_get(U8 *irep_img, U32 trace)
 	cudaFree(vm_id);								// free memory, auto synchronize
 	_UNLOCK;
 
-	if (trace) {
-		if (vid<0) {
-			printf("ERROR: no vm available!");
-		}
-		else {
-			printf("  vm[%d]:\n", vid);
-			char c = 'a';
-			debug_show_irep(irep, 'A', &c);
-		}
+	if (vid>=0) {
+		printf("  vm[%d]:\n", vid);
+		debug_show_irep(irep);
+	}
+	else {
+		printf("ERROR: no vm available!");
 	}
 	return vid;
 }
@@ -277,7 +297,7 @@ _set_status(U32 vid, U32 new_status, U32 status_flag)
 	return 0;
 }
 
-__HOST__ int vm_run(U32 vid)  { return _set_status(vid, VM_STATUS_RUN,  VM_STATUS_READY); }
-__HOST__ int vm_hold(U32 vid) { return _set_status(vid, VM_STATUS_HOLD, VM_STATUS_RUN);   }
-__HOST__ int vm_stop(U32 vid) { return _set_status(vid, VM_STATUS_STOP, VM_STATUS_RUN);   }
+__HOST__ int vm_ready(U32 vid) { return _set_status(vid, VM_STATUS_RUN,  VM_STATUS_READY); }
+__HOST__ int vm_hold(U32 vid)  { return _set_status(vid, VM_STATUS_HOLD, VM_STATUS_RUN);   }
+__HOST__ int vm_stop(U32 vid)  { return _set_status(vid, VM_STATUS_STOP, VM_STATUS_RUN);   }
 

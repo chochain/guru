@@ -18,9 +18,13 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+#include "state.h"
 
-void debug_show_irep(guru_irep *irep, char level, char *idx);
-void debug_trace(U32 level);
+void debug_init(U32 flag);
+void debug_show_irep(guru_irep *irep);
+void debug_mmu_stat();
+void debug_disasm();
+void debug_log(const char *msg);
 
 #ifdef __cplusplus
 }

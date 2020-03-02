@@ -18,6 +18,8 @@
 #include "ucode.h"
 #include "vm_debug.h"
 
+cudaEvent_t _event_t0, _event_t1;
+
 //========================================================================================
 // the following code is for debugging purpose, turn off GURU_DEBUG for release
 //========================================================================================
@@ -77,7 +79,8 @@ static const int _op_exe[] = {
 #define SZ_EXE	(sizeof(_op_exe)/sizeof(int))
 
 #define OUTBUF_SIZE	256
-U8 *outbuf = NULL;
+U8 *_outbuf = NULL;
+U32 _debug  = 0;
 
 #define bin2u32(x) ((x << 24) | ((x & 0xff00) << 8) | ((x >> 8) & 0xff00) | (x >> 24))
 __HOST__ int
@@ -163,16 +166,16 @@ _show_decode(guru_vm *vm, U32 code)
 		printf(" r%-2d @%-18d", a, vm->state->pc+(ar.bx - MAX_sBx));	return;
 	}
 
-	if (outbuf==NULL) outbuf = (U8*)cuda_malloc(OUTBUF_SIZE, 1);	// lazy alloc
+	if (_outbuf==NULL) _outbuf = (U8*)cuda_malloc(OUTBUF_SIZE, 1);	// lazy alloc
 	if (_find_op(_op_sym, op, SZ_SYM) >= 0) {
 		GS  sid = VM_SYM(vm, ar.bx);
-		id2name_host(sid, outbuf);
-		printf(" r%-2d :%-18s", a, outbuf);				return;
+		id2name_host(sid, _outbuf);
+		printf(" r%-2d :%-18s", a, _outbuf);			return;
 	}
 	if (_find_op(_op_exe, op, SZ_EXE) >= 0) {
 		GS  sid = VM_SYM(vm, ar.b);
-		id2name_host(sid, outbuf);
-		printf(" r%-2d #%-18s", a, outbuf);				return;
+		id2name_host(sid, _outbuf);
+		printf(" r%-2d #%-18s", a, _outbuf);			return;
 	}
 }
 
@@ -201,7 +204,7 @@ _disasm(guru_vm *vm, U32 level)
 }
 
 __HOST__ void
-debug_show_irep(guru_irep *irep, char level, char *n)
+_show_irep(guru_irep *irep, char level, char *n)
 {
 	U32 a = (U32A)irep;
 	printf("\t%c irep[%c]=%08x: size=0x%x, nreg=%d, nlocal=%d, pools=%d, syms=%d, reps=%d, ilen=%d\n",
@@ -211,14 +214,42 @@ debug_show_irep(guru_irep *irep, char level, char *n)
 	// dump all children ireps
 	for (U32 i=0; i<irep->r; i++) {
 		*n += (*n=='z') ? -57 : 1;		// a-z, A-Z
-		debug_show_irep(irep->reps[i], level+1, n);
+		_show_irep(irep->reps[i], level+1, n);
 	}
 }
 
 __HOST__ void
-debug_trace(U32 level)
+debug_init(U32 flag)
 {
-	if (level==0) return;
+	_debug = flag;
+
+	cudaEventCreate(&_event_t0);
+	cudaEventCreate(&_event_t1);
+	cudaEventRecord(_event_t0);
+
+	if (flag<1) return;
+
+	show_mmu_stat(_debug);
+}
+
+__HOST__ void
+debug_show_irep(guru_irep *irep) {
+	if (_debug<1) return;
+
+	char c = 'a';
+	_show_irep(irep, 'A', &c);
+}
+
+__HOST__ void
+debug_mmu_stat()
+{
+	show_mmu_stat(_debug);
+}
+
+__HOST__ void
+debug_disasm()
+{
+	if (_debug<1) return;
 
 	guru_vm *vm = _vm_pool;
 	for (U32 i=0; i<MIN_VM_COUNT; i++, vm++) {
@@ -226,14 +257,26 @@ debug_trace(U32 level)
 			for (guru_state *st=vm->state; st->prev; st=st->prev) {
 				printf("  ");
 			}
-			_disasm(vm, level);
+			_disasm(vm, _debug);
 		}
 	}
-	if (level>1) show_mmu_stat(level);
+	if (_debug>1) show_mmu_stat(_debug);
+}
+
+__HOST__ void
+debug_log(const char *msg)
+{
+	float ms;
+
+	cudaEventRecord(_event_t1);
+	cudaEventSynchronize(_event_t1);
+	cudaEventElapsedTime(&ms, _event_t0, _event_t1);
+
+	if (_debug) printf("%.3f> %s\n", ms, msg);
 }
 
 #else	// GURU_DEBUG
 __HOST__ void debug_show_irep(guru_irep *irep, U32 ioff, char level, char *idx) {}
-__HOST__ void debug_trace(U32 level) {}
+__HOST__ void debug_trace() {}
 #endif 	// GURU_DEBUG
 
