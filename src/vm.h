@@ -81,7 +81,7 @@ typedef struct VM {				// 80-byte
     GAR ar;						// argument struct
 
     struct RState  	*state;		// VM state (callinfo) linked list
-    U32				fil[2];		// reserved (for alignment)
+    cudaStream_t    st;
 
     // TODO: pointers (for dynamic sizing), use array now for debugging
     U32			rescue[MAX_RESCUE_STACK];	// ONERR/RESCUE return stack

@@ -138,7 +138,7 @@ _fetch(guru_vm *pool, guru_irep *irep, int *vid)
 __GPU__ void
 _step(guru_vm *vm)
 {
-	if (threadIdx.x != 0) return;					// TODO: single thread for now
+	if (threadIdx.x!=0) return;						// TODO: single thread for now
 
 	// start up instruction and dispatcher unit
 	while (vm->run==VM_STATUS_RUN) {				// run my (i.e. blockIdx.x) VM
@@ -189,6 +189,7 @@ vm_pool_init(U32 step)
 		vm->step  = step;
 		vm->depth = vm->err  = 0;
 		vm->run   = VM_STATUS_FREE;		// VM not allocated
+		cudaStreamCreateWithFlags(&vm->st, cudaStreamNonBlocking);
 	}
 #else
 	mrbc_vm *vm = (mrbc_vm *)guru_malloc(sizeof(mrbc_vm), 1);
@@ -221,10 +222,6 @@ _join() {
 __HOST__ int
 vm_main_start()
 {
-	cudaStream_t hst[MIN_VM_COUNT];
-	for (int i=0; i<MIN_VM_COUNT; i++)
-		cudaStreamCreateWithFlags(&hst[i], cudaStreamNonBlocking);
-
 	do {
 		// add pre-hook here
 		guru_vm *vm = _vm_pool;
@@ -232,18 +229,15 @@ vm_main_start()
 			if (vm->run != VM_STATUS_RUN) continue;
 
 			debug_disasm(i);
-			_step<<<1,1,0,hst[i]>>>(vm);
+			_step<<<1,1,0,vm->st>>>(vm);			// guru -x to run without single-stepping
 		}
-		cudaDeviceSynchronize();
+		cudaDeviceSynchronize();					// TODO: cooperative thread group
 
 #if GURU_USE_CONSOLE
 		guru_console_flush(ses->out, ses->trace);	// dump output buffer
 #endif  // GURU_USE_CONSOLE
 		// add post-hook here
 	} while(_join());								// GPU device barrier + HOST pthread guard
-
-	for (int i=0; i<MIN_VM_COUNT; i++)
-		cudaStreamDestroy(hst[i]);
 
 	return 0;
 }
@@ -258,7 +252,7 @@ vm_get(U8 *irep_img)
 	cudaMallocManaged(&vm_id, sizeof(int));			// allocate device memory, auto synchronize
 
 	_LOCK;
-	_fetch<<<1,1>>>(_vm_pool, irep, (int*)vm_id);	// vm status changed
+	_fetch<<<1,1>>>(_vm_pool, irep, (int*)vm_id);	// use default stream, vm status will changed
 	cudaDeviceSynchronize();
 	vid = *(int*)vm_id;
 	_UNLOCK;

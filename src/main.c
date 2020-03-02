@@ -50,9 +50,12 @@ int main(int argc, char *argv[])
 	int step  = (opt & VM_EXEC_FLAG) ? 0 : 1;
 
 	if (guru_setup(step, trace)) return -1;
-	for (int i=n+1; i<argc; i++) {
+
+	for (int i=n+1; i<argc; i++) {		// TODO: producer
 		char *fname = argv[i];
 		if (guru_load(fname)) return -2;
 	}
-	return guru_run();
+	guru_run();							// TODO: consumer
+
+	return guru_teardown();
 }

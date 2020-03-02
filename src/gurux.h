@@ -12,6 +12,7 @@ extern "C" {
 #endif
 
 int 	guru_setup(int step, int trace);
+int     guru_teardown();
 int 	guru_load(char *rite_name);
 int 	guru_run();
 

@@ -95,7 +95,7 @@ guru_setup(int step, int trace)
 __HOST__ int
 guru_load(char *rite_name)
 {
-	debug_log("guru loading RITE image...");
+	debug_log("guru loading RITE image into ses->stdin memory...");
 
 	guru_ses *ses = (guru_ses *)malloc(sizeof(guru_ses));
 	if (!ses) return -1;		// memory allocation error
@@ -119,25 +119,43 @@ guru_run()
 	debug_log("guru session starting...");
 	debug_mmu_stat();
 
+	// parse BITE code into each vm
+	// TODO: producer (queue)
 	for (guru_ses *ses=_ses_list; ses!=NULL; ses=ses->next) {
 		U8 *irep_img = guru_parse_bytecode(ses->stdin);		// build CUDA IREP image (in Managed Mem)
-
+		int vm_id;
 		if (!irep_img) {
 			fprintf(stderr, "ERROR: bytecode parsing error!\n");
 		}
-		else if ((ses->id=vm_get(irep_img)) < 0) {			// acquire a VM for the session
+		else if ((vm_id=vm_get(irep_img)) < 0) {			// acquire a VM for the session
 			fprintf(stderr, "ERROR: No VM available!\n");
+			return -1;
 		}
 		else {
+			ses->id = vm_id;
 			vm_ready(ses->id);								// set VM ready to run
 		}
 	}
 	// kick up main loop until all VM are done
-	// TODO: become a server which responses to IREP requests
+	// TODO: consumer
 	vm_main_start();
 
 	debug_mmu_stat();
 	debug_log("guru session completed.");
 
+	return 0;
+}
+
+__HOST__ int
+guru_teardown()
+{
+	cudaDeviceReset();
+
+	guru_ses *tmp, *ses = _ses_list;
+	while (ses) {
+		tmp = ses;
+		ses = ses->next;
+		free(tmp);
+	}
 	return 0;
 }

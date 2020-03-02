@@ -15,7 +15,7 @@
 #define GURU_SRC_VM_CONFIG_H_
 
 /* min, maximum number of VMs */
-#define MIN_VM_COUNT 		1
+#define MIN_VM_COUNT 		2
 #define MAX_VM_COUNT 		16
 
 /* maximum size of exception stack and registers, which determine how deep call stack can go */
