@@ -541,18 +541,18 @@ _get_alloc_stat(U32 stat[])
 }
 
 __HOST__ void
-show_mmu_stat(U32 trace)
+show_mmu_stat(U32 level)
 {
-	if (trace==0) return;
+	if (level==0) return;
 
 	U32 s[8];
-	if (trace & 1) {
+	if (level & 1) {
 		_get_alloc_stat(s);
 
 		printf("%14smem=%d(0x%x): free=%d(0x%x), used=%d(0x%x), nblk=%d, nfrag=%d, %d%% allocated\n",
 			"", s[0], s[0], s[1], s[2], s[3], s[4], s[5], s[6], s[7]);
 	}
-	if (trace & 2) {
+	if (level & 2) {
 		_dump_freelist<<<1,1>>>();
 		cudaDeviceSynchronize();
 	}

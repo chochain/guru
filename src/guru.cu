@@ -11,6 +11,7 @@
 #include "mmu.h"				// guru_malloc
 #include "load.h"				// guru_parse_bytecode
 #include "vmx.h"
+#include "vm_debug.h"
 
 // forward declaration for implementation
 extern "C" __GPU__  void guru_mmu_init(void *ptr, U32 sz);
@@ -54,6 +55,8 @@ _fetch_bytecode(const U8 *rite_fname)
 __HOST__ int
 guru_setup(int step, int trace)
 {
+	cudaDeviceReset();
+
 	U8 *mem = _guru_mem = (U8*)cuda_malloc(BLOCK_MEMORY_SIZE, 1);	// allocate main block (i.e. RAM)
 	if (!_guru_mem) {
 		fprintf(stderr, "ERROR: failed to allocate device main memory block!\n");
@@ -70,6 +73,8 @@ guru_setup(int step, int trace)
 	}
 	_ses_list = NULL;
 
+	debug_init(trace);
+
 	guru_mmu_init<<<1,1>>>(mem, BLOCK_MEMORY_SIZE);			// setup memory management
 	guru_class_init<<<1,1>>>();								// setup basic classes	(TODO: => ROM)
 #if GURU_USE_CONSOLE
@@ -80,11 +85,8 @@ guru_setup(int step, int trace)
 	cudaDeviceGetLimit((size_t *)&sz0, cudaLimitStackSize);
 	cudaDeviceSetLimit(cudaLimitStackSize, (size_t)sz0*4);
 	cudaDeviceGetLimit((size_t *)&sz1, cudaLimitStackSize);
+	if (trace) printf("guru system initialized[defaultStackSize %d => %d]\n", sz0, sz1);
 
-	if (trace) {
-		printf("guru system initialized[defaultStackSize %d => %d]\n", sz0, sz1);
-		show_mmu_stat(trace);
-	}
 	return 0;
 }
 
@@ -107,35 +109,15 @@ guru_load(char *rite_name)
 	return 0;
 }
 
-float _time(int (*fp)(U32), int trace)
-{
-	cudaEvent_t _event_t0, _event_t1;
-	float ms = 0;
-
-	cudaEventCreate(&_event_t0);
-	cudaEventCreate(&_event_t1);
-	cudaEventRecord(_event_t0);
-
-	fp(trace);
-
-	cudaEventRecord(_event_t1);
-	cudaEventSynchronize(_event_t1);
-	cudaEventElapsedTime(&ms, _event_t0, _event_t1);
-	cudaEventDestroy(_event_t1);
-	cudaEventDestroy(_event_t0);
-
-	return ms;
-}
-
 __HOST__ int
-guru_run(int trace)
+guru_run()
 {
 	for (guru_ses *ses=_ses_list; ses!=NULL; ses=ses->next) {
 		U8 *irep_img = guru_parse_bytecode(ses->stdin);		// build CUDA IREP image (in Managed Mem)
 
 		if (irep_img) {
-			int vm_id = ses->id = vm_get(irep_img, trace);	// acquire a VM for the session
-			vm_run(vm_id);
+			int vm_id = ses->id = vm_get(irep_img);			// acquire a VM for the session
+			vm_ready(vm_id);
 		}
 		else {
 			fprintf(stderr, "ERROR: bytecode parsing error!\n");
@@ -143,9 +125,11 @@ guru_run(int trace)
 	}
 	// kick up main loop until all VM are done
 	// TODO: become a server which responses to IREP requests
-	if (trace) printf("guru_session starting...\n");
-	float ms = _time(&vm_main_start, trace);
-	if (trace) printf("guru_session completed in %f ms.\n", ms);
+	debug_log("guru session starting...");
+
+	vm_main_start();
+
+	debug_log("guru session completed.");
 
 	return 0;
 }

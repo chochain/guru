@@ -54,5 +54,5 @@ int main(int argc, char *argv[])
 		char *fname = argv[i];
 		if (guru_load(fname)) return -2;
 	}
-	return guru_run(trace);
+	return guru_run();
 }

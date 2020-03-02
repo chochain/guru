@@ -13,7 +13,7 @@ extern "C" {
 
 int 	guru_setup(int step, int trace);
 int 	guru_load(char *rite_name);
-int 	guru_run(int trace);
+int 	guru_run();
 
 #ifdef __cplusplus
 }

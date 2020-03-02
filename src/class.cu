@@ -75,14 +75,16 @@ _name2class(const U8 *name)
 __GPU__ void
 __find_proc(S32 *idx, guru_class *cls, GS sid)
 {
-	U32 i = threadIdx.x;
-	if (i<cls->rc && cls->vtbl[i].sid==sid) *idx = i;
+	U32 x = threadIdx.x + blockIdx.x * blockDim.x;
+	if (x<cls->rc && cls->vtbl[x].sid==sid) {
+		*idx = x;
+	}
 }
 
+__GURU__ S32 _proc_idx[32];
 __GURU__ guru_proc*
 proc_by_sid(GV *v, GS sid)
 {
-	static S32 idx;		// warn: scoped outside of function
 #if CC_DEBUG
 	U8* fname = id2name(sid);
     printf("proc_by_sid:%s=>%d(0x%02x)\n", fname, sid, sid);
@@ -92,10 +94,11 @@ proc_by_sid(GV *v, GS sid)
     for (guru_class *cls=class_by_obj(v); cls; cls=cls->super) {	// search up class hierarchy
 #endif // CC_DEBUG
         if (IS_BUILTIN(cls)) {
-        	idx = -1;
-        	__find_proc<<<1, 32*(1+(cls->rc>>5))>>>(&idx, cls, sid);
+        	S32 *idx = &_proc_idx[threadIdx.x];
+        	*idx = -1;
+        	__find_proc<<<(cls->rc>>5)+1, 32>>>(idx, cls, sid);
         	DEVSYNC();
-            if (idx>=0) return &cls->vtbl[idx];
+            if (*idx>=0) return &cls->vtbl[*idx];
         }
     	guru_proc *p;
         for (p=cls->plist; p && (p->sid != sid); p=p->next);		// linear search thru class or meta vtbl
