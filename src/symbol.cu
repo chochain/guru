@@ -41,11 +41,8 @@ _loop_hash(U32 bsz, const U8 *str)
 {
 	// a simple polynomial hashing algorithm
 	U32 h = 0;
-    for (U32 i=0; i<bsz/4; i++, str+=4) {
-        h = h * HASH_K + *(U32*)str;
-    }
-    for (U32 i=0; i<bsz%4; i++) {
-    	h = h * HASH_K + *str++;
+    for (U32 i=0; i<bsz; i++) {
+        h = h * HASH_K + str[i];
     }
     return h;
 }
@@ -92,53 +89,54 @@ _add_index(const U8 *str, U32 hash)
   @return GS	Symbol value.
 */
 __GPU__ void
-_dyna_hash(U32 *hash, U32 mask, const U8 *str)
+_dyna_hash(U32 *hash, U32 sz, const U8 *str)
 {
-	U32 i = threadIdx.x;			// row-major
-	U32 h = str[i];
+	U32 x = threadIdx.x;									// row-major
+	U32 m = __ballot_sync(0xffffffff, x<sz);				// ballot_mask
+	U32 h = x<sz ? str[x] : 0;								// move to register
 
-	for (U32 n=16; n>0; n>>=1) {
-		h += HASH_K*__shfl_down_sync(mask, h, n, 32);		// shuffle down
+	for (U32 n=16; x<sz && n>0; n>>=1) {
+		h += HASH_K*__shfl_down_sync(m, h, n);				// shuffle down
 	}
-	if (i==0) *hash = h;
+	if (x==0) *hash += h;
 }
 
 __GPU__ void
 _dyna_hash2d(U32 *hash, U32 *mask, U32 bsz, const U8 *str)
 {
-	U32 i = threadIdx.x + threadIdx.y * blockDim.x;			// row-major
-	U32 hi= str[i];
+	U32  x = threadIdx.x + threadIdx.y * blockDim.x;		// row-major
+	bool c = x<bsz;
+	U32  m = __ballot_sync(0xffffffff, c);
+	U32  hx= c ? str[x] : 0;
 
-	for (U32 n=blockDim.x>>1; n>0; n>>=1) {
-		hi += HASH_K*__shfl_down_sync(mask[i<bsz?0:1], hi, n, blockDim.x);		// shuffle down
+	for (U32 n=blockDim.x>>1; n>0; n>>=1) {					// rollup rows
+		hx += HASH_K*__shfl_down_sync(m, hx, n);			// shuffle down
 	}
-	if (threadIdx.x!=0) return;
+	if (threadIdx.x!=0) return;								// only row leaders
 
-	U32 hj = hi;
-	for (U32 n=blockDim.y>>1; n>0; n>>=1) {
-		hj += HASH_K*__shfl_down_sync(mask[1], hj, n, blockDim.y);		// shuffle down
+	c = threadIdx.y<blockDim.y;
+	m = __ballot_sync(0xffffffff, c);
+	U32 hy = c ? hx : 0;
+	for (U32 n=blockDim.y>>1; n>0; n>>=1) {					// rollup columns
+		hy += HASH_K*__shfl_down_sync(m, hy, n);			// shuffle down
 	}
-	if (threadIdx.y==0) *hash = hj;
+	if (threadIdx.y==0) *hash = hy;
 }
 
+__GURU__ U32 _warp_h[32];
 __GURU__ U32
 _hash(const U8 *str)
 {
-	static U32 _warp_h[32];
-
+	U32 x   = threadIdx.x;
 	U32 bsz = STRLENB(str);
 	if (bsz < DYNA_HASH_THRESHOLD) return _loop_hash(bsz, str);
 
-	U32 *h = &_warp_h[threadIdx.x]; *h = 0;					// each calling thread takes a slot
-
+	U32 *h = &_warp_h[x];	*h=0;							// each calling thread takes a slot
 	cudaStream_t st;
 	cudaStreamCreateWithFlags(&st, cudaStreamNonBlocking);	// wrapper overhead ~= 84us
-	{
-		for (U32 i=0; i<bsz; i+=32) {
-			U32 mask = (i+32)<bsz ? 0xffffffff : 1<<(bsz-i) - 1;
-			_dyna_hash<<<1,32,0,st>>>(h, mask, &str[i]);
-			cudaDeviceSynchronize();							// sync all children threads
-		}
+	for (U32 i=0; i<bsz; i+=32) {
+		_dyna_hash<<<1,32,0,st>>>(h, bsz-i, &str[i]);
+		cudaDeviceSynchronize();							// sync all children threads
 	}
 	cudaStreamDestroy(st);
 
@@ -148,18 +146,17 @@ _hash(const U8 *str)
 __GPU__ void
 _dyna_search(S32 *idx, const U32 hash)
 {
-	U32 i = threadIdx.x + blockIdx.x*blockDim.x;
+	U32 x = threadIdx.x + blockIdx.x*blockDim.x;
 
-	if (i<_sym_idx && _sym_hash[i]==hash) {
-		*idx = i;				// capture the index
+	if (x<_sym_idx && _sym_hash[x]==hash) {
+		*idx = x;				// capture the index
 	}
 }
 
+__GURU__ S32 _warp_i[32];
 __GURU__ S32
 _search(U32 hash)
 {
-	static S32 _warp_i[32];
-
 	if (_sym_idx<DYNA_SEARCH_THRESHOLD) return _loop_search(hash);
 
 	S32 *idx = &_warp_i[threadIdx.x];	*idx = -1;
@@ -181,16 +178,16 @@ _search(U32 hash)
 __GURU__ GS
 new_sym(const U8 *str)			// create new symbol
 {
-	U32 i    = threadIdx.x;
+	U32 x    = threadIdx.x;
 	U32 hash = _hash(str);
 	S32 sid  = _search(hash);
 	if (sid<0) {
 		sid  = _add_index(str, hash);
 #if CC_DEBUG
-	    printf("%2d> sym[%2d]%08x: %s\n", i, sid, _sym_hash[sid], _sym[sid]);
+	    printf("%2d> sym[%2d]%08x: %s\n", x, sid, _sym_hash[sid], _sym[sid]);
 	}
 	else {
-		printf("%2d> sym[%2d]%08x: %s==%s\n", i, sid, hash, str, _sym[sid]);
+		printf("%2d> sym[%2d]%08x: %s==%s\n", x, sid, hash, str, _sym[sid]);
 #endif // CC_DEBUG
 	}
 	return sid;

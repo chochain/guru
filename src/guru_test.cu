@@ -115,7 +115,6 @@ guru_mem_test()
 }
 
 __GURU__ const char *slist[] = {
-//	"This is only a test, do not panic. This is only a test, do not panic. This is only a test, do not panic.",
 	"p",
 	"sprintf",
 	"printf",
@@ -144,13 +143,13 @@ const int LIST_SIZE = sizeof(slist)/sizeof(char*);
 __GPU__ void
 _hash_test(U32 *sid, U32 ncycle)
 {
-	int tid = threadIdx.x;
-	if (tid>=LIST_SIZE) return;
+	int x = threadIdx.x;
 
-	for (int n=0; n<ncycle; n++) {
-		sid[tid] = name2id((U8*)slist[tid]);
+	for (int n=0; x<LIST_SIZE && n<ncycle; n++) {
+		sid[x] = name2id((U8*)slist[x]);
 	}
 }
+
 
 __HOST__ void
 guru_hash_test(int ncycle)
@@ -158,12 +157,13 @@ guru_hash_test(int ncycle)
 	const int N=1;				// number of streams
 	U32 *sid = (U32*)cuda_malloc(sizeof(U32)*N*LIST_SIZE, 1);
 
-	cudaStream_t hst[N];											// host streams
+	cudaStream_t hst[N];												// host streams
 	for (int i=0; i<N; i++)
-		cudaStreamCreateWithFlags(&hst[i], cudaStreamNonBlocking);	// overhead ~= 0.013ms
+		cudaStreamCreateWithFlags(&hst[i], cudaStreamNonBlocking);		// overhead ~= 0.013ms
+
 
 	for (int i=0; i<N; i++) {
-		_hash_test<<<1, 32, 0, hst[i]>>>(&sid[i*LIST_SIZE], ncycle);		// using default sync stream
+		_hash_test<<<1, 32, 0, hst[i]>>>(&sid[i*LIST_SIZE], ncycle);	// using default sync stream
 	}
 	cudaDeviceSynchronize();
 
@@ -173,7 +173,7 @@ guru_hash_test(int ncycle)
 	for (int i=0; i<N; i++) {
 		for (int j=0; j<LIST_SIZE; j++) {
 			U32 x = j+i*LIST_SIZE;
-			printf("%2d:%08x\n", x, sid[x]);
+			printf("%2d:%08x %d\n", x, sid[x], sid[x]);
 		}
 	}
 
@@ -207,8 +207,9 @@ __HOST__ int
 guru_run(int trace)
 {
 	//_time("mem_test", 10, &guru_mem_test);
-	_time("hash_test", 100, &guru_hash_test);
+	_time("hash_test", 1, &guru_hash_test);
 
 	cudaDeviceReset();
+
 	return 0;
 }
