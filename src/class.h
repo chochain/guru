@@ -24,9 +24,7 @@ extern "C" {
   Guru class object.
 */
 typedef struct RClass {			// 64-byte
-	GURU_HDR;					// rc, n, sid are used
-	struct RVar		*ivar;		// DO NOT change here, shared structure with RObj
-	struct RClass	*cls;		// DO NOT change here, shared structure with RObj
+	GURU_OBJ_HDR;				// rc, n, sid are used
 	struct RClass 	*super;		// guru_class[super]
     guru_proc 		*vtbl;		// c-func array (in constant memory, rc is the number of functions)
 
@@ -36,8 +34,8 @@ typedef struct RClass {			// 64-byte
 #endif // GURU_DEBUG
 } guru_class;
 
-#define CLASS_USER		0x8
-#define IS_BUILTIN(cls)	(!(cls->kt & CLASS_USER))
+#define USER_DEF_CLASS	0x8
+#define IS_BUILTIN(cls)	(!(cls->kt & USER_DEF_CLASS))
 
 __GURU__ guru_class *guru_rom_get_class(GT cidx);
 __GURU__ guru_class *guru_rom_set_class(GT cidx, const char *name, GT super_cidx, const Vfunc vtbl[], int n);

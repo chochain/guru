@@ -55,7 +55,7 @@ _find_idx(GS xid, _gtype gt)
 	static S32 idx;					// warn: scoped outside of function
 	idx = -1;
 	__idx<<<1, 32*(1+(_global_sz>>5))>>>(&idx, xid, gt);
-	DEVSYNC();						// make sure idx is captured
+	SYNC_CHK();						// make sure idx is captured
 
 	return idx;
 }

@@ -532,7 +532,7 @@ _get_alloc_stat(U32 stat[])
 	cudaMallocManaged(&v, 8*sizeof(int));				// allocate host memory
 
 	_alloc_stat<<<1,1>>>(v);
-	cudaDeviceSynchronize();
+	SYNC();
 
 	for (U32 i=0; i<8; i++) {
 		stat[i] = v[i];									// mirror stat back from device
@@ -554,7 +554,7 @@ show_mmu_stat(U32 level)
 	}
 	if (level & 2) {
 		_dump_freelist<<<1,1>>>();
-		cudaDeviceSynchronize();
+		SYNC();
 	}
 }
 #endif

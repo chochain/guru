@@ -84,12 +84,12 @@ __transcode(guru_irep *irep)
 {
 	GV *p = irep->pool;
 	for (U32 i=0; i < irep->s; i++, p++) {		// symbol table
-		*p = guru_sym_new(p->sym);
+		*p = guru_sym_new(p->raw);
 		p->acl |= ACL_READ_ONLY;				// rom-based
 	}
 	for (U32 i=0; i < irep->p; i++, p++) {		// pooled objects
 		if (p->gt==GT_STR) {
-			*p = guru_str_new(p->sym);
+			*p = guru_str_new(p->raw);
 		}
 		p->acl |= ACL_READ_ONLY;				// rom-based
 	}
@@ -196,7 +196,8 @@ vm_pool_init(U32 step)
 	if (!vm) return cudaErrorMemoryAllocation;
 
 	mrbc_parse_bytecode<<<1,1>>>(vm, ses->in);
-	cudaDeviceSynchronize();
+	SYNC();
+
 	if (ses->trace) {
 		printf("  vm[%d]: %p\n", vm->id, (void *)vm);
 		mrbc_show_irep(vm->irep);
@@ -231,7 +232,7 @@ vm_main_start()
 			debug_disasm(i);
 			_step<<<1,1,0,vm->st>>>(vm);			// guru -x to run without single-stepping
 		}
-		cudaDeviceSynchronize();					// TODO: cooperative thread group
+		SYNC();										// TODO: cooperative thread group
 
 #if GURU_USE_CONSOLE
 		guru_console_flush(ses->out, ses->trace);	// dump output buffer
@@ -253,7 +254,7 @@ vm_get(U8 *irep_img)
 
 	_LOCK;
 	_fetch<<<1,1>>>(_vm_pool, irep, (int*)vm_id);	// use default stream, vm status will changed
-	cudaDeviceSynchronize();
+	SYNC();
 	vid = *(int*)vm_id;
 	_UNLOCK;
 

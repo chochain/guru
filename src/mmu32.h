@@ -40,22 +40,25 @@ typedef struct free_block {			// 4-bytes (+ 4 bytes free space)
   U32 bsz;   						//
   U32 poff;							// positive offset to previous block
 }
+
+GURU_MEM_BLOCK:
+ 	 bsz : block size, header included (max 2G)
+ 	 psz : prior adjacent memory block size
+ 	 flag: lower 4 bit might be used
 */
+#define GURU_MEM_BLOCK				\
+	U32 bsz;						\
+	union {							\
+		U32 psz	:   32;				\
+		U32 flag: 	3;				\
+	}
+
 typedef struct used_block {			// 8-bytes
-	U32 bsz; 						//!< block size, header included (max 2G)
-	union {
-		U32 psz	:   32;  			//!< prior adjacent memory block size
-		U32 flag: 	3;				// lower 4 bit might be used
-	};
+	GURU_MEM_BLOCK;
 } used_block;
 
 typedef struct free_block {			// 16-bytes (i.e. mininum allocation per block)
-	U32 bsz; 						//!< block size, header included (max 2G)
-	union {
-		U32 psz	:   32;  			//!< prior adjacent memory block size
-		U32 flag: 	3;				// lower 4 bit might be used
-	};
-
+	GURU_MEM_BLOCK;
 	S32 next;						// offset to next free block
 	S32 prev;						// offset to previous free block
 } free_block;

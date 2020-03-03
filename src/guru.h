@@ -27,7 +27,8 @@ extern "C" {
 
 #define ASSERT(X) \
 	if (!(X)) printf("ASSERT tid %d: line %d in %s\n", threadIdx.x, __LINE__, __FILE__);
-#define DEVSYNC()			{ cudaDeviceSynchronize(); ASSERT(cudaGetLastError()==cudaSuccess); }
+#define SYNC()				{ cudaDeviceSynchronize(); }
+#define SYNC_CHK()			{ cudaDeviceSynchronize(); ASSERT(cudaGetLastError()==cudaSuccess); }
 
 #else
 
@@ -116,16 +117,20 @@ typedef U16 		GS;
   Guru VALUE and objects
 	gt  : object type (GURU_TYPE i.e. GT_*)
 	acl : access control (HAS_REF, READ_ONLY, ...)
-	sid : object store id for user defined objects (i.e. OBJ)
+	vid : object store id for user defined objects (i.e. OBJ)
+	xxx : reserved
 
   TODO: move gt into object themselves, keep fix+acl as lower 3-bits (CUDA is 32-bit ops)
 */
-typedef struct {					// 16-bytes (128 bits) for eaze of debugging
-	GT  	gt 	: 16;				// guru object type
-	U32 	acl : 16;				// object access control (i.e. ROM able
-	GS 		vid;					// variable idx (used by ostore)
-	U16  	temp;					// reserved
-    union {							// 64-bit
+#define GURU_VAR_HDR	\
+	GT  	gt 	: 16;	\
+	U32 	acl : 16;	\
+	GS 		vid;		\
+	U16  	xxx
+
+typedef struct {					// 16-bytes (128 bits) for ease of debugging
+	GURU_VAR_HDR;					// 8-byte
+    union {							// 8-byte
 		GI  	 		 i;			// GT_INT, GT_SYM
 		GF 	 	 		 f;			// GT_FLOAT
         struct RObj      *self;		// GT_OBJ
@@ -136,7 +141,7 @@ typedef struct {					// 16-bytes (128 bits) for eaze of debugging
         struct RArray    *array;	// GT_ARRAY
         struct RRange    *range;	// GT_RANGE
         struct RHash     *hash;		// GT_HASH
-        U8       		 *sym;		// C-string (only loader use.)
+        U8       		 *raw;		// raw-string (only used by loader)
     };
 } GV;
 
@@ -158,7 +163,7 @@ struct Vfunc {
     sid : symbol id for class, proc
     kt  : [class,function] type for class, proc, lambda, iterator object type
         : proc=[0=Built-in C-func|PROC_IREP|PROC_LAMBDA]
-        : cls =[0=Built-in class|CLASS_USER]
+        : cls =[0=Built-in class|CLASS_BY_USER]
 */
 #define GURU_HDR  		\
 	U16		rc;			\
@@ -205,7 +210,6 @@ typedef struct RProc {			// 48-byte
 
 typedef struct RString {		// 16-byte
 	GURU_HDR;
-	U32				hash;
 	char 			*raw;		//!< pointer to allocated buffer.
 } guru_str;
 
@@ -213,10 +217,13 @@ typedef struct RString {		// 16-byte
 /*!@brief
   physical store for Guru object instance.
 */
-typedef struct RObj {			// 32-byte
-	GURU_HDR;
-    struct RVar 	*ivar;		// DO NOT change here, shared structure with RClass
-    struct RClass 	*cls;		// DO NOT change here, shared structure with RClass
+#define GURU_OBJ_HDR		\
+	GURU_HDR;				\
+    struct RVar 	*ivar;	\
+    struct RClass 	*cls
+
+typedef struct RObj {			// 24-byte
+	GURU_OBJ_HDR;
 } guru_obj;
 
 typedef struct RSes {			// 16-byte

@@ -136,7 +136,7 @@ _hash(const U8 *str)
 	cudaStreamCreateWithFlags(&st, cudaStreamNonBlocking);	// wrapper overhead ~= 84us
 	for (U32 i=0; i<bsz; i+=32) {
 		_dyna_hash<<<1,32,0,st>>>(h, bsz-i, &str[i]);
-		cudaDeviceSynchronize();							// sync all children threads
+		SYNC();												// sync all children threads
 	}
 	cudaStreamDestroy(st);
 
@@ -168,7 +168,7 @@ _search(U32 hash)
 	cudaStreamCreateWithFlags(&st, cudaStreamNonBlocking);	// wrapper overhead ~= 84us
 	{
 		_dyna_search<<<bc, tc, 0, st>>>(idx, hash);			// spawn
-		cudaDeviceSynchronize();							// sync all child threads in the block
+		SYNC();					// sync all child threads in the block
 	}
 	cudaStreamDestroy(st);
 
@@ -292,7 +292,6 @@ __HOST__ void
 id2name_host(GS sid, U8 *str)
 {
 	_id2str<<<1,1>>>(sid, str);
-
-	cudaDeviceSynchronize();
+	SYNC();
 }
 #endif // GURU_DEBUG

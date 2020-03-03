@@ -97,7 +97,7 @@ proc_by_sid(GV *v, GS sid)
         	S32 *idx = &_proc_idx[threadIdx.x];
         	*idx = -1;
         	__find_proc<<<(cls->rc>>5)+1, 32>>>(idx, cls, sid);
-        	DEVSYNC();
+        	SYNC_CHK();
             if (*idx>=0) return &cls->vtbl[*idx];
         }
     	guru_proc *p;
