@@ -967,7 +967,7 @@ uc_lambda(guru_vm *vm)
     guru_proc *prc = (guru_proc *)guru_alloc(sizeof(guru_proc));
 
     prc->rc   = 0;
-    prc->n    = 0;							// no
+    prc->n    = 0;							// no param
     prc->sid  = 0xffff;						// anonymous function
     prc->kt   = PROC_IREP;
     prc->irep = VM_REPS(vm, bz);			// fetch from children irep list

@@ -157,13 +157,16 @@ struct Vfunc {
 /*!@brief
   Guru object header. (i.e. Ruby's RBasic)
     rc  : reference counter
-    n   : actual number of elements in built-in object
-    sz  : storage space for built-in complex objects (i.e. ARRAY, HASH, STRING)
+    n   : Array, Hash actual number of elements in built-in object, or
+        : Proc parameter count
+        : Iterator range object type (i.e. GT_*)
+    sz  : storage space for built-in complex objects (i.e. Array, Hash, String)
     bsz : byte count for string
-    sid : symbol id for class, proc
-    kt  : [class,function] type for class, proc, lambda, iterator object type
+    sid : symbol id for Class, Proc
+    kt  : [class,function] type for Class, Proc, lambda, iterator object type
         : proc=[0=Built-in C-func|PROC_IREP|PROC_LAMBDA]
         : cls =[0=Built-in class|CLASS_BY_USER]
+    i   : 32-bit value used by Iterator
 */
 #define GURU_HDR  		\
 	U16		rc;			\
@@ -177,6 +180,7 @@ struct Vfunc {
 			U16 sid;	\
 			U16 kt;		\
 		};				\
+		GI i;			\
     }
 
 //================================================================
@@ -210,16 +214,16 @@ typedef struct RProc {			// 48-byte
 
 typedef struct RString {		// 16-byte
 	GURU_HDR;
-	char 			*raw;		//!< pointer to allocated buffer.
+	char 			*raw;		// pointer to allocated buffer.
 } guru_str;
 
 //================================================================
 /*!@brief
   physical store for Guru object instance.
 */
-#define GURU_OBJ_HDR		\
-	GURU_HDR;				\
-    struct RVar 	*ivar;	\
+#define GURU_OBJ_HDR			\
+	GURU_HDR;					\
+    struct RVar 	*ivar;		\
     struct RClass 	*cls
 
 typedef struct RObj {			// 24-byte

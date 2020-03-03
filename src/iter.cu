@@ -34,34 +34,34 @@ guru_iter_new(GV *obj, GV *step)
 {
     GV v; { v.gt=GT_ITER; v.acl=ACL_HAS_REF; }
 
-    guru_iter *i = v.iter = (guru_iter *)guru_alloc(sizeof(guru_iter));
-    i->rc   = 1;
-    i->sz   = obj->gt;			// reuse the field
-    i->step = step;
+    guru_iter *it = v.iter = (guru_iter *)guru_alloc(sizeof(guru_iter));
+    it->rc   = 1;
+    it->n    = obj->gt;			// reuse the field
+    it->step = step;
 
-    i->range = ref_inc(obj);
+    it->range = ref_inc(obj);
     switch (obj->gt) {
     case GT_INT: {
-    	i->n	 = obj->i;
-    	i->ivar  = (obj->i=0, obj);
+    	it->i	 = obj->i;
+    	it->ivar = (obj->i=0, obj);
     } break;
     case GT_RANGE: {
     	guru_range *r = obj->range;
     	ASSERT(r->first.gt==GT_INT || r->first.gt==GT_FLOAT);
 
-    	i->n     = 0;
-    	i->ivar  = guru_gv_alloc(1);
-    	*i->ivar = r->first;
+    	it->i     = 0;
+    	it->ivar  = guru_gv_alloc(1);
+    	*it->ivar = r->first;
     } break;
     case GT_ARRAY: {
     	guru_array *a = obj->array;
-    	i->n     = 0;
-    	i->ivar  = ref_inc(a->data);
+    	it->i     = 0;
+    	it->ivar  = ref_inc(a->data);
     } break;
     case GT_HASH: {
     	guru_hash *h = obj->hash;
-    	i->n	 = 0;
-    	i->ivar	 = ref_inc(h->data);	ref_inc(h->data+1);
+    	it->i	  = 0;
+    	it->ivar  = ref_inc(h->data);	ref_inc(h->data+1);
     } break;
     default: ASSERT(1==0);			// TODO: other types not supported yet
     }
@@ -77,10 +77,10 @@ guru_iter_next(GV *v)
 
 	guru_iter *it = v->iter;
 	U32 nvar;
-	switch (it->sz) {				// ranging object type (field reused)
+	switch (it->n) {				// ranging object type (field reused)
 	case GT_INT: {
 		it->ivar->i += it->step ? it->step->i : 1;
-		nvar = (it->ivar->i < it->n);
+		nvar = (it->ivar->i < it->i);
 	} break;
 	case GT_RANGE: {
 		guru_range *r = it->range->range;
@@ -97,21 +97,21 @@ guru_iter_next(GV *v)
 	} break;
 	case GT_ARRAY: {
 		guru_array *a = it->range->array;
-		GV         *d = &a->data[it->n];
+		GV         *d = &a->data[it->i];
 		ref_dec(d);
-		if ((it->n + 1) < a->n) {
-			it->n += (nvar = 1);
+		if ((it->i + 1) < a->n) {
+			it->i += (nvar = 1);
 			it->ivar = ref_inc(++d);
 		}
 		else nvar=0;
 	} break;
 	case GT_HASH: {
 		guru_hash *h = it->range->hash;
-		GV        *d = &h->data[it->n];
+		GV        *d = &h->data[it->i];
 		ref_dec(d);
 		ref_dec(d+1);
-		if ((it->n+2) < h->n) {
-			it->n += nvar = 2;
+		if ((it->i+2) < h->n) {
+			it->i += nvar = 2;
 			it->ivar = ref_inc(d+=2);	ref_inc(d+1);
 		}
 		else nvar=0;
@@ -132,9 +132,10 @@ guru_iter_del(GV *v)
 	ASSERT(v->gt==GT_ITER);
 	guru_iter *it = v->iter;
 
-	if (it->sz==GT_RANGE) guru_free(it->ivar);
+	if (it->n==GT_RANGE) guru_free(it->ivar);
 
     ref_dec(it->range);
     guru_free(it);
+
     *v = EMPTY();
 }

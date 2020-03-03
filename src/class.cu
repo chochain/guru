@@ -211,7 +211,7 @@ guru_rom_set_class(GT cidx, const char *name, GT super_cidx, const Vfunc vtbl[],
     cls->vtbl = prc;							// built-in proc list
 
     for (U32 i=0; i<n; i++, prc++) {
-    	prc->n    = 0;
+    	prc->n    = 0;							// NOT USER_DEF_CLASS
     	prc->sid  = new_sym((U8*)vtbl[i].name);
     	prc->kt   = 0;							// built-in class type
     	prc->func = vtbl[i].func;

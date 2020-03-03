@@ -91,14 +91,14 @@ _blank(U32 bsz)
     guru_str *h = v.str = (guru_str *)guru_alloc(sizeof(guru_str));
     U8       *s = (U8*)guru_alloc(asz);		// 8-byte aligned
 
-    ASSERT(((U32A)h & 7)==0);
+    ASSERT(((U32A)h & 7)==0);				// check alignment
     ASSERT(((U32A)s & 7)==0);
 
-    s[0]   = '\0';						// empty new string
+    s[0]   = '\0';							// empty new string
     h->rc  = 1;
     h->sz  = asz;
     h->bsz = bsz;
-    h->raw = (char *)s;					// TODO: for DEBUG, change back to (U8*)
+    h->raw = (char *)s;						// TODO: for DEBUG, change back to (U8*)
 
     return v;
 }
