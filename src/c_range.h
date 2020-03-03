@@ -20,16 +20,15 @@ extern "C" {
 #endif
 
 #define RANGE_INCLUDE		0x1
-#define IS_INCLUDE(rng)		((rng)->flag & RANGE_INCLUDE)
+#define IS_INCLUDE(rng)		((rng)->n & RANGE_INCLUDE)
 
 //================================================================
 /*!@brief
   Define Range object (same header of other objects)
+  n : used as include flag
 */
 typedef struct RRange {		// 48-byte
     GURU_HDR;				// 8-byte
-    U32	flag;
-    U32 temp;
     GV 	first;				// 16-byte
     GV 	last;				// 16-byte
 } guru_range;
