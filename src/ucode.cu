@@ -993,7 +993,7 @@ uc_class(guru_vm *vm)
     const U8   *name  = id2name(sid);
     guru_class *cls   = guru_define_class(name, super);
 
-	cls->kt |= CLASS_USER;						// user defined (i.e. non-builtin) class
+	cls->kt |= USER_DEF_CLASS;					// user defined (i.e. non-builtin) class
 
     _RA_T(GT_CLASS, cls=cls);
     *r1 = EMPTY();
