@@ -22,7 +22,7 @@
 __GURU__ S32
 _string_cmp(const GV *v0, const GV *v1)
 {
-	S32 x  = (U32)v0->str->n - (U32)v1->str->n;
+	S32 x  = (U32)v0->str->bsz - (U32)v1->str->bsz;
 	if (x) return x;
 
 	return STRCMP(v0->str->raw, v1->str->raw);

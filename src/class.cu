@@ -121,7 +121,7 @@ _define_class(const U8 *name, guru_class *cls, guru_class *super)
 	GS sid = new_sym(name);
 
     cls->rc     = 0;
-    cls->meta   = 0;					// BUILT-IN classes
+    cls->kt     = 0;					// BUILT-IN classes
     cls->sid    = sid;
     cls->super  = super;
     cls->vtbl   = NULL;
@@ -170,9 +170,9 @@ guru_define_method(guru_class *cls, const U8 *name, guru_fptr cfunc)
 
     guru_proc *prc = (guru_proc *)guru_alloc(sizeof(guru_proc));
 
-    prc->meta  = 0;								// C-function
     prc->n     = 0;								// No LAMBDA register file
     prc->sid   = new_sym(name);
+    prc->kt    = 0;								// C-function (from BUILT-IN class)
     prc->func  = cfunc;							// set function pointer
 
     _LOCK;
@@ -211,9 +211,9 @@ guru_rom_set_class(GT cidx, const char *name, GT super_cidx, const Vfunc vtbl[],
     cls->vtbl = prc;							// built-in proc list
 
     for (U32 i=0; i<n; i++, prc++) {
-    	prc->meta = 0;
     	prc->n    = 0;
     	prc->sid  = new_sym((U8*)vtbl[i].name);
+    	prc->kt   = 0;							// built-in class type
     	prc->func = vtbl[i].func;
 #ifdef GURU_DEBUG
     	prc->cname= (char *)id2name(cls->sid);

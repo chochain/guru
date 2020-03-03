@@ -152,28 +152,26 @@ struct Vfunc {
 /*!@brief
   Guru object header. (i.e. Ruby's RBasic)
     rc  : reference counter
-    size: storage space for built-in complex objects (i.e. ARRAY, HASH, STRING)
-    meta: meta flag for class, iterator object type
     n   : actual number of elements in built-in object
-    b   : byte count for string
+    sz  : storage space for built-in complex objects (i.e. ARRAY, HASH, STRING)
+    bsz : byte count for string
     sid : symbol id for class, proc
-    xxx : reserved for class
+    kt  : [class,function] type for class, proc, lambda, iterator object type
+        : proc=[0=Built-in C-func|PROC_IREP|PROC_LAMBDA]
+        : cls =[0=Built-in class|CLASS_USER]
 */
 #define GURU_HDR  		\
 	U16		rc;			\
-	union {				\
-		U16  	sz;		\
-		U16		meta;	\
-	};					\
+	U16     n;			\
 	union {				\
 		struct {		\
-			U16	b;		\
-			U16 n;		\
-    	};				\
+			U16 sz;		\
+			U16	bsz;	\
+		};				\
 		struct {		\
 			U16 sid;	\
-			U16 xxx;	\
-    	};				\
+			U16 kt;		\
+		};				\
     }
 
 //================================================================
@@ -202,8 +200,8 @@ typedef struct RProc {			// 48-byte
 
 #define PROC_IREP		0x1
 #define PROC_LAMBDA		0x8
-#define AS_IREP(p)		((p)->meta & PROC_IREP)
-#define AS_LAMBDA(p)	((p)->meta & PROC_LAMBDA)
+#define AS_IREP(p)		((p)->kt & PROC_IREP)
+#define AS_LAMBDA(p)	((p)->kt & PROC_LAMBDA)
 
 typedef struct RString {		// 16-byte
 	GURU_HDR;

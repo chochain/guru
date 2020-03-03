@@ -91,7 +91,7 @@ _each(guru_vm *vm, GV v[], U32 vi)
 	vm_state_push(vm, irep1, 0, v+2, vi);
 	guru_iter *it = git.iter;
 	*(v+3) = *(it->ivar);
-	if (it->meta==GT_HASH) {
+	if (it->sz==GT_HASH) {
 		*(v+4) = *(it->ivar+1);
 	}
 }
@@ -115,7 +115,7 @@ _lambda(guru_vm *vm, GV v[], U32 vi)
 	ASSERT(v->gt==GT_CLASS && (v+1)->gt==GT_PROC);		// ensure it is a proc
 
 	guru_proc *prc = (v+1)->proc;						// mark it as a lambda
-	prc->meta |= PROC_LAMBDA;
+	prc->kt |= PROC_LAMBDA;
 
 	U32	n   = prc->n 	= vm->ar.a;
 	GV  *r  = prc->regs = (GV*)guru_alloc(sizeof(GV)*n);

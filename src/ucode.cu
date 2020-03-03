@@ -967,9 +967,9 @@ uc_lambda(guru_vm *vm)
     guru_proc *prc = (guru_proc *)guru_alloc(sizeof(guru_proc));
 
     prc->rc   = 0;
-    prc->meta = PROC_IREP;
+    prc->n    = 0;							// no
     prc->sid  = 0xffff;						// anonymous function
-    prc->n    = 0;
+    prc->kt   = PROC_IREP;
     prc->irep = VM_REPS(vm, bz);			// fetch from children irep list
 
     _RA_T(GT_PROC, proc=prc);				// regs[ra].proc = prc
@@ -993,7 +993,7 @@ uc_class(guru_vm *vm)
     const U8   *name  = id2name(sid);
     guru_class *cls   = guru_define_class(name, super);
 
-	cls->meta |= CLASS_USER;					// user defined (i.e. non-builtin) class
+	cls->kt |= CLASS_USER;						// user defined (i.e. non-builtin) class
 
     _RA_T(GT_CLASS, cls=cls);
     *r1 = EMPTY();

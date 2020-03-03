@@ -340,7 +340,7 @@ obj_lambda(GV v[], U32 vi)
 	ASSERT(v->gt==GT_CLASS && (v+1)->gt==GT_PROC);		// ensure it is a proc
 
 	guru_proc *prc = (v+1)->proc;						// mark it as a lambda
-	prc->meta |= PROC_LAMBDA;
+	prc->kt |= PROC_LAMBDA;
 
 	U32	n   = prc->n 	= vi+3;
 	GV  *r  = prc->regs = (GV*)guru_alloc(sizeof(GV)*n);

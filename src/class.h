@@ -37,7 +37,7 @@ typedef struct RClass {			// 64-byte
 } guru_class;
 
 #define CLASS_USER		0x8
-#define IS_BUILTIN(cls)	(!(cls->meta & CLASS_USER))
+#define IS_BUILTIN(cls)	(!(cls->kt & CLASS_USER))
 
 __GURU__ guru_class *guru_rom_get_class(GT cidx);
 __GURU__ guru_class *guru_rom_set_class(GT cidx, const char *name, GT super_cidx, const Vfunc vtbl[], int n);
