@@ -9,6 +9,7 @@
 
   </pre>
 */
+#include "util.h"
 #include "value.h"
 #include "mmu.h"
 #include "class.h"
@@ -17,7 +18,6 @@
 #include "c_array.h"
 #include "inspect.h"
 
-#define DYNA_HASH_THRESHOLD     1
 #define DYNA_SEARCH_THRESHOLD 	1				// meta-parameter
 
 #define _LOCK	{ MUTEX_LOCK(_mutex_sym); }
@@ -28,35 +28,6 @@ __GURU__ S32 	_sym_idx = 0;					// point to the last(free) sym_list array.
 __GURU__ U8*	_sym[MAX_SYMBOL_COUNT];
 __GURU__ U32	_sym_hash[MAX_SYMBOL_COUNT];
 
-//================================================================
-/*! Calculate hash value.
-
-  @param  str		Target string.
-  @return uint16_t	Hash value.
-*/
-#define HASH_K 1000003
-
-__GURU__ U32
-_loop_hash(U32 bsz, const U8 *str)
-{
-	// a simple polynomial hashing algorithm
-	U32 h = 0;
-    for (U32 i=0; i<bsz; i++) {
-        h = h * HASH_K + str[i];
-    }
-    return h;
-}
-//================================================================
-/*! search index table
- */
-__GURU__ S32
-_loop_search(U32 hash)
-{
-    for (S32 i=0; i<_sym_idx; i++) {
-    	if (_sym_hash[i]==hash) return i;
-    }
-    return -1;
-}
 //================================================================
 /*! add to index table (assume no entry exists)
  */
@@ -83,64 +54,15 @@ _add_index(const U8 *str, U32 hash)
 }
 
 //================================================================
-/*! Calculate hash value
-
-  @param  str		Target string.
-  @return GS	Symbol value.
-*/
-__GPU__ void
-_dyna_hash(U32 *hash, U32 sz, const U8 *str)
+/*! search index table
+ */
+__GURU__ S32
+_loop_search(U32 hash)
 {
-	U32 x = threadIdx.x;									// row-major
-	U32 m = __ballot_sync(0xffffffff, x<sz);				// ballot_mask
-	U32 h = x<sz ? str[x] : 0;								// move to register
-
-	for (U32 n=16; x<sz && n>0; n>>=1) {
-		h += HASH_K*__shfl_down_sync(m, h, n);				// shuffle down
-	}
-	if (x==0) *hash += h;
-}
-
-__GPU__ void
-_dyna_hash2d(U32 *hash, U32 *mask, U32 bsz, const U8 *str)
-{
-	U32  x = threadIdx.x + threadIdx.y * blockDim.x;		// row-major
-	bool c = x<bsz;
-	U32  m = __ballot_sync(0xffffffff, c);
-	U32  hx= c ? str[x] : 0;
-
-	for (U32 n=blockDim.x>>1; n>0; n>>=1) {					// rollup rows
-		hx += HASH_K*__shfl_down_sync(m, hx, n);			// shuffle down
-	}
-	if (threadIdx.x!=0) return;								// only row leaders
-
-	c = threadIdx.y<blockDim.y;
-	m = __ballot_sync(0xffffffff, c);
-	U32 hy = c ? hx : 0;
-	for (U32 n=blockDim.y>>1; n>0; n>>=1) {					// rollup columns
-		hy += HASH_K*__shfl_down_sync(m, hy, n);			// shuffle down
-	}
-	if (threadIdx.y==0) *hash = hy;
-}
-
-__GURU__ U32 _warp_h[32];
-__GURU__ U32
-_hash(const U8 *str)
-{
-	U32 x   = threadIdx.x;
-	U32 bsz = STRLENB(str);
-	if (bsz < DYNA_HASH_THRESHOLD) return _loop_hash(bsz, str);
-
-	U32 *h = &_warp_h[x];	*h=0;							// each calling thread takes a slot
-	cudaStream_t st;
-	cudaStreamCreateWithFlags(&st, cudaStreamNonBlocking);	// wrapper overhead ~= 84us
-	for (U32 i=0; i<bsz; i+=32) {
-		_dyna_hash<<<1,32,0,st>>>(h, bsz-i, &str[i]);
-		SYNC();												// sync all children threads
-	}
-	cudaStreamDestroy(st);
-
-	return *h;
+    for (S32 i=0; i<_sym_idx; i++) {
+    	if (_sym_hash[i]==hash) return i;
+    }
+    return -1;
 }
 
 __GPU__ void
@@ -178,9 +100,10 @@ _search(U32 hash)
 __GURU__ GS
 new_sym(const U8 *str)			// create new symbol
 {
-	U32 x    = threadIdx.x;
-	U32 hash = _hash(str);
+	U32 hash = guru_calc_hash(str);
 	S32 sid  = _search(hash);
+
+	U32 x    = threadIdx.x;
 	if (sid<0) {
 		sid  = _add_index(str, hash);
 #if CC_DEBUG
@@ -196,7 +119,7 @@ new_sym(const U8 *str)			// create new symbol
 __GURU__ GS
 name2id(const U8 *str)
 {
-	U32 hash = _hash(str);
+	U32 hash = guru_calc_hash(str);
 	S32 sid  = _search(hash);
 
 #if CC_DEBUG

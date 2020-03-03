@@ -13,6 +13,7 @@
 #include "guru.h"
 #include "mmu.h"
 #include "class.h"
+#include "util.h"
 #include "value.h"
 
 #include "c_hash.h"

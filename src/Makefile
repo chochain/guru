@@ -16,12 +16,12 @@ INCDIRS=-I/usr/local/cuda/include -I./src
 SRC =   main.c 
 EXT =   c_range.cu c_array.cu c_hash.cu inspect.cu
 GURU= 	guru_test.cu vm_debug.cu \
+        util.cu value.cu \
         static.cu global.cu console.cu iter.cu \
 		mmu32.cu load.cu \
-		ostore.cu symbol.cu class.cu \
+		ostore.cu symbol.cu class.cu refcnt.cu \
 		state.cu vm.cu \
 		sprintf.cu puts32.cu \
-        value.cu refcnt.cu \
 		ucode.cu object.cu \
         c_fixnum.cu c_str_utf8.cu \
 		$(EXT)
@@ -52,6 +52,8 @@ main.o: main.c gurux.h
 	$(CC) $(CCFLAGS) $<
 
 cuda.o: cuda.cu
+
+util.o: util.cu			vm_config.h
 
 static.o: static.cu	    vm_config.h guru.h static.h
 

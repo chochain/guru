@@ -11,11 +11,11 @@
   </pre>
 */
 #include "guru.h"
-#include "class.h"
+#include "util.h"
 #include "value.h"
+#include "class.h"
 #include "mmu.h"
 #include "symbol.h"
-//#include "static.h"
 #include "global.h"
 
 #include "puts.h"

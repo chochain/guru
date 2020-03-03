@@ -14,6 +14,7 @@
 #include <stdarg.h>
 
 #include "mmu.h"
+#include "util.h"
 #include "value.h"
 #include "symbol.h"
 #include "console.h"

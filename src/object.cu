@@ -13,6 +13,7 @@
 #include <stdarg.h>
 
 #include "guru.h"
+#include "util.h"
 #include "class.h"
 #include "value.h"
 #include "mmu.h"

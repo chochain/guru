@@ -8,6 +8,7 @@
   This file is distributed under BSD 3-Clause License.
   </pre>
 */
+#include "util.h"
 #include "value.h"
 #include "object.h"
 
@@ -163,90 +164,6 @@ guru_atof(const U8 *s)
 #else
     return 0.0;
 #endif // GURU_USE_FLOAT
-}
-
-__GURU__ void
-guru_memcpy(U8 *d, const U8 *s, U32 bsz)
-{
-    for (U32 i=0; s && d && i<bsz; i++, *d++ = *s++);
-}
-
-__GURU__ void
-guru_memset(U8 *d, U8 v,  U32 bsz)
-{
-    for (U32 i=0; d && i<bsz; i++, *d++ = v);
-}
-
-__GURU__ int
-guru_memcmp(const U8 *d, const U8 *s, U32 bsz)
-{
-	U32 i;
-    for (i=0; i<bsz && *d==*s; i++, d++, s++);
-
-    return i<bsz ? (*d - *s) : 0;
-}
-
-__GURU__ __INLINE__ void
-_next_utf8(U8 **sp)
-{
-	U8  c = **sp;
-	U32 b = 0;
-	if      (c>0 && c<=127) 		b=1;
-	else if ((c & 0xE0) == 0xC0) 	b=2;
-	else if ((c & 0xF0) == 0xE0) 	b=3;
-	else if ((c & 0xF8) == 0xF0) 	b=4;
-	else *sp=NULL;					// invalid utf8
-
-	*sp+=b;
-}
-
-__GURU__ U32
-guru_strlen(const U8 *str, U32 use_byte)
-{
-	U32 n  = 0;
-	U8  *s = (U8*)str;
-	for (U32 i=0; s && *s!='\0'; i++, n++) {
-		_next_utf8(&s);
-	}
-	return (s && use_byte) ? s - str : n;
-}
-
-__GURU__ U8 *
-guru_strcut(const U8 *str, U32 n)
-{
-	U8 *s = (U8*)str;
-	for (U32 i=0, c=0; n>0 && s && *s!='\0'; i++) {
-		_next_utf8(&s);
-		if (++c >= n) break;
-	}
-	return s;
-}
-
-__GURU__ void
-guru_strcpy(U8 *d, const U8 *s)
-{
-    guru_memcpy(d, s, STRLENB(s)+1);
-}
-
-__GURU__ S32
-guru_strcmp(const U8 *s1, const U8 *s2)
-{
-    return guru_memcmp(s1, s2, STRLENB(s1));
-}
-
-__GURU__ U8*
-guru_strchr(U8 *s, const U8 c)
-{
-    while (s && *s!='\0' && *s!=c) s++;
-
-    return (U8*)((*s==c) ? &s : NULL);
-}
-
-__GURU__ U8*
-guru_strcat(U8 *d, const U8 *s)
-{
-	guru_memcpy(d+STRLENB(d), s, STRLENB(s)+1);
-    return d;
 }
 
 __GURU__ GV NIL() 	{ GV v; { v.gt=GT_NIL;   v.acl=0; } return v; }
