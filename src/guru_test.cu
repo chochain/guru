@@ -205,7 +205,7 @@ _time(const char *fname, int ncycle, void (*fp)(int))
 }
 
 __HOST__ int
-guru_run(int trace)
+guru_run()
 {
 	//_time("mem_test", 10, &guru_mem_test);
 	_time("hash_test", 1, &guru_hash_test);
@@ -214,3 +214,6 @@ guru_run(int trace)
 
 	return 0;
 }
+
+__HOST__ void
+guru_teardown(int sig) {}

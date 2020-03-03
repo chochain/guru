@@ -24,9 +24,6 @@
 #include "inspect.h"
 
 #if !GURU_USE_STRING
-//==============================================================================================================
-// Prototypes for compilation in case String class is not required (exe from 7.5M to 6.7M)
-//
 __GURU__ GV		guru_str_new(const U8 *src) { return NIL(); }			// cannot use U8P, need lots of casting
 __GURU__ GV		guru_str_buf(U32 sz)		{ return NIL(); }			// a string buffer
 __GURU__ GV		guru_str_clr(GV *s)			{ return NIL(); }
@@ -381,7 +378,7 @@ str_to_i(GV v[], U32 vi)
         base = v[1].i;
         if (base < 2 || base > 36) return;	// raise ? ArgumentError
     }
-    GI i = guru_atoi(_raw(v), base);
+    GI i = ATOI(_raw(v), base);
 
     RETURN_INT(i);
 }
@@ -410,8 +407,8 @@ str_to_f(GV v[], U32 vi)
 __GURU__ GV
 _slice(GV *v, U32 i, U32 n)
 {
-	U8  *s0 = STRCUT((U8*)v->str->raw, i);		// start
-	U8  *s1	= STRCUT(s0, n);					// end
+	U8  *s0 = (U8*)STRCUT(v->str->raw, i);			// start
+	U8  *s1	= (U8*)STRCUT(s0, n);					// end
 	U32 bsz = U8POFF(s1, s0);
     GV  ret = _blank(bsz);						//	pad '\0' automatically
     U8  *d  = (U8*)ret.str->raw;

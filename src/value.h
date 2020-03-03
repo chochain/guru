@@ -32,29 +32,6 @@ __GURU__ GV     EMPTY();
 #define RETURN_INT(n)	{ ref_dec(v); v->acl=0; v->gt=GT_INT;  v->i=(GI)(n); return; }
 #define RETURN_FLOAT(n)	{ ref_dec(v); v->acl=0; v->gt=GT_FLOAT;v->f=(GF)(n); return; }
 
-// macros to create new built-in objects
-#if defined(__CUDACC__)
-__GURU__ GI   			guru_atoi(const U8 *s, U32 base);
-__GURU__ GF				guru_atof(const U8 *s);
-
-#define ATOI(s)         guru_atoi(s, 10)
-#define ATOF(s)			guru_atof(s)
-
-#else
-#define ATOI(s)			atol(s)
-#define ATOF(s)			atof(s)
-
-#define MEMCPY(d,s,sz)  memcpy(d, s, sz)
-#define MEMSET(d,v,sz)  memset(d, v, sz)
-#define MEMCMP(d,s,sz)  memcmp(d, s, sz)
-
-#define STRLEN(s)		strlen(s)
-#define STRCPY(d,s)	  	strcpy(d, s)
-#define STRCMP(s1,s2)   strcmp(s1, s2)
-#define STRCHR(d,c)     strchr(d, c)
-#define STRCAT(d,s)     strcat(d, s)
-#endif
-
 // basic C string functions for GV
 #define GVSTR(v) ((U8*)(v)->str->data)
 

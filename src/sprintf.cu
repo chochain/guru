@@ -360,7 +360,7 @@ guru_vprintf(const U8 *fstr, GV v[], U32 vi)		// << from c_string.cu
                 ret = __int(pf, (GI)v[i].f, 10);
 #endif // GURU_USE_FLOAT
             } else if (v[i].gt==GT_STR) {
-                GI ival = ATOI((U8*)v[i].str->raw);
+                GI ival = ATOI(v[i].str->raw, 10);
                 ret = __int(pf, ival, 10);
             }
             break;

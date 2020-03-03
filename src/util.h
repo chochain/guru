@@ -10,46 +10,49 @@
 */
 #ifndef GURU_SRC_UTIL_H_
 #define GURU_SRC_UTIL_H_
-#include "guru.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-__GURU__ void 			d_memcpy(U8 *d, const U8 *s, U32 sz);
-__GURU__ void    		d_memset(U8 *d, U8  v, U32 sz);
-__GURU__ S32     		d_memcmp(const U8 *d, const U8 *s, U32 sz);
+__device__ void    		d_memcpy(void *d, const void *s, size_t sz);
+__device__ void    		d_memset(void *d, int v, size_t sz);
+__device__ int     		d_memcmp(const void *d, const void *s, size_t sz);
 
-__GURU__ U32  			d_strlen(const U8 *s, U32 use_byte);
-__GURU__ S32     		d_strcmp(const U8 *s1, const U8 *s2);
-__GURU__ void    		d_strcpy(U8 *s1, const U8 *s2);
-__GURU__ U8*			d_strchr(U8 *d,  const U8 c);
-__GURU__ U8*			d_strcat(U8 *d,  const U8 *s);
-__GURU__ U8*     		d_strcut(const U8 *s, U32 n);			// take n utf8 chars from the string
+__device__ int  		d_strlen(const char *s, int use_byte);
+__device__ int     		d_strcmp(const char *s1, const char *s2);
+__device__ char*		d_strchr(char *d,  const char c);
+__device__ char*		d_strcat(char *d,  const char *s);
+__device__ char*     	d_strcut(const char *s, int n);			// take n utf8 chars from the string
 
-__GURU__ U32 			d_calc_hash(const U8 *str);
+__device__ int 			d_calc_hash(const char *str);
+__device__ int 			d_atoi(const char *s, size_t base);
+__device__ double		d_atof(const char *s);
 
 #if defined(__CUDACC__)
 
-#define MEMCPY(d,s,sz)  d_memcpy((U8*)(d), (U8*)(s), (U32)(sz))
-#define MEMSET(d,v,sz)  d_memset((U8*)(d), (U8)(v),  (U32)(sz))
-#define MEMCMP(d,s,sz)  d_memcmp((U8*)(d), (U8*)(s), (U32)(sz))
+#define MEMCPY(d,s,sz)  memcpy(d,s,sz)
+#define MEMSET(d,v,sz)  memset(d,v,sz)
+#define MEMCMP(d,s,sz)  d_memcmp(d,s,sz)
 
-#define STRLEN(s)		d_strlen((U8*)(s), 0)
-#define STRLENB(s)		d_strlen((U8*)(s), 1)
-#define STRCPY(d,s)		d_strcpy((U8*)d, (U8*)s)
-#define STRCMP(d,s)    	d_strcmp((U8*)d, (U8*)s)
-#define STRCHR(d,c)     d_strchr((U8*)d, (U8)c)
-#define STRCAT(d,s)     d_strcat((U8*)d, (U8*)s)
-#define STRCUT(d,sz)	d_strcut((U8*)d, (U32)sz)
+#define STRLEN(s)		d_strlen((char*)(s), 0)
+#define STRLENB(s)		d_strlen((char*)(s), 1)
+#define STRCPY(d,s)		MEMCPY(d,s,STRLENB(s)+1)
+#define STRCHR(d,c)     MEMSET(d,c,STRLENB(d))
+#define STRCMP(d,s)    	MEMCMP(d,s,STRLENB(s))
+#define STRCAT(d,s)     MEMCPY(d+STRLENB(d), s, STRLENB(s)+1)
+#define STRCUT(d,sz)	d_strcut((char*)d, (int)sz)
 
-#define HASH(s)			d_calc_hash((U8*)s)
+#define HASH(s)			d_calc_hash((char*)(s))
+
+#define ATOI(s, base)   d_atoi((char*)(s), base)
+#define ATOF(s)			d_atof((char*)(s))
 
 #else
 
 #define MEMCPY(d,s,sz)  memcpy(d, s, sz)
-#define MEMSET(d,v,sz)  memset(d, v, sz)
 #define MEMCMP(d,s,sz)  memcmp(d, s, sz)
+#define MEMSET(d,v,sz)  memset(d, v, sz)
 
 #define STRLEN(s)		strlen(s)
 #define STRCPY(d,s)	  	strcpy(d, s)
@@ -58,9 +61,12 @@ __GURU__ U32 			d_calc_hash(const U8 *str);
 #define STRCAT(d,s)     strcat(d, s)
 #define STRCUT(s,sz)	substr(s, sz)
 
-#define HASH(s)			calc_hash((U8*)s)		// add implementation
+#define HASH(s)			calc_hash((s)			// add implementation
 
-#endif
+#define ATOI(s)			atol(s)
+#define ATOF(s)			atof(s)
+
+#endif	// __CUDACC__
 
 #ifdef __cplusplus
 }
