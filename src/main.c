@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <signal.h>
 #include "gurux.h"
 
 #if 0
@@ -45,6 +46,10 @@ int _opt(int argc, char *argv[], int *opt)
 
 int main(int argc, char *argv[])
 {
+	if (signal(SIGINT, guru_teardown)==SIG_ERR) {	// register interrupt handler
+		fprintf(stderr, "ERROR: SIGINT, use kill -9");
+	}
+
 	int opt, n = _opt(argc, argv, &opt);
 	int trace = opt & TRACE_MASK;
 	int step  = (opt & VM_EXEC_FLAG) ? 0 : 1;
@@ -56,6 +61,7 @@ int main(int argc, char *argv[])
 		if (guru_load(fname)) return -2;
 	}
 	guru_run();							// TODO: consumer
+	guru_teardown(0);
 
-	return guru_teardown();
+	return 0;
 }

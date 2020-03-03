@@ -146,8 +146,8 @@ guru_run()
 	return 0;
 }
 
-__HOST__ int
-guru_teardown()
+__HOST__ void
+guru_teardown(int sig)
 {
 	cudaDeviceReset();
 
@@ -157,5 +157,4 @@ guru_teardown()
 		ses = ses->next;
 		free(tmp);
 	}
-	return 0;
 }

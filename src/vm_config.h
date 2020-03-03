@@ -43,7 +43,7 @@
 #define BLOCK_MEMORY_SIZE 			(128*1024)
 #define GURU_64BIT_ALIGN_REQUIRED 	1
 
-#define CC_DEBUG					1
+#define CC_DEBUG					0
 
 /* Hardware dependent flags */
 #define CUDA_MIN_MEMBLOCK_SIZE		0x200
