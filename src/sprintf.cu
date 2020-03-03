@@ -13,9 +13,10 @@
 #include <stdio.h>
 #include <stdarg.h>
 
-#include "mmu.h"
+#include "guru.h"
 #include "util.h"
 #include "value.h"
+#include "mmu.h"
 #include "symbol.h"
 #include "console.h"
 #include "sprintf.h"

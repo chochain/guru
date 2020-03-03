@@ -10,14 +10,17 @@
   </pre>
 */
 #include <stdio.h>
-
-#include "mmu.h"		// includes guru.h
-#include "class.h"
+#include "guru.h"
+#include "util.h"
 #include "value.h"
+#include "mmu.h"
+
+#include "class.h"
 #include "symbol.h"
 
 #include "c_string.h"
 #include "c_range.h"
+
 #include "inspect.h"
 
 #if !GURU_USE_STRING
@@ -110,8 +113,10 @@ _new(const U8 *src)
 	GV  ret = _blank(bsz);
 
     // deep copy source string
-    if (src) MEMCPY(ret.str->raw, src, bsz+1);		// plus '\0'
-
+    if (src) {
+    	MEMCPY(ret.str->raw, src, bsz+1);		// plus '\0'
+//    	ret.str->hash = guru_calc_hash(src);
+    }
     return ret;
 }
 
@@ -405,10 +410,10 @@ str_to_f(GV v[], U32 vi)
 __GURU__ GV
 _slice(GV *v, U32 i, U32 n)
 {
-	U8  *s0 = guru_strcut((U8*)v->str->raw, i);		// start
-	U8  *s1	= guru_strcut(s0, n);					// end
+	U8  *s0 = STRCUT((U8*)v->str->raw, i);		// start
+	U8  *s1	= STRCUT(s0, n);					// end
 	U32 bsz = U8POFF(s1, s0);
-    GV  ret = _blank(bsz);							//	pad '\0' automatically
+    GV  ret = _blank(bsz);						//	pad '\0' automatically
     U8  *d  = (U8*)ret.str->raw;
 
     MEMCPY(d, s0, bsz);

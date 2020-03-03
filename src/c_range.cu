@@ -11,14 +11,14 @@
 */
 
 #include "vm_config.h"
-
 #include "guru.h"
-#include "mmu.h"
-#include "class.h"
 #include "value.h"
-#include "object.h"		// guru_kind_of
+#include "mmu.h"
 
+#include "class.h"
+#include "object.h"		// guru_kind_of
 #include "c_range.h"
+
 #include "inspect.h"
 
 //================================================================

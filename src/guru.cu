@@ -7,6 +7,7 @@
   </pre>
 */
 #include <stdio.h>
+#include "guru.h"
 #include "gurux.h"
 #include "mmu.h"				// guru_malloc
 #include "load.h"				// guru_parse_bytecode

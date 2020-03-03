@@ -9,10 +9,11 @@
 
   </pre>
 */
+#include "guru.h"
 #include "util.h"
 #include "value.h"
-#include "mmu.h"
 #include "class.h"
+#include "mmu.h"
 #include "symbol.h"
 #include "c_string.h"
 #include "c_array.h"
@@ -100,7 +101,7 @@ _search(U32 hash)
 __GURU__ GS
 new_sym(const U8 *str)			// create new symbol
 {
-	U32 hash = guru_calc_hash(str);
+	U32 hash = HASH(str);
 	S32 sid  = _search(hash);
 
 	U32 x    = threadIdx.x;
@@ -119,7 +120,7 @@ new_sym(const U8 *str)			// create new symbol
 __GURU__ GS
 name2id(const U8 *str)
 {
-	U32 hash = guru_calc_hash(str);
+	U32 hash = HASH(str);
 	S32 sid  = _search(hash);
 
 #if CC_DEBUG

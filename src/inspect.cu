@@ -11,8 +11,8 @@
   </pre>
 */
 #include "guru.h"
-#include "class.h"
 #include "value.h"
+#include "class.h"
 #include "symbol.h"
 #include "object.h"
 #include "inspect.h"

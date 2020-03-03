@@ -12,7 +12,6 @@
 #include "value.h"
 #include "object.h"
 
-#include "c_string.h"
 #include "c_array.h"
 #include "c_hash.h"
 #include "c_range.h"

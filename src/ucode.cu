@@ -9,11 +9,11 @@
   2. the core opcode dispatcher
   </pre>
 */
-#include "mmu.h"
-//#include "static.h"
+#include "guru.h"
+#include "value.h"
 #include "symbol.h"
 #include "global.h"
-#include "value.h"
+#include "mmu.h"
 #include "inspect.h"
 
 #include "object.h"

@@ -14,8 +14,8 @@
 
 #include "guru.h"
 #include "util.h"
-#include "class.h"
 #include "value.h"
+#include "class.h"
 #include "mmu.h"
 #include "symbol.h"
 #include "state.h"

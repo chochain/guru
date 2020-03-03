@@ -11,7 +11,7 @@
   </pre>
 */
 #include <stdio.h>
-
+#include "guru.h"
 #include "mmu.h"
 #include "state.h"
 #include "symbol.h"

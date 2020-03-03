@@ -12,6 +12,7 @@
   </pre>
 */
 #include <stdio.h>
+#include "guru.h"
 #include "mmu.h"
 #include "mmu32.h"
 

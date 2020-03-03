@@ -9,8 +9,9 @@
 
   </pre>
 */
-#include "mmu.h"
+#include "guru.h"
 #include "value.h"
+#include "mmu.h"
 #include "ostore.h"
 
 #define SET_VAL(d, vid, val)		(*(d)=*(val), (d)->vid=(vid))

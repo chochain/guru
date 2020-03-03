@@ -12,9 +12,10 @@
   </pre>
 */
 #include <stdio.h>
-#include "mmu.h"
+#include "guru.h"
 #include "gurux.h"
 #include "vmx.h"
+#include "mmu.h"
 #include "symbol.h"
 
 extern "C" __GPU__  void guru_mmu_init(void *ptr, U32 sz);

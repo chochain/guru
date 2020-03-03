@@ -23,6 +23,7 @@
 #include <stdio.h>
 #include <pthread.h>
 
+#include "guru.h"
 #include "mmu.h"
 #include "class.h"
 #include "state.h"

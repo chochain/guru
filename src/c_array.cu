@@ -11,13 +11,13 @@
 */
 #include "vm_config.h"
 #include "guru.h"
-#include "mmu.h"
-#include "class.h"
 #include "util.h"
 #include "value.h"
+#include "mmu.h"
 
-#include "vm.h"
+#include "class.h"
 #include "c_array.h"
+
 #include "inspect.h"
 
 /*

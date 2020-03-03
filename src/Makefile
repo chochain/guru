@@ -31,7 +31,7 @@ LIB = 	libguru.a
 SRCS = $(SRC:.c=.o)
 OBJS = $(GURU:.cu=.o) $(CUDA:.cu=.o)
 
-BASE = vm_config.h gurux.h guru.h mmu.h 
+BASE = vm_config.h gurux.h guru.h util.h mmu.h 
 REFS = $(BASE) static.h value.h refcnt.h inspect.h
 EXTS = $(EXT:.cu=.h)
 

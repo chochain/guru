@@ -13,19 +13,19 @@
 #include "util.h"
 
 __GURU__ void
-guru_memcpy(U8 *d, const U8 *s, U32 bsz)
+d_memcpy(U8 *d, const U8 *s, U32 bsz)
 {
     for (U32 i=0; s && d && i<bsz; i++, *d++ = *s++);
 }
 
 __GURU__ void
-guru_memset(U8 *d, U8 v,  U32 bsz)
+d_memset(U8 *d, U8 v,  U32 bsz)
 {
     for (U32 i=0; d && i<bsz; i++, *d++ = v);
 }
 
 __GURU__ int
-guru_memcmp(const U8 *d, const U8 *s, U32 bsz)
+d_memcmp(const U8 *d, const U8 *s, U32 bsz)
 {
 	U32 i;
     for (i=0; i<bsz && *d==*s; i++, d++, s++);
@@ -48,7 +48,7 @@ _next_utf8(U8 **sp)
 }
 
 __GURU__ U32
-guru_strlen(const U8 *str, U32 use_byte)
+d_strlen(const U8 *str, U32 use_byte)
 {
 	U32 n  = 0;
 	U8  *s = (U8*)str;
@@ -59,7 +59,7 @@ guru_strlen(const U8 *str, U32 use_byte)
 }
 
 __GURU__ U8 *
-guru_strcut(const U8 *str, U32 n)
+d_strcut(const U8 *str, U32 n)
 {
 	U8 *s = (U8*)str;
 	for (U32 i=0, c=0; n>0 && s && *s!='\0'; i++) {
@@ -70,19 +70,19 @@ guru_strcut(const U8 *str, U32 n)
 }
 
 __GURU__ void
-guru_strcpy(U8 *d, const U8 *s)
+d_strcpy(U8 *d, const U8 *s)
 {
-    guru_memcpy(d, s, STRLENB(s)+1);
+    d_memcpy(d, s, STRLENB(s)+1);
 }
 
 __GURU__ S32
-guru_strcmp(const U8 *s1, const U8 *s2)
+d_strcmp(const U8 *s1, const U8 *s2)
 {
-    return guru_memcmp(s1, s2, STRLENB(s1));
+    return d_memcmp(s1, s2, STRLENB(s1));
 }
 
 __GURU__ U8*
-guru_strchr(U8 *s, const U8 c)
+d_strchr(U8 *s, const U8 c)
 {
     while (s && *s!='\0' && *s!=c) s++;
 
@@ -90,9 +90,9 @@ guru_strchr(U8 *s, const U8 c)
 }
 
 __GURU__ U8*
-guru_strcat(U8 *d, const U8 *s)
+d_strcat(U8 *d, const U8 *s)
 {
-	guru_memcpy(d+STRLENB(d), s, STRLENB(s)+1);
+	d_memcpy(d+STRLENB(d), s, STRLENB(s)+1);
     return d;
 }
 
@@ -184,7 +184,7 @@ _hash(const U8 *str, U32 bsz)
 }
 
 __GURU__ U32
-guru_calc_hash(const U8 *str)
+d_calc_hash(const U8 *str)
 {
 	U32 bsz = STRLENB(str);
 	return _hash(str, bsz);

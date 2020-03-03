@@ -10,12 +10,10 @@
   </pre>
 */
 #include <stdio.h>
-
 #include "vm_config.h"
 #include "guru.h"
-#include "mmu.h"
-//#include "static.h"
 #include "value.h"
+#include "mmu.h"
 
 #include "c_array.h"
 #include "c_hash.h"
