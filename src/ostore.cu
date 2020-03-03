@@ -70,9 +70,9 @@ _new(U32 nlv)
     guru_var *r = (guru_var *)guru_alloc(sizeof(guru_var));
 
     r->rc   = 0;
-    r->sz   = nlv;		// number of local variables
     r->n    = 0;		// currently zero allocated
-    r->attr = (GV *)guru_alloc(sizeof(GV) * nlv);
+    r->sz   = nlv;		// number of local variables
+    r->attr = guru_gv_alloc(nlv);
 
     return r;
 }

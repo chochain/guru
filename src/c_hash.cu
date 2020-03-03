@@ -175,13 +175,12 @@ guru_hash_new(int sz)
     /*
       Allocate handle and data buffer.
     */
-    guru_hash *h   = v.hash = (guru_hash *)guru_alloc(sizeof(guru_hash));
-    GV        *ptr = sz ? (GV *)guru_alloc(sizeof(GV) * (sz<<1)) : NULL;
+    guru_hash *h = v.hash = (guru_hash *)guru_alloc(sizeof(guru_hash));
 
     h->rc   = 1;
-    h->sz	= sz<<1;
     h->n  	= 0;
-    h->data = ptr;
+    h->sz	= sz<<1;		// double the array size for (k,v) pairs
+    h->data = sz ? guru_gv_alloc(sz<<1) : NULL;
 
     return v;
 }

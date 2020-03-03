@@ -50,7 +50,7 @@ guru_iter_new(GV *obj, GV *step)
     	ASSERT(r->first.gt==GT_INT || r->first.gt==GT_FLOAT);
 
     	i->n     = 0;
-    	i->ivar  = (GV*)guru_alloc(sizeof(GV));
+    	i->ivar  = guru_gv_alloc(1);
     	*i->ivar = r->first;
     } break;
     case GT_ARRAY: {

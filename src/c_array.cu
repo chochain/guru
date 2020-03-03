@@ -56,21 +56,20 @@ __GURU__ void
 _resize(guru_array *h, U32 ndx)
 {
     U32 n = 0;
-    if (ndx >= h->sz) {							// need resize?
+    if (ndx >= h->sz) {						// need resize?
         n = ndx;
     }
     else if (h->n >= h->sz) {
-        n = h->n + 4;							// auto allocate extra 4 elements
+        n = h->n + 4;						// auto allocate extra 4 elements
     }
-    if (n) {
-    	U32 asz = sizeof(GV)*n;		ALIGN(asz);	// should be 8-byte aligned already
-        h->data = h->data
-        	? (GV *)guru_realloc(h->data, asz)
-        	: (GV *)guru_alloc(asz);
-        h->sz = n;
-        for (U32 i=h->n; i<n; i++) {			// DEBUG: lazy fill here, instead of when resized
-            h->data[i] = EMPTY();
-        }
+    if (n==0) return;
+
+    h->data = h->data
+    	? guru_gv_realloc(h->data, n)
+        : guru_gv_alloc(n);
+    h->sz = n;
+    for (U32 i=h->n; i<n; i++) {			// DEBUG: lazy fill here, instead of when resized
+    	h->data[i] = EMPTY();
     }
 }
 
@@ -282,13 +281,12 @@ guru_array_new(U32 sz)
 {
     GV v; { v.gt=GT_ARRAY; v.acl=ACL_HAS_REF; }
 
-    guru_array *h   = (guru_array *)guru_alloc(sizeof(guru_array));		// handle
-    void       *ptr = sz ? guru_alloc(sizeof(GV) * sz) : NULL;			// empty array?
+    guru_array *h = (guru_array *)guru_alloc(sizeof(guru_array));		// handle
 
     h->rc   = 1;
-    h->sz   = sz;
     h->n  	= 0;
-    h->data = (GV *)ptr;
+    h->sz   = sz;
+    h->data = sz ? guru_gv_alloc(sz) : NULL;							// empty array?
 
     v.array = h;
 

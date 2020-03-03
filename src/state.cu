@@ -118,7 +118,7 @@ _lambda(guru_vm *vm, GV v[], U32 vi)
 	prc->kt |= PROC_LAMBDA;
 
 	U32	n   = prc->n 	= vm->ar.a;
-	GV  *r  = prc->regs = (GV*)guru_alloc(sizeof(GV)*n);
+	GV  *r  = prc->regs = guru_gv_alloc(n);
 	GV  *r0 = vm->state->regs;							// deep copy register file
 	for (U32 i=0; i<n; *r++=*r0++, i++);
 

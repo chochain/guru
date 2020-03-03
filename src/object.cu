@@ -343,7 +343,7 @@ obj_lambda(GV v[], U32 vi)
 	prc->kt |= PROC_LAMBDA;
 
 	U32	n   = prc->n 	= vi+3;
-	GV  *r  = prc->regs = (GV*)guru_alloc(sizeof(GV)*n);
+	GV  *r  = prc->regs = guru_gv_alloc(n);
 	GV  *r0 = v - n;
 	for (U32 i=0; i<n; *r++=*r0++, i++);
 

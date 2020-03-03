@@ -378,6 +378,18 @@ guru_realloc(void *p0, U32 sz)
     return p1;
 }
 
+__GURU__ GV*
+guru_gv_alloc(U32 n)
+{
+	return (GV*)guru_alloc(sizeof(GV) * n);
+}
+
+__GURU__ GV*
+guru_gv_realloc(GV *gv, U32 n)
+{
+	return (GV*)guru_realloc(gv, sizeof(GV) * n);
+}
+
 //================================================================
 /*! release memory
 */
