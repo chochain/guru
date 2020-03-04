@@ -15,36 +15,35 @@
 extern "C" {
 #endif
 
-__device__ void    		d_memcpy(void *d, const void *s, size_t sz);
-__device__ void    		d_memset(void *d, int v, size_t sz);
-__device__ int     		d_memcmp(const void *d, const void *s, size_t sz);
+__device__ void    		*d_memcpy(void *d, const void *s, size_t n);
+__device__ void    		*d_memset(void *d, int c, size_t n);
+__device__ int     		d_memcmp(const void *s1, const void *s2, size_t n);
 
-__device__ int  		d_strlen(const char *s, int use_byte);
+__device__ int  		d_strlen(const char *s, int raw);
 __device__ int     		d_strcmp(const char *s1, const char *s2);
-__device__ char*		d_strchr(char *d,  const char c);
+__device__ char*		d_strchr(const char *s,  const char c);
 __device__ char*		d_strcat(char *d,  const char *s);
 __device__ char*     	d_strcut(const char *s, int n);			// take n utf8 chars from the string
 
-__device__ int 			d_calc_hash(const char *str);
+__device__ int 			d_hash(const char *s);
 __device__ int 			d_atoi(const char *s, size_t base);
 __device__ double		d_atof(const char *s);
 
 #if defined(__CUDACC__)
 
-#define MEMCPY(d,s,sz)  memcpy(d,s,sz)
-#define MEMSET(d,v,sz)  memset(d,v,sz)
-#define MEMCMP(d,s,sz)  d_memcmp(d,s,sz)
+#define MEMCPY(d,s,n)   memcpy(d,s,n)
+#define MEMSET(d,v,n)   memset(d,v,n)
+#define MEMCMP(d,s,n)   d_memcmp(d,s,n)
 
 #define STRLEN(s)		d_strlen((char*)(s), 0)
 #define STRLENB(s)		d_strlen((char*)(s), 1)
+#define STRCUT(d,n)		d_strcut((char*)d, (int)n)
+#define STRCHR(d,c)     d_strchr((char*)d,c)
 #define STRCPY(d,s)		MEMCPY(d,s,STRLENB(s)+1)
-#define STRCHR(d,c)     MEMSET(d,c,STRLENB(d))
 #define STRCMP(d,s)    	MEMCMP(d,s,STRLENB(s))
-#define STRCAT(d,s)     MEMCPY(d+STRLENB(d), s, STRLENB(s)+1)
-#define STRCUT(d,sz)	d_strcut((char*)d, (int)sz)
+#define STRCAT(d,s)     d_strcat((char*)d, (char*)s)
 
-#define HASH(s)			d_calc_hash((char*)(s))
-
+#define HASH(s)			d_hash((char*)(s))
 #define ATOI(s, base)   d_atoi((char*)(s), base)
 #define ATOF(s)			d_atof((char*)(s))
 

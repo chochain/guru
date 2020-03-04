@@ -1,6 +1,7 @@
 /*! @file
   @brief
   GURU Utilities functions
+    Memory cpy/set/cmp
     String hasher
 
   <pre>
@@ -10,7 +11,12 @@
 
   </pre>
 */
+#include <stdint.h>
 #include "util.h"
+
+typedef int         WORD;
+#define WSIZE   	(sizeof(WORD))
+#define	WMASK		(WSIZE-1)
 
 #define DYNA_HASH_THRESHOLD     1
 #define HASH_K 1000003
@@ -101,26 +107,86 @@ _hash(const char *str, int bsz)
 	return *h;
 }
 
-__device__ __inline__ void
-d_memcpy(void *d, const void *s, size_t bsz)
+__device__ void*
+d_memcpy(void *d, const void *s, size_t n)
 {
-	char *ds=(char*)d, *ss=(char*)s;
-    for (int i=0; s && d && i<bsz; i++) *ds++ = *ss++;
+	if (n==0 || d==s) return d;
+
+	char *ds = (char*)d, *ss = (char*)s;
+	size_t t = (uintptr_t)ss;						// take low bits
+
+	if ((unsigned long)ds < (unsigned long)ss) {	// copy forward
+		if ((t | (uintptr_t)ds) & WMASK) {
+			int i = ((t ^ (uintptr_t)ds) & WMASK || n < WSIZE)			// align operands
+				? n
+				: WSIZE - (t & WMASK);
+			n -= i;
+			for (; i; i--) *ds++ = *ss++;							// leading bytes
+		}
+		for (int i=n/WSIZE; i; i--) { *(WORD*)ds=*(WORD*)ss; ds+=WSIZE; ss+=WSIZE; }
+		for (int i=n&WMASK; i; i--) *ds++ = *ss++;					// trailing bytes
+	}
+	else {											// copy backward
+		ss += n;
+		ds += n;
+		if ((t | (uintptr_t)ds) & WMASK) {
+			int i = ((t ^ (uintptr_t)ds) & WMASK || n <= WSIZE)
+				? n
+				: t & WMASK;
+			n -= i;
+			for (; i; i--) *--ds = *--ss;							// leading bytes
+		}
+		for (int i=n/WSIZE; i; i--) { ss-=WSIZE; ds-=WSIZE; *(WORD*)ds=*(WORD*)ss; }
+		for (int i=n&WMASK; i; i--) *--ds = *--ss;
+	}
+	return d;
 }
 
-__device__ __inline__ void
-d_memset(void *d, int v, size_t bsz)
+__device__ void*
+d_memset(void *d, int c, size_t n)
 {
-	char *ds = (char*)d;
-	for (int i=0; d && i<bsz; i++) *ds++ = v;
+    char *s = (char*)d;
+
+    /* Fill head and tail with minimal branching. Each
+     * conditional ensures that all the subsequently used
+     * offsets are well-defined and in the dest region. */
+
+    if (!n) return d;
+    s[0] = s[n-1] = c;
+    if (n <= 2) return d;
+    s[1] = s[n-2] = c;
+    s[2] = s[n-3] = c;
+    if (n <= 6) return d;
+    s[3] = s[n-4] = c;
+    if (n <= 8) return d;
+
+    /* Advance pointer to align it at a 4-byte boundary,
+     * and truncate n to a multiple of 4. The previous code
+     * already took care of any head/tail that get cut off
+     * by the alignment. */
+
+    size_t k = -(uintptr_t)s & 3;
+    s += k;
+    n -= k;
+    n &= -4;			// change of sign???
+    n /= 4;
+
+    uint32_t *ws = (uint32_t *)s;
+    uint32_t  wc = c & 0xFF;
+    wc |= ((wc << 8) | (wc << 16) | (wc << 24));
+
+    /* Pure C fallback with no aliasing violations. */
+    for (; n; n--) *ws++ = wc;
+
+    return d;
 }
 
 __device__ int
-d_memcmp(const void *d, const void *s, size_t bsz)
+d_memcmp(const void *s1, const void *s2, size_t n)
 {
-	char *ds=(char*)d, *ss=(char*)s;
-	for (int i=0, x=0; i<bsz; i++, ds++, ss++) {
-		if ((x=(*ds++ - *ss++))!=0) return x;
+	char *p1=(char*)s1, *p2=(char*)s2;
+	for (; n; n--, p1++, p2++) {
+		if (*p1 != *p2) return *p1 - *p2;
 	}
 	return 0;
 }
@@ -128,8 +194,8 @@ d_memcmp(const void *d, const void *s, size_t bsz)
 __device__ int
 d_strlen(const char *str, int raw)
 {
-	int n  = 0;
-	char  *s = (char*)str;
+	int  n  = 0;
+	char *s = (char*)str;
 	for (int i=0; s && *s!='\0'; i++, n++) {
 		_next_utf8(&s);
 	}
@@ -149,36 +215,36 @@ d_strcmp(const char *s1, const char *s2)
 }
 
 __device__ char*
-d_strchr(char *s, const char c)
+d_strchr(const char *s, const char c)
 {
-    while (s && *s!='\0' && *s!=c) s++;
-
-    return (char*)((*s==c) ? &s : NULL);
+	char *p = (char*)s;
+    for (; p && *p!='\0'; p++) {
+    	if (*p==c) return p;
+    }
+    return NULL;
 }
 
-__device__ __inline__ char*
+__device__ char*
 d_strcat(char *d, const char *s)
 {
 	d_memcpy(d+STRLENB(d), s, STRLENB(s)+1);
     return d;
 }
 
-__device__ char *
-d_strcut(const char *str, int n)
+__device__ char*
+d_strcut(const char *s, int n)
 {
-	char *s = (char*)str;
-	for (int i=0, c=0; n>0 && s && *s!='\0'; i++) {
-		_next_utf8(&s);
-		if (++c >= n) break;
+	char *p = (char*)s;
+	for (int i=0; n && i<n && p && *p!='\0'; i++) {
+		_next_utf8(&p);
 	}
-	return s;
+	return p;
 }
 
 __device__ int
-d_calc_hash(const char *str)
+d_hash(const char *s)
 {
-	int bsz = STRLENB(str);
-	return _hash(str, bsz);
+	return _hash(s, STRLENB(s));
 }
 
 //================================================================
@@ -251,4 +317,3 @@ d_atof(const char *s)
     		* (v + (f==0 ? 0.0 : f * exp10((double)r)))
     		* (e==0 ? 1.0 : exp10((double)esign * e));
 }
-
