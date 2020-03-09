@@ -15,6 +15,8 @@
 extern "C" {
 #endif
 
+#if defined(__CUDACC__)
+
 __device__ void    		*d_memcpy(void *d, const void *s, size_t n);
 __device__ void    		*d_memset(void *d, int c, size_t n);
 __device__ int     		d_memcmp(const void *s1, const void *s2, size_t n);
@@ -29,19 +31,17 @@ __device__ int 			d_hash(const char *s);
 __device__ int 			d_atoi(const char *s, size_t base);
 __device__ double		d_atof(const char *s);
 
-#if defined(__CUDACC__)
-
 #define MEMCPY(d,s,n)   memcpy(d,s,n)
 #define MEMSET(d,v,n)   memset(d,v,n)
 #define MEMCMP(d,s,n)   d_memcmp(d,s,n)
 
 #define STRLEN(s)		d_strlen((char*)(s), 0)
 #define STRLENB(s)		d_strlen((char*)(s), 1)
-#define STRCUT(d,n)		d_strcut((char*)d, (int)n)
-#define STRCHR(d,c)     d_strchr((char*)d,c)
 #define STRCPY(d,s)		MEMCPY(d,s,STRLENB(s)+1)
 #define STRCMP(d,s)    	MEMCMP(d,s,STRLENB(s))
+#define STRCHR(d,c)     d_strchr((char*)d,c)
 #define STRCAT(d,s)     d_strcat((char*)d, (char*)s)
+#define STRCUT(d,n)		d_strcut((char*)d, (int)n)
 
 #define HASH(s)			d_hash((char*)(s))
 #define ATOI(s, base)   d_atoi((char*)(s), base)

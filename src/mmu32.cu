@@ -13,6 +13,7 @@
 */
 #include <stdio.h>
 #include "guru.h"
+#include "util.h"
 #include "mmu.h"
 #include "mmu32.h"
 
@@ -372,7 +373,7 @@ guru_realloc(void *p0, U32 sz)
     }
     // not big enough block found, new alloc and deep copy
     void *p1 = guru_alloc(bsz);
-    memcpy(p1, p0, sz);									// deep copy, !!using CUDA provided memcpy
+    MEMCPY(p1, p0, sz);									// deep copy, !!using CUDA provided memcpy
 
     guru_free(p0);										// reclaim block
 
@@ -439,7 +440,7 @@ guru_mmu_stat()
 {
 	used_block *p = (used_block *)_memory_pool;
 	guru_mstat *s = &_mem_stat;
-	memset(s, 0, sizeof(guru_mstat));	// wipe, !using CUDA provided memset
+	MEMSET(s, 0, sizeof(guru_mstat));	// wipe, !using CUDA provided memset
 
 	U32 flag = IS_FREE(p);				// starting block type
 	while (p) {	// walk the memory pool
@@ -535,7 +536,7 @@ _alloc_stat(U32 v[])
 	if (threadIdx.x!=0 || blockIdx.x!=0) return;
 
 	guru_mstat *s = guru_mmu_stat();
-	memcpy(v, s, sizeof(guru_mstat));
+	MEMCPY(v, s, sizeof(guru_mstat));
 }
 
 __HOST__ void

@@ -107,26 +107,30 @@ _hash(const char *str, int bsz)
 	return *h;
 }
 
+/* memcpy generic C-implementation,
+ *
+ *   TODO: alignment of ss is still
+ */
 __device__ void*
 d_memcpy(void *d, const void *s, size_t n)
 {
 	if (n==0 || d==s) return d;
 
 	char *ds = (char*)d, *ss = (char*)s;
-	size_t t = (uintptr_t)ss;						// take low bits
+	size_t t = (uintptr_t)ss;								// take low bits
 
-	if ((unsigned long)ds < (unsigned long)ss) {	// copy forward
+	if ((unsigned long)ds < (unsigned long)ss) {			// copy forward
 		if ((t | (uintptr_t)ds) & WMASK) {
-			int i = ((t ^ (uintptr_t)ds) & WMASK || n < WSIZE)			// align operands
+			int i = ((t ^ (uintptr_t)ds) & WMASK || n < WSIZE)		// align operands
 				? n
 				: WSIZE - (t & WMASK);
 			n -= i;
-			for (; i; i--) *ds++ = *ss++;							// leading bytes
+			for (; i; i--) *ds++ = *ss++;					// leading bytes
 		}
 		for (int i=n/WSIZE; i; i--) { *(WORD*)ds=*(WORD*)ss; ds+=WSIZE; ss+=WSIZE; }
-		for (int i=n&WMASK; i; i--) *ds++ = *ss++;					// trailing bytes
+		for (int i=n&WMASK; i; i--) *ds++ = *ss++;			// trailing bytes
 	}
-	else {											// copy backward
+	else {													// copy backward
 		ss += n;
 		ds += n;
 		if ((t | (uintptr_t)ds) & WMASK) {
@@ -134,7 +138,7 @@ d_memcpy(void *d, const void *s, size_t n)
 				? n
 				: t & WMASK;
 			n -= i;
-			for (; i; i--) *--ds = *--ss;							// leading bytes
+			for (; i; i--) *--ds = *--ss;					// leading bytes
 		}
 		for (int i=n/WSIZE; i; i--) { ss-=WSIZE; ds-=WSIZE; *(WORD*)ds=*(WORD*)ss; }
 		for (int i=n&WMASK; i; i--) *--ds = *--ss;
