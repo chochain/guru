@@ -13,6 +13,7 @@
 */
 #include <stdio.h>
 #include "guru.h"
+#include "util.h"
 #include "refcnt.h"
 #include "symbol.h"		// id2name
 #include "ostore.h"		// ostore_new
@@ -37,15 +38,6 @@ _wipe_stack(GV v[], U32 vi)
     	r->acl  = 0;
     	r->self = NULL;
     }
-}
-
-__GURU__ S32
-__match(const U8* s0, U8* s1)
-{
-	while (*s0 != '\0') {
-		if (*s0++ != *s1++) return 0;
-	}
-	return 1;
 }
 
 __GURU__ void
@@ -90,7 +82,7 @@ _each(guru_vm *vm, GV v[], U32 vi)
 	vm_state_push(vm, irep1, 0, v+2, vi);
 	guru_iter *it = git.iter;
 	*(v+3) = *(it->ivar);
-	if (it->sz==GT_HASH) {
+	if (it->n==GT_HASH) {
 		*(v+4) = *(it->ivar+1);
 	}
 }
@@ -133,34 +125,39 @@ _raise(guru_vm *vm, GV v[], U32 vi)
 	vm->state->pc = vm->rescue[--vm->depth];	// pop from exception return stack
 }
 
+typedef void (*Xfunc)(guru_vm *vm, GV v[], U32 vi);
+struct Xf {
+	const char  *name;				// raw string usually
+	Xfunc 		func;				// C-function pointer
+};
+__GURU__ __const__ Xf miss_vtbl[] = {
+	{ "call", 	_call	},			// C-based prc_call (hacked handler, it needs vm->state)
+	{ "each",   _each   },			// push into call stack, obj at stack[0]
+	{ "times",  _each   },			// looper
+	{ "new",    _new    },
+	{ "lambda", _lambda },			// create object
+	{ "raise",  _raise  }			// exception handler
+};
+#define XFSZ	(sizeof(miss_vtbl)/sizeof(Xf))
+
 __GURU__ U32
 _method_missing(guru_vm *vm, GV v[], U32 vi, GS sid)
 {
 	U8 *f = id2name(sid);
+
 #if CC_DEBUG
 	printf("0x%02x:%s not found -------\n", sid, f);
 #endif // CC_DEBUG
-	// function dispatcher
-	if      (__match("call", f)) { 				// C-based prc_call (hacked handler, it needs vm->state)
-		_call(vm, v, vi);						// push into call stack, obj at stack[0]
+
+	struct Xf *p = (Xf*)miss_vtbl;	// dispatcher
+	for (int i=0; i<XFSZ; i++, p++) {
+		if (STRCMP(p->name, f)==0) {
+			p->func(vm, v, vi);
+			return 0;
+		}
 	}
-	else if (__match("each", f) || __match("times", f)) {
-		_each(vm, v, vi);
-	}
-	else if (__match("new", f)) {				// other default C-based methods
-		_new(vm, v, vi);						// create object
-	}
-	else if (__match("lambda", f)) {			// other default C-based methods
-		_lambda(vm, v, vi);
-	}
-	else if (__match("raise", f)) {
-		_raise(vm, v, vi);
-	}
-	else {
-		_wipe_stack(v+1, vi+1);					// wipe call stack and return
-		return 1;
-	}
-	return 0;
+	_wipe_stack(v+1, vi+1);			// wipe call stack and return
+	return 1;
 }
 //================================================================
 /*!@brief
@@ -242,7 +239,7 @@ vm_method_exec(guru_vm *vm, GV v[], U32 vi, GS sid)
 {
     guru_proc  *prc = proc_by_sid(v, sid);				// v->gt in [GT_OBJ, GT_CLASS]
 
-    if (prc==0) {
+    if (prc==0) {										// VM functions
     	return _method_missing(vm, v, vi, sid);
     }
     if (AS_IREP(prc)) {									// a Ruby-based IREP
@@ -256,5 +253,4 @@ vm_method_exec(guru_vm *vm, GV v[], U32 vi, GS sid)
     }
     return 0;
 }
-
 
