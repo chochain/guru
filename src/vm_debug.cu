@@ -24,8 +24,6 @@ cudaEvent_t _event_t0, _event_t1;
 // the following code is for debugging purpose, turn off GURU_DEBUG for release
 //========================================================================================
 #if GURU_DEBUG
-extern "C" guru_vm *_vm_pool;							// from vm.cu
-
 static const char *_vtype[] = {
 	"___","nil","f  ","t  ","num","flt","sym","",		// 0x0
 	"cls","prc","","","","","","",						// 0x8
@@ -229,27 +227,25 @@ debug_init(U32 flag)
 }
 
 __HOST__ void
-debug_vm_irep(S32 vm_id)
-{
-	if (vm_id<0 || _debug<1) return;
-
-	printf("  vm[%d]:\n", vm_id);
-	char c = 'a';
-	_show_irep(_vm_pool[vm_id].state->irep, 'A', &c);
-}
-
-__HOST__ void
 debug_mmu_stat()
 {
 	show_mmu_stat(_debug);
 }
 
 __HOST__ void
-debug_disasm(S32 vm_id)
+debug_vm_irep(guru_vm *vm)
 {
-	if (_debug<1 || vm_id<0) return;
+	if (_debug<1 || !vm->state) return;
 
-	guru_vm *vm = &_vm_pool[vm_id];
+	printf("  vm[%d]:\n", vm->id);
+	char c = 'a';
+	_show_irep(vm->state->irep, 'A'+vm->id, &c);
+}
+
+__HOST__ void
+debug_disasm(guru_vm *vm)
+{
+	if (_debug<1 || !vm->state) return;
 
 	for (guru_state *st=vm->state; st->prev; st=st->prev) printf("  ");
 

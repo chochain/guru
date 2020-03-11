@@ -21,8 +21,8 @@ extern "C" {
 
 void debug_init(U32 flag);
 void debug_mmu_stat();
-void debug_vm_irep(S32 vm_id);
-void debug_disasm(S32 vm_id);
+void debug_vm_irep(guru_vm *vm);
+void debug_disasm(guru_vm *vm);
 void debug_log(const char *msg);
 
 #ifdef __cplusplus
