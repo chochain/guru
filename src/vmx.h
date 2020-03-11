@@ -22,7 +22,7 @@ extern "C" {
 #endif
 
 int  vm_pool_init(U32 step);
-int  vm_get(U8 *irep_img);
+int  vm_issue(U8 *cu_img);
 int  vm_main_start();
 
 int	 vm_hold(U32 vid);

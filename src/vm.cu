@@ -24,6 +24,7 @@
 #include <pthread.h>
 
 #include "guru.h"
+#include "util.h"
 #include "mmu.h"
 #include "class.h"
 #include "state.h"
@@ -35,6 +36,7 @@
 #include "c_string.h"
 
 guru_vm *_vm_pool;
+U32      _vm_cnt = 0;
 
 pthread_mutex_t 	_mutex_pool;
 #define _LOCK		(pthread_mutex_lock(&_mutex_pool))
@@ -47,13 +49,11 @@ pthread_mutex_t 	_mutex_pool;
   @param  vm  Pointer to VM
 */
 __GURU__ void
-_ready(guru_vm *vm, guru_irep *irep)
+__ready(guru_vm *vm, guru_irep *irep)
 {
-	if (blockIdx.x!=0 || threadIdx.x!=0) return;		// single threaded
-
 	GV *r = vm->regfile;
-	for (U32 i=0; i<MAX_REGFILE_SIZE; i++, r++) {		// wipe register
-		r->gt  = (i>0) ? GT_EMPTY : GT_CLASS;			// reg[0] is "self"
+	for (U32 i=0; i<MAX_REGFILE_SIZE; i++, r++) {	// wipe register
+		r->gt  = (i>0) ? GT_EMPTY : GT_CLASS;		// reg[0] is "self"
 		r->cls = (i>0) ? NULL     : guru_rom_get_class(GT_OBJ);
 		r->acl = 0;
 	}
@@ -65,15 +65,15 @@ _ready(guru_vm *vm, guru_irep *irep)
 }
 
 __GURU__ void
-_free(guru_vm *vm)
+__free(guru_vm *vm)
 {
-	if (blockIdx.x!=0 || threadIdx.x!=0) return;		// single threaded
-	if (vm->run!=VM_STATUS_STOP) 		 return;
+	if (vm->run!=VM_STATUS_STOP) return;
 
-	while (vm->state) {									// pop off call stack
+	while (vm->state) {								// pop off call stack
 		vm_state_pop(vm, vm->state->regs[1]);
 	}
-	vm->run = VM_STATUS_FREE;							// release the vm
+	vm->run   = VM_STATUS_FREE;						// release the vm
+	vm->state = NULL;								// redundant?
 }
 
 //================================================================
@@ -84,15 +84,15 @@ __GURU__ void
 __transcode(guru_irep *irep)
 {
 	GV *p = irep->pool;
-	for (U32 i=0; i < irep->s; i++, p++) {		// symbol table
+	for (U32 i=0; i < irep->s; i++, p++) {			// symbol table
 		*p = guru_sym_new(p->raw);
-		p->acl |= ACL_READ_ONLY;				// rom-based
+		p->acl |= ACL_READ_ONLY;					// rom-based
 	}
-	for (U32 i=0; i < irep->p; i++, p++) {		// pooled objects
+	for (U32 i=0; i < irep->p; i++, p++) {			// pooled objects
 		if (p->gt==GT_STR) {
 			*p = guru_str_new(p->raw);
 		}
-		p->acl |= ACL_READ_ONLY;				// rom-based
+		p->acl |= ACL_READ_ONLY;					// rom-based
 	}
 	// use tail recursion (i.e. no call stack, so compiler optimization becomes possible)
 	for (U32 i=0; i < irep->r; i++) {
@@ -106,27 +106,14 @@ __transcode(guru_irep *irep)
 //       modify the VM status
 //
 __GPU__ void
-_fetch(guru_vm *pool, guru_irep *irep, int *vid)
+_issue(guru_vm *vm, guru_irep *irep)
 {
-	*vid = -1;
+	if (blockIdx.x!=0 || threadIdx.x!=0) return;	// singleton thread
 
-	if (blockIdx.x!=0 || threadIdx.x!=0) return;	// single threaded
-	if (!pool) return;								// not initialized yet
-
-	guru_vm *vm = pool;
-	int idx;
-	for (idx=0; idx<MIN_VM_COUNT; idx++, vm++) {
-		if (vm->run==VM_STATUS_FREE) {
-			vm->run = VM_STATUS_READY;		// reserve the VM
-			break;
-		}
+	if (vm->run==VM_STATUS_FREE) {
+		__transcode(irep);							// recursively transcode Pooled objects and Symbol table
+		__ready(vm, irep);
 	}
-	if (idx>=MIN_VM_COUNT) return;
-
-	__transcode(irep);		// recursively transcode Pooled objects and Symbol table
-	_ready(vm, irep);
-
-	*vid = idx;
 }
 
 //================================================================
@@ -139,7 +126,7 @@ _fetch(guru_vm *pool, guru_irep *irep, int *vid)
 __GPU__ void
 _step(guru_vm *vm)
 {
-	if (threadIdx.x!=0) return;						// TODO: single thread for now
+	if (blockIdx.x!=0 || threadIdx.x!=0) return;	// TODO: single thread for now
 
 	// start up instruction and dispatcher unit
 	while (vm->run==VM_STATUS_RUN) {				// run my (i.e. blockIdx.x) VM
@@ -151,15 +138,42 @@ _step(guru_vm *vm)
 		if (vm->step) break;
 	}
 	if (vm->run==VM_STATUS_STOP) {					// whether my VM is completed
-		_free(vm);									// free up my vm_state, return VM to free pool
+		__free(vm);									// free up my vm_state, return VM to free pool
 	}
 }
 
-#if !GURU_HOST_IMAGE
-//================================================================
-/*!@brief
-  release mrbc_irep holds memory
-*/
+#if GURU_HOST_IMAGE
+__HOST__ int
+vm_pool_init(U32 step)
+{
+	guru_vm *vm = _vm_pool = (guru_vm *)cuda_malloc(sizeof(guru_vm) * MIN_VM_COUNT, 1);
+	if (!vm) return -1;
+
+	for (U32 i=0; i<MIN_VM_COUNT; i++, vm++) {
+		vm->id    = i;
+		vm->step  = step;
+		vm->depth = vm->err  = 0;
+		vm->run   = VM_STATUS_FREE;		// VM not allocated
+		cudaStreamCreateWithFlags(&vm->st, cudaStreamNonBlocking);
+	}
+	return 0;
+}
+#else
+vm_pool_init(U32 step)
+{
+	mrbc_vm *vm = (mrbc_vm *)guru_malloc(sizeof(mrbc_vm), 1);
+	if (!vm) return cudaErrorMemoryAllocation;
+
+	mrbc_parse_bytecode<<<1,1>>>(vm, ses->in);
+	SYNC();
+
+	if (ses->trace) {
+		printf("  vm[%d]: %p\n", vm->id, (void *)vm);
+		mrbc_show_irep(vm->irep);
+	}
+	return 0;
+}
+
 __GURU__ void
 _mrbc_irep_free(mrbc_irep *irep)
 {
@@ -176,101 +190,60 @@ _mrbc_irep_free(mrbc_irep *irep)
     if (irep->rlen) guru_free(irep->list);
     guru_free(irep);
 }
-#endif
+#endif // GURU_HOST_IMAGE
 
 __HOST__ int
-vm_pool_init(U32 step)
-{
-#if GURU_HOST_IMAGE
-	guru_vm *vm = _vm_pool = (guru_vm *)cuda_malloc(sizeof(guru_vm) * MIN_VM_COUNT, 1);
-	if (!vm) return -1;
-
-	for (U32 i=0; i<MIN_VM_COUNT; i++, vm++) {
-		vm->id    = i;
-		vm->step  = step;
-		vm->depth = vm->err  = 0;
-		vm->run   = VM_STATUS_FREE;		// VM not allocated
-		cudaStreamCreateWithFlags(&vm->st, cudaStreamNonBlocking);
-	}
-#else
-	mrbc_vm *vm = (mrbc_vm *)guru_malloc(sizeof(mrbc_vm), 1);
-	if (!vm) return cudaErrorMemoryAllocation;
-
-	mrbc_parse_bytecode<<<1,1>>>(vm, ses->in);
-	SYNC();
-
-	if (ses->trace) {
-		printf("  vm[%d]: %p\n", vm->id, (void *)vm);
-		mrbc_show_irep(vm->irep);
-	}
-#endif
-	return 0;
-}
-
-__HOST__ int
-_join() {
-	U32 i;
+_has_job() {
 	guru_vm *vm = _vm_pool;
-
-	_LOCK;											// TODO: make it a per-VM (i.e. per-blockIdx) control
-	for (i=0; i<MIN_VM_COUNT; i++, vm++) {
-		if (vm->run==VM_STATUS_RUN) break;
+	for (U32 i=0; i<MIN_VM_COUNT; i++, vm++) {
+		if (vm->run==VM_STATUS_RUN) return 1;
 	}
-	_UNLOCK;
-
-	return (i<MIN_VM_COUNT) ? 1 : 0;
+	return 0;
 }
 
 __HOST__ int
 vm_main_start()
 {
 	do {
-		// add pre-hook here
 		guru_vm *vm = _vm_pool;
-		for (int i=0; i<MIN_VM_COUNT; i++, vm++) {
-			if (vm->run != VM_STATUS_RUN) continue;
+		for (U32 i=0; i<MIN_VM_COUNT; i++, vm++) {
+			if (!vm->state) continue;
 
-			debug_disasm(i);
-			_step<<<1,1,0,vm->st>>>(vm);			// guru -x to run without single-stepping
+			// add pre-hook here
+			debug_disasm(vm);
+			_step<<<1,1,0,vm->st>>>(vm);				// guru -x to run without single-stepping
+			// add post-hook here
 		}
-		SYNC();										// TODO: cooperative thread group
-
+		SYNC();											// TODO: cooperative thread group
 #if GURU_USE_CONSOLE
-		guru_console_flush(ses->out, ses->trace);	// dump output buffer
+		guru_console_flush(ses->out, ses->trace);		// dump output buffer
 #endif  // GURU_USE_CONSOLE
-		// add post-hook here
-	} while(_join());								// GPU device barrier + HOST pthread guard
+	} while (_has_job());								// join()
 
 	return 0;
 }
 
 __HOST__ int
-vm_get(U8 *irep_img)
+vm_issue(U8 *cu_img)
 {
-	guru_irep *irep = (guru_irep *)irep_img;
-	void *vm_id;
-	int  vid;
+	if (!_vm_pool) 				return -1;
+	if (_vm_cnt>=MIN_VM_COUNT) 	return -1;
 
-	cudaMallocManaged(&vm_id, sizeof(int));			// allocate device memory, auto synchronize
+	guru_irep *irep = (guru_irep *)cu_img;
+	guru_vm   *vm   = &_vm_pool[_vm_cnt++];
 
-	_LOCK;
-	_fetch<<<1,1>>>(_vm_pool, irep, (int*)vm_id);	// use default stream, vm status will changed
+	_issue<<<1,1,0,vm->st>>>(vm, irep);			// acquire VM, vm status will changed
 	SYNC();
-	vid = *(int*)vm_id;
-	_UNLOCK;
+	debug_vm_irep(vm);
 
-	cudaFree(vm_id);								// free memory, auto synchronize
-
-	debug_vm_irep(vid);
-
-	return vid;
+	return _vm_cnt-1;
 }
 
 __HOST__ int
 _set_status(U32 vid, U32 new_status, U32 status_flag)
 {
-	guru_vm *vm = _vm_pool + vid;
-	if (!(vm->run & status_flag)) return -1;		// state machine
+	guru_vm *vm = &_vm_pool[vid];
+	if (!(vm->run & status_flag)) return -1;	// transition state machine
 
 	_LOCK;
 	vm->run = new_status;

@@ -121,24 +121,20 @@ guru_run()
 	debug_mmu_stat();
 
 	// parse BITE code into each vm
-	// TODO: producer (queue)
+	// TODO: work producer (enqueue)
 	for (guru_ses *ses=_ses_list; ses!=NULL; ses=ses->next) {
-		U8 *irep_img = guru_parse_bytecode(ses->stdin);		// build CUDA IREP image (in Managed Mem)
-		int vm_id;
-		if (!irep_img) {
+		U8 *cu_img = guru_parse_bytecode(ses->stdin);		// build CUDA IREP image (in Managed Mem)
+		if (!cu_img) {
 			fprintf(stderr, "ERROR: bytecode parsing error!\n");
 		}
-		else if ((vm_id=vm_get(irep_img)) < 0) {			// acquire a VM for the session
-			fprintf(stderr, "ERROR: No VM available!\n");
-			return -1;
+		else if ((ses->id=vm_issue(cu_img))<0) {			// TODO: work consumer
+			fprintf(stderr, "ERROR: No more VM available!\n");
 		}
-		else {
-			ses->id = vm_id;
-			vm_ready(ses->id);								// set VM ready to run
+		else if (vm_ready(ses->id)) {
+			fprintf(stderr, "ERROR: VM state failed to transit!\n");
 		}
 	}
 	// kick up main loop until all VM are done
-	// TODO: consumer
 	vm_main_start();
 
 	debug_mmu_stat();
