@@ -58,7 +58,7 @@ guru_setup(int step, int trace)
 {
 	cudaDeviceReset();
 
-	debug_init(trace);							// initialize logger
+	debug_init(trace);												// initialize logger
 	debug_log("guru initializing...");
 
 	U8 *mem = _guru_mem = (U8*)cuda_malloc(BLOCK_MEMORY_SIZE, 1);	// allocate main block (i.e. RAM)
@@ -83,7 +83,7 @@ guru_setup(int step, int trace)
 	guru_console_init<<<1,1>>>(out, MAX_BUFFER_SIZE);		// initialize output buffer
 #endif
 
-	U32 sz0, sz1;
+    U32 sz0, sz1;
 	cudaDeviceGetLimit((size_t *)&sz0, cudaLimitStackSize);
 	cudaDeviceSetLimit(cudaLimitStackSize, (size_t)sz0*4);
 	cudaDeviceGetLimit((size_t *)&sz1, cudaLimitStackSize);

@@ -12,14 +12,17 @@
   </pre>
 */
 #include <stdint.h>
+#include <cooperative_groups.h>
 #include "util.h"
+
+namespace cg = cooperative_groups;
 
 typedef int         WORD;
 #define WSIZE   	(sizeof(WORD))
 #define	WMASK		(WSIZE-1)
 
 #define DYNA_HASH_THRESHOLD     1
-#define HASH_K 1000003
+#define HASH_K 					1000003
 
 __device__ int _warp_h[32];			// each thread takes a slot
 
@@ -68,25 +71,25 @@ _dyna_hash(int *hash, const char *str, int sz)
 }
 
 __global__ void
-_dyna_hash2d(int *hash, const char *str, int *mask, int bsz)
+_dyna_hash2d(int *hash, const char *str, int bsz)
 {
-	int  x = threadIdx.x + threadIdx.y * blockDim.x;		// row-major
-	bool c = x<bsz;
-	int  m = __ballot_sync(0xffffffff, c);
-	int  hx= c ? str[x] : 0;
+	auto blk = cg::this_thread_block();						// C++11
 
-	for (int n=blockDim.x>>1; n>0; n>>=1) {					// rollup rows
-		hx += HASH_K*__shfl_down_sync(m, hx, n);			// shuffle down
-	}
-	if (threadIdx.x!=0) return;								// only row leaders
+	extern __shared__ int h[];
 
-	c = threadIdx.y<blockDim.y;
-	m = __ballot_sync(0xffffffff, c);
-	int hy = c ? hx : 0;
-	for (int n=blockDim.y>>1; n>0; n>>=1) {					// rollup columns
-		hy += HASH_K*__shfl_down_sync(m, hy, n);			// shuffle down
+	int x = threadIdx.x;
+	int y = threadIdx.y*blockDim.x;
+	h[x+y] = 0;
+
+	for (int n=0; n<blockDim.y; n++) {
+		if ((x+y)<bsz) h[y] += HASH_K*h[y+n*blockDim.x];
+		blk.sync();
 	}
-	if (threadIdx.y==0) *hash = hy;
+	for (int n=blockDim.x>>1, off=n+y; n>0; off=(n>>=1)+y) {
+		if (x<n && (x+off)<bsz) h[x+y] += HASH_K*h[x+off];
+		blk.sync();
+	}
+	*hash = h[0];
 }
 
 __device__ int
@@ -95,13 +98,21 @@ _hash(const char *str, int bsz)
 	if (bsz < DYNA_HASH_THRESHOLD) return _loop_hash(str, bsz);
 
 	int x  = threadIdx.x;
-	int *h = &_warp_h[x];	*h=0;							// each calling thread takes a slot
+	int *h = &_warp_h[x];   *h=0;                           // each calling thread takes a slot
+
 	cudaStream_t st;
-	cudaStreamCreateWithFlags(&st, cudaStreamNonBlocking);	// wrapper overhead ~= 84us
+	cudaStreamCreateWithFlags(&st, cudaStreamNonBlocking);  // wrapper overhead ~= 84us
 	for (int i=0; i<bsz; i+=32) {
 		_dyna_hash<<<1,32,0,st>>>(h, &str[i], bsz-i);
-		cudaDeviceSynchronize();							// sync all children threads
+		cudaDeviceSynchronize();                            // sync all children threads
 	}
+/*
+	dim3 xyz(32, (bsz>>5)+1, 0);
+	int  blk = bsz+(-bsz&0x1f);
+	_dyna_hash2d<<<1,xyz,blk*sizeof(int)>>>(h, str, bsz);
+*/
+	cudaDeviceSynchronize();
+
 	cudaStreamDestroy(st);
 
 	return *h;

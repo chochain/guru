@@ -12,6 +12,7 @@
   </pre>
 */
 #include <stdio.h>
+#include "helper_cuda.h"
 #include "guru.h"
 #include "gurux.h"
 #include "vmx.h"
@@ -43,10 +44,26 @@ _mmu_free(U8 *b)
 
 	guru_free(b);
 }
+
+__HOST__ void
+_device_setup()
+{
+	cudaDeviceReset();
+
+	int dv = findCudaDevice(1, NULL);
+	cudaGetDevice(&dv);
+
+	cudaDeviceProp dp;
+	cudaGetDeviceProperties(&dp, dv);
+
+	fprintf(stderr, "> Detected Compute SM %d.%d hardware with %d multi-processors (concurrent=%d)\n",
+		dp.major, dp.minor, dp.multiProcessorCount, dp.concurrentKernels);
+}
+
 __HOST__ int
 guru_setup(int step, int trace)
 {
-	cudaDeviceReset();
+	_device_setup();
 
 	U8 *mem = _guru_mem = (U8*)cuda_malloc(BLOCK_MEMORY_SIZE, 1);
 	if (!_guru_mem) {
