@@ -180,10 +180,10 @@ _load_irep_1(mrbc_irep *irep, U8 **pos)
     irep->iseq = (U32P)p;			p += irep->ilen * sizeof(U32);		// ISEQ (code) block
     irep->plen = _bin_to_u32(p);	p += sizeof(U32);					// POOL block
 
-    if (irep->rlen) {					// allocate child irep's pointers (later filled by _load_irep_0)
+    if (irep->rlen) {							// allocate child irep's pointers (later filled by _load_irep_0)
         irep->list = (mrbc_irep **)guru_alloc(sizeof(mrbc_irep *) * irep->rlen);
     }
-    if (irep->plen) {					// allocate pool of object pointers
+    if (irep->plen) {							// allocate pool of object pointers
         irep->pool = (mrbc_object**)guru_alloc(sizeof(void*) * irep->plen);
     }
 
