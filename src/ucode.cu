@@ -28,7 +28,6 @@
 #include "c_range.h"
 #include "iter.h"
 
-
 #define _LOCK		{ MUTEX_LOCK(_mutex_uc); }
 #define _UNLOCK		{ MUTEX_FREE(_mutex_uc); }
 
@@ -1216,7 +1215,7 @@ __GURU__ __const__ UCODE ucode_vtbl[] = {
 };
 
 __GURU__ void
-ucode_exec(guru_vm *vm)
+ucode_step(guru_vm *vm)
 {
 	//=======================================================================================
 	// GURU dispatcher unit
@@ -1299,4 +1298,10 @@ ucode_exec(guru_vm *vm)
     }
 #endif // GURU_DEBUG
 }
+
+Ucode::Ucode(guru_vm *vm) {
+	_vm = vm;
+}
+__GURU__ void Ucode::ucode_prefetch() 	{}
+__GURU__ void Ucode::ucode_step()		{}
 

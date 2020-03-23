@@ -174,9 +174,21 @@ enum OPCODE {
 };
 
 __GURU__ void ucode_prefetch(guru_vm *vm);
-__GURU__ void ucode_exec(guru_vm *vm);
+__GURU__ void ucode_step(guru_vm *vm);
 
 #ifdef __cplusplus
 }
 #endif
+
+class Ucode {
+	guru_vm *_vm;
+
+public:
+	Ucode(guru_vm *vm);
+	~Ucode() {}
+
+	__GURU__ void ucode_prefetch();
+	__GURU__ void ucode_step();
+};
+
 #endif
