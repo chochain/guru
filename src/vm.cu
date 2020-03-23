@@ -30,7 +30,7 @@
 #include "state.h"
 #include "symbol.h"
 #include "vmx.h"
-#include "vm_debug.h"
+#include "debug.h"
 
 #include "ucode.h"
 #include "c_string.h"
@@ -106,7 +106,7 @@ __transcode(guru_irep *irep)
 //       modify the VM status
 //
 __GPU__ void
-_issue(guru_vm *vm, guru_irep *irep)
+_get(guru_vm *vm, guru_irep *irep)
 {
 	if (blockIdx.x!=0 || threadIdx.x!=0) return;	// singleton thread
 
@@ -115,7 +115,6 @@ _issue(guru_vm *vm, guru_irep *irep)
 		__ready(vm, irep);
 	}
 }
-
 //================================================================
 /*!@brief
   execute one ISEQ instruction for each VM
@@ -124,7 +123,7 @@ _issue(guru_vm *vm, guru_irep *irep)
   @retval 0  No error.
 */
 __GPU__ void
-_step(guru_vm *vm)
+_exec(guru_vm *vm)
 {
 	if (blockIdx.x!=0 || threadIdx.x!=0) return;	// TODO: single thread for now
 
@@ -133,7 +132,7 @@ _step(guru_vm *vm)
 		// add before_fetch hooks here
 		ucode_prefetch(vm);
 		// add before_exec hooks here
-		ucode_exec(vm);
+		ucode_step(vm);
 		// add after_exec hooks here
 		if (vm->step) break;
 	}
@@ -210,7 +209,7 @@ vm_main_start()
 			if (!vm->state) continue;
 			// add pre-hook here
 			debug_disasm(vm);
-			_step<<<1,1,0,vm->st>>>(vm);				// guru -x to run without single-stepping
+			_exec<<<1,1,0,vm->st>>>(vm);				// guru -x to run without single-stepping
 			// add post-hook here
 		}
 		SYNC();											// TODO: cooperative thread group
@@ -223,7 +222,7 @@ vm_main_start()
 }
 
 __HOST__ int
-vm_issue(U8 *cu_img)
+vm_get(U8 *cu_img)
 {
 	if (!_vm_pool) 				return -1;
 	if (_vm_cnt>=MIN_VM_COUNT) 	return -1;
@@ -231,7 +230,7 @@ vm_issue(U8 *cu_img)
 	guru_irep *irep = (guru_irep *)cu_img;
 	guru_vm   *vm   = &_vm_pool[_vm_cnt++];
 
-	_issue<<<1,1,0,vm->st>>>(vm, irep);			// acquire VM, vm status will changed
+	_get<<<1,1,0,vm->st>>>(vm, irep);			// acquire VM, vm status will changed
 	SYNC();
 	debug_vm_irep(vm);
 

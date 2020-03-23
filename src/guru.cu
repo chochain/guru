@@ -127,7 +127,7 @@ guru_run()
 		if (!cu_img) {
 			fprintf(stderr, "ERROR: bytecode parsing error!\n");
 		}
-		else if ((ses->id=vm_issue(cu_img))<0) {			// TODO: work consumer
+		else if ((ses->id=vm_get(cu_img))<0) {				// TODO: work consumer
 			fprintf(stderr, "ERROR: No more VM available!\n");
 		}
 		else if (vm_ready(ses->id)) {
