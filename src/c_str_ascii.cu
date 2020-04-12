@@ -9,28 +9,18 @@
 
   </pre>
 */
-#include "guru.h"
-#include "util.h"
+#include <stdio.h>
+
+#include "mmu.h"		// includes guru.h
+#include "static.h"
+#include "value.h"
 #include "symbol.h"
-#include "mmu.h"
 
-#include "base.h"
-#include "class.h"
-
-#include "c_range.h"
 #include "c_string.h"
+#include "c_range.h"
+#include "inspect.h"
 
 #if !GURU_USE_STRING
-__GURU__ GV		guru_str_new(const U8 *src) { return NIL(); }			// cannot use U8P, need lots of casting
-__GURU__ void	guru_str_del(GV *v)			{}
-__GURU__ S32	guru_str_cmp(GV *s0, GV *s1){ return NIL(); }
-__GURU__ GV		guru_str_buf(U32 sz)		{ return NIL(); }			// a string buffer
-__GURU__ GV		guru_str_clr(GV *s)			{ return NIL(); }
-__GURU__ GV     guru_str_add(GV *s0, GV *s1){ return NIL(); }
-__GURU__ GV		guru_str_add_cstr(GV *s0, const U8 *str) { return NIL(); }
-
-__GURU__ void	guru_init_class_string() { guru_class_string = NULL; }
-
 #else
 //================================================================
 /*! white space character test
@@ -53,9 +43,9 @@ _is_space(U8 ch)
 /*! get size
  */
 __GURU__ __INLINE__ U32
-_bsz(const GV *v)
+_len(const GV *v)
 {
-    return v->str->bsz;
+    return v->str->n;
 }
 
 //================================================================
@@ -76,23 +66,23 @@ _raw(const GV *v)
   @return 	string object
 */
 __GURU__ GV
-_blank(U32 bsz)
+_blank(U32 len)
 {
     GV  v; { v.gt=GT_STR; v.acl=ACL_HAS_REF; }		// assuming some one acquires it
-    U32 asz = bsz+1;	ALIGN(asz);			// 8-byte aligned
+    U32 asz = len+1;	ALIGN(asz);			// 8-byte aligned
     /*
       Allocate handle and string buffer.
     */
     guru_str *h = v.str = (guru_str *)guru_alloc(sizeof(guru_str));
     U8       *s = (U8*)guru_alloc(asz);		// 8-byte aligned
 
-    ASSERT(((U32A)h & 7)==0);				// check alignment
+    ASSERT(((U32A)h & 7)==0);
     ASSERT(((U32A)s & 7)==0);
 
-    s[0]   = '\0';							// empty new string
+    s[0] = '\0';							// empty new string
     h->rc  = 1;
     h->sz  = asz;
-    h->bsz = bsz;
+    h->n   = len;
     h->raw = (char *)s;						// TODO: for DEBUG, change back to (U8*)
 
     return v;
@@ -101,14 +91,12 @@ _blank(U32 bsz)
 __GURU__ GV
 _new(const U8 *src)
 {
-	U32 bsz = STRLENB(src);
-	GV  ret = _blank(bsz);
+	U32 len = STRLEN(src);
+	GV  ret = _blank(len);
 
     // deep copy source string
-    if (src) {
-    	MEMCPY(ret.str->raw, src, bsz+1);		// plus '\0'
-//    	ret.str->hash = guru_calc_hash(src);
-    }
+    if (src) MEMCPY(ret.str->raw, src, len+1);		// plus '\0'
+
     return ret;
 }
 
@@ -125,9 +113,9 @@ _dup(const GV *v0)
 {
     guru_str *h0 = v0->str;
 
-    GV v1 = _blank(h0->bsz);				// refc already set to 1
+    GV v1 = _blank(h0->n);					// refc already set to 1
 
-    MEMCPY(v1.str->raw, h0->raw, h0->bsz + 1);
+    MEMCPY(v1.str->raw, h0->raw, h0->n + 1);
 
     return v1;
 }
@@ -145,8 +133,8 @@ _index(const GV *v, const GV *pattern, U32 offset)
 {
     U8  *p0 = _raw(v) + offset;
     U8  *p1 = _raw(pattern);
-    U32 sz  = _bsz(pattern);
-    U32 nz  = _bsz(v) - sz - offset;
+    U32 sz  = _len(pattern);
+    U32 nz  = _len(v) - sz - offset;
 
     for (U32 i=0; nz>0 && i <= nz; i++, p0++) {
         if (MEMCMP(p0, p1, sz)==0) {
@@ -167,7 +155,7 @@ __GURU__ U32
 _strip(GV *v, U32 mode)
 {
     U8  *p0 = _raw(v);
-    U8  *p1 = p0 + _bsz(v) - 1;
+    U8  *p1 = p0 + _len(v) - 1;
 
     // left-side
     if (mode & 0x01) {
@@ -182,18 +170,18 @@ _strip(GV *v, U32 mode)
             if (!_is_space(*p1)) break;
         }
     }
-    U32 new_bsz = p1 - p0 + 1;
-    if (_bsz(v)==new_bsz) return 0;
+    U32 new_len = p1 - p0 + 1;
+    if (_len(v)==new_len) return 0;
 
     U8 *buf = _raw(v);
     if (p0 != buf) {
-    	MEMCPY(buf, p0, new_bsz);
+    	MEMCPY(buf, p0, new_len);
     }
-    buf[new_bsz] = '\0';
-    U32 asz = new_bsz + 1; 	ALIGN(asz);				// 8-byte aligned
+    buf[new_len] = '\0';
+    U32 asz = new_len + 1; 	ALIGN(asz);				// 8-byte aligned
 
     v->str->sz  = asz;
-    v->str->bsz = new_bsz;
+    v->str->n   = new_len;
     v->str->raw = (char *)guru_realloc(buf, asz);	// shrink suitable size.
 
     return 1;
@@ -209,18 +197,18 @@ __GURU__ int
 _chomp(GV *v)
 {
     U8 *p0 = _raw(v);
-    U8 *p1 = p0 + _bsz(v) - 1;
+    U8 *p1 = p0 + _len(v) - 1;
 
     if (*p1=='\n') p1--;
     if (*p1=='\r') p1--;
 
-    U32 new_bsz = p1 - p0 + 1;
-    if (_bsz(v)==new_bsz) return 0;
+    U32 new_len = p1 - p0 + 1;
+    if (_len(v)==new_len) return 0;
 
     U8 *buf = _raw(v);
-    buf[new_bsz] = '\0';
+    buf[new_len] = '\0';
 
-    v->str->bsz = new_bsz;
+    v->str->n = new_len;
 
     return 1;
 }
@@ -242,7 +230,7 @@ __GURU__ GV
 guru_str_buf(U32 sz)				// a string buffer
 {
 	GV ret = _blank(sz);
-	ret.str->bsz = 0;
+	ret.str->n = 0;
 	return ret;
 }
 
@@ -250,7 +238,7 @@ __GURU__ GV
 guru_str_clr(GV *s)
 {
 	ASSERT(s->gt==GT_STR);
-	s->str->bsz = 0;
+	s->str->n = 0;
 	return *s;
 }
 
@@ -267,18 +255,6 @@ guru_str_del(GV *v)
 }
 
 //================================================================
-/*! compare
- */
-__GURU__ S32
-guru_str_cmp(const GV *s0, const GV *s1)
-{
-	S32 x  = (U32)s0->str->bsz - (U32)s1->str->bsz;
-	if (x) return x;
-
-	return STRCMP(s0->str->raw, s1->str->raw);
-}
-
-//================================================================
 /*! add string (s2 = s0 + s1)
 z
   @param  s0	pointer to target value 0
@@ -289,16 +265,16 @@ guru_str_add(GV *s0, GV *s1)
 {
 	ASSERT(s1->gt==GT_STR);
 
-    U32 bsz0 = s0->str->bsz;
-    U32 bsz1 = s1->str->bsz;
-    U32 asz  = bsz0 + bsz1 + 1;		ALIGN(asz);			// +'\0', 8-byte aligned
+    U32 len0 = s0->str->n;
+    U32 len1 = s1->str->n;
+    U32 asz  = len0 + len1 + 1;		ALIGN(asz);			// +'\0', 8-byte aligned
 
     GV  ret  = _blank(asz);
     U8  *buf = (U8*)ret.str->raw;
-    MEMCPY(buf, 	 s0->str->raw, bsz0);
-    MEMCPY(buf+bsz0, s1->str->raw, bsz1+1);
+    MEMCPY(buf, 	 s0->str->raw, len0);
+    MEMCPY(buf+len0, s1->str->raw, len1+1);
 
-    ret.str->bsz = bsz0 + bsz1;
+    ret.str->n = len0 + len1;
 
     return ret;
 }
@@ -312,15 +288,15 @@ guru_str_add(GV *s0, GV *s1)
 __GURU__ GV
 guru_str_add_cstr(GV *s0, const U8 *str)
 {
-    U32 bsz0 = s0->str->bsz;
-    U32 bsz1 = STRLENB(str);
-    U32 asz  = bsz0 + bsz1 + 1;		asz += -asz & 7;	// 8-byte aligned
+    U32 len0 = s0->str->n;
+    U32 len1 = STRLEN(str);
+    U32 asz  = len0 + len1 + 1;		asz += -asz & 7;	// 8-byte aligned
     U8  *buf = (U8*)guru_realloc(s0->str->raw, asz);
 
-    MEMCPY(buf + bsz0, str, bsz1 + 1);
+    MEMCPY(buf + len0, str, len1 + 1);
 
     s0->str->sz  = asz;
-    s0->str->bsz = bsz0 + bsz1;
+    s0->str->n 	 = len0 + len1;
     s0->str->raw = (char *)buf;
 
     return *s0;
@@ -345,7 +321,7 @@ str_add(GV v[], U32 vi)
 __CFUNC__
 str_mul(GV v[], U32 vi)
 {
-	U32 sz = _bsz(v);
+	U32 sz = _len(v);
 
     if (v[1].gt != GT_INT) {
         PRINTF("TypeError\n");	// raise?
@@ -369,7 +345,7 @@ str_mul(GV v[], U32 vi)
 __CFUNC__
 str_len(GV v[], U32 vi)
 {
-    GI len = STRLEN(_raw(v));
+    GI len = _len(v);
 
     RETURN_INT(len);
 }
@@ -385,7 +361,7 @@ str_to_i(GV v[], U32 vi)
         base = v[1].i;
         if (base < 2 || base > 36) return;	// raise ? ArgumentError
     }
-    GI i = ATOI(_raw(v), base);
+    GI i = guru_atoi(_raw(v), base);
 
     RETURN_INT(i);
 }
@@ -412,16 +388,13 @@ str_to_f(GV v[], U32 vi)
 #endif // GURU_USE_FLOAT
 
 __GURU__ GV
-_slice(GV *v, U32 i, U32 n)
+_slice(GV *v, U32 i, U32 sz)
 {
-	U8  *s0 = (U8*)STRCUT(v->str->raw, i);			// start
-	U8  *s1	= (U8*)STRCUT(s0, n);					// end
-	U32 bsz = U8POFF(s1, s0);
-    GV  ret = _blank(bsz);						//	pad '\0' automatically
+    GV  ret = _blank(sz);									//	'\0'
     U8  *d  = (U8*)ret.str->raw;
 
-    MEMCPY(d, s0, bsz);
-    *(d+bsz) = '\0';
+    MEMCPY(d, v->str->raw + i, sz);
+    *(d+sz) = '\0';
 
     return ret;
 }
@@ -432,7 +405,7 @@ _slice(GV *v, U32 i, U32 n)
 __CFUNC__
 str_slice(GV v[], U32 vi)
 {
-    U32 n  = v->str->bsz;
+    U32 n  = v->str->n;
     GV *v1 = &v[1];
     GV *v2 = &v[2];
 
@@ -484,12 +457,12 @@ str_insert(GV v[], U32 vi)
         val = &v[3];
     }
     else {
-        NA("case of str_insert");
+        guru_na("case of str_insert");
         return;
     }
 
-    U32 len1 = v->str->bsz;
-    U32 len2 = val->str->bsz;
+    U32 len1 = v->str->n;
+    U32 len2 = val->str->n;
     if (nth < 0) nth = len1 + nth;              // adjust to positive number.
     if (len > len1 - nth) len = len1 - nth;
     if (nth < 0 || nth > len1 || len < 0) {
@@ -503,7 +476,7 @@ str_insert(GV v[], U32 vi)
     MEMCPY(str + nth, (U8*)_raw(val), len2);
 
     v->str->sz  = asz;
-    v->str->bsz = len1 + len2 - len;
+    v->str->n   = len1 + len2 - len;
     v->str->raw = (char *)str;
 }
 
@@ -552,27 +525,17 @@ str_index(GV v[], U32 vi)
     }
     else if (vi==2 && v[2].gt==GT_INT) {
         offset = v[2].i;
-        if (offset < 0) offset += _bsz(v);
+        if (offset < 0) offset += _len(v);
         if (offset < 0) RETURN_NIL();
     }
     else {
-        RETURN_NIL();						// raise? ArgumentError
+        RETURN_NIL();					// raise? ArgumentError
     }
 
     index = _index(v, v+1, offset);
     if (index < 0) RETURN_NIL();
 
     RETURN_INT(index);
-}
-
-//================================================================
-/*! (method) include?
- */
-__CFUNC__
-str_include(GV v[], U32 vi)
-{
-    if (_index(v, v+1, 0)<0) RETURN_FALSE()
-    else 					 RETURN_TRUE();
 }
 
 //================================================================
@@ -590,7 +553,25 @@ str_ord(GV v[], U32 vi)
 __CFUNC__
 str_split(GV v[], U32 vi)
 {
-    NA("string#split");
+    guru_na("string#split");
+}
+
+//================================================================
+/*! (method) sprintf
+ */
+__CFUNC__
+str_sprintf(GV v[], U32 vi)
+{
+	guru_na("string#sprintf");
+}
+
+//================================================================
+/*! (method) printf
+ */
+__CFUNC__
+str_printf(GV v[], U32 vi)
+{
+	guru_na("string#printf");
 }
 
 //================================================================
@@ -688,7 +669,7 @@ str_inspect(GV v[], U32 vi)
     U8 *p = buf;
     U8 *s = (U8*)v->str->raw;
 
-    for (U32 i=0; i < v->str->bsz; i++, s++) {
+    for (U32 i=0; i < v->str->n; i++, s++) {
         if (*s >= ' ' && *s < 0x80) {
         	*p++ = *s;
         }
@@ -714,43 +695,41 @@ str_inspect(GV v[], U32 vi)
 //================================================================
 /*! initialize
  */
-__GURU__ __const__ Vfunc str_vtbl[] = {
-	{ "+",			str_add			},
-	{ "*",			str_mul			},
-	{ "size",		str_len			},
-	{ "length",		str_len			},
-	{ "<<",			str_add			},
-	{ "[]",			str_slice		},
-	{ "[]=",		str_insert		},
-	// op
-	{ "chomp",		str_chomp		},
-	{ "chomp!",		str_chomp_self	},
-	{ "dup",		str_dup			},
-	{ "index",		str_index		},
-	{ "include?", 	str_include   	},
-	{ "ord",		str_ord			},
-	{ "split",		str_split		},
-	{ "lstrip",		str_lstrip		},
-	{ "lstrip!",	str_lstrip_self	},
-	{ "rstrip",		str_rstrip		},
-	{ "rstrip!",	str_rstrip_self	},
-	{ "strip",		str_strip		},
-	{ "strip!",		str_strip_self	},
-	{ "intern",		str_to_sym		},
-	// conversion methods
-	{ "to_i",		str_to_i		},
-	{ "to_s",   	str_to_s		},
-	{ "to_sym",		str_to_sym		},
-	{ "to_f",		str_to_f		},
-	{ "inspect",	str_inspect		}
-};
-
 __GURU__ void
 guru_init_class_string()
 {
-    guru_rom_set_class(GT_STR, "String", GT_OBJ, str_vtbl, VFSZ(str_vtbl));
-
-    guru_register_func(GT_STR, (guru_init_func)guru_str_new, guru_str_del, guru_str_cmp);
+	static Vfunc vtbl[] = {
+		{ "+",		str_add			},
+		{ "*",		str_mul			},
+		{ "size",	str_len			},
+		{ "length",	str_len			},
+		{ "<<",		str_add			},
+		{ "[]",		str_slice		},
+		{ "[]=",	str_insert		},
+		// op
+		{ "chomp",	str_chomp		},
+		{ "chomp!",	str_chomp_self	},
+		{ "dup",	str_dup			},
+		{ "index",	str_index		},
+		{ "ord",	str_ord			},
+		{ "split",	str_split		},
+		{ "lstrip",	str_lstrip		},
+		{ "lstrip!",str_lstrip_self	},
+		{ "rstrip",	str_rstrip		},
+		{ "rstrip!",str_rstrip_self	},
+		{ "strip",	str_strip		},
+		{ "strip!",	str_strip_self	},
+		{ "intern",	str_to_sym		},
+		// conversion methods
+		{ "to_i",	str_to_i		},
+		{ "to_s",   str_to_s		},
+		{ "to_sym",	str_to_sym		},
+		{ "to_f",	str_to_f		},
+		{ "inspect",str_inspect		}
+	};
+    guru_class_string = guru_add_class(
+    	"String", guru_class_object, vtbl, sizeof(vtbl)/sizeof(Vfunc)
+    );
 }
 
 #endif // GURU_USE_STRING
