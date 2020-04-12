@@ -14,13 +14,8 @@
 
 #include "guru.h"
 #include "util.h"
-#include "value.h"
-#include "class.h"
 #include "mmu.h"
 #include "symbol.h"
-#include "state.h"
-
-#include "object.h"
 #include "ostore.h"
 
 #include "c_fixnum.h"
@@ -29,6 +24,12 @@
 #include "c_hash.h"
 #include "c_range.h"
 
+#include "base.h"
+#include "state.h"
+#include "class.h"
+#include "object.h"
+
+#include "puts.h"
 #include "inspect.h"
 
 //================================================================
@@ -119,7 +120,6 @@ obj_nop(GV v[], U32 vi)
 	// do nothing
 }
 
-#if GURU_DEBUG
 //================================================================
 /*! (method) p
  */
@@ -128,7 +128,6 @@ obj_p(GV v[], U32 vi)
 {
 	guru_p(v, vi);
 }
-#endif
 
 //================================================================
 /*! (method) puts
@@ -265,7 +264,7 @@ _name_w_eq_sign(GV *buf, U8 *s0)
     guru_str_add_cstr(buf, s0);
     guru_str_add_cstr(buf, "=");
 
-    U32 sid = new_sym((U8*)buf->str->raw);		// create the symbol
+    U32 sid = create_sym((U8*)buf->str->raw);			// create the symbol
 
     return id2name(sid);
 }
@@ -277,7 +276,7 @@ __CFUNC__
 obj_attr_reader(GV v[], U32 vi)
 {
 	ASSERT(v->gt==GT_CLASS);
-	guru_class *cls = v->cls;					// fetch class
+	guru_class *cls = v->cls;							// fetch class
 
 	GV *s = v+1;
     for (U32 i = 0; i < vi; i++, s++) {
@@ -379,13 +378,13 @@ __GURU__ __const__ Vfunc obj_vtbl[] = {
     { "kind_of?",      	obj_kind_of		},
     { "puts",          	obj_puts 		},
     { "print",         	obj_print		},
+    { "p", 				obj_p    		},
+
+    // the following functions depends on string, implemented in inspect.cu
     { "to_s",          	gv_to_s  		},
     { "inspect",       	gv_to_s  		},
-#if GURU_DEBUG
-    { "p", 				obj_p    		},
-    { "sprintf",		str_sprintf		},
-    { "printf",			str_printf		}
-#endif // GURU_DEBUG
+    { "sprintf",		gv_sprintf		},
+    { "printf",			gv_printf		}
  };
 
 //================================================================
@@ -435,6 +434,27 @@ __GURU__ __const__ Vfunc true_vtbl[] = {
 	{ "inspect", 	gv_to_s		}
 };
 
+//================================================================
+/*! Symbol class
+ */
+__CFUNC__ sym_nop(GV v[], U32 vi) {}
+
+__CFUNC__
+sym_to_s(GV v[], U32 vi)
+{
+	GV ret = guru_str_new(id2name(v->i));
+    RETURN_VAL(ret);
+}
+
+//================================================================
+// initialize
+__GURU__ __const__ Vfunc sym_vtbl[] = {
+	{ "id2name", 	gv_to_s		},
+	{ "to_sym",     sym_nop		},
+	{ "to_s", 		sym_to_s	}, 	// no leading ':'
+	{ "inspect", 	gv_to_s		}
+};
+
 #if GURU_DEBUG
 //================================================================
 /*! System class (guru only, i.e. non-Ruby)
@@ -469,9 +489,10 @@ typedef struct Vclass {
 	U32					nfunc;
 } guru_class_tbl;
 
+
+
 //#define CLASS_DEF(cidx, cname, vtbl) { cidx, (U8*)cname, vtbl==obj_vtbl ? NULL : guru_class_object, vtbl, sizeof(vtbl)/sizeof(Vfunc) }
 #define CLASS_DEF(cname, vtbl)	{ guru_add_class(cname, guru_class_object, vtbl, sizeof(vtbl)/sizeof(Vfunc)) }
-extern "C" __GURU__ __const__ Vfunc *sym_vtbl;
 
 __GURU__ void
 _init_all_class(void)
@@ -479,14 +500,16 @@ _init_all_class(void)
     guru_rom_set_class(GT_OBJ,	"Object", 		GT_EMPTY, 	obj_vtbl, 	VFSZ(obj_vtbl));
 
     guru_rom_set_class(GT_NIL, 	"NilClass", 	GT_OBJ, 	nil_vtbl,  	VFSZ(nil_vtbl));
-    guru_rom_set_class(GT_PROC, "Proc",     	GT_OBJ, 	prc_vtbl,  	VFSZ(prc_vtbl));
     guru_rom_set_class(GT_FALSE,"FalseClass", 	GT_OBJ, 	false_vtbl,	VFSZ(false_vtbl));
     guru_rom_set_class(GT_TRUE, "TrueClass",  	GT_OBJ, 	true_vtbl, 	VFSZ(true_vtbl));
+    guru_rom_set_class(GT_SYM,  "Symbol", 		GT_OBJ, 	sym_vtbl, 	VFSZ(sym_vtbl));
+    guru_rom_set_class(GT_PROC, "Proc",     	GT_OBJ, 	prc_vtbl,  	VFSZ(prc_vtbl));
 #if GURU_DEBUG
     guru_rom_set_class(GT_SYS, 	"Sys", 			GT_OBJ, 	sys_vtbl,  	VFSZ(sys_vtbl));
 #endif
 
-    guru_init_class_symbol();		// symbol.cu
+    guru_register_func(GT_OBJ, NULL, guru_obj_del, NULL);
+
     guru_init_class_int();			// c_fixnum.cu
     guru_init_class_float();		// c_fixnum.cu
 
@@ -501,7 +524,7 @@ _init_all_class(void)
 }
 
 __GPU__ void
-guru_class_init(void)
+guru_core_init(void)
 {
 	if (blockIdx.x!=0 || threadIdx.x!=0) return;
 
