@@ -20,6 +20,7 @@ extern "C" {
 #endif
 
 __CFUNC__ 	gv_to_s(GV v[], U32 vi);
+__CFUNC__	int_chr(GV v[], U32 vi);
 __CFUNC__ 	ary_join(GV v[], U32 vi);
 
 __CFUNC__	gv_sprintf(GV v[], U32 vi);

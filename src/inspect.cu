@@ -15,10 +15,9 @@
 #include "base.h"
 
 #include "class.h"
-#include "object.h"
 #include "inspect.h"
 
-#include "c_fixnum.h"
+//#include "c_fixnum.h"
 #include "c_string.h"
 #include "c_array.h"
 #include "c_hash.h"
@@ -236,6 +235,14 @@ gv_to_s(GV v[], U32 vi)
 	_to_s(&ret, v, vi);
 
 	RETURN_VAL(ret);
+}
+
+__CFUNC__
+int_chr(GV v[], U32 vi)
+{
+    U8 buf[2] = { (U8)v->i, '\0' };
+
+    RETURN_VAL(guru_str_new(buf));
 }
 
 __CFUNC__
