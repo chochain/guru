@@ -11,16 +11,13 @@
 
   </pre>
 */
-#include <stdio.h>
 #include "helper_cuda.h"
 #include "guru.h"
 #include "gurux.h"
-#include "vmx.h"
 #include "mmu.h"
 #include "symbol.h"
 
-extern "C" __GPU__  void guru_mmu_init(void *ptr, U32 sz);
-extern "C" __GPU__  void guru_class_init(void);
+extern "C" __GPU__  void guru_core_init(void);
 extern "C" __GPU__  void guru_console_init(U8 *buf, U32 sz);
 extern "C" __HOST__ int  vm_pool_init(U32 step);
 
@@ -82,7 +79,7 @@ guru_setup(int step, int trace)
 	_ses_list = NULL;
 
 	guru_mmu_init<<<1,1>>>(mem, BLOCK_MEMORY_SIZE);				// setup memory management
-	guru_class_init<<<1,1>>>();									// setup basic classes
+	guru_core_init<<<1,1>>>();									// setup basic classes
 //	guru_console_init<<<1,1>>>(out, MAX_BUFFER_SIZE);			// initialize output buffer
 
 	U32 sz0, sz1;
@@ -105,7 +102,7 @@ guru_load(char *rite_fname)
 
 
 __HOST__ void
-guru_mem_test()
+guru_mem_test(int ncycle)
 {
 	U32 a[] = { 0x28, 0x8, 0x10, 0x38, 0x8, 0x10 };
 	U32 f[] = { 4, 1, 2 };
@@ -225,7 +222,7 @@ __HOST__ int
 guru_run()
 {
 	//_time("mem_test", 10, &guru_mem_test);
-	_time("hash_test", 1, &guru_hash_test);
+	_time("hash_test", 1000, &guru_hash_test);
 
 	cudaDeviceReset();
 

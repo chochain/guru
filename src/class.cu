@@ -72,6 +72,7 @@ _name2class(const U8 *name)
   @param  sid
   @return proc pointer
 */
+#if CUDA_PROFILE_CDP
 __GPU__ void
 __find_proc(S32 *idx, guru_class *cls, GS sid)
 {
@@ -80,6 +81,16 @@ __find_proc(S32 *idx, guru_class *cls, GS sid)
 		*idx = x;
 	}
 }
+#else
+__GURU__ S32
+__find_proc(guru_class *cls, GS sid)
+{
+	for (int i=0; i<cls->rc; i++) {
+		if (cls->vtbl[i].sid==sid) return i;
+	}
+	return -1;
+}
+#endif // CUDA_PROFILE_CDP
 
 __GURU__ S32 _proc_idx[32];
 __GURU__ guru_proc*
@@ -93,6 +104,8 @@ proc_by_sid(GV *v, GS sid)
 #else
     for (guru_class *cls=class_by_obj(v); cls; cls=cls->super) {	// search up class hierarchy
 #endif // CC_DEBUG
+#if CUDA_PROFILE_CDP
+    	/* CC: hold! CUDA 10.2 profiler does not support CDP yet,
         if (IS_BUILTIN(cls)) {
         	S32 *idx = &_proc_idx[threadIdx.x];
         	*idx = -1;
@@ -100,6 +113,11 @@ proc_by_sid(GV *v, GS sid)
         	SYNC_CHK();
             if (*idx>=0) return &cls->vtbl[*idx];
         }
+        */
+#else
+    	S32 idx = __find_proc(cls, sid);
+    	if (idx>=0) return &cls->vtbl[idx];
+#endif // CUDA_PROFILE_CDP
     	guru_proc *p;
         for (p=cls->plist; p && (p->sid != sid); p=p->next);		// linear search thru class or meta vtbl
         if (p) return p;											// break if found

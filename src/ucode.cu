@@ -1165,7 +1165,7 @@ __GURU__ __const__ UCODE ucode_vtbl[] = {
 	NULL,			//    OP_EPOP,      A       A.times{ensure_pop().call}
 // 0x20 Stack
 	uc_send,		//    OP_SEND,      A B C   R(A) := call(R(A),Syms(B),R(A+1),...,R(A+C))
-	uc_send,		//    OP_SENDB,     A B C   R(A) := call(R(A),Syms(B),R(A+1),...,R(A+C),&R(A+C+1))*/
+	uc_send,		//    OP_SENDB,     A B C   R(A) := call(R(A),Syms(B),R(A+1),...,R(A+C),&R(A+C+1))
 	NULL,			//    OP_FSEND,     A B C   R(A) := fcall(R(A),Syms(B),R(A+1),...,R(A+C-1))
 	uc_call,		//    OP_CALL,      A       R(A) := self.call(frame.argc, frame.argv)
 	NULL,			//    OP_SUPER,     A C     R(A) := super(R(A+1),... ,R(A+C+1))

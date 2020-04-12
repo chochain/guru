@@ -39,6 +39,7 @@ __GURU__ GV		_nil { .gt = GT_NIL, .acl=0 };
 /* search */
 /* linear search is not efficient! */
 /* TODO: Use binary search */
+#if CUDA_PROFILE_CDP
 __GPU__ void
 __idx(S32 *idx, GS xid, _gtype gt)
 {
@@ -47,26 +48,29 @@ __idx(S32 *idx, GS xid, _gtype gt)
 
 	if (i<_global_sz && p->xid == xid && p->gt == gt) *idx = i;
 }
-
+#else
 __GURU__ S32
-__loop_idx(GS xid, _gtype gt)
+__idx(GS xid, _gtype gt)
 {
 	_gidx *p = _global_idx;
 	for (int i=0; i<_global_sz; i++, p++) {
 		if (p->xid==xid && p->gt==gt) return i;
 	}
 }
+#endif // CUDA_PROFILE_CDP
 
 __GURU__ S32
 _find_idx(GS xid, _gtype gt)
 {
-/* CC: skip the following CDP, it breaks profiler as of CUDA 10.2
-	static S32 idx;
+	static S32 idx;					// warning: outside of function scope
+#if CUDA_PROFILE_CDP
 	idx = -1;
 	__idx<<<1, 32*(1+(_global_sz>>5))>>>(&idx, xid, gt);
 	SYNC_CHK();						// make sure idx is captured
-*/
-	return __loop_idx(xid, gt);	// warn: scoped outside of function
+#else
+	idx = __idx(xid, gt);
+#endif // CUDA_PROFILE_CDP
+	return idx;
 }
 
 __GURU__ GV *

@@ -79,9 +79,10 @@ _search(U32 hash)
 
 	S32 *idx = &_warp_i[threadIdx.x];	*idx = -1;
 
+#if CUDA_PROFILE_CDP
 	U32 tc = 32;				// Pascal:512, Volta:1024 max threads/block
 	U32 bc = (_sym_idx>>5)+1;	// P104: 20, P102: 30 quad-issue SMs (i.e. 4 blocks/issue)
-/*
+
 	cudaStream_t st;
 	cudaStreamCreateWithFlags(&st, cudaStreamNonBlocking);	// wrapper overhead ~= 84us
 	{
@@ -89,7 +90,8 @@ _search(U32 hash)
 		SYNC();					// sync all child threads in the block
 	}
 	cudaStreamDestroy(st);
-*/
+#endif // CUDA_PROFILE_CDP
+
 	return *idx;				// each parent thread gets one result back
 }
 
