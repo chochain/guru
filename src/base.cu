@@ -35,21 +35,12 @@ guru_register_func(GT t, guru_init_func fi, guru_destroy_func fd, guru_cmp_func 
 	_i_vtbl[t] = fi;
 	_d_vtbl[t] = fd;
 	_c_vtbl[t] = fc;
-/*
-	switch(v->gt) {
-    case GT_OBJ:		guru_obj_del(v);	break;	// delete object instance
-    case GT_STR:		guru_str_del(v);	break;
+}
 
-#if GURU_USE_ARRAY
-    case GT_ARRAY:	    guru_array_del(v);	break;
-    case GT_RANGE:	    guru_range_del(v);	break;
-    case GT_HASH:	    guru_hash_del(v);	break;
-    case GT_ITER:		guru_iter_del(v);	break;
-#endif // GURU_USE_ARRAY
-
-    default: ASSERT(1==0);
-    }
-    */
+__GURU__ void
+guru_destroy(GV *v)
+{
+	_d_vtbl[v->gt](v);
 }
 
 //================================================================
@@ -92,24 +83,12 @@ guru_cmp(const GV *v0, const GV *v1)
     case GT_NIL:
     case GT_FALSE:
     case GT_TRUE:   return 0;
-    case GT_INT:
-#if GURU_USE_FLOAT
-    case GT_FLOAT:  return -1 + (v0->f==v1->f) + (v0->f > v1->f)*2;	// caution: NaN == NaN is false
-#endif // GURU_USE_FLOAT
     case GT_SYM: 	return -1 + (v0->i==v1->i) + (v0->i > v1->i)*2;
-
     case GT_CLASS:
     case GT_OBJ:
     case GT_PROC:   return -1 + (v0->self==v1->self) + (v0->self > v1->self)*2;
-
-    case GT_STR: 	return guru_str_cmp(v0, v1);
-#if GURU_USE_ARRAY
-    case GT_ARRAY:  return guru_array_cmp(v0, v1);
-    case GT_RANGE:  return guru_range_cmp(v0, v1);
-    case GT_HASH:   return guru_hash_cmp(v0, v1);
-#endif // GURU_USE_ARRAY
     default:
-        return 1;
+    	return _c_vtbl[v1->gt](v0, v1);
     }
 }
 

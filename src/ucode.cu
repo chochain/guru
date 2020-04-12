@@ -10,23 +10,23 @@
   </pre>
 */
 #include "guru.h"
-#include "value.h"
 #include "symbol.h"
 #include "global.h"
 #include "mmu.h"
 #include "inspect.h"
-
-#include "object.h"
 #include "ostore.h"
-#include "class.h"
-#include "state.h"
-#include "ucode.h"
+#include "iter.h"
 
 #include "c_string.h"
 #include "c_array.h"
 #include "c_hash.h"
 #include "c_range.h"
-#include "iter.h"
+
+#include "base.h"
+#include "object.h"
+#include "class.h"
+#include "state.h"
+#include "ucode.h"
 
 #define _LOCK		{ MUTEX_LOCK(_mutex_uc); }
 #define _UNLOCK		{ MUTEX_FREE(_mutex_uc); }
@@ -43,9 +43,9 @@ __GURU__ U32 _mutex_uc;
 #define _RA_X(r)    	(ref_inc(r), ref_dec(_R(a)), *_R(a)=*(r))
 #define _RA_T(t,e)      (_R(a)->gt=(t), _R(a)->acl=0, _R(a)->e)
 
-#define SKIP(x)			{ guru_na(x); return; }
+#define SKIP(x)			{ NA(x); return; }
 #define RAISE(x)	    { _RA(guru_str_new(x)); vm->err = 1; return; }
-#define QUIT(x)			{ vm->quit=1; guru_na(x); return; }
+#define QUIT(x)			{ vm->quit=1; NA(x); return; }
 
 //================================================================
 /*!@brief

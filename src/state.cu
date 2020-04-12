@@ -13,17 +13,14 @@
 */
 #include "guru.h"
 #include "util.h"
-#include "base.h"
 #include "symbol.h"		// id2name
 #include "mmu.h"
 #include "ostore.h"		// ostore_new
 #include "iter.h"
 
+#include "base.h"
 #include "class.h"		// proc_by_id
 #include "state.h"
-
-#include "c_array.h"
-#include "c_range.h"
 
 //================================================================
 /*!@brief

@@ -20,20 +20,20 @@
   	    flush output per step (optional)
   </pre>
 */
-#include <stdio.h>
 #include <pthread.h>
 
 #include "guru.h"
 #include "util.h"
 #include "mmu.h"
+#include "symbol.h"
+#include "c_string.h"
+
 #include "class.h"
 #include "state.h"
-#include "symbol.h"
 #include "vmx.h"
 #include "debug.h"
 
 #include "ucode.h"
-#include "c_string.h"
 
 guru_vm *_vm_pool;
 U32      _vm_cnt = 0;
@@ -140,6 +140,7 @@ _exec(guru_vm *vm)
 		__free(vm);									// free up my vm_state, return VM to free pool
 	}
 }
+
 
 #if GURU_HOST_IMAGE
 __HOST__ int

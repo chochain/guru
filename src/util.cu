@@ -21,7 +21,7 @@ typedef int         WORD;
 #define WSIZE   	(sizeof(WORD))
 #define	WMASK		(WSIZE-1)
 
-#define DYNA_HASH_THRESHOLD     1
+#define DYNA_HASH_THRESHOLD     128
 #define HASH_K 					1000003
 
 __device__ int _warp_h[32];			// each thread takes a slot
@@ -100,21 +100,23 @@ _hash(const char *str, int bsz)
 	int x  = threadIdx.x;
 	int *h = &_warp_h[x];   *h=0;                           // each calling thread takes a slot
 
+/*
 	cudaStream_t st;
 	cudaStreamCreateWithFlags(&st, cudaStreamNonBlocking);  // wrapper overhead ~= 84us
+
 	for (int i=0; i<bsz; i+=32) {
 		_dyna_hash<<<1,32,0,st>>>(h, &str[i], bsz-i);
 		cudaDeviceSynchronize();                            // sync all children threads
 	}
-/*
+
 	dim3 xyz(32, (bsz>>5)+1, 0);
 	int  blk = bsz+(-bsz&0x1f);
 	_dyna_hash2d<<<1,xyz,blk*sizeof(int)>>>(h, str, bsz);
-*/
+
 	cudaDeviceSynchronize();
 
 	cudaStreamDestroy(st);
-
+*/
 	return *h;
 }
 
