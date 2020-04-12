@@ -10,7 +10,6 @@
   </pre>
 */
 #include "global.h"
-#include "puts.h"
 /*
   GLobal objects are stored in '_global' array.
   '_global' array is decending order by sid.
@@ -50,14 +49,24 @@ __idx(S32 *idx, GS xid, _gtype gt)
 }
 
 __GURU__ S32
+__loop_idx(GS xid, _gtype gt)
+{
+	_gidx *p = _global_idx;
+	for (int i=0; i<_global_sz; i++, p++) {
+		if (p->xid==xid && p->gt==gt) return i;
+	}
+}
+
+__GURU__ S32
 _find_idx(GS xid, _gtype gt)
 {
-	static S32 idx;					// warn: scoped outside of function
+/* CC: skip the following CDP, it breaks profiler as of CUDA 10.2
+	static S32 idx;
 	idx = -1;
 	__idx<<<1, 32*(1+(_global_sz>>5))>>>(&idx, xid, gt);
 	SYNC_CHK();						// make sure idx is captured
-
-	return idx;
+*/
+	return __loop_idx(xid, gt);	// warn: scoped outside of function
 }
 
 __GURU__ GV *
@@ -89,7 +98,7 @@ _set(GS xid, GV *v, _gtype gt)
     _UNLOCK;
 
 #if CC_DEBUG
-    printf("G[%d]=", i);	guru_puts(v, 1);
+    PRINTF("G[%d]=", i);	guru_puts(v, 1);
 #endif // CC_DEBUG
 }
 

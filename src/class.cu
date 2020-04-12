@@ -10,7 +10,6 @@
 
   </pre>
 */
-#include <stdio.h>
 #include <stdarg.h>
 #include "guru.h"
 #include "value.h"
@@ -119,7 +118,7 @@ proc_by_sid(GV *v, GS sid)
 __GURU__ void
 _define_class(const U8 *name, guru_class *cls, guru_class *super)
 {
-	GS sid = new_sym(name);
+	GS sid = create_sym(name);
 
     cls->rc     = 0;
     cls->kt     = 0;					// BUILT-IN classes
@@ -172,7 +171,7 @@ guru_define_method(guru_class *cls, const U8 *name, guru_fptr cfunc)
     guru_proc *prc = (guru_proc *)guru_alloc(sizeof(guru_proc));
 
     prc->n     = 0;								// No LAMBDA register file
-    prc->sid   = new_sym(name);
+    prc->sid   = create_sym(name);
     prc->kt    = 0;								// C-function (from BUILT-IN class)
     prc->func  = cfunc;							// set function pointer
 
@@ -213,7 +212,7 @@ guru_rom_set_class(GT cidx, const char *name, GT super_cidx, const Vfunc vtbl[],
 
     for (U32 i=0; i<n; i++, prc++) {
     	prc->n    = 0;							// NOT USER_DEF_CLASS
-    	prc->sid  = new_sym((U8*)vtbl[i].name);
+    	prc->sid  = create_sym((U8*)vtbl[i].name);
     	prc->kt   = 0;							// built-in class type
     	prc->func = vtbl[i].func;
 #ifdef GURU_DEBUG
