@@ -11,13 +11,14 @@
 #include "util.h"
 #include "base.h"
 
+#include "c_string.h"
 #include "c_array.h"
 #include "c_hash.h"
 #include "c_range.h"
 
-__GURU__ guru_func _init_vtbl[GT_MAX];
-__GURU__ guru_func _dest_vtbl[GT_MAX];
-__GURU__ guru_func _cmp_vtbl[GT_MAX];
+__GURU__ guru_init_func 	_i_vtbl[GT_MAX];
+__GURU__ guru_destroy_func 	_d_vtbl[GT_MAX];
+__GURU__ guru_cmp_func 		_c_vtbl[GT_MAX];
 
 //================================================================
 // common values
@@ -29,15 +30,11 @@ __GURU__ GV 	EMPTY()	{ GV v; { v.gt=GT_EMPTY; v.acl=0; } return v; }
 // constructor/destroctor function pointers
 //
 __GURU__ void
-guru_register_init_func(GT gt, guru_func f)
+guru_register_func(GT t, guru_init_func fi, guru_destroy_func fd, guru_cmp_func fc)
 {
-	_init_vtbl[gt] = f;
-}
-
-__GURU__ void
-guru_register_destroy_func(GT gt, guru_func f)
-{
-	_dest_vtbl[gt] = f;
+	_i_vtbl[t] = fi;
+	_d_vtbl[t] = fd;
+	_c_vtbl[t] = fc;
 /*
 	switch(v->gt) {
     case GT_OBJ:		guru_obj_del(v);	break;	// delete object instance
@@ -53,24 +50,6 @@ guru_register_destroy_func(GT gt, guru_func f)
     default: ASSERT(1==0);
     }
     */
-}
-
-__GURU__ void
-guru_register_cmp_func(GT gt, guru_func f)
-{
-	_cmp_vtbl[gt] = f;
-}
-
-//================================================================
-/*! compare
- */
-__GURU__ S32
-_string_cmp(const GV *v0, const GV *v1)
-{
-	S32 x  = (U32)v0->str->bsz - (U32)v1->str->bsz;
-	if (x) return x;
-
-	return STRCMP(v0->str->raw, v1->str->raw);
 }
 
 //================================================================
@@ -114,15 +93,16 @@ guru_cmp(const GV *v0, const GV *v1)
     case GT_FALSE:
     case GT_TRUE:   return 0;
     case GT_INT:
-    case GT_SYM: 	return -1 + (v0->i==v1->i) + (v0->i > v1->i)*2;
 #if GURU_USE_FLOAT
     case GT_FLOAT:  return -1 + (v0->f==v1->f) + (v0->f > v1->f)*2;	// caution: NaN == NaN is false
 #endif // GURU_USE_FLOAT
+    case GT_SYM: 	return -1 + (v0->i==v1->i) + (v0->i > v1->i)*2;
 
     case GT_CLASS:
     case GT_OBJ:
     case GT_PROC:   return -1 + (v0->self==v1->self) + (v0->self > v1->self)*2;
-    case GT_STR: 	return _string_cmp(v0, v1);
+
+    case GT_STR: 	return guru_str_cmp(v0, v1);
 #if GURU_USE_ARRAY
     case GT_ARRAY:  return guru_array_cmp(v0, v1);
     case GT_RANGE:  return guru_range_cmp(v0, v1);
@@ -164,7 +144,7 @@ ref_dec(GV *v)
     ASSERT(v->self->rc);					// rc > 0?
     if (--v->self->rc > 0) return v;		// still used, keep going
 
-    _dest_vtbl[v->gt](v);
+    _d_vtbl[v->gt](v);
 
     return v;
 }

@@ -16,17 +16,16 @@
 extern "C" {
 #endif
 
-typedef void (*guru_func)(GV *v);
+typedef void (*guru_init_func)(...);
+typedef void (*guru_destroy_func)(GV *v);
+typedef S32  (*guru_cmp_func)(const GV *v0, const GV *v1);
 
 __GURU__ GV 	NIL();
 __GURU__ GV 	EMPTY();
 
-__GURU__ void 	guru_register_init_func(GT gt, guru_func f);
-__GURU__ void 	guru_register_destroy_func(GT gt, guru_func f);
-__GURU__ void 	guru_register_cmp_func(GT gt, guru_func f);
-
-__GURU__ GV		guru_new(GT gt);
-__GURU__ GV		guru_destroy(GV *gv);
+__GURU__ void 	guru_register_func(GT t, guru_init_func fi, guru_destroy_func fd, guru_cmp_func fc);
+__GURU__ GV		guru_new(...);
+__GURU__ GV		guru_destroy(GV *v);
 __GURU__ S32  	guru_cmp(const GV *v0, const GV *v1);
 
 __GURU__ GV 	*ref_get(GV *v);

@@ -4,8 +4,17 @@
 */
 #ifndef GURU_SRC_GURU_H_
 #define GURU_SRC_GURU_H_
+#include <stdint.h>
 #include "vm_config.h"
-#include "gurux.h"
+
+#if GURU_USE_CONSOLE		// use guru local implemented print functions (in puts, sprintf.cu)
+#define PRINTF				guru_printf
+#define VPRINTF				guru_vprintf
+#else						// use CUDA printf function
+#include <stdio.h>
+#define PRINTF				printf
+#endif // GURU_USE_CONSOLE
+#define NA(msg)				do { PRINTF("method not supported: %s\n", msg); } while(0)
 
 #ifdef __cplusplus
 extern "C" {
@@ -23,10 +32,10 @@ extern "C" {
 #define MUTEX_LOCK(p)  		while (atomicCAS((int *)&p, 0, 1)!=0)
 #define MUTEX_FREE(p)  		atomicExch((int *)&p, 0)
 #define ALIGN(sz) 			((sz) += -(sz) & 0x7)
-#define ALIGN64(sz)			((sz) += -(sz) & 0xf)
+#define ALIGN64(sz)  		((sz) += -(sz) & 0xf)
 
 #define ASSERT(X) \
-	if (!(X)) printf("ASSERT tid %d: line %d in %s\n", threadIdx.x, __LINE__, __FILE__);
+	if (!(X)) PRINTF("ASSERT tid %d: line %d in %s\n", threadIdx.x, __LINE__, __FILE__);
 #define SYNC()				{ cudaDeviceSynchronize(); }
 #define SYNC_CHK()			{ cudaDeviceSynchronize(); ASSERT(cudaGetLastError()==cudaSuccess); }
 
@@ -145,7 +154,7 @@ typedef struct {					// 16-bytes (128 bits) for ease of debugging
     };
 } GV;
 
-/* forward declaration */
+/* forward declarations */
 typedef void (*guru_fptr)(GV v[], U32 vi);
 struct Irep;
 struct Vfunc {
@@ -153,6 +162,7 @@ struct Vfunc {
 	guru_fptr 	func;			// C-function pointer
 };
 #define VFSZ(vtbl)		(sizeof(vtbl)/sizeof(Vfunc))
+
 //================================================================
 /*!@brief
   Guru object header. (i.e. Ruby's RBasic)

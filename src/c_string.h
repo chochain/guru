@@ -26,16 +26,13 @@ extern "C" {
 __GURU__ GV 	guru_str_new(const U8 *str);				// U8P will require to many casting
 __GURU__ GV		guru_str_buf(U32 sz);						// a string buffer with given length
 __GURU__ GV		guru_str_clr(GV *s);						// reset str->sz,bsz to zero
-
 __GURU__ void   guru_str_del(GV *s);
+__GURU__ S32    guru_str_cmp(const GV *s0, const GV *s1);
+
 __GURU__ GV     guru_str_add(GV *s0, GV *s1);				//	return a new string
 __GURU__ GV     guru_str_add_cstr(GV *s0, const U8 *str);	//  return the same s0
 
 __GURU__ void   guru_init_class_string(void);
-
-// cross module Vfunc (for object)
-__GURU__ void	str_sprintf(GV v[], U32 vi);
-__GURU__ void	str_printf(GV v[], U32 vi);
 
 #ifdef __cplusplus
 }
