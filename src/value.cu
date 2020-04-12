@@ -10,11 +10,17 @@
 */
 #include "util.h"
 #include "value.h"
-#include "object.h"
 
 #include "c_array.h"
 #include "c_hash.h"
 #include "c_range.h"
+
+//================================================================
+// common values
+// CC: which should be defined in guru.h or some earlier module
+//
+__GURU__ GV 	NIL()	{ GV v; { v.gt=GT_NIL;   v.acl=0; } return v; }
+__GURU__ GV 	EMPTY()	{ GV v; { v.gt=GT_EMPTY; v.acl=0; } return v; }
 
 //================================================================
 /*! compare
@@ -87,8 +93,4 @@ guru_cmp(const GV *v0, const GV *v1)
         return 1;
     }
 }
-
-__GURU__ GV NIL() 	{ GV v; { v.gt=GT_NIL;   v.acl=0; } return v; }
-__GURU__ GV EMPTY()	{ GV v; { v.gt=GT_EMPTY; v.acl=0; } return v; }
-
 

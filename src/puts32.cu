@@ -12,19 +12,16 @@
 */
 #include "guru.h"
 #include "util.h"
-#include "value.h"
-#include "class.h"
-#include "mmu.h"
-#include "symbol.h"
-#include "global.h"
-
-#include "puts.h"
+#include "symbol.h"		// id2name
+#include "class.h"		// class_by_obj
 
 #if GURU_USE_ARRAY
 #include "c_array.h"
 #include "c_range.h"
 #include "c_hash.h"
 #endif // GURU_USE_ARRAY
+
+#include "puts.h"
 
 //================================================================
 /*! p - sub function

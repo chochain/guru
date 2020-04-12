@@ -9,19 +9,16 @@
 
   </pre>
 */
-#include <stdio.h>
 #include "guru.h"
 #include "util.h"
-#include "value.h"
+#include "symbol.h"
 #include "mmu.h"
 
+#include "value.h"
 #include "class.h"
-#include "symbol.h"
 
-#include "c_string.h"
 #include "c_range.h"
-
-#include "inspect.h"
+#include "c_string.h"
 
 #if !GURU_USE_STRING
 __GURU__ GV		guru_str_new(const U8 *src) { return NIL(); }			// cannot use U8P, need lots of casting
@@ -32,9 +29,6 @@ __GURU__ GV     guru_str_add(GV *s0, GV *s1)			 { return NIL(); }
 __GURU__ GV		guru_str_add_cstr(GV *s0, const U8 *str) { return NIL(); }
 
 __GURU__ void	guru_init_class_string()	{ guru_class_string = NULL; }
-
-__CFUNC__		str_sprintf(GV v[], U32 vi) {}
-__CFUNC__		str_printf(GV v[], U32 vi)	{}
 
 #else
 //================================================================
@@ -477,7 +471,7 @@ str_insert(GV v[], U32 vi)
         val = &v[3];
     }
     else {
-        guru_na("case of str_insert");
+        NA("case of str_insert");
         return;
     }
 
@@ -583,25 +577,7 @@ str_ord(GV v[], U32 vi)
 __CFUNC__
 str_split(GV v[], U32 vi)
 {
-    guru_na("string#split");
-}
-
-//================================================================
-/*! (method) sprintf
- */
-__CFUNC__
-str_sprintf(GV v[], U32 vi)
-{
-	guru_na("string#sprintf");
-}
-
-//================================================================
-/*! (method) printf
- */
-__CFUNC__
-str_printf(GV v[], U32 vi)
-{
-	guru_na("string#printf");
+    NA("string#split");
 }
 
 //================================================================

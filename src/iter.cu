@@ -9,15 +9,15 @@
 
   </pre>
 */
-#include <stdio.h>
 #include "vm_config.h"
 #include "guru.h"
-#include "value.h"
 #include "mmu.h"
+#include "refcnt.h"
 
 #include "c_array.h"
 #include "c_hash.h"
 #include "c_range.h"
+
 #include "iter.h"
 
 //================================================================

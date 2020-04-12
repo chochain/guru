@@ -10,15 +10,26 @@
   This file is distributed under BSD 3-Clause License.
   </pre>
 */
-#include <stdio.h>
 #include "guru.h"
+#include "util.h"
 #include "mmu.h"
-#include "state.h"
 #include "symbol.h"
+
+#include "state.h"
 #include "ucode.h"
+
 #include "debug.h"
 
 cudaEvent_t _event_t0, _event_t1;
+
+__GPU__ void
+__id2str(GS sid, U8 *str)
+{
+	if (blockIdx.x!=0 || threadIdx.x!=0) return;
+
+	U8 *s = id2name(sid);
+	STRCPY(str, s);
+}
 
 //========================================================================================
 // the following code is for debugging purpose, turn off GURU_DEBUG for release
@@ -79,6 +90,13 @@ static const int _op_exe[] = {
 #define OUTBUF_SIZE	256
 U8 *_outbuf = NULL;
 U32 _debug  = 0;
+
+__HOST__ void
+_id2name(GS sid, U8 *str)
+{
+	__id2str<<<1,1>>>(sid, str);
+	SYNC();
+}
 
 #define bin2u32(x) ((x << 24) | ((x & 0xff00) << 8) | ((x >> 8) & 0xff00) | (x >> 24))
 __HOST__ int
@@ -167,12 +185,12 @@ _show_decode(guru_vm *vm, U32 code)
 	if (_outbuf==NULL) _outbuf = (U8*)cuda_malloc(OUTBUF_SIZE, 1);	// lazy alloc
 	if (_find_op(_op_sym, op, SZ_SYM) >= 0) {
 		GS  sid = VM_SYM(vm, ar.bx);
-		id2name_host(sid, _outbuf);
+		_id2name(sid, _outbuf);
 		printf(" r%-2d :%-18s", a, _outbuf);			return;
 	}
 	if (_find_op(_op_exe, op, SZ_EXE) >= 0) {
 		GS  sid = VM_SYM(vm, ar.b);
-		id2name_host(sid, _outbuf);
+		_id2name(sid, _outbuf);
 		printf(" r%-2d #%-18s", a, _outbuf);			return;
 	}
 }

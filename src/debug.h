@@ -14,6 +14,7 @@
 
 #ifndef GURU_SRC_DEBUG_H_
 #define GURU_SRC_DEBUG_H_
+#include "vm.h"
 
 #ifdef __cplusplus
 extern "C" {

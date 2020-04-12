@@ -5,8 +5,6 @@
 #ifndef GURU_SRC_GURUX_H_
 #define GURU_SRC_GURUX_H_
 
-#include <stdint.h>
-
 #ifdef __cplusplus
 extern "C" {
 #endif

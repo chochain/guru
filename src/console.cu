@@ -10,7 +10,6 @@
   </pre>
 */
 #include <stdio.h>
-#include "class.h"
 #include "console.h"
 
 __GURU__ U32 _output_size;
@@ -86,8 +85,6 @@ _dump_obj_size(void)
 {
 	console_str("\nvalue=");
 	console_int(sizeof(GV));
-	console_str("\nrclass=");
-	console_int(sizeof(RClass));
 	console_str("\ninstance=");
 	console_int(sizeof(RObj));
     console_str("\nproc=");

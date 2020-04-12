@@ -11,18 +11,19 @@
   2. internal state management functions
   </pre>
 */
-#include <stdio.h>
 #include "guru.h"
 #include "util.h"
 #include "refcnt.h"
 #include "symbol.h"		// id2name
-#include "ostore.h"		// ostore_new
-#include "class.h"		// proc_by_sid
 #include "mmu.h"
+#include "ostore.h"		// ostore_new
+#include "iter.h"
+
+#include "class.h"		// proc_by_id
 #include "state.h"
+
 #include "c_array.h"
 #include "c_range.h"
-#include "iter.h"
 
 //================================================================
 /*!@brief

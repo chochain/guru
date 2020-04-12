@@ -19,7 +19,7 @@
 extern "C" {
 #endif
 
-__GPU__  void		guru_class_init(void);
+__GPU__  void		guru_core_init(void);
 
 __GURU__ void		guru_class_add_meta(GV *v);					// lazy add metaclass to a class
 __GURU__ GV 		guru_inspect(GV v[], GV *obj);				// inspect obj using v[] as stack

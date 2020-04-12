@@ -18,8 +18,6 @@
 #include "class.h"
 #include "c_array.h"
 
-#include "inspect.h"
-
 /*
   function summary
 
@@ -758,7 +756,8 @@ __GURU__ __const__ Vfunc ary_vtbl[] = {
 	{ "include?",  ary_include  },
 	{ "reverse",   ary_reverse  },
 
-	{ "join",      gv_join		},
+	// reference to string, the following functions are implemented in inspect.cu
+	{ "join",      ary_join		},
 	{ "inspect",   gv_to_s		},
 	{ "to_s",      gv_to_s		},
 };

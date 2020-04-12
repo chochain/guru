@@ -17,8 +17,6 @@
 extern "C" {
 #endif
 __GURU__ S32  	guru_cmp(const GV *v0, const GV *v1);
-__GURU__ GV 	NIL();
-__GURU__ GV     EMPTY();
 
 // macro for C call returns
 // Note: becareful, the following macros assume a "v" pointer to top of stack
@@ -31,9 +29,6 @@ __GURU__ GV     EMPTY();
 #define RETURN_BOOL(n)	{ ref_dec(v); v->acl=0; v->gt=(n)?GT_TRUE:GT_FALSE;  return; }
 #define RETURN_INT(n)	{ ref_dec(v); v->acl=0; v->gt=GT_INT;  v->i=(GI)(n); return; }
 #define RETURN_FLOAT(n)	{ ref_dec(v); v->acl=0; v->gt=GT_FLOAT;v->f=(GF)(n); return; }
-
-// basic C string functions for GV
-#define GVSTR(v) ((U8*)(v)->str->data)
 
 #ifdef __cplusplus
 }

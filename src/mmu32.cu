@@ -11,7 +11,6 @@
 
   </pre>
 */
-#include <stdio.h>
 #include "guru.h"
 #include "util.h"
 #include "mmu.h"
@@ -86,17 +85,17 @@ __idx(U32 sz, U32 *l1, U32 *l2)
 __GURU__ void
 __unmap(free_block *blk)
 {
-	ASSERT(IS_FREE(blk));					// ensure block is free
+	ASSERT(IS_FREE(blk));						// ensure block is free
 
 	U32 l1, l2;
 	U32 index 	  = __idx(blk->bsz, &l1, &l2);
 	free_block *n = _free_list[index] = NEXT_FREE(blk);
-    if (n) {								// up link
+    if (n) {									// up link
     	// blk->next->prev = blk->prev;
     	n->prev = blk->prev ? U8POFF(n, PREV_FREE(blk)) : 0;
     	ASSERT((n->prev&7)==0);
     }
-    else {									// 1st of the link
+    else {										// 1st of the link
         U32 l1x= L1(index);
         U32 l2x= L2(index);
         U32 t1 = TIC(l1x);
@@ -104,18 +103,18 @@ __unmap(free_block *blk)
         U32 m1 = L1_MAP(index);
         U16 m2 = L2_MAP(index);
 
-        CLEAR_MAP(index);					// clear the index bit
+        CLEAR_MAP(index);						// clear the index bit
 
         U16 m2x = L2_MAP(index);
         U32 m1x = L1_MAP(index);
         t1 = m1x;
     }
-    if (blk->prev) {						// down link
+    if (blk->prev) {							// down link
     	free_block *p = PREV_FREE(blk);
     	// blk->prev->next = blk->next;
     	p->next = blk->next ? U8POFF(n, p) : 0;
     }
-    blk->next = blk->prev = 0xeeeeeeee;		// wipe for debugging
+    blk->next = blk->prev = 0xeeeeeeee;			// wipe for debugging
 }
 
 //================================================================
@@ -166,7 +165,7 @@ _mark_free(free_block *blk)
     U32 m1 = L1_MAP(index);
     U16 m2 = L2_MAP(index);
 
-    SET_MAP(index);										// set free block available ticks
+    SET_MAP(index);								// set free block available ticks
 
     U32 m1x = L1_MAP(index);
     U16 m2x = L2_MAP(index);
@@ -177,15 +176,15 @@ _mark_free(free_block *blk)
     ASSERT(head!=blk);
 
     SET_FREE(blk);
-    blk->next = head ? U8POFF(head, blk) : 0;			// setup linked list
+    blk->next = head ? U8POFF(head, blk) : 0;	// setup linked list
     ASSERT((blk->next&7)==0);
     blk->prev = 0;
-    if (head) {											// non-end block, add backward link
+    if (head) {									// non-end block, add backward link
     	head->prev = U8POFF(blk, head);
         ASSERT((head->prev&7)==0);
-    	SET_FREE(head);									// turn the free flag back on
+    	SET_FREE(head);							// turn the free flag back on
     }
-    _free_list[index] = blk;							// new head of the linked list
+    _free_list[index] = blk;					// new head of the linked list
 }
 
 __GURU__ free_block*
@@ -237,21 +236,21 @@ __GURU__ S32
 _find_free_index(U32 sz)
 {
 	U32 l1, l2;
-    U32 index = __idx(sz, &l1, &l2);	// find free_list index by size
+    U32 index = __idx(sz, &l1, &l2);			// find free_list index by size
 
     if (_free_list[index]) return index;		// free block available, use it
 
     // no previous block exist, create a new one
-    U32 avl = _l2_map[l1];			    // check any 2nd level available
+    U32 avl = _l2_map[l1];			    		// check any 2nd level available
     if (avl >> l2) {
-    	l2 = __xls(avl);				// get first available l2 index
+    	l2 = __xls(avl);						// get first available l2 index
     }
-    else if ((avl = _l1_map)) {			// check if 1st level available
-        l1 = __xls(avl);        		// allocate new 1st & 2nd level indices
+    else if ((avl = _l1_map)) {					// check if 1st level available
+        l1 = __xls(avl);        				// allocate new 1st & 2nd level indices
         l2 = __xls(_l2_map[l1]);
     }
-    else return -1;						// out of memory
-    return INDEX(l1, l2);               // index to freelist head
+    else return -1;								// out of memory
+    return INDEX(l1, l2);               		// index to freelist head
 }
 
 //================================================================
