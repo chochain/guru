@@ -22,13 +22,14 @@
 
 #if !GURU_USE_STRING
 __GURU__ GV		guru_str_new(const U8 *src) { return NIL(); }			// cannot use U8P, need lots of casting
+__GURU__ void	guru_str_del(GV *v)			{}
+__GURU__ S32	guru_str_cmp(GV *s0, GV *s1){ return NIL(); }
 __GURU__ GV		guru_str_buf(U32 sz)		{ return NIL(); }			// a string buffer
 __GURU__ GV		guru_str_clr(GV *s)			{ return NIL(); }
-__GURU__ void	guru_str_del(GV *v)			{}
-__GURU__ GV     guru_str_add(GV *s0, GV *s1)			 { return NIL(); }
+__GURU__ GV     guru_str_add(GV *s0, GV *s1){ return NIL(); }
 __GURU__ GV		guru_str_add_cstr(GV *s0, const U8 *str) { return NIL(); }
 
-__GURU__ void	guru_init_class_string()	{ guru_class_string = NULL; }
+__GURU__ void	guru_init_class_string() { guru_class_string = NULL; }
 
 #else
 //================================================================
@@ -263,6 +264,18 @@ guru_str_del(GV *v)
 {
     guru_free(v->str->raw);
     guru_free(v->str);
+}
+
+//================================================================
+/*! compare
+ */
+__GURU__ S32
+guru_str_cmp(const GV *s0, const GV *s1)
+{
+	S32 x  = (U32)s0->str->bsz - (U32)s1->str->bsz;
+	if (x) return x;
+
+	return STRCMP(s0->str->raw, s1->str->raw);
 }
 
 //================================================================
@@ -736,6 +749,8 @@ __GURU__ void
 guru_init_class_string()
 {
     guru_rom_set_class(GT_STR, "String", GT_OBJ, str_vtbl, VFSZ(str_vtbl));
+
+    guru_register_func(GT_STR, (guru_init_func)guru_str_new, guru_str_del, guru_str_cmp);
 }
 
 #endif // GURU_USE_STRING
