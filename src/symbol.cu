@@ -11,15 +11,10 @@
 */
 #include "guru.h"
 #include "util.h"
-#include "value.h"
-#include "class.h"
 #include "mmu.h"
 #include "symbol.h"
-#include "c_string.h"
-#include "c_array.h"
-#include "inspect.h"
 
-#define DYNA_SEARCH_THRESHOLD 	1				// meta-parameter
+#define DYNA_SEARCH_THRESHOLD 	128				// meta-parameter
 
 #define _LOCK	{ MUTEX_LOCK(_mutex_sym); }
 #define _FREE	{ MUTEX_FREE(_mutex_sym); }
@@ -86,7 +81,7 @@ _search(U32 hash)
 
 	U32 tc = 32;				// Pascal:512, Volta:1024 max threads/block
 	U32 bc = (_sym_idx>>5)+1;	// P104: 20, P102: 30 quad-issue SMs (i.e. 4 blocks/issue)
-
+/*
 	cudaStream_t st;
 	cudaStreamCreateWithFlags(&st, cudaStreamNonBlocking);	// wrapper overhead ~= 84us
 	{
@@ -94,12 +89,12 @@ _search(U32 hash)
 		SYNC();					// sync all child threads in the block
 	}
 	cudaStreamDestroy(st);
-
+*/
 	return *idx;				// each parent thread gets one result back
 }
 
 __GURU__ GS
-new_sym(const U8 *str)			// create new symbol
+create_sym(const U8 *str)		// create new symbol
 {
 	U32 hash = HASH(str);
 	S32 sid  = _search(hash);
@@ -122,6 +117,7 @@ name2id(const U8 *str)
 {
 	U32 hash = HASH(str);
 	S32 sid  = _search(hash);
+
 
 #if CC_DEBUG
     printf("%2d> sym[%2d]%08x=>%s\n", threadIdx.x, sid, _sym_hash[sid], _sym[sid]);
@@ -153,69 +149,8 @@ id2name(GS sid)
 __GURU__ GV
 guru_sym_new(const U8 *str)
 {
-    GV v; { v.gt = GT_SYM; v.acl=0; v.i=new_sym(str); }
+    GV v; { v.gt = GT_SYM; v.acl=0; v.i=create_sym(str); }
 
     return v;
 }
 
-//================================================================
-// call by symbol
-#if !GURU_USE_ARRAY
-__CFUNC__	sym_all(GV v[], U32 vi)	{}
-#else
-__CFUNC__
-sym_all(GV v[], U32 vi)
-{
-    GV ret = guru_array_new(_sym_idx);
-
-    for (U32 i=0; i < _sym_idx; i++) {
-        GV sym1; { sym1.gt = GT_SYM; sym1.acl=0; sym1.i=1; }
-        guru_array_push(&ret, &sym1);
-    }
-    RETURN_VAL(ret);
-}
-#endif // GURU_USE_ARRAY
-
-__CFUNC__
-sym_to_s(GV v[], U32 vi)
-{
-	GV ret = guru_str_new(id2name(v->i));
-    RETURN_VAL(ret);
-}
-
-__CFUNC__ sym_nop(GV v[], U32 vi) {	/* do nothing */	}
-
-//================================================================
-/*! initialize
- */
-__GURU__ __const__ Vfunc sym_vtbl[] = {
-	{ "id2name", 	gv_to_s		},
-	{ "to_sym",     sym_nop		},
-	{ "to_s", 		sym_to_s	}, 	// no leading ':'
-	{ "inspect", 	gv_to_s		},
-	{ "all_symbols", sym_all	}
-};
-
-__GURU__ void
-guru_init_class_symbol()  // << from symbol.cu
-{
-    guru_rom_set_class(GT_SYM, "Symbol", GT_OBJ, sym_vtbl, VFSZ(sym_vtbl));
-}
-
-__GPU__ void
-_id2str(GS sid, U8 *str)
-{
-	if (blockIdx.x!=0 || threadIdx.x!=0) return;
-
-	U8 *s = id2name(sid);
-	STRCPY(str, s);
-}
-
-#if GURU_DEBUG
-__HOST__ void
-id2name_host(GS sid, U8 *str)
-{
-	_id2str<<<1,1>>>(sid, str);
-	SYNC();
-}
-#endif // GURU_DEBUG

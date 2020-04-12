@@ -17,16 +17,11 @@
 extern "C" {
 #endif
 
-__GURU__ GS     new_sym(const U8 *str);			// create new symbol, returns sid
+__GURU__ GS     create_sym(const U8 *str);		// create new symbol, returns sid
 __GURU__ GS   	name2id(const U8 *str);			// sid by name
 __GURU__ U8		*id2name(GS sid);				// name by sid
 
-__GURU__ void 	guru_init_class_symbol();
-__GURU__ GV 	guru_sym_new(const U8 *str);
-
-#if GURU_DEBUG
-__HOST__ void 	id2name_host(GS sid, U8 *str);	// ~= id2name, by host mode
-#endif // GURU_DEBUG
+__GURU__ GV		guru_sym_new(const U8 *str);	// create a symbol GV
 
 #ifdef __cplusplus
 }
