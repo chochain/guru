@@ -14,15 +14,16 @@
 #define GURU_SRC_INSPECT_H_
 
 #include "guru.h"
-#include "puts.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-__GURU__ void guru_na(const U8 *msg);
-__GURU__ void gv_to_s(GV v[], U32 vi);
-__GURU__ void gv_join(GV v[], U32 vi);
+__CFUNC__ 	gv_to_s(GV v[], U32 vi);
+__CFUNC__ 	ary_join(GV v[], U32 vi);
+
+__CFUNC__	gv_sprintf(GV v[], U32 vi);
+__CFUNC__	gv_printf(GV v[], U32 vi);
 
 #ifdef __cplusplus
 }

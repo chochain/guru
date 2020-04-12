@@ -14,6 +14,7 @@
 #include "value.h"
 #include "class.h"
 #include "symbol.h"
+
 #include "object.h"
 #include "inspect.h"
 
@@ -23,22 +24,15 @@
 #include "c_hash.h"
 #include "c_range.h"
 
-#include "puts.h"
-
 #if !GURU_USE_STRING
-__GURU__ void 	guru_na(const U8 *msg)		{}
-__GURU__ void 	gv_to_s(GV v[], U32 vi)		{}
-__GURU__ void	gv_join(GV v[], U32 vi)		{}
+__CFUNC__	gv_to_s(GV v[], U32 vi)			{}
+__CFUNC__ 	ary_join(GV v[], U32 vi)		{}
+__CFUNC__	str_sprintf(GV v[], U32 vi)		{}
+__CFUNC__	str_printf(GV v[], U32 vi)		{}
 
 #else
 
 __GURU__ void _to_s(GV *s, GV *v, U32 n);			// forward declaration
-
-__GURU__ void
-guru_na(const U8 *msg)
-{
-	PRINTF("method not supported: %s\n", msg);
-}
 
 //================================================================
 //! Nil class
@@ -109,7 +103,7 @@ _phex(GV *s, void *ptr)
 __GURU__ void
 _flt(GV *s, GV *v)
 {
-	guru_na("flt");
+	NA("flt");
 }
 
 //================================================================
@@ -234,7 +228,7 @@ _to_s(GV *s, GV v[], U32 n)
 //================================================================
 //! Object#to_s factory function
 #define BUF_SIZE	512
-__GURU__ void
+__CFUNC__
 gv_to_s(GV v[], U32 vi)
 {
 	GV ret = guru_str_buf(BUF_SIZE);
@@ -244,8 +238,8 @@ gv_to_s(GV v[], U32 vi)
 	RETURN_VAL(ret);
 }
 
-__GURU__ void
-gv_join(GV v[], U32 vi)
+__CFUNC__
+ary_join(GV v[], U32 vi)
 {
 	ASSERT(v->gt==GT_ARRAY);
 	guru_array *a = v->array;
@@ -259,5 +253,23 @@ gv_join(GV v[], U32 vi)
 		guru_str_add_cstr(&ret, (U8 *)(v+1)->str->raw);
 	}
 	RETURN_VAL(ret);
+}
+
+//================================================================
+/*! (method) sprintf
+ */
+__CFUNC__
+gv_sprintf(GV v[], U32 vi)
+{
+	NA("string#sprintf");
+}
+
+//================================================================
+/*! (method) printf
+ */
+__CFUNC__
+gv_printf(GV v[], U32 vi)
+{
+	NA("string#printf");
 }
 #endif	// GURU_USE_STRING
