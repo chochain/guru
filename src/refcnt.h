@@ -16,6 +16,9 @@
 extern "C" {
 #endif
 
+typedef void (*guru_del_func)(GV *v);
+__GURU__ void guru_del_func_register(GT gt, guru_del_func f);
+
 __GURU__ GV *ref_get(GV *v);
 __GURU__ GV	*ref_free(GV *v);
 

@@ -9,15 +9,29 @@
   </pre>
 */
 #include <stdio.h>
-
-#include "object.h"
 #include "refcnt.h"
 
-#include "c_string.h"
-#include "c_array.h"
-#include "c_hash.h"
-#include "c_range.h"
-#include "iter.h"
+__GURU__ guru_del_func _del_vtbl[GT_MAX];
+__GURU__ void
+guru_del_func_register(GT gt, guru_del_func f)
+{
+	_del_vtbl[gt] = f;
+/*
+	switch(v->gt) {
+    case GT_OBJ:		guru_obj_del(v);	break;	// delete object instance
+    case GT_STR:		guru_str_del(v);	break;
+
+#if GURU_USE_ARRAY
+    case GT_ARRAY:	    guru_array_del(v);	break;
+    case GT_RANGE:	    guru_range_del(v);	break;
+    case GT_HASH:	    guru_hash_del(v);	break;
+    case GT_ITER:		guru_iter_del(v);	break;
+#endif // GURU_USE_ARRAY
+
+    default: ASSERT(1==0);
+    }
+    */
+}
 
 __GURU__ GV *
 ref_get(GV *v)
@@ -50,19 +64,8 @@ ref_dec(GV *v)
     ASSERT(v->self->rc);					// rc > 0?
     if (--v->self->rc > 0) return v;		// still used, keep going
 
-    switch(v->gt) {
-    case GT_OBJ:		guru_obj_del(v);	break;	// delete object instance
-    case GT_STR:		guru_str_del(v);	break;
+    _del_vtbl[v->gt](v);
 
-#if GURU_USE_ARRAY
-    case GT_ARRAY:	    guru_array_del(v);	break;
-    case GT_RANGE:	    guru_range_del(v);	break;
-    case GT_HASH:	    guru_hash_del(v);	break;
-    case GT_ITER:		guru_iter_del(v);	break;
-#endif // GURU_USE_ARRAY
-
-    default: ASSERT(1==0);
-    }
     return v;
 }
 
