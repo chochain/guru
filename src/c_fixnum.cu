@@ -11,16 +11,28 @@
   </pre>
 */
 #include "guru.h"
-#include "value.h"
+#include "base.h"
 #include "class.h"
 
 #include "c_fixnum.h"
-#include "c_string.h"
+
 #include "inspect.h"
 
 // macro to fetch from stack objects
 #define _INT(n)		(v[(n)].i)
 #define _FLOAT(n)	(v[(n)].f)
+
+__GURU__ S32
+guru_int_cmp(const GV *v0, const GV *v1)
+{
+	return -1 + (v0->i==v1->i) + (v0->i > v1->i)*2;
+}
+
+__GURU__ S32
+guru_flt_cmp(const GV *v0, const GV *v1)
+{
+	return -1 + (v0->f==v1->f) + (v0->f > v1->f)*2;
+}
 
 //================================================================
 /*! (operator) [] bit reference
@@ -160,14 +172,6 @@ int_to_f(GV v[], U32 vi)
 }
 #endif // GURU_USE_FLOAT
 
-__CFUNC__
-int_chr(GV v[], U32 vi)
-{
-    U8 buf[2] = { (U8)v->i, '\0' };
-
-    RETURN_VAL(guru_str_new(buf));
-}
-
 __GURU__ __const__ Vfunc int_vtbl[] = {
 	{ "[]", 	int_bitref		},
 	{ "-@", 	int_negative	},
@@ -182,6 +186,7 @@ __GURU__ __const__ Vfunc int_vtbl[] = {
 	{ "abs",	int_abs			},
 	{ "to_f",	int_to_f		},
 
+	// the following functions require string, implemented in inspect.cu
 	{ "chr", 	int_chr			},
 	{ "to_s", 	gv_to_s			},
 	{ "inspect",gv_to_s			}
@@ -193,7 +198,7 @@ guru_init_class_int(void)
     guru_rom_set_class(
     	GT_INT, "Integer", GT_OBJ, int_vtbl, sizeof(int_vtbl)/sizeof(Vfunc)
     );
-
+    guru_register_func(GT_INT, NULL, NULL, guru_int_cmp);
 }
 
 // Float
@@ -264,6 +269,7 @@ __GURU__ void
 guru_init_class_float(void)
 {
     guru_rom_set_class(GT_FLOAT, "Float", GT_OBJ, flt_vtbl, VFSZ(flt_vtbl));
+    guru_register_func(GT_INT, NULL, NULL, guru_flt_cmp);
 }
 
 #endif // GURU_USE_FLOAT

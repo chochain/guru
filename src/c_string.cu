@@ -749,7 +749,6 @@ __GURU__ void
 guru_init_class_string()
 {
     guru_rom_set_class(GT_STR, "String", GT_OBJ, str_vtbl, VFSZ(str_vtbl));
-
     guru_register_func(GT_STR, (guru_init_func)guru_str_new, guru_str_del, guru_str_cmp);
 }
 

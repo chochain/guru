@@ -12,9 +12,9 @@
 
 #include "vm_config.h"
 #include "guru.h"
-#include "value.h"
 #include "mmu.h"
 
+#include "base.h"
 #include "class.h"
 #include "object.h"		// guru_kind_of
 #include "c_range.h"
@@ -144,4 +144,5 @@ __GURU__ void
 guru_init_class_range()
 {
     guru_rom_set_class(GT_RANGE, "Range", GT_OBJ, rng_vtbl, VFSZ(rng_vtbl));
+    guru_register_func(GT_RANGE, NULL, guru_range_del, guru_range_cmp);
 }

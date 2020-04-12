@@ -12,11 +12,13 @@
 #include "vm_config.h"
 #include "guru.h"
 #include "util.h"
-#include "value.h"
 #include "mmu.h"
 
+#include "base.h"
 #include "class.h"
 #include "c_array.h"
+
+#include "inspect.h"
 
 /*
   function summary
@@ -404,7 +406,7 @@ ary_new(GV v[], U32 vi)
     }
     else {
     	ret = NIL();
-    	guru_na("ArgumentError");
+    	NA("ArgumentError");
     }
     RETURN_VAL(ret);
 }
@@ -487,10 +489,10 @@ ary_set(GV v[], U32 vi)
     else if (vi==3 &&					// self[n, len] = valu
     		gt1==GT_INT &&
     		gt2==GT_INT) {
-    	guru_na("array[i,n]");
+    	NA("array[i,n]");
     }
     else {
-        guru_na("case of Array#[]=");
+        NA("case of Array#[]=");
     }
 }
 
@@ -597,10 +599,10 @@ ary_pop(GV v[], U32 vi)
         RETURN_VAL(_pop(v));
     }
     else if (vi==1 && v[1].gt==GT_INT) {	// pop(n) -> Array | nil
-        guru_na("pop(n)");					// TODO: loop
+        NA("pop(n)");						// TODO: loop
     }
     else {
-    	guru_na("case of Array#pop");
+    	NA("case of Array#pop");
     }
 }
 
@@ -639,10 +641,10 @@ ary_shift(GV v[], U32 vi)
         RETURN_VAL(_shift(v));
     }
     else if (vi==1 && v[1].gt==GT_INT) {	// shift() -> Array | nil
-        guru_na("shift(n)");				// TODO: loop
+        NA("shift(n)");						// TODO: loop
     }
     else {
-    	guru_na("case of Array#shift");
+    	NA("case of Array#shift");
     }
 }
 
@@ -766,4 +768,5 @@ __GURU__ void
 guru_init_class_array()
 {
     guru_rom_set_class(GT_ARRAY, "Array", GT_OBJ, ary_vtbl, VFSZ(ary_vtbl));
+    guru_register_func(GT_ARRAY, NULL, guru_array_del, guru_array_cmp);
 }

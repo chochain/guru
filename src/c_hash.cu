@@ -12,12 +12,12 @@
 #include "vm_config.h"
 #include "guru.h"
 #include "util.h"
-#include "value.h"
 #include "mmu.h"
 
+#include "base.h"
 #include "class.h"
-#include "c_hash.h"
 #include "c_array.h"
+#include "c_hash.h"
 
 #include "inspect.h"
 
@@ -228,7 +228,7 @@ guru_hash_del(GV *kv)
   @retval 0	v1==v2
   @retval 1	v1 != v2
 */
-__GURU__ int
+__GURU__ S32
 guru_hash_cmp(const GV *v0, const GV *v1)
 {
 	int n0 = _size(v0);
@@ -466,4 +466,5 @@ __GURU__ void
 guru_init_class_hash()
 {
     guru_rom_set_class(GT_HASH, "Hash", GT_OBJ, hsh_vtbl, VFSZ(hsh_vtbl));
+    guru_register_func(GT_HASH, NULL, guru_hash_del, guru_hash_cmp);
 }
