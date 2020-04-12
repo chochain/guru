@@ -13,7 +13,7 @@
 */
 #include "guru.h"
 #include "util.h"
-#include "refcnt.h"
+#include "base.h"
 #include "symbol.h"		// id2name
 #include "mmu.h"
 #include "ostore.h"		// ostore_new

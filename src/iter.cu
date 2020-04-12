@@ -12,7 +12,7 @@
 #include "vm_config.h"
 #include "guru.h"
 #include "mmu.h"
-#include "refcnt.h"
+#include "base.h"
 
 #include "c_array.h"
 #include "c_hash.h"

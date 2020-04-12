@@ -11,7 +11,7 @@
 */
 #include "guru.h"
 #include "mmu.h"
-#include "refcnt.h"
+#include "base.h"
 #include "ostore.h"
 
 #define SET_VAL(d, vid, val)		(*(d)=*(val), (d)->vid=(vid))

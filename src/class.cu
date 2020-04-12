@@ -12,12 +12,12 @@
 */
 #include <stdarg.h>
 #include "guru.h"
-#include "value.h"
-#include "class.h"
-#include "mmu.h"
-
+#include "base.h"
 #include "global.h"
 #include "symbol.h"
+#include "mmu.h"
+
+#include "class.h"
 
 #define _LOCK		{ MUTEX_LOCK(_mutex_cls); }
 #define _UNLOCK 	{ MUTEX_FREE(_mutex_cls); }

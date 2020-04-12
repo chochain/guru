@@ -11,10 +11,10 @@
   </pre>
 */
 #include "guru.h"
-#include "value.h"
-#include "class.h"
 #include "symbol.h"
+#include "base.h"
 
+#include "class.h"
 #include "object.h"
 #include "inspect.h"
 
