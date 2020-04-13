@@ -65,7 +65,7 @@ _send(GV v[], GV *rcv, const U8 *method, U32 argc, ...)
     va_list ap;						// setup calling registers
     va_start(ap, argc);
     for (U32 i = 1; i <= argc+1; i++) {
-        regs[i] = (i>argc) ? NIL() : *va_arg(ap, GV *);
+        regs[i] = (i>argc) ? NIL : *va_arg(ap, GV *);
     }
     va_end(ap);
 
@@ -74,7 +74,7 @@ _send(GV v[], GV *rcv, const U8 *method, U32 argc, ...)
 #if GURU_DEBUG
     GV *r = v;						// _wipe_stack
     for (U32 i=1; i<=argc+1; i++) {
-    	*r++ = EMPTY();				// clean up the stack
+    	*r++ = EMPTY;				// clean up the stack
     }
 #endif
     return regs[0];
@@ -513,9 +513,9 @@ _init_all_class(void)
     guru_init_class_int();			// c_fixnum.cu
     guru_init_class_float();		// c_fixnum.cu
 
+    guru_init_class_range();		// c_range.cu
     guru_init_class_string();		// c_string.cu
     guru_init_class_array();		// c_array.cu
-    guru_init_class_range();		// c_range.cu
     guru_init_class_hash();			// c_hash.cu
 
 #if GURU_USE_MATH

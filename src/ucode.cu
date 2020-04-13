@@ -403,7 +403,7 @@ uc_jmpif (guru_vm *vm)
 	if (ra->gt > GT_FALSE) {
 		vm->state->pc += sbx;
 	}
-	*ra = EMPTY();
+	*ra = EMPTY;
 }
 
 //================================================================
@@ -420,7 +420,7 @@ uc_jmpnot(guru_vm *vm)
 	if (ra->gt <= GT_FALSE) {
 		vm->state->pc += sbx;
 	}
-	*ra = EMPTY();
+	*ra = EMPTY;
 }
 
 //================================================================
@@ -464,7 +464,7 @@ uc_rescue(guru_vm *vm)
 	else {							// 1st: set cycle
 		if (v->gt==GT_CLASS) x++;
 		_RA_X(x);					// keep exception in RA
-		*(x) = EMPTY();
+		*(x) = EMPTY;
 	}
 }
 
@@ -693,7 +693,7 @@ do {									\
 	else {	/* other cases */			\
 		uc_send(vm);					\
 	}									\
-	*r1 = EMPTY();						\
+	*r1 = EMPTY;						\
 } while(0)
 
 //================================================================
@@ -761,7 +761,7 @@ uc_eq(guru_vm *vm)
 	GV *r0 = _R(a), *r1 = r0+1;
     GT tt = GT_BOOL(guru_cmp(r0, r1)==0);
 
-    *r1 = EMPTY();
+    *r1 = EMPTY;
     _RA_T(tt, i=0);
 }
 
@@ -789,7 +789,7 @@ do {													\
 	else {												\
 		uc_send(vm);									\
 	}													\
-    *r1 = EMPTY();  									\
+    *r1 = EMPTY;	  									\
 } while (0)
 
 //================================================================
@@ -874,7 +874,7 @@ uc_strcat(guru_vm *vm)
     guru_str_add_cstr(ref_inc(sa), (U8*)sb->str->raw);	// ref counts increased as _dup updated
 
     ref_dec(sb);
-    *sb = EMPTY();
+    *sb = EMPTY;
 
     _RA(*sa);									// this will clean out sa
 }
@@ -884,7 +884,7 @@ _stack_copy(GV *d, GV *s, U32 n)
 {
 	for (U32 i=0; i < n; i++, d++, s++) {
 		*d = *ref_inc(s);			// now referenced by array/hash
-		*s = EMPTY();				// DEBUG: clean element from call stack
+		*s = EMPTY;					// DEBUG: clean element from call stack
 	}
 }
 //================================================================
@@ -944,7 +944,7 @@ uc_range(guru_vm *vm)
 	U32 x   = _AR(c);						// exclude_end
 	GV  *p0 = _R(b), *p1 = p0+1;
     GV  v   = guru_range_new(p0, p1, !x);	// p0, p1 ref cnt will be increased
-    *p1 = EMPTY();
+    *p1 = EMPTY;
 
     _RA(v);									// release and  reassign
 #else
@@ -995,7 +995,7 @@ uc_class(guru_vm *vm)
 	cls->kt |= USER_DEF_CLASS;					// user defined (i.e. non-builtin) class
 
     _RA_T(GT_CLASS, cls=cls);
-    *r1 = EMPTY();
+    *r1 = EMPTY;
 }
 
 //================================================================
@@ -1050,7 +1050,7 @@ uc_method(guru_vm *vm)
     _UNLOCK;
 
     v->acl &= ~ACL_SELF;						// clear CLASS modification flags if any
-    *(v+1) = EMPTY();							// clean up proc
+    *(v+1) = EMPTY;								// clean up proc
 }
 
 //================================================================

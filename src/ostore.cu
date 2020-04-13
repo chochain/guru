@@ -202,5 +202,5 @@ ostore_get(GV *v, GS vid)
 	guru_var *r = v->self->ivar;		// class or instance var
 	GV 		 *val = r ? _get(r, vid) : NULL;
 
-    return val ? *ref_inc(val) : NIL();
+    return val ? *ref_inc(val) : NIL;
 }

@@ -70,7 +70,7 @@ _resize(guru_array *h, U32 ndx)
         : guru_gv_alloc(n);
     h->sz = n;
     for (U32 i=h->n; i<n; i++) {			// DEBUG: lazy fill here, instead of when resized
-    	h->data[i] = EMPTY();
+    	h->data[i] = EMPTY;
     }
 }
 
@@ -95,7 +95,7 @@ _set(GV *ary, S32 idx, GV *val)
     }
     else {
     	while (h->n < ndx+1) {
-    		h->data[h->n++] = NIL();			// filling the blanks
+    		h->data[h->n++] = NIL;				// filling the blanks
     	}
     }
     h->data[ndx] = *ref_inc(val);				// keep the reference to the value
@@ -122,7 +122,7 @@ _pop(GV *ary)
 {
     guru_array *h = ary->array;
 
-    if (h->n <= 0) return NIL();
+    if (h->n <= 0) return NIL;
 
     return *ref_dec(&h->data[--h->n]);
 }
@@ -152,7 +152,7 @@ _insert(GV *ary, S32 idx, GV *set_val)
 
     if (ndx >= h->n) {										// clear empty cells
         for (U32 i = h->n-1; i < ndx; i++) {
-            h->data[i] = NIL();
+            h->data[i] = NIL;
         }
         h->n = ndx;
     }
@@ -183,7 +183,7 @@ _shift(GV *ary)
 {
     guru_array *h = ary->array;
 
-    if (h->n <= 0) return NIL();
+    if (h->n <= 0) return NIL;
 
     GV *v = ref_dec(&h->data[0]);
     MEMCPY(h->data, h->data + 1, sizeof(GV)*(--h->n));		// lshift
@@ -204,7 +204,7 @@ _get(GV *v, U32 vi, S32 n1, S32 n2)
 	guru_array *h = v->array;
 
 	n1 += (n1 < 0) ? h->n : 0;
-	if (vi<2) return (n1 < h->n) ? h->data[n1] : NIL();		// single element
+	if (vi<2) return (n1 < h->n) ? h->data[n1] : NIL;		// single element
 
 	n2 += (n2 < 0) ? h->n : 0;								// sliced array
 
@@ -231,7 +231,7 @@ _remove(GV *ary, S32 idx)
     guru_array *h = ary->array;
     U32 ndx = (idx < 0) ? h->n + idx : idx;
 
-    if (ndx >= h->n) return NIL();
+    if (ndx >= h->n) return NIL;
     h->n--;
 
     GV  *r  = ref_dec(&h->data[ndx]);			// release the object
@@ -393,7 +393,7 @@ ary_new(GV v[], U32 vi)
     else if (vi==1 && v[1].gt==GT_INT && v[1].i >= 0) {		// new(num)
         ret = guru_array_new(v[1].i);
 
-        GV nil = NIL();
+        GV nil = NIL;
         if (v[1].i > 0) {
             _set(&ret, v[1].i - 1, &nil);
         }
@@ -405,7 +405,7 @@ ary_new(GV v[], U32 vi)
         }
     }
     else {
-    	ret = NIL();
+    	ret = NIL;
     	NA("ArgumentError");
     }
     RETURN_VAL(ret);
@@ -712,7 +712,7 @@ ary_max(GV v[], U32 vi)
 __CFUNC__
 ary_minmax(GV v[], U32 vi)
 {
-    GV nil = NIL();
+    GV nil = NIL;
     GV ret = guru_array_new(2);
     GV *min, *max;
 

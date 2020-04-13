@@ -135,5 +135,5 @@ guru_iter_del(GV *v)
     ref_dec(it->range);
     guru_free(it);
 
-    *v = EMPTY();
+    *v = EMPTY;
 }

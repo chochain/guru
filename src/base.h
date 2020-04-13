@@ -20,9 +20,6 @@ typedef void (*guru_init_func)(...);
 typedef void (*guru_destroy_func)(GV *v);
 typedef S32  (*guru_cmp_func)(const GV *v0, const GV *v1);
 
-__GURU__ GV 	NIL();
-__GURU__ GV 	EMPTY();
-
 __GURU__ void 	guru_register_func(GT t, guru_init_func fi, guru_destroy_func fd, guru_cmp_func fc);
 __GURU__ GV		guru_new(...);
 __GURU__ void	guru_destroy(GV *v);
@@ -37,6 +34,9 @@ __GURU__ GV 	*ref_inc(GV *v);
 // macro for C call returns
 // Note: becareful, the following macros assume a "v" pointer to top of stack
 //
+extern __GURU__ GV 	NIL;
+extern __GURU__ GV 	EMPTY;
+
 #define RETURN_VAL(n)	{ ref_dec(v); *v=(n); 		 			return; }
 #define RETURN_NIL()	{ ref_dec(v); v->acl=0; v->gt=GT_NIL;   return; }
 #define RETURN_FALSE()	{ ref_dec(v); v->acl=0; v->gt=GT_FALSE; return; }

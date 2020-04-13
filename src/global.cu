@@ -34,7 +34,7 @@ __GURU__ U32 	_mutex_gobj = 0;
 __GURU__ U32    _global_sz  = 0;
 __GURU__ _gidx 	_global_idx[MAX_GLOBAL_COUNT];
 __GURU__ GV 	_global[MAX_GLOBAL_COUNT];
-__GURU__ GV		_nil { .gt = GT_NIL, .acl=0 };
+__GURU__ GV		_NIL { .gt = GT_NIL, .acl=0 };
 
 /* search */
 /* linear search is not efficient! */
@@ -77,7 +77,7 @@ __GURU__ GV *
 _get(GS xid, _gtype gt)
 {
 	S32 i = _find_idx(xid, gt);
-    if (i < 0) return &_nil;		// not found
+    if (i < 0) return &_NIL;		// not found
 
     return &_global[i];				// pointer to global object
 }

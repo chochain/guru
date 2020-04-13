@@ -438,12 +438,12 @@ str_slice(GV v[], U32 vi)
 
     if (vi==1 && v1->gt==GT_INT) {							// slice(n) -> String | nil
         S32 i = v1->i;	i += (i < 0) ? n : 0;	i = (i< n) ? i : n;
-        RETURN_VAL(i<n ? _slice(v, i, 1) : NIL());
+        RETURN_VAL(i<n ? _slice(v, i, 1) : NIL);
     }
     else if (vi==2 && v1->gt==GT_INT && v2->gt==GT_INT) { 	// slice(n, len) -> String | nil
     	S32 i = v1->i; 	i += (i < 0) ? n : 0;
     	S32 sz = v2->i;	sz = (sz+i) < n ? sz : (n-i);
-    	RETURN_VAL(sz > 1 ? _slice(v, i, sz) : NIL());
+    	RETURN_VAL(sz > 1 ? _slice(v, i, sz) : NIL);
     }
     else if (vi==1 && v1->gt==GT_RANGE) {
     	guru_range *r = v1->range;
@@ -451,7 +451,7 @@ str_slice(GV v[], U32 vi)
     	S32 i  = r->first.i;
     	S32 sz = r->last.i-i + (IS_INCLUDE(r) ? 1 : 0);
     	sz = (sz+i) < n ? sz : (n-i);
-    	RETURN_VAL(sz > 1 ? _slice(v, i, sz) : NIL());
+    	RETURN_VAL(sz > 1 ? _slice(v, i, sz) : NIL);
     }
     else {
     	PRINTF("Not support such case in String#[].\n");
@@ -613,7 +613,7 @@ __CFUNC__
 str_lstrip_self(GV v[], U32 vi)
 {
     if (_strip(v, 0x01)==0) {	// 1: left side only
-        RETURN_VAL(NIL());
+        RETURN_VAL(NIL);
     }
 }
 
@@ -637,7 +637,7 @@ __CFUNC__
 str_rstrip_self(GV v[], U32 vi)
 {
     if (_strip(v, 0x02)==0) {				// 2: right side only
-        RETURN_VAL(NIL());			// keep refc
+        RETURN_VAL(NIL);			// keep refc
     }
 }
 
@@ -659,7 +659,7 @@ __CFUNC__
 str_strip_self(GV v[], U32 vi)
 {
     if (_strip(v, 0x03)==0) {		// 3: left and right
-        RETURN_VAL(NIL());	// keep refc
+        RETURN_VAL(NIL);	// keep refc
     }
 }
 

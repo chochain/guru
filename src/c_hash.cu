@@ -122,7 +122,7 @@ _get(GV *kv, GV *key)
 {
     GV *v = _search(kv, key);
 
-    return v ? *(v+1) : NIL();
+    return v ? *(v+1) : NIL;
 }
 
 //================================================================
@@ -136,7 +136,7 @@ __GURU__ GV
 _remove(GV *kv, GV *key)
 {
     GV *v = _search(kv, key);
-    if (v==NULL) return NIL();
+    if (v==NULL) return NIL;
 
     ref_dec(v);						// CC: was dec_refc 20181101
     GV ret = *(v+1);				// value
@@ -280,8 +280,8 @@ hsh_set(GV v[], U32 vi)
 	ASSERT(vi==2);
     _set(v, v+1, v+2);		// k + v
 
-    *(v+1) = EMPTY();
-    *(v+2) = EMPTY();
+    *(v+1) = EMPTY;
+    *(v+2) = EMPTY;
 }
 
 
