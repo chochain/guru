@@ -25,85 +25,10 @@
 #include "c_range.h"
 
 #include "base.h"
-#include "state.h"
-#include "class.h"
 #include "object.h"
 
 #include "puts.h"
 #include "inspect.h"
-
-//================================================================
-/*! (BETA) Call any method of the object, but written by C.
-
-  @param  vm		pointer to vm.
-  @param  v		see bellow example.
-  @param  reg_ofs	see bellow example.
-  @param  recv		pointer to receiver.
-  @param  name		method name.
-  @param  argc		num of params.
-
-  @example
-  void int_to_s(GV v[], U32 vi)
-  {
-  	  GV *rcv = &v[1];
-  	  GV ret  = _send(v, rcv, "to_s", argc);
-  	  RETURN_VAL(ret);
-  }
-*/
-__GURU__ GV
-_send(GV v[], GV *rcv, const U8 *method, U32 argc, ...)
-{
-    GV *regs = v + 2;	     		// allocate 2 for stack
-    GS sid   = name2id(method);		// symbol lookup
-
-    guru_proc  *m = proc_by_sid(v, sid);	// find method for receiver object
-    ASSERT(m);
-
-    // create call stack.
-    regs[0] = *ref_inc(rcv);		// create call stack, start with receiver object
-
-    va_list ap;						// setup calling registers
-    va_start(ap, argc);
-    for (U32 i = 1; i <= argc+1; i++) {
-        regs[i] = (i>argc) ? NIL : *va_arg(ap, GV *);
-    }
-    va_end(ap);
-
-    m->func(regs, argc);			// call method, put return value in regs[0]
-
-#if GURU_DEBUG
-    GV *r = v;						// _wipe_stack
-    for (U32 i=1; i<=argc+1; i++) {
-    	*r++ = EMPTY;				// clean up the stack
-    }
-#endif
-    return regs[0];
-}
-
-__GURU__ void
-guru_class_add_meta(GV *v)			// lazy add metaclass to a class
-{
-	ASSERT(v->gt==GT_CLASS);
-
-	if (v->cls->cls!=NULL) return;
-
-	// lazily create the metaclass
-	const U8	*name = (U8*)"_meta";
-	guru_class 	*cls  = guru_define_class(name, guru_rom_get_class(GT_OBJ));
-	v->cls->cls = cls;				// self pointing =~ metaclass
-}
-
-__GURU__ GV
-guru_inspect(GV v[], GV *obj)
-{
-	return _send(v, obj, (U8*)"inspect", 0);
-}
-
-__GURU__ GV
-guru_kind_of(GV v[])		// whether v1 is a kind of v0
-{
-	return _send(v, v+1, (U8*)"kind_of?", 1, v);
-}
 
 __GURU__ void
 guru_obj_del(GV *v)
@@ -186,7 +111,7 @@ obj_eq3(GV v[], U32 vi)
     	RETURN_BOOL(guru_cmp(v, v+1)==0);
     }
     else {
-    	GV ret = guru_kind_of(v);
+    	GV ret = kind_of(v);
     	RETURN_VAL(ret);
     }
 }

@@ -23,8 +23,6 @@
 #include "c_range.h"
 
 #include "base.h"
-#include "object.h"
-#include "class.h"
 #include "state.h"
 #include "ucode.h"
 

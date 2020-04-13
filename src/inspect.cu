@@ -17,7 +17,6 @@
 #include "class.h"
 #include "inspect.h"
 
-//#include "c_fixnum.h"
 #include "c_string.h"
 #include "c_array.h"
 #include "c_hash.h"

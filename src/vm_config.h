@@ -45,8 +45,9 @@
 
 #define CC_DEBUG					0
 
-/* Hardware dependent flags */
+/* CUDA dependent flags */
 #define CUDA_MIN_MEMBLOCK_SIZE		0x200
+#define CUDA_PROFILE_CDP            0
 
 #endif
 

@@ -42,6 +42,11 @@ __GURU__ guru_class *guru_rom_set_class(GT cidx, const char *name, GT super_cidx
 
 __GURU__ guru_class *guru_define_class(const U8 *name, guru_class *super);
 __GURU__ guru_proc  *guru_define_method(guru_class *cls, const U8 *name, guru_fptr cfunc);
+__GURU__ guru_class *guru_class_add_meta(GV *v);			// lazy add metaclass to a class
+
+// common class functions
+__GURU__ GV 		inspect(GV *v, GV *obj);				// inspect obj using v[] as stack
+__GURU__ GV 		kind_of(GV *v);							// whether v1 is a kind of v0
 __GURU__ guru_class *class_by_obj(GV *v);
 __GURU__ guru_proc  *proc_by_sid(GV *v, GS sid);
 

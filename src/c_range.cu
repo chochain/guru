@@ -16,7 +16,6 @@
 
 #include "base.h"
 #include "class.h"
-#include "object.h"		// guru_kind_of
 #include "c_range.h"
 
 #include "inspect.h"
@@ -85,7 +84,7 @@ __CFUNC__
 rng_eq3(GV v[], U32 vi)
 {
     if (v->gt == GT_CLASS) {
-        GV ret = guru_kind_of(v);
+        GV ret = kind_of(v);
         RETURN_VAL(ret);
     }
 
