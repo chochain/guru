@@ -1,0 +1,6 @@
+/Debug/
+/Release/
+/src/*.o
+/test/guru/*.mrb
+/test/guru/*.txt
+

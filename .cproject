@@ -43,9 +43,6 @@
 							</tool>
 						</toolChain>
 					</folderInfo>
-					<fileInfo id="com.nvidia.cuda.ide.ten_two.configuration.debug.169081272.938122197" name="guru.cu" rcbsApplicability="disable" resourcePath="src/guru.cu" toolsToInvoke="nvcc.compiler.base.409798570.1522610148">
-						<tool id="nvcc.compiler.base.409798570.1522610148" name="NVCC Compiler" superClass="nvcc.compiler.base.409798570"/>
-					</fileInfo>
 					<sourceEntries>
 						<entry excluding="src/guru_test.cu|test|src/c_str_ascii.cu|src/cuda.cu|src/symbol_orig.cu|src/puts.cu|src/load_gpu.cu|src/alloc.cu|orig|ext" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
 					</sourceEntries>
