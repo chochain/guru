@@ -56,6 +56,7 @@ __idx(GS xid, _gtype gt)
 	for (int i=0; i<_global_sz; i++, p++) {
 		if (p->xid==xid && p->gt==gt) return i;
 	}
+	return -1;
 }
 #endif // CUDA_PROFILE_CDP
 
