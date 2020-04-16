@@ -10,7 +10,7 @@ USAGE
 end
 
 RUBY_PATH = "#{ENV['HOME']}/.rbenv/shims/"
-GURU_PATH = "#{ENV['HOME']}/lib/guru/Debug/"
+GURU_PATH = "#{ENV['HOME']}/devel/guru/Debug/"
 
 $ruby = File.join(RUBY_PATH, 'ruby')
 $mrbc = File.join(RUBY_PATH, 'mrbc')

@@ -10,5 +10,6 @@
   + set to "exclude" directory property to ~/lib/guru/ext, ~/lib/guru/orig, ~/lib/guru/test
   + set to "exclude" src/alloc.cu, c_str_ascii.cu, cuda.cu, load_gpu.cu, puts.cu, symbol_orig.cu
   + Project->Properties->Build->Setting: CUDA tab-> select "Separate compilation"
+  + Project->Properties->Build->Setting: Tool Setting tab-> tick Enable C++11 support
   + Project->Properties->Build: Behaviour tab-> tick Enable parallel build
 

@@ -27,6 +27,7 @@
 								<option id="nvcc.compiler.option.level.1378479403" name="Generate host debug information (-g)" superClass="nvcc.compiler.option.level" value="true" valueType="boolean"/>
 								<option defaultValue="nvcc.compiler.optimization.level.none" id="nvcc.compiler.optimization.level.526411503" name="Optimization Level" superClass="nvcc.compiler.optimization.level" valueType="enumerated"/>
 								<option id="nvcc.compiler.pic.1554137831" name="Position Independent Code (-fPIC)" superClass="nvcc.compiler.pic"/>
+								<option id="nvcc.compiler.cpp11option.1976279052" name="Enable C++11 support (-std=c++11)" superClass="nvcc.compiler.cpp11option" value="true" valueType="boolean"/>
 								<inputType id="nvcc.compiler.input.cu.635388794" superClass="nvcc.compiler.input.cu"/>
 								<inputType id="nvcc.compiler.input.cpp.947493864" superClass="nvcc.compiler.input.cpp"/>
 								<inputType id="nvcc.compiler.input.c.1581702970" superClass="nvcc.compiler.input.c"/>
@@ -43,9 +44,6 @@
 							</tool>
 						</toolChain>
 					</folderInfo>
-					<fileInfo id="com.nvidia.cuda.ide.ten_two.configuration.debug.1061253450.580316238" name="symbol_orig.cu" rcbsApplicability="disable" resourcePath="src/symbol_orig.cu" toolsToInvoke="nvcc.compiler.base.540447248.1683367623">
-						<tool id="nvcc.compiler.base.540447248.1683367623" name="NVCC Compiler" superClass="nvcc.compiler.base.540447248"/>
-					</fileInfo>
 					<sourceEntries>
 						<entry excluding="src/symbol_orig.cu|src/puts.cu|src/cuda.cu|src/load_gpu.cu|src/guru_test.cu|src/c_str_ascii.cu|src/alloc.cu|test|orig|ext" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
 					</sourceEntries>
@@ -137,4 +135,5 @@
 			<resource resourceType="PROJECT" workspacePath="/guru"/>
 		</configuration>
 	</storageModule>
+	<storageModule moduleId="org.eclipse.cdt.internal.ui.text.commentOwnerProjectMappings"/>
 </cproject>
