@@ -23,8 +23,8 @@ __GURU__ guru_cmp_func 		_c_vtbl[GT_MAX];
 //================================================================
 // common values, forwarded in guru.h
 //
-__GURU__ GV NIL   { .gt=GT_NIL,   .acl=0 };
-__GURU__ GV EMPTY { .gt=GT_EMPTY, .acl=0 };
+__GURU__ GV NIL   = { .gt=GT_NIL,   .acl=0 };
+__GURU__ GV EMPTY = { .gt=GT_EMPTY, .acl=0 };
 
 //================================================================
 // constructor/destroctor function pointers
