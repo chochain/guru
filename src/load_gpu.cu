@@ -10,19 +10,20 @@
 
   </pre>
 */
-#include "vm_config.h"
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
 
+#include "guru_config.h"
 #include "guru.h"
-#include "value.h"
 #include "mmu.h"
-#include "errorcode.h"
+#include "util.h"
+
+#include "base.h"
 #include "vm.h"
 #include "load.h"
+#include "errorcode.h"
 
 #if !GURU_HOST_IMAGE
 //================================================================
@@ -165,7 +166,7 @@ _load_header(U8 **pos)
   </pre>
 */
 __GURU__ U32
-_load_irep_1(mrbc_irep *irep, U8 **pos)
+_load_irep_1(guru_irep *irep, U8 **pos)
 {
     U8 *p = U8PADD(*pos, 4);								// skip "IREP"
 
@@ -203,7 +204,7 @@ _load_irep_1(mrbc_irep *irep, U8 **pos)
             buf[obj_size] = '\0';
 
             obj->gt = GT_INT;
-            obj->i = (int)ATOI(buf);
+            obj->i = (int)ATOI(buf, 10);
         } break;
 #if GURU_USE_FLOAT
         case 2: { 	// IREP_GT_FLOAT
@@ -245,7 +246,7 @@ __GURU__ mrbc_irep*
 _load_irep_0(U8 **pos)
 {
     // new irep
-    mrbc_irep *irep = (mrbc_irep *)guru_alloc(sizeof(mrbc_irep));
+    guru_irep *irep = (guru_irep *)guru_alloc(sizeof(guru_irep));
     int ret = _load_irep_1(irep, pos);		// populate content of current IREP
     if (ret != NO_ERROR) {
     	guru_free(irep);
@@ -274,7 +275,7 @@ _load_irep_0(U8 **pos)
   </pre>
 */
 __GURU__ int
-_load_irep(mrbc_vm *vm, U8 **pos)
+_load_irep(guru_vm *vm, U8 **pos)
 {
     U8 *p = U8PADD(*pos, 4);							// 4 = skip "IREP"
     int   sec_size = _bin_to_u32(p); p += sizeof(U32);
@@ -302,7 +303,7 @@ _load_irep(mrbc_vm *vm, U8 **pos)
   @return int	zero if no error.
 */
 __GURU__ int
-_load_lvar(mrbc_vm *vm, U8 **pos)
+_load_lvar(guru_vm *vm, U8 **pos)
 {
     U8 *p = *pos;
 
@@ -318,13 +319,10 @@ _load_lvar(mrbc_vm *vm, U8 **pos)
 
   @param  vm    Pointer to VM.
   @param  ptr	Pointer to bytecode.
-
 */
-__GPU__ void
-mrbc_parse_bytecode(mrbc_vm *vm, U8 *ptr)
+__GURU__ void
+guru_parse_bytecode(guru_vm *vm, U8 *ptr)
 {
-	if (threadIdx.x!=0 || blockIdx.x!=0) return;
-
     int ret = _load_header(&ptr);
 
     while (ret==NO_ERROR) {
@@ -340,51 +338,4 @@ mrbc_parse_bytecode(mrbc_vm *vm, U8 *ptr)
     }
     __syncthreads();
 }
-
-__HOST__ void
-_show_decoder(mrbc_vm *vm)
-{
-	U16  pc   = vm->state->pc;
-	U32P iseq = vm->state->irep->iseq;
-	U16  opid = (*(iseq + pc) >> 24) & 0x7f;
-	GV   *v   = vm->regfile;
-	const U8 *opc  = _opcode[GET_OPCODE(opid)];
-
-	int last=0;
-	for (U32 i=0; i<MAX_REGS_SIZE; i++, v++) {
-		if (v->gt==GT_EMPTY) continue;
-		last=i;
-	}
-
-	int lvl=0;
-	guru_state *st = vm->state;
-	while (st->prev != NULL) {
-		st = st->prev;
-		lvl++;
-	}
-
-	v = vm->regfile;	// rewind
-	int s[8];
-	guru_malloc_stat(s);
-	printf("%c%-4d%-8s%4d[", 'A'+lvl, pc, opc, s[3]);
-
-	for (U32 i=0; i<=last; i++, v++) {
-		printf("%2d.%s", i, _vtype[v->gt]);
-	    if (HAS_REF(v)) printf("_%d", v->self->rc);
-	    printf(" ");
-    }
-	printf("]\n");
-}
-
-__HOST__ void
-mrbc_show_irep(mrbc_irep *irep)
-{
-	printf("\tnregs=%d, nlocals=%d, pools=%d, syms=%d, reps=%d, ilen=%d\n",
-			irep->nreg, irep->nlv, irep->plen, irep->slen, irep->rlen, irep->ilen);
-
-	// dump all children ireps
-	for (U32 i=0; i<irep->rlen; i++) {
-		mrbc_show_irep(irep->list[i]);
-	}
-}
-#endif	// !GURU_HOST_IMAGE
+#endif // !GURU_HOST_IMAGE

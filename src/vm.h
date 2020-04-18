@@ -19,8 +19,6 @@
 extern "C" {
 #endif
 
-#if GURU_HOST_IMAGE
-
 // VM state machine (3-bit status)
 //
 //       +----> FREE (init state)
@@ -92,22 +90,11 @@ typedef struct VM {				// 80-byte
 
 #define VM_IREP(vm)    	((vm)->state->irep)
 #define VM_ISEQ(vm)	 	((U32*)U8PADD(VM_IREP(vm), sizeof(guru_irep)))
+
+#if GURU_HOST_IMAGE
 #define VM_BYTECODE(vm) (_bin_to_u32(VM_ISEQ(vm) + (vm)->state->pc))
-
 #else   // !GURU_HOST_IMAGE
-typedef struct XVM {
-    mrbc_irep       *irep;		// pointer to IREP tree
-    mrbc_state      *state;		// VM state (callinfo) linked list
-    GV      regfile[MAX_REGS_SIZE];
-
-	U32				id;
-    volatile U8 	run;
-    volatile U8		err;
-} mrbc_vm;
-
-#define VM_IREP(vm)    	((vm)->state->irep)
-#define VM_ISEQ(vm)	 	 (VM_IREP(vm)->iseq)
-#define VM_BYTECODE(vm) (bin_to_u32(U8PADD(VM_ISEQ(vm), sizeof(U32) * (vm)->state->pc)))
+#define VM_BYTECODE(vm) (bin_to_u32(U8PADD(VM_ISEQ(vm), sizeof(U32)*(vm)->state->pc)))
 #endif 	// GURU_HOST_IMAGE
 
 #define VM_REPS(vm,n)	((guru_irep*)VM_IREP(vm)->reps[(n)])

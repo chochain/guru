@@ -15,17 +15,16 @@
 
 #include <stdint.h>
 #include "guru.h"
-#include "vm.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 #if GURU_HOST_IMAGE
-__HOST__ U8 *guru_parse_bytecode(U8 *src);	// parsed by HOST, image passed into GPU
+__HOST__ U8 *parse_bytecode(U8 *src);	// parsed on HOST, image passed into GPU
 #else
-__GPU__  void  mrbc_parse_bytecode(mrbc_vm *vm, U8 *src);	// parsed inside GPU
-#endif
+__GURU__ U8 *parse_bytecode(U8 *src);	// parsed on HOST, image passed into GPU
+#endif // GURU_HOST_IMAGE
 
 #ifdef __cplusplus
 }

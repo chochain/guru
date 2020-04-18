@@ -2,7 +2,7 @@
   @brief
   GURU puts functions for Object, Proc, Nil, False and True class and class specific functions.
 
-  vm_config.h#GURU_USE_CONSOLE can switch between CUDA or internal implementation
+  guru_config.h#GURU_USE_CONSOLE can switch between CUDA or internal implementation
   <pre>
   Copyright (C) 2019- GreenII
 

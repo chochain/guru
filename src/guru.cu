@@ -10,7 +10,6 @@
 #include "guru.h"
 #include "gurux.h"
 #include "mmu.h"				// guru_malloc
-#include "load.h"				// guru_parse_bytecode
 #include "vmx.h"
 #include "debug.h"
 
@@ -123,16 +122,8 @@ guru_run()
 	// parse BITE code into each vm
 	// TODO: work producer (enqueue)
 	for (guru_ses *ses=_ses_list; ses!=NULL; ses=ses->next) {
-		U8 *cu_img = guru_parse_bytecode(ses->stdin);		// build CUDA IREP image (in Managed Mem)
-		if (!cu_img) {
-			fprintf(stderr, "ERROR: bytecode parsing error!\n");
-		}
-		else if ((ses->id=vm_get(cu_img))<0) {				// TODO: work consumer
-			fprintf(stderr, "ERROR: No more VM available!\n");
-		}
-		else if (vm_ready(ses->id)) {
-			fprintf(stderr, "ERROR: VM state failed to transit!\n");
-		}
+		vm_get<<<1,1>>>(ses->stdin);
+		cudaDeviceSynchronize();
 	}
 	// kick up main loop until all VM are done
 	vm_main_start();

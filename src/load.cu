@@ -11,7 +11,7 @@
   </pre>
 */
 #include <assert.h>
-#include "vm_config.h"
+#include "guru_config.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -287,7 +287,7 @@ _load_lvar(U8 **pos)
 
 */
 __HOST__ U8 *
-guru_parse_bytecode(U8 *src)
+parse_bytecode(U8 *src)
 {
 	U8  **sp = (U8 **)&src;			// a pointer to pointer, so that we can pass and adjust the pointer
 	int ret  = _check_header(sp);
@@ -312,4 +312,4 @@ guru_parse_bytecode(U8 *src)
     }
     return (ret==NO_ERROR) ? irep : NULL;
 }
-#endif 	// GURU_HOST_IMAGE
+#endif // GURU_HOST_IMAGE

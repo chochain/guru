@@ -27,7 +27,7 @@ LIB = 	libguru.a
 SRCS = $(SRC:.c=.o)
 OBJS = $(GURU:.cu=.o) $(CUDA:.cu=.o)
 
-_CORE = vm_config.h gurux.h guru.h util.h mmu.h base.h 
+_CORE = guru_config.h gurux.h guru.h util.h mmu.h base.h 
 _EXT  = $(EXT:.cu=.h) inspect.h
 
 
@@ -74,7 +74,7 @@ c_hash.o: c_hash.cu 	$(_EXT) c_array.h c_hash.h
 
 guru_test.o: guru_test.cu $(_CORE) helper_cuda.h helper_string.h
 
-guru.o: guru.cu         $(_CORE) vmx.h load.h
+guru.o: guru.cu         $(_CORE) vmx.h
 
 class.o: class.cu	    $(_CORE) class.h
 
@@ -86,7 +86,7 @@ object.o: object.cu	    $(_EXT) puts.h
 
 ucode.o: ucode.cu       $(_EXT) ucode.h
 
-vm.o: vm.cu             $(_EXT) state.h class.h vmx.h debug.h
+vm.o: vm.cu             $(_EXT) state.h class.h vmx.h load.h debug.h
 
 inspect.o: inspect.cu   $(_EXT)
 

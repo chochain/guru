@@ -22,12 +22,17 @@ extern "C" {
 #endif
 
 int  vm_pool_init(U32 step);
-int  vm_get(U8 *cu_img);
 int  vm_main_start();
 
 int	 vm_hold(U32 vid);
 int	 vm_stop(U32 vid);
 int	 vm_ready(U32 vid);
+
+#if GURU_HOST_IMAGE
+__HOST__ int vm_get(U8 *ibuf);
+#else
+__GPU__ void vm_get(U8 *ibuf);
+#endif // GURU_HOST_IMAGE
 
 #ifdef __cplusplus
 }

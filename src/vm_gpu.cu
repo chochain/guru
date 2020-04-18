@@ -20,8 +20,6 @@
   	    flush output per step (optional)
   </pre>
 */
-#include <pthread.h>
-
 #include "guru.h"
 #include "util.h"
 #include "mmu.h"
@@ -36,9 +34,9 @@
 
 #include "ucode.h"
 
-#if GURU_HOST_IMAGE
-guru_vm *_vm_pool;
-U32 _vm_cnt = 0;
+#if !GURU_HOST_IMAGE
+__GURU__ guru_vm *_vm_pool;
+__GURU__ U32 _vm_cnt = 0;
 
 pthread_mutex_t 	_mutex_pool;
 #define _LOCK		(pthread_mutex_lock(&_mutex_pool))
@@ -190,6 +188,7 @@ vm_main_start()
 	return 0;
 }
 
+#if GURU_HOST_IMAGE
 __HOST__ int
 vm_get(U8 *ibuf)
 {
@@ -207,6 +206,21 @@ vm_get(U8 *ibuf)
 
 	return _vm_cnt-1;
 }
+#else
+__GPU__ void
+vm_get(U8 *ibuf)
+{
+	if (blockIdx.x!=0 || threadIdx.x!=0) return;
+
+	if (!_vm_pool) 				return;
+	if (_vm_cnt>=MIN_VM_COUNT) 	return;
+
+	guru_vm *vm = &_vm_pool[_vm_cnt++];
+
+	vm->state->irep = (guru_irep *)parse_bytecode(ibuf);
+}
+
+#endif // GURU_HOST_IMAGE
 
 __HOST__ int
 _set_status(U32 vid, U32 new_status, U32 status_flag)
@@ -225,4 +239,4 @@ __HOST__ int vm_ready(U32 vid) { return _set_status(vid, VM_STATUS_RUN,  VM_STAT
 __HOST__ int vm_hold(U32 vid)  { return _set_status(vid, VM_STATUS_HOLD, VM_STATUS_RUN);   }
 __HOST__ int vm_stop(U32 vid)  { return _set_status(vid, VM_STATUS_STOP, VM_STATUS_RUN);   }
 
-#endif // GURU_HOST_IMAGE
+#endif // !GURU_HOST_IMAGE

@@ -9,7 +9,7 @@
 
   </pre>
 */
-#include "vm_config.h"
+#include "guru_config.h"
 #include "guru.h"
 #include "mmu.h"
 #include "base.h"

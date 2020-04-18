@@ -5,7 +5,7 @@
 #ifndef GURU_SRC_GURU_H_
 #define GURU_SRC_GURU_H_
 #include <stdint.h>
-#include "vm_config.h"
+#include "guru_config.h"
 
 #if GURU_USE_CONSOLE		// use guru local implemented print functions (in puts, sprintf.cu)
 #define PRINTF				guru_printf

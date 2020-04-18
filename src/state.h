@@ -20,7 +20,6 @@
 extern "C" {
 #endif
 
-#if GURU_HOST_IMAGE
 //================================================================
 /*!@brief
   IREP Internal REPresentation
@@ -57,36 +56,6 @@ typedef struct RState {			// 20-byte
     guru_irep       *irep;		// pointer to current irep block
     struct RState   *prev;		// previous state (call stack)
 } guru_state;					// VM context
-
-#else	// !GURU_HOST_IMAGE
-//
-// old MRBC implementation (on HOST with pointers)
-//
-typedef struct XIrep {
-    U16 	 nlv;   		//!< # of local variables
-    U16 	 nreg;			//!< # of register used
-    U16 	 rlen;			//!< # of child IREP blocks (into list below)
-    U16 	 ilen;			//!< # of bytecodes (by iseq below)
-    U16 	 plen;			//!< # of objects in pool (into pool below)
-    U16	 	 slen;			//!< # of symbols (into sym below)
-
-    U32P     iseq;			//!< ISEQ (code) BLOCK
-    U8		 *sym;			//!< SYMBOL list
-
-    mrbc_object   **pool; 	//!< array of POOL objects pointer.
-    struct XIrep **list;	//!< array of child IREP's pointer.
-} mrbc_irep;
-
-typedef struct XState {
-    U16        		pc;
-    U16        		argc;     	// num of args
-    guru_class      *klass;
-    GV      *reg;
-    mrbc_irep       *irep;
-    struct XState  *prev;
-} mrbc_state;
-
-#endif	// GURU_HOST_IMAGE
 
 #define STATE_LOOP				0x1
 #define STATE_LAMBDA			0x2
