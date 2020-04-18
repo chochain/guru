@@ -11,8 +11,6 @@
   </pre>
 */
 #include <assert.h>
-#include "guru_config.h"
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>

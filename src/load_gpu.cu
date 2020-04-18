@@ -15,7 +15,6 @@
 #include <stdint.h>
 #include <string.h>
 
-#include "guru_config.h"
 #include "guru.h"
 #include "mmu.h"
 #include "util.h"

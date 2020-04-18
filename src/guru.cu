@@ -122,8 +122,12 @@ guru_run()
 	// parse BITE code into each vm
 	// TODO: work producer (enqueue)
 	for (guru_ses *ses=_ses_list; ses!=NULL; ses=ses->next) {
-		vm_get<<<1,1>>>(ses->stdin);
-		cudaDeviceSynchronize();
+		int x = ses->id = vm_get(ses->stdin);
+		if      (x==-1) fprintf(stderr, "ERROR: bytecode parsing error!\n");
+		else if (x==-2) fprintf(stderr, "ERROR: No more VM available!\n");
+		else if (vm_ready(x)) {
+			fprintf(stderr, "ERROR: VM state failed to transit!\n");
+		}
 	}
 	// kick up main loop until all VM are done
 	vm_main_start();

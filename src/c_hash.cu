@@ -9,7 +9,6 @@
 
   </pre>
 */
-#include "guru_config.h"
 #include "guru.h"
 #include "util.h"
 #include "mmu.h"

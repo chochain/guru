@@ -13,18 +13,7 @@
 */
 #ifndef GURU_SRC_PUTS_H_
 #define GURU_SRC_PUTS_H_
-
 #include "guru.h"
-
-#if GURU_USE_CONSOLE	// use built-in print functions
-#include "console.h"
-#include "sprintf.h"
-#define PRINTF		guru_printf
-#define VPRINTF		guru_vprintf
-#else					// use CUDA printf function
-#include <stdio.h>
-#define PRINTF		printf
-#endif // GURU_USE_CONSOLE
 
 #ifdef __cplusplus
 extern "C" {
