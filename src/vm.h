@@ -92,9 +92,9 @@ typedef struct VM {				// 80-byte
 #define VM_ISEQ(vm)	 	((U32*)U8PADD(VM_IREP(vm), sizeof(guru_irep)))
 
 #if GURU_HOST_IMAGE
-#define VM_BYTECODE(vm) (_bin_to_u32(VM_ISEQ(vm) + (vm)->state->pc))
+#define VM_BYTECODE(vm) (_bin_to_u32(U8PADD(VM_ISEQ(vm), sizeof(U32)*(vm)->state->pc)))
 #else   // !GURU_HOST_IMAGE
-#define VM_BYTECODE(vm) (bin_to_u32(U8PADD(VM_ISEQ(vm), sizeof(U32)*(vm)->state->pc)))
+#define VM_BYTECODE(vm) (_bin_to_u32(VM_ISEQ(vm) + (vm)->state->pc))
 #endif 	// GURU_HOST_IMAGE
 
 #define VM_REPS(vm,n)	((guru_irep*)VM_IREP(vm)->reps[(n)])

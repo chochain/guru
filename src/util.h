@@ -17,6 +17,11 @@ extern "C" {
 
 #if defined(__CUDACC__)
 
+__device__ unsigned long bin_to_u32(const void *bin);
+__device__ unsigned int	 bin_to_u16(const void *bin);
+__device__ void			u16_to_bin(unsigned int s, const void *bin);
+__device__ void			u32_to_bin(unsigned long l, const void *bin);
+
 __device__ void    		*d_memcpy(void *d, const void *s, size_t n);
 __device__ void    		*d_memset(void *d, int c, size_t n);
 __device__ int     		d_memcmp(const void *s1, const void *s2, size_t n);

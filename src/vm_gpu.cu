@@ -38,10 +38,6 @@
 __GURU__ guru_vm *_vm_pool;
 __GURU__ U32 _vm_cnt = 0;
 
-pthread_mutex_t 	_mutex_pool;
-#define _LOCK		(pthread_mutex_lock(&_mutex_pool))
-#define _UNLOCK		(pthread_mutex_unlock(&_mutex_pool))
-
 //================================================================
 /*!@brief
   VM initializer.
@@ -122,11 +118,9 @@ _get(guru_vm *vm, guru_irep *irep)
   @param  vm    A pointer of VM.
   @retval 0  No error.
 */
-__GPU__ void
+__GURU__ void
 _exec(guru_vm *vm)
 {
-	if (blockIdx.x!=0 || threadIdx.x!=0) return;	// TODO: single thread for now
-
 	// start up instruction and dispatcher unit
 	while (vm->run==VM_STATUS_RUN) {				// run my (i.e. blockIdx.x) VM
 		// add before_fetch hooks here
@@ -141,102 +135,107 @@ _exec(guru_vm *vm)
 	}
 }
 
-
-__HOST__ int
-vm_pool_init(U32 step)
+__GPU__ void
+_init(guru_vm *pool, U32 step)
 {
-	guru_vm *vm = _vm_pool = (guru_vm *)cuda_malloc(sizeof(guru_vm) * MIN_VM_COUNT, 1);
-	if (!vm) return -1;
+	U32 i=threadIdx.x;
+	if (i>=MIN_VM_COUNT) return;
 
-	for (U32 i=0; i<MIN_VM_COUNT; i++, vm++) {
-		vm->id    = i;
-		vm->step  = step;
-		vm->depth = vm->err  = 0;
-		vm->run   = VM_STATUS_FREE;		// VM not allocated
-		cudaStreamCreateWithFlags(&vm->st, cudaStreamNonBlocking);
-	}
-	return 0;
+	guru_vm *vm = &pool[i];
+
+	vm->id    = i;
+	vm->step  = step;
+	vm->depth = vm->err  = 0;
+	vm->run   = VM_STATUS_FREE;		// VM not allocated
+
+	cudaStreamCreateWithFlags(&vm->st, cudaStreamNonBlocking);
 }
 
-__HOST__ int
-_has_job() {
-	guru_vm *vm = _vm_pool;
-	for (U32 i=0; i<MIN_VM_COUNT; i++, vm++) {
-		if (vm->run==VM_STATUS_RUN) return 1;
+__GPU__ void
+_has_job(U32 *rst) {
+	U32 i = threadIdx.x;
+	if (i<MIN_VM_COUNT) {
+		guru_vm *vm = &_vm_pool[i];
+		if (vm->run==VM_STATUS_RUN) *rst = 1;
 	}
-	return 0;
+	__syncthreads();
 }
 
-__HOST__ int
-vm_main_start()
+__GPU__ void
+_main_start()
 {
-	do {
-		guru_vm *vm = _vm_pool;
-		for (U32 i=0; i<MIN_VM_COUNT; i++, vm++) {
-			if (!vm->state) continue;
-			// add pre-hook here
-			debug_disasm(vm);
-			_exec<<<1,1,0,vm->st>>>(vm);				// guru -x to run without single-stepping
-			// add post-hook here
-		}
-		SYNC();											// TODO: cooperative thread group
+	U32 i = threadIdx.x;
+	guru_vm *vm = &_vm_pool[i];
+
+	if (i<MIN_VM_COUNT && vm->state) {
+		// add pre-hook here
+		//debug_disasm(vm);
+		_exec(vm);									// guru -x to run without single-stepping
+		// add post-hook here
+	}
+	__syncthreads();
+
 #if GURU_USE_CONSOLE
-		guru_console_flush(ses->out, ses->trace);		// dump output buffer
+	guru_console_flush(ses->out, ses->trace);	// dump output buffer
 #endif  // GURU_USE_CONSOLE
-	} while (_has_job());								// join()
-
-	return 0;
 }
 
-#if GURU_HOST_IMAGE
-__HOST__ int
-vm_get(U8 *ibuf)
-{
-	if (!_vm_pool) 				return -1;
-	if (_vm_cnt>=MIN_VM_COUNT) 	return -1;
-
-	guru_irep *irep = (guru_irep *)parse_bytecode(ibuf);
-	if (!irep) return -2;
-
-	guru_vm   *vm   = &_vm_pool[_vm_cnt++];
-
-	_get<<<1,1,0,vm->st>>>(vm, irep);			// acquire VM, vm status will changed
-	SYNC();
-	debug_vm_irep(vm);
-
-	return _vm_cnt-1;
-}
-#else
 __GPU__ void
 vm_get(U8 *ibuf)
 {
 	if (blockIdx.x!=0 || threadIdx.x!=0) return;
-
-	if (!_vm_pool) 				return;
-	if (_vm_cnt>=MIN_VM_COUNT) 	return;
-
-	guru_vm *vm = &_vm_pool[_vm_cnt++];
-
-	vm->state->irep = (guru_irep *)parse_bytecode(ibuf);
+	if (_vm_cnt<MIN_VM_COUNT) {
+		guru_vm *vm = &_vm_pool[_vm_cnt++];
+		vm->state->irep = (guru_irep *)parse_bytecode(ibuf);
+	}
+	__syncthreads();
 }
 
-#endif // GURU_HOST_IMAGE
-
 __HOST__ int
-_set_status(U32 vid, U32 new_status, U32 status_flag)
+vm_pool_init(U32 step)
 {
-	guru_vm *vm = &_vm_pool[vid];
-	if (!(vm->run & status_flag)) return -1;	// transition state machine
-
-	_LOCK;
-	vm->run = new_status;
-	_UNLOCK;
+	guru_vm *pool = (guru_vm *)cuda_malloc(sizeof(guru_vm) * MIN_VM_COUNT, 1);
+	_init<<<1,1>>>(pool, step);
+	cudaDeviceSynchronize();
 
 	return 0;
 }
 
-__HOST__ int vm_ready(U32 vid) { return _set_status(vid, VM_STATUS_RUN,  VM_STATUS_READY); }
-__HOST__ int vm_hold(U32 vid)  { return _set_status(vid, VM_STATUS_HOLD, VM_STATUS_RUN);   }
-__HOST__ int vm_stop(U32 vid)  { return _set_status(vid, VM_STATUS_STOP, VM_STATUS_RUN);   }
+
+__HOST__ int
+vm_main_start()
+{
+	U32 *x = (U32*)cuda_malloc(sizeof(U32), 1);
+	*x = 0;
+	while (x) {
+		_main_start<<<1,1>>>();
+		cudaDeviceSynchronize();
+		_has_job<<<1,1>>>(x);
+		cudaDeviceSynchronize();
+	}
+	cuda_free(x);
+
+	return 0;
+}
+
+__GPU__ void
+_set_status(U32 vid, U32 new_status, U32 status_flag)
+{
+	if (threadIdx.x!=0 || blockIdx.x!=0) return;
+
+	guru_vm *vm = &_vm_pool[vid];
+	ASSERT(vm->run & status_flag);			// transition state machine
+	vm->run = new_status;
+}
+
+__HOST__ int vm_ready(U32 vid) {
+	_set_status<<<1,1>>>(vid, VM_STATUS_RUN,  VM_STATUS_READY); cudaDeviceSynchronize(); return 0;
+}
+__HOST__ int vm_hold(U32 vid)  {
+	_set_status<<<1,1>>>(vid, VM_STATUS_HOLD, VM_STATUS_RUN);   cudaDeviceSynchronize(); return 0;
+}
+__HOST__ int vm_stop(U32 vid)  {
+	_set_status<<<1,1>>>(vid, VM_STATUS_STOP, VM_STATUS_RUN);   cudaDeviceSynchronize(); return 0;
+}
 
 #endif // !GURU_HOST_IMAGE

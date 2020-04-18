@@ -121,6 +121,74 @@ _hash(const char *str, int bsz)
 	return *h;
 }
 
+//================================================================
+/*!@brief
+  Get 32bit value from memory big endian.
+
+  @param  s	Pointer of memory.
+  @return	32bit unsigned value.
+*/
+__device__ unsigned long
+bin_to_u32(const void *s)
+{
+#if GURU_32BIT_ALIGN_REQUIRED
+    U8 *p = (U8*)s;
+    return (U32)(p[0]<<24) | (p[1]<<16) |  (p[2]<<8) | p[3];
+#else
+    unsigned long x = *((unsigned long*)s);
+    return (x << 24) | ((x & 0xff00) << 8) | ((x >> 8) & 0xff00) | (x >> 24);
+#endif
+}
+
+//================================================================
+/*!@brief
+  Get 16bit value from memory big endian.
+
+  @param  s	Pointer of memory.
+  @return	16bit unsigned value.
+*/
+__device__ unsigned int
+bin_to_u16(const void *s)
+{
+#if GURU_32BIT_ALIGN_REQUIRED
+    U8 *p = (U8*)s;
+    return (U16)(p[0]<<8) | p[1];
+#else
+    unsigned int x = *((unsigned int*)s);
+    return (x << 8) | (x >> 8);
+#endif
+}
+
+/*!@brief
+  Set 16bit big endian value from memory.
+
+  @param  s Input value.
+  @param  bin Pointer of memory.
+  @return sizeof(U16).
+*/
+__device__ void
+u16_to_bin(unsigned int s, char *bin)
+{
+    *bin++ = (s >> 8) & 0xff;
+    *bin   = s & 0xff;
+}
+
+/*!@brief
+  Set 32bit big endian value from memory.
+
+  @param  l Input value.
+  @param  bin Pointer of memory.
+  @return sizeof(U32).
+*/
+__device__ void
+u32_to_bin(unsigned long l, char *bin)
+{
+    *bin++ = (l >> 24) & 0xff;
+    *bin++ = (l >> 16) & 0xff;
+    *bin++ = (l >> 8) & 0xff;
+    *bin   = l & 0xff;
+}
+
 /* memcpy generic C-implementation,
  *
  *   TODO: alignment of ss is still
