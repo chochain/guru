@@ -12,8 +12,6 @@
 */
 #ifndef GURU_SRC_LOAD_H_
 #define GURU_SRC_LOAD_H_
-
-#include <stdint.h>
 #include "guru.h"
 
 #ifdef __cplusplus

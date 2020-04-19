@@ -13,13 +13,17 @@
 */
 #include <stdint.h>
 #include <cooperative_groups.h>
+#include "guru_config.h"
 #include "util.h"
 
 namespace cg = cooperative_groups;
 
-typedef int         WORD;
-#define WSIZE   	(sizeof(WORD))
-#define	WMASK		(WSIZE-1)
+typedef unsigned char U8;
+typedef unsigned int  U16;
+typedef unsigned long U32;
+typedef int           WORD;
+#define WSIZE   	  (sizeof(WORD))
+#define	WMASK		  (WSIZE-1)
 
 #define DYNA_HASH_THRESHOLD     128
 #define HASH_K 					1000003
@@ -123,19 +127,19 @@ _hash(const char *str, int bsz)
 
 //================================================================
 /*!@brief
-  Get 32bit value from memory big endian.
+  little endian to big endian converter
 
   @param  s	Pointer of memory.
   @return	32bit unsigned value.
 */
-__device__ unsigned long
+__device__ U32
 bin_to_u32(const void *s)
 {
 #if GURU_32BIT_ALIGN_REQUIRED
     U8 *p = (U8*)s;
     return (U32)(p[0]<<24) | (p[1]<<16) |  (p[2]<<8) | p[3];
 #else
-    unsigned long x = *((unsigned long*)s);
+    U32 x = *((U32*)s);
     return (x << 24) | ((x & 0xff00) << 8) | ((x >> 8) & 0xff00) | (x >> 24);
 #endif
 }
@@ -147,14 +151,14 @@ bin_to_u32(const void *s)
   @param  s	Pointer of memory.
   @return	16bit unsigned value.
 */
-__device__ unsigned int
+__device__ U16
 bin_to_u16(const void *s)
 {
 #if GURU_32BIT_ALIGN_REQUIRED
     U8 *p = (U8*)s;
     return (U16)(p[0]<<8) | p[1];
 #else
-    unsigned int x = *((unsigned int*)s);
+    U16 x = *((U16*)s);
     return (x << 8) | (x >> 8);
 #endif
 }
@@ -167,7 +171,7 @@ bin_to_u16(const void *s)
   @return sizeof(U16).
 */
 __device__ void
-u16_to_bin(unsigned int s, char *bin)
+u16_to_bin(U16 s, char *bin)
 {
     *bin++ = (s >> 8) & 0xff;
     *bin   = s & 0xff;
@@ -181,7 +185,7 @@ u16_to_bin(unsigned int s, char *bin)
   @return sizeof(U32).
 */
 __device__ void
-u32_to_bin(unsigned long l, char *bin)
+u32_to_bin(U32 l, char *bin)
 {
     *bin++ = (l >> 24) & 0xff;
     *bin++ = (l >> 16) & 0xff;
@@ -201,7 +205,7 @@ d_memcpy(void *d, const void *s, size_t n)
 	char *ds = (char*)d, *ss = (char*)s;
 	size_t t = (uintptr_t)ss;								// take low bits
 
-	if ((unsigned long)ds < (unsigned long)ss) {			// copy forward
+	if ((U32)ds < (U32)ss) {								// copy forward
 		if ((t | (uintptr_t)ds) & WMASK) {
 			int i = ((t ^ (uintptr_t)ds) & WMASK || n < WSIZE)		// align operands
 				? n

@@ -132,6 +132,10 @@ guru_run()
 #else  // !GURU_HOST_IMAGE
 		vm_get<<<1,1>>>(ses->stdin);
 		cudaDeviceSynchronize();
+
+		if (cudaSuccess!=cudaGetLastError()) {
+			fprintf(stderr, "cudaError: VM allocation failure!\n");
+		}
 #endif // GURU_HOST_IMAGE
 	}
 	// kick up main loop until all VM are done

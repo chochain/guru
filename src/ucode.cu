@@ -45,22 +45,6 @@ __GURU__ U32 _mutex_uc;
 #define RAISE(x)	    { _RA(guru_str_new(x)); vm->err = 1; return; }
 #define QUIT(x)			{ vm->quit=1; NA(x); return; }
 
-//================================================================
-/*!@brief
-  little endian to big endian converter
-*/
-__GURU__ __INLINE__ U32
-_bin_to_u32(const void *s)
-{
-#if GURU_32BIT_ALIGN_REQUIRED
-    U8 *p = (U8*)s;
-    return (U32)(p[0]<<24) | (p[1]<<16) |  (p[2]<<8) | p[3];
-#else
-    U32 x = *((U32P)s);
-    return (x << 24) | ((x & 0xff00) << 8) | ((x >> 8) & 0xff00) | (x >> 24);
-#endif
-}
-
 __GURU__ __INLINE__ GV *nop()	{ return NULL; }
 
 //================================================================
@@ -1104,6 +1088,19 @@ uc_stop(guru_vm *vm)
 {
 	vm->run  = VM_STATUS_STOP;					// VM suspended
 }
+
+//================================================================
+/*!@brief
+  little endian to big endian converter
+*/
+__GURU__ __INLINE__ U32
+_bin_to_u32(const void *s)
+{
+    U32 x = *((U32*)s);
+    return (x << 24) | ((x & 0xff00) << 8) | ((x >> 8) & 0xff00) | (x >> 24);
+}
+
+#define VM_BYTECODE(vm) (_bin_to_u32(U8PADD(VM_ISEQ(vm), sizeof(U32)*(vm)->state->pc)))
 
 //===========================================================================================
 // GURU engine

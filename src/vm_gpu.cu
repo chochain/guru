@@ -35,8 +35,8 @@
 #include "ucode.h"
 
 #if !GURU_HOST_IMAGE
-__GURU__ guru_vm *_vm_pool;
-__GURU__ U32 _vm_cnt = 0;
+guru_vm *_vm_pool;
+U32 _vm_cnt = 0;
 
 //================================================================
 /*!@brief
@@ -140,6 +140,7 @@ _init(guru_vm *pool, U32 step)
 {
 	U32 i=threadIdx.x;
 	if (i>=MIN_VM_COUNT) return;
+	if (i==0) _vm_pool = pool;
 
 	guru_vm *vm = &pool[i];
 
@@ -162,14 +163,13 @@ _has_job(U32 *rst) {
 }
 
 __GPU__ void
-_main_start()
+_spawn()
 {
 	U32 i = threadIdx.x;
 	guru_vm *vm = &_vm_pool[i];
 
 	if (i<MIN_VM_COUNT && vm->state) {
 		// add pre-hook here
-		//debug_disasm(vm);
 		_exec(vm);									// guru -x to run without single-stepping
 		// add post-hook here
 	}
@@ -184,9 +184,15 @@ __GPU__ void
 vm_get(U8 *ibuf)
 {
 	if (blockIdx.x!=0 || threadIdx.x!=0) return;
+
 	if (_vm_cnt<MIN_VM_COUNT) {
 		guru_vm *vm = &_vm_pool[_vm_cnt++];
-		vm->state->irep = (guru_irep *)parse_bytecode(ibuf);
+
+		if (vm->run==VM_STATUS_FREE) {
+			guru_irep *irep = (guru_irep *)parse_bytecode(ibuf);
+			__ready(vm, irep);
+			vm->run = VM_STATUS_RUN;
+		}
 	}
 	__syncthreads();
 }
@@ -195,25 +201,54 @@ __HOST__ int
 vm_pool_init(U32 step)
 {
 	guru_vm *pool = (guru_vm *)cuda_malloc(sizeof(guru_vm) * MIN_VM_COUNT, 1);
-	_init<<<1,1>>>(pool, step);
+
+	_init<<<1,MAX_VM_COUNT>>>(pool, step);
 	cudaDeviceSynchronize();
 
-	return 0;
+	return (cudaSuccess==cudaGetLastError()) ? 0 : 1;
 }
-
 
 __HOST__ int
 vm_main_start()
 {
-	U32 *x = (U32*)cuda_malloc(sizeof(U32), 1);
-	*x = 0;
-	while (x) {
-		_main_start<<<1,1>>>();
+	U32 *ok = (U32*)cuda_malloc(sizeof(U32), 1);
+	cudaStream_t st;
+	cudaStreamCreateWithFlags(&st, cudaStreamNonBlocking);
+
+	do {
+		//debug_disasm(vm);				// TODO: memcpy D2H to retrive vm content
+
+		_spawn<<<1,MAX_VM_COUNT,0,st>>>();
 		cudaDeviceSynchronize();
-		_has_job<<<1,1>>>(x);
+
+		*ok = 0;
+		_has_job<<<1,1,0,st>>>(ok);
 		cudaDeviceSynchronize();
-	}
-	cuda_free(x);
+	} while(ok);
+
+	cudaStreamDestroy(st);
+	cuda_free(ok);
+
+	return 0;
+}
+
+__HOST__ int
+vm_main_start()
+{
+	do {
+		guru_vm *vm = _vm_pool;
+		for (U32 i=0; i<MIN_VM_COUNT; i++, vm++) {
+			if (!vm->state) continue;
+			// add pre-hook here
+			debug_disasm(vm);
+			_exec<<<1,1,0,vm->st>>>(vm);				// guru -x to run without single-stepping
+			// add post-hook here
+		}
+		SYNC();											// TODO: cooperative thread group
+#if GURU_USE_CONSOLE
+		guru_console_flush(ses->out, ses->trace);		// dump output buffer
+#endif  // GURU_USE_CONSOLE
+	} while (_has_job());								// join()
 
 	return 0;
 }
@@ -225,6 +260,7 @@ _set_status(U32 vid, U32 new_status, U32 status_flag)
 
 	guru_vm *vm = &_vm_pool[vid];
 	ASSERT(vm->run & status_flag);			// transition state machine
+
 	vm->run = new_status;
 }
 
