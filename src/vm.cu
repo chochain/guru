@@ -84,16 +84,16 @@ __free(guru_vm *vm)
 __GURU__ void
 __transcode(guru_irep *irep)
 {
-	GV *p = irep->pool;
-	for (U32 i=0; i < irep->s; i++, p++) {			// symbol table
-		*p = guru_sym_new(p->raw);
-		p->acl |= ACL_READ_ONLY;					// rom-based
+	GV *v = irep->pool;
+	for (U32 i=0; i < irep->s; i++, v++) {			// symbol table
+		*v = guru_sym_new(v->raw);					// instantiate the symbol
+		v->acl |= ACL_READ_ONLY;					// TODO: rom-based
 	}
-	for (U32 i=0; i < irep->p; i++, p++) {			// pooled objects
-		if (p->gt==GT_STR) {
-			*p = guru_str_new(p->raw);
+	for (U32 i=0; i < irep->p; i++, v++) {			// pooled objects
+		if (v->gt==GT_STR) {
+			*v = guru_str_new(v->raw);				// instantiate the string
 		}
-		p->acl |= ACL_READ_ONLY;					// rom-based
+		v->acl |= ACL_READ_ONLY;					// TODO: rom-based
 	}
 	// use tail recursion (i.e. no call stack, so compiler optimization becomes possible)
 	for (U32 i=0; i < irep->r; i++) {
@@ -185,6 +185,7 @@ _has_job() {
 __HOST__ int
 vm_main_start()
 {
+	// TODO: spin off as a server thread
 	do {
 		guru_vm *vm = _vm_pool;
 		for (U32 i=0; i<MIN_VM_COUNT; i++, vm++) {

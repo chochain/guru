@@ -166,53 +166,56 @@ _to_gv(GV v[], U32 n, U8 *p, bool sym)
   </pre>
 */
 __HOST__ guru_irep*
-_build_image(U8 **bp)							// bp will be advance to next IREP block
+_build_image(U8 **bp)									// bp will be advance to next IREP block
 {
-	guru_irep irep;
-    U8  *p = *bp;
+    U8 *p = *bp;
+	guru_irep r0;
 
     // Header: sz, nlocals, nregs, rlen
-    irep.size 	= BU32(p); 		p += sizeof(U32);			// IREP size
-    irep.nv 	= BU16(p);		p += sizeof(U16);			// number of local variables
-    irep.nr 	= BU16(p);		p += sizeof(U16);			// number of registers used
-    irep.r  	= BU16(p);		p += sizeof(U16);			// number of child IREP blocks
+    r0.size = BU32(p); 		p += sizeof(U32);						// IREP size
+    r0.nv 	= BU16(p);		p += sizeof(U16);						// number of local variables
+    r0.nr 	= BU16(p);		p += sizeof(U16);						// number of registers used
+    r0.r  	= BU16(p);		p += sizeof(U16);						// number of child IREP blocks
 
     // ISEQ block
-    irep.i 		= BU32(p);		p += sizeof(U32);			// ISEQ (bytecodes) length
+    r0.i 	= BU32(p);		p += sizeof(U32);						// ISEQ (bytecodes) length
+
     U8 *iseq    = (p += -(U32A)p & 3);								// ISEQ block (32-bit aligned)
-    U32 iseq_sz = sizeof(U32)*irep.i;	p += iseq_sz;				// skip ISEQ (code) block
-    U32 reps_sz = sizeof(guru_irep *) * irep.r;						// child REPS block
-    U32 img_sz  = sizeof(guru_irep) + iseq_sz + reps_sz;
-    guru_irep *tgt = (guru_irep *)cuda_malloc(ALIGN64(img_sz), 1);	// target CUDA IREP image (managed mem)
-    assert(tgt);
-
-#if GURU_DEBUG
-    memset(tgt, 0xaa, img_sz);
-#endif // GURU_DEBUG
-
-    memcpy(tgt, &irep, sizeof(guru_irep));							// dup IREP header fields
-    memcpy(U8PADD(tgt, sizeof(guru_irep)), iseq,  iseq_sz);			// copy ISEQ block
-    tgt->size = img_sz;
-    tgt->reps = (RIrep **)U8PADD(tgt, sizeof(guru_irep)+ALIGN(iseq_sz)); // pointer to child REPS
+    U32 iseq_sz = sizeof(U32)*r0.i;		p += iseq_sz;				// skip ISEQ (code) block
+    U32 reps_sz = sizeof(guru_irep *) * r0.r;						// child REPS block
 
     // POOL block
-    tgt->p   = BU32(p);			p += sizeof(U32);					// pool element count
+    r0.p    = BU32(p);		p += sizeof(U32);						// pool element count
     U8 *pool = p;
-    for (U32 i=0; i<tgt->p; i++) {									// 1st pass (skim through pool)
+    for (U32 i=0; i<r0.p; i++) {									// 1st pass (skim through pool)
     	U32 len = BU16(++p);	p += sizeof(U16)+len;
     }
     // SYM block
-    tgt->s   = BU32(p);			p += sizeof(U32);					// symbol element count
+    r0.s   = BU32(p);		p += sizeof(U32);						// symbol element count
     U8 *sym  = p;
-    for (U32 i=0; i<tgt->s; i++) {									// 1st pass (skim through sym)
+    for (U32 i=0; i<r0.s; i++) {									// 1st pass (skim through sym)
     	U32 len = BU16(p)+1;	p += sizeof(U16)+len;
     }
     *bp = p;														// return source pointer
 
-    // prep Register File block which combines Reps, Pooled objects & Symbol table
-    U32 pool_sz = sizeof(GV) * (tgt->p + tgt->s);
+    // prep Ireps, ISEQ, and child Reps
+    U32 code_sz  = ALIGN64(sizeof(guru_irep) + iseq_sz + reps_sz);
+    guru_irep *irep = (guru_irep *)cuda_malloc(code_sz,1);			// target CUDA IREP image (managed mem)
+    assert(irep);
+
+#if GURU_DEBUG
+    memset(irep, 0xaa, img_sz);
+#endif // GURU_DEBUG
+
+    memcpy(irep, &r0, sizeof(guru_irep));							// dup IREP header fields
+    memcpy(U8PADD(irep, sizeof(guru_irep)), iseq,  iseq_sz);		// copy ISEQ block
+    irep->size = img_sz;
+    irep->reps = (guru_irep**)U8PADD(irep, sizeof(guru_irep) + iseq_sz); // pointer to child REPS
+
+    // prep Register File block which combines Pooled objects & Symbol table
+    U32 pool_sz = sizeof(GV) * (r0.p + r0.s);
     U8 *blk = (img_sz + pool_sz < CUDA_MIN_MEMBLOCK_SIZE)			// CUDA alloc 0x200B min
-    	? U8PADD(tgt, img_sz)										// utilize free space if any
+    	? U8PADD(irep, img_sz)										// utilize free space if any
     	: (U8*)cuda_malloc(pool_sz, 1);
     assert(blk);
 
@@ -220,11 +223,11 @@ _build_image(U8 **bp)							// bp will be advance to next IREP block
     memset(blk, 0xaa, pool_sz);
 #endif // GURU_DEBUG
 
-    tgt->pool = (GV *)blk;
-    _to_gv(tgt->pool, 			tgt->s, sym,  1);					// symbol table 1st  (faster)
-    _to_gv(tgt->pool + tgt->s,  tgt->p, pool, 0);					// pooled object 2nd (one extra calc)
+    irep->pool = (GV *)blk;
+    _to_gv(irep->pool, 		  r0.s, sym,  1);							// symbol table 1st  (faster)
+    _to_gv(irep->pool + r0.s, r0.p, pool, 0);							// pooled object 2nd (one extra calc)
 
-    return tgt;														// position pointer ends here
+    return irep;														// position pointer ends here
 }
 //================================================================
 /*!@brief

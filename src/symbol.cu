@@ -37,7 +37,7 @@ _add_index(const U8 *str, U32 hash)
     ASSERT(_sym_idx<MAX_SYMBOL_COUNT);
 /*
     // deep copy the string (can shallow work?)
-    U32 asz  = STRLENB(str) + 1;	ALIGN(asz);
+    U32 asz  = ALIGN(STRLENB(str) + 1);
     U8  *buf = (U8*)guru_alloc(asz);
 
     MEMCPY(buf, str, asz);

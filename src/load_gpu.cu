@@ -181,11 +181,11 @@ _build_image(U8 **bp)
     *bp = p;
 
     // prep Register File block which combines Reps, Pooled objects & Symbol table
-    U32 code_sz = sizeof(guru_irep) + reps_sz + iseq_sz;
+    U32 code_sz = sizeof(guru_irep) + reps_sz + ALIGN(iseq_sz);
     guru_irep *irep = (guru_irep*)guru_alloc(code_sz);
-    *irep = r0;											// hardcopy IREP
+    *irep = r0;											// deep copy IREP
     MEMCPY(irep+1, iseq, iseq_sz);						// copy ISEQ
-    guru_irep **reps = (guru_irep**)U8PADD(irep, sizeof(guru_irep) + iseq_sz);
+    guru_irep **reps = (guru_irep**)U8PADD(irep, sizeof(guru_irep) + ALIGN(iseq_sz));
     irep->reps = reps;
 
     U32 pool_sz = sizeof(GV) * (r0.p + r0.s);
