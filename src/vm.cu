@@ -36,9 +36,8 @@
 
 #include "ucode.h"
 
-#if GURU_HOST_IMAGE
 guru_vm *_vm_pool;
-U32 _vm_cnt = 0;
+U32      _vm_cnt = 0;
 
 pthread_mutex_t 	_mutex_pool;
 #define _LOCK		(pthread_mutex_lock(&_mutex_pool))
@@ -107,16 +106,31 @@ __transcode(guru_irep *irep)
 // Note: thread 0 is the master controller, no other thread can
 //       modify the VM status
 //
+#if GURU_HOST_IMAGE
 __GPU__ void
 _get(guru_vm *vm, guru_irep *irep)
 {
 	if (blockIdx.x!=0 || threadIdx.x!=0) return;	// singleton thread
 
 	if (vm->run==VM_STATUS_FREE) {
-		__transcode(irep);							// recursively transcode Pooled objects and Symbol table
+		__transcode(irep);
 		__ready(vm, irep);
 	}
 }
+#else
+__GPU__ void
+_get(guru_vm *vm, U8 *ibuf)
+{
+	if (blockIdx.x!=0 || threadIdx.x!=0) return;	// singleton thread
+
+	if (vm->run==VM_STATUS_FREE) {
+		guru_irep *irep = (guru_irep*)parse_bytecode(ibuf);
+		__transcode(irep);
+		__ready(vm, irep);
+	}
+}
+#endif // GURU_HOST_IMAGE
+
 //================================================================
 /*!@brief
   execute one ISEQ instruction for each VM
@@ -142,7 +156,6 @@ _exec(guru_vm *vm)
 		__free(vm);									// free up my vm_state, return VM to free pool
 	}
 }
-
 
 __HOST__ int
 vm_pool_init(U32 step)
@@ -181,7 +194,7 @@ vm_main_start()
 			_exec<<<1,1,0,vm->st>>>(vm);				// guru -x to run without single-stepping
 			// add post-hook here
 		}
-		SYNC();											// TODO: cooperative thread group
+		GPU_SYNC();											// TODO: cooperative thread group
 #if GURU_USE_CONSOLE
 		guru_console_flush(ses->out, ses->trace);		// dump output buffer
 #endif  // GURU_USE_CONSOLE
@@ -196,16 +209,20 @@ vm_get(U8 *ibuf)
 	if (!_vm_pool) 				return -1;
 	if (_vm_cnt>=MIN_VM_COUNT) 	return -1;
 
+	guru_vm *vm = &_vm_pool[_vm_cnt];
+
+#if GURU_HOST_IMAGE
 	guru_irep *irep = (guru_irep *)parse_bytecode(ibuf);
 	if (!irep) return -2;
 
-	guru_vm   *vm   = &_vm_pool[_vm_cnt++];
-
-	_get<<<1,1,0,vm->st>>>(vm, irep);			// acquire VM, vm status will changed
-	SYNC();
+	_get<<<1,1,0,vm->st>>>(vm, irep);
+#else
+	_get<<<1,1,0,vm->st>>>(vm, ibuf);			// acquire VM, vm status will changed
+#endif // GURU_HOST_IMAGE
+	GPU_SYNC();
 	debug_vm_irep(vm);
 
-	return _vm_cnt-1;
+	return _vm_cnt++;
 }
 
 __HOST__ int
@@ -224,5 +241,3 @@ _set_status(U32 vid, U32 new_status, U32 status_flag)
 __HOST__ int vm_ready(U32 vid) { return _set_status(vid, VM_STATUS_RUN,  VM_STATUS_READY); }
 __HOST__ int vm_hold(U32 vid)  { return _set_status(vid, VM_STATUS_HOLD, VM_STATUS_RUN);   }
 __HOST__ int vm_stop(U32 vid)  { return _set_status(vid, VM_STATUS_STOP, VM_STATUS_RUN);   }
-
-#endif // GURU_HOST_IMAGE

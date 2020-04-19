@@ -87,7 +87,7 @@ _search(U32 hash)
 	cudaStreamCreateWithFlags(&st, cudaStreamNonBlocking);	// wrapper overhead ~= 84us
 	{
 		_dyna_search<<<bc, tc, 0, st>>>(idx, hash);			// spawn
-		SYNC();					// sync all child threads in the block
+		GPU_SYNC();				// sync all child threads in the block
 	}
 	cudaStreamDestroy(st);
 #endif // CUDA_PROFILE_CDP

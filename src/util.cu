@@ -110,14 +110,14 @@ _hash(const char *str, int bsz)
 
 	for (int i=0; i<bsz; i+=32) {
 		_dyna_hash<<<1,32,0,st>>>(h, &str[i], bsz-i);
-		cudaDeviceSynchronize();                            // sync all children threads
+		GPU_SYNC();                            				// sync all children threads
 	}
 
 	dim3 xyz(32, (bsz>>5)+1, 0);
 	int  blk = bsz+(-bsz&0x1f);
 	_dyna_hash2d<<<1,xyz,blk*sizeof(int)>>>(h, str, bsz);
 
-	cudaDeviceSynchronize();
+	GPU_SYNC();
 
 	cudaStreamDestroy(st);
 #endif // CUDA_PROFILE_CDP

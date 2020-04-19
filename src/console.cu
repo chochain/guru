@@ -201,12 +201,12 @@ _host_print(guru_print_node *node, U32 trace)
 __HOST__ void
 guru_console_flush(U8 *output_buf, U32 trace)
 {
-	SYNC();
+	GPU_SYNC();
 	guru_print_node *node = (guru_print_node *)output_buf;
 	while (node->gt != GT_EMPTY) {			// 0
 		node = _host_print(node, trace);
 		node = NEXTNODE(node);
 	}
 	guru_console_init<<<1,1>>>(output_buf, 0);
-	SYNC();
+	GPU_SYNC();
 }

@@ -67,7 +67,7 @@ _find_idx(GS xid, _gtype gt)
 #if CUDA_PROFILE_CDP
 	idx = -1;
 	__idx<<<1, 32*(1+(_global_sz>>5))>>>(&idx, xid, gt);
-	SYNC_CHK();						// make sure idx is captured
+	GPU_CHK();						// make sure idx is captured
 #else
 	idx = __idx(xid, gt);
 #endif // CUDA_PROFILE_CDP

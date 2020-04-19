@@ -95,7 +95,7 @@ __HOST__ void
 _id2name(GS sid, U8 *str)
 {
 	__id2str<<<1,1>>>(sid, str);
-	SYNC();
+	GPU_SYNC();
 }
 
 #define bin2u32(x) ((x << 24) | ((x & 0xff00) << 8) | ((x >> 8) & 0xff00) | (x >> 24))

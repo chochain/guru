@@ -229,6 +229,6 @@ __HOST__ void
 id2name_host(GS sid, U8 *str)
 {
 	_id2str<<<1,1>>>(sid, str);
-	cudaDeviceSynchronize();
+	GPU_SYNC();
 }
 #endif // GURU_DEBUG

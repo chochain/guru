@@ -36,8 +36,8 @@ extern "C" {
 
 #define ASSERT(X) \
 	if (!(X)) PRINTF("ASSERT tid %d: line %d in %s\n", threadIdx.x, __LINE__, __FILE__);
-#define SYNC()				{ cudaDeviceSynchronize(); }
-#define SYNC_CHK()			{ cudaDeviceSynchronize(); ASSERT(cudaGetLastError()==cudaSuccess); }
+#define GPU_SYNC()			{ cudaDeviceSynchronize(); }
+#define GPU_CHK()			{ cudaDeviceSynchronize(); ASSERT(cudaGetLastError()==cudaSuccess); }
 
 #else
 
