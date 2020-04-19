@@ -28,11 +28,7 @@ int	 vm_hold(U32 vid);
 int	 vm_stop(U32 vid);
 int	 vm_ready(U32 vid);
 
-#if GURU_HOST_IMAGE
 __HOST__ int vm_get(U8 *ibuf);
-#else
-__GPU__ void vm_get(U8 *ibuf);
-#endif // GURU_HOST_IMAGE
 
 #ifdef __cplusplus
 }
