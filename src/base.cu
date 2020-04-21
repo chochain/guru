@@ -92,22 +92,6 @@ guru_cmp(const GV *v0, const GV *v1)
     }
 }
 
-__GURU__ GV *
-ref_get(GV *v)
-{
-	if (HAS_NO_REF(v) || IS_READ_ONLY(v)) return v;
-
-	return v;
-}
-
-__GURU__ GV	*
-ref_free(GV *v)
-{
-	if (HAS_NO_REF(v) || IS_READ_ONLY(v)) return v;
-
-	return v;
-}
-
 //================================================================
 /*!@brief
   Decrement reference counter
@@ -117,13 +101,12 @@ ref_free(GV *v)
 __GURU__ GV *
 ref_dec(GV *v)
 {
-    if (HAS_NO_REF(v))  	return v;		// skip simple objects
-    if (IS_READ_ONLY(v)) 	return v;		// ROMable objects?
+    if (HAS_NO_REF(v))  	return v;		// skip simple or ROMable objects
 
     ASSERT(v->self->rc);					// rc > 0?
     if (--v->self->rc > 0) return v;		// still used, keep going
 
-    _d_vtbl[v->gt](v);
+    _d_vtbl[v->gt](v);						// table driven (no branch divergence)
 
     return v;
 }
@@ -137,8 +120,8 @@ ref_dec(GV *v)
 __GURU__ GV *
 ref_inc(GV *v)
 {
-	if (HAS_REF(v) && !IS_READ_ONLY(v)) {
-		v->self->rc++;
+	if (HAS_REF(v)) {						// TODO: table lookup reduce branch divergence
+		v->self->rc+_;
 	}
 	return v;
 }

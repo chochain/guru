@@ -24,9 +24,9 @@ extern "C" {
 int  vm_pool_init(U32 step);
 int  vm_main_start();
 
-int	 vm_hold(U32 vid);
-int	 vm_stop(U32 vid);
-int	 vm_ready(U32 vid);
+int	 vm_hold(U32 mid);
+int	 vm_stop(U32 mid);
+int	 vm_ready(U32 mid);
 
 __HOST__ int vm_get(U8 *ibuf);
 

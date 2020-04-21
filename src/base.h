@@ -25,9 +25,6 @@ __GURU__ GV		guru_new(...);
 __GURU__ void	guru_destroy(GV *v);
 __GURU__ S32  	guru_cmp(const GV *v0, const GV *v1);
 
-__GURU__ GV 	*ref_get(GV *v);
-__GURU__ GV		*ref_free(GV *v);
-
 __GURU__ GV 	*ref_dec(GV *v);
 __GURU__ GV 	*ref_inc(GV *v);
 

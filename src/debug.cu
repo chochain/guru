@@ -125,8 +125,8 @@ _show_regs(GV *v, U32 vi)
 	for (U32 i=0; i<vi; i++, v++) {
 		const char *t = _vtype[v->gt];
 		U8 c = (i==0) ? '|' : ' ';
-		if (IS_READ_ONLY(v)) 	printf("%s.%c",  t, c);
-		else if (HAS_REF(v))	printf("%s%d%c", t, v->self->rc, c);
+		if (HAS_REF(v))			printf("%s%d%c", t, v->self->rc, c);
+		else if (v->gt==GT_STR) printf("%s.%c", t, c);
 		else					printf("%s %c", t, c);
 	}
 }
@@ -184,12 +184,12 @@ _show_decode(guru_vm *vm, U32 code)
 
 	if (_outbuf==NULL) _outbuf = (U8*)cuda_malloc(OUTBUF_SIZE, 1);	// lazy alloc
 	if (_find_op(_op_sym, op, SZ_SYM) >= 0) {
-		GS  sid = VM_SYM(vm, ar.bx);
+		GS sid = VM_SYM(vm, ar.bx);
 		_id2name(sid, _outbuf);
 		printf(" r%-2d :%-18s", a, _outbuf);			return;
 	}
 	if (_find_op(_op_exe, op, SZ_EXE) >= 0) {
-		GS  sid = VM_SYM(vm, ar.b);
+		GS sid = VM_SYM(vm, ar.b);
 		_id2name(sid, _outbuf);
 		printf(" r%-2d #%-18s", a, _outbuf);			return;
 	}
