@@ -108,24 +108,24 @@ _to_gv(GV v[], U32 n, U8 *p, bool sym)
 
         switch (tt) {
         case 0:	// String
-        	v->raw = p;
         	v->gt  = GT_STR;
+        	v->raw = p;
         	break;
         case 1: // Integer (31-bit)
+            v->gt  = GT_INT;
             memcpy(buf, p, len);
             buf[len] = '\0';
             v->i   = atoi(buf);
-            v->gt  = GT_INT;
             break;
         case 2: // Float (32-bit)
+            v->gt  = GT_FLOAT;
             memcpy(buf, p, len);
             buf[len] = '\0';
             v->f   = (float)atof(buf);		// atof() returns double
-            v->gt  = GT_FLOAT;
             break;
         case 3: // Symbol
-        	v->raw = p;
         	v->gt  = GT_SYM;
+        	v->raw = p;
         	break;
         default: // Others (not yet supported)
         	v->gt   = GT_NIL;

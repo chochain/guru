@@ -88,26 +88,27 @@ _to_gv(GV v[], U32 n, U8 *p, bool sym)
         U32  tt = sym ? 3 : *p++;
         U32  len = BU16(p);	p += sizeof(U16);
 
+        v->acl = 0;							// clear access bit (~HAS_REF, ~SCLASS, ~SELF)
         switch (tt) {
         case 0:	// String
-        	v->raw = p;						// keep pointer a input stream
         	v->gt  = GT_STR;
+        	v->raw = p;						// keep pointer a input stream
         	break;
         case 1: // Integer (31-bit)
+            v->gt  = GT_INT;
             MEMCPY(buf, p, len);
             buf[len] = '\0';
             v->i   = ATOI(buf, 10);
-            v->gt  = GT_INT;
             break;
         case 2: // Float (32-bit)
+            v->gt  = GT_FLOAT;
             MEMCPY(buf, p, len);
             buf[len] = '\0';
             v->f   = (float)ATOF(buf);		// atof() returns double
-            v->gt  = GT_FLOAT;
             break;
         case 3: // Symbol
-        	v->raw = p;						// keep string pointer at input stream
         	v->gt  = GT_SYM;
+        	v->raw = p;						// keep string pointer at input stream
         	break;
         default: // Others (not yet supported)
         	v->gt   = GT_NIL;
