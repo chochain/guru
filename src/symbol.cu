@@ -75,11 +75,11 @@ __GURU__ S32 _warp_i[32];
 __GURU__ S32
 _search(U32 hash)
 {
+#if CUDA_PROFILE_CDP
 	if (_sym_idx<DYNA_SEARCH_THRESHOLD) return _loop_search(hash);
 
 	S32 *idx = &_warp_i[threadIdx.x];	*idx = -1;
 
-#if CUDA_PROFILE_CDP
 	U32 tc = 32;				// Pascal:512, Volta:1024 max threads/block
 	U32 bc = (_sym_idx>>5)+1;	// P104: 20, P102: 30 quad-issue SMs (i.e. 4 blocks/issue)
 
@@ -90,9 +90,11 @@ _search(U32 hash)
 		GPU_SYNC();				// sync all child threads in the block
 	}
 	cudaStreamDestroy(st);
-#endif // CUDA_PROFILE_CDP
 
 	return *idx;				// each parent thread gets one result back
+#else
+	return _loop_search(hash);
+#endif // CUDA_PROFILE_CDP
 }
 
 __GURU__ GS

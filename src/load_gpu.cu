@@ -90,7 +90,7 @@ _to_gv(GV v[], U32 n, U8 *p, bool sym)
 
         switch (tt) {
         case 0:	// String
-        	v->raw = p;
+        	v->raw = p;						// keep pointer a input stream
         	v->gt  = GT_STR;
         	break;
         case 1: // Integer (31-bit)
@@ -106,7 +106,7 @@ _to_gv(GV v[], U32 n, U8 *p, bool sym)
             v->gt  = GT_FLOAT;
             break;
         case 3: // Symbol
-        	v->raw = p;						// TODO: need to move symbol to guru memory
+        	v->raw = p;						// keep string pointer at input stream
         	v->gt  = GT_SYM;
         	break;
         default: // Others (not yet supported)
