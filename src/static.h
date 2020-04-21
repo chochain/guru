@@ -19,29 +19,7 @@
 extern "C" {
 #endif
 
-/* Class Tree */
 extern __GURU__ guru_class *guru_class_object;
-extern __GURU__ guru_class *guru_class_sys;
-
-extern __GURU__ guru_class *guru_class_false;
-extern __GURU__ guru_class *guru_class_true;
-extern __GURU__ guru_class *guru_class_nil;
-extern __GURU__ guru_class *guru_class_int;
-extern __GURU__ guru_class *guru_class_symbol;
-extern __GURU__ guru_class *guru_class_proc;
-
-#if GURU_USE_FLOAT
-extern __GURU__ guru_class *guru_class_float;
-extern __GURU__ guru_class *guru_class_math;
-#endif // GURU_USE_FLOAT
-
-extern __GURU__ guru_class *guru_class_string;
-
-#if GURU_USE_ARRAY
-extern __GURU__ guru_class *guru_class_array;
-extern __GURU__ guru_class *guru_class_range;
-extern __GURU__ guru_class *guru_class_hash;
-#endif  // GURU_USE_ARRAY
 
 #ifdef __cplusplus
 }

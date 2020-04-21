@@ -414,8 +414,6 @@ typedef struct Vclass {
 	U32					nfunc;
 } guru_class_tbl;
 
-
-
 //#define CLASS_DEF(cidx, cname, vtbl) { cidx, (U8*)cname, vtbl==obj_vtbl ? NULL : guru_class_object, vtbl, sizeof(vtbl)/sizeof(Vfunc) }
 #define CLASS_DEF(cname, vtbl)	{ guru_add_class(cname, guru_class_object, vtbl, sizeof(vtbl)/sizeof(Vfunc)) }
 

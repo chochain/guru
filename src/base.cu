@@ -121,7 +121,7 @@ __GURU__ GV *
 ref_inc(GV *v)
 {
 	if (HAS_REF(v)) {						// TODO: table lookup reduce branch divergence
-		v->self->rc+_;
+		v->self->rc++;
 	}
 	return v;
 }
