@@ -14,16 +14,16 @@
 #include "base.h"
 #include "ostore.h"
 
-#define SET_VAL(d, vid, val)		(*(d)=*(val), (d)->vid=(vid))
+#define SET_VAL(d, oid, val)		(*(d)=*(val), (d)->oid=(oid))
 //================================================================
 /*! sorted array binary search
 
   @param  st	pointer to instance store handle.
-  @param  vid	attribute id.
+  @param  oid	attribute id.
   @return		result. It's not necessarily found.
 */
 __GURU__ S32
-_bsearch(guru_var *r, GS vid)
+_bsearch(guru_var *r, GU oid)
 {
     S32 i0 = 0;
     S32 i1 = r->n - 1;		if (i1 < 0) return -1;
@@ -31,7 +31,7 @@ _bsearch(guru_var *r, GS vid)
     GV *v = r->attr;							// point at 1st attribute
     while (i0 < i1) {
     	S32 m = (i0 + i1) >>1;					// middle i.e. div by 2
-        if ((v+m)->vid < vid) {
+        if ((v+m)->oid < oid) {
             i0 = m + 1;
         } else {
             i1 = m;
@@ -82,18 +82,18 @@ _new(U32 nlv)
 /*! setter
 
   @param  st		pointer to instance store handle.
-  @param  vid		symbol id (as attribute name)
+  @param  oid		object store id (as attribute name)
   @param  val		value to be set.
   @return			0: success, -1:failed
 */
 __GURU__ S32
-_set(guru_var *r, GS vid, GV *val)
+_set(guru_var *r, GU oid, GV *val)
 {
-    S32 idx = _bsearch(r, vid);
+    S32 idx = _bsearch(r, oid);
     GV  *v  = r->attr + idx;
-    if (idx >= 0 && v->vid==vid) {
+    if (idx >= 0 && v->oid==oid) {
         ref_dec(v);									// replace existed attribute
-        SET_VAL(v, vid, val);
+        SET_VAL(v, oid, val);
         return 0;
     }
     // new attribute
@@ -107,7 +107,7 @@ _set(guru_var *r, GS vid, GV *val)
     for (U32 i=r->n; i > idx; i--, t--) {
     	*(t) = *(t-1);
     }
-    SET_VAL(v, vid, val);
+    SET_VAL(v, oid, val);
     r->n++;
 
     return 0;
@@ -117,15 +117,15 @@ _set(guru_var *r, GS vid, GV *val)
 /*! getter
 
   @param  st	pointer to instance store handle.
-  @param  sid	symbol ID.
+  @param  oid	object store ID.
   @return		pointer to GV .
 */
 __GURU__ GV*
-_get(guru_var *r, GS vid)
+_get(guru_var *r, GU oid)
 {
-    S32 idx = _bsearch(r, vid);
+    S32 idx = _bsearch(r, oid);
     GV  *v  = r->attr + idx;
-    if (idx < 0 || v->vid != vid) return NULL;
+    if (idx < 0 || v->oid != oid) return NULL;
 
     return v;
 }
@@ -174,33 +174,33 @@ ostore_del(GV *v)
 /*! instance variable setter
 
   @param  v		pointer to target.
-  @param  vid	attribute id.
+  @param  oid	attribute id.
   @param  val	pointer to value.
 */
 __GURU__ void
-ostore_set(GV *v, GS vid, GV *val)
+ostore_set(GV *v, GU oid, GV *val)
 {
 	guru_var *r = v->self->ivar;		// RObj and RClass share same header
 	if (r==NULL) {
 		r = v->self->ivar = _new(4);	// lazy allocation
 		ref_inc(v);						// itself has been referenced now
 	}
-	_set(r, vid, ref_inc(val));			// referenced by the object now
+	_set(r, oid, ref_inc(val));			// referenced by the object now
 }
 
 //================================================================
 /*! instance variable getter
 
   @param  v		pointer to target.
-  @param  vid	attribute id.
+  @param  oid	attribute id.
   @return		value.
 */
 __GURU__ GV
-ostore_get(GV *v, GS vid)
+ostore_get(GV *v, GU oid)
 {
 //	(v->gt==GT_CLASS) ? v->cls->ivar : v->self->ivar (common struct)
 	guru_var *r = v->self->ivar;		// class or instance var
-	GV 		 *val = r ? _get(r, vid) : NULL;
+	GV 		 *val = r ? _get(r, oid) : NULL;
 
     return val ? *ref_inc(val) : NIL;
 }

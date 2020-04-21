@@ -101,9 +101,10 @@ typedef uint8_t     U8;
 
 //===============================================================================
 // guru simple types (non struct)
-typedef S32			GI;
-typedef F32	 		GF;
-typedef U16 		GS;
+typedef S32			GI;						// signed integer
+typedef F32	 		GF;						// float
+typedef U16			GS;						// symbol
+typedef U16 		GU;						// unsigned integer
 
 // pointer arithmetic, this will not work in multiple segment implementation
 #define U8PADD(p, n)	((U8*)(p) + (n))					// add
@@ -111,13 +112,11 @@ typedef U16 		GS;
 #define U8POFF(p1, p0)	((S32)((U8*)(p1) - (U8*)(p0)))	    // offset (downshift from 64-bit)
 
 #define ACL_HAS_REF		0x1
-#define ACL_READ_ONLY	0x2
-#define ACL_SCLASS		0x4
-#define ACL_SELF		0x8
+#define ACL_SCLASS		0x2
+#define ACL_SELF		0x4
 
 #define HAS_REF(v)		((v)->acl & ACL_HAS_REF)
 #define HAS_NO_REF(v)	(!HAS_REF(v))
-#define IS_READ_ONLY(v)	((v)->acl & ACL_READ_ONLY)
 #define IS_SCLASS(v)	((v)->acl & ACL_SCLASS)
 #define IS_SELF(v)		((v)->acl & ACL_SELF)
 
@@ -126,23 +125,23 @@ typedef U16 		GS;
   Guru VALUE and objects
 	gt  : object type (GURU_TYPE i.e. GT_*)
 	acl : access control (HAS_REF, READ_ONLY, ...)
-	vid : object store id for user defined objects (i.e. OBJ)
+	oid : object store id for user defined objects (i.e. OBJ)
 	xxx : reserved
 
   TODO: move gt into object themselves, keep fix+acl as lower 3-bits (CUDA is 32-bit ops)
 */
 #define GURU_VAR_HDR	\
-	GT  	gt 	: 16;	\
-	U32 	acl : 16;	\
-	GS 		vid;		\
-	U16  	xxx
+	GT  	gt 	: 5;	\
+	U32 	acl : 3;	\
+	U32     xxx : 24;	\
+	GU 		oid
 
 typedef struct {					// 16-bytes (128 bits) for ease of debugging
 	GURU_VAR_HDR;					// 8-byte
-    union {							// 8-byte
-		GI  	 		 i;			// GT_INT, GT_SYM
-		GF 	 	 		 f;			// GT_FLOAT
-        struct RObj      *self;		// GT_OBJ
+    union {							// 8-byte			64-bit
+		GI  	 		 i;			// GT_INT, GT_SYM	32-bit
+		GF 	 	 		 f;			// GT_FLOAT			32-bit
+        struct RObj      *self;		// GT_OBJ			64-bit (due to host is 64-bit)
         struct RClass    *cls;		// GT_CLASS (shares same header with GT_OBJ)
         struct RProc     *proc;		// GT_PROC
         struct RIter	 *iter;		// GT_ITER

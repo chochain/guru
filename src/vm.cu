@@ -87,13 +87,12 @@ __transcode(guru_irep *irep)
 	GV *v = irep->pool;
 	for (U32 i=0; i < irep->s; i++, v++) {			// symbol table
 		*v = guru_sym_new(v->raw);					// instantiate the symbol
-		v->acl |= ACL_READ_ONLY;					// TODO: rom-based
 	}
 	for (U32 i=0; i < irep->p; i++, v++) {			// pooled objects
 		if (v->gt==GT_STR) {
 			*v = guru_str_new(v->raw);				// instantiate the string
 		}
-		v->acl |= ACL_READ_ONLY;					// TODO: rom-based
+		v->acl &= ~ACL_HAS_REF;						// TODO: rom-based
 	}
 	// use tail recursion (i.e. no call stack, so compiler optimization becomes possible)
 	for (U32 i=0; i < irep->r; i++) {
@@ -227,9 +226,9 @@ vm_get(U8 *ibuf)
 }
 
 __HOST__ int
-_set_status(U32 vid, U32 new_status, U32 status_flag)
+_set_status(U32 mid, U32 new_status, U32 status_flag)
 {
-	guru_vm *vm = &_vm_pool[vid];
+	guru_vm *vm = &_vm_pool[mid];
 	if (!(vm->run & status_flag)) return -1;	// transition state machine
 
 	_LOCK;
@@ -239,6 +238,6 @@ _set_status(U32 vid, U32 new_status, U32 status_flag)
 	return 0;
 }
 
-__HOST__ int vm_ready(U32 vid) { return _set_status(vid, VM_STATUS_RUN,  VM_STATUS_READY); }
-__HOST__ int vm_hold(U32 vid)  { return _set_status(vid, VM_STATUS_HOLD, VM_STATUS_RUN);   }
-__HOST__ int vm_stop(U32 vid)  { return _set_status(vid, VM_STATUS_STOP, VM_STATUS_RUN);   }
+__HOST__ int vm_ready(U32 mid) { return _set_status(mid, VM_STATUS_RUN,  VM_STATUS_READY); }
+__HOST__ int vm_hold(U32 mid)  { return _set_status(mid, VM_STATUS_HOLD, VM_STATUS_RUN);   }
+__HOST__ int vm_stop(U32 mid)  { return _set_status(mid, VM_STATUS_STOP, VM_STATUS_RUN);   }

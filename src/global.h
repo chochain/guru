@@ -18,11 +18,11 @@
 extern "C" {
 #endif
 
-__GURU__ void 	global_set(GS xid, GV *v);
-__GURU__ void 	const_set(GS xid,  GV *v);
+__GURU__ void 	global_set(GU xid, GV *v);
+__GURU__ void 	const_set(GU xid,  GV *v);
 
-__GURU__ GV 	*global_get(GS xid);
-__GURU__ GV 	*const_get(GS xid);
+__GURU__ GV 	*global_get(GU xid);
+__GURU__ GV 	*const_get(GU xid);
     
 #ifdef __cplusplus
 }

@@ -166,7 +166,7 @@ obj_extend(GV v[], U32 vi)
 __CFUNC__
 obj_getiv(GV v[], U32 vi)
 {
-    RETURN_VAL(ostore_get(v, v->vid));			// attribute 'x'
+    RETURN_VAL(ostore_get(v, v->oid));			// attribute 'x'
 }
 
 //================================================================
@@ -175,8 +175,8 @@ obj_getiv(GV v[], U32 vi)
 __CFUNC__
 obj_setiv(GV v[], U32 vi)
 {
-    GS vid = v->vid;							// attribute 'x='
-    ostore_set(v, vid-1, v+1);					// attribute 'x'
+    GU oid = v->oid;							// attribute 'x='
+    ostore_set(v, oid-1, v+1);					// attribute 'x'
 }
 
 

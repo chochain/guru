@@ -21,8 +21,8 @@ extern "C" {
 
 __GURU__ GV 	ostore_new(guru_class *cls);
 __GURU__ void   ostore_del(GV *v);
-__GURU__ void   ostore_set(GV *v, GS vid, GV *val);
-__GURU__ GV 	ostore_get(GV *v, GS vid);
+__GURU__ void   ostore_set(GV *v, GU oid, GV *val);
+__GURU__ GV 	ostore_get(GV *v, GU oid);
 
 #ifdef __cplusplus
 }

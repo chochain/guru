@@ -244,7 +244,7 @@ vm_method_exec(guru_vm *vm, GV v[], U32 vi, GS sid)
     	vm_state_push(vm, prc->irep, 0, v, vi);			// switch to callee's context
     }
     else {
-    	v->vid = sid;									// pass as parameter
+    	v->oid = sid;									// pass as parameter borrowing object id field
     	prc->func(v, vi);								// call C-based function
     	_wipe_stack(v+1, vi+1);
     	v->acl &= ~(ACL_SCLASS|ACL_SELF);
