@@ -269,7 +269,7 @@ __GURU__ void
 guru_init_class_float(void)
 {
     guru_rom_set_class(GT_FLOAT, "Float", GT_OBJ, flt_vtbl, VFSZ(flt_vtbl));
-    guru_register_func(GT_INT, NULL, NULL, guru_flt_cmp);
+    guru_register_func(GT_FLOAT, NULL, NULL, guru_flt_cmp);
 }
 
 #endif // GURU_USE_FLOAT
