@@ -79,9 +79,9 @@ _each(guru_vm *vm, GV v[], U32 vi)
 	// switch into callee's context with v[1]=1st element
 	vm_state_push(vm, irep1, 0, v+2, vi);
 	guru_iter *it = git.iter;
-	*(v+3) = *(it->ivar);
+	*(v+3) = *(it->inc);
 	if (it->n==GT_HASH) {
-		*(v+4) = *(it->ivar+1);
+		*(v+4) = *(it->inc+1);
 	}
 }
 
@@ -225,8 +225,8 @@ vm_loop_next(guru_vm *vm)
 	_wipe_stack(r, n);
 
 	guru_iter *it = ri->iter;							// get iterator itself
-	*(r0+1) = *it->ivar;								// fetch next loop index
-	if (nvar>1) *(r0+2) = *(it->ivar+1);				// range
+	*(r0+1) = *it->inc;									// fetch next loop index
+	if (nvar>1) *(r0+2) = *(it->inc+1);					// range
 	st->pc = 0;
 
 	return 1;

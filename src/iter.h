@@ -25,7 +25,7 @@ extern "C" {
 */
 typedef struct RIter {		// 48-byte
     GURU_HDR;				// 8-byte
-    GV  		*ivar;		// incremental var
+    GV  		*inc;		// incremental var
     GV 			*range;		// 16-byte
     GV 			*step;		// 16-byte
 } guru_iter;

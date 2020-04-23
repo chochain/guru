@@ -39,26 +39,26 @@ guru_iter_new(GV *obj, GV *step)
     it->range = ref_inc(obj);
     switch (obj->gt) {
     case GT_INT: {
-    	it->i	 = obj->i;
-    	it->ivar = (obj->i=0, obj);
+    	it->i	= obj->i;
+    	it->inc = (obj->i=0, obj);
     } break;
     case GT_RANGE: {
     	guru_range *r = obj->range;
     	ASSERT(r->first.gt==GT_INT || r->first.gt==GT_FLOAT);
 
-    	it->i     = 0;
-    	it->ivar  = guru_gv_alloc(1);
-    	*it->ivar = r->first;
+    	it->i    = 0;
+    	it->inc  = guru_gv_alloc(1);
+    	*it->inc = r->first;
     } break;
     case GT_ARRAY: {
     	guru_array *a = obj->array;
-    	it->i     = 0;
-    	it->ivar  = ref_inc(a->data);
+    	it->i    = 0;
+    	it->inc  = ref_inc(a->data);
     } break;
     case GT_HASH: {
     	guru_hash *h = obj->hash;
-    	it->i	  = 0;
-    	it->ivar  = ref_inc(h->data);	ref_inc(h->data+1);
+    	it->i	 = 0;
+    	it->inc  = ref_inc(h->data);	ref_inc(h->data+1);
     } break;
     default: ASSERT(1==0);			// TODO: other types not supported yet
     }
@@ -76,19 +76,19 @@ guru_iter_next(GV *v)
 	U32 nvar;
 	switch (it->n) {				// ranging object type (field reused)
 	case GT_INT: {
-		it->ivar->i += it->step ? it->step->i : 1;
-		nvar = (it->ivar->i < it->i);
+		it->inc->i += it->step ? it->step->i : 1;
+		nvar = (it->inc->i < it->i);
 	} break;
 	case GT_RANGE: {
 		guru_range *r = it->range->range;
 		U32 keep;
-		if (it->ivar->gt==GT_FLOAT) {
-			it->ivar->f += (it->step ? it->step->f : 1.0);
-			keep = IS_INCLUDE(r) ? (it->ivar->f <= r->last.f) : (it->ivar->f < r->last.f);
+		if (it->inc->gt==GT_FLOAT) {
+			it->inc->f += (it->step ? it->step->f : 1.0);
+			keep = IS_INCLUDE(r) ? (it->inc->f <= r->last.f) : (it->inc->f < r->last.f);
 		}
 		else {
-			it->ivar->i += (it->step ? it->step->i : 1);
-			keep = IS_INCLUDE(r) ? (it->ivar->i <= r->last.i) : (it->ivar->i < r->last.i);
+			it->inc->i += (it->step ? it->step->i : 1);
+			keep = IS_INCLUDE(r) ? (it->inc->i <= r->last.i) : (it->inc->i < r->last.i);
 		}
 		nvar = (keep) ? 1 : 0;
 	} break;
@@ -98,7 +98,7 @@ guru_iter_next(GV *v)
 		ref_dec(d);
 		if ((it->i + 1) < a->n) {
 			it->i += (nvar = 1);
-			it->ivar = ref_inc(++d);
+			it->inc = ref_inc(++d);
 		}
 		else nvar=0;
 	} break;
@@ -109,7 +109,7 @@ guru_iter_next(GV *v)
 		ref_dec(d+1);
 		if ((it->i+2) < h->n) {
 			it->i += nvar = 2;
-			it->ivar = ref_inc(d+=2);	ref_inc(d+1);
+			it->inc = ref_inc(d+=2);	ref_inc(d+1);
 		}
 		else nvar=0;
 	} break;
@@ -129,7 +129,7 @@ guru_iter_del(GV *v)
 	ASSERT(v->gt==GT_ITER);
 	guru_iter *it = v->iter;
 
-	if (it->n==GT_RANGE) guru_free(it->ivar);
+	if (it->n==GT_RANGE) guru_free(it->inc);
 
     ref_dec(it->range);
     guru_free(it);
