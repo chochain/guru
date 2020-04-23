@@ -24,13 +24,13 @@ extern "C" {
   Guru class object.
 */
 typedef struct RClass {			// 64-byte
-	GURU_OBJ_HDR;				// rc, n, sid are used
+	GURU_OBJ_HDR;				// rc, n, sid, kt are used
 	struct RClass 	*super;		// guru_class[super]
     guru_proc 		*vtbl;		// c-func array (in constant memory, rc is the number of functions)
 
     guru_proc		*plist;		// guru_proc[rprocs], linked list
 #if GURU_DEBUG
-    char			*name;		// for debug. TODO: remove
+    U8				*name;		// for debug. TODO: remove
 #endif // GURU_DEBUG
 } guru_class;
 

@@ -490,7 +490,7 @@ __GURU__ GV *
 _undef(GV *buf, GV *v, GS sid)
 {
 	U8 *fname = id2name(sid);
-	U8 *cname = id2name(class_by_obj(v)->sid);
+	U8 *cname = class_by_obj(v)->name;	// id2name(class_by_obj(v)->sid);
 
 	guru_str_add_cstr(buf, "undefined method '");
 	guru_str_add_cstr(buf, fname);
@@ -1016,7 +1016,7 @@ uc_method(guru_vm *vm)
     if (prc != NULL) {
     	// same proc name exists (in either current or parent class)
 #if CC_DEBUG
-		printf("WARN: %s#%s override base\n", id2name(cls->sid), id2name(sid));
+		printf("WARN: %s#%s override base\n", id2name(cls->oid), id2name(sid));
 #endif // CC_DEBUG
     }
 #endif

@@ -23,12 +23,12 @@
   @return		result. It's not necessarily found.
 */
 __GURU__ S32
-_bsearch(guru_var *r, GU oid)
+_bsearch(guru_obj *o, GU oid)
 {
     S32 i0 = 0;
-    S32 i1 = r->n - 1;		if (i1 < 0) return -1;
+    S32 i1 = o->n - 1;	if (i1 < 0) return -1;
 
-    GV *v = r->attr;							// point at 1st attribute
+    GV *v = o->var;								// point at 1st attribute
     while (i0 < i1) {
     	S32 m = (i0 + i1) >>1;					// middle i.e. div by 2
         if ((v+m)->oid < oid) {
@@ -48,34 +48,15 @@ _bsearch(guru_var *r, GU oid)
   @return		0: success, 1: failed
 */
 __GURU__ U32
-_resize(guru_var *r, U32 sz)
+_resize(guru_obj *o, U32 sz)
 {
-    GV *v = (GV *)guru_realloc(r->attr, sizeof(GV) * sz);
+    GV *v = o->var = (GV *)guru_realloc(o->var, sizeof(GV) * sz);
 
-    r->attr = v;
-    r->sz   = sz;
+    if (!v) return -1;
+
+    o->sz  = sz;
 
     return 0;
-}
-
-//================================================================
-/*! constructor
-
-  @param  vm	pointer to VM.
-  @param  nlv	number of local variables
-  @return instance store handle
-*/
-__GURU__ guru_var *
-_new(U32 nlv)
-{
-    guru_var *r = (guru_var *)guru_alloc(sizeof(guru_var));
-
-    r->rc   = 0;
-    r->n    = 0;		// currently zero allocated
-    r->sz   = nlv;		// number of local variables
-    r->attr = guru_gv_alloc(nlv);
-
-    return r;
 }
 
 //================================================================
@@ -87,28 +68,29 @@ _new(U32 nlv)
   @return			0: success, -1:failed
 */
 __GURU__ S32
-_set(guru_var *r, GU oid, GV *val)
+_set(guru_obj *o, GU oid, GV *val)
 {
-    S32 idx = _bsearch(r, oid);
-    GV  *v  = r->attr + idx;
+    S32 idx = _bsearch(o, oid);
+	GV  *r  = o->var;
+    GV  *v  = r + idx;
     if (idx >= 0 && v->oid==oid) {
         ref_dec(v);									// replace existed attribute
         SET_VAL(v, oid, val);
         return 0;
     }
     // new attribute
-    v = r->attr + (++idx);							// use next slot
-    if ((r->n+1) > r->sz) {						    // need resize?
-        if (_resize(r, r->sz + 4)) return -1;		// allocation, error?
-        v = r->attr + idx;
+    v = r + (++idx);								// use next slot
+    if ((o->n+1) > o->sz) {							// need resize?
+        if (_resize(o, o->sz + 4)) return -1;		// allocation, error?
+        v = r + idx;
     }
     // shift attributes out for insertion
-    GV *t = r->attr + r->n;
-    for (U32 i=r->n; i > idx; i--, t--) {
+    GV *t = r + o->n;
+    for (U32 i=o->n; i > idx; i--, t--) {
     	*(t) = *(t-1);
     }
     SET_VAL(v, oid, val);
-    r->n++;
+    o->n++;
 
     return 0;
 }
@@ -121,10 +103,10 @@ _set(guru_var *r, GU oid, GV *val)
   @return		pointer to GV .
 */
 __GURU__ GV*
-_get(guru_var *r, GU oid)
+_get(guru_obj *o, GU oid)
 {
-    S32 idx = _bsearch(r, oid);
-    GV  *v  = r->attr + idx;
+    S32 idx = _bsearch(o, oid);
+    GV  *v  = o->var + idx;
     if (idx < 0 || v->oid != oid) return NULL;
 
     return v;
@@ -144,7 +126,7 @@ ostore_new(guru_class *cls)
     guru_obj *o = v.self = (guru_obj *)guru_alloc(sizeof(guru_obj));
 
     o->rc    = 1;
-    o->ivar  = NULL;	// attributes, lazy allocation until _set is called
+    o->var  = NULL;	// attributes, lazy allocation until _set is called
     o->cls   = cls;
     o->sz    = o->n = 0;
 
@@ -159,15 +141,13 @@ ostore_new(guru_class *cls)
 __GURU__ void
 ostore_del(GV *v)
 {
-	guru_var *r = v->self->ivar;
+	GV *r = v->self->var;
 
 	if (r==NULL) return;
 
-    GV *d = r->attr;
-    for (U32 i=0; i<r->n; i++, ref_dec(d++));
+    for (U32 i=0; i<v->self->n; i++, ref_dec(r++));
 
-    guru_free(r->attr);					// free physical
-    guru_free(r);
+    guru_free(v);
 }
 
 //================================================================
@@ -180,12 +160,13 @@ ostore_del(GV *v)
 __GURU__ void
 ostore_set(GV *v, GU oid, GV *val)
 {
-	guru_var *r = v->self->ivar;		// RObj and RClass share same header
-	if (r==NULL) {
-		r = v->self->ivar = _new(4);	// lazy allocation
+	guru_obj *o = v->self;
+	if (o->var==NULL) {
+		o->var = guru_gv_alloc(4);		// lazy allocation
+	    o->sz   = 4;					// number of local variables
 		ref_inc(v);						// itself has been referenced now
 	}
-	_set(r, oid, ref_inc(val));			// referenced by the object now
+	_set(o, oid, ref_inc(val));			// referenced by the object now
 }
 
 //================================================================
@@ -198,9 +179,8 @@ ostore_set(GV *v, GU oid, GV *val)
 __GURU__ GV
 ostore_get(GV *v, GU oid)
 {
-//	(v->gt==GT_CLASS) ? v->cls->ivar : v->self->ivar (common struct)
-	guru_var *r = v->self->ivar;		// class or instance var
-	GV 		 *val = r ? _get(r, oid) : NULL;
+//	(v->gt==GT_CLASS) ? v->cls->var : v->self->var (common struct)
+	GV *val = _get(v->self, oid);
 
     return val ? *ref_inc(val) : NIL;
 }

@@ -132,7 +132,7 @@ __GURU__ void
 _extend(guru_class *cls, guru_class *mod)
 {
 	guru_class *dup = (guru_class*)guru_alloc(sizeof(guru_class));
-	MEMCPY(dup, mod, sizeof(guru_class));		// deep copy so vtbl can be modified later
+	MEMCPY(dup, mod, sizeof(guru_class));		// TODO: deep copy so vtbl can be modified later
 
 	dup->super = cls->super;					// put module as the super-class
 	cls->super = dup;

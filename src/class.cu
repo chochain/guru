@@ -198,16 +198,15 @@ _define_class(const U8 *name, guru_class *cls, guru_class *super)
 {
 	GS sid = create_sym(name);
 
-    cls->rc     = 0;
-    cls->kt     = 0;					// BUILT-IN classes
-    cls->sid    = sid;
+    cls->rc     = cls->n = cls->kt = 0;	// BUILT-IN class
+    //cls->sid    = sid;
     cls->super  = super;
     cls->vtbl   = NULL;
     cls->plist  = NULL;					// head of list
-    cls->ivar   = NULL;					// lazily allocated when needed
+    cls->var    = NULL;					// class variables, lazily allocated when needed
     cls->cls 	= NULL;					// meta-class, lazily allocated when needed
 #ifdef GURU_DEBUG
-    cls->name   = (char *)id2name(sid);	// retrieve from stored symbol table (the one caller passed might be destroyed)
+    cls->name   = id2name(sid);			// retrieve from stored symbol table (the one caller passed might be destroyed)
 #endif
 
     GV v; { v.gt=GT_CLASS; v.acl=0; v.self=(guru_obj*)cls; }
@@ -259,8 +258,8 @@ guru_define_method(guru_class *cls, const U8 *name, guru_fptr cfunc)
     _UNLOCK;
 
 #ifdef GURU_DEBUG
-    prc->cname = (char *)id2name(cls->sid);
-    prc->name  = (char *)id2name(prc->sid);
+    prc->cname = cls->name;		//  id2name(cls->sid);
+    prc->name  = id2name(prc->sid);
 #endif
 
     return prc;
@@ -316,8 +315,8 @@ guru_rom_set_class(GT cidx, const char *name, GT super_cidx, const Vfunc vtbl[],
     	prc->kt   = 0;							// built-in class type
     	prc->func = vtbl[i].func;
 #ifdef GURU_DEBUG
-    	prc->cname= (char *)id2name(cls->sid);
-    	prc->name = (char *)id2name(prc->sid);
+    	prc->cname= cls->name;	// id2name(cls->sid);
+    	prc->name = id2name(prc->sid);
 #endif
     }
 	return cls;

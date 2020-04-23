@@ -195,13 +195,8 @@ struct Vfunc {
 //================================================================
 /*! Define instance data handle.
 */
-typedef struct RVar {
-	GURU_HDR;					// size: allocated size, n: byte count, sid: utf8 char count
-    GV *attr;					// attributes
-} guru_var;
-
 typedef struct RProc {			// 48-byte
-	GURU_HDR;					// sid, meta, n are used
+	GURU_HDR;					// n, sid, kt are used
     union {
 	    struct RIrep 	*irep;	// an IREP (Ruby code), defined in vm.h
     	guru_fptr 		func;	// or a raw C function
@@ -211,8 +206,8 @@ typedef struct RProc {			// 48-byte
     	GV 				*regs;	// register file for lambda
     };
 #if GURU_DEBUG
-    char			*cname;		// classname
-    char  			*name;		// function name
+    U8	*cname;					// classname
+    U8	*name;					// function name
 #endif
 } guru_proc;
 
@@ -232,8 +227,8 @@ typedef struct RString {		// 16-byte
 */
 #define GURU_OBJ_HDR			\
 	GURU_HDR;					\
-    struct RVar 	*ivar;		\
-    struct RClass 	*cls
+    struct RClass 	*cls;		\
+    GV				*var
 
 typedef struct RObj {			// 24-byte
 	GURU_OBJ_HDR;

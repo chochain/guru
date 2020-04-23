@@ -137,7 +137,7 @@ _str(GV *s, GV *v)
 __GURU__ void
 _cls(GV *s, GV *v)
 {
-	U8 *name = id2name(v->cls->sid);
+	U8 *name = id2name(v->oid);
 	guru_str_add_cstr(s, name);
 }
 
@@ -145,7 +145,7 @@ __GURU__ void
 _obj(GV *s, GV *v)
 {
 	ASSERT(v->gt==GT_OBJ);
-	U8 *name = id2name(class_by_obj(v)->sid);
+	U8 *name = class_by_obj(v)->name;		//id2name(class_by_obj(v)->sid);
 	guru_str_add_cstr(s, "#<");
 	guru_str_add_cstr(s, name);
 	guru_str_add_cstr(s, ":");

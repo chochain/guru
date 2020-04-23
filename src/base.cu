@@ -101,7 +101,7 @@ guru_cmp(const GV *v0, const GV *v1)
 __GURU__ GV *
 ref_dec(GV *v)
 {
-    if (HAS_NO_REF(v))  	return v;		// skip simple or ROMable objects
+    if (HAS_NO_REF(v))     return v;		// skip simple or ROMable objects
 
     ASSERT(v->self->rc);					// rc > 0?
     if (--v->self->rc > 0) return v;		// still used, keep going
