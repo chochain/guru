@@ -14,11 +14,11 @@ LIBDIRS=-L/usr/local/cuda/lib64
 INCDIRS=-I/usr/local/cuda/include -I./src
 
 SRC =   main.c 
-CORE= 	util.cu static.cu global.cu mmu32.cu symbol.cu \
+CORE= 	util.cu global.cu mmu32.cu symbol.cu \
 		base.cu ostore.cu iter.cu
 EXT =   c_fixnum.cu c_range.cu c_string.cu c_array.cu c_hash.cu 
 GURU= 	$(CORE) $(EXT) \
-        guru_test.cu load.cu class.cu state.cu \
+        guru_test.cu load.cu class.cu static.cu state.cu \
 		object.cu ucode.cu vm.cu \
 		inspect.cu console.cu debug.cu sprintf.cu puts32.cu
 CUDA=   cuda.cu
@@ -48,11 +48,9 @@ main.o: main.c gurux.h
 
 util.o: util.cu			vm_config.h
 
-static.o: static.cu	    vm_config.h guru.h static.h
-
 global.o: global.cu	    vm_config.h guru.h global.h
 
-mmu32.o: mmu32.cu   	$(_CORE)
+mmu32.o: mmu32.cu   	$(_CORE) mmu32.h
 
 symbol.o: symbol.cu 	$(_CORE) symbol.h
 
@@ -77,6 +75,8 @@ guru_test.o: guru_test.cu $(_CORE) helper_cuda.h helper_string.h
 guru.o: guru.cu         $(_CORE) vmx.h
 
 class.o: class.cu	    $(_CORE) class.h
+
+static.o: static.cu	    $(_CORE) class.h static.h
 
 state.o: state.cu		$(_CORE) class.h state.h
 

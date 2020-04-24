@@ -190,7 +190,7 @@ vm_main_start()
 		for (U32 i=0; i<MIN_VM_COUNT; i++, vm++) {
 			if (!vm->state) continue;
 			// add pre-hook here
-			debug_disasm(vm);
+			if (debug_disasm(vm)) break;
 			_exec<<<1,1,0,vm->st>>>(vm);				// guru -x to run without single-stepping
 			// add post-hook here
 		}

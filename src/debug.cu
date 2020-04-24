@@ -247,7 +247,7 @@ debug_init(U32 flag)
 __HOST__ void
 debug_mmu_stat()
 {
-	show_mmu_stat(_debug);
+	guru_mmu_check(_debug);
 }
 
 __HOST__ void
@@ -260,16 +260,16 @@ debug_vm_irep(guru_vm *vm)
 	_show_irep(vm->state->irep, 'A'+vm->id, &c);
 }
 
-__HOST__ void
+__HOST__ int
 debug_disasm(guru_vm *vm)
 {
-	if (_debug<1 || !vm->state) return;
+	if (_debug<1 || !vm->state) return 0;
 
 	for (guru_state *st=vm->state; st->prev; st=st->prev) printf("  ");
 
 	_disasm(vm, _debug);
 
-	if (_debug>1) show_mmu_stat(_debug);
+	return (_debug>1) ? guru_mmu_check(_debug) : 0;
 }
 
 __HOST__ void

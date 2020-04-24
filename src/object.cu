@@ -389,9 +389,10 @@ sys_mstat(GV v[], U32 vi)
 {
 	GV  si; { si.gt=GT_INT; si.acl=0; }
 	GV  ret = guru_array_new(8);
-	U32 *s  = (U32*)guru_mmu_stat();
-	for (U32 i=0; i<8; i++, s++) {
-		si.i = *s;
+	U32 s[8];
+	guru_mmu_stat((guru_mstat*)s);
+	for (U32 i=0; i<8; i++) {
+		si.i = s[i];
 		guru_array_push(&ret, &si);
 	}
 	*v = ret;
