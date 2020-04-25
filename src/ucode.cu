@@ -490,7 +490,7 @@ __GURU__ GV *
 _undef(GV *buf, GV *v, GS sid)
 {
 	U8 *fname = id2name(sid);
-	U8 *cname = class_by_obj(v)->name;	// id2name(class_by_obj(v)->sid);
+	U8 *cname = id2name(class_by_obj(v)->sid);
 
 	guru_str_add_cstr(buf, "undefined method '");
 	guru_str_add_cstr(buf, fname);

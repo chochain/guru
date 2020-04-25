@@ -34,7 +34,7 @@ typedef struct RClass {			// 64-byte
 #endif // GURU_DEBUG
 } guru_class;
 
-#define USER_DEF_CLASS	0x8
+#define USER_DEF_CLASS	0x1
 #define IS_BUILTIN(cls)	(!(cls->kt & USER_DEF_CLASS))
 
 __GURU__ guru_class *guru_rom_get_class(GT cidx);

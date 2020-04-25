@@ -199,7 +199,7 @@ _define_class(const U8 *name, guru_class *cls, guru_class *super)
 	GS sid = create_sym(name);
 
     cls->rc     = cls->n = cls->kt = 0;	// BUILT-IN class
-    //cls->sid    = sid;
+    cls->sid    = sid;
     cls->super  = super;
     cls->vtbl   = NULL;
     cls->plist  = NULL;					// head of list
@@ -258,7 +258,7 @@ guru_define_method(guru_class *cls, const U8 *name, guru_fptr cfunc)
     _UNLOCK;
 
 #ifdef GURU_DEBUG
-    prc->cname = cls->name;		//  id2name(cls->sid);
+    prc->cname = id2name(cls->sid);
     prc->name  = id2name(prc->sid);
 #endif
 
@@ -310,12 +310,12 @@ guru_rom_set_class(GT cidx, const char *name, GT super_cidx, const Vfunc vtbl[],
     cls->vtbl = prc;							// built-in proc list
 
     for (U32 i=0; i<n; i++, prc++) {
-    	prc->n    = 0;							// NOT USER_DEF_CLASS
+    	prc->n    = 0;
     	prc->sid  = create_sym((U8*)vtbl[i].name);
-    	prc->kt   = 0;							// built-in class type
+    	prc->kt   = 0;							// built-in class type (not USER_DEF_CLASS)
     	prc->func = vtbl[i].func;
 #ifdef GURU_DEBUG
-    	prc->cname= cls->name;	// id2name(cls->sid);
+    	prc->cname= id2name(cls->sid);
     	prc->name = id2name(prc->sid);
 #endif
     }

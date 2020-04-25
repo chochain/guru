@@ -178,7 +178,8 @@ struct Vfunc {
     i   : 32-bit value used by Iterator
 */
 #define GURU_HDR  		\
-	U16		rc;			\
+	U16		rc : 12;	\
+	U16		kt : 4;		\
 	U16     n;			\
 	union {				\
 		struct {		\
@@ -186,8 +187,8 @@ struct Vfunc {
 			U16	bsz;	\
 		};				\
 		struct {		\
+			U16 xx;		\
 			U16 sid;	\
-			U16 kt;		\
 		};				\
 		GI i;			\
     }
@@ -212,7 +213,7 @@ typedef struct RProc {			// 48-byte
 } guru_proc;
 
 #define PROC_IREP		0x1
-#define PROC_LAMBDA		0x8
+#define PROC_LAMBDA		0x2
 #define AS_IREP(p)		((p)->kt & PROC_IREP)
 #define AS_LAMBDA(p)	((p)->kt & PROC_LAMBDA)
 

@@ -36,7 +36,7 @@ guru_range_new(GV *first, GV *last, int inc)
     guru_range *r = v.range = (guru_range *)guru_alloc(sizeof(guru_range));
 
     r->rc    = 1;
-    r->n 	 = inc ? RANGE_INCLUDE : 0;
+    r->kt 	 = inc ? RANGE_INCLUDE : 0;
     r->first = *first;
     r->last  = *last;
     ref_inc(first);
