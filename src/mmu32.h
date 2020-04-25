@@ -91,8 +91,6 @@ typedef struct free_block {			// 16-bytes (i.e. mininum allocation per block)
 #define L2_MAP(i)       (_l2_map[L1(i)])
 #define INDEX(l1, l2)   ((l1<<L2_BITS) | l2)
 
-
-
 #define SET_L1(i)		(L1_MAP(i) |= TIC(L1(i)))
 #define CLR_L1(i)	    (L1_MAP(i) &= ~TIC(L1(i)))
 #define SET_L2(i)	    (L2_MAP(i) |= TIC(L2(i)))
@@ -100,7 +98,8 @@ typedef struct free_block {			// 16-bytes (i.e. mininum allocation per block)
 #define SET_MAP(i)      { SET_L1(i); SET_L2(i); }
 #define CLEAR_MAP(i)	{ CLR_L2(i); if ((L2_MAP(i))==0) CLR_L1(i); }
 
-#define CHECK_MINSZ(sz)	ASSERT((sz)>=MIN_BLOCK)
+#define MIN_BLOCK_SIZE	(sizeof(free_block))				// 16-byte (need space for prev/next pointers)
+#define CHECK_MEMSZ(sz)	ASSERT((((sz)&7)==0) && ((sz)>=MIN_BLOCK_SIZE))
 
 #ifdef __cplusplus
 }

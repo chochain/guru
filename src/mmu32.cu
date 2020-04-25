@@ -354,11 +354,9 @@ __GURU__ void*
 guru_alloc(U32 sz)
 {
     U32 bsz = sz + sizeof(used_block);			// logical => physical size
+    CHECK_MEMSZ(bsz);							// check alignment & sizing
 
-	_LOCK;
-    ASSERT((bsz & 7)==0);						// assume caller already align the size
-    CHECK_MINSZ(bsz);							// check minimum allocation size
-
+    _LOCK;
 	U32 index 		= _find_free_index(bsz);
 	free_block *blk = _mark_used(index);		// take the indexed block off free list
 
@@ -380,14 +378,13 @@ guru_alloc(U32 sz)
   @param  size	request size
   @return void* pointer to allocated memory.
 */
-#define BLK_MAX_REALLOC	1024
 __GURU__ void*
 guru_realloc(void *p0, U32 sz)
 {
-	U32 bsz = sz + sizeof(used_block);					// include the header
-
 	ASSERT(p0);
-	ASSERT((bsz & 7)==0);								// assume it is aligned already
+
+	U32 bsz = sz + sizeof(used_block);					// include the header
+	CHECK_MEMSZ(bsz);									// assume it is aligned already
 
     used_block *blk = (used_block *)BLK_HEAD(p0);
     ASSERT(IS_USED(blk));								// make sure it is used
@@ -397,7 +394,7 @@ guru_realloc(void *p0, U32 sz)
     }
     if (bsz == blk->bsz) return p0;						// fits right in
     if (bsz < blk->bsz) {								// enough space now
-    	if (blk->bsz > BLK_MAX_REALLOC) {				// but is it too big?
+    	if ((blk->bsz - bsz) > (sizeof(used_block)+MIN_BLOCK)) {	// but is it too big?
     		_split((free_block*)blk, bsz);				// allocate the block, free up the rest
     	}
     	return p0;
@@ -407,8 +404,6 @@ guru_realloc(void *p0, U32 sz)
     MEMCPY(p1, p0, sz);									// deep copy, !!using CUDA provided memcpy
 
     guru_free(p0);										// reclaim block
-
-    MMU_CHECK;
 
     return p1;
 }
@@ -437,8 +432,8 @@ guru_free(void *ptr)
     _merge_with_next(blk);
 #if GURU_DEBUG
     if (BLK_AFTER(blk)) {
-    	U32 *p = (U32*)U8PADD(blk, sizeof(free_block));
-    	U32 sz = blk->bsz > sizeof(free_block) ? (blk->bsz - sizeof(free_block))>>2 : 0;
+    	U32 *p = (U32*)U8PADD(blk, sizeof(used_block));
+    	U32 sz = blk->bsz ? (blk->bsz - sizeof(used_block))>>2 : 0;
     	for (U32 i=0; i< (sz>32 ? 32 : sz); i++) *p++=0xffffffff;
     }
 #endif
