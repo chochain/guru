@@ -48,10 +48,7 @@ GURU_MEM_BLOCK:
 */
 #define GURU_MEM_BLOCK				\
 	U32 bsz;						\
-	union {							\
-		U32 psz	:   32;				\
-		U32 flag: 	3;				\
-	}
+	U32 psz
 
 typedef struct used_block {			// 8-bytes
 	GURU_MEM_BLOCK;
@@ -64,16 +61,16 @@ typedef struct free_block {			// 16-bytes (i.e. mininum allocation per block)
 } free_block;
 
 #define FREE_FLAG		0x1
-#define IS_FREE(b)		((b)->flag & FREE_FLAG)
+#define IS_FREE(b)		((b)->psz & FREE_FLAG)
 #define IS_USED(b)		(!IS_FREE(b))
-#define SET_FREE(b)		((b)->flag |=  FREE_FLAG)
-#define SET_USED(b)		((b)->flag &= ~FREE_FLAG)
+#define SET_FREE(b)		((b)->psz |=  FREE_FLAG)
+#define SET_USED(b)		((b)->psz &= ~FREE_FLAG)
 
 #define NEXT_FREE(b)	((free_block*)((b)->next ? ((b)->next<0 ? U8PSUB((b), -(b)->next) : U8PADD((b), (b)->next)) : NULL))
 #define PREV_FREE(b)	((free_block*)((b)->prev ? ((b)->prev<0 ? U8PSUB((b), -(b)->prev) : U8PADD((b), (b)->prev)) : NULL))
 
-#define BLK_AFTER(b) 	((b)->bsz 			   ? U8PADD(b, (b)->bsz) 				: NULL)		// following adjacent memory block
-#define BLK_BEFORE(b) 	(((b)->psz&~FREE_FLAG) ? U8PSUB(b, ((b)->psz&~FREE_FLAG)) 	: NULL)		// prior adjacent memory block
+#define BLK_AFTER(b) 	(((b)->bsz           ) ? U8PADD(b, (b)->bsz             ) : NULL)		// following adjacent memory block
+#define BLK_BEFORE(b) 	(((b)->psz&~FREE_FLAG) ? U8PSUB(b, ((b)->psz&~FREE_FLAG)) : NULL)		// prior adjacent memory block
 #define BLK_DATA(b) 	(U8PADD(b, sizeof(used_block)))		// pointer to raw data space
 #define BLK_HEAD(p) 	(U8PSUB(p, sizeof(used_block)))		// pointer block given raw data pointer
 

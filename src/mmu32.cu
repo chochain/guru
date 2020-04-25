@@ -11,6 +11,7 @@
 
   </pre>
 */
+#include "guru_config.h"
 #include "guru.h"
 #include "util.h"
 #include "mmu.h"
@@ -23,16 +24,41 @@
 #define _LOCK			{ MUTEX_LOCK(_mutex_mem); }
 #define _UNLOCK			{ MUTEX_FREE(_mutex_mem); }
 
-__GURU__ volatile U32 	_mutex_mem;
-
 // memory pool
+__GURU__ volatile U32 	_mutex_mem;
 __GURU__ U8				*_memory_pool;
-__GURU__ guru_mstat		_mem_stat;
 
 // free memory bitmap
 __GURU__ U32 			_l1_map;								// use lower 24 bits
 __GURU__ U16 			_l2_map[L1_BITS];						// 8-bit now, TODO: 16-bit?
 __GURU__ free_block		*_free_list[FL_SLOTS];
+
+//================================================================
+// MMU JTAG sanity check - memory pool walker
+//
+#if GURU_DEBUG
+__GURU__ int
+__mmu_ok()											// mmu sanity check
+{
+	used_block *p0 = (used_block*)_memory_pool;
+	used_block *p1 = (used_block*)BLK_AFTER(p0);
+	U32 tot = sizeof(free_block);
+	while (p1) {
+		if (p0->bsz != (p1->psz&~FREE_FLAG)) {
+			return 0;
+		}
+		tot += p0->bsz;
+		p0  = p1;
+		p1  = (used_block*)BLK_AFTER(p0);
+	}
+	return (!p1 && tot==BLOCK_MEMORY_SIZE);
+}
+
+#define MMU_CHECK		ASSERT(__mmu_ok())
+//#define MMU_CHECK		__mmu_ok()
+#else
+#define MMU_CHECK
+#endif // CC_DEBUG
 
 //================================================================
 // most significant bit that is set
@@ -115,6 +141,8 @@ __unmap(free_block *blk)
     	p->next = blk->next ? U8POFF(n, p) : 0;
     }
     blk->next = blk->prev = 0xeeeeeeee;			// wipe for debugging
+
+    MMU_CHECK;
 }
 
 //================================================================
@@ -133,7 +161,7 @@ __pack(free_block *b0, free_block *b1)
 	// remove b0, b1 from free list first (sizes will not change)
     __unmap(b1);
 
-	// merge p0 and p1
+	// merge b0 and b1, retain b0.FREE_FLAG
 	used_block *b2 = (used_block *)BLK_AFTER(b1);
 	b2->psz += b1->psz & ~FREE_FLAG;	// watch for the block->flag
     b0->bsz += b1->bsz;					// include the block header
@@ -141,6 +169,7 @@ __pack(free_block *b0, free_block *b1)
 #if GURU_DEBUG
     *((U64*)b1) = 0xeeeeeeeeeeeeeeee;	// wipe b1 header
 #endif
+    MMU_CHECK;
 }
 
 //================================================================
@@ -201,12 +230,12 @@ _mark_used(U32 index)
 }
 
 __GURU__ void
-_merge_with_next(free_block *b1)
+_merge_with_next(free_block *b0)
 {
-	free_block *b2 = (free_block *)BLK_AFTER(b1);
-	while (b2 && IS_FREE(b2)) {
-		__pack(b1, b2);
-		b2 = (free_block *)BLK_AFTER(b1);	// try the already expanded block again
+	free_block *b1 = (free_block *)BLK_AFTER(b0);
+	while (b1 && IS_FREE(b1) && b1->bsz!=0) {
+		__pack(b0, b1);
+		b1 = (free_block *)BLK_AFTER(b0);	// try the already expanded block again
 	}
 }
 
@@ -272,14 +301,15 @@ _split(free_block *blk, U32 bsz)
 
     free->bsz = blk->bsz - bsz;							// carve out the acquired block
     free->psz = U8POFF(free, blk);						// positive offset to previous block
+    blk->bsz  = bsz;									// allocate target block
 
     if (aft) {
-        aft->psz = U8POFF(aft, free)|(aft->flag&FREE_FLAG);		// backward offset (positive)
-        _merge_with_next(free);									// _combine if possible
+        aft->psz = U8POFF(aft, free)|(aft->psz&FREE_FLAG);	// backward offset (positive)
+        _merge_with_next(free);								// _combine if possible
     }
     _mark_free(free);			// add to free_list and set (free, tail, next, prev) fields
 
-    blk->bsz  = bsz;									// reduce size
+    MMU_CHECK;
 }
 
 //================================================================
@@ -310,6 +340,8 @@ _init_mmu(void *mem, U32 size)
     blk->bsz = blk->next = blk->prev = 0;
     blk->psz = bsz;
     SET_USED(blk);
+
+    MMU_CHECK;
 }
 
 //================================================================
@@ -376,6 +408,8 @@ guru_realloc(void *p0, U32 sz)
 
     guru_free(p0);										// reclaim block
 
+    MMU_CHECK;
+
     return p1;
 }
 
@@ -398,7 +432,6 @@ __GURU__ void
 guru_free(void *ptr)
 {
 	_LOCK;
-
     free_block *blk = (free_block *)BLK_HEAD(ptr);			// get block header
 
     _merge_with_next(blk);
@@ -413,8 +446,9 @@ guru_free(void *ptr)
 
     // the block is free now, try to merge a free block before if exists
     blk = _merge_with_prev(blk);
-
     _UNLOCK;
+
+    MMU_CHECK;
 }
 
 //================================================================
@@ -434,34 +468,33 @@ guru_mmu_clr()
     }
 }
 
-__GURU__ guru_mstat*
-guru_mmu_stat()
+__GURU__ void
+guru_mmu_stat(guru_mstat *s)
 {
 	used_block *p = (used_block *)_memory_pool;
-	guru_mstat *s = &_mem_stat;
 	MEMSET(s, 0, sizeof(guru_mstat));	// wipe, !using CUDA provided memset
 
 	U32 flag = IS_FREE(p);				// starting block type
-	while (p) {	// walk the memory pool
+	while (p) {							// walk the memory pool
+		U32 bsz = p->bsz;				// current block size
 		if (flag != IS_FREE(p)) {       // supposed to be merged
 			s->nfrag++;
 			flag = IS_FREE(p);
 		}
-		s->total += p->bsz;
+		s->total += bsz;
 		s->nblk  += 1;
 		if (IS_FREE(p)) {
 			s->nfree += 1;
-			s->free  += p->bsz;
+			s->free  += bsz;
 		}
 		else {
 			s->nused += 1;
-			s->used  += p->bsz;
+			s->used  += bsz;
 		}
 		p = (used_block *)BLK_AFTER(p);
 	}
 	s->total    += sizeof(free_block);
 	s->pct_used = (int)(100*(s->used+1)/s->total);
-	return s;
 }
 
 __GPU__ void
@@ -494,7 +527,7 @@ cuda_free(void *mem) {
 }
 
 #if !GURU_DEBUG
-__HOST__ void show_mmu_stat(U32 trace);
+__HOST__ U32 guru_mmu_check(U32 trace);
 #else
 //================================================================
 /*! statistics
@@ -528,46 +561,38 @@ _dump_freelist()
 	printf("\n");
 }
 
-
 __GPU__ void
-_alloc_stat(U32 v[])
+_alloc_stat(guru_mstat *s)
 {
 	if (threadIdx.x!=0 || blockIdx.x!=0) return;
 
-	guru_mstat *s = guru_mmu_stat();
-	MEMCPY(v, s, sizeof(guru_mstat));
+	guru_mstat v;
+	guru_mmu_stat(&v);
+
+	*s = v;
 }
 
-__HOST__ void
-_get_alloc_stat(U32 stat[])
+__HOST__ U32
+guru_mmu_check(U32 level)
 {
-	U32 *v;
-	cudaMallocManaged(&v, 8*sizeof(int));				// allocate host memory
+	U32 err;
 
-	_alloc_stat<<<1,1>>>(v);
-	GPU_SYNC();
-
-	for (U32 i=0; i<8; i++) {
-		stat[i] = v[i];									// mirror stat back from device
-	}
-	cudaFree(v);
-}
-
-__HOST__ void
-show_mmu_stat(U32 level)
-{
-	if (level==0) return;
-
-	U32 s[8];
+	if (level==0) return 0;
 	if (level & 1) {
-		_get_alloc_stat(s);
+		guru_mstat *s;
+		cudaMallocManaged(&s, sizeof(guru_mstat));				// allocate host memory
+
+		_alloc_stat<<<1,1>>>(s);
+		GPU_SYNC();
 
 		printf("%14smem=%d(0x%x): free=%d(0x%x), used=%d(0x%x), nblk=%d, nfrag=%d, %d%% allocated\n",
-			"", s[0], s[0], s[1], s[2], s[3], s[4], s[5], s[6], s[7]);
+			"", s->total, s->total, s->free, s->free, s->used, s->used, s->nblk, s->nfrag, s->pct_used);
+		cudaFree(s);
 	}
 	if (level & 2) {
 		_dump_freelist<<<1,1>>>();
 		GPU_SYNC();
 	}
+	return 0;
 }
 #endif

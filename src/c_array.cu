@@ -53,22 +53,22 @@
 /*! get size
  */
 __GURU__ void
-_resize(guru_array *h, U32 ndx)
+_resize(guru_array *h, U32 nsz)
 {
-    U32 n = 0;
-    if (ndx >= h->sz) {						// need resize?
-        n = ndx;
+    U32 sz = 0;
+    if (nsz >= h->sz) {						// need resize?
+        sz = nsz;
     }
     else if (h->n >= h->sz) {
-        n = h->n + 4;						// auto allocate extra 4 elements
+        sz = h->n + 4;						// auto allocate extra 4 elements
     }
-    if (n==0) return;
+    if (sz==0) return;
 
     h->data = h->data
-    	? guru_gv_realloc(h->data, n)
-        : guru_gv_alloc(n);
-    h->sz = n;
-    for (U32 i=h->n; i<n; i++) {			// DEBUG: lazy fill here, instead of when resized
+    	? guru_gv_realloc(h->data, sz)
+        : guru_gv_alloc(sz);
+    h->sz = sz;
+    for (U32 i=h->n; i<sz; i++) {			// DEBUG: lazy fill here, instead of when resized
     	h->data[i] = EMPTY;
     }
 }
