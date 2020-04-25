@@ -47,16 +47,10 @@ _bsearch(guru_obj *o, GU oid)
   @param  size	size.
   @return		0: success, 1: failed
 */
-__GURU__ U32
-_resize(guru_obj *o, U32 sz)
+__GURU__ GV *
+_resize(GV *v0, U32 sz)
 {
-    GV *v = o->var = (GV *)guru_realloc(o->var, sizeof(GV) * sz);
-
-    if (!v) return -1;
-
-    o->sz  = sz;
-
-    return 0;
+    return (GV *)guru_realloc(v0, sizeof(GV) * sz);
 }
 
 //================================================================
@@ -79,11 +73,14 @@ _set(guru_obj *o, GU oid, GV *val)
         return 0;
     }
     // new attribute
-    v = r + (++idx);								// use next slot
-    if ((o->n+1) > o->sz) {							// need resize?
-        if (_resize(o, o->sz + 4)) return -1;		// allocation, error?
-        v = r + idx;
+    if ((o->n+1) > o->sz) {							// too small?
+    	U32 nsz = o->sz + 4;						// expand some
+        o->var = r = _resize(r, nsz);
+        if (!r) return -1;
+        o->sz  = nsz;
     }
+    v = r + (++idx);								// use next slot
+
     // shift attributes out for insertion
     GV *t = r + o->n;
     for (U32 i=o->n; i > idx; i--, t--) {
