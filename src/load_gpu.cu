@@ -190,8 +190,9 @@ _build_image(U8 **bp)
     irep->reps = reps;
 
     U32 pool_sz = sizeof(GV) * (r0.p + r0.s);
-    irep->pool  = (GV *)guru_alloc(pool_sz);			// TODO: use vm->regfile[] directly
-
+    if (pool_sz) {
+    	irep->pool  = (GV *)guru_alloc(pool_sz);		// TODO: use vm->regfile[] directly
+    }
     _to_gv(irep->pool, 		  r0.s, sym,  1);			// symbol table 1st  (faster)
     _to_gv(irep->pool + r0.s, r0.p, pool, 0);			// pooled object 2nd (one extra calc)
 
