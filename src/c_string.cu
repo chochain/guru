@@ -292,8 +292,8 @@ guru_str_add(GV *s0, GV *s1)
     U32 bsz0 = s0->str->bsz;
     U32 bsz1 = s1->str->bsz;
     U32 asz  = ALIGN(bsz0 + bsz1 + 1);		// +'\0', 8-byte aligned
-
     GV  ret  = _blank(asz);
+
     U8  *buf = (U8*)ret.str->raw;
     MEMCPY(buf, 	 s0->str->raw, bsz0);
     MEMCPY(buf+bsz0, s1->str->raw, bsz1+1);
@@ -314,14 +314,16 @@ guru_str_add_cstr(GV *s0, const U8 *str)
 {
     U32 bsz0 = s0->str->bsz;
     U32 bsz1 = STRLENB(str);
-    U32 asz  = bsz0 + bsz1 + 1;		asz += -asz & 7;	// 8-byte aligned
-    U8  *buf = (U8*)guru_realloc(s0->str->raw, asz);
+    U32 asz  = ALIGN(bsz0 + bsz1+1);					// 8-byte aligned
+    U8  *buf = (U8*)s0->str->raw;
 
-    MEMCPY(buf + bsz0, str, bsz1 + 1);
+    if (asz > s0->str->sz) {
+    	s0->str->raw = (char*)(buf = (U8*)guru_realloc(buf, asz));
+        s0->str->sz  = asz;
+    }
+    MEMCPY(buf + bsz0, str, bsz1+1);
 
-    s0->str->sz  = asz;
     s0->str->bsz = bsz0 + bsz1;
-    s0->str->raw = (char *)buf;
 
     return *s0;
 }

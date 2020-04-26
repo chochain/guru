@@ -137,7 +137,7 @@ _str(GV *s, GV *v)
 __GURU__ void
 _cls(GV *s, GV *v)
 {
-	U8 *name = id2name(v->oid);
+	U8 *name = id2name(v->cls->sid);
 	guru_str_add_cstr(s, name);
 }
 
@@ -254,7 +254,7 @@ ary_join(GV v[], U32 vi)
 	GV *r  = a->data;
 	for (U32 i=0; i<a->n; i++, r++) {
 		if (r->gt!=GT_STR)	_to_s(&ret, r, 0);
-		else guru_str_add_cstr(&ret, (U8 *)r->str->raw);
+		else                guru_str_add_cstr(&ret, (U8 *)r->str->raw);
 		if (vi==0 || (i+1)>=a->n) continue;
 		guru_str_add_cstr(&ret, (U8 *)(v+1)->str->raw);
 	}

@@ -51,6 +51,9 @@ __mmu_ok()											// mmu sanity check
 		p0  = p1;
 		p1  = (used_block*)BLK_AFTER(p0);
 	}
+	if (tot!=BLOCK_MEMORY_SIZE) {
+		return 0;
+	}
 	return (!p1 && tot==BLOCK_MEMORY_SIZE);
 }
 
