@@ -286,20 +286,20 @@ guru_str_add(GV *s0, GV *s1)
   @param  s1	pointer to char (c_str)
 */
 __GURU__ GV
-guru_str_add_cstr(GV *s0, const U8 *str)
+guru_buf_add_cstr(GV *buf, const U8 *str)
 {
-    U32 len0 = s0->str->n;
+    U32 len0 = buf->str->n;
     U32 len1 = STRLEN(str);
     U32 asz  = len0 + len1 + 1;		asz += -asz & 7;	// 8-byte aligned
-    U8  *buf = (U8*)guru_realloc(s0->str->raw, asz);
+    U8  *tmp = (U8*)guru_realloc(buf->str->raw, asz);
 
-    MEMCPY(buf + len0, str, len1 + 1);
+    MEMCPY(tmp + len0, str, len1 + 1);
 
-    s0->str->sz  = asz;
-    s0->str->n 	 = len0 + len1;
-    s0->str->raw = (char *)buf;
+    buf->str->sz  = asz;
+    buf->str->n   = len0 + len1;
+    buf->str->raw = (char *)tmp;
 
-    return *s0;
+    return *buf;
 }
 
 //================================================================
@@ -661,12 +661,12 @@ __CFUNC__
 str_inspect(GV v[], U32 vi)
 {
 	const char *hex = "0123456789ABCDEF";
-    GV ret = guru_str_buf(BUF_SIZE*2);
+    GV buf = guru_str_buf(BUF_SIZE*2);
 
-    guru_str_add_cstr(&ret, "\"");
+    guru_buf_add_cstr(&buf, "\"");
 
-    U8 buf[BUF_SIZE];
-    U8 *p = buf;
+    U8 tmp[BUF_SIZE];
+    U8 *p = tmp;
     U8 *s = (U8*)v->str->raw;
 
     for (U32 i=0; i < v->str->n; i++, s++) {
@@ -679,17 +679,17 @@ str_inspect(GV v[], U32 vi)
             *p++ = hex[*s >> 4];
             *p++ = hex[*s & 0x0f];
         }
-    	if ((p-buf) > BUF_SIZE-5) {			// flush buffer
+    	if ((p-tmp) > BUF_SIZE-5) {			// flush buffer
     		*p = '\0';
-    		guru_str_add_cstr(&ret, buf);
-    		p = buf;
+    		guru_buf_add_cstr(&buf, tmp);
+    		p = tmp;
     	}
     }
     *p++ = '\"';
     *p   = '\0';
-    guru_str_add_cstr(&ret, buf);
+    guru_buf_add_cstr(&buf, tmp);
 
-    RETURN_VAL(ret);
+    RETURN_VAL(buf);
 }
 
 //================================================================

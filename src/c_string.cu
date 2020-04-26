@@ -27,7 +27,7 @@ __GURU__ S32	guru_str_cmp(GV *s0, GV *s1){ return NIL(); }
 __GURU__ GV		guru_str_buf(U32 sz)		{ return NIL(); }			// a string buffer
 __GURU__ GV		guru_str_clr(GV *s)			{ return NIL(); }
 __GURU__ GV     guru_str_add(GV *s0, GV *s1){ return NIL(); }
-__GURU__ GV		guru_str_add_cstr(GV *s0, const U8 *str) { return NIL(); }
+__GURU__ GV		guru_buf_add_cstr(GV *buf, const U8 *str) { return NIL(); }
 
 __GURU__ void	guru_init_class_string() { guru_class_string = NULL; }
 
@@ -310,22 +310,22 @@ guru_str_add(GV *s0, GV *s1)
   @param  s1	pointer to char (c_str)
 */
 __GURU__ GV
-guru_str_add_cstr(GV *s0, const U8 *str)
+guru_buf_add_cstr(GV *buf, const U8 *str)
 {
-    U32 bsz0 = s0->str->bsz;
+    U32 bsz0 = buf->str->bsz;
     U32 bsz1 = STRLENB(str);
     U32 asz  = ALIGN(bsz0 + bsz1+1);					// 8-byte aligned
-    U8  *buf = (U8*)s0->str->raw;
+    U8  *tmp = (U8*)buf->str->raw;
 
-    if (asz > s0->str->sz) {
-    	s0->str->raw = (char*)(buf = (U8*)guru_realloc(buf, asz));
-        s0->str->sz  = asz;
+    if (asz > buf->str->sz) {
+    	buf->str->raw = (char*)(tmp = (U8*)guru_realloc(tmp, asz));
+        buf->str->sz  = asz;
     }
-    MEMCPY(buf + bsz0, str, bsz1+1);
+    MEMCPY(tmp + bsz0, str, bsz1+1);
 
-    s0->str->bsz = bsz0 + bsz1;
+    buf->str->bsz = bsz0 + bsz1;
 
-    return *s0;
+    return *buf;
 }
 
 //================================================================
@@ -682,12 +682,12 @@ __CFUNC__
 str_inspect(GV v[], U32 vi)
 {
 	const char *hex = "0123456789ABCDEF";
-    GV ret = guru_str_buf(BUF_SIZE*2);
+    GV buf = guru_str_buf(BUF_SIZE*2);
 
-    guru_str_add_cstr(&ret, "\"");
+    guru_buf_add_cstr(&buf, "\"");
 
-    U8 buf[BUF_SIZE];
-    U8 *p = buf;
+    U8 tmp[BUF_SIZE];
+    U8 *p = tmp;
     U8 *s = (U8*)v->str->raw;
 
     for (U32 i=0; i < v->str->bsz; i++, s++) {
@@ -700,17 +700,17 @@ str_inspect(GV v[], U32 vi)
             *p++ = hex[*s >> 4];
             *p++ = hex[*s & 0x0f];
         }
-    	if ((p-buf) > BUF_SIZE-5) {			// flush buffer
+    	if ((p-tmp) > BUF_SIZE-5) {			// flush buffer
     		*p = '\0';
-    		guru_str_add_cstr(&ret, buf);
-    		p = buf;
+    		guru_buf_add_cstr(&buf, tmp);
+    		p = tmp;
     	}
     }
     *p++ = '\"';
     *p   = '\0';
-    guru_str_add_cstr(&ret, buf);
+    guru_buf_add_cstr(&buf, tmp);
 
-    RETURN_VAL(ret);
+    RETURN_VAL(buf);
 }
 
 //================================================================

@@ -186,8 +186,8 @@ obj_setiv(GV v[], U32 vi)
 __GURU__ U8 *
 _name_w_eq_sign(GV *buf, U8 *s0)
 {
-    guru_str_add_cstr(buf, s0);
-    guru_str_add_cstr(buf, "=");
+    guru_buf_add_cstr(buf, s0);
+    guru_buf_add_cstr(buf, "=");
 
     U32 sid = create_sym((U8*)buf->str->raw);			// create the symbol
 
