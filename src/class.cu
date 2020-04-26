@@ -209,7 +209,7 @@ _define_class(const U8 *name, guru_class *cls, guru_class *super)
     cls->name   = id2name(sid);			// retrieve from stored symbol table (the one caller passed might be destroyed)
 #endif
 
-    GV v; { v.gt=GT_CLASS; v.acl=0; v.self=(guru_obj*)cls; }
+    GV v; { v.gt=GT_CLASS; v.acl=0; v.cls=cls; }
     const_set(sid, &v);					// register new class in constant cache
 }
 

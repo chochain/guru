@@ -62,12 +62,12 @@ guru_cmp(const GV *v0, const GV *v1)
         if (v0->gt==GT_INT && v1->gt==GT_FLOAT) {
             f0 = v0->i;
             f1 = v1->f;
-            return -1 + (f0 == f1) + (f0 > f1)*2;	// caution: NaN == NaN is false
+            return -1 + (f0==f1) + (f0 > f1)*2;		// caution: NaN == NaN is false
         }
         if (v0->gt==GT_FLOAT && v1->gt==GT_INT) {
             f0 = v0->f;
             f1 = v1->i;
-            return -1 + (f0 == f1) + (f0 > f1)*2;	// caution: NaN == NaN is false
+            return -1 + (f0==f1) + (f0 > f1)*2;		// caution: NaN == NaN is false
         }
 #endif // GURU_USE_FLOAT
         // leak Empty?
@@ -83,10 +83,10 @@ guru_cmp(const GV *v0, const GV *v1)
     case GT_NIL:
     case GT_FALSE:
     case GT_TRUE:   return 0;
-    case GT_SYM: 	return -1 + (v0->i==v1->i) + (v0->i > v1->i)*2;
+    case GT_SYM: 	return -1 + (v0->i==v1->i) + (v0->i > v1->i)*2;				// 32-bit
     case GT_CLASS:
     case GT_OBJ:
-    case GT_PROC:   return -1 + (v0->self==v1->self) + (v0->self > v1->self)*2;
+    case GT_PROC:   return -1 + (v0->self==v1->self) + (v0->self > v1->self)*2;	// 64-bit
     default:
     	return _c_vtbl[v1->gt](v0, v1);
     }
