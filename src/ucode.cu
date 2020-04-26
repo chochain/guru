@@ -510,7 +510,7 @@ _undef(GV *buf, GV *v, GS sid)
 __UCODE__
 uc_send(guru_vm *vm)
 {
-    GS  sid = VM_SYM(vm, _AR(b));				// get given symbol
+    GS  sid = VM_SYM(vm, _AR(b));				// get given symbol or object id
     GV  *r  = _R(a);							// call stack, obj is receiver object
 
     if (vm_method_exec(vm, r, _AR(c), sid)) { 	// in state.cu, call stack will be wiped before return
@@ -1016,7 +1016,7 @@ uc_method(guru_vm *vm)
     if (prc != NULL) {
     	// same proc name exists (in either current or parent class)
 #if CC_DEBUG
-		printf("WARN: %s#%s override base\n", id2name(cls->oid), id2name(sid));
+		printf("WARN: %s#%s override base\n", id2name(cls->sid), id2name(sid));
 #endif // CC_DEBUG
     }
 #endif
@@ -1026,8 +1026,8 @@ uc_method(guru_vm *vm)
 
     // add proc to class
     prc->sid   = sid;							// assign sid to proc, overload if prc already exists
-    prc->next  = cls->plist;					// add to top of vtable, so it will be found first
-    cls->plist = prc;							// if there is a sub-class override
+    prc->next  = cls->flist;					// add to top of vtable, so it will be found first
+    cls->flist = prc;							// if there is a sub-class override
 
     _UNLOCK;
 

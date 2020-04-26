@@ -28,7 +28,7 @@ typedef struct RClass {			// 64-byte
 	struct RClass 	*super;		// guru_class[super]
     guru_proc 		*vtbl;		// c-func array (in constant memory, rc is the number of functions)
 
-    guru_proc		*plist;		// guru_proc[rprocs], linked list
+    guru_proc		*flist;		// guru_proc[rprocs], linked list
 #if GURU_DEBUG
     U8				*name;		// for debug. TODO: remove
 #endif // GURU_DEBUG

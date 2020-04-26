@@ -179,7 +179,7 @@ proc_by_sid(GV *v, GS sid)
     	if (idx>=0) return &cls->vtbl[idx];
 #endif // CUDA_PROFILE_CDP
     	guru_proc *p;
-        for (p=cls->plist; p && (p->sid != sid); p=p->next);		// linear search thru class or meta vtbl
+        for (p=cls->flist; p && (p->sid != sid); p=p->next);		// linear search thru class or meta vtbl
         if (p) return p;											// break if found
     }
     return NULL;
@@ -202,7 +202,7 @@ _define_class(const U8 *name, guru_class *cls, guru_class *super)
     cls->sid    = sid;
     cls->super  = super;
     cls->vtbl   = NULL;
-    cls->plist  = NULL;					// head of list
+    cls->flist  = NULL;					// head of list
     cls->var    = NULL;					// class variables, lazily allocated when needed
     cls->cls 	= NULL;					// meta-class, lazily allocated when needed
 #ifdef GURU_DEBUG
@@ -253,8 +253,8 @@ guru_define_method(guru_class *cls, const U8 *name, guru_fptr cfunc)
     prc->func  = cfunc;							// set function pointer
 
     _LOCK;
-    prc->next  = cls->plist;					// add as the new list head
-    cls->plist = prc;
+    prc->next  = cls->flist;					// add as the new list head
+    cls->flist = prc;
     _UNLOCK;
 
 #ifdef GURU_DEBUG
