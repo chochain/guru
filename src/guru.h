@@ -126,6 +126,7 @@ typedef U16 		GU;						// unsigned integer
 	gt  : object type (GURU_TYPE i.e. GT_*)
 	acl : access control (HAS_REF, READ_ONLY, ...)
 	oid : object store id for user defined objects (i.e. OBJ)
+	len : used by transcoding length
 	xxx : reserved
 
   TODO: move gt into object themselves, keep fix+acl as lower 3-bits (CUDA is 32-bit ops)
@@ -141,8 +142,8 @@ typedef struct {					// 16-bytes (128 bits) for ease of debugging
     union {							// 8-byte			64-bit
 		GI  	 		 i;			// GT_INT, GT_SYM	32-bit
 		GF 	 	 		 f;			// GT_FLOAT			32-bit
-        struct RObj      *self;		// GT_OBJ			64-bit (due to host is 64-bit)
-        struct RClass    *cls;		// GT_CLASS (shares same header with GT_OBJ)
+        struct RObj      *self;		// GT_OBJ			64-bit (since host is 64-bit)
+        struct RClass    *cls;		// GT_CLASS
         struct RProc     *proc;		// GT_PROC
         struct RIter	 *iter;		// GT_ITER
         struct RString   *str;		// GT_STR
@@ -166,15 +167,16 @@ struct Vfunc {
 /*!@brief
   Guru object header. (i.e. Ruby's RBasic)
     rc  : reference counter
+    kt  : [class,function] type for Class, Proc, lambda, iterator object type
+        : proc=[0=Built-in C-func|PROC_IREP|PROC_LAMBDA]
+        : cls =[0=Built-in class|CLASS_BY_USER]
     n   : Array, Hash actual number of elements in built-in object, or
         : Proc parameter count
         : Iterator range object type (i.e. GT_*)
     sz  : storage space for built-in complex objects (i.e. Array, Hash, String)
     bsz : byte count for string
+    xx  : reserved
     sid : symbol id for Class, Proc
-    kt  : [class,function] type for Class, Proc, lambda, iterator object type
-        : proc=[0=Built-in C-func|PROC_IREP|PROC_LAMBDA]
-        : cls =[0=Built-in class|CLASS_BY_USER]
     i   : 32-bit value used by Iterator
 */
 #define GURU_HDR  		\

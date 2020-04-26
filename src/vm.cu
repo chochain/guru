@@ -86,10 +86,12 @@ __transcode(guru_irep *irep)
 {
 	GV *v = irep->pool;
 	for (U32 i=0; i < irep->s; i++, v++) {			// symbol table
-		*v = guru_sym_new(v->buf);					// instantiate the symbol
+		*v = guru_sym_new(v->buf);					// instantiate the symbol (with '\0' from input stream)
 	}
 	for (U32 i=0; i < irep->p; i++, v++) {			// pooled objects
 		if (v->gt==GT_STR) {
+			*(v->buf+v->oid)='\0';					// TODO: BAD! write back to input stream
+													// Because without '\0' in IREP.Pool for string (mbrc bug!)
 			*v = guru_str_new(v->buf);				// instantiate the string
 		}
 		v->acl &= ~ACL_HAS_REF;						// TODO: rom-based

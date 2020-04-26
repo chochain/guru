@@ -109,6 +109,7 @@ _to_gv(GV v[], U32 n, U8 *p, bool sym)
         switch (tt) {
         case 0:	// String
         	v->gt  = GT_STR;
+        	v->oid = len;
         	v->buf = p;
         	break;
         case 1: // Integer (31-bit)
@@ -125,6 +126,7 @@ _to_gv(GV v[], U32 n, U8 *p, bool sym)
             break;
         case 3: // Symbol
         	v->gt  = GT_SYM;
+        	v->oid = len;
         	v->buf = p;
         	break;
         default: // Others (not yet supported)

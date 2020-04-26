@@ -861,7 +861,7 @@ uc_strcat(guru_vm *vm)
     _RA(*sa);									// this will clean out sa
 }
 
-__UCODE__
+__GURU__
 _stack_copy(GV *d, GV *s, U32 n)
 {
 	for (U32 i=0; i < n; i++, d++, s++) {
