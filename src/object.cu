@@ -176,7 +176,7 @@ __CFUNC__
 obj_setiv(GV v[], U32 vi)
 {
     GU oid = v->oid;							// attribute 'x='
-    ostore_set(v, oid-1, v+1);					// attribute 'x'
+    ostore_set(v, oid-1, v+1);					// attribute 'x' (hopefully at one entry before 'x=')
 }
 
 
