@@ -92,7 +92,7 @@ _to_gv(GV v[], U32 n, U8 *p, bool sym)
         switch (tt) {
         case 0:	// String
         	v->gt  = GT_STR;
-        	v->raw = p;						// keep pointer a input stream
+        	v->buf = p;						// keep pointer a input stream
         	break;
         case 1: // Integer (31-bit)
             v->gt  = GT_INT;
@@ -108,7 +108,7 @@ _to_gv(GV v[], U32 n, U8 *p, bool sym)
             break;
         case 3: // Symbol
         	v->gt  = GT_SYM;
-        	v->raw = p;						// keep string pointer at input stream
+        	v->buf = p;						// keep string pointer at input stream
         	break;
         default: // Others (not yet supported)
         	v->gt   = GT_NIL;

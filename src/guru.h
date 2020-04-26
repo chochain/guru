@@ -131,10 +131,10 @@ typedef U16 		GU;						// unsigned integer
   TODO: move gt into object themselves, keep fix+acl as lower 3-bits (CUDA is 32-bit ops)
 */
 #define GURU_VAR_HDR	\
-	GT  	gt 	: 5;	\
-	U32 	acl : 3;	\
-	U32     xxx : 24;	\
-	GU 		oid
+	GT  	gt 	: 8;	\
+	U32 	acl : 8;	\
+	GU		oid : 16;	\
+	U32		xxx
 
 typedef struct {					// 16-bytes (128 bits) for ease of debugging
 	GURU_VAR_HDR;					// 8-byte
@@ -149,7 +149,7 @@ typedef struct {					// 16-bytes (128 bits) for ease of debugging
         struct RArray    *array;	// GT_ARRAY
         struct RRange    *range;	// GT_RANGE
         struct RHash     *hash;		// GT_HASH
-        U8       		 *raw;		// raw-string (only used by loader)
+        U8       		 *buf;		// string-buffer (only used by loader)
     };
 } GV;
 

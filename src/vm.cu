@@ -86,11 +86,11 @@ __transcode(guru_irep *irep)
 {
 	GV *v = irep->pool;
 	for (U32 i=0; i < irep->s; i++, v++) {			// symbol table
-		*v = guru_sym_new(v->raw);					// instantiate the symbol
+		*v = guru_sym_new(v->buf);					// instantiate the symbol
 	}
 	for (U32 i=0; i < irep->p; i++, v++) {			// pooled objects
 		if (v->gt==GT_STR) {
-			*v = guru_str_new(v->raw);				// instantiate the string
+			*v = guru_str_new(v->buf);				// instantiate the string
 		}
 		v->acl &= ~ACL_HAS_REF;						// TODO: rom-based
 	}
