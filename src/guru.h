@@ -154,6 +154,8 @@ typedef struct {					// 16-bytes (128 bits) for ease of debugging
     };
 } GV;
 
+typedef GV 		RF[];				// register file
+
 /* forward declarations */
 typedef void (*guru_fptr)(GV v[], U32 vi);
 struct Irep;

@@ -492,10 +492,10 @@ _undef(GV *buf, GV *v, GS sid)
 	U8 *fname = id2name(sid);
 	U8 *cname = id2name(class_by_obj(v)->sid);
 
-	guru_str_add_cstr(buf, "undefined method '");
-	guru_str_add_cstr(buf, fname);
-	guru_str_add_cstr(buf, "' for class #");
-	guru_str_add_cstr(buf, cname);
+	guru_buf_add_cstr(buf, "undefined method '");
+	guru_buf_add_cstr(buf, fname);
+	guru_buf_add_cstr(buf, "' for class #");
+	guru_buf_add_cstr(buf, cname);
 
 	return buf;
 }
@@ -853,7 +853,7 @@ uc_strcat(guru_vm *vm)
     if (pa) pa->func(sa, 0);					// can it be an IREP?
     if (pb) pb->func(sb, 0);
 
-    guru_str_add_cstr(ref_inc(sa), (U8*)sb->str->raw);	// ref counts increased as _dup updated
+    guru_buf_add_cstr(ref_inc(sa), (U8*)sb->str->raw);	// ref counts increased as _dup updated
 
     ref_dec(sb);
     *sb = EMPTY;
@@ -861,7 +861,7 @@ uc_strcat(guru_vm *vm)
     _RA(*sa);									// this will clean out sa
 }
 
-__GURU__
+__GURU__ void
 _stack_copy(GV *d, GV *s, U32 n)
 {
 	for (U32 i=0; i < n; i++, d++, s++) {
@@ -1294,9 +1294,36 @@ ucode_step(guru_vm *vm)
 #endif // GURU_DEBUG
 }
 
-Ucode::Ucode(guru_vm *vm) {
+__GURU__ Ucode::Ucode(guru_vm *vm)
+{
 	_vm = vm;
 }
-__GURU__ void Ucode::ucode_prefetch() 	{}
-__GURU__ void Ucode::ucode_step()		{}
+
+__GURU__ Ucode::~Ucode()
+{
+	_vm = NULL;
+}
+
+__GURU__ void Ucode::prefetch()
+{
+	ucode_prefetch(_vm);
+}
+
+__GURU__ void Ucode::step()
+{
+	ucode_step(_vm);
+}
+
+__GURU__ int Ucode::run()
+{
+	while (_vm->run==VM_STATUS_RUN) {					// run my (i.e. blockIdx.x) VM
+		// add before_fetch hooks here
+		prefetch();
+		// add before_exec hooks here
+		step();
+		// add after_exec hooks here
+		if (_vm->step) break;
+	}
+	return _vm->run!=VM_STATUS_STOP;
+}
 

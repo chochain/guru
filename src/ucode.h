@@ -180,15 +180,17 @@ __GURU__ void ucode_step(guru_vm *vm);
 }
 #endif
 
-class Ucode {
+class Ucode
+{
 	guru_vm *_vm;
+private:
+	__GURU__ void prefetch();
+	__GURU__ void step();
 
 public:
-	Ucode(guru_vm *vm);
-	~Ucode() {}
-
-	__GURU__ void ucode_prefetch();
-	__GURU__ void ucode_step();
+	__GURU__ Ucode(guru_vm *vm);
+	__GURU__ ~Ucode();
+	__GURU__ int run();
 };
 
 #endif
