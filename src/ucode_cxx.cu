@@ -1,6 +1,6 @@
 /*! @file
   @brief
-  GURU instruction unit implementation - prefetch & microcode dispatcher
+  GURU instruction unit implementation - prefetch &Impl:: microcode dispatcher
 
   <pre>
   Copyright (C) 2019 GreenII
@@ -41,110 +41,43 @@
 
 #define VM_BYTECODE(vm) (_bin_to_u32(U8PADD(VM_ISEQ(vm), sizeof(U32)*(vm)->state->pc)))
 
-class Ucode
+class Ucode::Impl
 {
+    typedef void (Impl::*UCODEX)();	// microcode function prototype
+
 	guru_vm *_vm;
-	void (Ucode::**_vt)();
-	U32 _mutex;
-
-	__GURU__ GS	_name2id_wo_at_sign();
-	__GURU__ GV *_upvar();
-	__GURU__ GV *_undef(GV *buf, GV *v, GS sid);
-	__GURU__ void _stack_copy(GV *d, GV *s, U32 n);
-	__GURU__ U32 _bin_to_u32(const void *s);
-
-	__UCODE__ nop();
-    __UCODE__ move();
-    __UCODE__ loadl();
-    __UCODE__ loadi();
-    __UCODE__ loadsym();
-    __UCODE__ loadnil();
-    __UCODE__ loadself();
-    __UCODE__ loadt();
-    __UCODE__ loadf();
-    __UCODE__ getglobal();
-    __UCODE__ setglobal();
-    __UCODE__ getiv();
-    __UCODE__ setiv();
-    __UCODE__ getcv();
-    __UCODE__ setcv();
-    __UCODE__ getconst();
-    __UCODE__ setconst();
-    __UCODE__ getupvar();
-    __UCODE__ setupvar();
-    __UCODE__ jmp();
-    __UCODE__ jmpif ();
-    __UCODE__ jmpnot();
-    __UCODE__ onerr();
-    __UCODE__ rescue();
-    __UCODE__ poperr();
-    __UCODE__ raise();
-    __UCODE__ send();
-    __UCODE__ call();
-    __UCODE__ enter();
-    __UCODE__ uc_return();
-    __UCODE__ blkpush();
-    __UCODE__ addi();
-    __UCODE__ subi();
-    __UCODE__ add();
-    __UCODE__ sub();
-    __UCODE__ mul();
-    __UCODE__ div();
-    __UCODE__ eq();
-    __UCODE__ lt();
-    __UCODE__ le();
-    __UCODE__ gt();
-    __UCODE__ ge();
-    __UCODE__ string();
-    __UCODE__ strcat();
-    __UCODE__ array();
-    __UCODE__ hash();
-    __UCODE__ range();
-    __UCODE__ lambda();
-    __UCODE__ klass();
-    __UCODE__ exec();
-    __UCODE__ method();
-    __UCODE__ tclass();
-    __UCODE__ sclass();
-    __UCODE__ stop();
-
-public:
-	__GURU__ Ucode(guru_vm *vm);
-	__GURU__ ~Ucode();
-
-	__GURU__ 	void prefetch();
-	__GURU__ 	void dispatch();
-};
+	UCODEX  *_vt;
+	U32     _mutex;
 
 //================================================================
 /*!@brief
   sid of attr name with '@' sign removed
 */
-__GURU__ __INLINE__ GS
-Ucode::_name2id_wo_at_sign()
-{
-    GS sid   = VM_SYM(_vm, _AR(bx));
-    U8 *name = id2name(sid);			// attribute name with leading '@'
+    __GURU__ __INLINE__ GS
+    _name2id_wo_at_sign()
+    {
+        GS sid   = VM_SYM(_vm, _AR(bx));
+        U8 *name = id2name(sid);			// attribute name with leading '@'
 
-    return name2id(name+1);				// skip the '@'
-}
+        return name2id(name+1);				// skip the '@'
+    }
 
 //================================================================
 /*!@brief
   get outer scope register file
 
 */
-__GURU__ GV *
-Ucode::_upvar()
-{
-	guru_state *st = _vm->state;
-	for (U32 i=0; i<=_AR(c); i++) {		// walk up stack frame
-		st = IN_LAMBDA(st)
-			? st->prev
-			: st->prev->prev;			// 1 extra for each_loop
-	}
-	return st->regs + _AR(b);
-}
+    __GURU__ GV *
+    _upvar()
+    {
+        guru_state *st = _vm->state;
+        for (U32 i=0; i<=_AR(c); i++) {		// walk up stack frame
+            st = IN_LAMBDA(st)
+                ? st->prev
+                : st->prev->prev;			// 1 extra for each_loop
+        }
+        return st->regs + _AR(b);
+    }
 
 //================================================================
 /*!@brief
@@ -152,50 +85,50 @@ Ucode::_upvar()
 
   create undefined method error message (different between mruby1.4 and ruby2.x
 */
-__GURU__ GV *
-Ucode::_undef(GV *buf, GV *v, GS sid)
-{
-	U8 *fname = id2name(sid);
-	U8 *cname = id2name(class_by_obj(v)->sid);
+    __GURU__ GV *
+    _undef(GV *buf, GV *v, GS sid)
+    {
+        U8 *fname = id2name(sid);
+        U8 *cname = id2name(class_by_obj(v)->sid);
 
-	guru_buf_add_cstr(buf, "undefined method '");
-	guru_buf_add_cstr(buf, fname);
-	guru_buf_add_cstr(buf, "' for class #");
-	guru_buf_add_cstr(buf, cname);
+        guru_buf_add_cstr(buf, "undefined method '");
+        guru_buf_add_cstr(buf, fname);
+        guru_buf_add_cstr(buf, "' for class #");
+        guru_buf_add_cstr(buf, cname);
 
-	return buf;
-}
+        return buf;
+    }
 
-__GURU__ void
-Ucode::_stack_copy(GV *d, GV *s, U32 n)
-{
-	for (U32 i=0; i < n; i++, d++, s++) {
-		*d = *ref_inc(s);			// now referenced by array/hash
-		*s = EMPTY;					// DEBUG: clean element from call stack
-	}
-}
+    __GURU__ void
+    _stack_copy(GV *d, GV *s, U32 n)
+    {
+        for (U32 i=0; i < n; i++, d++, s++) {
+            *d = *ref_inc(s);			// now referenced by array/hash
+            *s = EMPTY;					// DEBUG: clean element from call stack
+        }
+    }
 
 //================================================================
 /*!@brief
   little endian to big endian converter
 */
-__GURU__ __INLINE__ U32
-Ucode::_bin_to_u32(const void *s)
-{
-    U32 x = *((U32*)s);
-    return (x << 24) | ((x & 0xff00) << 8) | ((x >> 8) & 0xff00) | (x >> 24);
-}
+    __GURU__ __INLINE__ U32
+    _bin_to_u32(const void *s)
+    {
+        U32 x = *((U32*)s);
+        return (x << 24) | ((x & 0xff00) << 8) | ((x >> 8) & 0xff00) | (x >> 24);
+    }
 
 //================================================================
 /*!@brief
   OP_NOP
   No operation
 */
-__GURU__ void
-Ucode::nop()
-{
-	// do nothing
-}
+    __GURU__ void
+    nop()
+    {
+        // do nothing
+    }
 
 //================================================================
 /*!@brief
@@ -203,11 +136,11 @@ Ucode::nop()
 
   R(A) := R(B)
 */
-__UCODE__
-Ucode::move()
-{
-	_RA_X(_R(b)); 	 			// [ra] <= [rb]
-}
+    __UCODE__
+    move()
+    {
+        _RA_X(_R(b)); 	 			// [ra] <= [rb]
+    }
 
 //================================================================
 /*!@brief
@@ -215,12 +148,12 @@ Ucode::move()
 
   R(A) := Pool(Bx)
 */
-__UCODE__
-Ucode::loadl()
-{
-	GV ret = VM_VAR(_vm, _AR(bx));
-    _RA(ret);
-}
+    __UCODE__
+    loadl()
+    {
+        GV ret = VM_VAR(_vm, _AR(bx));
+        _RA(ret);
+    }
 
 //================================================================
 /*!@brief
@@ -229,13 +162,13 @@ Ucode::loadl()
 
   R(A) := sBx
 */
-__UCODE__
-Ucode::loadi()
-{
-    GI sbx = _AR(bx) - MAX_sBx;
+    __UCODE__
+    loadi()
+    {
+        GI sbx = _AR(bx) - MAX_sBx;
 
-    _RA_T(GT_INT, i=sbx);
-}
+        _RA_T(GT_INT, i=sbx);
+    }
 
 
 //================================================================
@@ -244,13 +177,13 @@ Ucode::loadi()
 
   R(A) := Syms(Bx)
 */
-__UCODE__
-Ucode::loadsym()
-{
-	GS sid = VM_SYM(_vm, _AR(bx));
+    __UCODE__
+    loadsym()
+    {
+        GS sid = VM_SYM(_vm, _AR(bx));
 
-	_RA_T(GT_SYM, i=sid);
-}
+        _RA_T(GT_SYM, i=sid);
+    }
 
 //================================================================
 /*!@brief
@@ -258,11 +191,11 @@ Ucode::loadsym()
 
   R(A) := nil
 */
-__UCODE__
-Ucode::loadnil()
-{
-    _RA_T(GT_NIL, i=0);
-}
+    __UCODE__
+    loadnil()
+    {
+        _RA_T(GT_NIL, i=0);
+    }
 
 //================================================================
 /*!@brief
@@ -270,11 +203,11 @@ Ucode::loadnil()
 
   R(A) := self
 */
-__UCODE__
-Ucode::loadself()
-{
-    _RA_X(_R0);	              		// [ra] <= class
-}
+    __UCODE__
+    loadself()
+    {
+        _RA_X(_R0);	              		// [ra] <= class
+    }
 
 //================================================================
 /*!@brief
@@ -282,11 +215,11 @@ Ucode::loadself()
 
   R(A) := true
 */
-__UCODE__
-Ucode::loadt()
-{
-    _RA_T(GT_TRUE, i=0);
-}
+    __UCODE__
+    loadt()
+    {
+        _RA_T(GT_TRUE, i=0);
+    }
 
 //================================================================
 /*!@brief
@@ -294,11 +227,11 @@ Ucode::loadt()
 
   R(A) := false
 */
-__UCODE__
-Ucode::loadf()
-{
-    _RA_T(GT_FALSE, i=0);
-}
+    __UCODE__
+    loadf()
+    {
+        _RA_T(GT_FALSE, i=0);
+    }
 
 //================================================================
 /*!@brief
@@ -306,15 +239,15 @@ Ucode::loadf()
 
   R(A) := getglobal(Syms(Bx))
 */
-__UCODE__
-Ucode::getglobal()
-{
-    GS sid = VM_SYM(_vm, _AR(bx));
+    __UCODE__
+    getglobal()
+    {
+        GS sid = VM_SYM(_vm, _AR(bx));
 
-    GV *v = global_get(sid);
+        GV *v = global_get(sid);
 
-    _RA(*v);
-}
+        _RA(*v);
+    }
 
 //================================================================
 /*!@brief
@@ -322,13 +255,13 @@ Ucode::getglobal()
 
   setglobal(Syms(Bx), R(A))
 */
-__UCODE__
-Ucode::setglobal()
-{
-    GS sid = VM_SYM(_vm, _AR(bx));
+    __UCODE__
+    setglobal()
+    {
+        GS sid = VM_SYM(_vm, _AR(bx));
 
-    global_set(sid, _R(a));
-}
+        global_set(sid, _R(a));
+    }
 
 //================================================================
 /*!@brief
@@ -336,17 +269,17 @@ Ucode::setglobal()
 
   R(A) := ivget(Syms(Bx))
 */
-__UCODE__
-Ucode::getiv()
-{
-	GV *v  = _R0;
-	ASSERT(v->gt==GT_OBJ || v->gt==GT_CLASS);
+    __UCODE__
+    getiv()
+    {
+        GV *v  = _R0;
+        ASSERT(v->gt==GT_OBJ || v->gt==GT_CLASS);
 
-    GS sid = _name2id_wo_at_sign();
-    GV ret = ostore_get(v, sid);
+        GS sid = _name2id_wo_at_sign();
+        GV ret = ostore_get(v, sid);
 
-    _RA(ret);
-}
+        _RA(ret);
+    }
 
 //================================================================
 /*!@brief
@@ -354,15 +287,15 @@ Ucode::getiv()
 
   ivset(Syms(Bx),R(A))
 */
-__UCODE__
-Ucode::setiv()
-{
-	GV *v  = _R0;
-	ASSERT(v->gt==GT_OBJ || v->gt==GT_CLASS);
+    __UCODE__
+    setiv()
+    {
+        GV *v  = _R0;
+        ASSERT(v->gt==GT_OBJ || v->gt==GT_CLASS);
 
-    GS sid = _name2id_wo_at_sign();
-    ostore_set(v, sid, _R(a));
-}
+        GS sid = _name2id_wo_at_sign();
+        ostore_set(v, sid, _R(a));
+    }
 
 //================================================================
 /*!@brief
@@ -370,21 +303,21 @@ Ucode::setiv()
 
   R(A) := cvget(Syms(Bx))
 */
-__UCODE__
-Ucode::getcv()
-{
-	GV *v  = _R0;
-	GS sid = VM_SYM(_vm, _AR(bx));
+    __UCODE__
+    getcv()
+    {
+        GV *v  = _R0;
+        GS sid = VM_SYM(_vm, _AR(bx));
 
-	ASSERT(v->gt==GT_OBJ);
+        ASSERT(v->gt==GT_OBJ);
 
-	GV cv; { cv.gt=GT_CLASS; cv.acl=0; cv.cls=v->self->cls; }
-	GV ret;
-	for (guru_class *cls=v->self->cls;
-			cls && (ret=ostore_get(&cv, sid)).gt!=GT_NIL; cls=cls->super);
+        GV cv; { cv.gt=GT_CLASS; cv.acl=0; cv.cls=v->self->cls; }
+        GV ret;
+        for (guru_class *cls=v->self->cls;
+             cls && (ret=ostore_get(&cv, sid)).gt!=GT_NIL; cls=cls->super);
 
-    _RA(ret);
-}
+        _RA(ret);
+    }
 
 //================================================================
 /*!@brief
@@ -392,15 +325,15 @@ Ucode::getcv()
 
   cvset(Syms(Bx),R(A))
 */
-__UCODE__
-Ucode::setcv()
-{
-	GV *v = _R0;
-	ASSERT(v->gt==GT_CLASS);
+    __UCODE__
+    setcv()
+    {
+        GV *v = _R0;
+        ASSERT(v->gt==GT_CLASS);
 
-    GS sid = VM_SYM(_vm, _AR(bx));
-    ostore_set(v, sid, _R(a));
-}
+        GS sid = VM_SYM(_vm, _AR(bx));
+        ostore_set(v, sid, _R(a));
+    }
 
 //================================================================
 /*!@brief
@@ -408,14 +341,14 @@ Ucode::setcv()
 
   R(A) := constget(Syms(Bx))
 */
-__UCODE__
-Ucode::getconst()
-{
-    GS sid = VM_SYM(_vm, _AR(bx));
-    GV *v  = const_get(sid);
+    __UCODE__
+    getconst()
+    {
+        GS sid = VM_SYM(_vm, _AR(bx));
+        GV *v  = const_get(sid);
 
-    _RA(*v);
-}
+        _RA(*v);
+    }
 
 //================================================================
 /*!@brief
@@ -423,16 +356,16 @@ Ucode::getconst()
 
   constset(Syms(Bx),R(A))
 */
-__UCODE__
-Ucode::setconst()
-{
-	GS sid = VM_SYM(_vm, _AR(bx));
-	GV *ra = _R(a);
+    __UCODE__
+    setconst()
+    {
+        GS sid = VM_SYM(_vm, _AR(bx));
+        GV *ra = _R(a);
 
-	ra->acl &= ~ACL_HAS_REF;		// set it to constant
+        ra->acl &= ~ACL_HAS_REF;		// set it to constant
 
-    const_set(sid, ra);
-}
+        const_set(sid, ra);
+    }
 
 
 //================================================================
@@ -441,12 +374,12 @@ Ucode::setconst()
 
   R(A) := uvget(B,C)
 */
-__UCODE__
-Ucode::getupvar()
-{
-    GV *ur = _upvar();				// outer scope register file
-    _RA_X(ur);          			// ra <= up[rb]
-}
+    __UCODE__
+    getupvar()
+    {
+        GV *ur = _upvar();				// outer scope register file
+        _RA_X(ur);          			// ra <= up[rb]
+    }
 
 //================================================================
 /*!@brief
@@ -454,16 +387,16 @@ Ucode::getupvar()
 
   uvset(B,C,R(A))
 */
-__UCODE__
-Ucode::setupvar()
-{
-    GV *ur = _upvar();				// pointer to caller's register file
-    GV *va = _R(a);
+    __UCODE__
+    setupvar()
+    {
+        GV *ur = _upvar();				// pointer to caller's register file
+        GV *va = _R(a);
 
-    ref_dec(ur);
-    ref_inc(va);
-    *ur = *va;                   	// update outer-scope vars
-}
+        ref_dec(ur);
+        ref_inc(va);
+        *ur = *va;                   	// update outer-scope vars
+    }
 
 //================================================================
 /*!@brief
@@ -471,13 +404,13 @@ Ucode::setupvar()
 
   pc += sBx
 */
-__UCODE__
-Ucode::jmp()
-{
-	GI sbx = _AR(bx) - MAX_sBx -1;
+    __UCODE__
+    jmp()
+    {
+        GI sbx = _AR(bx) - MAX_sBx -1;
 
-	_vm->state->pc += sbx;
-}
+        _vm->state->pc += sbx;
+    }
 
 //================================================================
 /*!@brief
@@ -485,17 +418,17 @@ Ucode::jmp()
 
   if R(A) pc += sBx
 */
-__UCODE__
-Ucode::jmpif ()
-{
-	GI sbx = _AR(bx) - MAX_sBx - 1;
-	GV *ra = _R(a);
+    __UCODE__
+    jmpif()
+    {
+        GI sbx = _AR(bx) - MAX_sBx - 1;
+        GV *ra = _R(a);
 
-	if (ra->gt > GT_FALSE) {
-		_vm->state->pc += sbx;
-	}
-	*ra = EMPTY;
-}
+        if (ra->gt > GT_FALSE) {
+            _vm->state->pc += sbx;
+        }
+        *ra = EMPTY;
+    }
 
 //================================================================
 /*!@brief
@@ -503,16 +436,16 @@ Ucode::jmpif ()
 
   if not R(A) pc += sBx
 */
-__UCODE__
-Ucode::jmpnot()
-{
-	GI sbx = _AR(bx) - MAX_sBx -1;
-	GV *ra = _R(a);
-	if (ra->gt <= GT_FALSE) {
-		_vm->state->pc += sbx;
-	}
-	*ra = EMPTY;
-}
+    __UCODE__
+    jmpnot()
+    {
+        GI sbx = _AR(bx) - MAX_sBx -1;
+        GV *ra = _R(a);
+        if (ra->gt <= GT_FALSE) {
+            _vm->state->pc += sbx;
+        }
+        *ra = EMPTY;
+    }
 
 //================================================================
 /*!@brief
@@ -520,44 +453,44 @@ Ucode::jmpnot()
 
   rescue_push(pc+sBx)
 */
-__UCODE__
-Ucode::onerr()
-{
-	ASSERT(_vm->depth < (MAX_RESCUE_STACK-1));
+    __UCODE__
+    onerr()
+    {
+        ASSERT(_vm->depth < (MAX_RESCUE_STACK-1));
 
-	GI sbx = _AR(bx) - MAX_sBx -1;
+        GI sbx = _AR(bx) - MAX_sBx -1;
 
-	_vm->rescue[_vm->depth++] = _vm->state->pc + sbx;
-}
+        _vm->rescue[_vm->depth++] = _vm->state->pc + sbx;
+    }
 
 //================================================================
 /*!@brief
   OP_RESCUE
 
   if (A)
-    if (C) R(A) := R(A+1)		get exception
-    else   R(A) := R(A+1)		set exception
+  if (C) R(A) := R(A+1)		get exception
+  else   R(A) := R(A+1)		set exception
 */
-__UCODE__
-Ucode::rescue()
-{
-	U32 c  = _AR(c);				// exception 0:set, 1:get
-	GV  *v = _R(a);					// object to receive the exception
-	GV  *x = v + 1;					// exception on stack
+    __UCODE__
+    rescue()
+    {
+        U32 c  = _AR(c);				// exception 0:set, 1:get
+        GV  *v = _R(a);					// object to receive the exception
+        GV  *x = v + 1;					// exception on stack
 
-	if (c) {						// 2nd: get cycle
-		if (x->gt != GT_NIL) {		// if exception is not given
-			_RA_X(x);				// override exception (msg) if not given
-		}
-		x->gt  = GT_TRUE;			// here: modifying return stack directly is questionable!!
-		x->acl = 0;
-	}
-	else {							// 1st: set cycle
-		if (v->gt==GT_CLASS) x++;
-		_RA_X(x);					// keep exception in RA
-		*(x) = EMPTY;
-	}
-}
+        if (c) {						// 2nd: get cycle
+            if (x->gt != GT_NIL) {		// if exception is not given
+                _RA_X(x);				// override exception (msg) if not given
+            }
+            x->gt  = GT_TRUE;			// here: modifying return stack directly is questionable!!
+            x->acl = 0;
+        }
+        else {							// 1st: set cycle
+            if (v->gt==GT_CLASS) x++;
+            _RA_X(x);					// keep exception in RA
+            *(x) = EMPTY;
+        }
+    }
 
 //================================================================
 /*!@brief
@@ -565,15 +498,15 @@ Ucode::rescue()
 
   A.times{rescue_pop()}
 */
-__UCODE__
-Ucode::poperr()
-{
-	U32 a = _AR(a);
+    __UCODE__
+    poperr()
+    {
+        U32 a = _AR(a);
 
-	ASSERT(_vm->depth >= a);
+        ASSERT(_vm->depth >= a);
 
-	_vm->depth -= a;
-}
+        _vm->depth -= a;
+    }
 
 //================================================================
 /*!@brief
@@ -581,13 +514,13 @@ Ucode::poperr()
 
   raise(R(A))
 */
-__UCODE__
-Ucode::raise()
-{
-	GV *ra = _R(a);
+    __UCODE__
+    raise()
+    {
+        GV *ra = _R(a);
 
-	_RA(*ra);
-}
+        _RA(*ra);
+    }
 
 //================================================================
 /*!@brief
@@ -596,19 +529,19 @@ Ucode::raise()
   OP_SEND   R(A) := call(R(A),Syms(B),R(A+1),...,R(A+C))
   OP_SENDB  R(A) := call(R(A),Syms(B),R(A+1),...,R(A+C),&R(A+C+1))
 */
-__UCODE__
-Ucode::send()
-{
-    GS  sid = VM_SYM(_vm, _AR(b));				// get given symbol or object id
-    GV  *r  = _R(a);							// call stack, obj is receiver object
+    __UCODE__
+    send()
+    {
+        GS  sid = VM_SYM(_vm, _AR(b));				// get given symbol or object id
+        GV  *r  = _R(a);							// call stack, obj is receiver object
 
-    if (vm_method_exec(_vm, r, _AR(c), sid)) { 	// in state.cu, call stack will be wiped before return
-    	// put error message on return stack
-    	GV buf = guru_str_buf(80);
-    	*(r+1) = *_undef(&buf, r, sid);			// TODO: exception class
-    	_vm->err = 1;							// raise exception
+        if (vm_method_exec(_vm, r, _AR(c), sid)) { 	// in state.cu, call stack will be wiped before return
+            // put error message on return stack
+            GV buf = guru_str_buf(80);
+            *(r+1) = *_undef(&buf, r, sid);			// TODO: exception class
+            _vm->err = 1;							// raise exception
+        }
     }
-}
 
 //================================================================
 /*!@brief
@@ -617,11 +550,11 @@ Ucode::send()
 
   TODO: no test case yet
 */
-__UCODE__
-Ucode::call()
-{
-	ASSERT(1==0);				// should not be here, no test case yet!
-}
+    __UCODE__
+    call()
+    {
+        ASSERT(1==0);				// should not be here, no test case yet!
+    }
 
 //================================================================
 /*!@brief
@@ -629,18 +562,18 @@ Ucode::call()
 
   arg setup according to flags (23=5:5:1:5:5:1:1)		// default parameter
 */
-__UCODE__
-Ucode::enter()
-{
-	U32 ax  = (_vm->bytecode>>7) & 0x1ffffff;			// a special decoder case
+    __UCODE__
+    enter()
+    {
+        U32 ax  = (_vm->bytecode>>7) & 0x1ffffff;		// a special decoder case
 
-	U32 adj = (ax >> 13) & 0x1f;  						// has default args
-    U32 off = (ax >> 18) & 0x1f;  						// number of args given
+        U32 adj = (ax >> 13) & 0x1f;  					// has default args
+        U32 off = (ax >> 18) & 0x1f;  					// number of args given
 
-    if (adj){
-        _vm->state->pc += _vm->state->argc - off;			// jmp table lookup
+        if (adj){
+            _vm->state->pc += _vm->state->argc - off;	// jmp table lookup
+        }
     }
-}
 
 //================================================================
 /*!@brief
@@ -648,32 +581,32 @@ Ucode::enter()
 
   return R(A) (B=normal,in-block return/break)
 */
-__UCODE__
-Ucode::uc_return()
-{
-	GV  ret = *_R(a);							// return value
-	U32 brk = _AR(b);							// break
+    __UCODE__
+    uc_return()
+    {
+        GV  ret = *_R(a);							// return value
+        U32 brk = _AR(b);							// break
 
-	guru_state *st = _vm->state;
-	if (IN_LOOP(st)) {
-		if (vm_loop_next(_vm) && !brk) return;	// continue
+        guru_state *st = _vm->state;
+        if (IN_LOOP(st)) {
+            if (vm_loop_next(_vm) && !brk) return;	// continue
 
-		ret = *_R(a);							// fetch last returned value
-		guru_iter_del(st->regs - 1);			// release iterator
+            ret = *_R(a);							// fetch last returned value
+            guru_iter_del(st->regs - 1);			// release iterator
 
-		// pop off iterator state
-		vm_state_pop(_vm, ret);					// pop off ITERATOR state
-		ret = *_R0;								// return the object itself
-	}
-	else if (IN_LAMBDA(st)) {
-		vm_state_pop(_vm, ret);					// pop off LAMBDA state
-	}
-	else if (IS_NEW(st)) {
-		ret = *_R0;								// return the object itself
-	}
-	ret.acl &= ~(ACL_SELF|ACL_SCLASS);			// turn off TCLASS and NEW flags if any
-	vm_state_pop(_vm, ret);						// pop callee's context
-}
+            // pop off iterator state
+            vm_state_pop(_vm, ret);					// pop off ITERATOR state
+            ret = *_R0;								// return the object itself
+        }
+        else if (IN_LAMBDA(st)) {
+            vm_state_pop(_vm, ret);					// pop off LAMBDA state
+        }
+        else if (IS_NEW(st)) {
+            ret = *_R0;								// return the object itself
+        }
+        ret.acl &= ~(ACL_SELF|ACL_SCLASS);			// turn off TCLASS and NEW flags if any
+        vm_state_pop(_vm, ret);						// pop callee's context
+    }
 
 //================================================================
 /*!@brief
@@ -681,19 +614,19 @@ Ucode::uc_return()
 
   R(A) := block (16=6:1:5:4)
 */
-__UCODE__
-Ucode::blkpush()
-{
-	guru_state *st = _vm->state;
-	for (U32 i=0; i<_AR(c); i++) {
-		st = st->prev->prev;
-	}
-    GV *prc = st->regs+st->argc+1;       	// get proc, regs[0] is the class
+    __UCODE__
+    blkpush()
+    {
+        guru_state *st = _vm->state;
+        for (U32 i=0; i<_AR(c); i++) {
+            st = st->prev->prev;
+        }
+        GV *prc = st->regs+st->argc+1;       	// get proc, regs[0] is the class
 
-    ASSERT(prc->gt==GT_PROC);				// ensure
+        ASSERT(prc->gt==GT_PROC);				// ensure
 
-    _RA_X(prc);             				// ra <= proc
-}
+        _RA_X(prc);             				// ra <= proc
+    }
 
 //================================================================
 /*!@brief
@@ -701,19 +634,19 @@ Ucode::blkpush()
 
   R(A) := R(A)+C (Syms[B]=:+)
 */
-__UCODE__
-Ucode::addi()
-{
-	GV *r0 = _R(a);
-	U32 n  = _AR(c);
+    __UCODE__
+    addi()
+    {
+        GV *r0 = _R(a);
+        U32 n  = _AR(c);
 
-    if (r0->gt==GT_INT)     	r0->i += n;
+        if (r0->gt==GT_INT)     	r0->i += n;
 #if GURU_USE_FLOAT
-    else if (r0->gt==GT_FLOAT)	r0->f += n;
+        else if (r0->gt==GT_FLOAT)	r0->f += n;
 #else
-    else QUIT("Float class");
+        else QUIT("Float class");
 #endif // GURU_USE_FLOAT
-}
+    }
 
 //================================================================
 /*!@brief
@@ -721,51 +654,51 @@ Ucode::addi()
 
   R(A) := R(A)-C (Syms[B]=:-)
 */
-__UCODE__
-Ucode::subi()
-{
-	GV  *r0 = _R(a);
-	U32 n   = _AR(c);
+    __UCODE__
+    subi()
+    {
+        GV  *r0 = _R(a);
+        U32 n   = _AR(c);
 
-    if (r0->gt==GT_INT) 		r0->i -= n;
+        if (r0->gt==GT_INT) 		r0->i -= n;
 #if GURU_USE_FLOAT
-    else if (r0->gt==GT_FLOAT) 	r0->f -= n;
+        else if (r0->gt==GT_FLOAT) 	r0->f -= n;
 #else
-    else QUIT("Float class");
+        else QUIT("Float class");
 #endif // GURU_USE_FLOAT
-}
+    }
 
 //
 // arithmetic template (poorman's C++)
 //
-#define AOP(a, OP)						\
-do {									\
-	GV *r0 = _R(a);						\
-	GV *r1 = r0+1;						\
-	if (r0->gt==GT_INT) {				\
-		if      (r1->gt==GT_INT)   { 	\
-			r0->i = r0->i OP r1->i; 	\
-		}								\
-		else if (r1->gt==GT_FLOAT) {	\
-			r0->gt = GT_FLOAT;			\
-			r0->f  = r0->i OP r1->f;	\
-		}								\
-		else SKIP("Fixnum + ?");		\
-    }									\
-    else if (r0->gt==GT_FLOAT) {		\
-    	if      (r1->gt==GT_INT) 	{	\
-    		r0->f = r0->f OP r1->i;		\
-    	}								\
-    	else if (r1->gt==GT_FLOAT)	{	\
-    		r0->f = r0->f OP r1->f;		\
-    	}								\
-    	else SKIP("Float + ?");			\
-	}									\
-	else {	/* other cases */			\
-		send();							\
-	}									\
-	*r1 = EMPTY;						\
-} while(0)
+#define AOP(a, OP)                              \
+    do {                                        \
+        GV *r0 = _R(a);                         \
+        GV *r1 = r0+1;                          \
+        if (r0->gt==GT_INT) {                   \
+            if      (r1->gt==GT_INT)   {        \
+                r0->i = r0->i OP r1->i;         \
+            }                                   \
+            else if (r1->gt==GT_FLOAT) {        \
+                r0->gt = GT_FLOAT;              \
+                r0->f  = r0->i OP r1->f;        \
+            }                                   \
+            else SKIP("Fixnum + ?");            \
+        }                                       \
+        else if (r0->gt==GT_FLOAT) {            \
+            if      (r1->gt==GT_INT) 	{       \
+                r0->f = r0->f OP r1->i;         \
+            }                                   \
+            else if (r1->gt==GT_FLOAT)	{       \
+                r0->f = r0->f OP r1->f;         \
+            }                                   \
+            else SKIP("Float + ?");             \
+        }                                       \
+        else {	/* other cases */               \
+            send();                             \
+        }                                       \
+        *r1 = EMPTY;                            \
+    } while(0)
 
 //================================================================
 /*!@brief
@@ -773,11 +706,8 @@ do {									\
 
   R(A) := R(A)+R(A+1) (Syms[B]=:+,C=1)
 */
-__UCODE__
-Ucode::add()
-{
-	AOP(a, +);
-}
+    __UCODE__
+    add() {	AOP(a, +); }
 
 //================================================================
 /*!@brief
@@ -785,11 +715,8 @@ Ucode::add()
 
   R(A) := R(A)-R(A+1) (Syms[B]=:-,C=1)
 */
-__UCODE__
-Ucode::sub()
-{
-	AOP(a, -);
-}
+    __UCODE__
+    sub() { AOP(a, -); }
 
 //================================================================
 /*!@brief
@@ -797,11 +724,8 @@ Ucode::sub()
 
   R(A) := R(A)*R(A+1) (Syms[B]=:*)
 */
-__UCODE__
-Ucode::mul()
-{
-	AOP(a, *);
-}
+    __UCODE__
+    mul() { AOP(a, *); }
 
 //================================================================
 /*!@brief
@@ -809,16 +733,16 @@ Ucode::mul()
 
   R(A) := R(A)/R(A+1) (Syms[B]=:/)
 */
-__UCODE__
-Ucode::div()
-{
-	GV *r1 = _R(a)+1;
+    __UCODE__
+    div()
+    {
+    	GV *r1 = _R(a)+1;
 
-	if (r1->i==0) {
-		_vm->err = 1;
-	}
-	else AOP(a, /);
-}
+    	if (r1->i==0) {
+    		_vm->err = 1;
+    	}
+    	else AOP(a, /);
+    }
 
 //================================================================
 /*!@brief
@@ -826,41 +750,41 @@ Ucode::div()
 
   R(A) := R(A)==R(A+1)  (Syms[B]=:==,C=1)
 */
-__UCODE__
-Ucode::eq()
-{
-	GV *r0 = _R(a), *r1 = r0+1;
-    GT tt = GT_BOOL(guru_cmp(r0, r1)==0);
+    __UCODE__
+    eq()
+    {
+    	GV *r0 = _R(a), *r1 = r0+1;
+    	GT tt = GT_BOOL(guru_cmp(r0, r1)==0);
 
-    *r1 = EMPTY;
-    _RA_T(tt, i=0);
-}
+    	*r1 = EMPTY;
+    	_RA_T(tt, i=0);
+    }
 
 // comparator template (poorman's C++)
-#define NCMP(a, OP)										\
-do {													\
-	GV *r0 = _R(a);										\
-	GV *r1 = r0+1;										\
-	if ((r0)->gt==GT_INT) {								\
-		if ((r1)->gt==GT_INT) {							\
-			(r0)->gt = GT_BOOL((r0)->i OP (r1)->i);		\
-		}												\
-		else if ((r1)->gt==GT_FLOAT) {					\
-			(r0)->gt = GT_BOOL((r0)->i OP (r1)->f);		\
-		}												\
-	}													\
-	else if ((r0)->gt==GT_FLOAT) {						\
-		if ((r1)->gt==GT_INT) {							\
-			(r0)->gt = GT_BOOL((r0)->f OP (r1)->i);		\
-		}												\
-		else if ((r1)->gt==GT_FLOAT) {					\
-			(r0)->gt = GT_BOOL((r0)->f OP (r1)->f);		\
-		}												\
-	}													\
-	else {												\
-		send();											\
-	}													\
-    *r1 = EMPTY;	  									\
+#define NCMP(a, OP)                             \
+    do {                                        \
+	GV *r0 = _R(a);                             \
+	GV *r1 = r0+1;                              \
+	if ((r0)->gt==GT_INT) {                     \
+    if ((r1)->gt==GT_INT) {                     \
+    (r0)->gt = GT_BOOL((r0)->i OP (r1)->i);		\
+}												\
+    else if ((r1)->gt==GT_FLOAT) {              \
+    (r0)->gt = GT_BOOL((r0)->i OP (r1)->f);		\
+}												\
+}                                               \
+	else if ((r0)->gt==GT_FLOAT) {              \
+    if ((r1)->gt==GT_INT) {                     \
+    (r0)->gt = GT_BOOL((r0)->f OP (r1)->i);		\
+}												\
+    else if ((r1)->gt==GT_FLOAT) {              \
+    (r0)->gt = GT_BOOL((r0)->f OP (r1)->f);		\
+}												\
+}                                               \
+	else {                                      \
+    send();                                     \
+}                                               \
+    *r1 = EMPTY;                                \
 } while (0)
 
 //================================================================
@@ -869,11 +793,8 @@ do {													\
 
   R(A) := R(A)<R(A+1)  (Syms[B]=:<,C=1)
 */
-__UCODE__
-Ucode::lt()
-{
-	NCMP(a, <);
-}
+    __UCODE__
+    lt() { NCMP(a, <); }
 
 //================================================================
 /*!@brief
@@ -881,11 +802,8 @@ Ucode::lt()
 
   R(A) := R(A)<=R(A+1)  (Syms[B]=:<=,C=1)
 */
-__UCODE__
-Ucode::le()
-{
-	NCMP(a, <=);
-}
+    __UCODE__
+    le() { NCMP(a, <=); }
 
 //================================================================
 /*!@brief
@@ -893,11 +811,8 @@ Ucode::le()
 
   R(A) := R(A)>=R(A+1) (Syms[B]=:>=,C=1)
 */
-__UCODE__
-Ucode::gt()
-{
-	NCMP(a, >);
-}
+    __UCODE__
+    gt() { NCMP(a, >); }
 
 //================================================================
 /*!@brief
@@ -905,11 +820,8 @@ Ucode::gt()
 
   R(A) := R(A)>=R(A+1) (Syms[B]=:>=,C=1)
 */
-__UCODE__
-Ucode::ge()
-{
-	NCMP(a, >=);
-}
+    __UCODE__
+    ge() { NCMP(a, >=); }
 
 //================================================================
 /*!@brief
@@ -917,12 +829,12 @@ Ucode::ge()
 
   R(A) := str_dup(Lit(Bx))
 */
-__UCODE__
-Ucode::string()
-{
-    GV v = VM_STR(_vm, _AR(bx));
-    _RA(v);
-}
+    __UCODE__
+    string()
+    {
+        GV v = VM_STR(_vm, _AR(bx));
+        _RA(v);
+    }
 
 //================================================================
 /*!@brief
@@ -930,25 +842,25 @@ Ucode::string()
 
   str_cat(R(A),R(B))
 */
-__UCODE__
-Ucode::strcat()
-{
-    GS sid = name2id((U8*)"to_s");				// from global symbol pool
-	GV *sa = _R(a), *sb = _R(b);
+    __UCODE__
+    strcat()
+    {
+        GS sid = name2id((U8*)"to_s");				// from global symbol pool
+        GV *sa = _R(a), *sb = _R(b);
 
-    guru_proc *pa = proc_by_sid(sa, sid);
-    guru_proc *pb = proc_by_sid(sb, sid);
+        guru_proc *pa = proc_by_sid(sa, sid);
+        guru_proc *pb = proc_by_sid(sb, sid);
 
-    if (pa) pa->func(sa, 0);					// can it be an IREP?
-    if (pb) pb->func(sb, 0);
+        if (pa) pa->func(sa, 0);					// can it be an IREP?
+        if (pb) pb->func(sb, 0);
 
-    guru_buf_add_cstr(ref_inc(sa), (U8*)sb->str->raw);	// ref counts increased as _dup updated
+        guru_buf_add_cstr(ref_inc(sa), (U8*)sb->str->raw);	// ref counts increased as _dup updated
 
-    ref_dec(sb);
-    *sb = EMPTY;
+        ref_dec(sb);
+        *sb = EMPTY;
 
-    _RA(*sa);									// this will clean out sa
-}
+        _RA(*sa);									// this will clean out sa
+    }
 
 //================================================================
 /*!@brief
@@ -956,21 +868,21 @@ Ucode::strcat()
 
   R(A) := ary_new(R(B),R(B+1)..R(B+C))
 */
-__UCODE__
-Ucode::array()
-{
+    __UCODE__
+    array()
+    {
 #if GURU_USE_ARRAY
-    U32 n = _AR(c);
-    GV  v = (GV)guru_array_new(n);			// ref_cnt is 1 already
+        U32 n = _AR(c);
+        GV  v = (GV)guru_array_new(n);			// ref_cnt is 1 already
 
-    guru_array *h = v.array;
-    if ((h->n=n)>0) _stack_copy(h->data, _R(b), n);
+        guru_array *h = v.array;
+        if ((h->n=n)>0) _stack_copy(h->data, _R(b), n);
 
-    _RA(v);									// no need to ref_inc
+        _RA(v);									// no need to ref_inc
 #else
-    QUIT("Array class");
+        QUIT("Array class");
 #endif // GURU_USE_ARRAY
-}
+    }
 
 //================================================================
 /*!@brief
@@ -978,21 +890,21 @@ Ucode::array()
 
   R(A) := hash_new(R(B),R(B+1)..R(B+C))
 */
-__UCODE__
-Ucode::hash()
-{
+    __UCODE__
+    hash()
+    {
 #if GURU_USE_ARRAY
-	U32 n   = _AR(c);						// number of kv pairs
-    GV  ret = guru_hash_new(n);				// ref_cnt is already set to 1
+        U32 n   = _AR(c);						// number of kv pairs
+        GV  ret = guru_hash_new(n);				// ref_cnt is already set to 1
 
-    guru_hash *h = ret.hash;
-    if ((h->n=(n<<1))>0) _stack_copy(h->data, _R(b), h->n);
+        guru_hash *h = ret.hash;
+        if ((h->n=(n<<1))>0) _stack_copy(h->data, _R(b), h->n);
 
-    _RA(ret);							    // new hash on stack top
+        _RA(ret);							    // new hash on stack top
 #else
-    QUIT("Hash class");
+        QUIT("Hash class");
 #endif // GURU_USE_ARRAY
-}
+    }
 
 //================================================================
 /*!@brief
@@ -1000,20 +912,20 @@ Ucode::hash()
 
   R(A) := range_new(R(B),R(B+1),C)
 */
-__UCODE__
-Ucode::range()
-{
+    __UCODE__
+    range()
+    {
 #if GURU_USE_ARRAY
-	U32 x   = _AR(c);						// exclude_end
-	GV  *p0 = _R(b), *p1 = p0+1;
-    GV  v   = guru_range_new(p0, p1, !x);	// p0, p1 ref cnt will be increased
-    *p1 = EMPTY;
+        U32 x   = _AR(c);						// exclude_end
+        GV  *p0 = _R(b), *p1 = p0+1;
+        GV  v   = guru_range_new(p0, p1, !x);	// p0, p1 ref cnt will be increased
+        *p1 = EMPTY;
 
-    _RA(v);									// release and  reassign
+        _RA(v);									// release and  reassign
 #else
-    QUIT("Range class");
+        QUIT("Range class");
 #endif // GURU_USE_ARRAY
-}
+    }
 
 //================================================================
 /*!@brief
@@ -1021,21 +933,21 @@ Ucode::range()
 
   R(A) := lambda(SEQ[Bz],Cz)
 */
-__UCODE__
-Ucode::lambda()
-{
-	U32 bz = _AR(bx) >> 2;					// Bz, Cz a special decoder case
+    __UCODE__
+    lambda()
+    {
+        U32 bz = _AR(bx) >> 2;					// Bz, Cz a special decoder case
 
-    guru_proc *prc = (guru_proc *)guru_alloc(sizeof(guru_proc));
+        guru_proc *prc = (guru_proc *)guru_alloc(sizeof(guru_proc));
 
-    prc->rc   = 0;
-    prc->n    = 0;							// no param
-    prc->sid  = 0xffff;						// anonymous function
-    prc->kt   = PROC_IREP;
-    prc->irep = VM_REPS(_vm, bz);			// fetch from children irep list
+        prc->rc   = 0;
+        prc->n    = 0;							// no param
+        prc->sid  = 0xffff;						// anonymous function
+        prc->kt   = PROC_IREP;
+        prc->irep = VM_REPS(_vm, bz);			// fetch from children irep list
 
-    _RA_T(GT_PROC, proc=prc);				// regs[ra].proc = prc
-}
+        _RA_T(GT_PROC, proc=prc);				// regs[ra].proc = prc
+    }
 
 //================================================================
 /*!@brief
@@ -1045,21 +957,21 @@ Ucode::lambda()
   Syms(B): class name
   R(A+1) : super class
 */
-__UCODE__
-Ucode::klass()
-{
-	GV *r1 = _R(a)+1;
+    __UCODE__
+    klass()
+    {
+        GV *r1 = _R(a)+1;
 
-    guru_class *super = (r1->gt==GT_CLASS) ? r1->cls : _vm->state->klass;
-    GS         sid    = VM_SYM(_vm, _AR(b));
-    const U8   *name  = id2name(sid);
-    guru_class *cls   = guru_define_class(name, super);
+        guru_class *super = (r1->gt==GT_CLASS) ? r1->cls : _vm->state->klass;
+        GS         sid    = VM_SYM(_vm, _AR(b));
+        const U8   *name  = id2name(sid);
+        guru_class *cls   = guru_define_class(name, super);
 
-	cls->kt |= USER_DEF_CLASS;					// user defined (i.e. non-builtin) class
+        cls->kt |= USER_DEF_CLASS;					// user defined (i.e. non-builtin) class
 
-    _RA_T(GT_CLASS, cls=cls);
-    *r1 = EMPTY;
-}
+        _RA_T(GT_CLASS, cls=cls);
+        *r1 = EMPTY;
+    }
 
 //================================================================
 /*!@brief
@@ -1067,14 +979,14 @@ Ucode::klass()
 
   R(A) := blockexec(R(A),SEQ[Bx])
 */
-__UCODE__
-Ucode::exec()
-{
-	ASSERT(_R0->gt == GT_CLASS);				// check
-	guru_irep *irep = VM_REPS(_vm, _AR(bx));		// child IREP[rb]
+    __UCODE__
+    exec()
+    {
+        ASSERT(_R0->gt == GT_CLASS);				// check
+        guru_irep *irep = VM_REPS(_vm, _AR(bx));		// child IREP[rb]
 
-    vm_state_push(_vm, irep, 0, _R(a), 0);		// push call stack
-}
+        vm_state_push(_vm, irep, 0, _R(a), 0);		// push call stack
+    }
 
 //================================================================
 /*!@brief
@@ -1082,39 +994,39 @@ Ucode::exec()
 
   R(A).newmethod(Syms(B),R(A+1))
 */
-__UCODE__
-Ucode::method()
-{
-	GV *v  = _R(a);
-    ASSERT(v->gt==GT_OBJ || v->gt == GT_CLASS);	// enforce class checking
+    __UCODE__
+    method()
+    {
+        GV *v  = _R(a);
+        ASSERT(v->gt==GT_OBJ || v->gt == GT_CLASS);	// enforce class checking
 
-    // check whether the name has been defined in current class (i.e. _vm->state->klass)
-    GS sid = VM_SYM(_vm, _AR(b));				// fetch name from IREP symbol table
-    guru_class *cls = class_by_obj(v);			// fetch active class
-    guru_proc  *prc = proc_by_sid(v, sid);		// fetch proc from class or obj's vtbl
+        // check whether the name has been defined in current class (i.e. _vm->state->klass)
+        GS sid = VM_SYM(_vm, _AR(b));				// fetch name from IREP symbol table
+        guru_class *cls = class_by_obj(v);			// fetch active class
+        guru_proc  *prc = proc_by_sid(v, sid);		// fetch proc from class or obj's vtbl
 
 #if GURU_DEBUG
-    if (prc != NULL) {
-    	// same proc name exists (in either current or parent class)
+        if (prc != NULL) {
+            // same proc name exists (in either current or parent class)
 #if CC_DEBUG
-		printf("WARN: %s#%s override base\n", id2name(cls->sid), id2name(sid));
+            printf("WARN: %s#%s override base\n", id2name(cls->sid), id2name(sid));
 #endif // CC_DEBUG
-    }
+        }
 #endif
-    prc = (v+1)->proc;							// override (if exist) with proc by OP_LAMBDA
+        prc = (v+1)->proc;							// override (if exist) with proc by OP_LAMBDA
 
-    MUTEX_LOCK(_mutex);
+        MUTEX_LOCK(_mutex);
 
-    // add proc to class
-    prc->sid   = sid;							// assign sid to proc, overload if prc already exists
-    prc->next  = cls->flist;					// add to top of vtable, so it will be found first
-    cls->flist = prc;							// if there is a sub-class override
+        // add proc to class
+        prc->sid   = sid;							// assign sid to proc, overload if prc already exists
+        prc->next  = cls->flist;					// add to top of vtable, so it will be found first
+        cls->flist = prc;							// if there is a sub-class override
 
-    MUTEX_FREE(_mutex);
+        MUTEX_FREE(_mutex);
 
-    v->acl &= ~ACL_SELF;						// clear CLASS modification flags if any
-    *(v+1) = EMPTY;								// clean up proc
-}
+        v->acl &= ~ACL_SELF;						// clear CLASS modification flags if any
+        *(v+1) = EMPTY;								// clean up proc
+    }
 
 //================================================================
 /*!@brief
@@ -1122,15 +1034,15 @@ Ucode::method()
 
   R(A) := target_class
 */
-__UCODE__
-Ucode::tclass()
-{
-	GV *ra = _R(a);
+    __UCODE__
+    tclass()
+    {
+        GV *ra = _R(a);
 
-	_RA_T(GT_CLASS, cls=_vm->state->klass);
-	ra->acl |= ACL_SELF;
-	ra->acl &= ~ACL_SCLASS;
-}
+        _RA_T(GT_CLASS, cls=_vm->state->klass);
+        ra->acl |= ACL_SELF;
+        ra->acl &= ~ACL_SCLASS;
+    }
 
 //================================================================
 /*!@brief
@@ -1138,24 +1050,24 @@ Ucode::tclass()
 
   R(A) := R(B).singleton_class
 */
-__UCODE__
-Ucode::sclass()
-{
-	GV *o = _R(b);
-	if (o->gt==GT_OBJ) {							// singleton class (extending an object)
-		const U8   *name  = (U8*)"_single";
-		guru_class *super = class_by_obj(o);
-		guru_class *cls   = guru_define_class(name, super);
-		o->self->cls = cls;
-	}
-	else if (o->gt==GT_CLASS) {						// meta class (for class methods)
-		guru_class_add_meta(o);						// lazily add metaclass if needed
-	}
-	else ASSERT(1==0);
+    __UCODE__
+    sclass()
+    {
+        GV *o = _R(b);
+        if (o->gt==GT_OBJ) {							// singleton class (extending an object)
+            const U8   *name  = (U8*)"_single";
+            guru_class *super = class_by_obj(o);
+            guru_class *cls   = guru_define_class(name, super);
+            o->self->cls = cls;
+        }
+        else if (o->gt==GT_CLASS) {						// meta class (for class methods)
+            guru_class_add_meta(o);						// lazily add metaclass if needed
+        }
+        else ASSERT(1==0);
 
-	o->acl |= ACL_SCLASS;
-	o->acl &= ~ACL_SELF;
-}
+        o->acl |= ACL_SCLASS;
+        o->acl &= ~ACL_SELF;
+    }
 
 //================================================================
 /*!@brief
@@ -1164,109 +1076,11 @@ Ucode::sclass()
   stop VM (OP_STOP)
   stop VM without release memory (OP_HOLD)
 */
-__UCODE__
-Ucode::stop()
-{
-	_vm->run  = VM_STATUS_STOP;					// VM suspended
-}
-
-__GURU__ Ucode::Ucode(guru_vm *vm)
-{
-	static UCODEX vtbl[] = {
-			&Ucode::nop, 			// 	  OP_NOP = 0,
-		// 0x1 Register File
-			&Ucode::move,			//    OP_MOVE       A B     R(A) := R(B)
-			&Ucode::loadl,			//    OP_LOADL      A Bx    R(A) := Pool(Bx)
-			&Ucode::loadi,			//    OP_LOADI      A sBx   R(A) := sBx
-			&Ucode::loadsym,		//    OP_LOADSYM    A Bx    R(A) := Syms(Bx)
-			&Ucode::loadnil,		//    OP_LOADNIL    A       R(A) := nil
-			&Ucode::loadself,		//    OP_LOADSELF   A       R(A) := self
-			&Ucode::loadt,			//    OP_LOADT      A       R(A) := true
-			&Ucode::loadf,			//    OP_LOADF      A       R(A) := false
-		// 0x9 Load/Store
-			&Ucode::getglobal,		//    OP_GETGLOBAL  A Bx    R(A) := getglobal(Syms(Bx))
-			&Ucode::setglobal,		//    OP_SETGLOBAL  A Bx    setglobal(Syms(Bx), R(A))
-			&Ucode::nop,			//    OP_GETSPECIAL A Bx    R(A) := Special[Bx]
-			&Ucode::nop,			//    OP_SETSPECIAL	A Bx    Special[Bx] := R(A)
-			&Ucode::getiv,			//    OP_GETIV      A Bx    R(A) := ivget(Syms(Bx))
-			&Ucode::setiv,			//    OP_SETIV      A Bx    ivset(Syms(Bx),R(A))
-			&Ucode::getcv,			//    OP_GETCV      A Bx    R(A) := cvget(Syms(Bx))
-			&Ucode::setcv,			//    OP_SETCV      A Bx    cvset(Syms(Bx),R(A))
-			&Ucode::getconst,		//    OP_GETCONST   A Bx    R(A) := constget(Syms(Bx))
-			&Ucode::setconst,		//    OP_SETCONST   A Bx    constset(Syms(Bx),R(A))
-			&Ucode::nop,			//    OP_GETMCNST   A Bx    R(A) := R(A)::Syms(Bx)
-			&Ucode::nop,			//    OP_SETMCNST   A Bx    R(A+1)::Syms(Bx) := R(A)
-			&Ucode::getupvar,		//    OP_GETUPVAR   A B C   R(A) := uvget(B,C)
-			&Ucode::setupvar,		//    OP_SETUPVAR   A B C   uvset(B,C,R(A))
-		// 0x17 Branch Unit
-			&Ucode::jmp,			//    OP_JMP,       sBx     pc+=sBx
-			&Ucode::jmpif,			//    OP_JMPIF,     A sBx   if R(A) pc+=sBx
-			&Ucode::jmpnot,			//    OP_JMPNOT,    A sBx   if !R(A) pc+=sBx
-		// 0x1a Exception Handler
-			&Ucode::onerr,			//    OP_ONERR,     sBx     rescue_push(pc+sBx)
-			&Ucode::rescue,			//    OP_RESCUE		A B C   if A (if C exc=R(A) else R(A) := exc);
-			&Ucode::poperr,			// 	  OP_POPERR,    A       A.times{rescue_pop()}
-			&Ucode::raise,			//    OP_RAISE,     A       raise(R(A))
-			&Ucode::nop,			//    OP_EPUSH,     Bx      ensure_push(SEQ[Bx])
-			&Ucode::nop,			//    OP_EPOP,      A       A.times{ensure_pop().call}
-		// 0x20 Stack
-			&Ucode::send,			//    OP_SEND,      A B C   R(A) := call(R(A),Syms(B),R(A+1),...,R(A+C))
-			&Ucode::send,			//    OP_SENDB,     A B C   R(A) := call(R(A),Syms(B),R(A+1),...,R(A+C),&R(A+C+1))
-			&Ucode::nop,			//    OP_FSEND,     A B C   R(A) := fcall(R(A),Syms(B),R(A+1),...,R(A+C-1))
-			&Ucode::call,			//    OP_CALL,      A       R(A) := self.call(frame.argc, frame.argv)
-			&Ucode::nop,			//    OP_SUPER,     A C     R(A) := super(R(A+1),... ,R(A+C+1))
-			&Ucode::nop,			//    OP_ARGARY,    A Bx    R(A) := argument array (16=6:1:5:4)
-			&Ucode::enter,			//    OP_ENTER,     Ax      arg setup according to flags (23=5:5:1:5:5:1:1)
-			&Ucode::nop,			//    OP_KARG,      A B C   R(A) := kdict[Syms(B)]; if C kdict.rm(Syms(B))
-			&Ucode::nop,			//    OP_KDICT,     A C     R(A) := kdict
-			&Ucode::uc_return,		//    OP_RETURN,    A B     return R(A) (B=normal,in-block return/break)
-			&Ucode::nop,			//    OP_TAILCALL,  A B C   return call(R(A),Syms(B),*R(C))
-			&Ucode::blkpush,		//    OP_BLKPUSH,   A Bx    R(A) := block (16=6:1:5:4)
-		// 0x2c ALU
-			&Ucode::add,			//    OP_ADD,       A B C   R(A) := R(A)+R(A+1) (Syms[B]=:+,C=1)
-			&Ucode::addi,			//    OP_ADDI,      A B C   R(A) := R(A)+C (Syms[B]=:+)
-			&Ucode::sub,			//    OP_SUB,       A B C   R(A) := R(A)-R(A+1) (Syms[B]=:-,C=1)
-			&Ucode::subi,			//    OP_SUBI,      A B C   R(A) := R(A)-C (Syms[B]=:-)
-			&Ucode::mul,			//    OP_MUL,       A B C   R(A) := R(A)*R(A+1) (Syms[B]=:*,C=1)
-			&Ucode::div,			//    OP_DIV,       A B C   R(A) := R(A)/R(A+1) (Syms[B]=:/,C=1)
-			&Ucode::eq,				//    OP_EQ,        A B C   R(A) := R(A)==R(A+1) (Syms[B]=:==,C=1)
-			&Ucode::lt,				//    OP_LT,        A B C   R(A) := R(A)<R(A+1)  (Syms[B]=:<,C=1)
-			&Ucode::le,				//    OP_LE,        A B C   R(A) := R(A)<=R(A+1) (Syms[B]=:<=,C=1)
-			&Ucode::gt,				//    OP_GT,        A B C   R(A) := R(A)>R(A+1)  (Syms[B]=:>,C=1)
-			&Ucode::ge,				//    OP_GE,        A B C   R(A) := R(A)>=R(A+1) (Syms[B]=:>=,C=1)
-		// 0x37 Complex Object
-			&Ucode::array,			//    OP_ARRAY,     A B C   R(A) := ary_new(R(B),R(B+1)..R(B+C))
-			&Ucode::nop,			//    OP_ARYCAT,    A B     ary_cat(R(A),R(B))
-			&Ucode::nop,			//    OP_ARYPUSH,   A B     ary_push(R(A),R(B))
-			&Ucode::nop,			//    OP_AREF,      A B C   R(A) := R(B)[C]
-			&Ucode::nop,			//    OP_ASET,      A B C   R(B)[C] := R(A)
-			&Ucode::nop,			//    OP_APOST,     A B C   *R(A),R(A+1)..R(A+C) := R(A)[B..]
-			&Ucode::string,			//    OP_STRING,    A Bx    R(A) := str_dup(Lit(Bx))
-			&Ucode::strcat,			//    OP_STRCAT,    A B     str_cat(R(A),R(B))
-			&Ucode::hash,			//    OP_HASH,      A B C   R(A) := hash_new(R(B),R(B+1)..R(B+C))
-			&Ucode::lambda,			//    OP_LAMBDA,    A Bz Cz R(A) := lambda(SEQ[Bz],Cz)
-			&Ucode::range,			//    OP_RANGE,     A B C   R(A) := range_new(R(B),R(B+1),C)
-		// 0x42 Class
-			&Ucode::nop,			//    OP_OCLASS,    A       R(A) := ::Object
-			&Ucode::klass,			//    OP_CLASS,     A B     R(A) := newclass(R(A),Syms(B),R(A+1))
-			&Ucode::klass,			//    OP_MODULE,    A B     R(A) := newmodule(R(A),Syms(B))
-			&Ucode::exec,			//    OP_EXEC,      A Bx    R(A) := blockexec(R(A),SEQ[Bx])
-			&Ucode::method,			//    OP_METHOD,    A B     R(A).newmethod(Syms(B),R(A+1))
-			&Ucode::sclass,			//    OP_SCLASS,    A B     R(A) := R(B).singleton_class
-			&Ucode::tclass,			//    OP_TCLASS,    A       R(A) := target_class
-			&Ucode::nop,			//    OP_DEBUG,     A B C   print R(A),R(B),R(C)
-		// 0x4a Exit
-			&Ucode::stop,			//    OP_STOP,      stop VM
-			&Ucode::nop				//    OP_ERR,       Bx      raise RuntimeError with message Lit(Bx)
-	};
-	_vm = vm;
-	_vt = vtbl;
-}
-
-__GURU__ Ucode::~Ucode()
-{
-	_vm = NULL;
-}
+    __UCODE__
+    stop()
+    {
+        _vm->run  = VM_STATUS_STOP;					// VM suspended
+    }
 
 //===========================================================================================
 // GURU engine
@@ -1277,47 +1091,142 @@ __GURU__ Ucode::~Ucode()
   @param  vm    A pointer of VM.
   @retval 0  No error.
 */
-__GURU__ void Ucode::prefetch()
-{
-	U32 b  = _vm->bytecode = VM_BYTECODE(_vm);	// fetch from _vm->state->pc
-	U32 n  = b >> 7;	      					// operands
-	_vm->ar = *((GAR *)&n);        				// operands struct/union
+    __GURU__ void prefetch()
+    {
+        U32 pc = sizeof(U32) * _vm->state->pc;
+        U32 *p0 = VM_ISEQ(_vm);
+        U8  *p1 = U8PADD(p0, pc);
+        U32 b0 = _bin_to_u32(p1);
+        U32 b  = _vm->bytecode = 							// fetch from _vm->state->pc
+			_bin_to_u32(U8PADD(VM_ISEQ(_vm), sizeof(U32)*_vm->state->pc));
+        U32 n  = b >> 7;	      							// operands
+        _vm->ar = *((GAR *)&n);        						// operands struct/union
 
-	_vm->state->pc++;				// advance program counter (ready for next fetch)
-}
-
-__GURU__ void Ucode::dispatch()
-{
-    guru_state *st = _vm->state;						// for debugging
-    (*this.*_vt[_vm->op])();							// C++ calling a pointer to a member function
-
-    if (_vm->err && _vm->depth>0) {						// simple exception handler
-    	_vm->state->pc = _vm->rescue[--_vm->depth];		// bubbling up
-    	_vm->err = 0;									// TODO: add exception type or code on stack
+        _vm->state->pc++;				// advance program counter (ready for next fetch)
     }
-}
 
-__GURU__ UcodeX::UcodeX(guru_vm *vm)
+    __GURU__ void dispatch()
+    {
+        guru_state *st = _vm->state;						// for debugging
+        (*this.*_vt[_vm->op])();							// C++ calling a pointer to a member function
+
+        if (_vm->err && _vm->depth>0) {						// simple exception handler
+            _vm->state->pc = _vm->rescue[--_vm->depth];		// bubbling up
+            _vm->err = 0;									// TODO: add exception type or code on stack
+        }
+    }
+
+public:
+    __GURU__ Impl(guru_vm *vm)
+    {
+        static UCODEX vtbl[] = {
+			&Impl::nop, 			// 	  OP_NOP = 0,
+			// 0x1 Register File
+            &Impl::move,			//    OP_MOVE       A B     R(A) := R(B)
+            &Impl::loadl,			//    OP_LOADL      A Bx    R(A) := Pool(Bx)
+            &Impl::loadi,			//    OP_LOADI      A sBx   R(A) := sBx
+            &Impl::loadsym,		//    OP_LOADSYM    A Bx    R(A) := Syms(Bx)
+            &Impl::loadnil,		//    OP_LOADNIL    A       R(A) := nil
+            &Impl::loadself,		//    OP_LOADSELF   A       R(A) := self
+            &Impl::loadt,			//    OP_LOADT      A       R(A) := true
+            &Impl::loadf,			//    OP_LOADF      A       R(A) := false
+            // 0x9 Load/Store
+            &Impl::getglobal,		//    OP_GETGLOBAL  A Bx    R(A) := getglobal(Syms(Bx))
+            &Impl::setglobal,		//    OP_SETGLOBAL  A Bx    setglobal(Syms(Bx), R(A))
+            &Impl::nop,			//    OP_GETSPECIAL A Bx    R(A) := Special[Bx]
+            &Impl::nop,			//    OP_SETSPECIAL	A Bx    Special[Bx] := R(A)
+            &Impl::getiv,			//    OP_GETIV      A Bx    R(A) := ivget(Syms(Bx))
+            &Impl::setiv,			//    OP_SETIV      A Bx    ivset(Syms(Bx),R(A))
+            &Impl::getcv,			//    OP_GETCV      A Bx    R(A) := cvget(Syms(Bx))
+            &Impl::setcv,			//    OP_SETCV      A Bx    cvset(Syms(Bx),R(A))
+            &Impl::getconst,		//    OP_GETCONST   A Bx    R(A) := constget(Syms(Bx))
+            &Impl::setconst,		//    OP_SETCONST   A Bx    constset(Syms(Bx),R(A))
+            &Impl::nop,			//    OP_GETMCNST   A Bx    R(A) := R(A)::Syms(Bx)
+            &Impl::nop,			//    OP_SETMCNST   A Bx    R(A+1)::Syms(Bx) := R(A)
+            &Impl::getupvar,		//    OP_GETUPVAR   A B C   R(A) := uvget(B,C)
+            &Impl::setupvar,		//    OP_SETUPVAR   A B C   uvset(B,C,R(A))
+            // 0x17 Branch Unit
+            &Impl::jmp,			//    OP_JMP,       sBx     pc+=sBx
+            &Impl::jmpif,			//    OP_JMPIF,     A sBx   if R(A) pc+=sBx
+            &Impl::jmpnot,			//    OP_JMPNOT,    A sBx   if !R(A) pc+=sBx
+            // 0x1a Exception Handler
+            &Impl::onerr,			//    OP_ONERR,     sBx     rescue_push(pc+sBx)
+            &Impl::rescue,			//    OP_RESCUE		A B C   if A (if C exc=R(A) else R(A) := exc);
+            &Impl::poperr,			// 	  OP_POPERR,    A       A.times{rescue_pop()}
+            &Impl::raise,			//    OP_RAISE,     A       raise(R(A))
+            &Impl::nop,			//    OP_EPUSH,     Bx      ensure_push(SEQ[Bx])
+            &Impl::nop,			//    OP_EPOP,      A       A.times{ensure_pop().call}
+            // 0x20 Stack
+            &Impl::send,			//    OP_SEND,      A B C   R(A) := call(R(A),Syms(B),R(A+1),...,R(A+C))
+            &Impl::send,			//    OP_SENDB,     A B C   R(A) := call(R(A),Syms(B),R(A+1),...,R(A+C),&Impl::R(A+C+1))
+            &Impl::nop,			//    OP_FSEND,     A B C   R(A) := fcall(R(A),Syms(B),R(A+1),...,R(A+C-1))
+            &Impl::call,			//    OP_CALL,      A       R(A) := self.call(frame.argc, frame.argv)
+            &Impl::nop,			//    OP_SUPER,     A C     R(A) := super(R(A+1),... ,R(A+C+1))
+            &Impl::nop,			//    OP_ARGARY,    A Bx    R(A) := argument array (16=6:1:5:4)
+            &Impl::enter,			//    OP_ENTER,     Ax      arg setup according to flags (23=5:5:1:5:5:1:1)
+            &Impl::nop,			//    OP_KARG,      A B C   R(A) := kdict[Syms(B)]; if C kdict.rm(Syms(B))
+            &Impl::nop,			//    OP_KDICT,     A C     R(A) := kdict
+            &Impl::uc_return,		//    OP_RETURN,    A B     return R(A) (B=normal,in-block return/break)
+            &Impl::nop,			//    OP_TAILCALL,  A B C   return call(R(A),Syms(B),*R(C))
+            &Impl::blkpush,		//    OP_BLKPUSH,   A Bx    R(A) := block (16=6:1:5:4)
+            // 0x2c ALU
+            &Impl::add,			//    OP_ADD,       A B C   R(A) := R(A)+R(A+1) (Syms[B]=:+,C=1)
+            &Impl::addi,			//    OP_ADDI,      A B C   R(A) := R(A)+C (Syms[B]=:+)
+            &Impl::sub,			//    OP_SUB,       A B C   R(A) := R(A)-R(A+1) (Syms[B]=:-,C=1)
+            &Impl::subi,			//    OP_SUBI,      A B C   R(A) := R(A)-C (Syms[B]=:-)
+            &Impl::mul,			//    OP_MUL,       A B C   R(A) := R(A)*R(A+1) (Syms[B]=:*,C=1)
+            &Impl::div,			//    OP_DIV,       A B C   R(A) := R(A)/R(A+1) (Syms[B]=:/,C=1)
+            &Impl::eq,				//    OP_EQ,        A B C   R(A) := R(A)==R(A+1) (Syms[B]=:==,C=1)
+            &Impl::lt,				//    OP_LT,        A B C   R(A) := R(A)<R(A+1)  (Syms[B]=:<,C=1)
+            &Impl::le,				//    OP_LE,        A B C   R(A) := R(A)<=R(A+1) (Syms[B]=:<=,C=1)
+            &Impl::gt,				//    OP_GT,        A B C   R(A) := R(A)>R(A+1)  (Syms[B]=:>,C=1)
+            &Impl::ge,				//    OP_GE,        A B C   R(A) := R(A)>=R(A+1) (Syms[B]=:>=,C=1)
+            // 0x37 Complex Object
+            &Impl::array,			//    OP_ARRAY,     A B C   R(A) := ary_new(R(B),R(B+1)..R(B+C))
+            &Impl::nop,			//    OP_ARYCAT,    A B     ary_cat(R(A),R(B))
+            &Impl::nop,			//    OP_ARYPUSH,   A B     ary_push(R(A),R(B))
+            &Impl::nop,			//    OP_AREF,      A B C   R(A) := R(B)[C]
+            &Impl::nop,			//    OP_ASET,      A B C   R(B)[C] := R(A)
+            &Impl::nop,			//    OP_APOST,     A B C   *R(A),R(A+1)..R(A+C) := R(A)[B..]
+            &Impl::string,			//    OP_STRING,    A Bx    R(A) := str_dup(Lit(Bx))
+            &Impl::strcat,			//    OP_STRCAT,    A B     str_cat(R(A),R(B))
+            &Impl::hash,			//    OP_HASH,      A B C   R(A) := hash_new(R(B),R(B+1)..R(B+C))
+            &Impl::lambda,			//    OP_LAMBDA,    A Bz Cz R(A) := lambda(SEQ[Bz],Cz)
+            &Impl::range,			//    OP_RANGE,     A B C   R(A) := range_new(R(B),R(B+1),C)
+            // 0x42 Class
+            &Impl::nop,			//    OP_OCLASS,    A       R(A) := ::Object
+            &Impl::klass,			//    OP_CLASS,     A B     R(A) := newclass(R(A),Syms(B),R(A+1))
+            &Impl::klass,			//    OP_MODULE,    A B     R(A) := newmodule(R(A),Syms(B))
+            &Impl::exec,			//    OP_EXEC,      A Bx    R(A) := blockexec(R(A),SEQ[Bx])
+            &Impl::method,			//    OP_METHOD,    A B     R(A).newmethod(Syms(B),R(A+1))
+            &Impl::sclass,			//    OP_SCLASS,    A B     R(A) := R(B).singleton_class
+            &Impl::tclass,			//    OP_TCLASS,    A       R(A) := target_class
+            &Impl::nop,			//    OP_DEBUG,     A B C   print R(A),R(B),R(C)
+            // 0x4a Exit
+            &Impl::stop,			//    OP_STOP,      stop VM
+            &Impl::nop				//    OP_ERR,       Bx      raise RuntimeError with message Lit(Bx)
+        };
+        _vm = vm;
+        _vt = vtbl;
+    }
+
+    __GURU__ int run()
+    {
+    	while (_vm->run==VM_STATUS_RUN) {					// run my (i.e. blockIdx.x) VM
+    		// add before_fetch hooks here
+    		prefetch();
+    		// add before_exec hooks here
+    		dispatch();
+    		// add after_exec hooks here
+    		if (_vm->step) break;
+    	}
+    	return _vm->run!=VM_STATUS_STOP;
+    }
+};	// end of class Ucode::Impl
+
+__GURU__ Ucode::Ucode(guru_vm *vm) : _impl(new Impl(vm)) {}
+__GURU__ Ucode::~Ucode() {}
+__GURU__ int Ucode::run()
 {
-	Ucode uc(_vm = vm);
-	_impl = &uc;
+	return _impl->run();
 }
-
-__GURU__ UcodeX::~UcodeX()
-{
-	// do nothing
-}
-
-__GURU__ int UcodeX::run()
-{
-	while (_vm->run==VM_STATUS_RUN) {					// run my (i.e. blockIdx.x) VM
-		// add before_fetch hooks here
-		_impl->prefetch();
-		// add before_exec hooks here
-		_impl->dispatch();
-		// add after_exec hooks here
-		if (_vm->step) break;
-	}
-	return _vm->run!=VM_STATUS_STOP;
-}
-

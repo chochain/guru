@@ -144,10 +144,10 @@ _exec(guru_vm *vm)
 {
 	if (blockIdx.x!=0 || threadIdx.x!=0) return;	// TODO: single thread for now
 
-	UcodeX uc(vm);
+	Ucode uc(vm);
 
-	if (!uc.run()) {								// whether my VM is completed
-		__free(vm);									// free up my vm_state, return VM to free pool
+	if (!uc.run()) {
+		__free(vm);
 	}
 	return;
 
@@ -200,7 +200,7 @@ vm_main_start()
 			if (!vm->state) continue;
 			// add pre-hook here
 			if (debug_disasm(vm)) break;
-			_exec<<<1,1,0,vm->st>>>(vm);				// guru -x to run without single-stepping
+			_exec<<<1,1,sizeof(guru_vm),vm->st>>>(vm);	// guru -x to run without single-stepping
 			// add post-hook here
 		}
 		GPU_SYNC();											// TODO: cooperative thread group

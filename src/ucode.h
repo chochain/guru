@@ -12,7 +12,7 @@
 
 #ifndef GURU_SRC_OPCODE_H_
 #define GURU_SRC_OPCODE_H_
-
+#include <memory.h>
 #include "guru.h"
 #include "vm.h"
 
@@ -180,19 +180,17 @@ __GURU__ void ucode_step(guru_vm *vm);
 }
 #endif
 
-class Ucode;						// forward declaration
-typedef void (Ucode::*UCODEX)();	// microcode function prototype
-
-class UcodeX
+class Ucode								// interface class
 {
-	guru_vm *_vm;
-	Ucode 	*_impl;					// pointer to implementation class
-
 public:
-	__GURU__ UcodeX(guru_vm *vm);
-	__GURU__ ~UcodeX();
+	__GURU__ Ucode(guru_vm *vm);
+	__GURU__ ~Ucode();
 
 	__GURU__ int run();
+
+private:
+	class Impl;
+	Impl *_impl;						// implementation object (Pimpl idiom)
 };
 
 #endif
