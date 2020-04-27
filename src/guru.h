@@ -27,7 +27,7 @@ extern "C" {
 #define __GPU__				__global__
 //#define __INLINE__
 #define __INLINE__			__forceinline__
-#define __UCODE__ 			__GURU__ __INLINE__ void
+#define __UCODE__ 			__GURU__ void
 #define __CFUNC__			__GURU__ void
 #define MUTEX_LOCK(p)  		while (atomicCAS((int *)&p, 0, 1)!=0)
 #define MUTEX_FREE(p)  		atomicExch((int *)&p, 0)

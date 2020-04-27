@@ -144,7 +144,7 @@ _exec(guru_vm *vm)
 {
 	if (blockIdx.x!=0 || threadIdx.x!=0) return;	// TODO: single thread for now
 
-	Ucode uc(vm);
+	UcodeX uc(vm);
 
 	if (!uc.run()) {								// whether my VM is completed
 		__free(vm);									// free up my vm_state, return VM to free pool

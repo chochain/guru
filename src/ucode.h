@@ -180,16 +180,18 @@ __GURU__ void ucode_step(guru_vm *vm);
 }
 #endif
 
-class Ucode
+class Ucode;						// forward declaration
+typedef void (Ucode::*UCODEX)();	// microcode function prototype
+
+class UcodeX
 {
 	guru_vm *_vm;
-private:
-	__GURU__ void prefetch();
-	__GURU__ void step();
+	Ucode 	*_impl;					// pointer to implementation class
 
 public:
-	__GURU__ Ucode(guru_vm *vm);
-	__GURU__ ~Ucode();
+	__GURU__ UcodeX(guru_vm *vm);
+	__GURU__ ~UcodeX();
+
 	__GURU__ int run();
 };
 
