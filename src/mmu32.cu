@@ -57,7 +57,8 @@ __mmu_ok()											// mmu sanity check
 	return (!p1 && tot==BLOCK_MEMORY_SIZE);
 }
 
-#define MMU_CHECK		ASSERT(__mmu_ok())
+#define MMU_CHECK
+//#define MMU_CHECK		ASSERT(__mmu_ok())
 //#define MMU_CHECK		__mmu_ok()
 #else
 #define MMU_CHECK

@@ -142,9 +142,11 @@ _get(guru_vm *vm, U8 *ibuf)
 __GPU__ void
 _exec(guru_vm *vm)
 {
+	extern __shared__ guru_vm d_vm[];
+
 	if (blockIdx.x!=0 || threadIdx.x!=0) return;	// TODO: single thread for now
 
-	Ucode uc(vm);
+	Ucode uc(&vm[blockIdx.x]);
 
 	if (!uc.run()) {
 		__free(vm);

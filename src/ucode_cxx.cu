@@ -39,8 +39,6 @@
 
 #define SKIP(x)			{ NA(x); return; }
 
-#define VM_BYTECODE(vm) (_bin_to_u32(U8PADD(VM_ISEQ(vm), sizeof(U32)*(vm)->state->pc)))
-
 class Ucode::Impl
 {
     typedef void (Impl::*UCODEX)();	// microcode function prototype
@@ -1093,10 +1091,6 @@ class Ucode::Impl
 */
     __GURU__ void prefetch()
     {
-        U32 pc = sizeof(U32) * _vm->state->pc;
-        U32 *p0 = VM_ISEQ(_vm);
-        U8  *p1 = U8PADD(p0, pc);
-        U32 b0 = _bin_to_u32(p1);
         U32 b  = _vm->bytecode = 							// fetch from _vm->state->pc
 			_bin_to_u32(U8PADD(VM_ISEQ(_vm), sizeof(U32)*_vm->state->pc));
         U32 n  = b >> 7;	      							// operands
@@ -1125,28 +1119,28 @@ public:
             &Impl::move,			//    OP_MOVE       A B     R(A) := R(B)
             &Impl::loadl,			//    OP_LOADL      A Bx    R(A) := Pool(Bx)
             &Impl::loadi,			//    OP_LOADI      A sBx   R(A) := sBx
-            &Impl::loadsym,		//    OP_LOADSYM    A Bx    R(A) := Syms(Bx)
-            &Impl::loadnil,		//    OP_LOADNIL    A       R(A) := nil
+            &Impl::loadsym,			//    OP_LOADSYM    A Bx    R(A) := Syms(Bx)
+            &Impl::loadnil,			//    OP_LOADNIL    A       R(A) := nil
             &Impl::loadself,		//    OP_LOADSELF   A       R(A) := self
             &Impl::loadt,			//    OP_LOADT      A       R(A) := true
             &Impl::loadf,			//    OP_LOADF      A       R(A) := false
             // 0x9 Load/Store
             &Impl::getglobal,		//    OP_GETGLOBAL  A Bx    R(A) := getglobal(Syms(Bx))
             &Impl::setglobal,		//    OP_SETGLOBAL  A Bx    setglobal(Syms(Bx), R(A))
-            &Impl::nop,			//    OP_GETSPECIAL A Bx    R(A) := Special[Bx]
-            &Impl::nop,			//    OP_SETSPECIAL	A Bx    Special[Bx] := R(A)
+            &Impl::nop,				//    OP_GETSPECIAL A Bx    R(A) := Special[Bx]
+            &Impl::nop,				//    OP_SETSPECIAL	A Bx    Special[Bx] := R(A)
             &Impl::getiv,			//    OP_GETIV      A Bx    R(A) := ivget(Syms(Bx))
             &Impl::setiv,			//    OP_SETIV      A Bx    ivset(Syms(Bx),R(A))
             &Impl::getcv,			//    OP_GETCV      A Bx    R(A) := cvget(Syms(Bx))
             &Impl::setcv,			//    OP_SETCV      A Bx    cvset(Syms(Bx),R(A))
             &Impl::getconst,		//    OP_GETCONST   A Bx    R(A) := constget(Syms(Bx))
             &Impl::setconst,		//    OP_SETCONST   A Bx    constset(Syms(Bx),R(A))
-            &Impl::nop,			//    OP_GETMCNST   A Bx    R(A) := R(A)::Syms(Bx)
-            &Impl::nop,			//    OP_SETMCNST   A Bx    R(A+1)::Syms(Bx) := R(A)
+            &Impl::nop,				//    OP_GETMCNST   A Bx    R(A) := R(A)::Syms(Bx)
+            &Impl::nop,				//    OP_SETMCNST   A Bx    R(A+1)::Syms(Bx) := R(A)
             &Impl::getupvar,		//    OP_GETUPVAR   A B C   R(A) := uvget(B,C)
             &Impl::setupvar,		//    OP_SETUPVAR   A B C   uvset(B,C,R(A))
             // 0x17 Branch Unit
-            &Impl::jmp,			//    OP_JMP,       sBx     pc+=sBx
+            &Impl::jmp,				//    OP_JMP,       sBx     pc+=sBx
             &Impl::jmpif,			//    OP_JMPIF,     A sBx   if R(A) pc+=sBx
             &Impl::jmpnot,			//    OP_JMPNOT,    A sBx   if !R(A) pc+=sBx
             // 0x1a Exception Handler
@@ -1154,28 +1148,28 @@ public:
             &Impl::rescue,			//    OP_RESCUE		A B C   if A (if C exc=R(A) else R(A) := exc);
             &Impl::poperr,			// 	  OP_POPERR,    A       A.times{rescue_pop()}
             &Impl::raise,			//    OP_RAISE,     A       raise(R(A))
-            &Impl::nop,			//    OP_EPUSH,     Bx      ensure_push(SEQ[Bx])
-            &Impl::nop,			//    OP_EPOP,      A       A.times{ensure_pop().call}
+            &Impl::nop,				//    OP_EPUSH,     Bx      ensure_push(SEQ[Bx])
+            &Impl::nop,				//    OP_EPOP,      A       A.times{ensure_pop().call}
             // 0x20 Stack
             &Impl::send,			//    OP_SEND,      A B C   R(A) := call(R(A),Syms(B),R(A+1),...,R(A+C))
             &Impl::send,			//    OP_SENDB,     A B C   R(A) := call(R(A),Syms(B),R(A+1),...,R(A+C),&Impl::R(A+C+1))
-            &Impl::nop,			//    OP_FSEND,     A B C   R(A) := fcall(R(A),Syms(B),R(A+1),...,R(A+C-1))
+            &Impl::nop,				//    OP_FSEND,     A B C   R(A) := fcall(R(A),Syms(B),R(A+1),...,R(A+C-1))
             &Impl::call,			//    OP_CALL,      A       R(A) := self.call(frame.argc, frame.argv)
-            &Impl::nop,			//    OP_SUPER,     A C     R(A) := super(R(A+1),... ,R(A+C+1))
-            &Impl::nop,			//    OP_ARGARY,    A Bx    R(A) := argument array (16=6:1:5:4)
+            &Impl::nop,				//    OP_SUPER,     A C     R(A) := super(R(A+1),... ,R(A+C+1))
+            &Impl::nop,				//    OP_ARGARY,    A Bx    R(A) := argument array (16=6:1:5:4)
             &Impl::enter,			//    OP_ENTER,     Ax      arg setup according to flags (23=5:5:1:5:5:1:1)
-            &Impl::nop,			//    OP_KARG,      A B C   R(A) := kdict[Syms(B)]; if C kdict.rm(Syms(B))
-            &Impl::nop,			//    OP_KDICT,     A C     R(A) := kdict
+            &Impl::nop,				//    OP_KARG,      A B C   R(A) := kdict[Syms(B)]; if C kdict.rm(Syms(B))
+            &Impl::nop,				//    OP_KDICT,     A C     R(A) := kdict
             &Impl::uc_return,		//    OP_RETURN,    A B     return R(A) (B=normal,in-block return/break)
-            &Impl::nop,			//    OP_TAILCALL,  A B C   return call(R(A),Syms(B),*R(C))
-            &Impl::blkpush,		//    OP_BLKPUSH,   A Bx    R(A) := block (16=6:1:5:4)
+            &Impl::nop,				//    OP_TAILCALL,  A B C   return call(R(A),Syms(B),*R(C))
+            &Impl::blkpush,			//    OP_BLKPUSH,   A Bx    R(A) := block (16=6:1:5:4)
             // 0x2c ALU
-            &Impl::add,			//    OP_ADD,       A B C   R(A) := R(A)+R(A+1) (Syms[B]=:+,C=1)
+            &Impl::add,				//    OP_ADD,       A B C   R(A) := R(A)+R(A+1) (Syms[B]=:+,C=1)
             &Impl::addi,			//    OP_ADDI,      A B C   R(A) := R(A)+C (Syms[B]=:+)
-            &Impl::sub,			//    OP_SUB,       A B C   R(A) := R(A)-R(A+1) (Syms[B]=:-,C=1)
+            &Impl::sub,				//    OP_SUB,       A B C   R(A) := R(A)-R(A+1) (Syms[B]=:-,C=1)
             &Impl::subi,			//    OP_SUBI,      A B C   R(A) := R(A)-C (Syms[B]=:-)
-            &Impl::mul,			//    OP_MUL,       A B C   R(A) := R(A)*R(A+1) (Syms[B]=:*,C=1)
-            &Impl::div,			//    OP_DIV,       A B C   R(A) := R(A)/R(A+1) (Syms[B]=:/,C=1)
+            &Impl::mul,				//    OP_MUL,       A B C   R(A) := R(A)*R(A+1) (Syms[B]=:*,C=1)
+            &Impl::div,				//    OP_DIV,       A B C   R(A) := R(A)/R(A+1) (Syms[B]=:/,C=1)
             &Impl::eq,				//    OP_EQ,        A B C   R(A) := R(A)==R(A+1) (Syms[B]=:==,C=1)
             &Impl::lt,				//    OP_LT,        A B C   R(A) := R(A)<R(A+1)  (Syms[B]=:<,C=1)
             &Impl::le,				//    OP_LE,        A B C   R(A) := R(A)<=R(A+1) (Syms[B]=:<=,C=1)
@@ -1183,25 +1177,25 @@ public:
             &Impl::ge,				//    OP_GE,        A B C   R(A) := R(A)>=R(A+1) (Syms[B]=:>=,C=1)
             // 0x37 Complex Object
             &Impl::array,			//    OP_ARRAY,     A B C   R(A) := ary_new(R(B),R(B+1)..R(B+C))
-            &Impl::nop,			//    OP_ARYCAT,    A B     ary_cat(R(A),R(B))
-            &Impl::nop,			//    OP_ARYPUSH,   A B     ary_push(R(A),R(B))
-            &Impl::nop,			//    OP_AREF,      A B C   R(A) := R(B)[C]
-            &Impl::nop,			//    OP_ASET,      A B C   R(B)[C] := R(A)
-            &Impl::nop,			//    OP_APOST,     A B C   *R(A),R(A+1)..R(A+C) := R(A)[B..]
+            &Impl::nop,				//    OP_ARYCAT,    A B     ary_cat(R(A),R(B))
+            &Impl::nop,				//    OP_ARYPUSH,   A B     ary_push(R(A),R(B))
+            &Impl::nop,				//    OP_AREF,      A B C   R(A) := R(B)[C]
+            &Impl::nop,				//    OP_ASET,      A B C   R(B)[C] := R(A)
+            &Impl::nop,				//    OP_APOST,     A B C   *R(A),R(A+1)..R(A+C) := R(A)[B..]
             &Impl::string,			//    OP_STRING,    A Bx    R(A) := str_dup(Lit(Bx))
             &Impl::strcat,			//    OP_STRCAT,    A B     str_cat(R(A),R(B))
             &Impl::hash,			//    OP_HASH,      A B C   R(A) := hash_new(R(B),R(B+1)..R(B+C))
             &Impl::lambda,			//    OP_LAMBDA,    A Bz Cz R(A) := lambda(SEQ[Bz],Cz)
             &Impl::range,			//    OP_RANGE,     A B C   R(A) := range_new(R(B),R(B+1),C)
             // 0x42 Class
-            &Impl::nop,			//    OP_OCLASS,    A       R(A) := ::Object
+            &Impl::nop,				//    OP_OCLASS,    A       R(A) := ::Object
             &Impl::klass,			//    OP_CLASS,     A B     R(A) := newclass(R(A),Syms(B),R(A+1))
             &Impl::klass,			//    OP_MODULE,    A B     R(A) := newmodule(R(A),Syms(B))
             &Impl::exec,			//    OP_EXEC,      A Bx    R(A) := blockexec(R(A),SEQ[Bx])
             &Impl::method,			//    OP_METHOD,    A B     R(A).newmethod(Syms(B),R(A+1))
             &Impl::sclass,			//    OP_SCLASS,    A B     R(A) := R(B).singleton_class
             &Impl::tclass,			//    OP_TCLASS,    A       R(A) := target_class
-            &Impl::nop,			//    OP_DEBUG,     A B C   print R(A),R(B),R(C)
+            &Impl::nop,				//    OP_DEBUG,     A B C   print R(A),R(B),R(C)
             // 0x4a Exit
             &Impl::stop,			//    OP_STOP,      stop VM
             &Impl::nop				//    OP_ERR,       Bx      raise RuntimeError with message Lit(Bx)
@@ -1225,7 +1219,8 @@ public:
 };	// end of class Ucode::Impl
 
 __GURU__ Ucode::Ucode(guru_vm *vm) : _impl(new Impl(vm)) {}
-__GURU__ Ucode::~Ucode() {}
+__GURU__ Ucode::~Ucode() = default;
+
 __GURU__ int Ucode::run()
 {
 	return _impl->run();

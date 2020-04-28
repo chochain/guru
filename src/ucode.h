@@ -12,7 +12,6 @@
 
 #ifndef GURU_SRC_OPCODE_H_
 #define GURU_SRC_OPCODE_H_
-#include <memory.h>
 #include "guru.h"
 #include "vm.h"
 
