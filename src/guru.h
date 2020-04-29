@@ -132,10 +132,10 @@ typedef U16 		GU;						// unsigned integer
   TODO: move gt into object themselves, keep fix+acl as lower 3-bits (CUDA is 32-bit ops)
 */
 #define GURU_VAR_HDR	\
-	GT  	gt 	: 8;	\
-	U32 	acl : 8;	\
-	GU		oid : 16;	\
-	U32		xxx
+	GT  	gt   : 8;	\
+	U32     acl  : 8;	\
+	GU		oid  : 16;	\
+	U32 	xxx  : 32
 
 typedef struct {					// 16-bytes (128 bits) for ease of debugging
 	GURU_VAR_HDR;					// 8-byte
@@ -232,8 +232,8 @@ typedef struct RString {		// 16-byte
 */
 #define GURU_OBJ_HDR			\
 	GURU_HDR;					\
-    struct RClass 	*cls;		\
-    GV				*var
+    GV				*var;		\
+	struct RClass 	*cls
 
 typedef struct RObj {			// 24-byte
 	GURU_OBJ_HDR;

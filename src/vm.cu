@@ -50,11 +50,12 @@ pthread_mutex_t 	_mutex_pool;
   @param  vm  Pointer to VM
 */
 __GURU__ void
-__ready(guru_vm *vm, guru_irep *irep)
+__ready(guru_vm *vm, GV *regfile, guru_irep *irep)
 {
-	GV *r = vm->regfile;
-	for (U32 i=0; i<MAX_REGFILE_SIZE; i++, r++) {	// wipe register
-		r->gt  = (i>0) ? GT_EMPTY : GT_CLASS;		// reg[0] is "self"
+	GV *r = regfile;
+	U32 n = U8POFF(regfile, vm->regfile)/sizeof(GV);
+	for (U32 i=0; i<MAX_REGFILE_SIZE-n; i++, r++) {					// wipe register
+		r->gt  = (i>0) ? GT_EMPTY : GT_CLASS;						// reg[0] is "self"
 		r->cls = (i>0) ? NULL     : guru_rom_get_class(GT_OBJ);
 		r->acl = 0;
 	}
@@ -62,7 +63,7 @@ __ready(guru_vm *vm, guru_irep *irep)
     vm->run   = VM_STATUS_READY;
     vm->depth = vm->err = 0;
 
-    vm_state_push(vm, irep, 0, vm->regfile, 0);
+    vm_state_push(vm, irep, 0, regfile, 0);
 }
 
 __GURU__ void
@@ -82,23 +83,30 @@ __free(guru_vm *vm)
 // from source memory pointers to GV[] (i.e. regfile)
 //
 __GURU__ void
-__transcode(guru_irep *irep)
+__transcode(GV **regs, guru_irep *irep)
 {
+	GV *r = *regs;
 	GV *v = irep->pool;
-	for (U32 i=0; i < irep->s; i++, v++) {			// symbol table
-		*v = guru_sym_new(v->buf);					// instantiate the symbol (with '\0' from input stream)
+	for (U32 i=0; i < irep->s; i++, v++, r++) {		// symbol table
+		*r = guru_sym_new(v->buf);					// instantiate the symbol (with '\0' from input stream)
 	}
-	for (U32 i=0; i < irep->p; i++, v++) {			// pooled objects
-		if (v->gt==GT_STR) {
+	for (U32 i=0; i < irep->p; i++, v++, r++) {		// pooled objects
+		if (v->gt!=GT_STR) *r = *v;					// copy content
+		else {
 			*(v->buf+v->oid)='\0';					// TODO: BAD! write back to input stream
 													// Because without '\0' in IREP.Pool for string (mbrc bug!)
-			*v = guru_str_new(v->buf);				// instantiate the string
+			*r = guru_str_new(v->buf);				// instantiate the string
 		}
-		v->acl &= ~ACL_HAS_REF;						// TODO: rom-based
+		r->acl &= ~ACL_HAS_REF;						// TODO: rom-based
 	}
+	if (irep->pool) guru_free(irep->pool);			// free up temp storage (allcated in load.cu)
+	r = irep->pool = *regs;							// point to register file
+
+	*regs += (irep->s + irep->p);					// advance pool blocks
+
 	// use tail recursion (i.e. no call stack, so compiler optimization becomes possible)
 	for (U32 i=0; i < irep->r; i++) {
-		__transcode(irep->reps[i]);
+		__transcode(regs, irep->reps[i]);
 	}
 }
 
@@ -126,8 +134,9 @@ _get(guru_vm *vm, U8 *ibuf)
 
 	if (vm->run==VM_STATUS_FREE) {
 		guru_irep *irep = (guru_irep*)parse_bytecode(ibuf);
-		__transcode(irep);
-		__ready(vm, irep);
+		GV *regs = &vm->regfile[0];
+		__transcode(&regs, irep);
+		__ready(vm, regs, irep);
 	}
 }
 #endif // GURU_HOST_IMAGE
@@ -142,17 +151,16 @@ _get(guru_vm *vm, U8 *ibuf)
 __GPU__ void
 _exec(guru_vm *vm)
 {
-	extern __shared__ guru_vm d_vm[];
-
 	if (blockIdx.x!=0 || threadIdx.x!=0) return;	// TODO: single thread for now
 
-	Ucode uc(&vm[blockIdx.x]);
+#if GURU_CXX_CODEBASE
+ 	Ucode uc(vm);
 
-	if (!uc.run()) {
+	if (uc.run()) {
 		__free(vm);
 	}
 	return;
-
+#else
 	// start up instruction and dispatcher unit
 	while (vm->run==VM_STATUS_RUN) {				// run my (i.e. blockIdx.x) VM
 		// add before_fetch hooks here
@@ -165,6 +173,7 @@ _exec(guru_vm *vm)
 	if (vm->run==VM_STATUS_STOP) {					// whether my VM is completed
 		__free(vm);									// free up my vm_state, return VM to free pool
 	}
+#endif // GURU_USE_CXX
 }
 
 __HOST__ int

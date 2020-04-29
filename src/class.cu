@@ -200,11 +200,11 @@ _define_class(const U8 *name, guru_class *cls, guru_class *super)
 
     cls->rc     = cls->n = cls->kt = 0;	// BUILT-IN class
     cls->sid    = sid;
+    cls->var    = NULL;					// class variables, lazily allocated when needed
+    cls->cls 	= NULL;					// meta-class, lazily allocated when needed
     cls->super  = super;
     cls->vtbl   = NULL;
     cls->flist  = NULL;					// head of list
-    cls->var    = NULL;					// class variables, lazily allocated when needed
-    cls->cls 	= NULL;					// meta-class, lazily allocated when needed
 #ifdef GURU_DEBUG
     cls->name   = id2name(sid);			// retrieve from stored symbol table (the one caller passed might be destroyed)
 #endif

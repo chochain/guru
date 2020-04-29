@@ -122,10 +122,10 @@ ostore_new(guru_class *cls)
 
     guru_obj *o = v.self = (guru_obj *)guru_alloc(sizeof(guru_obj));
 
-    o->rc    = 1;
-    o->var  = NULL;	// attributes, lazy allocation until _set is called
-    o->cls   = cls;
-    o->sz    = o->n = 0;
+    o->rc  = 1;
+    o->var = NULL;	// attributes, lazy allocation until _set is called
+    o->cls = cls;
+    o->sz  = o->n = 0;
 
     return v;
 }
@@ -157,10 +157,10 @@ ostore_del(GV *v)
 __GURU__ void
 ostore_set(GV *v, GU oid, GV *val)
 {
-	guru_obj *o = v->self;
+	guru_obj *o = v->self;				// guru_obj and guru_class share the same header
 	if (o->var==NULL) {
 		o->var = guru_gv_alloc(4);		// lazy allocation
-	    o->sz   = 4;					// number of local variables
+	    o->sz  = 4;						// number of local variables
 		ref_inc(v);						// itself has been referenced now
 	}
 	_set(o, oid, ref_inc(val));			// referenced by the object now

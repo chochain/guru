@@ -430,6 +430,8 @@ guru_gv_realloc(GV *gv, U32 n)
 __GURU__ void
 guru_free(void *ptr)
 {
+	if (!ptr) return;
+
 	_LOCK;
     free_block *blk = (free_block *)BLK_HEAD(ptr);			// get block header
 

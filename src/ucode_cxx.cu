@@ -1214,7 +1214,7 @@ public:
     		// add after_exec hooks here
     		if (_vm->step) break;
     	}
-    	return _vm->run!=VM_STATUS_STOP;
+    	return _vm->run==VM_STATUS_STOP;
     }
 };	// end of class Ucode::Impl
 
