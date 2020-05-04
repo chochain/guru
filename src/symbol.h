@@ -21,6 +21,7 @@ __GURU__ GS     create_sym(const U8 *str);		// create new symbol, returns sid
 __GURU__ GS   	name2id(const U8 *str);			// sid by name
 __GURU__ U8		*id2name(GS sid);				// name by sid
 
+__GURU__ void   guru_sym_rom(GV *v);			// ROMable symbol
 __GURU__ GV		guru_sym_new(const U8 *str);	// create a symbol GV
 
 #ifdef __cplusplus

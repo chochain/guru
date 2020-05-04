@@ -161,12 +161,14 @@ _to_gv(GV *v, U8 **stbl, U8 *p, U32 tt, U32 len)
     case 0:	// String
     	v->gt  = GT_STR;
     	v->buf = tgt;
+    	v->oid = len;
 
     	c = *(p+len);					// RITE does not 0 terminate (Ruby bug)
     	*(p+len) = '\0';				// so, we have to hack it here (BAD! write to input stream)
     	MEMCPY(tgt, p, len);
         tgt += ALIGN4(len+1);
     	*(p+len) = c;					// put it back
+
         break;
     case 1: // Integer (31-bit)
     	v->gt  = GT_INT;

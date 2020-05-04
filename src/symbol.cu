@@ -150,6 +150,12 @@ id2name(GS sid)
   @param  str	String
   @return 	symbol object
 */
+__GURU__ void
+guru_sym_rom(GV *v)
+{
+	v->i = create_sym(v->buf);
+}
+
 __GURU__ GV
 guru_sym_new(const U8 *str)
 {

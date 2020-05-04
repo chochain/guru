@@ -78,22 +78,22 @@ _raw(const GV *v)
 __GURU__ GV
 _blank(U32 bsz)
 {
-    GV  v; { v.gt=GT_STR; v.acl=ACL_HAS_REF; }		// assuming some one acquires it
-    U32 asz = ALIGN8(bsz+1);				// 8-byte aligned
+    GV  v; { v.gt=GT_STR; v.acl=ACL_HAS_REF; }	// assuming some one acquires it
+    U32 asz = ALIGN8(bsz+1);					// 8-byte aligned
     /*
       Allocate handle and string buffer.
     */
     guru_str *h = v.str = (guru_str *)guru_alloc(sizeof(guru_str));
-    U8       *s = (U8*)guru_alloc(asz);		// 8-byte aligned
+    U8       *s = (U8*)guru_alloc(asz);			// 8-byte aligned
 
-    ASSERT(((U32A)h & 7)==0);				// check alignment
+    ASSERT(((U32A)h & 7)==0);					// check alignment
     ASSERT(((U32A)s & 7)==0);
 
-    s[0]   = '\0';							// empty new string
+    s[0]   = '\0';								// empty new string
     h->rc  = 1;
     h->sz  = asz;
     h->bsz = bsz;
-    h->raw = (char *)s;						// TODO: for DEBUG, change back to (U8*)
+    h->raw = (char *)s;							// TODO: for DEBUG, change back to (U8*)
 
     return v;
 }
@@ -232,6 +232,21 @@ _chomp(GV *v)
   @param  src	source string or NULL
   @return 	string object
 */
+__GURU__ void
+guru_str_rom(GV *v)					// cannot use U8P, need lots of casting
+{
+	//  Allocate handle and to point to ROM string
+    guru_str *h = (guru_str *)guru_alloc(sizeof(guru_str));
+
+    ASSERT(((U32A)h & 7)==0);		// check alignment
+
+    h->rc  = 0;
+    h->bsz = h->sz = v->oid;
+    h->raw = (char *)v->buf;		// copy over
+
+    v->str = h;						// overwrite GV
+}
+
 __GURU__ GV
 guru_str_new(const U8 *src)			// cannot use U8P, need lots of casting
 {
@@ -315,7 +330,7 @@ guru_buf_add_cstr(GV *buf, const U8 *str)
     U32 bsz0 = buf->str->bsz;
     U32 bsz1 = STRLENB(str);
     U32 asz  = ALIGN8(bsz0 + bsz1+1);					// 8-byte aligned
-    U8  *tmp = (U8*)buf->str->raw;
+    U8  *tmp = _raw(buf);
 
     if (asz > buf->str->sz) {
     	buf->str->raw = (char*)(tmp = (U8*)guru_realloc(tmp, asz));

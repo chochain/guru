@@ -198,6 +198,11 @@ struct Vfunc {
 		GI i;			\
     }
 
+typedef struct RString {		// 16-byte
+	GURU_HDR;
+	char 			*raw;		// pointer to allocated buffer.
+} guru_str;
+
 //================================================================
 /*! Define instance data handle.
 */
@@ -221,11 +226,6 @@ typedef struct RProc {			// 48-byte
 #define PROC_LAMBDA		0x2
 #define AS_IREP(p)		((p)->kt & PROC_IREP)
 #define AS_LAMBDA(p)	((p)->kt & PROC_LAMBDA)
-
-typedef struct RString {		// 16-byte
-	GURU_HDR;
-	char 			*raw;		// pointer to allocated buffer.
-} guru_str;
 
 //================================================================
 /*!@brief

@@ -87,16 +87,11 @@ __transcode(GRIT *gr)
 	GV *v = gr->pool;
 	for (U32 i=0; i < gr->psz; i++, v++) {			// symbol table
 		switch (v->gt) {
-		case GT_SYM:
-			*v = guru_sym_new(v->buf);				// instantiate the symbol (with '\0' from input stream)
-			break;
-		case GT_STR:
-			*v = guru_str_new(v->buf);				// instantiate the string
-			break;
+		case GT_SYM: guru_sym_rom(v);	break;
+		case GT_STR: guru_str_rom(v);	break;		// instantiate the string
 		default:
 			// do nothing
 		}
-		v->acl &= ~ACL_HAS_REF;						// TODO: rom-based
 	}
 }
 
