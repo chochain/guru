@@ -25,16 +25,17 @@ extern "C" {
   IREP Internal REPresentation
 */
 typedef struct RIrep {			// 32-byte
-	U16 size;					// size of this IREP block
-    U16 nv; 		  			//!< # of local variables
+//		U16 size;					// size of this IREP block
+//	    U16 nv; 		  			//!< # of local variables
     U16 nr;						//!< # of register used
     U16 r;						//!< # of child IREP blocks (into list below)
+//    	U32 i;						//!< # of bytecodes (by iseq below)
 
-    U32 i;						//!< # of bytecodes (by iseq below)
     U16 p;						//!< # of objects in pool (into pool below)
     U16	s;						//!< # of symbols (into sym below)
 
-    struct RIrep  	**reps;		//!< array of child IREP's pointer.
+    U32				*iseq;
+    struct RIrep  	*reps;		//!< array of child IREP's pointer.
     GV  			*pool; 		//!< array of POOL objects pointer.
     							// ISEQ block follows here, and
     							// REPS block after

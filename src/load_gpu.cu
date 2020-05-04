@@ -18,6 +18,8 @@
 #include "guru.h"
 #include "mmu.h"
 #include "util.h"
+#include "symbol.h"
+#include "c_string.h"
 
 #include "base.h"
 #include "state.h"
@@ -80,53 +82,127 @@ _check_header(U8 **bp)
 }
 
 __GURU__ void
-_to_gv(GV v[], U32 n, U8 *p, bool sym)
+_get_rite_size(rite_size *sz, U8 **bp)
+{
+    U8 *p = *bp;
+
+    // sz,nlocals,nregs,rlen
+    p += sizeof(U32)*2;									// IREP block size, nlocals, nregs
+    U32 rsz = BU16(p);		p += sizeof(U16);			// number of child IREP blocks
+    U32 isz = BU32(p);		p += sizeof(U32);			// ISEQ (bytecodes) length
+    p += (-(U32A)p & 3);								// 32-bit align code pointer
+    p += sizeof(U32)*isz;								// skip ISEQ (code) block
+
+    // POOL block
+    U32 psz = BU32(p);		p += sizeof(U32);			// pool element count
+    for (U32 i=0; i<psz; i++) {							// 1st pass (skim through pool)
+    	U8  tt  = *p++;
+    	U32 len = BU16(p);	p += sizeof(U16)+len;
+    	sz->ssz += (tt==0)
+    		? ALIGN4(len+1) : ((tt==3) ? ALIGN4(len) : 0);
+    }
+    // SYM block
+    U32 ysz = BU32(p);		p += sizeof(U32);			// symbol element count
+    for (U32 i=0; i<ysz; i++) {							// 1st pass (skim through sym)
+    	U32 len = BU16(p)+1;	p += sizeof(U16)+len;
+    	sz->ssz += ALIGN4(len);
+    }
+    *bp = p;											// update scanner pointer
+
+    sz->rsz += rsz;
+    sz->isz += isz;
+    sz->psz += (psz + ysz);
+
+    for (int i=0; i<rsz; i++) {							// tail recursion
+    	_get_rite_size(sz, bp);
+    }
+}
+
+__GURU__ void
+_reset_grit(GRIT *gr)
+{
+	gr->reps = (guru_irep*)U8PADD(gr, sizeof(GRIT));
+	gr->pool = (GV*) U8PADD(gr->reps, gr->rsz * sizeof(guru_irep));
+	gr->iseq = (U32*)U8PADD(gr->pool, gr->psz * sizeof(GV));
+	gr->stbl = (U8*) U8PADD(gr->iseq, gr->isz * sizeof(U32));
+}
+
+__GURU__ GRIT*
+_alloc_grit(U8 **bp)
+{
+    rite_size sz { .rsz=1, .psz=0, .isz=0, .ssz=0 };
+
+    _get_rite_size(&sz, bp);
+
+    U32 bsz =
+    		sizeof(GRIT) +
+    		sz.rsz * sizeof(guru_irep) +
+    		sz.psz * sizeof(GV) +
+    		sz.isz * sizeof(U32) +
+    		sz.ssz;
+
+    GRIT *gr = (GRIT*)guru_alloc(ALIGN8(bsz));
+
+    MEMCPY(gr, &sz, sizeof(rite_size));
+
+    return gr;
+}
+
+__GURU__ void
+_to_gv(GV *v, U8 **stbl, U8 *p, U32 tt, U32 len)
 {
     // build POOL or SYM block
+	U8   *tgt = *stbl;
     char buf[64+1];
-    for (U32 i=0; i<n; i++, v++) {
-        U32  tt = sym ? 3 : *p++;
-        U32  len = BU16(p);	p += sizeof(U16);
+    U8   c;
 
-        v->acl = 0;							// clear access bit (~HAS_REF, ~SCLASS, ~SELF)
-        switch (tt) {
-        case 0:	// String
-        	v->gt  = GT_STR;
-        	v->oid = len;					// capture len for transcoding
-        	v->buf = p;						// keep pointer a input stream
-        	break;
-        case 1: // Integer (31-bit)
-            v->gt  = GT_INT;
-            MEMCPY(buf, p, len);
-            buf[len] = '\0';
-            v->i   = ATOI(buf, 10);
-            break;
-        case 2: // Float (32-bit)
-            v->gt  = GT_FLOAT;
-            MEMCPY(buf, p, len);
-            buf[len] = '\0';
-            v->f   = (float)ATOF(buf);		// atof() returns double
-            break;
-        case 3: // Symbol
-        	v->gt  = GT_SYM;
-        	v->oid = len;
-        	v->buf = p;						// keep string pointer at input stream
-        	break;
-        default: // Others (not yet supported)
-        	v->gt   = GT_NIL;
-        	v->self = NULL;
-        	break;
-        }
-        p += len + (sym ? 1 : 0);
+    v->acl = 0;							// clear access bit (~HAS_REF, ~SCLASS, ~SELF)
+    switch (tt) {
+    case 0:	// String
+    	v->gt  = GT_STR;
+    	v->buf = tgt;
+
+    	c = *(p+len);					// RITE does not 0 terminate (Ruby bug)
+    	*(p+len) = '\0';				// so, we have to hack it here (BAD! write to input stream)
+    	MEMCPY(tgt, p, len);
+        tgt += ALIGN4(len+1);
+    	*(p+len) = c;					// put it back
+        break;
+    case 1: // Integer (31-bit)
+    	v->gt  = GT_INT;
+    	MEMCPY(buf, p, len);
+    	buf[len] = '\0';
+    	v->i   = ATOI(buf, 10);
+    	break;
+    case 2: // Float (32-bit)
+    	v->gt  = GT_FLOAT;
+    	MEMCPY(buf, p, len);
+    	buf[len] = '\0';
+    	v->f   = (float)ATOF(buf);		// atof() returns double
+    	break;
+    case 3: // Symbol
+    	v->gt  = GT_SYM;
+    	v->buf = tgt;
+
+    	MEMCPY(tgt, p, len);
+    	tgt += ALIGN4(len);
+    	break;
+    default: // Others (not yet supported)
+    	v->gt   = GT_NIL;
+    	v->self = NULL;
+    	break;
     }
+    *stbl = tgt;
 }
 
 //================================================================
 /*!@brief
   read one irep section.
 
-  @param  bp	A pointer of pointer of IREP section.
-  @return       Pointer of allocated mrbc_irep or NULL
+  @param  gr    GRIT pointer
+  @param  ix    offset index to IREP section
+  @param  bp	A pointer of pointer of input byte stream
+  @return       count of child IREPs
 
   <pre>
   (loop n of child irep bellow)
@@ -150,64 +226,63 @@ _to_gv(GV v[], U32 n, U8 *p, bool sym)
   ...		symbol data
   </pre>
 */
-__GURU__ guru_irep*
-_build_image(U8 **bp)
+__GURU__ int
+_load_irep(GRIT *gr, int *r, int ix, U8 **bp)
 {
     U8 *p = *bp;
-    guru_irep r0;
+    guru_irep *r0 = gr->reps + ix;
 
     // sz,nlocals,nregs,rlen
-    r0.size = BU32(p);	p += sizeof(U32);				// IREP block size
-    r0.nv   = BU16(p);	p += sizeof(U16);				// number of local variables
-    r0.nr   = BU16(p);	p += sizeof(U16);				// number of registers used
-    r0.r    = BU16(p);	p += sizeof(U16);				// number of child IREP blocks
+    p += sizeof(U32);									// IREP block size
+    p += sizeof(U16);									// number of local variables
+    r0->nr   = BU16(p);	p += sizeof(U16);				// number of registers used
+    r0->r    = BU16(p);	p += sizeof(U16);				// number of child IREP blocks
+
+    r0->reps = r0->r ? &gr->reps[*r] : NULL;
 
     // ISEQ block
-    r0.i    = BU32(p);	p += sizeof(U32);				// ISEQ (bytecodes) length
+    U32 isz = BU32(p);		p += sizeof(U32);			// number of ISEQ instructions
 
     U8 *iseq    = (p += -(U32A)p & 3);					// 32-bit align code pointer
-    U32 iseq_sz = sizeof(U32) * r0.i;	p += iseq_sz;	// skip ISEQ (code) block
-    U32 reps_sz = sizeof(guru_irep) * r0.r;
+    U32 iseq_sz = sizeof(U32) * isz;	p += iseq_sz;	// skip ISEQ (code) block
+
+    r0->iseq = gr->iseq;
+    gr->iseq += isz;									// advance ISEQ pointer
+    MEMCPY(r0->iseq, iseq, iseq_sz);					// copy ISEQ
 
     // POOL block
-    r0.p = BU32(p);		p += sizeof(U32);				// pool element count
-    U8 *pool = p;
-    for (U32 i=0; i<r0.p; i++) {						// 1st pass (skim through pool)
-    	U32 len = BU16(++p);	p += sizeof(U16)+len;
+    GV *pool = r0->pool = gr->pool;						// capture pool pointer
+    U8 *stbl = gr->stbl;
+    U32 psz  = r0->p = BU32(p);	p += sizeof(U32);		// pool element count
+    for (U32 i=0; i<psz; i++) {							// 1st pass (skim through pool)
+        U32  tt = *p++;
+        U32  len = BU16(p);    	p += sizeof(U16);
+    	_to_gv(pool++, &stbl, p, tt, len);
+    	p += len;
     }
     // SYM block
-    r0.s = BU32(p);		p += sizeof(U32);				// symbol element count
-    U8 *sym = p;
-    for (U32 i=0; i<r0.s; i++) {						// 1st pass (skim through sym)
-    	U32 len = BU16(p)+1;	p += sizeof(U16)+len;
+    U32 ssz = r0->s = BU32(p);	p += sizeof(U32);		// symbol element count
+    for (U32 i=0; i<ssz; i++) {							// 1st pass (skim through sym)
+    	U32 len = BU16(p)+1;	p += sizeof(U16);
+    	_to_gv(pool++, &stbl, p, 3, len);
+    	p += len;
     }
+    gr->pool += (psz + ssz);							// advance pool pointer
+    gr->stbl  = stbl;
     *bp = p;
 
-    // prep Register File block which combines Reps, Pooled objects & Symbol table
-    U32 code_sz = sizeof(guru_irep) + reps_sz + ALIGN(iseq_sz);
-    guru_irep *irep = (guru_irep*)guru_alloc(code_sz);
-    *irep = r0;											// deep copy IREP
-    MEMCPY(irep+1, iseq, iseq_sz);						// copy ISEQ
-    guru_irep **reps = (guru_irep**)U8PADD(irep, sizeof(guru_irep) + ALIGN(iseq_sz));
-    irep->reps = reps;
-
-    U32 pool_sz = sizeof(GV) * (r0.p + r0.s);
-    if (pool_sz==0) irep->pool = NULL;
-    else {
-    	irep->pool  = (GV *)guru_alloc(pool_sz);		// TODO: use vm->regfile[] directly
-
-    	_to_gv(irep->pool, 		  r0.s, sym,  1);		// symbol table 1st  (faster)
-    	_to_gv(irep->pool + r0.s, r0.p, pool, 0);		// pooled object 2nd (one extra calc)
-    }
-    return irep;
+	return r0->r;
 }
 
 //================================================================
 /*!@brief
-  read all irep section.
+  transform irep-tree from depth-first to breadth-first (using little brother algo)
 
-  @param  bp	A pointer of pointer of IREP section.
-  @return       Pointer of allocated mrbc_irep or NULL
+  @param  gr    GRIT pointer
+  @param  r     A pointer to forward index
+  @param  ix    IREP index in GRIT
+  @param  bp	A pointer of pointer of input byte-stream
+  @return       void
 
   <pre>
   Structure
@@ -216,17 +291,17 @@ _build_image(U8 **bp)
   "0000"	rite version
   </pre>
 */
-__GURU__ guru_irep*
-_load_irep(U8 **bp)
+__GURU__ void
+_build_image(GRIT *gr, int *r, int ix, U8 **bp)
 {
-    // allocate new irep
-    guru_irep *irep = _build_image(bp);
+    U32 rsz = _load_irep(gr, r, ix, bp);
+    ix  = *r;								// remember where we were (little brother)
+    *r += rsz;								// total allocated (big brother)
 
-    // recursively create the child irep tree
-    for (U32 i=0; i<irep->r; i++) {
-        irep->reps[i] = _load_irep(bp);
-    }
-    return irep;
+    // traverse irep-tree recursively
+	for (U32 i=0; i<rsz; i++) {
+		_build_image(gr, r, ix+i, bp);
+	}
 }
 
 //================================================================
@@ -237,7 +312,7 @@ _load_irep(U8 **bp)
   @return int	zero if no error.
 */
 __GURU__ int
-_load_lvar(U8 **bp)
+_load_lvar(GRIT *gr, U8 **bp)
 {
     U8 *p = *bp;
 
@@ -253,30 +328,36 @@ _load_lvar(U8 **bp)
 
   @param  src	Pointer to bytecode.
 */
-__GURU__ U8*
+__GURU__ GRIT*
 parse_bytecode(U8 *src)
 {
 	U8 **bp = &src;
     int ret = _check_header(bp);
 
-    U8 *irep;
+    GRIT *gr;
     while (ret==NO_ERROR) {
-        if (MEMCMP(*bp, "IREP", 4)==0) {
+        if (MEMCMP(*bp, "IREP", 4)==0) {						// switch alternative
         	*bp += 4 + sizeof(U32);								// skip "IREP", irep_sz
             if (MEMCMP(*bp, "0000", 4) != 0) break;				// IREP version
             *bp += 4;											// skip "0000"
 
-        	ret = ((irep=(U8*)_load_irep(bp))==NULL)
-                	? LOAD_FILE_IREP_ERROR_ALLOCATION
-        			: NO_ERROR;
+            U8 *p  = *bp;
+            gr  = _alloc_grit(&p);
+            _reset_grit(gr);
+
+            int r = 1;
+            _build_image(gr, &r, 0, bp);
+        	_reset_grit(gr);
+
+        	ret = NO_ERROR;
         }
         else if (MEMCMP(*bp, "LVAR", 4)==0) {
-            ret = _load_lvar(bp);
+            ret = _load_lvar(gr, bp);
         }
         else if (MEMCMP(*bp, "END\0", 4)==0) {
             break;
         }
     }
-    return (ret==NO_ERROR) ? irep : NULL;
+    return (ret==NO_ERROR) ? gr : NULL;
 }
 #endif // !GURU_HOST_IMAGE

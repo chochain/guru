@@ -79,7 +79,7 @@ __GURU__ GV
 _blank(U32 bsz)
 {
     GV  v; { v.gt=GT_STR; v.acl=ACL_HAS_REF; }		// assuming some one acquires it
-    U32 asz = ALIGN(bsz+1);					// 8-byte aligned
+    U32 asz = ALIGN8(bsz+1);				// 8-byte aligned
     /*
       Allocate handle and string buffer.
     */
@@ -190,7 +190,7 @@ _strip(GV *v, U32 mode)
     	MEMCPY(buf, p0, new_bsz);
     }
     buf[new_bsz] = '\0';
-    U32 asz = ALIGN(new_bsz + 1);					// 8-byte aligned
+    U32 asz = ALIGN8(new_bsz + 1);					// 8-byte aligned
 
     v->str->sz  = asz;
     v->str->bsz = new_bsz;
@@ -291,7 +291,7 @@ guru_str_add(GV *s0, GV *s1)
 
     U32 bsz0 = s0->str->bsz;
     U32 bsz1 = s1->str->bsz;
-    U32 asz  = ALIGN(bsz0 + bsz1 + 1);		// +'\0', 8-byte aligned
+    U32 asz  = ALIGN8(bsz0 + bsz1 + 1);		// +'\0', 8-byte aligned
     GV  ret  = _blank(asz);
 
     U8  *buf = (U8*)ret.str->raw;
@@ -314,7 +314,7 @@ guru_buf_add_cstr(GV *buf, const U8 *str)
 {
     U32 bsz0 = buf->str->bsz;
     U32 bsz1 = STRLENB(str);
-    U32 asz  = ALIGN(bsz0 + bsz1+1);					// 8-byte aligned
+    U32 asz  = ALIGN8(bsz0 + bsz1+1);					// 8-byte aligned
     U8  *tmp = (U8*)buf->str->raw;
 
     if (asz > buf->str->sz) {

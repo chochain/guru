@@ -114,7 +114,7 @@ _find_irep(guru_irep *irep0, guru_irep *irep1, U8 *idx)
 	if (irep0==irep1) return 1;
 	for (U32 i=0; i<irep0->r; i++) {
 		*idx += 1;
-		if (_find_irep(irep0->reps[i], irep1, idx)) return 1;
+		if (_find_irep(&irep0->reps[i], irep1, idx)) return 1;
 	}
 	return 0;		// not found
 }
@@ -223,14 +223,16 @@ __HOST__ void
 _show_irep(guru_irep *irep, char level, char *n)
 {
 	U32 a = (U32A)irep;
-	printf("\t%c irep[%c]=%08x: size=0x%x, nreg=%d, nlocal=%d, pools=%d, syms=%d, reps=%d, ilen=%d\n",
+/*	printf("\t%c irep[%c]=%08x: size=0x%x, nreg=%d, nlocal=%d, pools=%d, syms=%d, reps=%d, ilen=%d\n",
 			level, *n, a,
 			irep->size, irep->nr, irep->nv, irep->p, irep->s, irep->r, irep->i);
-
+*/
+	printf("\t%c irep[%c]=%08x: nreg=%d, nlocal=x, pools=%d, syms=%d, reps=%d\n",
+				level, *n, a, irep->nr, irep->p, irep->s, irep->r);
 	// dump all children ireps
 	for (U32 i=0; i<irep->r; i++) {
 		*n += (*n=='z') ? -57 : 1;		// a-z, A-Z
-		_show_irep(irep->reps[i], level+1, n);
+		_show_irep(&irep->reps[i], level+1, n);
 	}
 }
 
@@ -257,7 +259,7 @@ debug_vm_irep(guru_vm *vm)
 
 	printf("  vm[%d]:\n", vm->id);
 	char c = 'a';
-	_show_irep(vm->state->irep, 'A'+vm->id, &c);
+	_show_irep(vm->state->irep, '1'+vm->id, &c);
 }
 
 __HOST__ int

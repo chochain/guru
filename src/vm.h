@@ -79,9 +79,7 @@ typedef struct VM {				// 80-byte
     GAR ar;						// argument struct
 
     struct RState  	*state;		// VM state (callinfo) linked list
-
     cudaStream_t    st;
-    U32				xxx;		// reserved
 
     // TODO: pointers (for dynamic sizing), use array now for debugging
     U32 rescue[MAX_RESCUE_STACK];	// ONERR/RESCUE return stack
@@ -89,12 +87,12 @@ typedef struct VM {				// 80-byte
 } guru_vm;
 
 #define VM_IREP(vm)    	((vm)->state->irep)
-#define VM_ISEQ(vm)	 	((U32*)U8PADD(VM_IREP(vm), sizeof(guru_irep)))
+#define VM_ISEQ(vm)	 	(VM_IREP(vm)->iseq)
 
-#define VM_REPS(vm,n)	((guru_irep*)VM_IREP(vm)->reps[(n)])
-#define VM_VAR(vm,n)	(VM_IREP(vm)->pool[VM_IREP(vm)->s + (n)])
-#define VM_STR(vm,n)	(VM_IREP(vm)->pool[VM_IREP(vm)->s + (n)])
-#define VM_SYM(vm,n)    (VM_IREP(vm)->pool[(n)].i)
+#define VM_REPS(vm,n)	(&VM_IREP(vm)->reps[(n)])
+#define VM_VAR(vm,n)	(VM_IREP(vm)->pool[(n)])
+#define VM_STR(vm,n)	(VM_IREP(vm)->pool[(n)])
+#define VM_SYM(vm,n)    (VM_IREP(vm)->pool[VM_IREP(vm)->p + (n)].i)
 
 #ifdef __cplusplus
 }

@@ -97,16 +97,30 @@ guru_load(char *rite_name)
 {
 	debug_log("guru loading RITE image into ses->stdin memory...");
 
+
 	guru_ses *ses = (guru_ses *)malloc(sizeof(guru_ses));
 	if (!ses) return -1;		// memory allocation error
 
 	ses->stdout = _guru_out;
 
-	U8 *ins = ses->stdin = _fetch_bytecode((U8*)rite_name);
+	U8 *ins = _fetch_bytecode((U8*)rite_name);
 	if (!ins) {
 		fprintf(stderr, "ERROR: bytecode request allocation error!\n");
-		return -2;
+		return -1;
 	}
+
+	int id = ses->id = vm_get(ins);
+	cuda_free(ins);
+
+	if (id==-1) {
+		fprintf(stderr, "ERROR: bytecode parsing error!\n");
+		return -1;
+	}
+	if (id==-2) {
+		fprintf(stderr, "ERROR: No more VM available!\n");
+		return -1;
+	}
+
 	ses->next = _ses_list;		// add to linked-list
 	_ses_list = ses;
 
@@ -122,11 +136,8 @@ guru_run()
 	// parse BITE code into each vm
 	// TODO: work producer (enqueue)
 	for (guru_ses *ses=_ses_list; ses!=NULL; ses=ses->next) {
-		int x = ses->id = vm_get(ses->stdin);
-		if      (x==-1) fprintf(stderr, "ERROR: bytecode parsing error!\n");
-		else if (x==-2) fprintf(stderr, "ERROR: No more VM available!\n");
-		else if (vm_ready(x)) {
-			fprintf(stderr, "ERROR: VM state failed to transit!\n");
+		if (vm_ready(ses->id)) {
+			fprintf(stderr, "ERROR: VM state failed to go into READY state!\n");
 		}
 	}
 	// kick up main loop until all VM are done

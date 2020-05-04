@@ -31,8 +31,9 @@ extern "C" {
 #define __CFUNC__			__GURU__ void
 #define MUTEX_LOCK(p)  		while (atomicCAS((int *)&p, 0, 1)!=0)
 #define MUTEX_FREE(p)  		atomicExch((int *)&p, 0)
-#define ALIGN(sz) 			((sz) + (-(sz) & 0x7))
-#define ALIGN64(sz)  		((sz) + (-(sz) & 0xf))
+#define ALIGN4(sz)			((sz) + (-(sz) & 0x3))
+#define ALIGN8(sz) 			((sz) + (-(sz) & 0x7))
+#define ALIGN16(sz)  		((sz) + (-(sz) & 0xf))
 
 #define ASSERT(X) \
 	if (!(X)) PRINTF("ASSERT tid %d: line %d in %s\n", threadIdx.x, __LINE__, __FILE__);

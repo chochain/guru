@@ -830,7 +830,7 @@ class Ucode::Impl
     __UCODE__
     string()
     {
-        GV v = VM_STR(_vm, _AR(bx));
+        GV  v = VM_STR(_vm, _AR(bx));
         _RA(v);
     }
 
