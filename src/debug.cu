@@ -223,10 +223,6 @@ __HOST__ void
 _show_irep(guru_irep *irep, char level, char *n)
 {
 	U32 a = (U32A)irep;
-/*	printf("\t%c irep[%c]=%08x: size=0x%x, nreg=%d, nlocal=%d, pools=%d, syms=%d, reps=%d, ilen=%d\n",
-			level, *n, a,
-			irep->size, irep->nr, irep->nv, irep->p, irep->s, irep->r, irep->i);
-*/
 	printf("\t%c irep[%c]=%08x: nreg=%d, nlocal=x, pools=%d, syms=%d, reps=%d\n",
 				level, *n, a, irep->nr, irep->p, irep->s, irep->r);
 	// dump all children ireps
@@ -259,7 +255,7 @@ debug_vm_irep(guru_vm *vm)
 
 	printf("  vm[%d]:\n", vm->id);
 	char c = 'a';
-	_show_irep(vm->state->irep, '1'+vm->id, &c);
+	_show_irep(vm->state->irep, '0'+vm->id, &c);
 }
 
 __HOST__ int

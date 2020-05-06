@@ -118,15 +118,6 @@ _get_rite_size(rite_size *sz, U8 **bp)
     }
 }
 
-__GURU__ void
-_reset_grit(GRIT *gr)
-{
-	gr->reps = (guru_irep*)U8PADD(gr, sizeof(GRIT));
-	gr->pool = (GV*) U8PADD(gr->reps, gr->rsz * sizeof(guru_irep));
-	gr->iseq = (U32*)U8PADD(gr->pool, gr->psz * sizeof(GV));
-	gr->stbl = (U8*) U8PADD(gr->iseq, gr->isz * sizeof(U32));
-}
-
 __GURU__ GRIT*
 _alloc_grit(U8 **bp)
 {
@@ -137,15 +128,26 @@ _alloc_grit(U8 **bp)
     U32 bsz =
     		sizeof(GRIT) +
     		sz.rsz * sizeof(guru_irep) +
-    		sz.psz * sizeof(GV) +
+    		ALIGN8(sz.ssz) +
     		sz.isz * sizeof(U32) +
-    		sz.ssz;
+    		sz.psz * sizeof(GV);
 
     GRIT *gr = (GRIT*)guru_alloc(ALIGN8(bsz));
 
     MEMCPY(gr, &sz, sizeof(rite_size));
 
     return gr;
+}
+
+__GURU__ void
+_reset_grit(GRIT *gr)
+{
+	gr->reps = (guru_irep*)U8PADD(gr, sizeof(GRIT));
+	gr->stbl = (U8*) U8PADD(gr->reps, gr->rsz * sizeof(guru_irep));
+	gr->iseq = (U32*)U8PADD(gr->stbl, ALIGN8(gr->ssz));
+	gr->pool = (GV*) U8PADD(gr->iseq, gr->isz * sizeof(U32));
+
+//    gr->pool = vm->regfile;
 }
 
 __GURU__ void
@@ -184,7 +186,7 @@ _to_gv(GV *v, U8 **stbl, U8 *p, U32 tt, U32 len)
     	break;
     case 3: // Symbol
     	v->gt  = GT_SYM;
-    	v->buf = tgt;
+       	v->buf = tgt;
 
     	MEMCPY(tgt, p, len);
     	tgt += ALIGN4(len);
@@ -294,7 +296,7 @@ _load_irep(GRIT *gr, int *r, int ix, U8 **bp)
   </pre>
 */
 __GURU__ void
-_build_image(GRIT *gr, int *r, int ix, U8 **bp)
+_fill_grit(GRIT *gr, int *r, int ix, U8 **bp)
 {
     U32 rsz = _load_irep(gr, r, ix, bp);
     ix  = *r;								// remember where we were (little brother)
@@ -302,8 +304,22 @@ _build_image(GRIT *gr, int *r, int ix, U8 **bp)
 
     // traverse irep-tree recursively
 	for (U32 i=0; i<rsz; i++) {
-		_build_image(gr, r, ix+i, bp);
+		_fill_grit(gr, r, ix+i, bp);
 	}
+}
+
+__GURU__ GRIT*
+_build_image(U8 **bp)
+{
+    U8   *p  = *bp;
+    GRIT *gr = _alloc_grit(&p);
+    _reset_grit(gr);
+
+    int r = 1;
+    _fill_grit(gr, &r, 0, bp);
+	_reset_grit(gr);
+
+	return gr;
 }
 
 //================================================================
@@ -343,14 +359,7 @@ parse_bytecode(U8 *src)
             if (MEMCMP(*bp, "0000", 4) != 0) break;				// IREP version
             *bp += 4;											// skip "0000"
 
-            U8 *p  = *bp;
-            gr  = _alloc_grit(&p);
-            _reset_grit(gr);
-
-            int r = 1;
-            _build_image(gr, &r, 0, bp);
-        	_reset_grit(gr);
-
+            gr  = _build_image(bp);
         	ret = NO_ERROR;
         }
         else if (MEMCMP(*bp, "LVAR", 4)==0) {

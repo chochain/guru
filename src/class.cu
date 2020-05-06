@@ -1,6 +1,6 @@
 /*! @file
   @brief
-  GURU class building functions
+  GURU class factory and building functions
 
   <pre>
   Copyright (C) 2019- GreenII
@@ -309,11 +309,12 @@ guru_rom_set_class(GT cidx, const char *name, GT super_cidx, const Vfunc vtbl[],
     cls->rc   = n;								// number of built-in functions
     cls->vtbl = prc;							// built-in proc list
 
-    for (U32 i=0; i<n; i++, prc++) {
+    Vfunc *fp = (Vfunc*)&vtbl[0];				// TODO: nvcc allocates very sparsely for String literals
+    for (U32 i=0; i<n; i++, prc++, fp++) {
     	prc->n    = 0;
-    	prc->sid  = create_sym((U8*)vtbl[i].name);
+    	prc->sid  = create_sym((U8*)fp->name);
     	prc->kt   = 0;							// built-in class type (not USER_DEF_CLASS)
-    	prc->func = vtbl[i].func;
+    	prc->func = fp->func;
 #ifdef GURU_DEBUG
     	prc->cname= id2name(cls->sid);
     	prc->name = id2name(prc->sid);
