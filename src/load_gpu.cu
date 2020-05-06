@@ -128,9 +128,9 @@ _alloc_grit(U8 **bp)
     U32 bsz =
     		sizeof(GRIT) +
     		sz.rsz * sizeof(guru_irep) +
-    		ALIGN8(sz.ssz) +
+    		sz.psz * sizeof(GV) +
     		sz.isz * sizeof(U32) +
-    		sz.psz * sizeof(GV);
+    		sz.ssz;
 
     GRIT *gr = (GRIT*)guru_alloc(ALIGN8(bsz));
 
@@ -143,9 +143,9 @@ __GURU__ void
 _reset_grit(GRIT *gr)
 {
 	gr->reps = (guru_irep*)U8PADD(gr, sizeof(GRIT));
-	gr->stbl = (U8*) U8PADD(gr->reps, gr->rsz * sizeof(guru_irep));
-	gr->iseq = (U32*)U8PADD(gr->stbl, ALIGN8(gr->ssz));
-	gr->pool = (GV*) U8PADD(gr->iseq, gr->isz * sizeof(U32));
+	gr->pool = (GV*) U8PADD(gr->reps, gr->rsz * sizeof(guru_irep));
+	gr->iseq = (U32*)U8PADD(gr->pool, gr->psz * sizeof(GV));
+	gr->stbl = (U8*) U8PADD(gr->iseq, gr->isz * sizeof(U32));
 
 //    gr->pool = vm->regfile;
 }

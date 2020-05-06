@@ -31,9 +31,9 @@ typedef struct {
 typedef struct {
 	RITE_HDR;
 	guru_irep 	*reps;
+	GV			*pool;
 	U32			*iseq;
 	U8			*stbl;
-	GV			*pool;
 } GRIT;
 
 #if GURU_HOST_IMAGE
