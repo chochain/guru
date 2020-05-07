@@ -36,11 +36,11 @@ typedef struct {
 	S16		stbl;
 } GRIT;
 
-#if GURU_HOST_IMAGE
-__HOST__ U8 *parse_bytecode(GV **regs, U8 *src);		// parsed on HOST, image passed into GPU
+#if GURU_HOST_GRIT_IMAGE
+__HOST__ GRIT *parse_bytecode(U8 *src);		// parsed on HOST, image passed into GPU
 #else
-__GURU__ GRIT *parse_bytecode(U8 *src);					// parsed on HOST, image passed into GPU
-#endif // GURU_HOST_IMAGE
+__GURU__ GRIT *parse_bytecode(U8 *src);		// parsed on HOST, image passed into GPU
+#endif // GURU_HOST_GRIT_IMAGE
 
 #ifdef __cplusplus
 }

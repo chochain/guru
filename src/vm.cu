@@ -101,15 +101,15 @@ __transcode(GRIT *gr)
 // Note: thread 0 is the master controller, no other thread can
 //       modify the VM status
 //
-#if GURU_HOST_IMAGE
+#if GURU_HOST_GRIT_IMAGE
 __GPU__ void
-_get(guru_vm *vm, guru_irep *irep)
+_get(guru_vm *vm, GRIT *gr)
 {
 	if (blockIdx.x!=0 || threadIdx.x!=0) return;	// singleton thread
 
 	if (vm->run==VM_STATUS_FREE) {
-		__transcode(irep);
-		__ready(vm, irep);
+		__transcode(gr);
+		__ready(vm, gr);
 	}
 }
 #else
@@ -124,7 +124,7 @@ _get(guru_vm *vm, U8 *ibuf)
 		__ready(vm, gr);
 	}
 }
-#endif // GURU_HOST_IMAGE
+#endif // GURU_HOST_GRIT_IMAGE
 
 //================================================================
 /*!@brief
@@ -216,14 +216,14 @@ vm_get(U8 *ibuf)
 
 	guru_vm *vm = &_vm_pool[_vm_cnt];
 
-#if GURU_HOST_IMAGE
-	guru_irep *irep = (guru_irep *)parse_bytecode(ibuf);
-	if (!irep) return -2;
+#if GURU_HOST_GRIT_IMAGE
+	GRIT *gr = (GRIT*)parse_bytecode(ibuf);
+	if (!gr) return -2;
 
-	_get<<<1,1,0,vm->st>>>(vm, irep);
+	_get<<<1,1,0,vm->st>>>(vm, gr);
 #else
 	_get<<<1,1,0,vm->st>>>(vm, ibuf);			// acquire VM, vm status will changed
-#endif // GURU_HOST_IMAGE
+#endif // GURU_HOST_GRIT_IMAGE
 	GPU_SYNC();
 	debug_vm_irep(vm);
 

@@ -30,7 +30,7 @@
 #define BU16(b)		(bin_to_u16((const void*)(b)))
 #define BU32(b)		(bin_to_u32((const void*)(b)))
 
-#if !GURU_HOST_IMAGE
+#if !GURU_HOST_GRIT_IMAGE
 //================================================================
 /*!@brief
   Parse header section.
@@ -140,13 +140,8 @@ _alloc_grit(U8 **bp)
     gr->pool = gr->reps + gr->rsz * sizeof(guru_irep);
     gr->iseq = gr->pool + gr->psz * sizeof(GV);
     gr->stbl = gr->iseq + gr->isz * sizeof(U32);
-/*
-	gr->reps = (guru_irep*)U8PADD(gr, sizeof(GRIT));
-	gr->pool = (GV*) U8PADD(gr->reps, gr->rsz * sizeof(guru_irep));
-	gr->iseq = (U32*)U8PADD(gr->pool, gr->psz * sizeof(GV));
-	gr->stbl = (U8*) U8PADD(gr->iseq, gr->isz * sizeof(U32));
-*/
-	return gr;
+
+    return gr;
 }
 
 __GURU__ void
@@ -357,8 +352,9 @@ parse_bytecode(U8 *src)
             if (MEMCMP(*bp, "0000", 4) != 0) break;				// IREP version
             *bp += 4;											// skip "0000"
 
-            gr  = _build_image(bp);
-        	ret = NO_ERROR;
+        	ret = ((gr=_build_image(bp))==NULL)
+        		? LOAD_FILE_IREP_ERROR_ALLOCATION
+        		: NO_ERROR;
         }
         else if (MEMCMP(*bp, "LVAR", 4)==0) {
             ret = _load_lvar(gr, bp);
@@ -369,4 +365,4 @@ parse_bytecode(U8 *src)
     }
     return (ret==NO_ERROR) ? gr : NULL;
 }
-#endif // !GURU_HOST_IMAGE
+#endif // !GURU_HOST_GRIT_IMAGE
