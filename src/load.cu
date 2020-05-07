@@ -17,30 +17,14 @@
 #include <string.h>
 
 #include "guru.h"
+#include "util.h"
 #include "mmu.h"
 #include "state.h"
 #include "errorcode.h"
 
 #include "load.h"
 
-#if GURU_HOST_IMAGE
-//================================================================
-/*!@brief
-  Parse header section.
-
-  @param  bp	A pointer of pointer of RITE header.
-  @return int	zero if no error.
-
-  <pre>
-  Structure
-  "RITE"	identifier
-  "0004"	version
-  0000		CRC
-  0000_0000	total size
-  "MATZ"	compiler name
-  "0000"	compiler version
-  </pre>
-*/
+#if GURU_HOST_GRIT_IMAGE
 __HOST__ U32
 BU32(const void *s)
 {
@@ -61,13 +45,34 @@ BU16(const void *s)
     U16 x = *((U16 *)s);
     return (x << 8) | (x >> 8);
 }
+#else
+#define BU16(b)		(bin_to_u16((const void*)(b)))
+#define BU32(b)		(bin_to_u32((const void*)(b)))
+#endif
 
-__HOST__ int
+//================================================================
+/*!@brief
+  Parse header section.
+
+  @param  bp	A pointer of pointer of RITE header.
+  @return int	zero if no error.
+
+  <pre>
+  Structure
+  "RITE"	identifier
+  "0004"	version
+  0000		CRC
+  0000_0000	total size
+  "MATZ"	compiler name
+  "0000"	compiler version
+  </pre>
+*/
+__CODE__ int
 _check_header(U8 **bp)
 {
     const U8 *p = *bp;
 
-    if (memcmp(p, "RITE000", 7)==0) {
+    if (__MEMCMP(p, "RITE000", 7)==0) {
     	// Rite binary version
     	// 0002: mruby 1.0
     	// 0003: mruby 1.1, 1.2
@@ -80,13 +85,13 @@ _check_header(U8 **bp)
     }
     /* Ignore CRC */
     /* Ignore size */
-    if (memcmp(p + 14, "MATZ", 4) != 0) {
+    if (__MEMCMP(p + 14, "MATZ", 4) != 0) {
         return LOAD_FILE_HEADER_ERROR_MATZ;
     }
     // Rite VM version
     // 0000: mruby 1.x
     // 0002: mruby 2.x
-    if (memcmp(p + 18, "0000", 4) != 0) {
+    if (__MEMCMP(p + 18, "0000", 4) != 0) {
         return LOAD_FILE_HEADER_ERROR_VERSION;
     }
     *bp += 22;
@@ -94,49 +99,120 @@ _check_header(U8 **bp)
     return NO_ERROR;
 }
 
+__CODE__ void
+_get_rite_size(rite_size *sz, U8 **bp)
+{
+    U8 *p = *bp;
+
+    // sz,nlocals,nregs,rlen
+    p += sizeof(U32)*2;									// IREP block size, nlocals, nregs
+    U32 rsz = BU16(p);		p += sizeof(U16);			// number of child IREP blocks
+    U32 isz = BU32(p);		p += sizeof(U32);			// ISEQ (bytecodes) length
+    p += (-(U32A)p & 3);								// 32-bit align code pointer
+    p += sizeof(U32)*isz;								// skip ISEQ (code) block
+
+    // POOL block
+    U32 psz = BU32(p);		p += sizeof(U32);			// pool element count
+    for (U32 i=0; i<psz; i++) {							// 1st pass (skim through pool)
+    	U8  tt  = *p++;
+    	U32 len = BU16(p);	p += sizeof(U16)+len;
+    	sz->ssz += (tt==0)
+    		? ALIGN4(len+1) : ((tt==3) ? ALIGN4(len) : 0);
+    }
+    // SYM block
+    U32 ysz = BU32(p);		p += sizeof(U32);			// symbol element count
+    for (U32 i=0; i<ysz; i++) {							// 1st pass (skim through sym)
+    	U32 len = BU16(p)+1;	p += sizeof(U16)+len;
+    	sz->ssz += ALIGN4(len);
+    }
+    *bp = p;											// update scanner pointer
+
+    sz->rsz += rsz;
+    sz->isz += isz;
+    sz->psz += (psz + ysz);
+
+    for (int i=0; i<rsz; i++) {							// tail recursion
+    	_get_rite_size(sz, bp);
+    }
+}
+
+__CODE__ GRIT*
+_alloc_grit(U8 **bp)
+{
+    rite_size sz { .rsz=1, .psz=0, .isz=0, .ssz=0 };
+
+    _get_rite_size(&sz, bp);
+
+    U32 bsz =
+    		sizeof(GRIT) +
+    		sz.rsz * sizeof(guru_irep) +
+    		sz.psz * sizeof(GV) +
+    		sz.isz * sizeof(U32) +
+    		sz.ssz;
+
+#if GURU_HOST_GRIT_IMAGE
+    GRIT *gr = (GRIT*)cuda_malloc(ALIGN8(bsz), 1);
+#else
+    GRIT *gr = (GRIT*)guru_alloc(ALIGN8(bsz));
+#endif // GURU_HOST_GRIT_IMAGE
+    if (!gr) return 0;
+
+    __MEMCPY(gr, &sz, sizeof(rite_size));
+
+    gr->reps = sizeof(GRIT);
+    gr->pool = gr->reps + gr->rsz * sizeof(guru_irep);
+    gr->iseq = gr->pool + gr->psz * sizeof(GV);
+    gr->stbl = gr->iseq + gr->isz * sizeof(U32);
+    
+	return gr;
+}
 //
 // building memory image, offset-based with alignment
 //
-__HOST__ void
-_to_gv(GV v[], U32 n, U8 *p, bool sym)
+__CODE__ void
+_to_gv(GV *v, U8 **stbl, U8 *p, U32 tt, U32 len)
 {
     // build POOL or SYM block
     char buf[64+1];
-    for (U32 i=0; i < n; i++, v++) {
-        U32  tt = sym ? 3 : *p++;
-        U32  len = BU16(p);	p += sizeof(U16);
+    U8   *tgt = *stbl;
 
-        switch (tt) {
-        case 0:	// String
-        	v->gt  = GT_STR;
-        	v->oid = len;
-        	v->buf = p;
-        	break;
-        case 1: // Integer (31-bit)
-            v->gt  = GT_INT;
-            memcpy(buf, p, len);
-            buf[len] = '\0';
-            v->i   = atoi(buf);
-            break;
-        case 2: // Float (32-bit)
-            v->gt  = GT_FLOAT;
-            memcpy(buf, p, len);
-            buf[len] = '\0';
-            v->f   = (float)atof(buf);		// atof() returns double
-            break;
-        case 3: // Symbol
-        	v->gt  = GT_SYM;
-        	v->oid = len;
-        	v->buf = p;
-        	break;
-        default: // Others (not yet supported)
-        	v->gt   = GT_NIL;
-        	v->self = NULL;
-        	break;
-        }
-        p += len + (sym ? 1 : 0);
+    v->acl = 0;							// clear access bit (~HAS_REF, ~SCLASS, ~SELF)
+    switch (tt) {
+    case 0:	// String
+    	v->gt  = GT_STR;
+    	v->i   = U8POFF(tgt, v);
+
+    	__MEMCPY(tgt, p, len);
+    	*(tgt+len) = '\0';				// RITE does not 0 terminate (Ruby bug)
+        tgt += ALIGN4(len+1);
+        break;
+    case 1: // Integer (31-bit)
+    	v->gt  = GT_INT;
+    	__MEMCPY(buf, p, len);
+    	buf[len] = '\0';
+    	v->i   = __ATOI(buf);
+    	break;
+    case 2: // Float (32-bit)
+    	v->gt  = GT_FLOAT;
+    	__MEMCPY(buf, p, len);
+    	buf[len] = '\0';
+    	v->f   = (float)__ATOF(buf);	// atof() returns double
+    	break;
+    case 3: // Symbol
+    	v->gt  = GT_SYM;
+       	v->i   = U8POFF(tgt, v);		// offset from v
+
+    	__MEMCPY(tgt, p, len);
+    	tgt += ALIGN4(len);
+    	break;
+    default: // Others (not yet supported)
+    	v->gt   = GT_NIL;
+    	v->self = NULL;
+    	break;
     }
+    *stbl = tgt;
 }
+
 
 //================================================================
 /*!@brief
@@ -167,69 +243,57 @@ _to_gv(GV v[], U32 n, U8 *p, bool sym)
   ...		symbol data
   </pre>
 */
-__HOST__ guru_irep*
-_build_image(U8 **bp)									// bp will be advance to next IREP block
+__CODE__ int
+_load_irep(GRIT *gr, rite_size *sz, int ix, U8 **bp)
 {
-    U8 *p = *bp;
-	guru_irep r0;
+    guru_irep *r0 = (guru_irep*)U8PADD(gr, gr->reps + ix * sizeof(guru_irep));
+    U8        *p  = *bp;
 
-    // Header: sz, nlocals, nregs, rlen
-    r0.size = BU32(p); 		p += sizeof(U32);						// IREP size
-    r0.nv 	= BU16(p);		p += sizeof(U16);						// number of local variables
-    r0.nr 	= BU16(p);		p += sizeof(U16);						// number of registers used
-    r0.r  	= BU16(p);		p += sizeof(U16);						// number of child IREP blocks
+    // sz,nlocals,nregs,rlen
+    p += sizeof(U32);									// IREP block size
+    r0->nv   = BU16(p);	p += sizeof(U16);				// number of local variables
+    r0->nr   = BU16(p);	p += sizeof(U16);				// number of registers used
+    r0->r    = BU16(p);	p += sizeof(U16);				// number of child IREP blocks
+
+    r0->reps = r0->r ?
+    	(sz->rsz - ix) * sizeof(guru_irep) : 0;			// irep->REPS offset
 
     // ISEQ block
-    r0.i 	= BU32(p);		p += sizeof(U32);						// ISEQ (bytecodes) length
+    U32 isz = BU32(p);		p += sizeof(U32);			// number of ISEQ instructions
 
-    U8 *iseq    = (p += -(U32A)p & 3);								// ISEQ block (32-bit aligned)
-    U32 iseq_sz = sizeof(U32)*r0.i;		p += iseq_sz;				// skip ISEQ (code) block
-    U32 reps_sz = sizeof(guru_irep *) * r0.r;						// child REPS block
+    U8 *iseq    = (p += -(U32A)p & 3);					// 32-bit align code pointer
+    U32 iseq_sz = isz * sizeof(U32);	p += iseq_sz;	// skip ISEQ (code) block
+
+    U8 *itgt = U8PADD(gr, gr->iseq + sz->isz * sizeof(U32));
+    r0->iseq = U8POFF(itgt, r0);						// irep->ISEQ offset
+    __MEMCPY(itgt, iseq, iseq_sz);						// copy ISEQ
 
     // POOL block
-    r0.p    = BU32(p);		p += sizeof(U32);						// pool element count
-    U8 *pool = p;
-    for (U32 i=0; i<r0.p; i++) {									// 1st pass (skim through pool)
-    	U32 len = BU16(++p);	p += sizeof(U16)+len;
+    GV *pool = (GV*)U8PADD(gr, gr->pool + sz->psz * sizeof(GV));			// capture pool pointer
+    r0->pool = U8POFF(pool, r0);						// irep->POOL offset
+    U8 *stbl = (U8*)U8PADD(gr, gr->stbl + sz->ssz);
+    U8 *stbl0= stbl;
+    U32 psz  = r0->p = BU32(p);	p += sizeof(U32);		// pool element count
+    for (U32 i=0; i<psz; i++) {							// 1st pass (skim through pool)
+        U32  tt = *p++;
+        U32  len = BU16(p);    	p += sizeof(U16);
+    	_to_gv(pool++, &stbl, p, tt, len);
+    	p += len;
     }
     // SYM block
-    r0.s   = BU32(p);		p += sizeof(U32);						// symbol element count
-    U8 *sym  = p;
-    for (U32 i=0; i<r0.s; i++) {									// 1st pass (skim through sym)
-    	U32 len = BU16(p)+1;	p += sizeof(U16)+len;
+    U32 ysz = r0->s = BU32(p);	p += sizeof(U32);		// symbol element count
+    for (U32 i=0; i<ysz; i++) {							// 1st pass (skim through sym)
+    	U32 len = BU16(p)+1;	p += sizeof(U16);
+    	_to_gv(pool++, &stbl, p, 3, len);
+    	p += len;
     }
-    *bp = p;														// return source pointer
+    // advance sizing pointers
+    sz->isz += isz;										// ISEQ code block
+    sz->psz += (psz+ysz);								// Pool + symbols
+    sz->ssz += U8POFF(stbl, stbl0);						// symbol table
+    *bp = p;
 
-    // prep Ireps, ISEQ, and child Reps
-    U32 code_sz  = ALIGN64(sizeof(guru_irep) + iseq_sz + reps_sz);
-    guru_irep *irep = (guru_irep *)cuda_malloc(code_sz,1);			// target CUDA IREP image (managed mem)
-    assert(irep);
-
-#if GURU_DEBUG
-    memset(irep, 0xaa, img_sz);
-#endif // GURU_DEBUG
-
-    memcpy(irep, &r0, sizeof(guru_irep));							// dup IREP header fields
-    memcpy(U8PADD(irep, sizeof(guru_irep)), iseq,  iseq_sz);		// copy ISEQ block
-    irep->size = img_sz;
-    irep->reps = (guru_irep**)U8PADD(irep, sizeof(guru_irep) + iseq_sz); // pointer to child REPS
-
-    // prep Register File block which combines Pooled objects & Symbol table
-    U32 pool_sz = sizeof(GV) * (r0.p + r0.s);
-    U8 *blk = (img_sz + pool_sz < CUDA_MIN_MEMBLOCK_SIZE)			// CUDA alloc 0x200B min
-    	? U8PADD(irep, img_sz)										// utilize free space if any
-    	: (U8*)cuda_malloc(pool_sz, 1);
-    assert(blk);
-
-#if GURU_DEBUG
-    memset(blk, 0xaa, pool_sz);
-#endif // GURU_DEBUG
-
-    irep->pool = (GV *)blk;
-    _to_gv(irep->pool, 		  r0.s, sym,  1);							// symbol table 1st  (faster)
-    _to_gv(irep->pool + r0.s, r0.p, pool, 0);							// pooled object 2nd (one extra calc)
-
-    return irep;														// position pointer ends here
+	return r0->r;
 }
 //================================================================
 /*!@brief
@@ -245,16 +309,30 @@ _build_image(U8 **bp)									// bp will be advance to next IREP block
   "0000"	rite version
   </pre>
 */
-__HOST__ guru_irep*
-_load_irep(U8 **bp)
+__CODE__ void
+_fill_grit(GRIT *gr, rite_size *sz, int ix, U8 **bp)
 {
-	guru_irep *irep = _build_image(bp);			// build CUDA image (in managed memory) from host image
+    U32 rsz = _load_irep(gr, sz, ix, bp);
 
-    // recursively create the child irep tree
-    for (U32 i=0; i < irep->r; i++) {			// number of irep children
-    	irep->reps[i] = _load_irep(bp);			// load a child irep recursively (from host image)
-    }
-    return irep;		// a pointer to CUDA irep (in managed memory)
+    ix       = sz->rsz;							// remember where we were (little brother)
+    sz->rsz += rsz;								// total allocated (big brother)
+
+    // traverse irep-tree recursively
+	for (U32 i=0; i<rsz; i++) {
+		_fill_grit(gr, sz, ix+i, bp);
+	}
+}
+
+__CODE__ GRIT*
+_build_image(U8 **bp)
+{
+    U8   *p  = *bp;
+    GRIT *gr = _alloc_grit(&p);
+
+    rite_size sz { .rsz=1, .psz=0, .isz=0, .ssz=0 };
+    _fill_grit(gr, &sz, 0, bp);
+
+	return gr;
 }
 
 //================================================================
@@ -264,7 +342,7 @@ _load_irep(U8 **bp)
   @param  bp	A pointer of pointer of LVAR section.
   @return int	zero if no error.
 */
-__HOST__ U32
+__CODE__ U32
 _load_lvar(U8 **bp)
 {
     U8  *p     = *bp;
@@ -284,30 +362,29 @@ _load_lvar(U8 **bp)
   @param  src	Pointer to bytecode.
 
 */
-__HOST__ U8 *
+__CODE__ GRIT*
 parse_bytecode(U8 *src)
 {
 	U8  **bp = (U8 **)&src;			// a pointer to pointer, so that we can pass and adjust the pointer
 	int ret  = _check_header(bp);
 
-	U8 *irep;
+	GRIT *gr;
     while (ret==NO_ERROR) {
-        if (memcmp(*bp, "IREP", 4)==0) {
+        if (__MEMCMP(*bp, "IREP", 4)==0) {
         	*bp += 4 + sizeof(U32);								// skip "IREP", irep_sz
-            if (memcmp(*bp, "0000", 4) != 0) break;				// IREP version
+            if (__MEMCMP(*bp, "0000", 4) != 0) break;			// IREP version
             *bp += 4;											// skip "0000"
 
-        	ret = ((irep = (U8*)_load_irep(bp))==NULL)
-        			? LOAD_FILE_IREP_ERROR_ALLOCATION
-        			: NO_ERROR;
+        	ret = ((gr=_build_image(bp))==NULL)
+        		? LOAD_FILE_IREP_ERROR_ALLOCATION
+        		: NO_ERROR;
         }
-        else if (memcmp(*bp, "LVAR", 4)==0) {
+        else if (__MEMCMP(*bp, "LVAR", 4)==0) {
             ret = _load_lvar(bp);
         }
-        else if (memcmp(*bp, "END\0", 4)==0) {
+        else if (__MEMCMP(*bp, "END\0", 4)==0) {
             break;
         }
     }
-    return (ret==NO_ERROR) ? irep : NULL;
+    return (ret==NO_ERROR) ? gr : NULL;
 }
-#endif // GURU_HOST_IMAGE

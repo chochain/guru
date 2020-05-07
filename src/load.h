@@ -37,11 +37,20 @@ typedef struct {
 } GRIT;
 
 #if GURU_HOST_GRIT_IMAGE
-__HOST__ GRIT *parse_bytecode(U8 *src);		// parsed on HOST, image passed into GPU
+#define __CODE__	__HOST__
+#define __MEMCPY 	memcpy
+#define __MEMCMP	memcmp
+#define	__ATOI		atoi
+#define __ATOF		atof
 #else
-__GURU__ GRIT *parse_bytecode(U8 *src);		// parsed on HOST, image passed into GPU
+#define __CODE__ 	__GURU__
+#define __MEMCPY	MEMCPY
+#define __MEMCMP	MEMCMP
+#define __ATOI(v)	ATOI(v,10)
+#define __ATOF(v)	ATOF(v)
 #endif // GURU_HOST_GRIT_IMAGE
 
+__CODE__ GRIT *parse_bytecode(U8 *src);		// parsed on HOST, image passed into GPU
 #ifdef __cplusplus
 }
 #endif
