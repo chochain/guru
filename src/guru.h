@@ -132,17 +132,15 @@ typedef U16 		GU;						// unsigned integer
 
   TODO: move gt into object themselves, keep fix+acl as lower 3-bits (CUDA is 32-bit ops)
 */
-#define GURU_VAR_HDR	\
-	GT  	gt   : 8;	\
-	U32     acl  : 8;	\
-	GU		oid  : 16;	\
-	U32 	xxx  : 32
-
 typedef struct {					// 16-bytes (128 bits) for ease of debugging
-	GURU_VAR_HDR;					// 8-byte
+	GT  	gt   : 8;
+	U32     acl  : 8;
+	GU		oid  : 16;
+	U32 	xxx  : 32;				// reserved
     union {							// 8-byte				64-bit
-		GI  	 		 i;			// INT, SYM, raw_offset	32-bit
-		GF 	 	 		 f;			// FLOAT				32-bit
+		GI  	 		 i;			// INT, SYM				32-bit
+		GF 	 	 		 f;			// FLOAT			 	32-bit
+        GI				 off;		// raw string offset	32-bit
         struct RObj      *self;		// OBJ					64-bit (since host is 64-bit)
         struct RClass    *cls;		// CLASS
         struct RProc     *proc;		// PROC
@@ -154,7 +152,7 @@ typedef struct {					// 16-bytes (128 bits) for ease of debugging
     };
 } GV;
 
-typedef GV 		RF[];				// register file
+typedef GV 		REG[];				// register file
 
 /* forward declarations */
 typedef void (*guru_fptr)(GV v[], U32 vi);
