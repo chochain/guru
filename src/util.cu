@@ -28,6 +28,28 @@ typedef int           WORD;
 #define DYNA_HASH_THRESHOLD     128
 #define HASH_K 					1000003
 
+__host__ U32
+hbin_to_u32(const void *bin)
+{
+    U32 x = *((U32*)bin);
+    return (x << 24) | ((x & 0xff00) << 8) | ((x >> 8) & 0xff00) | (x >> 24);
+}
+
+//================================================================
+/*!@brief
+  Get 16bit value from memory big endian.
+
+  @param  s	Pointer of memory.
+  @return	16bit unsigned value.
+*/
+__host__ U16
+hbin_to_u16(const void *bin)
+{
+    U16 x = *((U16 *)bin);
+    return (x << 8) | (x >> 8);
+}
+
+
 __device__ int _warp_h[32];			// each thread takes a slot
 
 __device__ __inline__ void

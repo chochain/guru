@@ -25,26 +25,8 @@
 #include "load.h"
 
 #if GURU_HOST_GRIT_IMAGE
-__HOST__ U32
-BU32(const void *s)
-{
-    U32 x = *((U32*)s);
-    return (x << 24) | ((x & 0xff00) << 8) | ((x >> 8) & 0xff00) | (x >> 24);
-}
-
-//================================================================
-/*!@brief
-  Get 16bit value from memory big endian.
-
-  @param  s	Pointer of memory.
-  @return	16bit unsigned value.
-*/
-__HOST__ U16
-BU16(const void *s)
-{
-    U16 x = *((U16 *)s);
-    return (x << 8) | (x >> 8);
-}
+#define BU32(b) 	(hbin_to_u32((const void*)b))
+#define BU16(b) 	(hbin_to_u16((const void*)b))
 #else
 #define BU16(b)		(bin_to_u16((const void*)(b)))
 #define BU32(b)		(bin_to_u32((const void*)(b)))
@@ -180,7 +162,7 @@ _to_gv(GV *v, U8 **stbl, U8 *p, U32 tt, U32 len)
     switch (tt) {
     case 0:	// String
     	v->gt  = GT_STR;
-    	v->i   = U8POFF(tgt, v);
+    	v->off = U8POFF(tgt, v);
 
     	__MEMCPY(tgt, p, len);
     	*(tgt+len) = '\0';				// RITE does not 0 terminate (Ruby bug)
@@ -200,7 +182,7 @@ _to_gv(GV *v, U8 **stbl, U8 *p, U32 tt, U32 len)
     	break;
     case 3: // Symbol
     	v->gt  = GT_SYM;
-       	v->i   = U8POFF(tgt, v);		// offset from v
+       	v->off = U8POFF(tgt, v);		// offset from v
 
     	__MEMCPY(tgt, p, len);
     	tgt += ALIGN4(len);

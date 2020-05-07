@@ -15,6 +15,9 @@
 extern "C" {
 #endif
 
+__host__   unsigned long hbin_to_u32(const void *bin);
+__host__   unsigned int  hbin_to_u16(const void *bin);
+
 #if defined(__CUDACC__)
 
 __device__ unsigned long bin_to_u32(const void *bin);
