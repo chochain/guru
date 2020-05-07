@@ -230,13 +230,10 @@ typedef struct RProc {			// 48-byte
 /*!@brief
   physical store for Guru object instance.
 */
-#define GURU_OBJ_HDR			\
-	GURU_HDR;					\
-    GV				*var;		\
-	struct RClass 	*cls
-
 typedef struct RObj {			// 24-byte
-	GURU_OBJ_HDR;
+	GURU_HDR;
+	GV				*var;		// instance variables
+	struct RClass	*cls;		// class that this object belongs to
 } guru_obj;
 
 typedef struct RSes {			// 16-byte

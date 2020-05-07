@@ -68,7 +68,7 @@ BU16(const void *s)
   </pre>
 */
 __CODE__ int
-_check_header(U8 **bp)
+_check_version(U8 **bp)
 {
     const U8 *p = *bp;
 
@@ -157,7 +157,7 @@ _alloc_grit(U8 **bp)
 #endif // GURU_HOST_GRIT_IMAGE
     if (!gr) return 0;
 
-    __MEMCPY(gr, &sz, sizeof(rite_size));
+    *(rite_size*)gr = sz;		// copy the header (structs should be the same)
 
     gr->reps = sizeof(GRIT);
     gr->pool = gr->reps + gr->rsz * sizeof(guru_irep);
@@ -366,7 +366,7 @@ __CODE__ GRIT*
 parse_bytecode(U8 *src)
 {
 	U8  **bp = (U8 **)&src;			// a pointer to pointer, so that we can pass and adjust the pointer
-	int ret  = _check_header(bp);
+	int ret  = _check_version(bp);
 
 	GRIT *gr;
     while (ret==NO_ERROR) {

@@ -31,8 +31,8 @@ typedef struct RIrep {			// 32-byte
     U16	s;						// # of symbols (into sym below)
     U16 p;						// # of objects in pool (into pool below)
     S16	reps;					// offset to REPS block
-    S16	iseq;					// offset to ISEQ block
     S16	pool;					// offset to POOL block
+    S16	iseq;					// offset to ISEQ block
 } guru_irep;
 
 #define IREP_ISEQ(i)	((U32*)U8PADD(i, (i)->iseq))
