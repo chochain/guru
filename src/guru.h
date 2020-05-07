@@ -140,18 +140,17 @@ typedef U16 		GU;						// unsigned integer
 
 typedef struct {					// 16-bytes (128 bits) for ease of debugging
 	GURU_VAR_HDR;					// 8-byte
-    union {							// 8-byte			64-bit
-		GI  	 		 i;			// GT_INT, GT_SYM	32-bit
-		GF 	 	 		 f;			// GT_FLOAT			32-bit
-        struct RObj      *self;		// GT_OBJ			64-bit (since host is 64-bit)
-        struct RClass    *cls;		// GT_CLASS
-        struct RProc     *proc;		// GT_PROC
-        struct RIter	 *iter;		// GT_ITER
-        struct RString   *str;		// GT_STR
-        struct RArray    *array;	// GT_ARRAY
-        struct RRange    *range;	// GT_RANGE
-        struct RHash     *hash;		// GT_HASH
-        U8       		 *buf;		// string-buffer (only used by loader)
+    union {							// 8-byte				64-bit
+		GI  	 		 i;			// INT, SYM, raw_offset	32-bit
+		GF 	 	 		 f;			// FLOAT				32-bit
+        struct RObj      *self;		// OBJ					64-bit (since host is 64-bit)
+        struct RClass    *cls;		// CLASS
+        struct RProc     *proc;		// PROC
+        struct RIter	 *iter;		// ITER
+        struct RString   *str;		// STR
+        struct RArray    *array;	// ARRAY
+        struct RRange    *range;	// RANGE
+        struct RHash     *hash;		// HASH
     };
 } GV;
 

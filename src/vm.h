@@ -87,12 +87,12 @@ typedef struct VM {				// 80-byte
 } guru_vm;
 
 #define VM_IREP(vm)    	((vm)->state->irep)
-#define VM_ISEQ(vm)	 	(VM_IREP(vm)->iseq)
+#define VM_ISEQ(vm)	 	((U32*)IREP_ISEQ(VM_IREP(vm)))
 
-#define VM_REPS(vm,n)	(&VM_IREP(vm)->reps[(n)])
-#define VM_VAR(vm,n)	(VM_IREP(vm)->pool[(n)])
-#define VM_STR(vm,n)	(VM_IREP(vm)->pool[(n)])
-#define VM_SYM(vm,n)    (VM_IREP(vm)->pool[VM_IREP(vm)->p + (n)].i)
+#define VM_REPS(vm,n)	(&IREP_REPS(VM_IREP(vm))[(n)])
+#define VM_VAR(vm,n)	(&IREP_POOL(VM_IREP(vm))[(n)])
+#define VM_STR(vm,n)	(&IREP_POOL(VM_IREP(vm))[(n)])
+#define VM_SYM(vm,n)    ((IREP_POOL(VM_IREP(vm))[VM_IREP(vm)->p+(n)]).i)
 
 #ifdef __cplusplus
 }

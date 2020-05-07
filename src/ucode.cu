@@ -79,7 +79,7 @@ uc_move(guru_vm *vm)
 __UCODE__
 uc_loadl(guru_vm *vm)
 {
-	GV ret = VM_VAR(vm, _AR(bx));
+	GV ret = *VM_VAR(vm, _AR(bx));
     _RA(ret);
 }
 
@@ -831,7 +831,7 @@ uc_ge(guru_vm *vm)
 __UCODE__
 uc_string(guru_vm *vm)
 {
-    GV v = VM_STR(vm, _AR(bx));
+    GV v = *VM_STR(vm, _AR(bx));
     _RA(v);
 }
 

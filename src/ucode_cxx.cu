@@ -149,7 +149,7 @@ class Ucode::Impl
     __UCODE__
     loadl()
     {
-        GV ret = VM_VAR(_vm, _AR(bx));
+        GV ret = *VM_VAR(_vm, _AR(bx));
         _RA(ret);
     }
 
@@ -830,8 +830,8 @@ class Ucode::Impl
     __UCODE__
     string()
     {
-        GV  v = VM_STR(_vm, _AR(bx));
-        _RA(v);
+        GV ret = *VM_STR(_vm, _AR(bx));
+        _RA(ret);
     }
 
 //================================================================

@@ -153,7 +153,7 @@ id2name(GS sid)
 __GURU__ void
 guru_sym_rom(GV *v)
 {
-	v->i = create_sym(v->buf);
+	v->i = create_sym(U8PADD(v, v->i));
 }
 
 __GURU__ GV

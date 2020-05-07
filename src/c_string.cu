@@ -241,8 +241,8 @@ guru_str_rom(GV *v)					// cannot use U8P, need lots of casting
     ASSERT(((U32A)h & 7)==0);		// check alignment
 
     h->rc  = 0;
-    h->bsz = h->sz = v->oid;
-    h->raw = (char *)v->buf;		// copy over
+    h->raw = (char*)U8PADD(v, v->i);
+    h->bsz = h->sz = STRLENB(h->raw);
 
     v->str = h;						// overwrite GV
 }

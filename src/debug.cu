@@ -114,7 +114,7 @@ _find_irep(guru_irep *irep0, guru_irep *irep1, U8 *idx)
 	if (irep0==irep1) return 1;
 	for (U32 i=0; i<irep0->r; i++) {
 		*idx += 1;
-		if (_find_irep(&irep0->reps[i], irep1, idx)) return 1;
+		if (_find_irep(IREP_REPS(irep0)+i, irep1, idx)) return 1;
 	}
 	return 0;		// not found
 }
@@ -154,9 +154,9 @@ _show_decode(guru_vm *vm, U32 code)
 
 	switch (op) {
 	case OP_MOVE: 		printf(" r%-2d =r%-17d", a, ar.b);							return;
-	case OP_STRING:		printf(" r%-2d ='%-17s", a, VM_STR(vm, ar.bx).str->raw);	return;
+	case OP_STRING:		printf(" r%-2d ='%-17s", a, VM_STR(vm, ar.bx)->str->raw);	return;
 	case OP_LOADI:		printf(" r%-2d =%-18d",  a, ar.bx - MAX_sBx);				return;
-	case OP_LOADL:		printf(" r%-2d =%-18g",  a, VM_VAR(vm, ar.bx).f);			return;
+	case OP_LOADL:		printf(" r%-2d =%-18g",  a, VM_VAR(vm, ar.bx)->f);			return;
 	case OP_ADDI:
 	case OP_SUBI:		printf(" r%-2d ~%-18d",  a, ar.c);							return;
 	case OP_EXEC:		printf(" r%-2d +I%-17d", a, ar.bx+1);						return;
@@ -223,12 +223,13 @@ __HOST__ void
 _show_irep(guru_irep *irep, char level, char *n)
 {
 	U32 a = (U32A)irep;
-	printf("\t%c irep[%c]=%08x: nreg=%d, nlocal=x, pools=%d, syms=%d, reps=%d\n",
-				level, *n, a, irep->nr, irep->p, irep->s, irep->r);
+	printf("\t%c irep[%c]=%08x: nreg=%d, nlocal=%d, pools=%d, syms=%d, reps=%d\n",
+				level, *n, a, irep->nr, irep->nv, irep->p, irep->s, irep->r);
 	// dump all children ireps
-	for (U32 i=0; i<irep->r; i++) {
+	guru_irep *r0 = IREP_REPS(irep);
+	for (U32 i=0; i<irep->r; i++, r0++) {
 		*n += (*n=='z') ? -57 : 1;		// a-z, A-Z
-		_show_irep(&irep->reps[i], level+1, n);
+		_show_irep(r0, level+1, n);
 	}
 }
 

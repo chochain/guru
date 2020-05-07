@@ -19,10 +19,10 @@ extern "C" {
 #endif
 
 #define RITE_HDR 	\
-		U16 rsz;	\
-		U16 psz;	\
-		U16	isz;	\
-		U16 ssz
+	U16 rsz;		\
+	U16 psz;		\
+	U16	isz;		\
+	U16 ssz
 
 typedef struct {
 	RITE_HDR;
@@ -30,10 +30,10 @@ typedef struct {
 
 typedef struct {
 	RITE_HDR;
-	guru_irep 	*reps;
-	GV			*pool;
-	U32			*iseq;
-	U8			*stbl;
+	S16		reps;
+	S16		pool;
+	S16		iseq;
+	S16		stbl;
 } GRIT;
 
 #if GURU_HOST_IMAGE

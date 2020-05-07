@@ -62,7 +62,8 @@ __ready(guru_vm *vm, GRIT *gr)
     vm->run   = VM_STATUS_READY;
     vm->depth = vm->err = 0;
 
-    vm_state_push(vm, gr->reps, 0, vm->regfile, 0);
+    guru_irep *irep = (guru_irep*)U8PADD(gr, gr->reps);
+    vm_state_push(vm, irep, 0, vm->regfile, 0);
 }
 
 __GURU__ void
@@ -84,7 +85,7 @@ __free(guru_vm *vm)
 __GURU__ void
 __transcode(GRIT *gr)
 {
-	GV *v = gr->pool;
+	GV *v = (GV*)U8PADD(gr, gr->pool);
 	for (U32 i=0; i < gr->psz; i++, v++) {			// symbol table
 		switch (v->gt) {
 		case GT_SYM: guru_sym_rom(v);	break;
