@@ -157,7 +157,7 @@ ostore_del(GV *v)
 __GURU__ void
 ostore_set(GV *v, GU oid, GV *val)
 {
-	guru_obj *o = v->self;				// guru_obj and guru_class share the same header
+	guru_obj *o = v->self;				// NOTE: guru_obj->self->var, guru_class->cls->var share the same struct
 	if (o->var==NULL) {
 		o->var = guru_gv_alloc(4);		// lazy allocation
 	    o->sz  = 4;						// number of local variables
@@ -176,7 +176,10 @@ ostore_set(GV *v, GU oid, GV *val)
 __GURU__ GV
 ostore_get(GV *v, GU oid)
 {
-//	(v->gt==GT_CLASS) ? v->cls->var : v->self->var (common struct)
+//	NOTE: common struct header
+// 		GT_OBJ:   v->self->var
+//      GT_CLASS: v->cls->var
+//
 	GV *val = _get(v->self, oid);
 
     return val ? *ref_inc(val) : NIL;

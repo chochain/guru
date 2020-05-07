@@ -157,7 +157,7 @@ obj_extend(GV v[], U32 vi)
 	ASSERT(v->gt==GT_CLASS && v[1].gt==GT_CLASS);
 
 	guru_class_add_meta(v);						// lazily add metaclass if needed
-	_extend(v->cls->cls, (v+1)->cls);			// add to class methods
+	_extend(v->cls->meta, (v+1)->cls);			// add to class methods
 }
 
 //================================================================
@@ -219,7 +219,7 @@ __CFUNC__
 obj_attr_accessor(GV v[], U32 vi)
 {
 	ASSERT(v->gt==GT_CLASS);
-	guru_class *cls = IS_SCLASS(v) ? v->cls->cls : v->cls;		// fetch class
+	guru_class *cls = IS_SCLASS(v) ? v->cls->meta : v->cls;		// fetch class
 #if CC_DEBUG
     printf("%p:%s, sc=%d self=%d #attr_accessor\n", cls, cls->name, IS_SCLASS(v), IS_SELF(v));
 #endif // CC_DEBUG

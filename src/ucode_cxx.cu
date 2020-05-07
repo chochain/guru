@@ -309,10 +309,12 @@ class Ucode::Impl
 
         ASSERT(v->gt==GT_OBJ);
 
-        GV cv; { cv.gt=GT_CLASS; cv.acl=0; cv.cls=v->self->cls; }
-        GV ret;
-        for (guru_class *cls=v->self->cls;
-             cls && (ret=ostore_get(&cv, sid)).gt!=GT_NIL; cls=cls->super);
+        GV cv;  { cv.gt=GT_CLASS; cv.acl=0;  cv.cls=v->self->cls; }
+        GV ret  { .gt=GT_NIL };
+        for (guru_class *cls=v->self->cls; cls!=NULL; cls=cls->super) {
+        	if ((ret=ostore_get(&cv, sid)).gt!=GT_NIL) break;
+        }
+//             cls && (ret=ostore_get(&cv, sid)).gt!=GT_NIL; cls=cls->super);
 
         _RA(ret);
     }

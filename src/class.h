@@ -24,7 +24,10 @@ extern "C" {
   Guru class object.
 */
 typedef struct RClass {			// 64-byte
-	GURU_OBJ_HDR;				// rc, n, sid, kt are used
+	GURU_HDR;
+	GV				*var;		// class variables
+	struct RClass	*meta;
+
 	struct RClass 	*super;		// guru_class[super]
     guru_proc 		*vtbl;		// c-func array (in constant memory, rc is the number of functions)
 

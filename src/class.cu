@@ -100,7 +100,7 @@ class_by_obj(GV *v)
 	switch (v->gt) {
     case GT_OBJ: return v->self->cls;
     case GT_CLASS:
-    	scls = v->cls->cls ? v->cls->cls : guru_rom_get_class(GT_OBJ);
+    	scls = v->cls->meta ? v->cls->meta : guru_rom_get_class(GT_OBJ);
     	return IS_BUILTIN(v->cls)
     		? v->cls
     		: (IS_SCLASS(v) ? scls : (IS_SELF(v) ? v->cls : scls));
@@ -201,7 +201,7 @@ _define_class(const U8 *name, guru_class *cls, guru_class *super)
     cls->rc     = cls->n = cls->kt = 0;	// BUILT-IN class
     cls->sid    = sid;
     cls->var    = NULL;					// class variables, lazily allocated when needed
-    cls->cls 	= NULL;					// meta-class, lazily allocated when needed
+    cls->meta 	= NULL;					// meta-class, lazily allocated when needed
     cls->super  = super;
     cls->vtbl   = NULL;
     cls->flist  = NULL;					// head of list
@@ -279,12 +279,12 @@ guru_class_add_meta(GV *v)						// lazy add metaclass to a class
 {
 	ASSERT(v->gt==GT_CLASS);
 
-	if (v->cls->cls!=NULL) return v->cls->cls;
+	if (v->cls->meta!=NULL) return v->cls->meta;
 
 	// lazily create the metaclass
 	const U8	*name = (U8*)"_meta";
 	guru_class 	*cls  = guru_define_class(name, guru_rom_get_class(GT_OBJ));
-	return v->cls->cls = cls;					// self pointing =~ metaclass
+	return v->cls->meta = cls;					// self pointing =~ metaclass
 }
 
 //================================================================
