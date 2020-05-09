@@ -39,6 +39,8 @@
 guru_vm *_vm_pool;
 U32      _vm_cnt = 0;
 
+__GURU__ Ucode *_uc_pool[MIN_VM_COUNT] = { NULL, NULL };
+
 pthread_mutex_t 	_mutex_pool;
 #define _LOCK		(pthread_mutex_lock(&_mutex_pool))
 #define _UNLOCK		(pthread_mutex_unlock(&_mutex_pool))
@@ -110,6 +112,9 @@ _get(guru_vm *vm, GRIT *gr)
 	if (vm->run==VM_STATUS_FREE) {
 		__transcode(gr);
 		__ready(vm, gr);
+		if (!_uc_pool[vm->id]) {
+			_uc_pool[vm->id] = new Ucode(vm);
+		}
 	}
 }
 #else
@@ -139,13 +144,15 @@ _exec(guru_vm *vm)
 	if (blockIdx.x!=0 || threadIdx.x!=0) return;	// TODO: single thread for now
 
 #if GURU_CXX_CODEBASE
- 	Ucode uc(vm);
+	extern __shared__ Ucode uc[];
 
-	if (uc.run()) {
+ 	uc[blockIdx.x] = *_uc_pool[vm->id];
+
+	if (uc[blockIdx.x].run()) {
 		__free(vm);
 	}
 	return;
-#else
+#elseoperator
 	// start up instruction and dispatcher unit
 	while (vm->run==VM_STATUS_RUN) {				// run my (i.e. blockIdx.x) VM
 		// add before_fetch hooks here
@@ -196,7 +203,7 @@ vm_main_start()
 			if (!vm->state) continue;
 			// add pre-hook here
 			if (debug_disasm(vm)) break;
-			_exec<<<1,1,sizeof(guru_vm),vm->st>>>(vm);	// guru -x to run without single-stepping
+			_exec<<<1,1,sizeof(Ucode)*VM_MIN_COUNT,vm->st>>>(vm);	// guru -x to run without single-stepping
 			// add post-hook here
 		}
 		GPU_SYNC();											// TODO: cooperative thread group
