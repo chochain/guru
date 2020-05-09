@@ -125,7 +125,7 @@ _show_regs(GR *r, U32 ri)
 	for (U32 i=0; i<ri; i++, r++) {
 		const char *t = _vtype[r->gt];
 		U8 c = (i==0) ? '|' : ' ';
-		if (HAS_REF(r))			printf("%s%d%c", t, r->self->rc, c);
+		if (HAS_REF(r))			printf("%s%d%c", t, GOBJ(r)->rc, c);
 		else if (r->gt==GT_STR) printf("%s.%c", t, c);
 		else					printf("%s %c", t, c);
 	}
@@ -154,7 +154,11 @@ _show_decode(guru_vm *vm, U32 code)
 
 	switch (op) {
 	case OP_MOVE: 		printf(" r%-2d =r%-17d", a, ar.b);							return;
-	case OP_STRING: 	printf(" r%-2d ='%-17s", a, guru_host_heap+VM_STR(vm, ar.bx)->str->raw);	return;
+	case OP_STRING: {
+		guru_str *s0 = (guru_str*)(guru_host_heap + VM_STR(vm, ar.bx)->str);
+		printf(" r%-2d ='%-17s", a, guru_host_heap + s0->raw);
+		return;
+	}
 	case OP_LOADI:		printf(" r%-2d =%-18d",  a, ar.bx - MAX_sBx);				return;
 	case OP_LOADL:		printf(" r%-2d =%-18g",  a, VM_VAR(vm, ar.bx)->f);			return;
 	case OP_ADDI:

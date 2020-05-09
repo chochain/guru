@@ -10,6 +10,7 @@
 */
 #include "util.h"
 #include "base.h"
+#include "mmu.h"
 
 #include "c_string.h"
 #include "c_array.h"
@@ -103,8 +104,8 @@ ref_dec(GR *r)
 {
     if (HAS_NO_REF(r))     return r;		// skip simple or ROMable objects
 
-    ASSERT(r->self->rc);					// rc > 0?
-    if (--r->self->rc > 0) return r;		// still used, keep going
+    ASSERT(GOBJ(r)->rc);					// rc > 0?
+    if (--GOBJ(r)->rc > 0) return r;		// still used, keep going
 
     _d_vtbl[r->gt](r);						// table driven (no branch divergence)
 
@@ -121,7 +122,7 @@ __GURU__ GR *
 ref_inc(GR *r)
 {
 	if (HAS_REF(r)) {						// TODO: table lookup reduce branch divergence
-		r->self->rc++;
+		GOBJ(r)->rc++;
 	}
 	return r;
 }

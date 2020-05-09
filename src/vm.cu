@@ -152,7 +152,7 @@ _exec(guru_vm *vm)
 		__free(vm);
 	}
 	return;
-#elseoperator
+#else
 	// start up instruction and dispatcher unit
 	while (vm->run==VM_STATUS_RUN) {				// run my (i.e. blockIdx.x) VM
 		// add before_fetch hooks here
@@ -203,7 +203,7 @@ vm_main_start()
 			if (!vm->state) continue;
 			// add pre-hook here
 			if (debug_disasm(vm)) break;
-			_exec<<<1,1,sizeof(Ucode)*VM_MIN_COUNT,vm->st>>>(vm);	// guru -x to run without single-stepping
+			_exec<<<1,1,sizeof(Ucode)*MIN_VM_COUNT,vm->st>>>(vm);	// guru -x to run without single-stepping
 			// add post-hook here
 		}
 		GPU_SYNC();											// TODO: cooperative thread group

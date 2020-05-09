@@ -137,9 +137,10 @@ typedef struct {					// 16-bytes (128 bits) for ease of debugging
 	U32     acl  : 8;
 	GU		oid  : 16;
 	union {
-		GI  	 		i;			// INT, SYM				32-bit
-		GF 	 	 		f;			// FLOAT			 	32-bit
-		U32 			off;		// offset to object		32-bit
+		GI  	i;					// INT, SYM				32-bit
+		GF 	 	f;					// FLOAT			 	32-bit
+		U32 	off;				// offset to object		32-bit
+		U32     str;				// STR
 	};
     union {							// 8-byte				64-bit
         struct RClass    *cls;		// CLASS
@@ -147,11 +148,13 @@ typedef struct {					// 16-bytes (128 bits) for ease of debugging
         struct RProc     *proc;		// PROC
         struct RIter	 *iter;		// ITER
         struct RRange    *range;	// RANGE
-        struct RString   *str;		// STR
+//        struct RString   *str;		// STR
         struct RArray    *array;	// ARRAY
         struct RHash     *hash;		// HASH
     };
 } GR;
+#define GSTR(r)		((struct RString*)(MEMPTR((r)->str)))
+#define GOBJ(r)		((r)->gt==GT_STR ? (RObj*)GSTR(r) : (r)->self)
 
 /* forward declarations */
 typedef void (*guru_fptr)(GR v[], U32 vi);

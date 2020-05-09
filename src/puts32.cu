@@ -55,7 +55,7 @@ _p(GR *r)
         STRCHR(name, ';') ? PRINTF("\"%s\"", name) : PRINTF(":%s", name);
     } break;
     case GT_STR:
-    	PRINTF("\"%s\"", (U8*)MEMPTR(r->str->raw));
+    	PRINTF("\"%s\"", (U8*)MEMPTR(GSTR(r)->raw));
     	break;
     case GT_ARRAY: {
         GR *p = r->array->data;
@@ -103,7 +103,7 @@ _print(GR *r)
     case GT_NIL: 		/* print blank */    	break;
     case GT_SYM: PRINTF(":%s", id2name(r->i));	break;
     case GT_STR: {
-    	U8  *s  = (U8*)MEMPTR(r->str->raw);
+    	U8  *s  = (U8*)MEMPTR(GSTR(r)->raw);
     	U32 len = STRLENB(s);
         PRINTF("%s", s);						// no double quote around
         if (len && s[len-1]=='\n') {
