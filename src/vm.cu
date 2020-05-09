@@ -39,6 +39,8 @@
 guru_vm *_vm_pool;
 U32      _vm_cnt = 0;
 
+__GURU__ Ucode *_uc_pool[MIN_VM_COUNT] = { NULL, NULL };
+
 pthread_mutex_t 	_mutex_pool;
 #define _LOCK		(pthread_mutex_lock(&_mutex_pool))
 #define _UNLOCK		(pthread_mutex_unlock(&_mutex_pool))
@@ -110,6 +112,9 @@ _get(guru_vm *vm, GRIT *gr)
 	if (vm->run==VM_STATUS_FREE) {
 		__transcode(gr);
 		__ready(vm, gr);
+		if (!_uc_pool[vm->id]) {
+			_uc_pool[vm->id] = new Ucode(vm);
+		}
 	}
 }
 #else
@@ -139,9 +144,11 @@ _exec(guru_vm *vm)
 	if (blockIdx.x!=0 || threadIdx.x!=0) return;	// TODO: single thread for now
 
 #if GURU_CXX_CODEBASE
- 	Ucode uc(vm);
+ 	extern __shared__ Ucode uc[];
 
-	if (uc.run()) {
+ 	uc[blockIdx.x] = *_uc_pool[vm->id];
+
+	if (uc[blockIdx.x].run()) {
 		__free(vm);
 	}
 	return;
