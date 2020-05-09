@@ -28,21 +28,21 @@
   @param  flag_exclude	true: exclude the end object, otherwise include.
   @return		range object.
 */
-__GURU__ GV
-guru_range_new(GV *first, GV *last, int inc)
+__GURU__ GR
+guru_range_new(GR *first, GR *last, int inc)
 {
-    GV v;  { v.gt=GT_RANGE; v.acl=ACL_HAS_REF; }
+    guru_range *g = (guru_range *)guru_alloc(sizeof(guru_range));
 
-    guru_range *r = v.range = (guru_range *)guru_alloc(sizeof(guru_range));
-
-    r->rc    = 1;
-    r->kt 	 = inc ? RANGE_INCLUDE : 0;
-    r->first = *first;
-    r->last  = *last;
+    g->rc    = 1;
+    g->kt 	 = inc ? RANGE_INCLUDE : 0;
+    g->first = *first;
+    g->last  = *last;
     ref_inc(first);
     ref_inc(last);
 
-    return v;
+    GR r; { r.gt=GT_RANGE; r.acl=ACL_HAS_REF; r.range=g; }
+
+    return r;
 }
 
 //================================================================
@@ -51,49 +51,49 @@ guru_range_new(GV *first, GV *last, int inc)
   @param  target 	pointer to range object.
 */
 __GURU__ void
-guru_range_del(GV *v)
+guru_range_del(GR *r)
 {
-    ref_dec(&v->range->first);
-    ref_dec(&v->range->last);
+    ref_dec(&r->range->first);
+    ref_dec(&r->range->last);
 
-    guru_free(v->range);
+    guru_free(r->range);
 }
 
 //================================================================
 /*! compare
  */
 __GURU__ int
-guru_range_cmp(const GV *v0, const GV *v1)
+guru_range_cmp(const GR *r0, const GR *r1)
 {
     int res;
 
-    res = guru_cmp(&v0->range->first, &v1->range->first);
+    res = guru_cmp(&r0->range->first, &r1->range->first);
     if (res != 0) return res;
 
-    res = guru_cmp(&v0->range->last, &v1->range->last);
+    res = guru_cmp(&r0->range->last, &r1->range->last);
     if (res != 0) return res;
 
-    return (int)IS_INCLUDE(v1->range) - (int)IS_INCLUDE(v0->range);
+    return (int)IS_INCLUDE(r1->range) - (int)IS_INCLUDE(r0->range);
 }
 
 //================================================================
 /*! (method) ===
  */
 __CFUNC__
-rng_eq3(GV v[], U32 vi)
+rng_eq3(GR r[], U32 ri)
 {
-    if (v->gt == GT_CLASS) {
-        GV ret = kind_of(v);
+    if (r->gt == GT_CLASS) {
+        GR ret = kind_of(r);
         RETURN_VAL(ret);
     }
 
-    int first = guru_cmp(&v->range->first, v+1);
+    int first = guru_cmp(&r->range->first, r+1);
     if (first <= 0) {
         RETURN_FALSE();
     }
 
-    int last = guru_cmp(v+1, &v->range->last);
-    int flag = IS_INCLUDE(v->range) ? (last<=0) : (last < 0);
+    int last = guru_cmp(r+1, &r->range->last);
+    int flag = IS_INCLUDE(r->range) ? (last<=0) : (last < 0);
 
     RETURN_BOOL(flag);
 }
@@ -102,27 +102,27 @@ rng_eq3(GV v[], U32 vi)
 /*! (method) first
  */
 __CFUNC__
-rng_first(GV v[], U32 vi)
+rng_first(GR r[], U32 ri)
 {
-    RETURN_VAL(v->range->first);
+    RETURN_VAL(r->range->first);
 }
 
 //================================================================
 /*! (method) last
  */
 __CFUNC__
-rng_last(GV v[], U32 vi)
+rng_last(GR r[], U32 ri)
 {
-    RETURN_VAL(v->range->last);
+    RETURN_VAL(r->range->last);
 }
 
 //================================================================
 /*! (method) exclude_end?
  */
 __CFUNC__
-rng_exclude_end(GV v[], U32 vi)
+rng_exclude_end(GR r[], U32 ri)
 {
-    RETURN_BOOL(!IS_INCLUDE(v->range));
+    RETURN_BOOL(!IS_INCLUDE(r->range));
 }
 
 //================================================================
@@ -134,8 +134,8 @@ __GURU__ __const__ Vfunc rng_vtbl[] = {
 	{ "last",         rng_last			},
 	{ "exclude_end?", rng_exclude_end	},
 
-	{ "to_s",         gv_to_s			},
-	{ "inspect",      gv_to_s			}
+	{ "to_s",         gr_to_s			},
+	{ "inspect",      gr_to_s			}
 };
 
 __GURU__ void

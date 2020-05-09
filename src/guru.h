@@ -136,26 +136,25 @@ typedef struct {					// 16-bytes (128 bits) for ease of debugging
 	GT  	gt   : 8;
 	U32     acl  : 8;
 	GU		oid  : 16;
-	U32 	xxx  : 32;				// reserved
+	union {
+		GI  	 		i;			// INT, SYM				32-bit
+		GF 	 	 		f;			// FLOAT			 	32-bit
+		U32 			off;		// offset to object
+	};
     union {							// 8-byte				64-bit
-		GI  	 		 i;			// INT, SYM				32-bit
-		GF 	 	 		 f;			// FLOAT			 	32-bit
-        GI				 off;		// raw string offset	32-bit
-        struct RObj      *self;		// OBJ					64-bit (since host is 64-bit)
         struct RClass    *cls;		// CLASS
+        struct RObj      *self;		// OBJ
         struct RProc     *proc;		// PROC
         struct RIter	 *iter;		// ITER
+        struct RRange    *range;	// RANGE
         struct RString   *str;		// STR
         struct RArray    *array;	// ARRAY
-        struct RRange    *range;	// RANGE
         struct RHash     *hash;		// HASH
     };
-} GV;
-
-typedef GV 		REG[];				// register file
+} GR;
 
 /* forward declarations */
-typedef void (*guru_fptr)(GV v[], U32 vi);
+typedef void (*guru_fptr)(GR v[], U32 vi);
 struct Irep;
 struct Vfunc {
 	const char  *name;			// raw string usually
@@ -211,7 +210,7 @@ typedef struct RProc {			// 48-byte
     };
     union {
     	struct RProc 	*next;	// next function in linked list
-    	GV 				*regs;	// register file for lambda
+    	GR 				*regs;	// register file for lambda
     };
 #if GURU_DEBUG
     U8	*cname;					// classname
@@ -230,7 +229,7 @@ typedef struct RProc {			// 48-byte
 */
 typedef struct RObj {			// 24-byte
 	GURU_HDR;
-	GV				*var;		// instance variables
+	GR				*var;		// instance variables
 	struct RClass	*cls;		// class that this object belongs to
 } guru_obj;
 

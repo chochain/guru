@@ -411,16 +411,16 @@ guru_realloc(void *p0, U32 sz)
     return p1;
 }
 
-__GURU__ GV*
-guru_gv_alloc(U32 n)
+__GURU__ GR*
+guru_gr_alloc(U32 n)
 {
-	return (GV*)guru_alloc(sizeof(GV) * n);
+	return (GR*)guru_alloc(sizeof(GR) * n);
 }
 
-__GURU__ GV*
-guru_gv_realloc(GV *gv, U32 n)
+__GURU__ GR*
+guru_gr_realloc(GR *gv, U32 n)
 {
-	return (GV*)guru_realloc(gv, sizeof(GV) * n);
+	return (GR*)guru_realloc(gv, sizeof(GR) * n);
 }
 
 //================================================================

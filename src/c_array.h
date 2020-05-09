@@ -25,16 +25,16 @@ extern "C" {
 */
 typedef struct RArray {	// 16-byte
     GURU_HDR;			// reference count
-    GV 	 *data;			//!< pointer to allocated memory.
+    GR 	 *data;			//!< pointer to allocated memory.
 } guru_array, guru_lambda;
 
-__GURU__ GV 		guru_array_new(U32 sz);
-__GURU__ void       guru_array_del(GV *ary);
+__GURU__ GR 		guru_array_new(U32 sz);
+__GURU__ void       guru_array_del(GR *ary);
 
 __GURU__ void		guru_array_resize(guru_array *h, U32 new_sz);
-__GURU__ void       guru_array_push(GV *ary, GV *set_val);
-__GURU__ void       guru_array_clr(GV *ary);
-__GURU__ S32        guru_array_cmp(const GV *a0, const GV *a1);
+__GURU__ void       guru_array_push(GR *ary, GR *set_val);
+__GURU__ void       guru_array_clr(GR *ary);
+__GURU__ S32        guru_array_cmp(const GR *a0, const GR *a1);
 
 __GURU__ void       guru_init_class_array();
 

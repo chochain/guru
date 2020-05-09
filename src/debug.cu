@@ -120,13 +120,13 @@ _find_irep(guru_irep *irep0, guru_irep *irep1, U8 *idx)
 }
 
 __HOST__ void
-_show_regs(GV *v, U32 vi)
+_show_regs(GR *r, U32 ri)
 {
-	for (U32 i=0; i<vi; i++, v++) {
-		const char *t = _vtype[v->gt];
+	for (U32 i=0; i<ri; i++, r++) {
+		const char *t = _vtype[r->gt];
 		U8 c = (i==0) ? '|' : ' ';
-		if (HAS_REF(v))			printf("%s%d%c", t, v->self->rc, c);
-		else if (v->gt==GT_STR) printf("%s.%c", t, c);
+		if (HAS_REF(r))			printf("%s%d%c", t, r->self->rc, c);
+		else if (r->gt==GT_STR) printf("%s.%c", t, c);
 		else					printf("%s %c", t, c);
 	}
 }

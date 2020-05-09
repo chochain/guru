@@ -19,8 +19,8 @@
 extern "C" {
 #endif
 
-__GURU__ void guru_puts(GV v[], U32 vi);
-__GURU__ void guru_p(GV v[], U32 vi);
+__GURU__ void guru_puts(GR r[], U32 ri);
+__GURU__ void guru_p(GR r[], U32 ri);
 
 #ifdef __cplusplus
 }

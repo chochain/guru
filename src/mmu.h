@@ -41,8 +41,8 @@ __GURU__ void 			*guru_alloc(U32 sz);
 __GURU__ void 			*guru_realloc(void *ptr, U32 sz);
 __GURU__ void 			guru_free(void *ptr);
 
-__GURU__ GV				*guru_gv_alloc(U32 n);					// array of gv
-__GURU__ GV				*guru_gv_realloc(GV *gv, U32 sz);
+__GURU__ GR				*guru_gr_alloc(U32 n);					// array of GR
+__GURU__ GR				*guru_gr_realloc(GR *gv, U32 sz);
 
 // CUDA memory management functions
 __HOST__ void 			*cuda_malloc(U32 sz, U32 mem_type);		// mem_type: 0=>managed, 1=>device

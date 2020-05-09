@@ -35,20 +35,20 @@ __GURU__ U32 _mutex_cls;
   @param  argc		num of params.
 
   @example
-  void int_to_s(GV v[], U32 vi)
+  void int_to_s(GR r[], U32 ri)
   {
-  	  GV *rcv = &v[1];
-  	  GV ret  = _send(v, rcv, "to_s", argc);
+  	  GR *rcv = &r[1];
+  	  GR ret  = _send(v, rcv, "to_s", argc);
   	  RETURN_VAL(ret);
   }
 */
-__GURU__ GV
-_send(GV v[], GV *rcv, const U8 *method, U32 argc, ...)
+__GURU__ GR
+_send(GR r[], GR *rcv, const U8 *method, U32 argc, ...)
 {
-    GV *regs = v + 2;	     		// allocate 2 for stack
+    GR *regs = r + 2;	     		// allocate 2 for stack
     GS sid   = name2id(method);		// symbol lookup
 
-    guru_proc  *m = proc_by_sid(v, sid);	// find method for receiver object
+    guru_proc  *m = proc_by_sid(r, sid);	// find method for receiver object
     ASSERT(m);
 
     // create call stack.
@@ -57,31 +57,31 @@ _send(GV v[], GV *rcv, const U8 *method, U32 argc, ...)
     va_list ap;						// setup calling registers
     va_start(ap, argc);
     for (U32 i = 1; i <= argc+1; i++) {
-        regs[i] = (i>argc) ? NIL : *va_arg(ap, GV *);
+        regs[i] = (i>argc) ? NIL : *va_arg(ap, GR *);
     }
     va_end(ap);
 
     m->func(regs, argc);			// call method, put return value in regs[0]
 
 #if GURU_DEBUG
-    GV *r = v;						// _wipe_stack
+    GR *x = r;						// _wipe_stack
     for (U32 i=1; i<=argc+1; i++) {
-    	*r++ = EMPTY;				// clean up the stack
+    	*x++ = EMPTY;				// clean up the stack
     }
 #endif
     return regs[0];
 }
 
-__GURU__ GV
-inspect(GV *v, GV *obj)
+__GURU__ GR
+inspect(GR *r, GR *obj)
 {
-	return _send(v, obj, (U8*)"inspect", 0);
+	return _send(r, obj, (U8*)"inspect", 0);
 }
 
-__GURU__ GV
-kind_of(GV *v)		// whether v1 is a kind of v0
+__GURU__ GR
+kind_of(GR *r)		// whether v1 is a kind of v0
 {
-	return _send(v, v+1, (U8*)"kind_of?", 1, v);
+	return _send(r, r+1, (U8*)"kind_of?", 1, r);
 }
 
 //================================================================
@@ -93,18 +93,18 @@ kind_of(GV *v)		// whether v1 is a kind of v0
   @return pointer to guru_class
 */
 __GURU__ guru_class*
-class_by_obj(GV *v)
+class_by_obj(GR *r)
 {
 	guru_class *scls;
 
-	switch (v->gt) {
-    case GT_OBJ: return v->self->cls;
+	switch (r->gt) {
+    case GT_OBJ: return r->self->cls;
     case GT_CLASS:
-    	scls = v->cls->meta ? v->cls->meta : guru_rom_get_class(GT_OBJ);
-    	return IS_BUILTIN(v->cls)
-    		? v->cls
-    		: (IS_SCLASS(v) ? scls : (IS_SELF(v) ? v->cls : scls));
-    default: return guru_rom_get_class(v->gt);
+    	scls = r->cls->meta ? r->cls->meta : guru_rom_get_class(GT_OBJ);
+    	return IS_BUILTIN(r->cls)
+    		? r->cls
+    		: (IS_SCLASS(r) ? scls : (IS_SELF(r) ? r->cls : scls));
+    default: return guru_rom_get_class(r->gt);
     }
 }
 
@@ -118,9 +118,9 @@ __GURU__ guru_class*
 _name2class(const U8 *name)
 {
 	GS sid = name2id(name);
-    GV *v  = const_get(sid);
+    GR *r  = const_get(sid);
 
-    return (v->gt==GT_CLASS) ? v->cls : NULL;
+    return (r->gt==GT_CLASS) ? r->cls : NULL;
 }
 
 //================================================================
@@ -154,15 +154,15 @@ __find_proc(guru_class *cls, GS sid)
 
 __GURU__ S32 _proc_idx[32];
 __GURU__ guru_proc*
-proc_by_sid(GV *v, GS sid)
+proc_by_sid(GR *r, GS sid)
 {
 #if CC_DEBUG
 	U8* fname = id2name(sid);
     printf("proc_by_sid:%s=>%d(0x%02x)\n", fname, sid, sid);
-    for (guru_class *cls=class_by_obj(v); cls; cls=cls->super) {	// search up class hierarchy
-        printf("\t%p:sc=%d,self=%d:%s\n", cls, IS_SCLASS(v), IS_SELF(v), cls->name);
+    for (guru_class *cls=class_by_obj(r); cls; cls=cls->super) {	// search up class hierarchy
+        printf("\t%p:sc=%d,self=%d:%s\n", cls, IS_SCLASS(r), IS_SELF(v), cls->name);
 #else
-    for (guru_class *cls=class_by_obj(v); cls; cls=cls->super) {	// search up class hierarchy
+    for (guru_class *cls=class_by_obj(r); cls; cls=cls->super) {	// search up class hierarchy
 #endif // CC_DEBUG
 #if CUDA_PROFILE_CDP
     	/* CC: hold! CUDA 10.2 profiler does not support CDP yet,
@@ -209,8 +209,8 @@ _define_class(const U8 *name, guru_class *cls, guru_class *super)
     cls->name   = id2name(sid);			// retrieve from stored symbol table (the one caller passed might be destroyed)
 #endif
 
-    GV v; { v.gt=GT_CLASS; v.acl=0; v.cls=cls; }
-    const_set(sid, &v);					// register new class in constant cache
+    GR r; { r.gt=GT_CLASS; r.acl=0; r.cls=cls; }
+    const_set(sid, &r);					// register new class in constant cache
 }
 
 __GURU__ guru_class*
@@ -275,16 +275,16 @@ guru_define_method(guru_class *cls, const U8 *name, guru_fptr cfunc)
   @param  cfunc		pointer to function.
 */
 __GURU__ guru_class*
-guru_class_add_meta(GV *v)						// lazy add metaclass to a class
+guru_class_add_meta(GR *r)						// lazy add metaclass to a class
 {
-	ASSERT(v->gt==GT_CLASS);
+	ASSERT(r->gt==GT_CLASS);
 
-	if (v->cls->meta!=NULL) return v->cls->meta;
+	if (r->cls->meta!=NULL) return r->cls->meta;
 
 	// lazily create the metaclass
 	const U8	*name = (U8*)"_meta";
 	guru_class 	*cls  = guru_define_class(name, guru_rom_get_class(GT_OBJ));
-	return v->cls->meta = cls;					// self pointing =~ metaclass
+	return r->cls->meta = cls;					// self pointing =~ metaclass
 }
 
 //================================================================

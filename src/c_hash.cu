@@ -45,12 +45,12 @@
 /*! get size
  */
 __GURU__ __INLINE__ int
-_size(const GV *kv) {
+_size(const GR *kv) {
     return kv->hash->n >> 1;
 }
 
-__GURU__ __INLINE__ GV*
-_data(const GV *kv) {
+__GURU__ __INLINE__ GR*
+_data(const GR *kv) {
 	return kv->hash->data;
 }
 
@@ -61,13 +61,13 @@ _data(const GV *kv) {
   @param  key	pointer to key value
   @return	pointer to found key or NULL(not found).
 */
-__GURU__ GV*
-_search(const GV *kv, const GV *key)
+__GURU__ GR*
+_search(const GR *kv, const GR *key)
 {
 #ifndef GURU_HASH_SEARCH_LINER
 #define GURU_HASH_SEARCH_LINER
 #endif
-    GV  *p = kv->hash->data;
+    GR  *p = kv->hash->data;
     U32  n = _size(kv);
 
 #ifdef GURU_HASH_SEARCH_LINER
@@ -94,18 +94,18 @@ _search(const GV *kv, const GV *key)
   @return		error_code
 */
 __GURU__ void
-_set(GV *kv, GV *key, GV *val)
+_set(GR *kv, GR *key, GR *val)
 {
-    GV *v = _search(kv, key);
-    if (v==NULL) {					// key not found, create new kv pair
+    GR *r = _search(kv, key);
+    if (r==NULL) {					// key not found, create new kv pair
         guru_array_push(kv, key);	// push into array tail (ref counter += 1)
         guru_array_push(kv, val);
     }
     else {
-    	ref_dec(v);					// release previous kv elements
-    	ref_dec(v+1);
-        *(v)   = *key;
-        *(v+1) = *val;
+    	ref_dec(r);					// release previous kv elements
+    	ref_dec(r+1);
+        *(r)   = *key;
+        *(r+1) = *val;
     }
 }
 
@@ -114,14 +114,14 @@ _set(GV *kv, GV *key, GV *val)
 
   @param  hash	pointer to target hash
   @param  key	pointer to key value
-  @return	GV data at key position or Nil.
+  @return	GR data at key position or Nil.
 */
-__GURU__ GV
-_get(GV *kv, GV *key)
+__GURU__ GR
+_get(GR *kv, GR *key)
 {
-    GV *v = _search(kv, key);
+    GR *r = _search(kv, key);
 
-    return v ? *(v+1) : NIL;
+    return r ? *(r+1) : NIL;
 }
 
 //================================================================
@@ -131,18 +131,18 @@ _get(GV *kv, GV *key)
   @param  key	pointer to key value
   @return	removed data or Nil
 */
-__GURU__ GV
-_remove(GV *kv, GV *key)
+__GURU__ GR
+_remove(GR *kv, GR *key)
 {
-    GV *v = _search(kv, key);
-    if (v==NULL) return NIL;
+    GR *r = _search(kv, key);
+    if (r==NULL) return NIL;
 
-    ref_dec(v);						// CC: was dec_refc 20181101
-    GV ret = *(v+1);				// value
+    ref_dec(r);						// CC: was dec_refc 20181101
+    GR ret = *(r+1);				// value
     guru_hash  *h  = kv->hash;
     h->n -= 2;
 
-    MEMCPY(v, (v+2), U8POFF(h->data + h->n, v));
+    MEMCPY(r, (r+2), U8POFF(h->data + h->n, r));
 
     // TODO: re-index hash table if need.
 
@@ -155,7 +155,7 @@ _remove(GV *kv, GV *key)
   @param  hash	pointer to target hash
 */
 __GURU__ void
-_clr(GV *kv)
+_clr(GR *kv)
 {
     guru_array_clr(kv);
 
@@ -169,21 +169,22 @@ _clr(GV *kv)
   @param  size	initial size
   @return 	hash object
 */
-__GURU__ GV
+__GURU__ GR
 guru_hash_new(int sz)
 {
-    GV v;	{ v.gt=GT_HASH; v.acl=ACL_HAS_REF; }
     /*
       Allocate handle and data buffer.
     */
-    guru_hash *h = v.hash = (guru_hash *)guru_alloc(sizeof(guru_hash));
+    guru_hash *h = (guru_hash *)guru_alloc(sizeof(guru_hash));
 
     h->rc   = 1;
     h->n  	= 0;
     h->sz	= sz<<1;		// double the array size for (k,v) pairs
-    h->data = sz ? guru_gv_alloc(sz<<1) : NULL;
+    h->data = sz ? guru_gr_alloc(sz<<1) : NULL;
 
-    return v;
+    GR r;  { r.gt=GT_HASH;  r.acl=ACL_HAS_REF; r.hash=h; }
+
+    return r;
 }
 
 //================================================================
@@ -192,14 +193,14 @@ guru_hash_new(int sz)
   @param  vm	pointer to VM.
   @param  src	pointer to target hash.
 */
-__GURU__ GV
-_hash_dup(const GV *kv)
+__GURU__ GR
+_hash_dup(const GR *kv)
 {
 	int n   = _size(kv);
-    GV  ret = guru_hash_new(n);
+    GR  ret = guru_hash_new(n);
 
-    GV  *d  = _data(&ret);
-    GV  *s  = _data(kv);
+    GR  *d  = _data(&ret);
+    GR  *s  = _data(kv);
     U32 n2  = ret.hash->n = n<<1;		// n pairs (k,v)
     for (U32 i=0; i < n2; i++) {
     	*d++ = *ref_inc(s++);			// referenced by the new hash now
@@ -213,7 +214,7 @@ _hash_dup(const GV *kv)
   @param  hash	pointer to target value
 */
 __GURU__ void
-guru_hash_del(GV *kv)
+guru_hash_del(GR *kv)
 {
     guru_array_del(kv);		// free content
 }
@@ -222,20 +223,20 @@ guru_hash_del(GV *kv)
 //================================================================
 /*! compare
 
-  @param  v1	Pointer to GV
-  @param  v2	Pointer to another GV
-  @retval 0	v1==v2
-  @retval 1	v1 != v2
+  @param  r0	Pointer to GR
+  @param  r1 	Pointer to another GR
+  @retval 0	r0==r1
+  @retval 1	r0 != r1
 */
 __GURU__ S32
-guru_hash_cmp(const GV *v0, const GV *v1)
+guru_hash_cmp(const GR *r0, const GR *r1)
 {
-	int n0 = _size(v0);
-    if (n0 != _size(v1)) 			return 1;	// size different
+	int n0 = _size(r0);
+    if (n0 != _size(r1)) 			return 1;	// size different
 
-    GV *p0 = _data(v0);
+    GR *p0 = _data(r0);
     for (U32 i=0; i < n0; i++, p0+=2) {			// walk the hash element by element
-        GV *p1 = _search(v1, p0);				// check key
+        GR *p1 = _search(r1, p0);				// check key
         if (p1==NULL) 				return 1;	// no key found
         if (guru_cmp(p0+1, p1+1)) 	return 1;	// compare data
     }
@@ -246,14 +247,14 @@ guru_hash_cmp(const GV *v0, const GV *v1)
 /*! (method) new
  */
 __CFUNC__
-hsh_new(GV v[], U32 vi)
+hsh_new(GR r[], U32 ri)
 {
-	GV ret;
-    if (vi==0) {											// in case of new()
+	GR ret;
+    if (ri==0) {											// in case of new()
         ret = guru_hash_new(0);
     }
-    else if (vi==1 && v[1].gt==GT_INT && v[1].i >= 0) {		// new(num)
-        ret = guru_hash_new(v[1].i);
+    else if (ri==1 && r[1].gt==GT_INT && r[1].i >= 0) {		// new(num)
+        ret = guru_hash_new(r[1].i);
     }
     RETURN_VAL(ret);
 }
@@ -262,10 +263,10 @@ hsh_new(GV v[], U32 vi)
 /*! (operator) []
  */
 __CFUNC__
-hsh_get(GV v[], U32 vi)
+hsh_get(GR r[], U32 ri)
 {
-	ASSERT(vi==1);
-	GV ret = _get(v, v+1);
+	ASSERT(ri==1);
+	GR ret = _get(r, r+1);
 
     RETURN_VAL(ret);
 }
@@ -274,13 +275,13 @@ hsh_get(GV v[], U32 vi)
 /*! (operator) []=
  */
 __CFUNC__
-hsh_set(GV v[], U32 vi)
+hsh_set(GR r[], U32 ri)
 {
-	ASSERT(vi==2);
-    _set(v, v+1, v+2);		// k + v
+	ASSERT(ri==2);
+    _set(r, r+1, r+2);		// k + v
 
-    *(v+1) = EMPTY;
-    *(v+2) = EMPTY;
+    *(r+1) = EMPTY;
+    *(r+2) = EMPTY;
 }
 
 
@@ -288,59 +289,59 @@ hsh_set(GV v[], U32 vi)
 /*! (method) clear
  */
 __CFUNC__
-hsh_clr(GV v[], U32 vi)
+hsh_clr(GR r[], U32 ri)
 {
-    _clr(v);
+    _clr(r);
 }
 
 //================================================================
 /*! (method) dup
  */
 __CFUNC__
-hsh_dup(GV v[], U32 vi)
+hsh_dup(GR r[], U32 ri)
 {
-    RETURN_VAL(_hash_dup(v));
+    RETURN_VAL(_hash_dup(r));
 }
 
 //================================================================
 /*! (method) delete
  */
 __CFUNC__
-hsh_del(GV v[], U32 vi)
+hsh_del(GR r[], U32 ri)
 {
     // TODO : now, support only delete(key) -> object
     // TODO: re-index hash table if need.
-	RETURN_VAL(_remove(v, v+1));
+	RETURN_VAL(_remove(r, r+1));
 }
 
 //================================================================
 /*! (method) empty?
  */
 __CFUNC__
-hsh_empty(GV v[], U32 vi)
+hsh_empty(GR r[], U32 ri)
 {
-    RETURN_BOOL(_size(v)==0);
+    RETURN_BOOL(_size(r)==0);
 }
 
 //================================================================
 /*! (method) has_key?
  */
 __CFUNC__
-hsh_has_key(GV v[], U32 vi)
+hsh_has_key(GR r[], U32 ri)
 {
-    RETURN_BOOL(_search(v, v+1)!=NULL);
+    RETURN_BOOL(_search(r, r+1)!=NULL);
 }
 
 //================================================================
 /*! (method) has_value?
  */
 __CFUNC__
-hsh_has_value(GV v[], U32 vi)
+hsh_has_value(GR r[], U32 ri)
 {
-    GV  *p = _data(v);
-    U32 n  = _size(v);
+    GR  *p = _data(r);
+    U32 n  = _size(r);
     for (U32 i=0; i<n; i++, p+=2) {
-        if (guru_cmp(p+1, v+1)==0) {	// value to value
+        if (guru_cmp(p+1, r+1)==0) {	// value to value
             RETURN_BOOL(1);
         }
     }
@@ -351,12 +352,12 @@ hsh_has_value(GV v[], U32 vi)
 /*! (method) key
  */
 __CFUNC__
-hsh_key(GV v[], U32 vi)
+hsh_key(GR r[], U32 ri)
 {
-    GV  *p = _data(v);
-    U32 n  = _size(v);
+    GR  *p = _data(r);
+    U32 n  = _size(r);
     for (U32 i=0; i<n; i++, p+=2) {
-        if (guru_cmp(p+1, v+1)==0) {
+        if (guru_cmp(p+1, r+1)==0) {
             RETURN_VAL(*p);
         }
     }
@@ -367,11 +368,11 @@ hsh_key(GV v[], U32 vi)
 /*! (method) keys
  */
 __CFUNC__
-hsh_keys(GV v[], U32 vi)
+hsh_keys(GR r[], U32 ri)
 {
-    GV *p  = _data(v);
-    int         n  = _size(v);
-    GV ret = guru_array_new(n);
+    GR *p  = _data(r);
+    int n  = _size(r);
+    GR ret = guru_array_new(n);
 
     for (U32 i=0; i<n; i++, p+=2) {
         guru_array_push(&ret, p);
@@ -383,22 +384,22 @@ hsh_keys(GV v[], U32 vi)
 /*! (method) size,length,count
  */
 __CFUNC__
-hsh_size(GV v[], U32 vi)
+hsh_size(GR r[], U32 ri)
 {
-    RETURN_INT(_size(v));
+    RETURN_INT(_size(r));
 }
 
 //================================================================
 /*! (method) merge
  */
 __CFUNC__
-hsh_merge(GV v[], U32 vi)		// non-destructive merge
+hsh_merge(GR r[], U32 ri)		// non-destructive merge
 {
-	ASSERT((v+1)->gt==GT_HASH);	// other types not supported yet
+	ASSERT((r+1)->gt==GT_HASH);	// other types not supported yet
 
-    GV  ret = _hash_dup(v);
-    U32 n   = _size(v+1);
-    GV *p   = _data(v+1);
+    GR  ret = _hash_dup(r);
+    U32 n   = _size(r+1);
+    GR *p   = _data(r+1);
     for (U32 i=0; i < n; i++, p+=2) {
         _set(&ret, p, p+1);
     }
@@ -409,14 +410,14 @@ hsh_merge(GV v[], U32 vi)		// non-destructive merge
 /*! (method) merge!
  */
 __CFUNC__
-hsh_merge_self(GV v[], U32 vi)
+hsh_merge_self(GR r[], U32 ri)
 {
-	ASSERT((v+1)->gt==GT_HASH);	// other types not supported yet
+	ASSERT((r+1)->gt==GT_HASH);	// other types not supported yet
 
-	GV *p  = _data(v+1);
-    U32 n  = _size(v+1);
+	GR *p  = _data(r+1);
+    U32 n  = _size(r+1);
     for (U32 i=0; i<n; i++, p+=2) {
-        _set(v, p, p+1);
+        _set(r, p, p+1);
     }
 }
 
@@ -424,11 +425,11 @@ hsh_merge_self(GV v[], U32 vi)
 /*! (method) values
  */
 __CFUNC__
-hsh_values(GV v[], U32 vi)
+hsh_values(GR r[], U32 ri)
 {
-    GV *p  = _data(v);
-    int         n  = _size(v);
-    GV ret = guru_array_new(n);
+    GR *p  = _data(r);
+    int n  = _size(r);
+    GR ret = guru_array_new(n);
 
     for (U32 i=0; i<n; i++, p+=2) {
         guru_array_push(&ret, p+1);
@@ -458,8 +459,8 @@ __GURU__ __const__ Vfunc hsh_vtbl[] = {
 	{ "merge!",	    hsh_merge_self	},
 	{ "values",	    hsh_values 	},
 
-	{ "inspect",	gv_to_s 	},
-	{ "to_s",	    gv_to_s		}
+	{ "inspect",	gr_to_s 	},
+	{ "to_s",	    gr_to_s		}
 };
 __GURU__ void
 guru_init_class_hash()

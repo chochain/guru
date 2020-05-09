@@ -37,7 +37,7 @@ typedef struct RIrep {			// 32-byte
 
 #define IREP_ISEQ(i)	((U32*)U8PADD(i, (i)->iseq))
 #define IREP_REPS(i)    ((guru_irep*)U8PADD(i, (i)->reps))
-#define IREP_POOL(i)    ((GV*)U8PADD(i, (i)->pool))
+#define IREP_POOL(i)    ((GR*)U8PADD(i, (i)->pool))
 
 //================================================================
 /*!@brief
@@ -51,7 +51,7 @@ typedef struct RState {			// 20-byte
     U8  temp;					// reserved
 
     struct RClass 	*klass;		// current class
-    GV      		*regs;		// pointer to current register (in VM register file)
+    GR      		*regs;		// pointer to current register (in VM register file)
     guru_irep       *irep;		// pointer to current irep block
     struct RState   *prev;		// previous state (call stack)
 } guru_state;					// VM context
@@ -65,12 +65,12 @@ typedef struct RState {			// 20-byte
 #define IS_LAMBDA(st)			((st)->flag & STATE_LAMBDA)
 #define IS_NEW(st)				((st)->flag & STATE_NEW)
 
-__GURU__ void 	vm_state_push(guru_vm *vm, guru_irep *irep, U32 pc, GV *regs, U32 vi);
-__GURU__ void	vm_state_pop(guru_vm *vm, GV ret_val);
+__GURU__ void 	vm_state_push(guru_vm *vm, guru_irep *irep, U32 pc, GR *regs, U32 ri);
+__GURU__ void	vm_state_pop(guru_vm *vm, GR ret_val);
 
 // TODO: temp functions for call and new (due to VM passing required)
 __GURU__ U32	vm_loop_next(guru_vm *vm);
-__GURU__ U32	vm_method_exec(guru_vm *vm, GV v[], U32 vi, GS sid);
+__GURU__ U32	vm_method_exec(guru_vm *vm, GR r[], U32 ri, GS sid);
 
 #ifdef __cplusplus
 }

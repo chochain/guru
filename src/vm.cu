@@ -52,7 +52,7 @@ pthread_mutex_t 	_mutex_pool;
 __GURU__ void
 __ready(guru_vm *vm, GRIT *gr)
 {
-	GV *r = vm->regfile;
+	GR *r = vm->regfile;
 	for (U32 i=0; i<MAX_REGFILE_SIZE; i++, r++) {					// wipe register
 		r->gt  = (i>0) ? GT_EMPTY : GT_CLASS;						// reg[0] is "self"
 		r->cls = (i>0) ? NULL     : guru_rom_get_class(GT_OBJ);
@@ -80,16 +80,16 @@ __free(guru_vm *vm)
 
 //================================================================
 // Transcode Pooled objects and Symbol table recursively
-// from source memory pointers to GV[] (i.e. regfile)
+// from source memory pointers to GR[] (i.e. regfile)
 //
 __GURU__ void
 __transcode(GRIT *gr)
 {
-	GV *v = (GV*)U8PADD(gr, gr->pool);
-	for (U32 i=0; i < gr->psz; i++, v++) {			// symbol table
-		switch (v->gt) {
-		case GT_SYM: guru_sym_rom(v);	break;
-		case GT_STR: guru_str_rom(v);	break;		// instantiate the string
+	GR *r = (GR*)U8PADD(gr, gr->pool);
+	for (U32 i=0; i < gr->psz; i++, r++) {			// symbol table
+		switch (r->gt) {
+		case GT_SYM: guru_sym_rom(r);	break;
+		case GT_STR: guru_str_rom(r);	break;		// instantiate the string
 		default:
 			// do nothing
 		}

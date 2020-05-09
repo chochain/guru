@@ -27,103 +27,103 @@
   Clean up call stack
 */
 __GURU__ void
-_wipe_stack(GV v[], U32 vi)
+_wipe_stack(GR r[], U32 ri)
 {
-    GV *r = v;
-    for (U32 i=0; i<vi; i++, r++) {
-    	ref_dec(r);
-    	r->gt   = GT_EMPTY;
-    	r->acl  = 0;
-    	r->self = NULL;
+    GR *x = r;
+    for (U32 i=0; i<ri; i++, x++) {
+    	ref_dec(x);
+    	x->gt   = GT_EMPTY;
+    	x->acl  = 0;
+    	x->self = NULL;
     }
 }
 
 __GURU__ void
-_call(guru_vm *vm, GV v[], U32 vi)
+_call(guru_vm *vm, GR r[], U32 ri)
 {
-	guru_proc 	*prc  = v->proc;
+	guru_proc 	*prc  = r->proc;
 	guru_irep	*irep = prc->irep;
 
 	if (AS_LAMBDA(prc)) {
-		vm_state_push(vm, vm->state->irep, vm->state->pc, prc->regs, vi);	// switch into callee's context
+		vm_state_push(vm, vm->state->irep, vm->state->pc, prc->regs, ri);	// switch into callee's context
 		vm->state->flag |= STATE_LAMBDA;
-		vm_state_push(vm, irep, 0, v, vi);			// switch into lambda using closure stack frame
+		vm_state_push(vm, irep, 0, r, ri);			// switch into lambda using closure stack frame
 	}
 	else if (AS_IREP(prc)){
-		vm_state_push(vm, prc->irep, 0, v, vi);		// switch into callee's context
+		vm_state_push(vm, prc->irep, 0, r, ri);		// switch into callee's context
 	}
 	else ASSERT(1==0);
 }
 
 __GURU__ void
-_each(guru_vm *vm, GV v[], U32 vi)
+_each(guru_vm *vm, GR r[], U32 ri)
 {
-	GV *v1 = v+1;
-	ASSERT(v1->gt==GT_PROC);						// ensure it is a code block
+	GR *r1 = r+1;
+	ASSERT(r1->gt==GT_PROC);						// ensure it is a code block
 
 	U32			pc0    = vm->state->pc;
 	guru_irep  	*irep0 = vm->state->irep;
-	guru_irep 	*irep1 = v1->proc->irep;
-	GV 			git    = guru_iter_new(v, NULL);	// create iterator
+	guru_irep 	*irep1 = r1->proc->irep;
+	GR 			git    = guru_iter_new(r, NULL);	// create iterator
 
 	// push stack out (1 space for iterator)
-//	GV  *p = v1;
-//	for (U32 i=0; i<=vi; i++, *(p+1)=*p, p--);
-	*(v+1) = git;
-	*(v+2) = *vm->state->regs;
+//	GR  *p = r1;
+//	for (U32 i=0; i<=ri; i++, *(p+1)=*p, p--);
+	*(r+1) = git;
+	*(r+2) = *vm->state->regs;
 
 	// allocate iterator state (using same stack frame)
-	vm_state_push(vm, irep0, pc0, v+2, vi);
+	vm_state_push(vm, irep0, pc0, r+2, ri);
 	vm->state->flag |= STATE_LOOP;
 
 	// switch into callee's context with v[1]=1st element
-	vm_state_push(vm, irep1, 0, v+2, vi);
+	vm_state_push(vm, irep1, 0, r+2, ri);
 	guru_iter *it = git.iter;
-	*(v+3) = *(it->inc);
+	*(r+3) = *(it->inc);
 	if (it->n==GT_HASH) {
-		*(v+4) = *(it->inc+1);
+		*(r+4) = *(it->inc+1);
 	}
 }
 
 __GURU__ void
-_new(guru_vm *vm, GV v[], U32 vi)
+_new(guru_vm *vm, GR r[], U32 ri)
 {
-	ASSERT(v->gt==GT_CLASS);					// ensure it is a class object
-	GV obj = v[0] = ostore_new(v->cls);			// instantiate object itself (with 0 var);
+	ASSERT(r->gt==GT_CLASS);					// ensure it is a class object
+	GR obj = r[0] = ostore_new(r->cls);			// instantiate object itself (with 0 var);
 	GS sid = name2id((U8*)"initialize"); 		// search for initializer
 
-	if (vm_method_exec(vm, v, vi, sid)) {		// run custom initializer if any
+	if (vm_method_exec(vm, r, ri, sid)) {		// run custom initializer if any
 		vm->err = 1;
 	}
 	vm->state->flag |= STATE_NEW;
 }
 
 __GURU__ void
-_lambda(guru_vm *vm, GV v[], U32 vi)
+_lambda(guru_vm *vm, GR r[], U32 ri)
 {
-	ASSERT(v->gt==GT_CLASS && (v+1)->gt==GT_PROC);		// ensure it is a proc
+	ASSERT(r->gt==GT_CLASS && (r+1)->gt==GT_PROC);		// ensure it is a proc
 
-	guru_proc *prc = (v+1)->proc;						// mark it as a lambda
+	guru_proc *prc = (r+1)->proc;						// mark it as a lambda
 	prc->kt |= PROC_LAMBDA;
 
 	U32	n   = prc->n 	= vm->ar.a;
-	GV  *r  = prc->regs = guru_gv_alloc(n);
-	GV  *r0 = vm->state->regs;							// deep copy register file
-	for (U32 i=0; i<n; *r++=*r0++, i++);
+	GR  *rf = prc->regs = guru_gr_alloc(n);
+	GR  *r0 = vm->state->regs;							// deep copy register file
+	for (U32 i=0; i<n; *rf++=*r0++, i++);
 
-    *v = *(v+1);
-	(v+1)->gt = GT_EMPTY;
+    *r = *(r+1);
+	(r+1)->gt = GT_EMPTY;
 }
 
 __GURU__ void
-_raise(guru_vm *vm, GV v[], U32 vi)
+_raise(guru_vm *vm, GR r[], U32 ri)
 {
 	ASSERT(vm->depth > 0);
 
 	vm->state->pc = vm->rescue[--vm->depth];	// pop from exception return stack
 }
 
-typedef void (*Xfunc)(guru_vm *vm, GV v[], U32 vi);
+typedef void (*Xfunc)(guru_vm *vm, GR r[], U32 ri);
 struct Xf {
 	const char  *name;				// raw string usually
 	Xfunc 		func;				// C-function pointer
@@ -139,7 +139,7 @@ __GURU__ __const__ Xf miss_vtbl[] = {
 #define XFSZ	(sizeof(miss_vtbl)/sizeof(Xf))
 
 __GURU__ U32
-_method_missing(guru_vm *vm, GV v[], U32 vi, GS sid)
+_method_missing(guru_vm *vm, GR r[], U32 ri, GS sid)
 {
 	U8 *f = id2name(sid);
 
@@ -150,11 +150,11 @@ _method_missing(guru_vm *vm, GV v[], U32 vi, GS sid)
 	struct Xf *p = (Xf*)miss_vtbl;	// dispatcher
 	for (int i=0; i<XFSZ; i++, p++) {
 		if (STRCMP(p->name, f)==0) {
-			p->func(vm, v, vi);
+			p->func(vm, r, ri);
 			return 0;
 		}
 	}
-	_wipe_stack(v+1, vi+1);			// wipe call stack and return
+	_wipe_stack(r+1, ri+1);			// wipe call stack and return
 	return 1;
 }
 //================================================================
@@ -162,26 +162,26 @@ _method_missing(guru_vm *vm, GV v[], U32 vi, GS sid)
   Push current status to callinfo stack
 */
 __GURU__ void
-vm_state_push(guru_vm *vm, guru_irep *irep, U32 pc, GV v[], U32 vi)
+vm_state_push(guru_vm *vm, guru_irep *irep, U32 pc, GR r[], U32 ri)
 {
 	guru_state 	*top = vm->state;
     guru_state 	*st  = (guru_state *)guru_alloc(sizeof(guru_state));
 
-    switch(v->gt) {
+    switch(r->gt) {
     case GT_OBJ:
-    case GT_CLASS: 	st->klass = v->cls;				break;
+    case GT_CLASS: 	st->klass = r->cls;				break;
     case GT_PROC: 	st->klass = top->regs[0].cls; 	break;
     default: ASSERT(1==0);
     }
     st->irep  = irep;
     st->pc    = pc;
-    st->regs  = v;					// TODO: should allocate another regfile
-    st->argc  = vi;					// argument count
+    st->regs  = r;					// TODO: should allocate another regfile
+    st->argc  = ri;					// argument count
     st->flag  = 0;					// non-iterator
     st->prev  = top;				// push into context stack
 
     if (top) {						// keep stack frame depth
-    	top->nv = IN_LAMBDA(st) ? v->proc->n : vm->ar.a;
+    	top->nv = IN_LAMBDA(st) ? r->proc->n : vm->ar.a;
     }
     else st->nv = irep->nr;			// top most stack frame depth
 
@@ -197,7 +197,7 @@ vm_state_push(guru_vm *vm, guru_irep *irep, U32 pc, GV v[], U32 vi)
 	@param	rsz		- stack depth used
 */
 __GURU__ void
-vm_state_pop(guru_vm *vm, GV ret_val)
+vm_state_pop(guru_vm *vm, GR ret_val)
 {
     guru_state 	*st = vm->state;
 
@@ -214,17 +214,17 @@ __GURU__ U32
 vm_loop_next(guru_vm *vm)
 {
 	guru_state *st = vm->state;
-	GV *r0 = st->regs;
-	GV *ri = r0 - 1;									// iterator pointer
+	GR *r0 = st->regs;
+	GR *rr = r0 - 1;									// iterator pointer
 
-	U32 nvar = guru_iter_next(ri);						// get next iterator element
+	U32 nvar = guru_iter_next(rr);						// get next iterator element
 	if (nvar==0) return 0;								// end of loop, bail
 
-	GV  *r = r0 + (nvar+1);								// wipe stack for next loop
+	GR  *x = r0 + (nvar+1);								// wipe stack for next loop
 	U32 n  = st->irep->nr - (nvar+1);
-	_wipe_stack(r, n);
+	_wipe_stack(x, n);
 
-	guru_iter *it = ri->iter;							// get iterator itself
+	guru_iter *it = rr->iter;							// get iterator itself
 	*(r0+1) = *it->inc;									// fetch next loop index
 	if (nvar>1) *(r0+2) = *(it->inc+1);					// range
 	st->pc = 0;
@@ -233,21 +233,21 @@ vm_loop_next(guru_vm *vm)
 }
 
 __GURU__ U32
-vm_method_exec(guru_vm *vm, GV v[], U32 vi, GS sid)
+vm_method_exec(guru_vm *vm, GR r[], U32 ri, GS sid)
 {
-    guru_proc  *prc = proc_by_sid(v, sid);				// v->gt in [GT_OBJ, GT_CLASS]
+    guru_proc  *prc = proc_by_sid(r, sid);				// v->gt in [GT_OBJ, GT_CLASS]
 
     if (prc==0) {										// VM functions
-    	return _method_missing(vm, v, vi, sid);
+    	return _method_missing(vm, r, ri, sid);
     }
     if (AS_IREP(prc)) {									// a Ruby-based IREP
-    	vm_state_push(vm, prc->irep, 0, v, vi);			// switch to callee's context
+    	vm_state_push(vm, prc->irep, 0, r, ri);			// switch to callee's context
     }
     else {
-    	v->oid = sid;									// parameter sid is passed as object id
-    	prc->func(v, vi);								// call C-based function
-    	_wipe_stack(v+1, vi+1);
-    	v->acl &= ~(ACL_SCLASS|ACL_SELF);
+    	r->oid = sid;									// parameter sid is passed as object id
+    	prc->func(r, ri);								// call C-based function
+    	_wipe_stack(r+1, ri+1);
+    	r->acl &= ~(ACL_SCLASS|ACL_SELF);
     }
     return 0;
 }

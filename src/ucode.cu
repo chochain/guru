@@ -37,7 +37,7 @@ __GURU__ U32 _mutex_uc;
 #define _AR(r)          ((vm->ar.r))
 #define _R0             (&(vm->state->regs[0]))
 #define _R(r)			(&(vm->state->regs[_AR(r)]))
-#define _RA(v)			(ref_dec(_R(a)), *_R(a)=(v))
+#define _RA(r)			(ref_dec(_R(a)), *_R(a)=(r))
 #define _RA_X(r)    	(ref_inc(r), ref_dec(_R(a)), *_R(a)=*(r))
 #define _RA_T(t,e)      (_R(a)->gt=(t), _R(a)->acl=0, _R(a)->e)
 
@@ -45,7 +45,7 @@ __GURU__ U32 _mutex_uc;
 #define RAISE(x)	    { _RA(guru_str_new(x)); vm->err = 1; return; }
 #define QUIT(x)			{ vm->quit=1; NA(x); return; }
 
-__GURU__ __INLINE__ GV *nop()	{ return NULL; }
+__GURU__ __INLINE__ GR *nop()	{ return NULL; }
 
 //================================================================
 /*!@brief
@@ -79,7 +79,7 @@ uc_move(guru_vm *vm)
 __UCODE__
 uc_loadl(guru_vm *vm)
 {
-	GV ret = *VM_VAR(vm, _AR(bx));
+	GR ret = *VM_VAR(vm, _AR(bx));
     _RA(ret);
 }
 
@@ -172,9 +172,9 @@ uc_getglobal(guru_vm *vm)
 {
     GS sid = VM_SYM(vm, _AR(bx));
 
-    GV *v = global_get(sid);
+    GR *r = global_get(sid);
 
-    _RA(*v);
+    _RA(*r);
 }
 
 //================================================================
@@ -213,11 +213,11 @@ _name2id_wo_at_sign(guru_vm *vm)
 __UCODE__
 uc_getiv(guru_vm *vm)
 {
-	GV *v  = _R0;
-	ASSERT(v->gt==GT_OBJ || v->gt==GT_CLASS);
+	GR *r  = _R0;
+	ASSERT(r->gt==GT_OBJ || r->gt==GT_CLASS);
 
     GS sid = _name2id_wo_at_sign(vm);
-    GV ret = ostore_get(v, sid);
+    GR ret = ostore_get(r, sid);
 
     _RA(ret);
 }
@@ -231,11 +231,11 @@ uc_getiv(guru_vm *vm)
 __UCODE__
 uc_setiv(guru_vm *vm)
 {
-	GV *v  = _R0;
-	ASSERT(v->gt==GT_OBJ || v->gt==GT_CLASS);
+	GR *r  = _R0;
+	ASSERT(r->gt==GT_OBJ || r->gt==GT_CLASS);
 
     GS sid = _name2id_wo_at_sign(vm);
-    ostore_set(v, sid, _R(a));
+    ostore_set(r, sid, _R(a));
 }
 
 //================================================================
@@ -247,14 +247,14 @@ uc_setiv(guru_vm *vm)
 __UCODE__
 uc_getcv(guru_vm *vm)
 {
-	GV *v  = _R0;
+	GR *r  = _R0;
 	GS sid = VM_SYM(vm, _AR(bx));
 
-	ASSERT(v->gt==GT_OBJ);
+	ASSERT(r->gt==GT_OBJ);
 
-	GV cv; { cv.gt=GT_CLASS; cv.acl=0; cv.cls=v->self->cls; }
-	GV ret;
-	for (guru_class *cls=v->self->cls;
+	GR cv; { cv.gt=GT_CLASS; cv.acl=0; cv.cls=r->self->cls; }
+	GR ret;
+	for (guru_class *cls=r->self->cls;
 			cls && (ret=ostore_get(&cv, sid)).gt!=GT_NIL; cls=cls->super);
 
     _RA(ret);
@@ -269,11 +269,11 @@ uc_getcv(guru_vm *vm)
 __UCODE__
 uc_setcv(guru_vm *vm)
 {
-	GV *v = _R0;
-	ASSERT(v->gt==GT_CLASS);
+	GR *r = _R0;
+	ASSERT(r->gt==GT_CLASS);
 
     GS sid = VM_SYM(vm, _AR(bx));
-    ostore_set(v, sid, _R(a));
+    ostore_set(r, sid, _R(a));
 }
 
 //================================================================
@@ -286,9 +286,9 @@ __UCODE__
 uc_getconst(guru_vm *vm)
 {
     GS sid = VM_SYM(vm, _AR(bx));
-    GV *v  = const_get(sid);
+    GR *r  = const_get(sid);
 
-    _RA(*v);
+    _RA(*r);
 }
 
 //================================================================
@@ -301,7 +301,7 @@ __UCODE__
 uc_setconst(guru_vm *vm)
 {
 	GS sid = VM_SYM(vm, _AR(bx));
-	GV *ra = _R(a);
+	GR *ra = _R(a);
 
 	ra->acl &= ~ACL_HAS_REF;		// set it to constant
 
@@ -314,7 +314,7 @@ uc_setconst(guru_vm *vm)
   get outer scope register file
 
 */
-__GURU__ GV *
+__GURU__ GR *
 _upvar(guru_vm *vm)
 {
 	guru_state *st = vm->state;
@@ -335,7 +335,7 @@ _upvar(guru_vm *vm)
 __UCODE__
 uc_getupvar(guru_vm *vm)
 {
-    GV *ur = _upvar(vm);			// outer scope register file
+    GR *ur = _upvar(vm);			// outer scope register file
     _RA_X(ur);          			// ra <= up[rb]
 }
 
@@ -348,12 +348,12 @@ uc_getupvar(guru_vm *vm)
 __UCODE__
 uc_setupvar(guru_vm *vm)
 {
-    GV *ur = _upvar(vm);			// pointer to caller's register file
-    GV *va = _R(a);
+    GR *ur = _upvar(vm);			// pointer to caller's register file
+    GR *ra = _R(a);
 
     ref_dec(ur);
-    ref_inc(va);
-    *ur = *va;                   	// update outer-scope vars
+    ref_inc(ra);
+    *ur = *ra;                   	// update outer-scope vars
 }
 
 //================================================================
@@ -380,7 +380,7 @@ __UCODE__
 uc_jmpif (guru_vm *vm)
 {
 	GI sbx = _AR(bx) - MAX_sBx - 1;
-	GV *ra = _R(a);
+	GR *ra = _R(a);
 
 	if (ra->gt > GT_FALSE) {
 		vm->state->pc += sbx;
@@ -398,7 +398,7 @@ __UCODE__
 uc_jmpnot(guru_vm *vm)
 {
 	GI sbx = _AR(bx) - MAX_sBx -1;
-	GV *ra = _R(a);
+	GR *ra = _R(a);
 	if (ra->gt <= GT_FALSE) {
 		vm->state->pc += sbx;
 	}
@@ -433,8 +433,8 @@ __UCODE__
 uc_rescue(guru_vm *vm)
 {
 	U32 c  = _AR(c);				// exception 0:set, 1:get
-	GV  *v = _R(a);					// object to receive the exception
-	GV  *x = v + 1;					// exception on stack
+	GR  *r = _R(a);					// object to receive the exception
+	GR  *x = r + 1;					// exception on stack
 
 	if (c) {						// 2nd: get cycle
 		if (x->gt != GT_NIL) {		// if exception is not given
@@ -444,7 +444,7 @@ uc_rescue(guru_vm *vm)
 		x->acl = 0;
 	}
 	else {							// 1st: set cycle
-		if (v->gt==GT_CLASS) x++;
+		if (r->gt==GT_CLASS) x++;
 		_RA_X(x);					// keep exception in RA
 		*(x) = EMPTY;
 	}
@@ -475,7 +475,7 @@ uc_poperr(guru_vm *vm)
 __UCODE__
 uc_raise(guru_vm *vm)
 {
-	GV *ra = _R(a);
+	GR *ra = _R(a);
 
 	_RA(*ra);
 }
@@ -486,11 +486,11 @@ uc_raise(guru_vm *vm)
 
   create undefined method error message (different between mruby1.4 and ruby2.x
 */
-__GURU__ GV *
-_undef(GV *buf, GV *v, GS sid)
+__GURU__ GR *
+_undef(GR *buf, GR *r, GS sid)
 {
 	U8 *fname = id2name(sid);
-	U8 *cname = id2name(class_by_obj(v)->sid);
+	U8 *cname = id2name(class_by_obj(r)->sid);
 
 	guru_buf_add_cstr(buf, "undefined method '");
 	guru_buf_add_cstr(buf, fname);
@@ -511,11 +511,11 @@ __UCODE__
 uc_send(guru_vm *vm)
 {
     GS  sid = VM_SYM(vm, _AR(b));				// get given symbol or object id
-    GV  *r  = _R(a);							// call stack, obj is receiver object
+    GR  *r  = _R(a);							// call stack, obj is receiver object
 
     if (vm_method_exec(vm, r, _AR(c), sid)) { 	// in state.cu, call stack will be wiped before return
     	// put error message on return stack
-    	GV buf = guru_str_buf(80);
+    	GR buf = guru_str_buf(80);
     	*(r+1) = *_undef(&buf, r, sid);			// TODO: exception class
     	vm->err = 1;							// raise exception
     }
@@ -562,7 +562,7 @@ uc_enter(guru_vm *vm)
 __UCODE__
 uc_return(guru_vm *vm)
 {
-	GV  ret = *_R(a);							// return value
+	GR  ret = *_R(a);							// return value
 	U32 brk = _AR(b);							// break
 
 	guru_state *st = vm->state;
@@ -599,7 +599,7 @@ uc_blkpush(guru_vm *vm)
 	for (U32 i=0; i<_AR(c); i++) {
 		st = st->prev->prev;
 	}
-    GV *prc = st->regs+st->argc+1;       	// get proc, regs[0] is the class
+    GR *prc = st->regs+st->argc+1;       	// get proc, regs[0] is the class
 
     ASSERT(prc->gt==GT_PROC);				// ensure
 
@@ -615,7 +615,7 @@ uc_blkpush(guru_vm *vm)
 __UCODE__
 uc_addi(guru_vm *vm)
 {
-	GV *r0 = _R(a);
+	GR *r0 = _R(a);
 	U32 n  = _AR(c);
 
     if (r0->gt==GT_INT)     	r0->i += n;
@@ -635,7 +635,7 @@ uc_addi(guru_vm *vm)
 __UCODE__
 uc_subi(guru_vm *vm)
 {
-	GV  *r0 = _R(a);
+	GR  *r0 = _R(a);
 	U32 n   = _AR(c);
 
     if (r0->gt==GT_INT) 		r0->i -= n;
@@ -651,8 +651,8 @@ uc_subi(guru_vm *vm)
 //
 #define AOP(a, OP)						\
 do {									\
-	GV *r0 = _R(a);						\
-	GV *r1 = r0+1;						\
+	GR *r0 = _R(a);						\
+	GR *r1 = r0+1;						\
 	if (r0->gt==GT_INT) {				\
 		if      (r1->gt==GT_INT)   { 	\
 			r0->i = r0->i OP r1->i; 	\
@@ -723,7 +723,7 @@ uc_mul(guru_vm *vm)
 __UCODE__
 uc_div(guru_vm *vm)
 {
-	GV *r1 = _R(a)+1;
+	GR *r1 = _R(a)+1;
 
 	if (r1->i==0) {
 		vm->err = 1;
@@ -740,7 +740,7 @@ uc_div(guru_vm *vm)
 __UCODE__
 uc_eq(guru_vm *vm)
 {
-	GV *r0 = _R(a), *r1 = r0+1;
+	GR *r0 = _R(a), *r1 = r0+1;
     GT tt = GT_BOOL(guru_cmp(r0, r1)==0);
 
     *r1 = EMPTY;
@@ -750,8 +750,8 @@ uc_eq(guru_vm *vm)
 // comparator template (poorman's C++)
 #define NCMP(a, OP)										\
 do {													\
-	GV *r0 = _R(a);										\
-	GV *r1 = r0+1;										\
+	GR *r0 = _R(a);										\
+	GR *r1 = r0+1;										\
 	if ((r0)->gt==GT_INT) {								\
 		if ((r1)->gt==GT_INT) {							\
 			(r0)->gt = GT_BOOL((r0)->i OP (r1)->i);		\
@@ -831,7 +831,7 @@ uc_ge(guru_vm *vm)
 __UCODE__
 uc_string(guru_vm *vm)
 {
-    GV v = *VM_STR(vm, _AR(bx));
+    GR v = *VM_STR(vm, _AR(bx));
     _RA(v);
 }
 
@@ -845,7 +845,7 @@ __UCODE__
 uc_strcat(guru_vm *vm)
 {
     GS sid = name2id((U8*)"to_s");				// from global symbol pool
-	GV *sa = _R(a), *sb = _R(b);
+	GR *sa = _R(a), *sb = _R(b);
 
     guru_proc *pa = proc_by_sid(sa, sid);
     guru_proc *pb = proc_by_sid(sb, sid);
@@ -862,7 +862,7 @@ uc_strcat(guru_vm *vm)
 }
 
 __GURU__ void
-_stack_copy(GV *d, GV *s, U32 n)
+_stack_copy(GR *d, GR *s, U32 n)
 {
 	for (U32 i=0; i < n; i++, d++, s++) {
 		*d = *ref_inc(s);			// now referenced by array/hash
@@ -880,7 +880,7 @@ uc_array(guru_vm *vm)
 {
 #if GURU_USE_ARRAY
     U32 n = _AR(c);
-    GV  v = (GV)guru_array_new(n);			// ref_cnt is 1 already
+    GR  v = (GR)guru_array_new(n);			// ref_cnt is 1 already
 
     guru_array *h = v.array;
     if ((h->n=n)>0) _stack_copy(h->data, _R(b), n);
@@ -902,7 +902,7 @@ uc_hash(guru_vm *vm)
 {
 #if GURU_USE_ARRAY
 	U32 n   = _AR(c);						// number of kv pairs
-    GV  ret = guru_hash_new(n);				// ref_cnt is already set to 1
+    GR  ret = guru_hash_new(n);				// ref_cnt is already set to 1
 
     guru_hash *h = ret.hash;
     if ((h->n=(n<<1))>0) _stack_copy(h->data, _R(b), h->n);
@@ -924,8 +924,8 @@ uc_range(guru_vm *vm)
 {
 #if GURU_USE_ARRAY
 	U32 x   = _AR(c);						// exclude_end
-	GV  *p0 = _R(b), *p1 = p0+1;
-    GV  v   = guru_range_new(p0, p1, !x);	// p0, p1 ref cnt will be increased
+	GR  *p0 = _R(b), *p1 = p0+1;
+    GR  v   = guru_range_new(p0, p1, !x);	// p0, p1 ref cnt will be increased
     *p1 = EMPTY;
 
     _RA(v);									// release and  reassign
@@ -967,7 +967,7 @@ uc_lambda(guru_vm *vm)
 __UCODE__
 uc_class(guru_vm *vm)
 {
-	GV *r1 = _R(a)+1;
+	GR *r1 = _R(a)+1;
 
     guru_class *super = (r1->gt==GT_CLASS) ? r1->cls : vm->state->klass;
     GS         sid    = VM_SYM(vm, _AR(b));
@@ -1004,13 +1004,13 @@ uc_exec(guru_vm *vm)
 __UCODE__
 uc_method(guru_vm *vm)
 {
-	GV *v  = _R(a);
-    ASSERT(v->gt==GT_OBJ || v->gt == GT_CLASS);	// enforce class checking
+	GR *r  = _R(a);
+    ASSERT(r->gt==GT_OBJ || r->gt == GT_CLASS);	// enforce class checking
 
     // check whether the name has been defined in current class (i.e. vm->state->klass)
     GS sid = VM_SYM(vm, _AR(b));				// fetch name from IREP symbol table
-    guru_class *cls = class_by_obj(v);			// fetch active class
-    guru_proc  *prc = proc_by_sid(v, sid);		// fetch proc from class or obj's vtbl
+    guru_class *cls = class_by_obj(r);			// fetch active class
+    guru_proc  *prc = proc_by_sid(r, sid);		// fetch proc from class or obj's vtbl
 
 #if GURU_DEBUG
     if (prc != NULL) {
@@ -1020,7 +1020,7 @@ uc_method(guru_vm *vm)
 #endif // CC_DEBUG
     }
 #endif
-    prc = (v+1)->proc;							// override (if exist) with proc by OP_LAMBDA
+    prc = (r+1)->proc;							// override (if exist) with proc by OP_LAMBDA
 
     _LOCK;
 
@@ -1031,8 +1031,8 @@ uc_method(guru_vm *vm)
 
     _UNLOCK;
 
-    v->acl &= ~ACL_SELF;						// clear CLASS modification flags if any
-    *(v+1) = EMPTY;								// clean up proc
+    r->acl &= ~ACL_SELF;						// clear CLASS modification flags if any
+    *(r+1) = EMPTY;								// clean up proc
 }
 
 //================================================================
@@ -1044,7 +1044,7 @@ uc_method(guru_vm *vm)
 __UCODE__
 uc_tclass(guru_vm *vm)
 {
-	GV *ra = _R(a);
+	GR *ra = _R(a);
 
 	_RA_T(GT_CLASS, cls=vm->state->klass);
 	ra->acl |= ACL_SELF;
@@ -1060,7 +1060,7 @@ uc_tclass(guru_vm *vm)
 __UCODE__
 uc_sclass(guru_vm *vm)
 {
-	GV *o = _R(b);
+	GR *o = _R(b);
 	if (o->gt==GT_OBJ) {							// singleton class (extending an object)
 		const U8   *name  = (U8*)"_single";
 		guru_class *super = class_by_obj(o);
@@ -1284,7 +1284,8 @@ ucode_step(guru_vm *vm)
 	// GURU dispatcher unit
 	// using vtable (i.e. without switch branching)
 	//=======================================================================================
-    guru_state *st = vm->state;
+    guru_state *st = vm->state;							// for debugging
+
     ucode_vtbl[vm->op](vm);
 
     if (vm->err && vm->depth>0) {						// simple exception handler

@@ -26,17 +26,16 @@
   @param  step	stepping object
   @return
 */
-__GURU__ GV
-guru_iter_new(GV *obj, GV *step)
+__GURU__ GR
+guru_iter_new(GR *obj, GR *step)
 {
-    GV v; { v.gt=GT_ITER; v.acl=ACL_HAS_REF; }
-
-    guru_iter *it = v.iter = (guru_iter *)guru_alloc(sizeof(guru_iter));
+    guru_iter *it = (guru_iter *)guru_alloc(sizeof(guru_iter));
     it->rc   = 1;
     it->n    = obj->gt;			// reuse the field
     it->step = step;
+    it->range= ref_inc(obj);
 
-    it->range = ref_inc(obj);
+    GR r; { r.gt=GT_ITER; r.acl=ACL_HAS_REF; } r.iter = it;
     switch (obj->gt) {
     case GT_INT: {
     	it->i	= obj->i;
@@ -47,7 +46,7 @@ guru_iter_new(GV *obj, GV *step)
     	ASSERT(r->first.gt==GT_INT || r->first.gt==GT_FLOAT);
 
     	it->i    = 0;
-    	it->inc  = guru_gv_alloc(1);
+    	it->inc  = guru_gr_alloc(1);
     	*it->inc = r->first;
     } break;
     case GT_ARRAY: {
@@ -62,17 +61,17 @@ guru_iter_new(GV *obj, GV *step)
     } break;
     default: ASSERT(1==0);			// TODO: other types not supported yet
     }
-    return v;
+    return r;
 }
 
 // return next iterator element
 //
 __GURU__ U32
-guru_iter_next(GV *v)
+guru_iter_next(GR *r)
 {
-	ASSERT(v->gt==GT_ITER);
+	ASSERT(r->gt==GT_ITER);
 
-	guru_iter *it = v->iter;
+	guru_iter *it = r->iter;
 	U32 nvar;
 	switch (it->n) {				// ranging object type (field reused)
 	case GT_INT: {
@@ -94,7 +93,7 @@ guru_iter_next(GV *v)
 	} break;
 	case GT_ARRAY: {
 		guru_array *a = it->range->array;
-		GV         *d = &a->data[it->i];
+		GR         *d = &a->data[it->i];
 		ref_dec(d);
 		if ((it->i + 1) < a->n) {
 			it->i += (nvar = 1);
@@ -104,7 +103,7 @@ guru_iter_next(GV *v)
 	} break;
 	case GT_HASH: {
 		guru_hash *h = it->range->hash;
-		GV        *d = &h->data[it->i];
+		GR        *d = &h->data[it->i];
 		ref_dec(d);
 		ref_dec(d+1);
 		if ((it->i+2) < h->n) {
@@ -124,15 +123,15 @@ guru_iter_next(GV *v)
   @param  target 	pointer to range object.
 */
 __GURU__ void
-guru_iter_del(GV *v)
+guru_iter_del(GR *r)
 {
-	ASSERT(v->gt==GT_ITER);
-	guru_iter *it = v->iter;
+	ASSERT(r->gt==GT_ITER);
+	guru_iter *it = r->iter;
 
 	if (it->n==GT_RANGE) guru_free(it->inc);
 
     ref_dec(it->range);
     guru_free(it);
 
-    *v = EMPTY;
+    *r = EMPTY;
 }

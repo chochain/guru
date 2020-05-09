@@ -128,7 +128,7 @@ _alloc_grit(U8 **bp)
     U32 bsz =
     		sizeof(GRIT) +
     		sz.rsz * sizeof(guru_irep) +
-    		sz.psz * sizeof(GV) +
+    		sz.psz * sizeof(GR) +
     		sz.isz * sizeof(U32) +
     		sz.ssz;
 
@@ -143,7 +143,7 @@ _alloc_grit(U8 **bp)
 
     gr->reps = sizeof(GRIT);
     gr->pool = gr->reps + gr->rsz * sizeof(guru_irep);
-    gr->iseq = gr->pool + gr->psz * sizeof(GV);
+    gr->iseq = gr->pool + gr->psz * sizeof(GR);
     gr->stbl = gr->iseq + gr->isz * sizeof(U32);
     
 	return gr;
@@ -152,44 +152,44 @@ _alloc_grit(U8 **bp)
 // building memory image, offset-based with alignment
 //
 __CODE__ void
-_to_gv(GV *v, U8 **stbl, U8 *p, U32 tt, U32 len)
+_to_gr(GR *r, U8 **stbl, U8 *p, U32 tt, U32 len)
 {
     // build POOL or SYM block
     char buf[64+1];
     U8   *tgt = *stbl;
 
-    v->acl = 0;							// clear access bit (~HAS_REF, ~SCLASS, ~SELF)
+    r->acl = 0;							// clear access bit (~HAS_REF, ~SCLASS, ~SELF)
     switch (tt) {
     case 0:	// String
-    	v->gt  = GT_STR;
-    	v->off = U8POFF(tgt, v);
+    	r->gt  = GT_STR;
+    	r->off = U8POFF(tgt, r);
 
     	__MEMCPY(tgt, p, len);
     	*(tgt+len) = '\0';				// RITE does not 0 terminate (Ruby bug)
         tgt += ALIGN4(len+1);
         break;
     case 1: // Integer (31-bit)
-    	v->gt  = GT_INT;
+    	r->gt  = GT_INT;
     	__MEMCPY(buf, p, len);
     	buf[len] = '\0';
-    	v->i   = __ATOI(buf);
+    	r->i   = __ATOI(buf);
     	break;
     case 2: // Float (32-bit)
-    	v->gt  = GT_FLOAT;
+    	r->gt  = GT_FLOAT;
     	__MEMCPY(buf, p, len);
     	buf[len] = '\0';
-    	v->f   = (float)__ATOF(buf);	// atof() returns double
+    	r->f   = (float)__ATOF(buf);	// atof() returns double
     	break;
     case 3: // Symbol
-    	v->gt  = GT_SYM;
-       	v->off = U8POFF(tgt, v);		// offset from v
+    	r->gt  = GT_SYM;
+       	r->off = U8POFF(tgt, r);		// offset from v
 
     	__MEMCPY(tgt, p, len);
     	tgt += ALIGN4(len);
     	break;
     default: // Others (not yet supported)
-    	v->gt   = GT_NIL;
-    	v->self = NULL;
+    	r->gt   = GT_NIL;
+    	r->self = NULL;
     	break;
     }
     *stbl = tgt;
@@ -251,7 +251,7 @@ _load_irep(GRIT *gr, rite_size *sz, int ix, U8 **bp)
     __MEMCPY(itgt, iseq, iseq_sz);						// copy ISEQ
 
     // POOL block
-    GV *pool = (GV*)U8PADD(gr, gr->pool + sz->psz * sizeof(GV));			// capture pool pointer
+    GR *pool = (GR*)U8PADD(gr, gr->pool + sz->psz * sizeof(GR));			// capture pool pointer
     r0->pool = U8POFF(pool, r0);						// irep->POOL offset
     U8 *stbl = (U8*)U8PADD(gr, gr->stbl + sz->ssz);
     U8 *stbl0= stbl;
@@ -259,14 +259,14 @@ _load_irep(GRIT *gr, rite_size *sz, int ix, U8 **bp)
     for (U32 i=0; i<psz; i++) {							// 1st pass (skim through pool)
         U32  tt = *p++;
         U32  len = BU16(p);    	p += sizeof(U16);
-    	_to_gv(pool++, &stbl, p, tt, len);
+    	_to_gr(pool++, &stbl, p, tt, len);
     	p += len;
     }
     // SYM block
     U32 ysz = r0->s = BU32(p);	p += sizeof(U32);		// symbol element count
     for (U32 i=0; i<ysz; i++) {							// 1st pass (skim through sym)
     	U32 len = BU16(p)+1;	p += sizeof(U16);
-    	_to_gv(pool++, &stbl, p, 3, len);
+    	_to_gr(pool++, &stbl, p, 3, len);
     	p += len;
     }
     // advance sizing pointers

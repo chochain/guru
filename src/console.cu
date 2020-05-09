@@ -84,7 +84,7 @@ __GURU__ void
 _dump_obj_size(void)
 {
 	console_str("\nvalue=");
-	console_int(sizeof(GV));
+	console_int(sizeof(GR));
 	console_str("\ninstance=");
 	console_int(sizeof(RObj));
     console_str("\nproc=");

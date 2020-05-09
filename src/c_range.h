@@ -29,13 +29,13 @@ extern "C" {
 */
 typedef struct RRange {		// 48-byte
     GURU_HDR;				// 16-byte
-    GV 	first;				// 16-byte
-    GV 	last;				// 16-byte
+    GR 	first;				// 16-byte
+    GR 	last;				// 16-byte
 } guru_range;
 
-__GURU__ GV 		guru_range_new(GV *first, GV *last, int exclude_end);
-__GURU__ void       guru_range_del(GV *v);
-__GURU__ int        guru_range_cmp(const GV *v0, const GV *v1);
+__GURU__ GR 		guru_range_new(GR *first, GR *last, int exclude_end);
+__GURU__ void       guru_range_del(GR *r);
+__GURU__ int        guru_range_cmp(const GR *r0, const GR *r1);
 
 __GURU__ void       guru_init_class_range();
 

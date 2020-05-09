@@ -151,16 +151,16 @@ id2name(GS sid)
   @return 	symbol object
 */
 __GURU__ void
-guru_sym_rom(GV *v)
+guru_sym_rom(GR *r)
 {
-	v->i = create_sym(U8PADD(v, v->off));
+	r->i = create_sym(U8PADD(r, r->off));
 }
 
-__GURU__ GV
+__GURU__ GR
 guru_sym_new(const U8 *str)
 {
-    GV v; { v.gt = GT_SYM; v.acl=0; v.i=create_sym(str); }
+    GR r; { r.gt=GT_SYM; r.acl=0; r.i=create_sym(str); }
 
-    return v;
+    return r;
 }
 

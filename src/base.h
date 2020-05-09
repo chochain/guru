@@ -17,31 +17,31 @@ extern "C" {
 #endif
 
 typedef void (*guru_init_func)(...);
-typedef void (*guru_destroy_func)(GV *v);
-typedef S32  (*guru_cmp_func)(const GV *v0, const GV *v1);
+typedef void (*guru_destroy_func)(GR *r);
+typedef S32  (*guru_cmp_func)(const GR *r0, const GR *r1);
 
 __GURU__ void 	guru_register_func(GT t, guru_init_func fi, guru_destroy_func fd, guru_cmp_func fc);
-__GURU__ GV		guru_new(...);
-__GURU__ void	guru_destroy(GV *v);
-__GURU__ S32  	guru_cmp(const GV *v0, const GV *v1);
+__GURU__ GR		guru_new(...);
+__GURU__ void	guru_destroy(GR *r);
+__GURU__ S32  	guru_cmp(const GR *r0, const GR *r1);
 
-__GURU__ GV 	*ref_dec(GV *v);
-__GURU__ GV 	*ref_inc(GV *v);
+__GURU__ GR 	*ref_dec(GR *r);
+__GURU__ GR 	*ref_inc(GR *r);
 
 // macro for C call returns
 // Note: becareful, the following macros assume a "v" pointer to top of stack
 //
-extern __GURU__ GV 	NIL;
-extern __GURU__ GV 	EMPTY;
+extern __GURU__ GR 	NIL;
+extern __GURU__ GR 	EMPTY;
 
-#define RETURN_VAL(n)	{ ref_dec(v); *v=(n); 		 			return; }
-#define RETURN_NIL()	{ ref_dec(v); v->acl=0; v->gt=GT_NIL;   return; }
-#define RETURN_FALSE()	{ ref_dec(v); v->acl=0; v->gt=GT_FALSE; return; }
-#define RETURN_TRUE()	{ ref_dec(v); v->acl=0; v->gt=GT_TRUE;  return; }
+#define RETURN_VAL(n)	{ ref_dec(r); *r=(n); 		 			return; }
+#define RETURN_NIL()	{ ref_dec(r); r->acl=0; r->gt=GT_NIL;   return; }
+#define RETURN_FALSE()	{ ref_dec(r); r->acl=0; r->gt=GT_FALSE; return; }
+#define RETURN_TRUE()	{ ref_dec(r); r->acl=0; r->gt=GT_TRUE;  return; }
      
-#define RETURN_BOOL(n)	{ ref_dec(v); v->acl=0; v->gt=(n)?GT_TRUE:GT_FALSE;  return; }
-#define RETURN_INT(n)	{ ref_dec(v); v->acl=0; v->gt=GT_INT;  v->i=(GI)(n); return; }
-#define RETURN_FLOAT(n)	{ ref_dec(v); v->acl=0; v->gt=GT_FLOAT;v->f=(GF)(n); return; }
+#define RETURN_BOOL(n)	{ ref_dec(r); r->acl=0; r->gt=(n)?GT_TRUE:GT_FALSE;  return; }
+#define RETURN_INT(n)	{ ref_dec(r); r->acl=0; r->gt=GT_INT;  r->i=(GI)(n); return; }
+#define RETURN_FLOAT(n)	{ ref_dec(r); r->acl=0; r->gt=GT_FLOAT;r->f=(GF)(n); return; }
 
 #ifdef __cplusplus
 }

@@ -27,38 +27,38 @@
 /*! p - sub function
  */
 __GURU__ U32
-_p(GV *v)
+_p(GR *r)
 {
 	U32 cr = 1;
 
-	switch (v->gt){		// only when output different from print_sub
+	switch (r->gt){		// only when output different from print_sub
     case GT_NIL: 	PRINTF("nil");			break;
     case GT_EMPTY:	PRINTF("(empty)");		break;
     case GT_FALSE:	PRINTF("false");		break;
     case GT_TRUE:	PRINTF("true");			break;
-    case GT_INT: 	PRINTF("%d", v->i);		break;
-    case GT_FLOAT:  PRINTF("%.7g", v->f);	break;		// 23-digit fraction ~= 1/16M => 7 digit
+    case GT_INT: 	PRINTF("%d", r->i);		break;
+    case GT_FLOAT:  PRINTF("%.7g", r->f);	break;		// 23-digit fraction ~= 1/16M => 7 digit
     case GT_CLASS: {
-    	U8 *name = id2name(v->cls->sid);
+    	U8 *name = id2name(r->cls->sid);
     	PRINTF("%s", name);
     } break;
     case GT_OBJ: {
-    	U8 *name = id2name(class_by_obj(v)->sid);
-    	PRINTF("#<%s:%08x>", name, (U32A)v->self);
+    	U8 *name = id2name(class_by_obj(r)->sid);
+    	PRINTF("#<%s:%08x>", name, (U32A)r->self);
     } break;
     case GT_PROC:
-    	PRINTF("#<Proc:%08x>", v->proc);
+    	PRINTF("#<Proc:%08x>", r->proc);
     	break;
     case GT_SYM: {
-        U8 *name = id2name(v->i);
+        U8 *name = id2name(r->i);
         STRCHR(name, ';') ? PRINTF("\"%s\"", name) : PRINTF(":%s", name);
     } break;
     case GT_STR:
-    	PRINTF("\"%s\"", v->str->raw);
+    	PRINTF("\"%s\"", r->str->raw);
     	break;
     case GT_ARRAY: {
-        GV *p = v->array->data;
-    	U32 n = v->array->n;
+        GR *p = r->array->data;
+    	U32 n = r->array->n;
         for (U32 i=0; i < n; i++, p++) {
             PRINTF(i==0 ? "[" : ", ");
             _p(p);			// recursive call
@@ -67,8 +67,8 @@ _p(GV *v)
         cr = 0;
     } break;
     case GT_HASH: {
-        GV *p = v->hash->data;
-    	U32 n = v->hash->n;
+        GR *p = r->hash->data;
+    	U32 n = r->hash->n;
         for (U32 i=0; i < n; i+=2, p+=2) {
         	PRINTF(i==0 ? "{" : ", ");
         	_p(p);
@@ -78,11 +78,11 @@ _p(GV *v)
         PRINTF(n==0 ? "{}" : "}");
     } break;
     case GT_RANGE:
-        _p(&v->range->first);
-        PRINTF("%s", IS_INCLUDE(v->range) ? ".." : "...");
-        _p(&v->range->last);
+        _p(&r->range->first);
+        PRINTF("%s", IS_INCLUDE(r->range) ? ".." : "...");
+        _p(&r->range->last);
         break;
-    default: PRINTF("?vtype: %d", (int)v->gt); break;
+    default: PRINTF("?vtype: %d", (int)r->gt); break;
     }
 	return cr;
 }
@@ -94,15 +94,15 @@ _p(GV *v)
   @retval 1	already output LF.
 */
 __GURU__ U32
-_print(GV *v)
+_print(GR *r)
 {
 	U32 cr = 1;
 
-    switch (v->gt){		// somehow, Ruby handled the following differently
+    switch (r->gt){		// somehow, Ruby handled the following differently
     case GT_NIL: 		/* print blank */    	break;
-    case GT_SYM: PRINTF(":%s", id2name(v->i));	break;
+    case GT_SYM: PRINTF(":%s", id2name(r->i));	break;
     case GT_STR: {
-    	U8  *s  = (U8*)v->str->raw;
+    	U8  *s  = (U8*)r->str->raw;
     	U32 len = STRLENB(s);
         PRINTF("%s", s);						// no double quote around
         if (len && s[len-1]=='\n') {
@@ -110,31 +110,31 @@ _print(GV *v)
         }
     } break;
     case GT_ARRAY: {							// =~ruby2.0  !~mruby1.4
-        GV *p = v->array->data;
-    	U32 n = v->array->n;
+        GR *p = r->array->data;
+    	U32 n = r->array->n;
         for (U32 i=0; i < n; i++, p++) {
             if (_print(p)) PRINTF("\n");		// recursive call
         }
         cr = 0;
     } break;
-    default: cr = _p(v); break;
+    default: cr = _p(r); break;
     }
     return cr;
 }
 
 __GURU__ void
-guru_puts(GV v[], U32 vi)
+guru_puts(GR r[], U32 ri)
 {
-    for (U32 i=0; vi>0 && i < vi; i++) {
-    	if (_print(&v[i])) PRINTF("\n");
+    for (U32 i=0; ri>0 && i < ri; i++) {
+    	if (_print(&r[i])) PRINTF("\n");
     }
 }
 
 __GURU__ void
-guru_p(GV v[], U32 vi)
+guru_p(GR r[], U32 ri)
 {
-    for (U32 i=1; vi>0 && i <= vi; i++) {
-        _p(&v[i]);
+    for (U32 i=1; ri>0 && i <= ri; i++) {
+        _p(&r[i]);
         PRINTF("\n");
     }
 }

@@ -33,8 +33,8 @@ typedef struct {						// 32-bit
 __GURU__ U32 	_mutex_gobj = 0;
 __GURU__ U32    _global_sz  = 0;
 __GURU__ _gidx 	_global_idx[MAX_GLOBAL_COUNT];
-__GURU__ GV 	_global[MAX_GLOBAL_COUNT];
-__GURU__ GV		_NIL = { .gt = GT_NIL, .acl=0 };
+__GURU__ GR 	_global[MAX_GLOBAL_COUNT];
+__GURU__ GR		_NIL = { .gt = GT_NIL, .acl=0 };
 
 /* search */
 /* linear search is not efficient! */
@@ -74,7 +74,7 @@ _find_idx(GU xid, _gtype gt)
 	return idx;
 }
 
-__GURU__ GV *
+__GURU__ GR *
 _get(GU xid, _gtype gt)
 {
 	S32 i = _find_idx(xid, gt);
@@ -84,7 +84,7 @@ _get(GU xid, _gtype gt)
 }
 
 __GURU__ void
-_set(GU xid, GV *v, _gtype gt)
+_set(GU xid, GR *r, _gtype gt)
 {
     S32 i = _find_idx(xid, gt);
 
@@ -99,37 +99,37 @@ _set(GU xid, GV *v, _gtype gt)
     }
     _global_idx[i].xid = xid;
     _global_idx[i].gt  = gt;
-    _global[i] = *v;
+    _global[i] = *r;
     _UNLOCK;
 
 #if CC_DEBUG
-    PRINTF("G[%d]=", i);	guru_puts(v, 1);
+    PRINTF("G[%d]=", i);	guru_puts(r, 1);
 #endif // CC_DEBUG
 }
 
 /* add */
 /* TODO: Check reference count */
 __GURU__ void
-global_set(GU xid, GV *v)
+global_set(GU xid, GR *r)
 {
-    _set(xid, v, GURU_GLOBAL_OBJECT);
+    _set(xid, r, GURU_GLOBAL_OBJECT);
 }
 
 __GURU__ void
-const_set(GU xid, GV *v)
+const_set(GU xid, GR *r)
 {
-    _set(xid, v, GURU_CONST_OBJECT);
+    _set(xid, r, GURU_CONST_OBJECT);
 }
 
 /* get */
-__GURU__ GV *
+__GURU__ GR *
 global_get(GU xid)
 {
     return _get(xid, GURU_GLOBAL_OBJECT);
 }
 
 /* add const */
-__GURU__ GV *
+__GURU__ GR *
 const_get(GU xid)
 {
     return _get(xid, GURU_CONST_OBJECT);
