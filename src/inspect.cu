@@ -12,6 +12,7 @@
 */
 #include "guru.h"
 #include "symbol.h"
+#include "mmu.h"
 #include "base.h"
 
 #include "class.h"
@@ -129,7 +130,7 @@ __GURU__ void
 _str(GR *buf, GR *r)
 {
 	guru_buf_add_cstr(buf, "\"");
-	guru_buf_add_cstr(buf, (U8 *)r->str->raw);
+	guru_buf_add_cstr(buf, (U8 *)MEMPTR(r->str->raw));
 	guru_buf_add_cstr(buf, "\"");
 }
 
@@ -254,9 +255,9 @@ ary_join(GR r[], U32 ri)
 	GR *d  = a->data;
 	for (U32 i=0; i<a->n; i++, d++) {
 		if (d->gt!=GT_STR)	_to_s(&ret, d, 0);
-		else                guru_buf_add_cstr(&ret, (U8 *)d->str->raw);
+		else                guru_buf_add_cstr(&ret, (U8 *)MEMPTR(d->str->raw));
 		if (ri==0 || (i+1)>=a->n) continue;
-		guru_buf_add_cstr(&ret, (U8 *)(r+1)->str->raw);
+		guru_buf_add_cstr(&ret, (U8 *)MEMPTR((r+1)->str->raw));
 	}
 	RETURN_VAL(ret);
 }

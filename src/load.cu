@@ -25,8 +25,8 @@
 #include "load.h"
 
 #if GURU_HOST_GRIT_IMAGE
-#define BU32(b) 	(hbin_to_u32((const void*)b))
-#define BU16(b) 	(hbin_to_u16((const void*)b))
+#define BU32(b) 	(hbin_to_u32((const void*)(b)))
+#define BU16(b) 	(hbin_to_u16((const void*)(b)))
 #else
 #define BU16(b)		(bin_to_u16((const void*)(b)))
 #define BU32(b)		(bin_to_u32((const void*)(b)))

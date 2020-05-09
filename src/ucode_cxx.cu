@@ -851,7 +851,7 @@ class Ucode::Impl
         if (pa) pa->func(sa, 0);					// can it be an IREP?
         if (pb) pb->func(sb, 0);
 
-        guru_buf_add_cstr(ref_inc(sa), (U8*)sb->str->raw);	// ref counts increased as _dup updated
+        guru_buf_add_cstr(ref_inc(sa), (U8*)MEMPTR(sb->str->raw));	// ref counts increased as _dup updated
 
         ref_dec(sb);
         *sb = EMPTY;

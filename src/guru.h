@@ -139,7 +139,7 @@ typedef struct {					// 16-bytes (128 bits) for ease of debugging
 	union {
 		GI  	 		i;			// INT, SYM				32-bit
 		GF 	 	 		f;			// FLOAT			 	32-bit
-		U32 			off;		// offset to object
+		U32 			off;		// offset to object		32-bit
 	};
     union {							// 8-byte				64-bit
         struct RClass    *cls;		// CLASS
@@ -196,7 +196,8 @@ struct Vfunc {
 
 typedef struct RString {		// 16-byte
 	GURU_HDR;
-	char 			*raw;		// pointer to allocated buffer.
+	U32				raw;		// pointer to allocated buffer.
+	S32				xxx;		// reserved
 } guru_str;
 
 //================================================================
