@@ -32,7 +32,7 @@ __host__ U32
 hbin_to_u32(const void *bin)
 {
     U32 x = *((U32*)bin);
-    return (x << 24) | ((x & 0xff00) << 8) | ((x >> 8) & 0xff00) | (x >> 24);
+    return ((x & 0xff) << 24) | ((x & 0xff00) << 8) | ((x >> 8) & 0xff00) | ((x >> 24) & 0xff);
 }
 
 //================================================================
@@ -46,7 +46,7 @@ __host__ U16
 hbin_to_u16(const void *bin)
 {
     U16 x = *((U16 *)bin);
-    return (x << 8) | (x >> 8);
+    return ((x & 0xff) << 8) | ((x >> 8) & 0xff);
 }
 
 
