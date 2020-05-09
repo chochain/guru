@@ -25,8 +25,8 @@
 #define _UNLOCK			{ MUTEX_FREE(_mutex_mem); }
 
 // memory pool
+__GURU__ U8	*guru_device_heap;									// CUDA kernel global memory pool
 __GURU__ volatile U32 	_mutex_mem;
-__GURU__ U8				*_memory_pool;
 
 // free memory bitmap
 __GURU__ U32 			_l1_map;								// use lower 24 bits
@@ -40,7 +40,7 @@ __GURU__ free_block		*_free_list[FL_SLOTS];
 __GURU__ int
 __mmu_ok()											// mmu sanity check
 {
-	used_block *p0 = (used_block*)_memory_pool;
+	used_block *p0 = (used_block*)guru_device_heap;
 	used_block *p1 = (used_block*)BLK_AFTER(p0);
 	U32 tot = sizeof(free_block);
 	while (p1) {
@@ -57,8 +57,8 @@ __mmu_ok()											// mmu sanity check
 	return (!p1 && tot==BLOCK_MEMORY_SIZE);
 }
 
-//#define MMU_CHECK
-#define MMU_CHECK		ASSERT(__mmu_ok())
+#define MMU_CHECK
+//#define MMU_CHECK		ASSERT(__mmu_ok())
 #else
 #define MMU_CHECK
 #endif // CC_DEBUG
@@ -328,11 +328,11 @@ _init_mmu(void *mem, U32 size)
 
     U32 bsz = size - sizeof(free_block);
 
+    guru_device_heap = (U8*)mem;
     _mutex_mem	 = 0;
-    _memory_pool = (U8*)mem;
 
     // initialize entire memory pool as the first block
-    free_block *blk  = (free_block *)_memory_pool;
+    free_block *blk  = (free_block *)guru_device_heap;
     blk->bsz = bsz;						// 1st (big) block
     blk->psz = 0;
     SET_USED(blk);
@@ -459,7 +459,7 @@ guru_free(void *ptr)
 __GURU__ void
 guru_mmu_clr()
 {
-	used_block *p = (used_block *)_memory_pool;
+	used_block *p = (used_block *)guru_device_heap;
     while (p) {
     	if (IS_USED(p)) {
     		guru_free(BLK_DATA(p));		// pointer to raw space
@@ -471,7 +471,7 @@ guru_mmu_clr()
 __GURU__ void
 guru_mmu_stat(guru_mstat *s)
 {
-	used_block *p = (used_block *)_memory_pool;
+	used_block *p = (used_block *)guru_device_heap;
 	MEMSET(s, 0, sizeof(guru_mstat));	// wipe, !using CUDA provided memset
 
 	U32 flag = IS_FREE(p);				// starting block type

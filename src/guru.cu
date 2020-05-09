@@ -18,7 +18,7 @@ extern "C" __GPU__  void guru_mmu_init(void *ptr, U32 sz);
 extern "C" __GPU__  void guru_core_init(void);
 extern "C" __GPU__  void guru_console_init(U8 *buf, U32 sz);
 
-U8 *_guru_mem;					// guru global memory
+U8 *guru_host_heap;				// guru global memory
 U8 *_guru_out;					// guru output stream
 guru_ses *_ses_list = NULL; 	// session linked-list
 
@@ -60,8 +60,8 @@ guru_setup(int step, int trace)
 	debug_init(trace);												// initialize logger
 	debug_log("guru initializing...");
 
-	U8 *mem = _guru_mem = (U8*)cuda_malloc(BLOCK_MEMORY_SIZE, 1);	// allocate main block (i.e. RAM)
-	if (!_guru_mem) {
+	U8 *mem = guru_host_heap = (U8*)cuda_malloc(BLOCK_MEMORY_SIZE, 1);	// allocate main block (i.e. RAM)
+	if (!mem) {
 		fprintf(stderr, "ERROR: failed to allocate device main memory block!\n");
 		return -1;
 	}
