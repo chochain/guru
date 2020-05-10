@@ -156,7 +156,7 @@ _show_decode(guru_vm *vm, U32 code)
 	switch (op) {
 	case OP_MOVE: 		printf(" r%-2d =r%-17d", a, ar.b);							return;
 	case OP_STRING: {
-		guru_str *s0 = (guru_str*)(guru_host_heap + VM_STR(vm, ar.bx)->str);
+		guru_str *s0 = (guru_str*)(guru_host_heap + VM_STR(vm, ar.bx)->off);
 		printf(" r%-2d ='%-17s", a, guru_host_heap + s0->raw);
 		return;
 	}

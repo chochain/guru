@@ -100,7 +100,7 @@ _blank(U32 bsz)
     h->bsz = bsz;
     h->raw = MEMOFF(s);							// TODO: for DEBUG, change back to (U8*)
 
-    GR  r; { r.gt=GT_STR; r.acl=ACL_HAS_REF; r.str=MEMOFF(h); }		// assuming some one acquires it
+    GR  r; { r.gt=GT_STR; r.acl=ACL_HAS_REF; r.off=MEMOFF(h); }		// assuming some one acquires it
 
     return r;
 }
@@ -254,7 +254,7 @@ guru_str_rom(GR *r)					// cannot use U8P, need lots of casting
     h->bsz = h->sz = STRLENB(m);
     h->raw = MEMOFF(m);
 
-    r->str = MEMOFF(h);				// overwrite GR
+    r->off = MEMOFF(h);				// overwrite GR
 }
 
 __GURU__ GR

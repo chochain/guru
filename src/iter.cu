@@ -35,7 +35,7 @@ guru_iter_new(GR *obj, GR *step)
     it->step = step;
     it->range= ref_inc(obj);
 
-    GR r; { r.gt=GT_ITER; r.acl=ACL_HAS_REF;  r.itr=MEMOFF(it); }
+    GR r; { r.gt=GT_ITER; r.acl=ACL_HAS_REF;  r.off=MEMOFF(it); }
     switch (obj->gt) {
     case GT_INT: {
     	it->i	= obj->i;

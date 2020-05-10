@@ -210,7 +210,7 @@ _define_class(const U8 *name, guru_class *cls, guru_class *super)
     cls->name   = id2name(sid);			// retrieve from stored symbol table (the one caller passed might be destroyed)
 #endif
 
-    GR r; { r.gt=GT_CLASS; r.acl=0; r.cls=MEMOFF(cls); }
+    GR r; { r.gt=GT_CLASS; r.acl=0; r.off=MEMOFF(cls); }
     const_set(sid, &r);					// register new class in constant cache
 }
 

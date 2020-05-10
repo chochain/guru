@@ -253,7 +253,7 @@ uc_getcv(guru_vm *vm)
 	ASSERT(r->gt==GT_OBJ);
 
 	guru_obj *o = GR_OBJ(r);
-	GR cv; { cv.gt=GT_CLASS; cv.acl=0; cv.cls=MEMOFF(o->cls); }
+	GR cv; { cv.gt=GT_CLASS; cv.acl=0; cv.off=MEMOFF(o->cls); }
 	GR ret;
 	for (guru_class *cls=o->cls; cls!=NULL; cls=cls->super) {
 		if ((ret=ostore_get(&cv, sid)).gt!=GT_NIL) break;
@@ -954,7 +954,7 @@ uc_lambda(guru_vm *vm)
     prc->kt   = PROC_IREP;
     prc->irep = VM_REPS(vm, bz);			// fetch from children irep list
 
-    _RA_T(GT_PROC, prc=MEMOFF(prc));		// regs[ra].prc = prc
+    _RA_T(GT_PROC, off=MEMOFF(prc));		// regs[ra].prc = prc
 }
 
 //================================================================
@@ -977,7 +977,7 @@ uc_class(guru_vm *vm)
 
 	cls->kt |= USER_DEF_CLASS;					// user defined (i.e. non-builtin) class
 
-    _RA_T(GT_CLASS, cls=MEMOFF(cls));
+    _RA_T(GT_CLASS, off=MEMOFF(cls));
     *r1 = EMPTY;
 }
 
@@ -1047,7 +1047,7 @@ uc_tclass(guru_vm *vm)
 {
 	GR *ra = _R(a);
 
-	_RA_T(GT_CLASS, cls=MEMOFF(vm->state->klass));
+	_RA_T(GT_CLASS, off=MEMOFF(vm->state->klass));
 	ra->acl |= ACL_SELF;
 	ra->acl &= ~ACL_SCLASS;
 }

@@ -57,8 +57,8 @@ __ready(guru_vm *vm, GRIT *gr)
 	GR *r = vm->regfile;
 	for (U32 i=0; i<MAX_REGFILE_SIZE; i++, r++) {					// wipe register
 		r->gt  = (i>0) ? GT_EMPTY : GT_CLASS;						// reg[0] is "self"
-		r->cls = (i>0) ? 0 : MEMOFF(guru_rom_get_class(GT_OBJ));
 		r->acl = 0;
+		r->off = (i>0) ? 0 : MEMOFF(guru_rom_get_class(GT_OBJ));
 	}
     vm->state = NULL;
     vm->run   = VM_STATUS_READY;

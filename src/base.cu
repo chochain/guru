@@ -84,12 +84,11 @@ guru_cmp(const GR *r0, const GR *r1)
     case GT_NIL:
     case GT_FALSE:
     case GT_TRUE:   return 0;
-    case GT_SYM:
+    case GT_SYM:    return -1 + (r0->i==r1->i) + (r0->i > r1->i)*2;				// 32-bit offset
     case GT_OBJ:
-    case GT_PROC: 	return -1 + (r0->i==r1->i) + (r0->i > r1->i)*2;				// 32-bit offset
-    case GT_CLASS:	return -1 + (r0->cls ==r1->cls)  + (r0->cls  > r1->cls) *2;
-    default:
-    	return _c_vtbl[r1->gt](r0, r1);
+    case GT_PROC:
+    case GT_CLASS:	return -1 + (r0->off==r1->off)  + (r0->off  > r1->off)*2;
+    default:    	return _c_vtbl[r1->gt](r0, r1);
     }
 }
 
