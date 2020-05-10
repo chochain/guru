@@ -45,7 +45,8 @@ _call(guru_vm *vm, GR r[], U32 ri)
 	guru_irep	*irep = prc->irep;
 
 	if (AS_LAMBDA(prc)) {
-		vm_state_push(vm, vm->state->irep, vm->state->pc, prc->regs, ri);	// switch into callee's context
+		GR *regs = (GR*)MEMPTR(prc->regs);
+		vm_state_push(vm, vm->state->irep, vm->state->pc, regs, ri);	// switch into callee's context
 		vm->state->flag |= STATE_LAMBDA;
 		vm_state_push(vm, irep, 0, r, ri);			// switch into lambda using closure stack frame
 	}
@@ -106,8 +107,10 @@ _lambda(guru_vm *vm, GR r[], U32 ri)
 	guru_proc *prc = GR_PRC(r+1);						// mark it as a lambda
 	prc->kt |= PROC_LAMBDA;
 
-	U32	n   = prc->n 	= vm->ar.a;
-	GR  *rf = prc->regs = guru_gr_alloc(n);
+	U32	n   = prc->n = vm->ar.a;
+	GR  *rf = guru_gr_alloc(n);
+	prc->regs = MEMOFF(rf);
+
 	GR  *r0 = vm->state->regs;							// deep copy register file
 	for (U32 i=0; i<n; *rf++=*r0++, i++);
 

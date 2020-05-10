@@ -164,9 +164,6 @@ typedef struct {					// 16-bytes (128 bits) for ease of debugging
 #define GR_PRC(r)	((struct RProc*)  GR_OFF(r))
 #define GR_CLS(r)	((struct RClass*) GR_OFF(r))
 
-#define _CLS(off)   ((struct RClass*) MEMPTR(off))
-#define _PRC(off)   ((struct RProc*)  (off ? MEMPTR(off) : NULL))
-
 /* forward declarations */
 typedef void (*guru_fptr)(GR v[], U32 vi);
 struct Irep;
@@ -225,7 +222,7 @@ typedef struct RProc {			// 48-byte
     };
     union {
     	GP				next;	// next function in linked list
-    	GR 				*regs;	// register file for lambda
+    	GP 				regs;	// pointer to register file for lambda
     };
 #if GURU_DEBUG
     GP		cname;				// classname
@@ -257,6 +254,8 @@ typedef struct RSes {			// 16-byte
 	struct RSes 	*next;
 } guru_ses;
 
+#define _CLS(off)   	((struct RClass*) MEMPTR(off))
+#define _PRC(off)   	((struct RProc*)  (off ? MEMPTR(off) : NULL))
 
 #ifdef __cplusplus
 }

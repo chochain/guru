@@ -268,8 +268,10 @@ obj_lambda(GR r[], U32 ri)
 	guru_proc *prc = GR_PRC(r+1);						// mark it as a lambda
 	prc->kt |= PROC_LAMBDA;
 
-	U32	n   = prc->n 	= ri+3;
-	GR  *rf = prc->regs = guru_gr_alloc(n);
+	U32	n   = prc->n = ri+3;
+	GR  *rf = guru_gr_alloc(n);
+	prc->regs = MEMOFF(rf);
+
 	GR  *r0 = r - n;
 	for (U32 i=0; i<n; *rf++=*r0++, i++);
 
