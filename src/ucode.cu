@@ -255,7 +255,7 @@ uc_getcv(guru_vm *vm)
 	guru_obj *o = GR_OBJ(r);
 	GR cv  { GT_CLASS, 0, 0, MEMOFF(o->cls) };
 	GR ret { GT_NIL };
-	for (guru_class *cls=o->cls; cls!=NULL; cls=cls->super) {
+	for (GP cls=o->cls; cls; cls=_CLS(cls)->super) {
 		if ((ret=ostore_get(&cv, sid)).gt!=GT_NIL) break;
 	}
     _RA(ret);
@@ -491,7 +491,7 @@ __GURU__ GR *
 _undef(GR *buf, GR *r, GS sid)
 {
 	U8 *fname = id2name(sid);
-	U8 *cname = id2name(class_by_obj(r)->sid);
+	U8 *cname = id2name(_CLS(class_by_obj(r))->sid);
 
 	guru_buf_add_cstr(buf, "undefined method '");
 	guru_buf_add_cstr(buf, fname);
@@ -970,15 +970,16 @@ uc_class(guru_vm *vm)
 {
 	GR *r1 = _R(a)+1;
 
-    guru_class *super = (r1->gt==GT_CLASS) ? GR_CLS(r1) : vm->state->klass;
-    GS         sid    = VM_SYM(vm, _AR(b));
-    const U8   *name  = id2name(sid);
-    guru_class *cls   = guru_define_class(name, super);
+    GS sid   = VM_SYM(vm, _AR(b));
+    U8 *name = id2name(sid);
+    GP super = (r1->gt==GT_CLASS) ? r1->off : vm->state->klass;
+    GP cls   = guru_define_class(name, super);
 
-	cls->kt |= USER_DEF_CLASS;					// user defined (i.e. non-builtin) class
+	_CLS(cls)->kt |= USER_DEF_CLASS;			// user defined (i.e. non-builtin) class
 
-    _RA_T(GT_CLASS, off=MEMOFF(cls));
-    *r1 = EMPTY;
+    _RA_T(GT_CLASS, off=cls);
+
+	*r1 = EMPTY;
 }
 
 //================================================================
@@ -1010,14 +1011,15 @@ uc_method(guru_vm *vm)
 
     // check whether the name has been defined in current class (i.e. vm->state->klass)
     GS sid = VM_SYM(vm, _AR(b));				// fetch name from IREP symbol table
-    guru_class *cls = class_by_obj(r);			// fetch active class
+    GP cls = class_by_obj(r);					// fetch active class
+    guru_class *cx  = _CLS(cls);
     guru_proc  *prc = proc_by_sid(r, sid);		// fetch proc from class or obj's vtbl
 
 #if GURU_DEBUG
     if (prc != NULL) {
     	// same proc name exists (in either current or parent class)
 #if CC_DEBUG
-		printf("WARN: %s#%s override base\n", id2name(cls->sid), id2name(sid));
+		printf("WARN: %s#%s override base\n", id2name(cx->sid), id2name(sid));
 #endif // CC_DEBUG
     }
 #endif
@@ -1027,8 +1029,8 @@ uc_method(guru_vm *vm)
 
     // add proc to class
     prc->sid   = sid;							// assign sid to proc, overload if prc already exists
-    prc->next  = cls->flist;					// add to top of vtable, so it will be found first
-    cls->flist = prc;							// if there is a sub-class override
+    prc->next  = cx->flist;						// add to top of vtable, so it will be found first
+    cx->flist = prc;							// if there is a sub-class override
 
     _UNLOCK;
 
@@ -1047,7 +1049,7 @@ uc_tclass(guru_vm *vm)
 {
 	GR *ra = _R(a);
 
-	_RA_T(GT_CLASS, off=MEMOFF(vm->state->klass));
+	_RA_T(GT_CLASS, off=vm->state->klass);
 	ra->acl |= ACL_SELF;
 	ra->acl &= ~ACL_SCLASS;
 }
@@ -1063,10 +1065,10 @@ uc_sclass(guru_vm *vm)
 {
 	GR *r = _R(b);
 	if (r->gt==GT_OBJ) {							// singleton class (extending an object)
-		const U8   *name  = (U8*)"_single";
-		guru_class *super = class_by_obj(r);
-		guru_class *cls   = guru_define_class(name, super);
-		GR_OBJ(r)->cls    = cls;
+		U8 *name = (U8*)"_single";
+		GP super = class_by_obj(r);
+		GP cls   = guru_define_class(name, super);
+		GR_OBJ(r)->cls = cls;
 	}
 	else if (r->gt==GT_CLASS) {						// meta class (for class methods)
 		guru_class_add_meta(r);						// lazily add metaclass if needed

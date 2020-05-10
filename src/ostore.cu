@@ -116,7 +116,7 @@ _get(guru_obj *o, GU oid)
   @return       guru_ostore object with zero attribute
 */
 __GURU__ GR
-ostore_new(guru_class *cls)
+ostore_new(GP cls)
 {
     guru_obj *o = (guru_obj *)guru_alloc(sizeof(guru_obj));
 

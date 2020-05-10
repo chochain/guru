@@ -106,6 +106,7 @@ typedef S32			GI;						// signed integer
 typedef F32	 		GF;						// float
 typedef U16			GS;						// symbol
 typedef U16 		GU;						// unsigned integer
+typedef U32			GP;						// offset, i.e. object pointer
 
 // pointer arithmetic, this will not work in multiple segment implementation
 #define U8PADD(p, n)	((U8*)(p) + (n))					// add
@@ -139,7 +140,7 @@ typedef struct {					// 16-bytes (128 bits) for ease of debugging
 	union {
 		GI  	i;					// INT, SYM				32-bit
 		GF 	 	f;					// FLOAT			 	32-bit
-		U32 	off;				// offset to object		32-bit
+		GP	 	off;				// offset to object		32-bit
 /*
 		S32     str;				// STR		->RString
 		S32     rng;				// RANGE 	->RRange
@@ -153,15 +154,17 @@ typedef struct {					// 16-bytes (128 bits) for ease of debugging
 	};
 } GR;
 
-#define GR_OFF(r)		((struct RObj*)(MEMPTR((r)->off)))
-#define GR_STR(r)		((struct RString*)GR_OFF(r))
-#define GR_RNG(r)		((struct RRange*) GR_OFF(r))
-#define GR_ARY(r)		((struct RArray*) GR_OFF(r))
-#define GR_HSH(r)		((struct RHash*)  GR_OFF(r))
-#define GR_ITR(r)		((struct RIter*)  GR_OFF(r))
-#define GR_OBJ(r)		((struct RObj*)   GR_OFF(r))
-#define GR_PRC(r)		((struct RProc*)  GR_OFF(r))
-#define GR_CLS(r)		((struct RClass*) GR_OFF(r))
+#define GR_OFF(r)	((struct RObj*)(MEMPTR((r)->off)))
+#define GR_STR(r)	((struct RString*)GR_OFF(r))
+#define GR_RNG(r)	((struct RRange*) GR_OFF(r))
+#define GR_ARY(r)	((struct RArray*) GR_OFF(r))
+#define GR_HSH(r)	((struct RHash*)  GR_OFF(r))
+#define GR_ITR(r)	((struct RIter*)  GR_OFF(r))
+#define GR_OBJ(r)	((struct RObj*)   GR_OFF(r))
+#define GR_PRC(r)	((struct RProc*)  GR_OFF(r))
+#define GR_CLS(r)	((struct RClass*) GR_OFF(r))
+
+#define _CLS(off)   ((struct RClass*)MEMPTR(off))
 
 /* forward declarations */
 typedef void (*guru_fptr)(GR v[], U32 vi);
@@ -224,8 +227,8 @@ typedef struct RProc {			// 48-byte
     	GR 				*regs;	// register file for lambda
     };
 #if GURU_DEBUG
-    U32		cname;				// classname
-    U32		name;				// function name
+    GP		cname;				// classname
+    GP		name;				// function name
 #endif
 } guru_proc;
 
@@ -241,7 +244,8 @@ typedef struct RProc {			// 48-byte
 typedef struct RObj {			// 24-byte
 	GURU_HDR;
 	GR				*var;		// instance variables
-	struct RClass	*cls;		// class that this object belongs to
+	GP				cls;		// class that this object belongs to
+	U32				xxx;
 } guru_obj;
 
 typedef struct RSes {			// 16-byte

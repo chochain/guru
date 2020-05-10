@@ -50,7 +50,8 @@ typedef struct RState {			// 20-byte
     U8  nv;						// number of local vars (for screen dump)
     U8  temp;					// reserved
 
-    struct RClass 	*klass;		// current class
+    U32	klass;					// current class
+    U32 xxx;
     GR      		*regs;		// pointer to current register (in VM register file)
     guru_irep       *irep;		// pointer to current irep block
     struct RState   *prev;		// previous state (call stack)

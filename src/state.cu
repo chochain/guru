@@ -89,7 +89,7 @@ __GURU__ void
 _new(guru_vm *vm, GR r[], U32 ri)
 {
 	ASSERT(r->gt==GT_CLASS);					// ensure it is a class object
-	GR obj = r[0] = ostore_new(GR_CLS(r));		// instantiate object itself (with 0 var);
+	GR obj = r[0] = ostore_new(r->off);			// instantiate object itself (with 0 var);
 	GS sid = name2id((U8*)"initialize"); 		// search for initializer
 
 	if (vm_method_exec(vm, r, ri, sid)) {		// run custom initializer if any
@@ -169,8 +169,8 @@ vm_state_push(guru_vm *vm, guru_irep *irep, U32 pc, GR r[], U32 ri)
 
     switch(r->gt) {
     case GT_OBJ:
-    case GT_CLASS: 	st->klass = GR_CLS(r);			break;
-    case GT_PROC: 	st->klass = GR_CLS(top->regs); 	break;
+    case GT_CLASS: 	st->klass = r->off;				break;
+    case GT_PROC: 	st->klass = top->regs[0].off; 	break;
     default: ASSERT(1==0);
     }
     st->irep  = irep;

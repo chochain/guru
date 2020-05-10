@@ -128,13 +128,14 @@ obj_class(GR r[], U32 ri)
 }
 
 __GURU__ void
-_extend(guru_class *cls, guru_class *mod)
+_extend(GP cls, GP mod)
 {
+	guru_class *cx  = _CLS(cls);
 	guru_class *dup = (guru_class*)guru_alloc(sizeof(guru_class));
-	MEMCPY(dup, mod, sizeof(guru_class));		// TODO: deep copy so vtbl can be modified later
+	MEMCPY(dup, _CLS(mod), sizeof(guru_class));	// TODO: deep copy so vtbl can be modified later
 
-	dup->super = cls->super;					// put module as the super-class
-	cls->super = dup;
+	dup->super = cx->super;							// put module as the super-class
+	cx->super  = MEMOFF(dup);
 }
 
 //================================================================
@@ -144,7 +145,7 @@ __CFUNC__
 obj_include(GR r[], U32 ri)
 {
 	ASSERT(r->gt==GT_CLASS && (r+1)->gt==GT_CLASS);
-	_extend(GR_CLS(r), GR_CLS(r+1));
+	_extend(r->off, (r+1)->off);
 }
 
 //================================================================
@@ -156,7 +157,7 @@ obj_extend(GR r[], U32 ri)
 	ASSERT(r->gt==GT_CLASS && (r+1)->gt==GT_CLASS);
 
 	guru_class_add_meta(r);						// lazily add metaclass if needed
-	_extend(GR_CLS(r)->meta, GR_CLS(r+1));		// add to class methods
+	_extend(GR_CLS(r)->meta, (r+1)->off);		// add to class methods
 }
 
 //================================================================
@@ -200,7 +201,7 @@ __CFUNC__
 obj_attr_reader(GR r[], U32 ri)
 {
 	ASSERT(r->gt==GT_CLASS);
-	guru_class *cls = GR_CLS(r);						// fetch class
+	GP cls = r->off;									// fetch class offset
 
 	GR *s = r+1;
     for (U32 i = 0; i < ri; i++, s++) {
@@ -218,9 +219,10 @@ __CFUNC__
 obj_attr_accessor(GR r[], U32 ri)
 {
 	ASSERT(r->gt==GT_CLASS);
-	guru_class *cls = IS_SCLASS(r) ? GR_CLS(r)->meta : GR_CLS(r);		// fetch class
+	GP cls = IS_SCLASS(r) ? GR_CLS(r)->meta : r->off;	// fetch class offset
 #if CC_DEBUG
-    printf("%p:%s, sc=%d self=%d #attr_accessor\n", cls, cls->name, IS_SCLASS(r), IS_SELF(r));
+	guru_class *cx = _CLS(cls);
+    printf("%p:%s, sc=%d self=%d #attr_accessor\n", cx, cx->name, IS_SCLASS(r), IS_SELF(r));
 #endif // CC_DEBUG
     GR buf = guru_str_buf(80);
 	GR *s  = r+1;
@@ -247,11 +249,11 @@ obj_kind_of(GR r[], U32 ri)
     if ((r+1)->gt != GT_CLASS) {
         RETURN_BOOL(0);
     }
-    const guru_class *cls = class_by_obj(r);
+    GP cls = class_by_obj(r);
 
     while (cls) {
-        if (cls==GR_CLS(r+1)) break;
-        cls = cls->super;
+        if (cls==(r+1)->off) break;
+        cls = _CLS(cls)->super;
     }
 }
 
