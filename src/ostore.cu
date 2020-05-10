@@ -125,7 +125,7 @@ ostore_new(guru_class *cls)
     o->cls = cls;
     o->sz  = o->n = 0;
 
-    GR r; { r.gt=GT_OBJ; r.acl = ACL_HAS_REF|ACL_SELF; r.self=o; }
+    GR r; { r.gt=GT_OBJ; r.acl=ACL_HAS_REF|ACL_SELF; r.obj=MEMOFF(o); }
 
     return r;
 }
@@ -138,11 +138,12 @@ ostore_new(guru_class *cls)
 __GURU__ void
 ostore_del(GR *r)
 {
-	GR *v = r->self->var;
+	guru_obj *o = GR_XXX(r);
+	GR       *v = o->var;
 
 	if (v==NULL) return;
 
-    for (U32 i=0; i<r->self->n; i++, ref_dec(v++));
+    for (U32 i=0; i<o->n; i++, ref_dec(v++));
 
     guru_free(r);
 }
@@ -157,7 +158,7 @@ ostore_del(GR *r)
 __GURU__ void
 ostore_set(GR *r, GU oid, GR*val)
 {
-	guru_obj *o = r->self;				// NOTE: guru_obj->self->var, guru_class->cls->var share the same struct
+	guru_obj *o = GR_XXX(r);			// NOTE: guru_obj->self->var, guru_class->cls->var share the same struct
 	if (o->var==NULL) {
 		o->var = guru_gr_alloc(4);		// lazy allocation
 	    o->sz  = 4;						// number of local variables
@@ -180,7 +181,7 @@ ostore_get(GR *r, GU oid)
 // 		GT_OBJ:   v->self->var
 //      GT_CLASS: v->cls->var
 //
-	GR *val = _get(r->self, oid);
+	GR *val = _get(GR_XXX(r), oid);
 
     return val ? *ref_inc(val) : NIL;
 }

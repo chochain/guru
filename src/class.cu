@@ -96,14 +96,15 @@ __GURU__ guru_class*
 class_by_obj(GR *r)
 {
 	guru_class *scls;
+	guru_class *cls = r->cls;
 
 	switch (r->gt) {
-    case GT_OBJ: return r->self->cls;
+    case GT_OBJ: return GR_OBJ(r)->cls;
     case GT_CLASS:
-    	scls = r->cls->meta ? r->cls->meta : guru_rom_get_class(GT_OBJ);
-    	return IS_BUILTIN(r->cls)
-    		? r->cls
-    		: (IS_SCLASS(r) ? scls : (IS_SELF(r) ? r->cls : scls));
+    	scls = cls->meta ? cls->meta : guru_rom_get_class(GT_OBJ);
+    	return IS_BUILTIN(cls)
+    		? cls
+    		: (IS_SCLASS(r) ? scls : (IS_SELF(r) ? cls : scls));
     default: return guru_rom_get_class(r->gt);
     }
 }

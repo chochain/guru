@@ -188,8 +188,8 @@ _to_gr(GR *r, U8 **stbl, U8 *p, U32 tt, U32 len)
     	tgt += ALIGN4(len);
     	break;
     default: // Others (not yet supported)
-    	r->gt   = GT_NIL;
-    	r->self = NULL;
+    	r->gt  = GT_NIL;
+    	r->off = 0;
     	break;
     }
     *stbl = tgt;

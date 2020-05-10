@@ -306,13 +306,12 @@ class Ucode::Impl
 
         ASSERT(r->gt==GT_OBJ);
 
-        GR cv;  { cv.gt=GT_CLASS; cv.acl=0;  cv.cls=r->self->cls; }
-        GR ret  { .gt=GT_NIL };
-        for (guru_class *cls=r->self->cls; cls!=NULL; cls=cls->super) {
+        guru_obj *o = GR_OBJ(r);
+        GR cv;  { cv.gt=GT_CLASS; cv.acl=0;  cv.cls=o->cls; }
+        GR ret; { ret.gt=GT_NIL; }
+        for (guru_class *cls=o->cls; cls!=NULL; cls=cls->super) {
         	if ((ret=ostore_get(&cv, sid)).gt!=GT_NIL) break;
         }
-//             cls && (ret=ostore_get(&cv, sid)).gt!=GT_NIL; cls=cls->super);
-
         _RA(ret);
     }
 
@@ -1050,20 +1049,20 @@ class Ucode::Impl
     __UCODE__
     sclass()
     {
-        GR *o = _R(b);
-        if (o->gt==GT_OBJ) {							// singleton class (extending an object)
+        GR *r = _R(b);
+        if (r->gt==GT_OBJ) {							// singleton class (extending an object)
             const U8   *name  = (U8*)"_single";
-            guru_class *super = class_by_obj(o);
+            guru_class *super = class_by_obj(r);
             guru_class *cls   = guru_define_class(name, super);
-            o->self->cls = cls;
+            GR_OBJ(r)->cls = cls;
         }
-        else if (o->gt==GT_CLASS) {						// meta class (for class methods)
-            guru_class_add_meta(o);						// lazily add metaclass if needed
+        else if (r->gt==GT_CLASS) {						// meta class (for class methods)
+            guru_class_add_meta(r);						// lazily add metaclass if needed
         }
         else ASSERT(1==0);
 
-        o->acl |= ACL_SCLASS;
-        o->acl &= ~ACL_SELF;
+        r->acl |= ACL_SCLASS;
+        r->acl &= ~ACL_SELF;
     }
 
 //================================================================

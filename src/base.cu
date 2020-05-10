@@ -84,10 +84,10 @@ guru_cmp(const GR *r0, const GR *r1)
     case GT_NIL:
     case GT_FALSE:
     case GT_TRUE:   return 0;
-    case GT_SYM: 	return -1 + (r0->i==r1->i) + (r0->i > r1->i)*2;				// 32-bit
-    case GT_CLASS:
-    case GT_OBJ:
-    case GT_PROC:   return -1 + (r0->self==r1->self) + (r0->self > r1->self)*2;	// 64-bit
+    case GT_SYM:
+    case GT_OBJ:	return -1 + (r0->i==r1->i) + (r0->i > r1->i)*2;				// 32-bit offset
+    case GT_CLASS:	return -1 + (r0->cls ==r1->cls)  + (r0->cls  > r1->cls) *2;
+    case GT_PROC:   return -1 + (r0->proc==r1->proc) + (r0->proc > r1->proc)*2;	// 64-bit
     default:
     	return _c_vtbl[r1->gt](r0, r1);
     }
@@ -104,8 +104,8 @@ ref_dec(GR *r)
 {
     if (HAS_NO_REF(r))     return r;		// skip simple or ROMable objects
 
-    ASSERT(GR_OBJ(r)->rc);					// rc > 0?
-    if (--GR_OBJ(r)->rc > 0) return r;		// still used, keep going
+    ASSERT(GR_XXX(r)->rc);					// rc > 0?
+    if (--GR_XXX(r)->rc > 0) return r;		// still used, keep going
 
     _d_vtbl[r->gt](r);						// table driven (no branch divergence)
 
@@ -122,7 +122,7 @@ __GURU__ GR *
 ref_inc(GR *r)
 {
 	if (HAS_REF(r)) {						// TODO: table lookup reduce branch divergence
-		GR_OBJ(r)->rc++;
+		GR_XXX(r)->rc++;
 	}
 	return r;
 }

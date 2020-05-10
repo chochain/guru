@@ -150,7 +150,7 @@ _obj(GR *buf, GR *r)
 	guru_buf_add_cstr(buf, "#<");
 	guru_buf_add_cstr(buf, name);
 	guru_buf_add_cstr(buf, ":");
-	_phex(buf, GR_OBJ(r));
+	_phex(buf, GR_XXX(r));
 	guru_buf_add_cstr(buf, ">");
 }
 

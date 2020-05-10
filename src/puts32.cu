@@ -45,7 +45,7 @@ _p(GR *r)
     } break;
     case GT_OBJ: {
     	U8 *name = id2name(class_by_obj(r)->sid);
-    	PRINTF("#<%s:%08x>", name, (U32A)r->self);
+    	PRINTF("#<%s:%08x>", name, (U32A)GR_OBJ(r));
     } break;
     case GT_PROC:
     	PRINTF("#<Proc:%08x>", r->proc);

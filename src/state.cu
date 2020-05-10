@@ -32,9 +32,9 @@ _wipe_stack(GR r[], U32 ri)
     GR *x = r;
     for (U32 i=0; i<ri; i++, x++) {
     	ref_dec(x);
-    	x->gt   = GT_EMPTY;
-    	x->acl  = 0;
-    	x->self = NULL;
+    	x->gt  = GT_EMPTY;
+    	x->acl = 0;
+    	x->off = 0;
     }
 }
 
