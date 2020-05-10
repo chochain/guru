@@ -120,7 +120,7 @@ __GURU__ void
 _prc(GR *buf, GR *r)
 {
 	guru_buf_add_cstr(buf, "<#Proc:");
-	_phex(buf, r->proc);
+	_phex(buf, GR_PRC(r));
 	guru_buf_add_cstr(buf, ">");
 }
 

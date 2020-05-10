@@ -942,7 +942,7 @@ class Ucode::Impl
         prc->kt   = PROC_IREP;
         prc->irep = VM_REPS(_vm, bz);			// fetch from children irep list
 
-        _RA_T(GT_PROC, proc=prc);				// regs[ra].proc = prc
+        _RA_T(GT_PROC, prc=MEMOFF(prc));		// regs[ra].proc = prc
     }
 
 //================================================================
@@ -1009,7 +1009,7 @@ class Ucode::Impl
 #endif // CC_DEBUG
         }
 #endif
-        prc = (r+1)->proc;							// override (if exist) with proc by OP_LAMBDA
+        prc = GR_PRC(r+1);							// override (if exist) with proc by OP_LAMBDA
 
         MUTEX_LOCK(_mutex);
 

@@ -264,7 +264,7 @@ obj_lambda(GR r[], U32 ri)
 {
 	ASSERT(r->gt==GT_CLASS && (r+1)->gt==GT_PROC);		// ensure it is a proc
 
-	guru_proc *prc = (r+1)->proc;						// mark it as a lambda
+	guru_proc *prc = GR_PRC(r+1);						// mark it as a lambda
 	prc->kt |= PROC_LAMBDA;
 
 	U32	n   = prc->n 	= ri+3;

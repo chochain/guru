@@ -41,7 +41,7 @@ _wipe_stack(GR r[], U32 ri)
 __GURU__ void
 _call(guru_vm *vm, GR r[], U32 ri)
 {
-	guru_proc 	*prc  = r->proc;
+	guru_proc 	*prc  = GR_PRC(r);
 	guru_irep	*irep = prc->irep;
 
 	if (AS_LAMBDA(prc)) {
@@ -63,7 +63,7 @@ _each(guru_vm *vm, GR r[], U32 ri)
 
 	U32			pc0    = vm->state->pc;
 	guru_irep  	*irep0 = vm->state->irep;
-	guru_irep 	*irep1 = r1->proc->irep;
+	guru_irep 	*irep1 = GR_PRC(r1)->irep;
 	GR 			git    = guru_iter_new(r, NULL);	// create iterator
 
 	// push stack out (1 space for iterator)
@@ -103,7 +103,7 @@ _lambda(guru_vm *vm, GR r[], U32 ri)
 {
 	ASSERT(r->gt==GT_CLASS && (r+1)->gt==GT_PROC);		// ensure it is a proc
 
-	guru_proc *prc = (r+1)->proc;						// mark it as a lambda
+	guru_proc *prc = GR_PRC(r+1);						// mark it as a lambda
 	prc->kt |= PROC_LAMBDA;
 
 	U32	n   = prc->n 	= vm->ar.a;
@@ -181,7 +181,7 @@ vm_state_push(guru_vm *vm, guru_irep *irep, U32 pc, GR r[], U32 ri)
     st->prev  = top;				// push into context stack
 
     if (top) {						// keep stack frame depth
-    	top->nv = IN_LAMBDA(st) ? r->proc->n : vm->ar.a;
+    	top->nv = IN_LAMBDA(st) ? GR_PRC(r)->n : vm->ar.a;
     }
     else st->nv = irep->nr;			// top most stack frame depth
 

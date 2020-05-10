@@ -146,11 +146,12 @@ typedef struct {					// 16-bytes (128 bits) for ease of debugging
 		U32		hsh;				// HASH
 		U32		itr;				// ITER
 		U32		obj;				// OBJ
+		U32		prc;				// PROC
 	};
     union {							// 8-byte				64-bit
 //        struct RObj      *self;		// OBJ
         struct RClass    *cls;		// CLASS
-        struct RProc     *proc;		// PROC
+//        struct RProc     *proc;		// PROC
 //        struct RIter	 *iter;		// ITER
 //        struct RRange    *range;	// RANGE
 //        struct RString   *str;		// STR
@@ -165,8 +166,8 @@ typedef struct {					// 16-bytes (128 bits) for ease of debugging
 #define GR_HSH(r)		((struct RHash*)  (MEMPTR((r)->hsh)))
 #define GR_ITR(r)		((struct RIter*)  (MEMPTR((r)->itr)))
 #define GR_OBJ(r)		((struct RObj*)   (MEMPTR((r)->obj)))
-#define GR_XXX(r)		(	\
-		(r)->gt==GT_CLASS ? (RObj*)((r)->cls) : ((r)->gt==GT_PROC ? (RObj*)((r)->proc) : GR_OFF(r)))
+#define GR_PRC(r)		((struct RProc*)  (MEMPTR((r)->prc)))
+#define GR_XXX(r)		((r)->gt==GT_CLASS ? (RObj*)((r)->cls) : GR_OFF(r))
 
 /* forward declarations */
 typedef void (*guru_fptr)(GR v[], U32 vi);
