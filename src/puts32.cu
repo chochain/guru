@@ -58,8 +58,9 @@ _p(GR *r)
     	PRINTF("\"%s\"", (U8*)MEMPTR(GR_STR(r)->raw));
     	break;
     case GT_ARRAY: {
-        GR *p = r->array->data;
-    	U32 n = r->array->n;
+    	guru_array *ary = GR_ARY(r);
+        GR *p = ary->data;
+    	U32 n = ary->n;
         for (U32 i=0; i < n; i++, p++) {
             PRINTF(i==0 ? "[" : ", ");
             _p(p);			// recursive call
@@ -68,8 +69,9 @@ _p(GR *r)
         cr = 0;
     } break;
     case GT_HASH: {
-        GR *p = r->hash->data;
-    	U32 n = r->hash->n;
+    	guru_hash *hsh = GR_HSH(r);
+        GR *p = hsh->data;
+    	U32 n = hsh->n;
         for (U32 i=0; i < n; i+=2, p+=2) {
         	PRINTF(i==0 ? "{" : ", ");
         	_p(p);
@@ -112,8 +114,9 @@ _print(GR *r)
         }
     } break;
     case GT_ARRAY: {							// =~ruby2.0  !~mruby1.4
-        GR *p = r->array->data;
-    	U32 n = r->array->n;
+    	guru_array *ary = GR_ARY(r);
+        GR *p = ary->data;
+    	U32 n = ary->n;
         for (U32 i=0; i < n; i++, p++) {
             if (_print(p)) PRINTF("\n");		// recursive call
         }

@@ -124,7 +124,9 @@ __gr_obj(GR *r)
 {
 	switch(r->gt) {
 	case GT_STR:
-	case GT_RANGE: 	return (RObj*)(guru_host_heap + r->off);
+	case GT_RANGE:
+	case GT_ARRAY:
+	case GT_HASH: 	return (RObj*)(guru_host_heap + r->off);
 	default: 		return r->self;
 	}
 }

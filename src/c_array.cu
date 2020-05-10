@@ -83,7 +83,7 @@ _resize(guru_array *h, U32 nsz)
 __GURU__ void
 _set(GR *ary, S32 idx, GR *val)
 {
-    guru_array *h = ary->array;
+    guru_array *h = GR_ARY(ary);
     U32 ndx = (idx < 0) ? h->sz + idx : idx;
 
     if (ndx >= h->sz) {
@@ -103,7 +103,7 @@ _set(GR *ary, S32 idx, GR *val)
 __GURU__ void
 _push(GR *ary, GR *set_val)
 {
-    guru_array *h = ary->array;
+    guru_array *h = GR_ARY(ary);
 
     if (h->n >= h->sz) {
         _resize(h, h->sz + 6);
@@ -119,7 +119,7 @@ _push(GR *ary, GR *set_val)
 __GURU__ GR
 _pop(GR *ary)
 {
-    guru_array *h = ary->array;
+    guru_array *h = GR_ARY(ary);
 
     if (h->n <= 0) return NIL;
 
@@ -137,7 +137,7 @@ _pop(GR *ary)
 __GURU__ int
 _insert(GR *ary, S32 idx, GR *set_val)
 {
-    guru_array *h = ary->array;
+    guru_array *h = GR_ARY(ary);
     U32 ndx = 1 + (idx < 0) ? h->sz+idx : idx;
     _resize(h, ndx);
 
@@ -180,7 +180,7 @@ _unshift(GR *ary, GR *set_val)
 __GURU__ GR
 _shift(GR *ary)
 {
-    guru_array *h = ary->array;
+    guru_array *h = GR_ARY(ary);
 
     if (h->n <= 0) return NIL;
 
@@ -200,7 +200,7 @@ _shift(GR *ary)
 __GURU__ GR
 _get(GR *r, U32 ri, S32 n1, S32 n2)
 {
-	guru_array *h = r->array;
+	guru_array *h = GR_ARY(r);
 
 	n1 += (n1 < 0) ? h->n : 0;
 	if (ri<2) return (n1 < h->n) ? h->data[n1] : NIL;		// single element
@@ -227,7 +227,7 @@ _get(GR *r, U32 ri, S32 n1, S32 n2)
 __GURU__ GR
 _remove(GR *ary, S32 idx)
 {
-    guru_array *h = ary->array;
+    guru_array *h = GR_ARY(ary);
     U32 ndx = (idx < 0) ? h->n + idx : idx;
 
     if (ndx >= h->n) return NIL;
@@ -251,7 +251,7 @@ _remove(GR *ary, S32 idx)
 __GURU__ void
 _minmax(GR *ary, GR **pp_min_value, GR **pp_max_value)
 {
-    guru_array *h = ary->array;
+    guru_array *h = GR_ARY(ary);
 
     if (h->n==0) {
         *pp_min_value = NULL;
@@ -279,8 +279,6 @@ _minmax(GR *ary, GR **pp_min_value, GR **pp_max_value)
 __GURU__ GR
 guru_array_new(U32 sz)
 {
-    GR v; { v.gt=GT_ARRAY; v.acl=ACL_HAS_REF; }
-
     guru_array *h = (guru_array *)guru_alloc(sizeof(guru_array));		// handle
 
     h->rc   = 1;
@@ -288,7 +286,7 @@ guru_array_new(U32 sz)
     h->sz   = sz;
     h->data = sz ? guru_gr_alloc(sz) : NULL;							// empty array?
 
-    v.array = h;
+    GR v; { v.gt=GT_ARRAY; v.acl=ACL_HAS_REF; v.ary=MEMOFF(h); }
 
     return v;
 }
@@ -301,7 +299,7 @@ guru_array_new(U32 sz)
 __GURU__ void
 guru_array_del(GR *ary)
 {
-    guru_array 	*h = ary->array;
+    guru_array 	*h = GR_ARY(ary);
     GR 			*p = h->data;
     for (U32 i=0; i < h->n; i++, ref_dec(p++));		// released element from the array
 
@@ -343,7 +341,7 @@ guru_array_push(GR *ary, GR *set_val)
 __GURU__ void
 guru_array_clr(GR *ary)
 {
-    guru_array *h = ary->array;
+    guru_array *h = GR_ARY(ary);
     GR *p = h->data;
     for (U32 i=0; i < h->n; i++, p++) {
     	ref_dec(p);
@@ -363,8 +361,8 @@ guru_array_clr(GR *ary)
 __GURU__ S32
 guru_array_cmp(const GR *a0, const GR *a1)
 {
-	guru_array *h0 = a0->array;
-	guru_array *h1 = a1->array;
+	guru_array *h0 = GR_ARY(a0);
+	guru_array *h1 = GR_ARY(a1);
 
 	S32 dif = (h0->n - h1->n);
 	if (dif) return dif;
@@ -418,18 +416,18 @@ ary_add(GR r[], U32 ri)
 {
     ASSERT(r[0].gt==GT_ARRAY && r[1].gt==GT_ARRAY);		// array only (for now)
 
-    guru_array 	*h0 = r[0].array, 	*h1 = r[1].array;
+    guru_array 	*h0 = GR_ARY(r), 	*h1 = GR_ARY(r+1);
     U32 		n0  = h0->n, 		n1  = h1->n;
 
     GR ret = guru_array_new(n0 + n1);		// new array with ref count already set to 1
-    GR *ra = ret.array->data;
+    GR *ra = GR_ARY(&ret)->data;
 
     MEMCPY(ra,      h0->data, sizeof(GR) * n0);
     MEMCPY(ra + n0, h1->data, sizeof(GR) * n1);
 
-    ret.array->n = n0 + n1;				// reset element count
+    GR_ARY(&ret)->n = n0 + n1;				// reset element count
 
-    RETURN_VAL(ret);					// both array will be released by caller's _wipe_stack
+    RETURN_VAL(ret);						// both array will be released by caller's _wipe_stack
 }
 
 //================================================================
@@ -440,14 +438,14 @@ ary_sub(GR r[], U32 ri)
 {
     ASSERT(r[0].gt==GT_ARRAY && r[1].gt==GT_ARRAY);		// array only (for now)
 
-    guru_array 	*h0 = r[0].array, 	*h1 = r[1].array;
+    guru_array 	*h0 = GR_ARY(r), 	*h1 = GR_ARY(r+1);
     U32 		n0  = h0->n,	  	n1  = h1->n;
 
     GR ret = guru_array_new(n0);		// TODO: shrink after adding elements
 
-    GR *v0 = r[0].array->data;
+    GR *v0 = h0->data;
     for (U32 i=0; i < n0; i++, v0++) {
-    	GR *v1 = r[1].array->data;		// scan thrugh v1 array to find matching elements
+    	GR *v1 = h1->data;				// scan thrugh v1 array to find matching elements
     	U32 j;
     	for (j=0; j < n1 && guru_cmp(v0, v1++); j++);
     	if (j>=n1) _push(&ret, v0);
@@ -521,7 +519,7 @@ ary_del_at(GR r[], U32 ri)
 __CFUNC__
 ary_empty(GR r[], U32 ri)
 {
-    RETURN_BOOL(r->array->n==0);
+    RETURN_BOOL(GR_ARY(r)->n==0);
 }
 
 //================================================================
@@ -530,13 +528,13 @@ ary_empty(GR r[], U32 ri)
 __CFUNC__
 ary_size(GR r[], U32 ri)
 {
-    RETURN_INT(r->array->n);
+    RETURN_INT(GR_ARY(r)->n);
 }
 
 __GURU__ S32
 _index(GR r[])
 {
-    guru_array *h = r->array;
+    guru_array *h = GR_ARY(r);
     GR *p = h->data;
     for (U32 i=0; i < h->n; i++, p++) {
         if (guru_cmp(p, r+1)==0) {
@@ -611,7 +609,7 @@ ary_pop(GR r[], U32 ri)
 __CFUNC__
 ary_reverse(GR r[], U32 ri)
 {
-	guru_array *a = r->array;
+	guru_array *a = GR_ARY(r);
 	GR ret = guru_array_new(a->n);
 
 	GR *d  = a->data + a->n - 1;
@@ -653,7 +651,7 @@ ary_shift(GR r[], U32 ri)
 __CFUNC__
 ary_dup(GR r[], U32 ri)
 {
-    guru_array *h0 = r[0].array;
+    guru_array *h0 = GR_ARY(r);
 
     GR ret = guru_array_new(h0->n);		// create new array
     GR *p0 = h0->data;

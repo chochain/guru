@@ -50,12 +50,12 @@ guru_iter_new(GR *obj, GR *step)
     	*it->inc = r->first;
     } break;
     case GT_ARRAY: {
-    	guru_array *a = obj->array;
+    	guru_array *a = GR_ARY(obj);
     	it->i    = 0;
     	it->inc  = ref_inc(a->data);
     } break;
     case GT_HASH: {
-    	guru_hash *h = obj->hash;
+    	guru_hash *h = GR_HSH(obj);
     	it->i	 = 0;
     	it->inc  = ref_inc(h->data);	ref_inc(h->data+1);
     } break;
@@ -92,7 +92,7 @@ guru_iter_next(GR *r)
 		nvar = (keep) ? 1 : 0;
 	} break;
 	case GT_ARRAY: {
-		guru_array *a = it->range->array;
+		guru_array *a = GR_ARY(it->range);
 		GR         *d = &a->data[it->i];
 		ref_dec(d);
 		if ((it->i + 1) < a->n) {
@@ -102,7 +102,7 @@ guru_iter_next(GR *r)
 		else nvar=0;
 	} break;
 	case GT_HASH: {
-		guru_hash *h = it->range->hash;
+		guru_hash *h = GR_HSH(it->range);
 		GR        *d = &h->data[it->i];
 		ref_dec(d);
 		ref_dec(d+1);

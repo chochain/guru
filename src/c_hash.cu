@@ -46,12 +46,12 @@
  */
 __GURU__ __INLINE__ int
 _size(const GR *kv) {
-    return kv->hash->n >> 1;
+    return GR_HSH(kv)->n >> 1;
 }
 
 __GURU__ __INLINE__ GR*
 _data(const GR *kv) {
-	return kv->hash->data;
+	return GR_HSH(kv)->data;
 }
 
 //================================================================
@@ -67,7 +67,7 @@ _search(const GR *kv, const GR *key)
 #ifndef GURU_HASH_SEARCH_LINER
 #define GURU_HASH_SEARCH_LINER
 #endif
-    GR  *p = kv->hash->data;
+    GR  *p = GR_HSH(kv)->data;
     U32  n = _size(kv);
 
 #ifdef GURU_HASH_SEARCH_LINER
@@ -139,7 +139,7 @@ _remove(GR *kv, GR *key)
 
     ref_dec(r);						// CC: was dec_refc 20181101
     GR ret = *(r+1);				// value
-    guru_hash  *h  = kv->hash;
+    guru_hash  *h  = GR_HSH(kv);
     h->n -= 2;
 
     MEMCPY(r, (r+2), U8POFF(h->data + h->n, r));
@@ -182,7 +182,7 @@ guru_hash_new(int sz)
     h->sz	= sz<<1;		// double the array size for (k,v) pairs
     h->data = sz ? guru_gr_alloc(sz<<1) : NULL;
 
-    GR r;  { r.gt=GT_HASH;  r.acl=ACL_HAS_REF; r.hash=h; }
+    GR r;  { r.gt=GT_HASH;  r.acl=ACL_HAS_REF; r.hsh=MEMOFF(h); }
 
     return r;
 }
@@ -201,7 +201,7 @@ _hash_dup(const GR *kv)
 
     GR  *d  = _data(&ret);
     GR  *s  = _data(kv);
-    U32 n2  = ret.hash->n = n<<1;		// n pairs (k,v)
+    U32 n2  = GR_HSH(&ret)->n = n<<1;	// n pairs (k,v)
     for (U32 i=0; i < n2; i++) {
     	*d++ = *ref_inc(s++);			// referenced by the new hash now
     }

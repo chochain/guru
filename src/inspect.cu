@@ -160,8 +160,9 @@ _obj(GR *buf, GR *r)
 __GURU__ void
 _ary(GR *buf, GR *r)
 {
-    U32 n  = r->array->n;
-	GR  *o = r->array->data;
+	guru_array *ary = GR_ARY(r);
+    U32 n  = ary->n;
+	GR  *o = ary->data;
     for (U32 i=0; i < n; i++) {
     	guru_buf_add_cstr(buf, (const U8 *)(i==0 ? "[" : ", "));
     	_to_s(buf, o++, 0);				// array element
@@ -176,8 +177,9 @@ _hsh(GR *buf, GR *r)
 {
     ASSERT(r->gt==GT_HASH);
 
-    int n  = r->array->n;
-    GR  *o = r->array->data;
+    guru_array *ary = GR_ARY(r);
+    int n  = ary->n;
+    GR  *o = ary->data;
     for (U32 i=0; i<n; i+=2) {
     	guru_buf_add_cstr(buf, (const U8 *)(i==0 ? "{" : ", "));
 
@@ -250,7 +252,7 @@ __CFUNC__
 ary_join(GR r[], U32 ri)
 {
 	ASSERT(r->gt==GT_ARRAY);
-	guru_array *a = r->array;
+	guru_array *a = GR_ARY(r);
 
 	GR ret = guru_str_buf(BUF_SIZE);
 	GR *d  = a->data;

@@ -872,7 +872,7 @@ class Ucode::Impl
         U32 n = _AR(c);
         GR  v = (GR)guru_array_new(n);			// ref_cnt is 1 already
 
-        guru_array *h = v.array;
+        guru_array *h = GR_ARY(&v);
         if ((h->n=n)>0) _stack_copy(h->data, _R(b), n);
 
         _RA(v);									// no need to ref_inc
@@ -894,7 +894,7 @@ class Ucode::Impl
         U32 n   = _AR(c);						// number of kv pairs
         GR  ret = guru_hash_new(n);				// ref_cnt is already set to 1
 
-        guru_hash *h = ret.hash;
+        guru_hash *h = GR_HSH(&ret);
         if ((h->n=(n<<1))>0) _stack_copy(h->data, _R(b), h->n);
 
         _RA(ret);							    // new hash on stack top
