@@ -161,7 +161,7 @@ proc_by_sid(GR *r, GS sid)
 	U8* fname = id2name(sid);
     printf("proc_by_sid:%s=>%d(0x%02x)\n", fname, sid, sid);
     for (guru_class *cls=class_by_obj(r); cls; cls=cls->super) {	// search up class hierarchy
-        printf("\t%p:sc=%d,self=%d:%s\n", cls, IS_SCLASS(r), IS_SELF(v), cls->name);
+        printf("\t%p:sc=%d,self=%d:%s\n", cls, IS_SCLASS(r), IS_SELF(r), MEMPTR(cls->name));
 #else
     for (guru_class *cls=class_by_obj(r); cls; cls=cls->super) {	// search up class hierarchy
 #endif // CC_DEBUG
@@ -207,7 +207,7 @@ _define_class(const U8 *name, guru_class *cls, guru_class *super)
     cls->vtbl   = NULL;
     cls->flist  = NULL;					// head of list
 #ifdef GURU_DEBUG
-    cls->name   = id2name(sid);			// retrieve from stored symbol table (the one caller passed might be destroyed)
+    cls->name   = MEMOFF(id2name(sid));	// retrieve from stored symbol table (the one caller passed might be destroyed)
 #endif
 
     GR r { GT_CLASS, 0, 0, MEMOFF(cls) };
@@ -259,8 +259,8 @@ guru_define_method(guru_class *cls, const U8 *name, guru_fptr cfunc)
     _UNLOCK;
 
 #ifdef GURU_DEBUG
-    prc->cname = id2name(cls->sid);
-    prc->name  = id2name(prc->sid);
+    prc->cname = MEMOFF(id2name(cls->sid));
+    prc->name  = MEMOFF(id2name(prc->sid));
 #endif
 
     return prc;
@@ -322,8 +322,8 @@ guru_rom_set_class(GT cidx, const char *name, GT super_cidx, const Vfunc vtbl[],
     	prc->kt   = 0;							// built-in class type (not USER_DEF_CLASS)
     	prc->func = fp->func;
 #ifdef GURU_DEBUG
-    	prc->cname= id2name(cls->sid);
-    	prc->name = id2name(prc->sid);
+    	prc->cname= MEMOFF(id2name(cls->sid));
+    	prc->name = MEMOFF(id2name(prc->sid));
 #endif
     }
 	return cls;

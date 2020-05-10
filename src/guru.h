@@ -152,6 +152,7 @@ typedef struct {					// 16-bytes (128 bits) for ease of debugging
 */
 	};
 } GR;
+
 #define GR_OFF(r)		((struct RObj*)(MEMPTR((r)->off)))
 #define GR_STR(r)		((struct RString*)GR_OFF(r))
 #define GR_RNG(r)		((struct RRange*) GR_OFF(r))
@@ -223,8 +224,8 @@ typedef struct RProc {			// 48-byte
     	GR 				*regs;	// register file for lambda
     };
 #if GURU_DEBUG
-    U8	*cname;					// classname
-    U8	*name;					// function name
+    U32		cname;				// classname
+    U32		name;				// function name
 #endif
 } guru_proc;
 

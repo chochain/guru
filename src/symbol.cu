@@ -110,7 +110,7 @@ create_sym(const U8 *str)		// create new symbol
 	    printf("%2d> sym[%2d]%08x: %s\n", x, sid, _sym_hash[sid], _sym[sid]);
 	}
 	else {
-		printf("%2d> sym[%2d]%08x: %s==%s\n", x, sid, hash, str, _sym[sid]);
+		printf("%2d> sym[%2d]%08x:~%s\n", x, sid, hash, _sym[sid]);
 #endif // CC_DEBUG
 	}
 	return sid;

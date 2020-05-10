@@ -10,6 +10,9 @@
   </pre>
 */
 #include "global.h"
+#if CC_DEBUG
+#include "puts.h"
+#endif // CC_DEBUG
 /*
   GLobal objects are stored in '_global' array.
   '_global' array is decending order by sid.

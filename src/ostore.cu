@@ -156,7 +156,7 @@ ostore_del(GR *r)
   @param  val	pointer to value.
 */
 __GURU__ void
-ostore_set(GR *r, GU oid, GR*val)
+ostore_set(GR *r, GU oid, GR *val)
 {
 	guru_obj *o = GR_OBJ(r);			// NOTE: guru_obj->var, guru_class->var share the same struct
 	if (o->var==NULL) {

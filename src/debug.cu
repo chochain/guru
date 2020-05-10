@@ -125,8 +125,10 @@ _show_regs(GR *r, U32 ri)
 	for (U32 i=0; i<ri; i++, r++) {
 		const char *t = _vtype[r->gt];
 		U8  c  = (i==0) ? '|' : ' ';
-		U32 rc = ((RObj*)(guru_host_heap + r->off))->rc;
-		if (HAS_REF(r))			printf("%s%d%c", t, rc, c);
+		if (HAS_REF(r)) {
+			U32 rc = ((RObj*)(guru_host_heap + r->off))->rc;
+			printf("%s%d%c", t, rc, c);
+		}
 		else if (r->gt==GT_STR) printf("%s.%c", t, c);
 		else					printf("%s %c", t, c);
 	}

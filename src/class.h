@@ -26,14 +26,15 @@ extern "C" {
 typedef struct RClass {			// 64-byte
 	GURU_HDR;
 	GR				*var;		// class variables
+//	U32				meta;
+//	U32				super;
 	struct RClass	*meta;
-
 	struct RClass 	*super;		// guru_class[super]
     guru_proc 		*vtbl;		// c-func array (in constant memory, rc is the number of functions)
 
     guru_proc		*flist;		// guru_proc[rprocs], linked list
 #if GURU_DEBUG
-    U8				*name;		// for debug. TODO: remove
+    U32				name;		// for debug. TODO: remove
 #endif // GURU_DEBUG
 } guru_class;
 
