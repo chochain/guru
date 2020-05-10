@@ -122,7 +122,7 @@ obj_eq3(GR r[], U32 ri)
 __CFUNC__
 obj_class(GR r[], U32 ri)
 {
-    GR ret;  { ret.gt = GT_CLASS; ret.acl=0; ret.off=MEMOFF(class_by_obj(r)); }
+    GR ret { GT_CLASS, 0, 0, MEMOFF(class_by_obj(r)) };
 
     RETURN_VAL(ret);
 }

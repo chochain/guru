@@ -307,8 +307,8 @@ class Ucode::Impl
         ASSERT(r->gt==GT_OBJ);
 
         guru_obj *o = GR_OBJ(r);
-        GR cv;  { cv.gt=GT_CLASS; cv.acl=0;  cv.off=MEMOFF(o->cls); }
-        GR ret; { ret.gt=GT_NIL; }
+        GR cv  { GT_CLASS, 0, 0, MEMOFF(o->cls) };
+        GR ret { GT_NIL };
         for (guru_class *cls=o->cls; cls!=NULL; cls=cls->super) {
         	if ((ret=ostore_get(&cv, sid)).gt!=GT_NIL) break;
         }

@@ -182,7 +182,7 @@ guru_hash_new(int sz)
     h->sz	= sz<<1;		// double the array size for (k,v) pairs
     h->data = sz ? guru_gr_alloc(sz<<1) : NULL;
 
-    GR r; { r.gt=GT_HASH; r.acl=ACL_HAS_REF; r.off=MEMOFF(h); }
+    GR r { GT_HASH, ACL_HAS_REF, 0, MEMOFF(h) };
 
     return r;
 }

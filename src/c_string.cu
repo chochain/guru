@@ -100,7 +100,7 @@ _blank(U32 bsz)
     h->bsz = bsz;
     h->raw = MEMOFF(s);							// TODO: for DEBUG, change back to (U8*)
 
-    GR  r; { r.gt=GT_STR; r.acl=ACL_HAS_REF; r.off=MEMOFF(h); }		// assuming some one acquires it
+    GR r { GT_STR, ACL_HAS_REF, 0, MEMOFF(h) };	// assuming some one acquires it
 
     return r;
 }

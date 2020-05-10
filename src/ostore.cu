@@ -125,7 +125,7 @@ ostore_new(guru_class *cls)
     o->cls = cls;
     o->sz  = o->n = 0;
 
-    GR r; { r.gt=GT_OBJ; r.acl=ACL_HAS_REF|ACL_SELF; r.off=MEMOFF(o); }
+    GR r { GT_OBJ, ACL_HAS_REF|ACL_SELF, 0, MEMOFF(o) };
 
     return r;
 }

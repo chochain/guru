@@ -40,7 +40,7 @@ guru_range_new(GR *first, GR *last, int inc)
     ref_inc(first);
     ref_inc(last);
 
-    GR r; { r.gt=GT_RANGE; r.acl=ACL_HAS_REF; r.off=MEMOFF(g); }
+    GR r { GT_RANGE, ACL_HAS_REF, 0, MEMOFF(g) };
 
     return r;
 }

@@ -286,9 +286,9 @@ guru_array_new(U32 sz)
     h->sz   = sz;
     h->data = sz ? guru_gr_alloc(sz) : NULL;							// empty array?
 
-    GR v; { v.gt=GT_ARRAY; v.acl=ACL_HAS_REF; v.off=MEMOFF(h); }
+    GR r { GT_ARRAY, ACL_HAS_REF, 0, MEMOFF(h) };
 
-    return v;
+    return r;
 }
 
 //================================================================
