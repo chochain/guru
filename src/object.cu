@@ -122,8 +122,7 @@ obj_eq3(GR r[], U32 ri)
 __CFUNC__
 obj_class(GR r[], U32 ri)
 {
-    GR ret;  { ret.gt = GT_CLASS; ret.acl=0; }
-    ret.cls = class_by_obj(r);
+    GR ret;  { ret.gt = GT_CLASS; ret.acl=0; ret.cls=MEMOFF(class_by_obj(r)); }
 
     RETURN_VAL(ret);
 }
@@ -145,7 +144,7 @@ __CFUNC__
 obj_include(GR r[], U32 ri)
 {
 	ASSERT(r->gt==GT_CLASS && (r+1)->gt==GT_CLASS);
-	_extend(r->cls, (r+1)->cls);
+	_extend(GR_CLS(r), GR_CLS(r+1));
 }
 
 //================================================================
@@ -157,7 +156,7 @@ obj_extend(GR r[], U32 ri)
 	ASSERT(r->gt==GT_CLASS && (r+1)->gt==GT_CLASS);
 
 	guru_class_add_meta(r);						// lazily add metaclass if needed
-	_extend(r->cls->meta, (r+1)->cls);			// add to class methods
+	_extend(GR_CLS(r)->meta, GR_CLS(r+1));		// add to class methods
 }
 
 //================================================================
@@ -201,7 +200,7 @@ __CFUNC__
 obj_attr_reader(GR r[], U32 ri)
 {
 	ASSERT(r->gt==GT_CLASS);
-	guru_class *cls = r->cls;							// fetch class
+	guru_class *cls = GR_CLS(r);						// fetch class
 
 	GR *s = r+1;
     for (U32 i = 0; i < ri; i++, s++) {
@@ -219,7 +218,7 @@ __CFUNC__
 obj_attr_accessor(GR r[], U32 ri)
 {
 	ASSERT(r->gt==GT_CLASS);
-	guru_class *cls = IS_SCLASS(r) ? r->cls->meta : r->cls;		// fetch class
+	guru_class *cls = IS_SCLASS(r) ? GR_CLS(r)->meta : GR_CLS(r);		// fetch class
 #if CC_DEBUG
     printf("%p:%s, sc=%d self=%d #attr_accessor\n", cls, cls->name, IS_SCLASS(r), IS_SELF(r));
 #endif // CC_DEBUG
@@ -251,7 +250,7 @@ obj_kind_of(GR r[], U32 ri)
     const guru_class *cls = class_by_obj(r);
 
     while (cls) {
-        if (cls == (r+1)->cls) break;
+        if (cls==GR_CLS(r+1)) break;
         cls = cls->super;
     }
 }

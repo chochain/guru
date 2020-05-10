@@ -96,7 +96,7 @@ __GURU__ guru_class*
 class_by_obj(GR *r)
 {
 	guru_class *scls;
-	guru_class *cls = r->cls;
+	guru_class *cls = GR_CLS(r);
 
 	switch (r->gt) {
     case GT_OBJ: return GR_OBJ(r)->cls;
@@ -121,7 +121,7 @@ _name2class(const U8 *name)
 	GS sid = name2id(name);
     GR *r  = const_get(sid);
 
-    return (r->gt==GT_CLASS) ? r->cls : NULL;
+    return (r->gt==GT_CLASS) ? GR_CLS(r) : NULL;
 }
 
 //================================================================
@@ -210,7 +210,7 @@ _define_class(const U8 *name, guru_class *cls, guru_class *super)
     cls->name   = id2name(sid);			// retrieve from stored symbol table (the one caller passed might be destroyed)
 #endif
 
-    GR r; { r.gt=GT_CLASS; r.acl=0; r.cls=cls; }
+    GR r; { r.gt=GT_CLASS; r.acl=0; r.cls=MEMOFF(cls); }
     const_set(sid, &r);					// register new class in constant cache
 }
 
@@ -280,22 +280,27 @@ guru_class_add_meta(GR *r)						// lazy add metaclass to a class
 {
 	ASSERT(r->gt==GT_CLASS);
 
-	if (r->cls->meta!=NULL) return r->cls->meta;
+	guru_class *cls = GR_CLS(r);
+	if (cls->meta!=NULL) return cls->meta;
 
 	// lazily create the metaclass
 	const U8	*name = (U8*)"_meta";
-	guru_class 	*cls  = guru_define_class(name, guru_rom_get_class(GT_OBJ));
-	return r->cls->meta = cls;					// self pointing =~ metaclass
+	guru_class 	*mcls = guru_define_class(name, guru_rom_get_class(GT_OBJ));
+
+	return cls->meta = mcls;					// self pointing =~ metaclass
 }
 
 //================================================================
 /* methods to add builtin (ROM) class/proc for GURU
  * it uses (const U8 *) for static string
  */
-__GURU__ guru_class _class_list[GT_MAX];
+__GURU__ guru_class *_class_list = NULL;
 
 __GURU__ guru_class*
 guru_rom_get_class(GT idx) {
+	if (_class_list==NULL) {					// lazy allocation
+		_class_list = (guru_class*)guru_alloc(sizeof(guru_class)*GT_MAX);
+	}
 	return idx==GT_EMPTY ? NULL : &_class_list[idx];
 }
 
@@ -323,4 +328,3 @@ guru_rom_set_class(GT cidx, const char *name, GT super_cidx, const Vfunc vtbl[],
     }
 	return cls;
 }
-

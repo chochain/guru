@@ -139,25 +139,17 @@ typedef struct {					// 16-bytes (128 bits) for ease of debugging
 	union {
 		GI  	i;					// INT, SYM				32-bit
 		GF 	 	f;					// FLOAT			 	32-bit
-		U32 	off;				// offset to object		32-bit
-		U32     str;				// STR
-		U32     rng;				// RANGE
-		U32		ary;				// ARRAY
-		U32		hsh;				// HASH
-		U32		itr;				// ITER
-		U32		obj;				// OBJ
-		U32		prc;				// PROC
+		S32 	off;				// offset to object		32-bit
+
+		S32     str;				// STR		->RString
+		S32     rng;				// RANGE 	->RRange
+		S32		ary;				// ARRAY	->RArray
+		S32		hsh;				// HASH		->RHash
+		S32		itr;				// ITER		->RIter
+		S32		obj;				// OBJ		->RObj
+		S32		prc;				// PROC		->RProc
+		S32		cls;				// CLASS	->RClass
 	};
-    union {							// 8-byte				64-bit
-//        struct RObj      *self;		// OBJ
-        struct RClass    *cls;		// CLASS
-//        struct RProc     *proc;		// PROC
-//        struct RIter	 *iter;		// ITER
-//        struct RRange    *range;	// RANGE
-//        struct RString   *str;		// STR
-//        struct RArray    *array;	// ARRAY
-//        struct RHash     *hash;		// HASH
-    };
 } GR;
 #define GR_OFF(r)		((struct RObj*)   (MEMPTR((r)->off)))
 #define GR_STR(r)		((struct RString*)(MEMPTR((r)->str)))
@@ -167,7 +159,8 @@ typedef struct {					// 16-bytes (128 bits) for ease of debugging
 #define GR_ITR(r)		((struct RIter*)  (MEMPTR((r)->itr)))
 #define GR_OBJ(r)		((struct RObj*)   (MEMPTR((r)->obj)))
 #define GR_PRC(r)		((struct RProc*)  (MEMPTR((r)->prc)))
-#define GR_XXX(r)		((r)->gt==GT_CLASS ? (RObj*)((r)->cls) : GR_OFF(r))
+#define GR_CLS(r)		((struct RClass*) (MEMPTR((r)->cls)))
+//#define GR_XXX(r)		((r)->gt==GT_CLASS ? (RObj*)((r)->cls) : GR_OFF(r))
 
 /* forward declarations */
 typedef void (*guru_fptr)(GR v[], U32 vi);

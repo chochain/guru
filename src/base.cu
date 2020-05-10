@@ -104,8 +104,8 @@ ref_dec(GR *r)
 {
     if (HAS_NO_REF(r))     return r;		// skip simple or ROMable objects
 
-    ASSERT(GR_XXX(r)->rc);					// rc > 0?
-    if (--GR_XXX(r)->rc > 0) return r;		// still used, keep going
+    ASSERT(GR_OFF(r)->rc);					// rc > 0?
+    if (--GR_OFF(r)->rc > 0) return r;		// still used, keep going
 
     _d_vtbl[r->gt](r);						// table driven (no branch divergence)
 
@@ -122,7 +122,7 @@ __GURU__ GR *
 ref_inc(GR *r)
 {
 	if (HAS_REF(r)) {						// TODO: table lookup reduce branch divergence
-		GR_XXX(r)->rc++;
+		GR_OFF(r)->rc++;
 	}
 	return r;
 }

@@ -138,7 +138,7 @@ ostore_new(guru_class *cls)
 __GURU__ void
 ostore_del(GR *r)
 {
-	guru_obj *o = GR_XXX(r);
+	guru_obj *o = GR_OBJ(r);
 	GR       *v = o->var;
 
 	if (v==NULL) return;
@@ -158,7 +158,7 @@ ostore_del(GR *r)
 __GURU__ void
 ostore_set(GR *r, GU oid, GR*val)
 {
-	guru_obj *o = GR_XXX(r);			// NOTE: guru_obj->self->var, guru_class->cls->var share the same struct
+	guru_obj *o = GR_OBJ(r);			// NOTE: guru_obj->var, guru_class->var share the same struct
 	if (o->var==NULL) {
 		o->var = guru_gr_alloc(4);		// lazy allocation
 	    o->sz  = 4;						// number of local variables
@@ -181,7 +181,7 @@ ostore_get(GR *r, GU oid)
 // 		GT_OBJ:   v->self->var
 //      GT_CLASS: v->cls->var
 //
-	GR *val = _get(GR_XXX(r), oid);
+	GR *val = _get(GR_OBJ(r), oid);
 
     return val ? *ref_inc(val) : NIL;
 }

@@ -253,7 +253,7 @@ uc_getcv(guru_vm *vm)
 	ASSERT(r->gt==GT_OBJ);
 
 	guru_obj *o = GR_OBJ(r);
-	GR cv; { cv.gt=GT_CLASS; cv.acl=0; cv.cls=o->cls; }
+	GR cv; { cv.gt=GT_CLASS; cv.acl=0; cv.cls=MEMOFF(o->cls); }
 	GR ret;
 	for (guru_class *cls=o->cls; cls!=NULL; cls=cls->super) {
 		if ((ret=ostore_get(&cv, sid)).gt!=GT_NIL) break;
@@ -970,14 +970,14 @@ uc_class(guru_vm *vm)
 {
 	GR *r1 = _R(a)+1;
 
-    guru_class *super = (r1->gt==GT_CLASS) ? r1->cls : vm->state->klass;
+    guru_class *super = (r1->gt==GT_CLASS) ? GR_CLS(r1) : vm->state->klass;
     GS         sid    = VM_SYM(vm, _AR(b));
     const U8   *name  = id2name(sid);
     guru_class *cls   = guru_define_class(name, super);
 
 	cls->kt |= USER_DEF_CLASS;					// user defined (i.e. non-builtin) class
 
-    _RA_T(GT_CLASS, cls=cls);
+    _RA_T(GT_CLASS, cls=MEMOFF(cls));
     *r1 = EMPTY;
 }
 
@@ -1047,7 +1047,7 @@ uc_tclass(guru_vm *vm)
 {
 	GR *ra = _R(a);
 
-	_RA_T(GT_CLASS, cls=vm->state->klass);
+	_RA_T(GT_CLASS, cls=MEMOFF(vm->state->klass));
 	ra->acl |= ACL_SELF;
 	ra->acl &= ~ACL_SCLASS;
 }

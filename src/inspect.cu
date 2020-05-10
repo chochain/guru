@@ -138,7 +138,7 @@ _str(GR *buf, GR *r)
 __GURU__ void
 _cls(GR *buf, GR *r)
 {
-	U8 *name = id2name(r->cls->sid);
+	U8 *name = id2name(GR_CLS(r)->sid);
 	guru_buf_add_cstr(buf, name);
 }
 
@@ -150,7 +150,7 @@ _obj(GR *buf, GR *r)
 	guru_buf_add_cstr(buf, "#<");
 	guru_buf_add_cstr(buf, name);
 	guru_buf_add_cstr(buf, ":");
-	_phex(buf, GR_XXX(r));
+	_phex(buf, GR_OBJ(r));
 	guru_buf_add_cstr(buf, ">");
 }
 
