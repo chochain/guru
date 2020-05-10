@@ -119,13 +119,24 @@ _find_irep(guru_irep *irep0, guru_irep *irep1, U8 *idx)
 	return 0;		// not found
 }
 
+__HOST__ __INLINE__ RObj*
+__gr_obj(GR *r)
+{
+	switch(r->gt) {
+	case GT_STR:
+	case GT_RANGE: 	return (RObj*)(guru_host_heap + r->off);
+	default: 		return r->self;
+	}
+}
+
 __HOST__ void
 _show_regs(GR *r, U32 ri)
 {
 	for (U32 i=0; i<ri; i++, r++) {
 		const char *t = _vtype[r->gt];
 		U8 c = (i==0) ? '|' : ' ';
-		if (HAS_REF(r))			printf("%s%d%c", t, GOBJ(r)->rc, c);
+		RObj *o = __gr_obj(r);
+		if (HAS_REF(r))			printf("%s%d%c", t, o->rc, c);
 		else if (r->gt==GT_STR) printf("%s.%c", t, c);
 		else					printf("%s %c", t, c);
 	}

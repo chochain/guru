@@ -42,7 +42,7 @@ guru_iter_new(GR *obj, GR *step)
     	it->inc = (obj->i=0, obj);
     } break;
     case GT_RANGE: {
-    	guru_range *r = obj->range;
+    	guru_range *r = GR_RNG(obj);
     	ASSERT(r->first.gt==GT_INT || r->first.gt==GT_FLOAT);
 
     	it->i    = 0;
@@ -79,7 +79,7 @@ guru_iter_next(GR *r)
 		nvar = (it->inc->i < it->i);
 	} break;
 	case GT_RANGE: {
-		guru_range *r = it->range->range;
+		guru_range *r = GR_RNG(it->range);
 		U32 keep;
 		if (it->inc->gt==GT_FLOAT) {
 			it->inc->f += (it->step ? it->step->f : 1.0);

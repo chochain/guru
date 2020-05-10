@@ -40,7 +40,7 @@ guru_range_new(GR *first, GR *last, int inc)
     ref_inc(first);
     ref_inc(last);
 
-    GR r; { r.gt=GT_RANGE; r.acl=ACL_HAS_REF; r.range=g; }
+    GR r; { r.gt=GT_RANGE; r.acl=ACL_HAS_REF; r.range=MEMOFF(g); }
 
     return r;
 }
@@ -53,10 +53,12 @@ guru_range_new(GR *first, GR *last, int inc)
 __GURU__ void
 guru_range_del(GR *r)
 {
-    ref_dec(&r->range->first);
-    ref_dec(&r->range->last);
+	guru_range *rng = GR_RNG(r);
 
-    guru_free(r->range);
+    ref_dec(&rng->first);
+    ref_dec(&rng->last);
+
+    guru_free(rng);
 }
 
 //================================================================
@@ -67,13 +69,15 @@ guru_range_cmp(const GR *r0, const GR *r1)
 {
     int res;
 
-    res = guru_cmp(&r0->range->first, &r1->range->first);
+    guru_range *rng0 = GR_RNG(r0);
+    guru_range *rng1 = GR_RNG(r1);
+    res = guru_cmp(&rng0->first, &rng1->first);
     if (res != 0) return res;
 
-    res = guru_cmp(&r0->range->last, &r1->range->last);
+    res = guru_cmp(&rng0->last, &rng1->last);
     if (res != 0) return res;
 
-    return (int)IS_INCLUDE(r1->range) - (int)IS_INCLUDE(r0->range);
+    return (int)IS_INCLUDE(rng1) - (int)IS_INCLUDE(rng0);
 }
 
 //================================================================
@@ -87,13 +91,14 @@ rng_eq3(GR r[], U32 ri)
         RETURN_VAL(ret);
     }
 
-    int first = guru_cmp(&r->range->first, r+1);
+    guru_range *rng = GR_RNG(r);
+    int first = guru_cmp(&rng->first, r+1);
     if (first <= 0) {
         RETURN_FALSE();
     }
 
-    int last = guru_cmp(r+1, &r->range->last);
-    int flag = IS_INCLUDE(r->range) ? (last<=0) : (last < 0);
+    int last = guru_cmp(r+1, &rng->last);
+    int flag = IS_INCLUDE(rng) ? (last<=0) : (last < 0);
 
     RETURN_BOOL(flag);
 }
@@ -104,7 +109,7 @@ rng_eq3(GR r[], U32 ri)
 __CFUNC__
 rng_first(GR r[], U32 ri)
 {
-    RETURN_VAL(r->range->first);
+    RETURN_VAL(GR_RNG(r)->first);
 }
 
 //================================================================
@@ -113,7 +118,7 @@ rng_first(GR r[], U32 ri)
 __CFUNC__
 rng_last(GR r[], U32 ri)
 {
-    RETURN_VAL(r->range->last);
+    RETURN_VAL(GR_RNG(r)->last);
 }
 
 //================================================================
@@ -122,7 +127,7 @@ rng_last(GR r[], U32 ri)
 __CFUNC__
 rng_exclude_end(GR r[], U32 ri)
 {
-    RETURN_BOOL(!IS_INCLUDE(r->range));
+    RETURN_BOOL(!IS_INCLUDE(GR_RNG(r)));
 }
 
 //================================================================
