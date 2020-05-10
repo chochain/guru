@@ -35,7 +35,7 @@ guru_iter_new(GR *obj, GR *step)
     it->step = step;
     it->range= ref_inc(obj);
 
-    GR r; { r.gt=GT_ITER; r.acl=ACL_HAS_REF; } r.iter = it;
+    GR r; { r.gt=GT_ITER; r.acl=ACL_HAS_REF;  r.itr=MEMOFF(it); }
     switch (obj->gt) {
     case GT_INT: {
     	it->i	= obj->i;
@@ -71,7 +71,7 @@ guru_iter_next(GR *r)
 {
 	ASSERT(r->gt==GT_ITER);
 
-	guru_iter *it = r->iter;
+	guru_iter *it = GR_ITR(r);
 	U32 nvar;
 	switch (it->n) {				// ranging object type (field reused)
 	case GT_INT: {
@@ -126,7 +126,7 @@ __GURU__ void
 guru_iter_del(GR *r)
 {
 	ASSERT(r->gt==GT_ITER);
-	guru_iter *it = r->iter;
+	guru_iter *it = GR_ITR(r);
 
 	if (it->n==GT_RANGE) guru_free(it->inc);
 
