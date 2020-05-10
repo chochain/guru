@@ -55,13 +55,13 @@ _is_space(U8 ch)
 __GURU__ __INLINE__ U32
 _sz(const GR *r)
 {
-    return GSTR(r)->sz;
+    return GR_STR(r)->sz;
 }
 
 __GURU__ __INLINE__ U32
 _bsz(const GR *r)
 {
-    return GSTR(r)->bsz;
+    return GR_STR(r)->bsz;
 }
 
 //================================================================
@@ -70,7 +70,7 @@ _bsz(const GR *r)
 __GURU__ __INLINE__ U8*
 _raw(const GR *r)
 {
-	return (U8*)MEMPTR(GSTR(r)->raw);
+	return (U8*)MEMPTR(GR_STR(r)->raw);
 }
 
 //================================================================
@@ -199,7 +199,7 @@ _strip(GR *r, U32 mode)
 
     U8 *tmp = (U8*)guru_realloc(buf, asz);
 
-    guru_str *s0 = GSTR(r);
+    guru_str *s0 = GR_STR(r);
     s0->sz  = asz;
     s0->bsz = new_bsz;
     s0->raw = MEMOFF(tmp);							// shrink suitable size.
@@ -228,7 +228,7 @@ _chomp(GR *r)
     U8 *buf = _raw(r);
     buf[new_bsz] = '\0';
 
-    GSTR(r)->bsz = new_bsz;
+    GR_STR(r)->bsz = new_bsz;
 
     return 1;
 }
@@ -267,7 +267,7 @@ __GURU__ GR
 guru_str_buf(U32 sz)				// a string buffer
 {
 	GR ret = _blank(sz);
-	GSTR(&ret)->bsz = 0;
+	GR_STR(&ret)->bsz = 0;
 	return ret;
 }
 
@@ -275,7 +275,7 @@ __GURU__ GR
 guru_str_clr(GR *s)
 {
 	ASSERT(s->gt==GT_STR);
-	GSTR(s)->bsz = 0;
+	GR_STR(s)->bsz = 0;
 	return *s;
 }
 
@@ -288,7 +288,7 @@ __GURU__ void
 guru_str_del(GR *r)
 {
     guru_free(_raw(r));
-    guru_free(GSTR(r));
+    guru_free(GR_STR(r));
 }
 
 //================================================================
@@ -323,7 +323,7 @@ guru_str_add(GR *s0, GR *s1)
     MEMCPY(buf, 	 _raw(s0), bsz0);
     MEMCPY(buf+bsz0, _raw(s1), bsz1+1);
 
-    GSTR(&ret)->bsz = bsz0 + bsz1;
+    GR_STR(&ret)->bsz = bsz0 + bsz1;
 
     return ret;
 }
@@ -342,7 +342,7 @@ guru_buf_add_cstr(GR *buf, const U8 *str)
     U32 asz  = ALIGN8(bsz0 + bsz1+1);					// 8-byte aligned
     U8  *tmp = _raw(buf);
 
-    guru_str *sb  = GSTR(buf);
+    guru_str *sb  = GR_STR(buf);
     if (asz > _sz(buf)) {
     	tmp = (U8*)guru_realloc(tmp, asz);
         sb->sz  = asz;
@@ -475,7 +475,7 @@ str_slice(GR r[], U32 ri)
     	RETURN_VAL(sz > 1 ? _slice(r, i, sz) : NIL);
     }
     else if (ri==1 && r1->gt==GT_RANGE) {
-    	guru_range *g = r1->range;
+    	guru_range *g = GR_RNG(r1);
     	ASSERT(g->first.gt==GT_INT && g->last.gt==GT_INT);
     	S32 i  = g->first.i;
     	S32 sz = g->last.i-i + (IS_INCLUDE(g) ? 1 : 0);
@@ -531,7 +531,7 @@ str_insert(GR r[], U32 ri)
     MEMCPY(tmp + nth + len2, tmp + nth + len, len1 - nth - len + 1);
     MEMCPY(tmp + nth, (U8*)_raw(val), len2);
 
-    guru_str *s0 = GSTR(r);
+    guru_str *s0 = GR_STR(r);
     s0->sz  = asz;
     s0->bsz = len1 + len2 - len;
     s0->raw = MEMOFF(tmp);
@@ -667,7 +667,7 @@ __CFUNC__
 str_rstrip_self(GR r[], U32 ri)
 {
     if (_strip(r, 0x02)==0) {				// 2: right side only
-        RETURN_VAL(NIL);			// keep refc
+        RETURN_VAL(NIL);					// keep refc
     }
 }
 

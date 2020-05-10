@@ -55,7 +55,7 @@ _p(GR *r)
         STRCHR(name, ';') ? PRINTF("\"%s\"", name) : PRINTF(":%s", name);
     } break;
     case GT_STR:
-    	PRINTF("\"%s\"", (U8*)MEMPTR(GSTR(r)->raw));
+    	PRINTF("\"%s\"", (U8*)MEMPTR(GR_STR(r)->raw));
     	break;
     case GT_ARRAY: {
         GR *p = r->array->data;
@@ -78,11 +78,12 @@ _p(GR *r)
         }
         PRINTF(n==0 ? "{}" : "}");
     } break;
-    case GT_RANGE:
-        _p(&r->range->first);
-        PRINTF("%s", IS_INCLUDE(r->range) ? ".." : "...");
-        _p(&r->range->last);
-        break;
+    case GT_RANGE: {
+    	guru_range *rng = GR_RNG(r);
+        _p(&rng->first);
+        PRINTF("%s", IS_INCLUDE(rng) ? ".." : "...");
+        _p(&rng->last);
+    } break;
     default: PRINTF("?vtype: %d", (int)r->gt); break;
     }
 	return cr;
@@ -103,7 +104,7 @@ _print(GR *r)
     case GT_NIL: 		/* print blank */    	break;
     case GT_SYM: PRINTF(":%s", id2name(r->i));	break;
     case GT_STR: {
-    	U8  *s  = (U8*)MEMPTR(GSTR(r)->raw);
+    	U8  *s  = (U8*)MEMPTR(GR_STR(r)->raw);
     	U32 len = STRLENB(s);
         PRINTF("%s", s);						// no double quote around
         if (len && s[len-1]=='\n') {

@@ -343,7 +343,7 @@ guru_vprintf(const U8 *fstr, GR r[], U32 ri)		// << from c_string.cu
             break;
         case 's':
             if (r[i].gt==GT_STR) {
-                ret = __str(pf, (U8*)MEMPTR(GSTR(&r[i])->raw), ' ');
+                ret = __str(pf, (U8*)MEMPTR(GR_STR(&r[i])->raw), ' ');
             }
             else if (r[i].gt==GT_SYM) {
                 ret = __str(pf, id2name(r[i].i), ' ');
@@ -359,7 +359,7 @@ guru_vprintf(const U8 *fstr, GR r[], U32 ri)		// << from c_string.cu
                 ret = __int(pf, (GI)r[i].f, 10);
 #endif // GURU_USE_FLOAT
             } else if (r[i].gt==GT_STR) {
-                GI ival = ATOI(MEMPTR(GSTR(&r[i])->raw), 10);
+                GI ival = ATOI(MEMPTR(GR_STR(&r[i])->raw), 10);
                 ret = __int(pf, ival, 10);
             }
             break;

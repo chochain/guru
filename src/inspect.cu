@@ -130,7 +130,7 @@ __GURU__ void
 _str(GR *buf, GR *r)
 {
 	guru_buf_add_cstr(buf, "\"");
-	guru_buf_add_cstr(buf, (U8 *)MEMPTR(GSTR(r)->raw));
+	guru_buf_add_cstr(buf, (U8 *)MEMPTR(GR_STR(r)->raw));
 	guru_buf_add_cstr(buf, "\"");
 }
 
@@ -150,7 +150,7 @@ _obj(GR *buf, GR *r)
 	guru_buf_add_cstr(buf, "#<");
 	guru_buf_add_cstr(buf, name);
 	guru_buf_add_cstr(buf, ":");
-	_phex(buf, GOBJ(r));
+	_phex(buf, GR_OBJ(r));
 	guru_buf_add_cstr(buf, ">");
 }
 
@@ -195,9 +195,10 @@ _rng(GR *buf, GR *r)
 {
     ASSERT(r->gt==GT_RANGE);
 
+    guru_range *rng = GR_RNG(r);
     for (U32 i=0; i<2; i++) {
         guru_buf_add_cstr(buf, (const U8 *)(i==0 ? "" : ".."));
-        GR o = (i==0) ? r->range->first : r->range->last;
+        GR o = (i==0) ? rng->first : rng->last;
         _to_s(buf, &o, 0);
     }
 }
@@ -255,9 +256,9 @@ ary_join(GR r[], U32 ri)
 	GR *d  = a->data;
 	for (U32 i=0; i<a->n; i++, d++) {
 		if (d->gt!=GT_STR)	_to_s(&ret, d, 0);
-		else                guru_buf_add_cstr(&ret, (U8 *)MEMPTR(GSTR(d)->raw));
+		else                guru_buf_add_cstr(&ret, (U8 *)MEMPTR(GR_STR(d)->raw));
 		if (ri==0 || (i+1)>=a->n) continue;
-		guru_buf_add_cstr(&ret, (U8 *)MEMPTR(GSTR(r+1)->raw));
+		guru_buf_add_cstr(&ret, (U8 *)MEMPTR(GR_STR(r+1)->raw));
 	}
 	RETURN_VAL(ret);
 }

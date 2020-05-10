@@ -94,6 +94,7 @@ __transcode(GRIT *gr)
 		case GT_STR: guru_str_rom(r);	break;		// instantiate the string
 		default:
 			// do nothing
+			break;
 		}
 	}
 }

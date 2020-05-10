@@ -189,7 +189,7 @@ _name_w_eq_sign(GR *buf, U8 *s0)
     guru_buf_add_cstr(buf, s0);
     guru_buf_add_cstr(buf, "=");
 
-    U32 sid = create_sym((U8*)MEMPTR(GSTR(buf)->raw));	// create the symbol
+    U32 sid = create_sym((U8*)MEMPTR(GR_STR(buf)->raw));	// create the symbol
 
     return id2name(sid);
 }
