@@ -207,7 +207,7 @@ struct Vfunc {
 
 typedef struct RString {		// 16-byte
 	GURU_HDR;
-	U32				raw;		// pointer to allocated buffer.
+	GP				raw;		// (U8*) pointer to allocated buffer.
 	S32				xxx;		// reserved
 } guru_str;
 
@@ -221,12 +221,13 @@ typedef struct RProc {			// 48-byte
     	guru_fptr 		func;	// or a raw C function
     };
     union {
-    	GP				next;	// next function in linked list
-    	GP 				regs;	// pointer to register file for lambda
+    	GP				next;	// (RProc*) next function in linked list
+    	GP 				regs;	// (GR*) pointer to register file for lambda
     };
+    U32		xxx;				// reserved for alignment
 #if GURU_DEBUG
-    GP		cname;				// classname
-    GP		name;				// function name
+    GP		cname;				// (U8*) classname
+    GP		name;				// (U8*) function name
 #endif
 } guru_proc;
 
@@ -241,9 +242,8 @@ typedef struct RProc {			// 48-byte
 */
 typedef struct RObj {			// 24-byte
 	GURU_HDR;
-	GR				*var;		// instance variables
-	GP				cls;		// class that this object belongs to
-	U32				xxx;
+	GP				var;		// instance variables (GR*)
+	GP				cls;		// class that this object belongs to (RClass*)
 } guru_obj;
 
 typedef struct RSes {			// 16-byte
@@ -256,6 +256,7 @@ typedef struct RSes {			// 16-byte
 
 #define _CLS(off)   	((struct RClass*) MEMPTR(off))
 #define _PRC(off)   	((struct RProc*)  (off ? MEMPTR(off) : NULL))
+#define _VAR(r)			((GR*)((r)->var ? MEMPTR((r)->var) : NULL))
 
 #ifdef __cplusplus
 }

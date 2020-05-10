@@ -25,14 +25,13 @@ extern "C" {
 */
 typedef struct RClass {			// 64-byte
 	GURU_HDR;
-	GR				*var;		// class variables
-	GP				meta;		// offset to guru_class*
-	GP				super;		// offset to guru_class*
-    GP				vtbl;		// c-func array (in constant memory, rc is the number of functions)
-    GP				flist;		// head of guru_proc linked list
+	GP				var;		// (GR*) class variables
+	GP				meta;		// (RClass*) offset to guru_class*
+	GP				super;		// (RClass*) offset to guru_class*
+    GP				vtbl;		// (RProc*) c-func array (in constant memory, rc is the number of functions)
+    GP				flist;		// (RProc*) head of guru_proc linked list
 #if GURU_DEBUG
-    GP				name;		// for debug. TODO: remove
-    U32				xxx;
+    GP				name;		// (U8*) for debug. TODO: remove
 #endif // GURU_DEBUG
 } guru_class;
 

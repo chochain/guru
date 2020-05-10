@@ -207,7 +207,7 @@ _define_class(const U8 *name, GP cls, GP super)
 
     cx->rc     = cx->n = cx->kt = 0;	// BUILT-IN class
     cx->sid    = sid;
-    cx->var    = NULL;					// class variables, lazily allocated when needed
+    cx->var    = 0;						// class variables, lazily allocated when needed
     cx->meta   = 0;						// meta-class, lazily allocated when needed
     cx->super  = super;
     cx->vtbl   = NULL;

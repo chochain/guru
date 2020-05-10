@@ -28,7 +28,7 @@ _bsearch(guru_obj *o, GU oid)
     S32 i0 = 0;
     S32 i1 = o->n - 1;	if (i1 < 0) return -1;
 
-    GR *v = o->var;								// point at 1st attribute
+    GR *v = _VAR(o);							// point at 1st attribute
     while (i0 < i1) {
     	S32 m = (i0 + i1) >>1;					// middle i.e. div by 2
         if ((v+m)->oid < oid) {
@@ -65,7 +65,7 @@ __GURU__ S32
 _set(guru_obj *o, GU oid, GR*val)
 {
     S32 idx = _bsearch(o, oid);
-	GR  *v  = o->var;
+	GR  *v  = _VAR(o);
     GR  *r  = v + idx;
     if (idx >= 0 && r->oid==oid) {
         ref_dec(r);									// replace existed attribute
@@ -75,8 +75,9 @@ _set(guru_obj *o, GU oid, GR*val)
     // new attribute
     if ((o->n+1) > o->sz) {							// too small?
     	U32 nsz = o->sz + 4;						// expand some
-        o->var = v = _resize(v, nsz);
-        if (!v) return -1;
+        v = _resize(v, nsz);
+        if (!v) return (o->var=0, -1);
+        o->var = MEMOFF(v);
         o->sz  = nsz;
     }
     r = v + (++idx);								// use next slot
@@ -103,7 +104,7 @@ __GURU__ GR*
 _get(guru_obj *o, GU oid)
 {
     S32 idx = _bsearch(o, oid);
-    GR  *r  = o->var + idx;
+    GR  *r  = _VAR(o) + idx;
     if (idx < 0 || r->oid != oid) return NULL;
 
     return r;
@@ -121,7 +122,7 @@ ostore_new(GP cls)
     guru_obj *o = (guru_obj *)guru_alloc(sizeof(guru_obj));
 
     o->rc  = 1;
-    o->var = NULL;	// attributes, lazy allocation until _set is called
+    o->var = 0;				// attributes, lazy allocation until _set is called
     o->cls = cls;
     o->sz  = o->n = 0;
 
@@ -139,7 +140,7 @@ __GURU__ void
 ostore_del(GR *r)
 {
 	guru_obj *o = GR_OBJ(r);
-	GR       *v = o->var;
+	GR       *v = _VAR(o);
 
 	if (v==NULL) return;
 
@@ -158,13 +159,13 @@ ostore_del(GR *r)
 __GURU__ void
 ostore_set(GR *r, GU oid, GR *val)
 {
-	guru_obj *o = GR_OBJ(r);			// NOTE: guru_obj->var, guru_class->var share the same struct
-	if (o->var==NULL) {
-		o->var = guru_gr_alloc(4);		// lazy allocation
-	    o->sz  = 4;						// number of local variables
-		ref_inc(r);						// itself has been referenced now
+	guru_obj *o = GR_OBJ(r);				// NOTE: guru_obj->var, guru_class->var share the same struct
+	if (!o->var) {
+		o->var = MEMOFF(guru_gr_alloc(4));	// lazy allocation
+	    o->sz  = 4;							// number of local variables
+		ref_inc(r);							// itself has been referenced now
 	}
-	_set(o, oid, ref_inc(val));			// referenced by the object now
+	_set(o, oid, ref_inc(val));				// referenced by the object now
 }
 
 //================================================================
