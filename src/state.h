@@ -50,12 +50,15 @@ typedef struct RState {			// 20-byte
     U8  nv;						// number of local vars (for screen dump)
     U8  temp;					// reserved
 
-    U32	klass;					// current class
-    U32 xxx;
+    GP	klass;					// current class
+    U32	xxx;					// dummy
+
     GR      		*regs;		// pointer to current register (in VM register file)
     guru_irep       *irep;		// pointer to current irep block
-    struct RState   *prev;		// previous state (call stack)
+    struct RState	*prev;		// previous state (call stack)
 } guru_state;					// VM context
+
+#define _STATE(off)		((guru_state*)MEMPTR(off))
 
 #define STATE_LOOP				0x1
 #define STATE_LAMBDA			0x2

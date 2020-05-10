@@ -122,7 +122,6 @@ name2id(const U8 *str)
 	U32 hash = HASH(str);
 	S32 sid  = _search(hash);
 
-
 #if CC_DEBUG
     printf("%2d> sym[%2d]%08x=>%s\n", threadIdx.x, sid, _sym_hash[sid], _sym[sid]);
 #endif // CC_DEBUG

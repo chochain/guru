@@ -139,7 +139,7 @@ __find_proc(S32 *idx, U32 cls, GS sid)
 {
 	U32 x = threadIdx.x + blockIdx.x * blockDim.x;
 	guru_class *cx = _CLS(cls);
-	if (x < cx->rc && cx->vtbl[x].sid==sid) {
+	if (x < cx->rc && (_PRC(cx->vtbl)+x)->sid==sid) {
 		*idx = x;
 	}
 }
@@ -148,7 +148,8 @@ __GURU__ guru_proc*
 __find_proc(guru_class *cx, GS sid)
 {
 	for (int i=0; i < cx->rc; i++) {
-		if (cx->vtbl[i].sid==sid) return &cx->vtbl[i];
+		guru_proc *prc = _PRC(cx->vtbl)+i;
+		if (prc->sid==sid) return prc;
 	}
 	return NULL;
 }
@@ -182,9 +183,9 @@ proc_by_sid(GR *r, GS sid)
     	if (prc) return prc;
 #endif // CUDA_PROFILE_CDP
 
-    	for (prc=cx->flist; prc && (prc->sid != sid); prc=prc->next);		// linear search thru class or meta vtbl
-        if (prc) return prc;												// break if found
-
+    	for (prc=_PRC(cx->flist); prc; prc=_PRC(prc->next)) {
+    		if (prc->sid==sid) return prc;
+    	}
         cls = cx->super;
     }
     return NULL;
@@ -261,7 +262,7 @@ guru_define_method(GP cls, const U8 *name, guru_fptr cfunc)
 
     _LOCK;
     prc->next  = cx->flist;						// add as the new list head
-    cx->flist = prc;
+    cx->flist  = MEMOFF(prc);					// TODO: change to array implementation
     _UNLOCK;
 
 #ifdef GURU_DEBUG
@@ -321,7 +322,7 @@ guru_rom_set_class(GT cidx, const char *name, GT super_cidx, const Vfunc vtbl[],
 	guru_class *cx  = _CLS(cls);
     guru_proc  *prc = (guru_proc *)guru_alloc(sizeof(guru_proc) * n);
     cx->rc   = n;								// number of built-in functions
-    cx->vtbl = prc;								// built-in proc list
+    cx->vtbl = MEMOFF(prc);						// built-in proc list
 
     Vfunc *fp = (Vfunc*)&vtbl[0];				// TODO: nvcc allocates very sparsely for String literals
     for (U32 i=0; i<n; i++, prc++, fp++) {

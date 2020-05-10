@@ -1028,9 +1028,9 @@ uc_method(guru_vm *vm)
     _LOCK;
 
     // add proc to class
-    prc->sid   = sid;							// assign sid to proc, overload if prc already exists
-    prc->next  = cx->flist;						// add to top of vtable, so it will be found first
-    cx->flist = prc;							// if there is a sub-class override
+    prc->sid  = sid;							// assign sid to proc, overload if prc already exists
+    prc->next = cx->flist;						// add to top of vtable, so it will be found first
+    cx->flist = MEMOFF(prc);					// if there is a sub-class override
 
     _UNLOCK;
 

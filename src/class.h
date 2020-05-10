@@ -28,10 +28,11 @@ typedef struct RClass {			// 64-byte
 	GR				*var;		// class variables
 	GP				meta;		// offset to guru_class*
 	GP				super;		// offset to guru_class*
-    guru_proc 		*vtbl;		// c-func array (in constant memory, rc is the number of functions)
-    guru_proc		*flist;		// guru_proc[rprocs], linked list
+    GP				vtbl;		// c-func array (in constant memory, rc is the number of functions)
+    GP				flist;		// head of guru_proc linked list
 #if GURU_DEBUG
     GP				name;		// for debug. TODO: remove
+    U32				xxx;
 #endif // GURU_DEBUG
 } guru_class;
 

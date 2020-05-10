@@ -146,9 +146,9 @@ __GURU__ void
 _obj(GR *buf, GR *r)
 {
 	ASSERT(r->gt==GT_OBJ);
-	U8 *name = id2name(_CLS(class_by_obj(r))->sid);
+	U8 *cname = id2name(_CLS(class_by_obj(r))->sid);
 	guru_buf_add_cstr(buf, "#<");
-	guru_buf_add_cstr(buf, name);
+	guru_buf_add_cstr(buf, cname);
 	guru_buf_add_cstr(buf, ":");
 	_phex(buf, GR_OBJ(r));
 	guru_buf_add_cstr(buf, ">");
