@@ -48,7 +48,7 @@ _send(GR r[], GR *rcv, const U8 *method, U32 argc, ...)
     GR *regs = r + 2;	     		// allocate 2 for stack
     GS sid   = name2id(method);		// symbol lookup
 
-    guru_proc  *m = proc_by_sid(r, sid);	// find method for receiver object
+    guru_proc *m = proc_by_sid(r, sid);	// find method for receiver object
     ASSERT(m);
 
     // create call stack.
@@ -115,7 +115,7 @@ class_by_obj(GR *r)
   @param  name		class name.
   @return		pointer to class object.
 */
-__GURU__ U32
+__GURU__ GP
 _name2class(const U8 *name)
 {
 	GS sid = name2id(name);

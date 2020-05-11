@@ -42,16 +42,16 @@ __GURU__ void
 _call(guru_vm *vm, GR r[], U32 ri)
 {
 	guru_proc 	*prc  = GR_PRC(r);
-	guru_irep	*irep = prc->irep;
+	GP 			irep  = prc->irep;
+	GR          *regs = _REGS(prc);
 
 	if (AS_LAMBDA(prc)) {
-		GR *regs = (GR*)MEMPTR(prc->regs);
 		vm_state_push(vm, vm->state->irep, vm->state->pc, regs, ri);	// switch into callee's context
 		vm->state->flag |= STATE_LAMBDA;
-		vm_state_push(vm, irep, 0, r, ri);			// switch into lambda using closure stack frame
+		vm_state_push(vm, irep, 0, r, ri);		// switch into lambda using closure stack frame
 	}
 	else if (AS_IREP(prc)){
-		vm_state_push(vm, prc->irep, 0, r, ri);		// switch into callee's context
+		vm_state_push(vm, irep, 0, r, ri);		// switch into callee's context
 	}
 	else ASSERT(1==0);
 }
@@ -62,16 +62,16 @@ _each(guru_vm *vm, GR r[], U32 ri)
 	GR *r1 = r+1;
 	ASSERT(r1->gt==GT_PROC);						// ensure it is a code block
 
-	U32			pc0    = vm->state->pc;
-	guru_irep  	*irep0 = vm->state->irep;
-	guru_irep 	*irep1 = GR_PRC(r1)->irep;
-	GR 			git    = guru_iter_new(r, NULL);	// create iterator
+	U32	pc0   = vm->state->pc;
+	GP 	irep0 = vm->state->irep;
+	GP 	irep1 = GR_PRC(r1)->irep;
+	GR 	git   = guru_iter_new(r, NULL);				// create iterator
 
 	// push stack out (1 space for iterator)
 //	GR  *p = r1;
 //	for (U32 i=0; i<=ri; i++, *(p+1)=*p, p--);
 	*(r+1) = git;
-	*(r+2) = *vm->state->regs;
+	*(r+2) = *_REGS(vm->state);
 
 	// allocate iterator state (using same stack frame)
 	vm_state_push(vm, irep0, pc0, r+2, ri);
@@ -111,7 +111,7 @@ _lambda(guru_vm *vm, GR r[], U32 ri)
 	GR  *rf = guru_gr_alloc(n);
 	prc->regs = MEMOFF(rf);
 
-	GR  *r0 = vm->state->regs;							// deep copy register file
+	GR  *r0 = _REGS(vm->state);							// deep copy register file
 	for (U32 i=0; i<n; *rf++=*r0++, i++);
 
     *r = *(r+1);
@@ -165,7 +165,7 @@ _method_missing(guru_vm *vm, GR r[], U32 ri, GS sid)
   Push current status to callinfo stack
 */
 __GURU__ void
-vm_state_push(guru_vm *vm, guru_irep *irep, U32 pc, GR r[], U32 ri)
+vm_state_push(guru_vm *vm, GP irep, U32 pc, GR r[], U32 ri)
 {
 	guru_state 	*top = vm->state;
     guru_state 	*st  = (guru_state *)guru_alloc(sizeof(guru_state));
@@ -173,12 +173,12 @@ vm_state_push(guru_vm *vm, guru_irep *irep, U32 pc, GR r[], U32 ri)
     switch(r->gt) {
     case GT_OBJ:
     case GT_CLASS: 	st->klass = r->off;				break;
-    case GT_PROC: 	st->klass = top->regs[0].off; 	break;
+    case GT_PROC: 	st->klass = _REGS(top)->off; 	break;
     default: ASSERT(1==0);
     }
     st->irep  = irep;
     st->pc    = pc;
-    st->regs  = r;					// TODO: should allocate another regfile
+    st->regs  = MEMOFF(r);			// TODO: should allocate another regfile
     st->argc  = ri;					// argument count
     st->flag  = 0;					// non-iterator
     st->prev  = top;				// push into context stack
@@ -186,7 +186,7 @@ vm_state_push(guru_vm *vm, guru_irep *irep, U32 pc, GR r[], U32 ri)
     if (top) {						// keep stack frame depth
     	top->nv = IN_LAMBDA(st) ? GR_PRC(r)->n : vm->ar.a;
     }
-    else st->nv = irep->nr;			// top most stack frame depth
+    else st->nv = ((guru_irep*)MEMPTR(irep))->nr;			// top most stack frame depth
 
     vm->state = st;					// TODO: use array-based stack
 }
@@ -205,9 +205,11 @@ vm_state_pop(guru_vm *vm, GR ret_val)
     guru_state 	*st = vm->state;
 
     if (!(st->flag & STATE_LAMBDA)) {
+        guru_irep  *irep = (guru_irep*)MEMPTR(st->irep);
+        GR         *regs = _REGS(st);
     	ref_inc(&ret_val);								// to be referenced by the caller
-    	_wipe_stack(st->regs, st->irep->nr);
-    	st->regs[0] = ret_val;							// put return value on top of current stack
+    	_wipe_stack(regs, irep->nr);
+    	regs[0] = ret_val;								// put return value on top of current stack
     }
     vm->state = st->prev;								// restore previous state
     guru_free(st);										// release memory block
@@ -216,15 +218,16 @@ vm_state_pop(guru_vm *vm, GR ret_val)
 __GURU__ U32
 vm_loop_next(guru_vm *vm)
 {
-	guru_state *st = vm->state;
-	GR *r0 = st->regs;
+	guru_state *st   = vm->state;
+	guru_irep  *irep = (guru_irep*)MEMPTR(st->irep);
+	GR *r0 = _REGS(st);
 	GR *rr = r0 - 1;									// iterator pointer
 
 	U32 nvar = guru_iter_next(rr);						// get next iterator element
 	if (nvar==0) return 0;								// end of loop, bail
 
 	GR  *x = r0 + (nvar+1);								// wipe stack for next loop
-	U32 n  = st->irep->nr - (nvar+1);
+	U32 n  = irep->nr - (nvar+1);
 	_wipe_stack(x, n);
 
 	guru_iter *it = GR_ITR(rr);							// get iterator itself

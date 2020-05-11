@@ -217,7 +217,8 @@ typedef struct RString {		// 16-byte
 typedef struct RProc {			// 48-byte
 	GURU_HDR;					// n, sid, kt are used
     union {
-	    struct RIrep 	*irep;	// an IREP (Ruby code), defined in vm.h
+//	    struct RIrep 	*irep;	// an IREP (Ruby code), defined in vm.h
+		GP				irep;	// (RIrep*) an IREP (Ruby code), defined in vm.h
     	guru_fptr 		func;	// or a raw C function
     };
     union {
@@ -242,8 +243,8 @@ typedef struct RProc {			// 48-byte
 */
 typedef struct RObj {			// 24-byte
 	GURU_HDR;
-	GP				var;		// instance variables (GR*)
-	GP				cls;		// class that this object belongs to (RClass*)
+	GP				var;		// (GR*) instance variables
+	GP				cls;		// (RClass*) class that this object belongs to (RClass*)
 } guru_obj;
 
 typedef struct RSes {			// 16-byte
@@ -256,6 +257,7 @@ typedef struct RSes {			// 16-byte
 
 #define _CLS(off)   	((struct RClass*) MEMPTR(off))
 #define _PRC(off)   	((struct RProc*)  (off ? MEMPTR(off) : NULL))
+#define _REGS(r)		((GR*)MEMPTR((r)->regs))
 #define _VAR(r)			((GR*)((r)->var ? MEMPTR((r)->var) : NULL))
 
 #ifdef __cplusplus

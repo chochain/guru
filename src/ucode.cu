@@ -35,8 +35,8 @@ __GURU__ U32 _mutex_uc;
 // so, make sure value is kept before the release
 //
 #define _AR(r)          ((vm->ar.r))
-#define _R0             (&(vm->state->regs[0]))
-#define _R(r)			(&(vm->state->regs[_AR(r)]))
+#define _R0             (_REGS(vm->state))
+#define _R(r)			(_R0+_AR(r))
 #define _RA(r)			(ref_dec(_R(a)), *_R(a)=(r))
 #define _RA_X(r)    	(ref_inc(r), ref_dec(_R(a)), *_R(a)=*(r))
 #define _RA_T(t,e)      (_R(a)->gt=(t), _R(a)->acl=0, _R(a)->e)
@@ -324,7 +324,7 @@ _upvar(guru_vm *vm)
 			? st->prev
 			: st->prev->prev;			// 1 extra for each_loop
 	}
-	return st->regs + _AR(b);
+	return _REGS(st) + _AR(b);
 }
 
 //================================================================
@@ -571,7 +571,7 @@ uc_return(guru_vm *vm)
 		if (vm_loop_next(vm) && !brk) return;	// continue
 
 		ret = *_R(a);							// fetch last returned value
-		guru_iter_del(st->regs - 1);			// release iterator
+		guru_iter_del(_REGS(st) - 1);			// release iterator
 
 		// pop off iterator state
 		vm_state_pop(vm, ret);					// pop off ITERATOR state
@@ -600,7 +600,7 @@ uc_blkpush(guru_vm *vm)
 	for (U32 i=0; i<_AR(c); i++) {
 		st = st->prev->prev;
 	}
-    GR *prc = st->regs+st->argc+1;       	// get proc, regs[0] is the class
+    GR *prc = _REGS(st)+st->argc+1;       	// get proc, regs[0] is the class
 
     ASSERT(prc->gt==GT_PROC);				// ensure
 
@@ -952,7 +952,7 @@ uc_lambda(guru_vm *vm)
     prc->n    = 0;							// no param
     prc->sid  = 0xffff;						// anonymous function
     prc->kt   = PROC_IREP;
-    prc->irep = VM_REPS(vm, bz);			// fetch from children irep list
+    prc->irep = MEMOFF(VM_REPS(vm, bz));	// fetch from children irep list
 
     _RA_T(GT_PROC, off=MEMOFF(prc));		// regs[ra].prc = prc
 }
@@ -992,7 +992,7 @@ __UCODE__
 uc_exec(guru_vm *vm)
 {
 	ASSERT(_R0->gt == GT_CLASS);				// check
-	guru_irep *irep = VM_REPS(vm, _AR(bx));		// child IREP[rb]
+	GP irep = MEMOFF(VM_REPS(vm, _AR(bx)));		// child IREP[rb]
 
     vm_state_push(vm, irep, 0, _R(a), 0);		// push call stack
 }

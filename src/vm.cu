@@ -64,7 +64,7 @@ __ready(guru_vm *vm, GRIT *gr)
     vm->run   = VM_STATUS_READY;
     vm->depth = vm->err = 0;
 
-    guru_irep *irep = (guru_irep*)U8PADD(gr, gr->reps);
+    GP irep = MEMOFF(U8PADD(gr, gr->reps));
     vm_state_push(vm, irep, 0, vm->regfile, 0);
 }
 
@@ -74,7 +74,7 @@ __free(guru_vm *vm)
 	if (vm->run!=VM_STATUS_STOP) return;
 
 	while (vm->state) {								// pop off call stack
-		vm_state_pop(vm, vm->state->regs[1]);
+		vm_state_pop(vm, _REGS(vm->state)[1]);
 	}
 	vm->run   = VM_STATUS_FREE;						// release the vm
 	vm->state = NULL;								// redundant?

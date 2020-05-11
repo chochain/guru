@@ -50,15 +50,13 @@ typedef struct RState {			// 20-byte
     U8  nv;						// number of local vars (for screen dump)
     U8  temp;					// reserved
 
-    GP	klass;					// current class
-    U32	xxx;					// dummy
+    GP	klass;					// (RClass*) current class
+    GP	irep;					// (guru_irep*) pointer to current irep block
 
-    GR      		*regs;		// pointer to current register (in VM register file)
-    guru_irep       *irep;		// pointer to current irep block
+    GP  regs;					// (GR*) pointer to current register (in VM register file)
+    U32 xxx;
     struct RState	*prev;		// previous state (call stack)
 } guru_state;					// VM context
-
-#define _STATE(off)		((guru_state*)MEMPTR(off))
 
 #define STATE_LOOP				0x1
 #define STATE_LAMBDA			0x2
@@ -69,7 +67,7 @@ typedef struct RState {			// 20-byte
 #define IS_LAMBDA(st)			((st)->flag & STATE_LAMBDA)
 #define IS_NEW(st)				((st)->flag & STATE_NEW)
 
-__GURU__ void 	vm_state_push(guru_vm *vm, guru_irep *irep, U32 pc, GR *regs, U32 ri);
+__GURU__ void 	vm_state_push(guru_vm *vm, GP irep, U32 pc, GR r[], U32 ri);
 __GURU__ void	vm_state_pop(guru_vm *vm, GR ret_val);
 
 // TODO: temp functions for call and new (due to VM passing required)

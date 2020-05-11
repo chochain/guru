@@ -134,36 +134,47 @@ _show_regs(GR *r, U32 ri)
 	}
 }
 
+#define ST_IREP(st)		((guru_irep*)(guru_host_heap + (st)->irep))
+#define ST_REGS(st)		((GR*)(guru_host_heap + (st)->regs))
+#define ST_ISEQ(st)	 	((U32*)IREP_ISEQ(ST_IREP(st)))
+#define ST_STR(st,n)	(&IREP_POOL(ST_IREP(st))[(n)])
+#define ST_VAR(st,n)	(&IREP_POOL(ST_IREP(st))[(n)])
+#define ST_SYM(st,n)    ((IREP_POOL(ST_IREP(st))[ST_IREP(st)->p+(n)]).i)
+
 __HOST__ void
 _show_state_regs(guru_state *st, U32 lvl)
 {
 	if (st->prev) _show_state_regs(st->prev, lvl+1);		// back tracing recursion
-	U32 n = st->nv;											// depth of current stack frame
-	if (lvl==0) {											// top most
-		for (n=st->irep->nr; n>0 && st->regs[n].gt==GT_EMPTY; n--);
+	U32 n  = st->nv;											// depth of current stack frame
+	GR  *regs = ST_REGS(st);
+	if (lvl==0) { 	// top most
+		guru_irep *irep = ST_IREP(st);
+		regs = ST_REGS(st) + irep->nr;
+		for (n=irep->nr; n>0 && regs->gt==GT_EMPTY; n--, regs--);
 		n++;
 	}
-	_show_regs((st->flag & STATE_LOOP) ? st->regs-2 : st->regs, n);
+	regs = ST_REGS(st);
+	_show_regs((st->flag & STATE_LOOP) ? regs-2 : regs, n);
 }
 
 __HOST__ void
-_show_decode(guru_vm *vm, U32 code)
+_show_decode(guru_state *st, U32 code)
 {
 	U16  op = code & 0x7f;
 	U32  n  = code>>7;
 	GAR  ar = *((GAR*)&n);
 	U32  a  = ar.a;
-	U32  up = (ar.c+1)<<(IN_LAMBDA(vm->state) ? 0 : 1);
+	U32  up = (ar.c+1)<<(IN_LAMBDA(st) ? 0 : 1);
 
 	switch (op) {
 	case OP_MOVE: 		printf(" r%-2d =r%-17d", a, ar.b);							return;
 	case OP_STRING: {
-		guru_str *s0 = (guru_str*)(guru_host_heap + VM_STR(vm, ar.bx)->off);
+		guru_str *s0 = (guru_str*)(guru_host_heap + ST_STR(st, ar.bx)->off);
 		printf(" r%-2d ='%-17s", a, guru_host_heap + s0->raw);
 		return;
 	}
 	case OP_LOADI:		printf(" r%-2d =%-18d",  a, ar.bx - MAX_sBx);				return;
-	case OP_LOADL:		printf(" r%-2d =%-18g",  a, VM_VAR(vm, ar.bx)->f);			return;
+	case OP_LOADL:		printf(" r%-2d =%-18g",  a, ST_VAR(st, ar.bx)->f);			return;
 	case OP_ADDI:
 	case OP_SUBI:		printf(" r%-2d ~%-18d",  a, ar.c);							return;
 	case OP_EXEC:		printf(" r%-2d +I%-17d", a, ar.bx+1);						return;
@@ -175,7 +186,7 @@ _show_decode(guru_vm *vm, U32 code)
 		else			printf(" r%-2d <r%-2d..r%-12d", a, ar.b, ar.b+ar.c-1);
 		return;
 	case OP_SCLASS:		printf(" r%-22d", ar.b);									return;
-	case OP_ENTER:		printf(" @%-22d", 1 + vm->state->argc - (n>>18));			return;
+	case OP_ENTER:		printf(" @%-22d", 1 + st->argc - (n>>18));			return;
 	case OP_RESCUE:
 		printf(" r%-2d =%1d?r%-15d", (ar.c ? a+1 : a), ar.c, (ar.c ? a : a+1));		return;
 	}
@@ -186,17 +197,17 @@ _show_decode(guru_vm *vm, U32 code)
 		printf(" r%-2d ,r%-17d", a, a+1);				return;
 	}
 	if (_find_op(_op_jmp, op, SZ_JMP) >= 0) {
-		printf(" r%-2d @%-18d", a, vm->state->pc+(ar.bx - MAX_sBx));	return;
+		printf(" r%-2d @%-18d", a, st->pc+(ar.bx - MAX_sBx));	return;
 	}
 
 	if (_outbuf==NULL) _outbuf = (U8*)cuda_malloc(OUTBUF_SIZE, 1);	// lazy alloc
 	if (_find_op(_op_sym, op, SZ_SYM) >= 0) {
-		GS sid = VM_SYM(vm, ar.bx);
+		GS sid = ST_SYM(st, ar.bx);
 		_id2name(sid, _outbuf);
 		printf(" r%-2d :%-18s", a, _outbuf);			return;
 	}
 	if (_find_op(_op_exe, op, SZ_EXE) >= 0) {
-		GS sid = VM_SYM(vm, ar.b);
+		GS sid = ST_SYM(st, ar.b);
 		_id2name(sid, _outbuf);
 		printf(" r%-2d #%-18s", a, _outbuf);			return;
 	}
@@ -205,24 +216,24 @@ _show_decode(guru_vm *vm, U32 code)
 __HOST__ void
 _disasm(guru_vm *vm, U32 level)
 {
-	U16  pc    = vm->state->pc;						// program counter
-	U32  *iseq = VM_ISEQ(vm);
+	guru_state *st    = vm->state;
+	guru_irep  *irep0 = ST_IREP(st);
+
+	U16  pc    = st->pc;							// program counter
+	U32  *iseq = ST_ISEQ(st);
 	U32  code  = bin2u32(*(iseq + pc));				// convert to big endian
 	U16  op    = code & 0x7f;       				// in HOST mode, GET_OPCODE() is DEVICE code
 	U8   *opc  = (U8*)_opcode[GET_OP(op)];
 
-	guru_state *st    = vm->state;
-	guru_irep  *irep1 = st->irep;
-
 	U8 idx = 'a';
 	if (st->prev) {
-		if (!_find_irep(st->prev->irep, irep1, &idx)) idx='?';
+		if (!_find_irep(ST_IREP(st->prev), irep0, &idx)) idx='?';
 	}
 	printf("%1d%c%-4d%-8s", vm->id, idx, pc, opc);
 
-	_show_decode(vm, code);
+	_show_decode(st, code);
 	printf("[");
-	_show_state_regs(vm->state, 0);
+	_show_state_regs(st, 0);
 	printf("]\n");
 }
 
@@ -263,7 +274,8 @@ debug_vm_irep(guru_vm *vm)
 
 	printf("  vm[%d]:\n", vm->id);
 	char c = 'a';
-	_show_irep(vm->state->irep, '0'+vm->id, &c);
+	guru_irep *irep = (guru_irep*)(guru_host_heap + vm->state->irep);
+	_show_irep(irep, '0'+vm->id, &c);
 }
 
 __HOST__ int

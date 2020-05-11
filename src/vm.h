@@ -86,7 +86,7 @@ typedef struct VM {				// 80-byte
     GR 	regfile[MAX_REGFILE_SIZE];	// registers
 } guru_vm;
 
-#define VM_IREP(vm)    	((vm)->state->irep)
+#define VM_IREP(vm)    	((guru_irep*)MEMPTR((vm)->state->irep))
 #define VM_ISEQ(vm)	 	((U32*)IREP_ISEQ(VM_IREP(vm)))
 
 #define VM_REPS(vm,n)	(&IREP_REPS(VM_IREP(vm))[(n)])
