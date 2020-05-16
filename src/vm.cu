@@ -55,10 +55,10 @@ __GURU__ void
 __ready(guru_vm *vm, GRIT *gr)
 {
 	GR *r = vm->regfile;
-	for (U32 i=0; i<MAX_REGFILE_SIZE; i++, r++) {					// wipe register
-		r->gt  = (i>0) ? GT_EMPTY : GT_CLASS;						// reg[0] is "self"
+	for (U32 i=0; i<MAX_REGFILE_SIZE; i++, r++) {	// wipe register
+		r->gt  = (i==0) ? GT_CLASS : GT_EMPTY;		// reg[0] is "self"
 		r->acl = 0;
-		r->off = (i>0) ? 0 : guru_rom_get_class(GT_OBJ);
+		r->off = (i==0) ? guru_rom_get_class(GT_OBJ) : 0;
 	}
     vm->state = NULL;
     vm->run   = VM_STATUS_READY;
@@ -74,7 +74,7 @@ __free(guru_vm *vm)
 	if (vm->run!=VM_STATUS_STOP) return;
 
 	while (vm->state) {								// pop off call stack
-		vm_state_pop(vm, _REGS(vm->state)[1]);
+		vm_state_pop(vm, _REGS(vm->state)[1]);		// passing value of regs[1]
 	}
 	vm->run   = VM_STATUS_FREE;						// release the vm
 	vm->state = NULL;								// redundant?
@@ -148,6 +148,7 @@ _exec(guru_vm *vm)
 	extern __shared__ Ucode uc[];
 
  	uc[blockIdx.x] = *_uc_pool[vm->id];
+ 	__syncthreads();
 
 	if (uc[blockIdx.x].run()) {
 		__free(vm);
@@ -161,7 +162,7 @@ _exec(guru_vm *vm)
 		// add before_exec hooks here
 		ucode_step(vm);
 		// add after_exec hooks here
-		if (vm->step) break;
+		if (vm->step || vm->err) break;
 	}
 	if (vm->run==VM_STATUS_STOP) {					// whether my VM is completed
 		__free(vm);									// free up my vm_state, return VM to free pool
@@ -179,7 +180,7 @@ vm_pool_init(U32 step)
 		vm->id    = i;
 		vm->step  = step;
 		vm->depth = vm->err  = 0;
-		vm->run   = VM_STATUS_FREE;		// VM not allocated
+		vm->run   = VM_STATUS_FREE;					// VM not allocated
 		cudaStreamCreateWithFlags(&vm->st, cudaStreamNonBlocking);
 	}
 	return 0;
@@ -189,7 +190,7 @@ __HOST__ int
 _has_job() {
 	guru_vm *vm = _vm_pool;
 	for (U32 i=0; i<MIN_VM_COUNT; i++, vm++) {
-		if (vm->run==VM_STATUS_RUN) return 1;
+		if (vm->run==VM_STATUS_RUN && !vm->err) return 1;
 	}
 	return 0;
 }
@@ -201,17 +202,26 @@ vm_main_start()
 	do {
 		guru_vm *vm = _vm_pool;
 		for (U32 i=0; i<MIN_VM_COUNT; i++, vm++) {
-			if (!vm->state) continue;
+			if (!vm->state || vm->run!=VM_STATUS_RUN) continue;
 			// add pre-hook here
-			if (debug_disasm(vm)) break;
-			_exec<<<1,1,sizeof(Ucode)*MIN_VM_COUNT,vm->st>>>(vm);	// guru -x to run without single-stepping
+			if (debug_disasm(vm)) {
+				vm->err = 1;						// stop a run-away loop
+			}
+			else {
+				_exec<<<1,1,sizeof(Ucode)*MIN_VM_COUNT,vm->st>>>(vm);		// guru -x to run without single-stepping
+			}
+			cudaError_t e = cudaGetLastError();
+			if (e) {
+				printf("CUDA ERROR: %s, bailing\n", cudaGetErrorString(e));
+				vm->err = 1;
+			}
 			// add post-hook here
 		}
-		GPU_SYNC();											// TODO: cooperative thread group
+		GPU_SYNC();									// TODO: cooperative thread group
 #if GURU_USE_CONSOLE
-		guru_console_flush(ses->out, ses->trace);		// dump output buffer
+		guru_console_flush(ses->out, ses->trace);	// dump output buffer
 #endif  // GURU_USE_CONSOLE
-	} while (_has_job());								// join()
+	} while (_has_job());							// join()
 
 	return 0;
 }
@@ -230,9 +240,10 @@ vm_get(U8 *ibuf)
 
 	_get<<<1,1,0,vm->st>>>(vm, gr);
 #else
-	_get<<<1,1,0,vm->st>>>(vm, ibuf);			// acquire VM, vm status will changed
+	_get<<<1,1,0,vm->st>>>(vm, ibuf);				// acquire VM, vm status will changed
 #endif // GURU_HOST_GRIT_IMAGE
 	GPU_SYNC();
+
 	debug_vm_irep(vm);
 
 	return _vm_cnt++;
@@ -242,7 +253,7 @@ __HOST__ int
 _set_status(U32 mid, U32 new_status, U32 status_flag)
 {
 	guru_vm *vm = &_vm_pool[mid];
-	if (!(vm->run & status_flag)) return -1;	// transition state machine
+	if (!(vm->run & status_flag)) return -1;		// transition state machine
 
 	_LOCK;
 	vm->run = new_status;
