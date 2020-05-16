@@ -45,17 +45,17 @@ _p(GR *r)
     } break;
     case GT_OBJ: {
     	U8 *name = id2name(_CLS(class_by_obj(r))->sid);
-    	PRINTF("#<%s:%08x>", name, (U32A)GR_OBJ(r));
+    	PRINTF("#<%s:%p>", name, GR_OBJ(r));
     } break;
     case GT_PROC:
-    	PRINTF("#<Proc:%08x>", GR_PRC(r));
+    	PRINTF("#<Proc:%p>", GR_PRC(r));
     	break;
     case GT_SYM: {
         U8 *name = id2name(r->i);
         STRCHR(name, ';') ? PRINTF("\"%s\"", name) : PRINTF(":%s", name);
     } break;
     case GT_STR:
-    	PRINTF("\"%s\"", (U8*)MEMPTR(GR_STR(r)->raw));
+    	PRINTF("\"%s\"", _RAW(r));
     	break;
     case GT_ARRAY: {
     	guru_array *ary = GR_ARY(r);
@@ -106,7 +106,7 @@ _print(GR *r)
     case GT_NIL: 		/* print blank */    	break;
     case GT_SYM: PRINTF(":%s", id2name(r->i));	break;
     case GT_STR: {
-    	U8  *s  = (U8*)MEMPTR(GR_STR(r)->raw);
+    	U8  *s  = _RAW(r);
     	U32 len = STRLENB(s);
         PRINTF("%s", s);						// no double quote around
         if (len && s[len-1]=='\n') {

@@ -23,7 +23,7 @@
   @return		result. It's not necessarily found.
 */
 __GURU__ S32
-_bsearch(guru_obj *o, GU oid)
+_bsearch(guru_obj *o, GS oid)
 {
     S32 i0 = 0;
     S32 i1 = o->n - 1;	if (i1 < 0) return -1;
@@ -62,7 +62,7 @@ _resize(GR *r0, U32 sz)
   @return			0: success, -1:failed
 */
 __GURU__ S32
-_set(guru_obj *o, GU oid, GR*val)
+_set(guru_obj *o, GS oid, GR*val)
 {
     S32 idx = _bsearch(o, oid);
 	GR  *v  = _VAR(o);
@@ -94,20 +94,22 @@ _set(guru_obj *o, GU oid, GR*val)
 }
 
 //================================================================
-/*! getter
+/*! getter the following objects which shared the same structure
+	GT_OBJ:   r->self->var
+	GT_CLASS: r->cls->var
 
   @param  st	pointer to instance store handle.
   @param  oid	object store ID.
   @return		pointer to GR .
 */
 __GURU__ GR*
-_get(guru_obj *o, GU oid)
+_get(guru_obj *o, GS oid)
 {
     S32 idx = _bsearch(o, oid);
-    GR  *r  = _VAR(o) + idx;
-    if (idx < 0 || r->oid != oid) return NULL;
+    GR  *v  = _VAR(o) + idx;
+    if (idx < 0 || v->oid != oid) return NULL;
 
-    return r;
+    return v;
 }
 
 //================================================================
@@ -157,7 +159,7 @@ ostore_del(GR *r)
   @param  val	pointer to value.
 */
 __GURU__ void
-ostore_set(GR *r, GU oid, GR *val)
+ostore_set(GR *r, GS oid, GR *val)
 {
 	guru_obj *o = GR_OBJ(r);				// NOTE: guru_obj->var, guru_class->var share the same struct
 	if (!o->var) {
@@ -176,11 +178,9 @@ ostore_set(GR *r, GU oid, GR *val)
   @return		value.
 */
 __GURU__ GR
-ostore_get(GR *r, GU oid)
+ostore_get(GR *r, GS oid)
 {
 //	NOTE: common struct header
-// 		GT_OBJ:   v->self->var
-//      GT_CLASS: v->cls->var
 //
 	GR *val = _get(GR_OBJ(r), oid);
 

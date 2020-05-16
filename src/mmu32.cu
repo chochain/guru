@@ -575,8 +575,6 @@ _alloc_stat(guru_mstat *s)
 __HOST__ U32
 guru_mmu_check(U32 level)
 {
-	U32 err;
-
 	if (level==0) return 0;
 	if (level & 1) {
 		guru_mstat *s;

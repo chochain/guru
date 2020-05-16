@@ -130,7 +130,7 @@ __GURU__ void
 _str(GR *buf, GR *r)
 {
 	guru_buf_add_cstr(buf, "\"");
-	guru_buf_add_cstr(buf, (U8 *)MEMPTR(GR_STR(r)->raw));
+	guru_buf_add_cstr(buf, _RAW(r));
 	guru_buf_add_cstr(buf, "\"");
 }
 
@@ -257,10 +257,10 @@ ary_join(GR r[], U32 ri)
 	GR ret = guru_str_buf(BUF_SIZE);
 	GR *d  = a->data;
 	for (U32 i=0; i<a->n; i++, d++) {
-		if (d->gt!=GT_STR)	_to_s(&ret, d, 0);
-		else                guru_buf_add_cstr(&ret, (U8 *)MEMPTR(GR_STR(d)->raw));
+		if (d->gt==GT_STR)	guru_buf_add_cstr(&ret, _RAW(d));
+		else 				_to_s(&ret, d, 0);
 		if (ri==0 || (i+1)>=a->n) continue;
-		guru_buf_add_cstr(&ret, (U8 *)MEMPTR(GR_STR(r+1)->raw));
+		guru_buf_add_cstr(&ret, _RAW(r+1));
 	}
 	RETURN_VAL(ret);
 }

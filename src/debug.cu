@@ -109,12 +109,15 @@ _find_op(const int *lst, int op, int n)
 }
 
 __HOST__ int
-_find_irep(guru_irep *irep0, guru_irep *irep1, U8 *idx)
+_match_irep(guru_irep *ix, guru_irep *ix0, U8 *idx)
 {
-	if (irep0==irep1) return 1;
-	for (U32 i=0; i<irep0->r; i++) {
+	if (ix==ix0) return 1;
+
+	// search into children recursively
+	guru_irep *ix1 = IREP_REPS(ix);
+	for (U32 i=0; i<ix->r; i++, ix1++) {
 		*idx += 1;
-		if (_find_irep(IREP_REPS(irep0)+i, irep1, idx)) return 1;
+		if (_match_irep(ix1, ix0, idx)) return 1;
 	}
 	return 0;		// not found
 }
@@ -145,9 +148,9 @@ __HOST__ void
 _show_state_regs(guru_state *st, U32 lvl)
 {
 	if (st->prev) _show_state_regs(st->prev, lvl+1);		// back tracing recursion
-	U32 n  = st->nv;											// depth of current stack frame
+	U32 n = st->nv;											// depth of current stack frame
 	GR  *regs = ST_REGS(st);
-	if (lvl==0) { 	// top most
+	if (lvl==0) { 											// top most
 		guru_irep *irep = ST_IREP(st);
 		regs = ST_REGS(st) + irep->nr;
 		for (n=irep->nr; n>0 && regs->gt==GT_EMPTY; n--, regs--);
@@ -213,41 +216,54 @@ _show_decode(guru_state *st, U32 code)
 	}
 }
 
-__HOST__ void
+__HOST__ U16
 _disasm(guru_vm *vm, U32 level)
 {
-	guru_state *st    = vm->state;
-	guru_irep  *irep0 = ST_IREP(st);
+	static U16 pc0 = 0xffff;
+	static U16 cnt = 0;
+
+	guru_state *st = vm->state;
 
 	U16  pc    = st->pc;							// program counter
 	U32  *iseq = ST_ISEQ(st);
 	U32  code  = bin2u32(*(iseq + pc));				// convert to big endian
 	U16  op    = code & 0x7f;       				// in HOST mode, GET_OPCODE() is DEVICE code
-	U8   *opc  = (U8*)_opcode[GET_OP(op)];
+	U8   *opc  = (U8*)_opcode[GET_OP(op)];			// opcode text
 
-	U8 idx = 'a';
-	if (st->prev) {
-		if (!_find_irep(ST_IREP(st->prev), irep0, &idx)) idx='?';
+	if (op >= OP_MAX) {
+		printf("ERROR: st=%p, opcode %d out of range, bailing out...\n", st, op);
+		return 0xffff;
 	}
+
+	guru_irep  *ix0 = ST_IREP(st);
+	U8 idx = 'a';
+	if (!_match_irep(ST_IREP(st->prev ? st->prev : st), ix0, &idx)) idx='?';
 	printf("%1d%c%-4d%-8s", vm->id, idx, pc, opc);
 
 	_show_decode(st, code);
 	printf("[");
 	_show_state_regs(st, 0);
 	printf("]\n");
+
+	if (pc==pc0 && ++cnt>3) {
+		printf("ERROR: vm=%p, st=%p, run-away loop detected at pc=%d, bailing...\n", vm, st, pc);
+		return 0xffff;
+	}
+	pc0 = pc;
+
+	return pc;
 }
 
 __HOST__ void
-_show_irep(guru_irep *irep, char level, char *n)
+_show_irep(guru_irep *ix, char level, char *n)
 {
-	U32 a = (U32A)irep;
-	printf("\t%c irep[%c]=%08x: nreg=%d, nlocal=%d, pools=%d, syms=%d, reps=%d\n",
-				level, *n, a, irep->nr, irep->nv, irep->p, irep->s, irep->r);
+	printf("\t%c irep[%c]=%p: nreg=%d, nlocal=%d, pools=%d, syms=%d, reps=%d\n",
+				level, *n, ix, ix->nr, ix->nv, ix->p, ix->s, ix->r);
 	// dump all children ireps
-	guru_irep *r0 = IREP_REPS(irep);
-	for (U32 i=0; i<irep->r; i++, r0++) {
+	guru_irep *ix0 = IREP_REPS(ix);
+	for (U32 i=0; i<ix->r; i++, ix0++) {
 		*n += (*n=='z') ? -57 : 1;		// a-z, A-Z
-		_show_irep(r0, level+1, n);
+		_show_irep(ix0, level+1, n);
 	}
 }
 
@@ -274,8 +290,8 @@ debug_vm_irep(guru_vm *vm)
 
 	printf("  vm[%d]:\n", vm->id);
 	char c = 'a';
-	guru_irep *irep = (guru_irep*)(guru_host_heap + vm->state->irep);
-	_show_irep(irep, '0'+vm->id, &c);
+	guru_irep *ix = (guru_irep*)(guru_host_heap + vm->state->irep);
+	_show_irep(ix, '0'+vm->id, &c);
 }
 
 __HOST__ int
@@ -285,8 +301,9 @@ debug_disasm(guru_vm *vm)
 
 	for (guru_state *st=vm->state; st->prev; st=st->prev) printf("  ");
 
-	_disasm(vm, _debug);
-
+	if (_disasm(vm, _debug)==0xffff) {
+		return -1;
+	}
 	return (_debug>1) ? guru_mmu_check(_debug) : 0;
 }
 
