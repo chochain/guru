@@ -32,25 +32,25 @@ _wipe_stack(GR r[], U32 ri)
     GR *x = r;
     for (U32 i=0; i<ri; i++, x++) {
     	ref_dec(x);
-    	x->gt  = GT_EMPTY;
-    	x->acl = 0;
-    	x->off = 0;
+    	*x = EMPTY;
     }
 }
 
 __GURU__ void
 _call(guru_vm *vm, GR r[], U32 ri)
 {
-	guru_proc 	*prc  = GR_PRC(r);
-	GP 			irep  = prc->irep;
-	GR          *regs = _REGS(prc);
+	ASSERT(r->gt==GT_PROC);
 
-	if (AS_LAMBDA(prc)) {
+	guru_proc *px = GR_PRC(r);
+	GR  *regs = _REGS(px);
+	GP 	irep  = px->irep;
+
+	if (AS_LAMBDA(px)) {
 		vm_state_push(vm, vm->state->irep, vm->state->pc, regs, ri);	// switch into callee's context
 		vm->state->flag |= STATE_LAMBDA;
 		vm_state_push(vm, irep, 0, r, ri);		// switch into lambda using closure stack frame
 	}
-	else if (AS_IREP(prc)){
+	else if (AS_IREP(px)){
 		vm_state_push(vm, irep, 0, r, ri);		// switch into callee's context
 	}
 	else ASSERT(1==0);
@@ -94,7 +94,7 @@ _new(guru_vm *vm, GR r[], U32 ri)
 	GS sid = name2id((U8*)"initialize"); 		// search for initializer
 
 	if (vm_method_exec(vm, r, ri, sid)) {		// run custom initializer if any
-		vm->err = 1;
+		vm->err = 1;							// initializer not found
 	}
 	vm->state->flag |= STATE_NEW;
 }
@@ -104,12 +104,12 @@ _lambda(guru_vm *vm, GR r[], U32 ri)
 {
 	ASSERT(r->gt==GT_CLASS && (r+1)->gt==GT_PROC);		// ensure it is a proc
 
-	guru_proc *prc = GR_PRC(r+1);						// mark it as a lambda
-	prc->kt |= PROC_LAMBDA;
+	guru_proc *px = GR_PRC(r+1);						// mark it as a lambda
+	px->kt |= PROC_LAMBDA;
 
-	U32	n   = prc->n = vm->ar.a;
+	U32	n   = px->n = vm->ar.a;
 	GR  *rf = guru_gr_alloc(n);
-	prc->regs = MEMOFF(rf);
+	px->regs = MEMOFF(rf);
 
 	GR  *r0 = _REGS(vm->state);							// deep copy register file
 	for (U32 i=0; i<n; *rf++=*r0++, i++);
@@ -126,37 +126,44 @@ _raise(guru_vm *vm, GR r[], U32 ri)
 	vm->state->pc = vm->rescue[--vm->depth];	// pop from exception return stack
 }
 
-typedef void (*Xfunc)(guru_vm *vm, GR r[], U32 ri);
-struct Xf {
-	const char  *name;				// raw string usually
-	Xfunc 		func;				// C-function pointer
-};
-__GURU__ __const__ Xf miss_vtbl[] = {
-	{ "call", 	_call	},			// C-based prc_call (hacked handler, it needs vm->state)
-	{ "each",   _each   },			// push into call stack, obj at stack[0]
-	{ "times",  _each   },			// looper
-	{ "new",    _new    },
-	{ "lambda", _lambda },			// create object
-	{ "raise",  _raise  }			// exception handler
-};
-#define XFSZ	(sizeof(miss_vtbl)/sizeof(Xf))
+typedef struct {
+	const char  *name;								// raw string usually
+	void (*func)(guru_vm *vm, GR r[], U32 ri);		// C-function pointer
+	GS			sid;
+} Xf;
 
 __GURU__ U32
 _method_missing(guru_vm *vm, GR r[], U32 ri, GS sid)
 {
-	U8 *f = id2name(sid);
+	static Xf miss_vtbl[] = {
+		{ "call", 	_call,   0 },			// C-based prc_call (hacked handler, it needs vm->state)
+		{ "each",   _each,   0 },			// push into call stack, obj at stack[0]
+		{ "times",  _each,   0 },			// looper
+		{ "new",    _new,    0 },
+		{ "lambda", _lambda, 0 },			// create object
+		{ "raise",  _raise,  0 }			// exception handler
+	};
+	static int xfcnt = sizeof(miss_vtbl)/sizeof(Xf);
 
+	Xf *xp = miss_vtbl;
+	if (miss_vtbl[0].sid==0) {				// lazy init
+		for (int i=0; i<xfcnt; i++, xp++) {
+			xp->sid = create_sym((U8*)xp->name);
+		}
+		xp = miss_vtbl;						// rewind
+	}
+	for (int i=0; i<xfcnt; i++, xp++) {
 #if CC_DEBUG
-	printf("0x%02x:%s not found -------\n", sid, f);
+		PRINTF("!!!missing_func %p:%s->%d == %d\n", xp, xp->name, xp->sid, sid);
 #endif // CC_DEBUG
-
-	struct Xf *p = (Xf*)miss_vtbl;	// dispatcher
-	for (int i=0; i<XFSZ; i++, p++) {
-		if (STRCMP(p->name, f)==0) {
-			p->func(vm, r, ri);
+		if (xp->sid==sid) {
+			xp->func(vm, r, ri);
 			return 0;
 		}
 	}
+#if CC_DEBUG
+	printf("0x%02x not found -------\n", sid);
+#endif // CC_DEBUG
 	_wipe_stack(r+1, ri+1);			// wipe call stack and return
 	return 1;
 }
@@ -167,13 +174,18 @@ _method_missing(guru_vm *vm, GR r[], U32 ri, GS sid)
 __GURU__ void
 vm_state_push(guru_vm *vm, GP irep, U32 pc, GR r[], U32 ri)
 {
+#if CC_DEBUG
+	PRINTF("!!!vm_state_push(%p, x%x, %d, %p, %d)\n", vm, irep, pc, r, ri);
+#endif // CC_DEBUG
 	guru_state 	*top = vm->state;
     guru_state 	*st  = (guru_state *)guru_alloc(sizeof(guru_state));
+
+    ASSERT(st);
 
     switch(r->gt) {
     case GT_OBJ:
     case GT_CLASS: 	st->klass = r->off;				break;
-    case GT_PROC: 	st->klass = _REGS(top)->off; 	break;
+    case GT_PROC: 	st->klass = _REGS(top)->off; 	break;			// top->regs[0].off
     default: ASSERT(1==0);
     }
     st->irep  = irep;
@@ -186,7 +198,9 @@ vm_state_push(guru_vm *vm, GP irep, U32 pc, GR r[], U32 ri)
     if (top) {						// keep stack frame depth
     	top->nv = IN_LAMBDA(st) ? GR_PRC(r)->n : vm->ar.a;
     }
-    else st->nv = ((guru_irep*)MEMPTR(irep))->nr;			// top most stack frame depth
+    else {
+    	st->nv = ((guru_irep*)MEMPTR(irep))->nr;			// top most stack frame depth
+    }
 
     vm->state = st;					// TODO: use array-based stack
 }
@@ -241,17 +255,24 @@ vm_loop_next(guru_vm *vm)
 __GURU__ U32
 vm_method_exec(guru_vm *vm, GR r[], U32 ri, GS sid)
 {
-    guru_proc  *prc = proc_by_sid(r, sid);				// v->gt in [GT_OBJ, GT_CLASS]
+#if CC_DEBUG
+    PRINTF("!!!vm_method_exec(%p, %p, %d, %d)\n", vm, r, ri, sid);
+#endif // CC_DEBUG
+    GP prc = proc_by_sid(r, sid);						// v->gt in [GT_OBJ, GT_CLASS]
 
-    if (prc==0) {										// VM functions
+    if (prc==0) {										// not found, try VM functions
     	return _method_missing(vm, r, ri, sid);
     }
-    if (AS_IREP(prc)) {									// a Ruby-based IREP
-    	vm_state_push(vm, prc->irep, 0, r, ri);			// switch to callee's context
+    guru_proc *px = _PRC(prc);
+    if (AS_IREP(px)) {									// a Ruby-based IREP
+    	vm_state_push(vm, px->irep, 0, r, ri);			// switch to callee's context
     }
-    else {
+    else {												// must be a C-function
+#if CC_DEBUG
+    	PRINTF("!!!_CALL(x%x, %p, %d)\n", prc, r, ri);
+#endif // CC_DEBUG
     	r->oid = sid;									// parameter sid is passed as object id
-    	prc->func(r, ri);								// call C-based function
+    	_CALL(prc, r, ri);								// call C-based function
     	_wipe_stack(r+1, ri+1);
     	r->acl &= ~(ACL_SCLASS|ACL_SELF);
     }
