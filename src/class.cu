@@ -21,6 +21,7 @@
 
 #define _LOCK		{ MUTEX_LOCK(_mutex_cls); }
 #define _UNLOCK 	{ MUTEX_FREE(_mutex_cls); }
+#define CHK_ERR		ASSERT(cudaGetLastError()==cudaSuccess)
 
 __GURU__ U32 _mutex_cls;
 
@@ -47,9 +48,9 @@ _send(GR r[], GR *rcv, const U8 *method, U32 argc, ...)
 {
     GR *regs = r + 2;	     		// allocate 2 for stack
     GS sid   = name2id(method);		// symbol lookup
+    GP prc   = proc_by_sid(r, sid);	// find method for receiver object
 
-    guru_proc *m = proc_by_sid(r, sid);	// find method for receiver object
-    ASSERT(m);
+    ASSERT(prc);
 
     // create call stack.
     regs[0] = *ref_inc(rcv);		// create call stack, start with receiver object
@@ -61,7 +62,7 @@ _send(GR r[], GR *rcv, const U8 *method, U32 argc, ...)
     }
     va_end(ap);
 
-    m->func(regs, argc);			// call method, put return value in regs[0]
+    _CALL(prc, regs, argc);	// call method, put return value in regs[0]
 
 #if GURU_DEBUG
     GR *x = r;						// _wipe_stack
@@ -95,18 +96,38 @@ kind_of(GR *r)		// whether v1 is a kind of v0
 __GURU__ GP
 class_by_obj(GR *r)
 {
+#if CC_DEBUG
+	PRINTF("!!!class_by_obj(%p) r->gt=%d, r->off=x%x: ", r, r->gt, r->off);
+#endif // CC_DEBUG
+	GP ret;
 	switch (r->gt) {
-    case GT_OBJ: return GR_OBJ(r)->cls;
+	case GT_OBJ: {
+    	ret = GR_OBJ(r)->cls;
+#if CC_DEBUG
+    	PRINTF("OBJ");
+#endif // CC_DEBUG
+    } break;
     case GT_CLASS: {
-    	GP         cls  = r->off;
-    	guru_class *cx  = _CLS(cls);
-    	GP         scls = cx->meta ? cx->meta : guru_rom_get_class(GT_OBJ);
-    	return IS_BUILTIN(cx)
+    	guru_class *cx = GR_CLS(r);
+    	GP scls = cx->meta ? cx->meta : guru_rom_get_class(GT_OBJ);
+    	GP cls  = r->off;
+#if CC_DEBUG
+    	PRINTF(" CLS[x%04x]=%s:%p", cls, MEMPTR(cx->name), cx);
+#endif // CC_DEBUG
+    	ret  = IS_BUILTIN(cx)
     		? cls
     		: (IS_SCLASS(r) ? scls : (IS_SELF(r) ? cls : scls));
+    } break;
+    default:
+#if CC_DEBUG
+    	PRINTF("???");
+#endif // CC_DEBUG
+    	ret = guru_rom_get_class(r->gt);
     }
-    default: return guru_rom_get_class(r->gt);
-    }
+#if CC_DEBUG
+	PRINTF("=> x%04x\n", ret);
+#endif // CC_DEBUG
+	return ret;
 }
 
 //================================================================
@@ -135,7 +156,7 @@ _name2class(const U8 *name)
 */
 #if CUDA_PROFILE_CDP
 __GPU__ void
-__find_proc(S32 *idx, U32 cls, GS sid)
+__scan_vtbl(S32 *idx, U32 cls, GS sid)
 {
 	U32 x = threadIdx.x + blockIdx.x * blockDim.x;
 	guru_class *cx = _CLS(cls);
@@ -144,30 +165,47 @@ __find_proc(S32 *idx, U32 cls, GS sid)
 	}
 }
 #else
-__GURU__ guru_proc*
-__find_proc(guru_class *cx, GS sid)
+__GURU__ GP
+__scan_vtbl(guru_class *cx, GS sid)
 {
-	for (int i=0; i < cx->rc; i++) {
-		guru_proc *prc = _PRC(cx->vtbl)+i;
-		if (prc->sid==sid) return prc;
+	U8 *cname = MEMPTR(cx->name);
+	guru_proc *px = _PRC(cx->vtbl);				// sequential search thru the array
+	for (int i=0; i < cx->rc; i++, px++) {		// TODO: parallel search (i.e. CDP, see above)
+#if CC_DEBUG
+		PRINTF("!!!vtbl scaning %p:%s[%2d] %p:%s->%d == %d\n", cx, cname, i, px, MEMPTR(px->name), px->sid, sid);
+#endif // CC_DEBUG
+		if (px->sid==sid) return MEMOFF(px);
 	}
-	return NULL;
+	return 0;
+}
+
+__GURU__ GP
+__scan_flist(guru_class *cx, GS sid)
+{
+	U8 *cname = MEMPTR(cx->name);
+	GP prc = cx->flist;							// walk IREP linked-list
+	while (prc) {								// TODO: IREP should be added into guru_class->vtbl[]
+		guru_proc *px = _PRC(prc);
+#if CC_DEBUG
+		PRINTF("!!!flst scaning %p:%s %p:%s->%d == %d\n", cx, cname, px, MEMPTR(px->name), px->sid, sid);
+#endif // CC_DEBUG
+		if (px->sid==sid) {
+			return prc;
+		}
+		prc = px->next;
+	}
+	return 0;
 }
 #endif // CUDA_PROFILE_CDP
 
 __GURU__ S32 _proc_idx[32];
-__GURU__ guru_proc*
+__GURU__ GP
 proc_by_sid(GR *r, GS sid)
 {
-#if CC_DEBUG
-	U8* fname = id2name(sid);
-    printf("proc_by_sid:%s=>%d(0x%02x)\n", fname, sid, sid);
-    for (GP cls=class_by_obj(r); cls; cls=_CLS(cls)->super) {	// search up class hierarchy
-        printf("\t%p:sc=%d,self=%d:%s\n", cls, IS_SCLASS(r), IS_SELF(r), MEMPTR(_CLS(cls)->name));
-#else
-    for (GP cls=class_by_obj(r); cls; ) {			// search up class hierarchy
-    	guru_class *cx = _CLS(cls);
-#endif // CC_DEBUG
+    GP cls = class_by_obj(r);
+    GP prc = 0;
+
+    while (cls) {
 #if CUDA_PROFILE_CDP
     	/* CC: hold! CUDA 10.2 profiler does not support CDP yet,
         if (IS_BUILTIN(cls)) {
@@ -179,16 +217,21 @@ proc_by_sid(GR *r, GS sid)
         }
         */
 #else
-    	guru_proc *prc = __find_proc(cx, sid);
-    	if (prc) return prc;
+    	guru_class *cx = _CLS(cls);
+    	prc = __scan_vtbl(cx, sid);		// search for C-functions
+    	if (prc) break;
 #endif // CUDA_PROFILE_CDP
 
-    	for (prc=_PRC(cx->flist); prc; prc=_PRC(prc->next)) {
-    		if (prc->sid==sid) return prc;
-    	}
-        cls = cx->super;
+    	prc = __scan_flist(cx, sid);	// TODO: combine flist into vtbl[]
+    	if (prc) break;
+
+    	cls = cx->super;
     }
-    return NULL;
+#if CC_DEBUG
+	U8* fname = id2name(sid);
+    PRINTF("!!!proc_by_sid(%p, %d)=>%s %d[x%04x]\n", r, sid, fname, prc, prc);
+#endif // CC_DEBUG
+    return prc;
 }
 
 //================================================================
@@ -199,7 +242,7 @@ proc_by_sid(GR *r, GS sid)
   @param  name		class name.
   @param  super		super class.
 */
-__GURU__ void
+__GURU__ guru_class*
 _define_class(const U8 *name, GP cls, GP super)
 {
 	guru_class *cx = _CLS(cls);
@@ -210,31 +253,28 @@ _define_class(const U8 *name, GP cls, GP super)
     cx->var    = 0;						// class variables, lazily allocated when needed
     cx->meta   = 0;						// meta-class, lazily allocated when needed
     cx->super  = super;
-    cx->vtbl   = NULL;
-    cx->flist  = NULL;					// head of list
+    cx->vtbl   = 0;
+    cx->flist  = 0;						// head of list
 #ifdef GURU_DEBUG
     cx->name   = MEMOFF(id2name(sid));	// retrieve from stored symbol table (the one caller passed might be destroyed)
 #endif
 
-    GR  r { GT_CLASS, 0, 0, cls };
+    GR  r { .gt=GT_CLASS, .acl=0, .oid=0, { .off=cls }};
     const_set(sid, &r);					// register new class in constant cache
+
+    return cx;
 }
 
 __GURU__ GP
 guru_define_class(const U8 *name, GP super)
 {
-    if (!super) super = guru_rom_get_class(GT_OBJ);  // set default to Object.
-
     GP cls = _name2class(name);
     if (cls) return cls;
 
     // class does not exist, create a new one
     guru_class *cx = (guru_class *)guru_alloc(sizeof(guru_class));
-#if CC_DEBUG
-    printf("%p:%s defined\n", cx, name);
-#endif // CC_DEBUG
-
     _define_class(name, (cls=MEMOFF(cx)), super);
+
     return cls;
 }
 
@@ -247,30 +287,29 @@ guru_define_class(const U8 *name, GP super)
   @param  name		method name.
   @param  cfunc		pointer to function.
 */
-__GURU__ guru_proc*
-guru_define_method(GP cls, const U8 *name, guru_fptr cfunc)
+__GURU__ GP
+guru_define_method(GP cls, const U8 *name, GP cfunc)
 {
     if (!cls) cls = guru_rom_get_class(GT_OBJ);	// set default to Object.
 
-    guru_proc  *prc = (guru_proc*)guru_alloc(sizeof(guru_proc));
-    guru_class *cx  = _CLS(cls);
+    guru_proc  *px = (guru_proc*)guru_alloc(sizeof(guru_proc));
+    guru_class *cx = _CLS(cls);
 
-    prc->n     = 0;								// No LAMBDA register file
-    prc->sid   = create_sym(name);
-    prc->kt    = 0;								// C-function (from BUILT-IN class)
-    prc->func  = cfunc;							// set function pointer
+    px->rc = px->kt = px->n = 0;				// No LAMBDA register file, C-function (from BUILT-IN class)
+    px->sid   = create_sym(name);
+    px->func  = cfunc;							// set function pointer
 
     _LOCK;
-    prc->next  = cx->flist;						// add as the new list head
-    cx->flist  = MEMOFF(prc);					// TODO: change to array implementation
+    px->next  = cx->flist;						// add as the new list head
+    cx->flist = MEMOFF(px);						// TODO: change to array implementation
     _UNLOCK;
 
 #ifdef GURU_DEBUG
-    prc->cname = MEMOFF(id2name(cx->sid));
-    prc->name  = MEMOFF(id2name(prc->sid));
+    px->cname = MEMOFF(id2name(cx->sid));
+    px->name  = MEMOFF(id2name(px->sid));
 #endif
 
-    return prc;
+    return MEMOFF(px);
 }
 
 //================================================================
@@ -317,22 +356,20 @@ guru_rom_set_class(GT cidx, const char *name, GT super_cidx, const Vfunc vtbl[],
 	GP cls   = guru_rom_get_class(cidx);
 	GP super = guru_rom_get_class(super_cidx);
 
-	_define_class((U8*)name, cls, super);
-
-	guru_class *cx  = _CLS(cls);
-    guru_proc  *prc = (guru_proc *)guru_alloc(sizeof(guru_proc) * n);
+	guru_class *cx = _define_class((U8*)name, cls, super);
+    guru_proc  *px = (guru_proc *)guru_alloc(sizeof(guru_proc) * n);
     cx->rc   = n;								// number of built-in functions
-    cx->vtbl = MEMOFF(prc);						// built-in proc list
+    cx->vtbl = MEMOFF(px);						// built-in proc list
 
-    Vfunc *fp = (Vfunc*)&vtbl[0];				// TODO: nvcc allocates very sparsely for String literals
-    for (U32 i=0; i<n; i++, prc++, fp++) {
-    	prc->n    = 0;
-    	prc->sid  = create_sym((U8*)fp->name);
-    	prc->kt   = 0;							// built-in class type (not USER_DEF_CLASS)
-    	prc->func = fp->func;
+    Vfunc *fp = (Vfunc*)vtbl;					// TODO: nvcc allocates very sparsely for String literals
+    for (U32 i=0; i<n; i++, px++, fp++) {
+    	px->rc   = px->kt = px->n = 0;			// built-in class type (not USER_DEF_CLASS)
+    	px->sid  = create_sym((U8*)fp->name);	// raw string function table defined in code
+    	px->func = MEMOFF(fp->func);
+    	px->next = 0;
 #ifdef GURU_DEBUG
-    	prc->cname= MEMOFF(id2name(cx->sid));
-    	prc->name = MEMOFF(id2name(prc->sid));
+    	px->cname= MEMOFF(id2name(cx->sid));
+    	px->name = MEMOFF(id2name(px->sid));
 #endif
     }
 	return cls;

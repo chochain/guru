@@ -43,7 +43,7 @@ _add_index(const U8 *str, U32 hash)
     MEMCPY(buf, str, asz);
     _sym[idx]      = (U8*)buf;
 */
-    _sym[idx]      = (U8*)str;
+    _sym[idx]      = (U8*)str;			// shallow copy, need to keep source in the memory
     _sym_hash[idx] = hash;
 
 	return idx;
