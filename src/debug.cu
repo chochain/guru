@@ -87,6 +87,17 @@ static const int _op_exe[] = {
 };
 #define SZ_EXE	(sizeof(_op_exe)/sizeof(int))
 
+#define h_STATE(off)  	((guru_state*)(guru_host_heap + (off)))
+#define h_OBJ(off)		((guru_obj*)(guru_host_heap + (off)))
+#define h_STR(off)		((guru_str*)(guru_host_heap + (off)))
+
+#define ST_IREP(st)		((guru_irep*)(guru_host_heap + (st)->irep))
+#define ST_REGS(st)		((GR*)(guru_host_heap + (st)->regs))
+#define ST_ISEQ(st)	 	((U32*)IREP_ISEQ(ST_IREP(st)))
+#define ST_STR(st,n)	(&IREP_POOL(ST_IREP(st))[(n)])
+#define ST_VAR(st,n)	(&IREP_POOL(ST_IREP(st))[(n)])
+#define ST_SYM(st,n)    ((IREP_POOL(ST_IREP(st))[ST_IREP(st)->p+(n)]).i)
+
 #define OUTBUF_SIZE	256
 U8 *_outbuf = NULL;
 U32 _debug  = 0;
@@ -129,7 +140,7 @@ _show_regs(GR *r, U32 ri)
 		const char *t = _vtype[r->gt];
 		U8  c  = (i==0) ? '|' : ' ';
 		if (HAS_REF(r)) {
-			U32 rc = ((RObj*)(guru_host_heap + r->off))->rc;
+			U32 rc = h_OBJ(r->off)->rc;
 			printf("%s%d%c", t, rc, c);
 		}
 		else if (r->gt==GT_STR) printf("%s.%c", t, c);
@@ -137,18 +148,11 @@ _show_regs(GR *r, U32 ri)
 	}
 }
 
-#define ST_IREP(st)		((guru_irep*)(guru_host_heap + (st)->irep))
-#define ST_REGS(st)		((GR*)(guru_host_heap + (st)->regs))
-#define ST_ISEQ(st)	 	((U32*)IREP_ISEQ(ST_IREP(st)))
-#define ST_STR(st,n)	(&IREP_POOL(ST_IREP(st))[(n)])
-#define ST_VAR(st,n)	(&IREP_POOL(ST_IREP(st))[(n)])
-#define ST_SYM(st,n)    ((IREP_POOL(ST_IREP(st))[ST_IREP(st)->p+(n)]).i)
-
 __HOST__ void
 _show_state_regs(guru_state *st, U32 lvl)
 {
 	if (st->prev) {
-		guru_state *st1 = (guru_state*)(guru_host_heap + st->prev);
+		guru_state *st1 = h_STATE(st->prev);
 		_show_state_regs(st1, lvl+1);						// back tracing recursion
 	}
 	U32 n = st->nv;											// depth of current stack frame
@@ -170,13 +174,13 @@ _show_decode(guru_state *st, U32 code)
 	U32  n  = code>>7;
 	GAR  ar = *((GAR*)&n);
 	U32  a  = ar.a;
-	U32  in_lambda = st->prev && (((guru_state*)(guru_host_heap + st->prev))->flag & STATE_LAMBDA);
+	U32  in_lambda = st->prev && (h_STATE(st->prev)->flag & STATE_LAMBDA);
 	U32  up = (ar.c+1)<<(in_lambda ? 0 : 1);
 
 	switch (op) {
 	case OP_MOVE: 		printf(" r%-2d =r%-17d", a, ar.b);							return;
 	case OP_STRING: {
-		guru_str *s0 = (guru_str*)(guru_host_heap + ST_STR(st, ar.bx)->off);
+		guru_str *s0 = h_STR(ST_STR(st, ar.bx)->off);
 		printf(" r%-2d ='%-17s", a, guru_host_heap + s0->raw);
 		return;
 	}
@@ -226,7 +230,7 @@ _disasm(guru_vm *vm, U32 level)
 	static U16 pc0 = 0xffff;
 	static U16 cnt = 0;
 
-	guru_state *st = (guru_state*)(guru_host_heap + vm->state);
+	guru_state *st = h_STATE(vm->state);
 
 	U16  pc    = st->pc;							// program counter
 	U32  *iseq = ST_ISEQ(st);
@@ -241,7 +245,7 @@ _disasm(guru_vm *vm, U32 level)
 
 	guru_irep  *ix0 = ST_IREP(st);
 	U8 idx = 'a';
-	guru_state *sx = st->prev ? (guru_state*)(guru_host_heap + st->prev) : st;
+	guru_state *sx = st->prev ? h_STATE(st->prev) : st;
 	if (!_match_irep(ST_IREP(sx), ix0, &idx)) idx='?';
 	printf("%1d%c%-4d%-8s", vm->id, idx, pc, opc);
 
@@ -260,10 +264,14 @@ _disasm(guru_vm *vm, U32 level)
 }
 
 __HOST__ void
-_show_irep(guru_irep *ix, char level, char *n)
+_show_irep(guru_irep *ix, int level, char *n)
 {
-	printf("\t%c irep[%c]=%p: nreg=%d, nlocal=%d, pools=%d, syms=%d, reps=%d\n",
-				level, *n, ix, ix->nr, ix->nv, ix->p, ix->s, ix->r);
+	printf("\tirep[%c] %p", *n, ix);
+	for (int i=0; i<=level; i++) {
+		printf("  ");
+	}
+	printf("nreg=%d, nlocal=%d, pools=%d, syms=%d, reps=%d\n",
+		ix->nr, ix->nv, ix->p, ix->s, ix->r);
 	// dump all children ireps
 	guru_irep *ix0 = IREP_REPS(ix);
 	for (U32 i=0; i<ix->r; i++, ix0++) {
@@ -295,9 +303,9 @@ debug_vm_irep(guru_vm *vm)
 
 	printf("  vm[%d]:\n", vm->id);
 	char c = 'a';
-	guru_state *st = (guru_state*)(guru_host_heap + vm->state);
-	guru_irep  *ix = (guru_irep*)(guru_host_heap + st->irep);
-	_show_irep(ix, '0'+vm->id, &c);
+	guru_state *st = h_STATE(vm->state);
+	guru_irep  *ix = ST_IREP(st);
+	_show_irep(ix, 0, &c);
 }
 
 __HOST__ int
@@ -305,10 +313,10 @@ debug_disasm(guru_vm *vm)
 {
 	if (_debug<1 || !vm->state) return 0;
 
-	guru_state *st = (guru_state*)(guru_host_heap + vm->state);
+	guru_state *st = h_STATE(vm->state);
 	while (st->prev) {
 		printf("  ");
-		st = (guru_state*)(guru_host_heap + st->prev);
+		st = h_STATE(st->prev);
 	}
 	if (_disasm(vm, _debug)==0xffff) {
 		return -1;
