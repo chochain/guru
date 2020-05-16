@@ -14,7 +14,7 @@
 #include <stdio.h>
 #define PRINTF				printf
 #endif // GURU_USE_CONSOLE
-#define NA(msg)				do { PRINTF("method not supported: %s\n", msg); } while(0)
+#define NA(msg)				({ PRINTF("method not supported: %s\n", msg); })
 
 #ifdef __cplusplus
 extern "C" {
@@ -104,9 +104,8 @@ typedef uint8_t     U8;
 // guru simple types (non struct)
 typedef S32			GI;						// signed integer
 typedef F32	 		GF;						// float
-typedef U16			GS;						// symbol
-typedef U16 		GU;						// unsigned integer
-typedef U32			GP;						// offset, i.e. object pointer
+typedef U16			GS;						// symbol index
+typedef S32			GP;						// offset, i.e. object pointer
 
 // pointer arithmetic, this will not work in multiple segment implementation
 #define U8PADD(p, n)	((U8*)(p) + (n))					// add
@@ -136,7 +135,7 @@ typedef U32			GP;						// offset, i.e. object pointer
 typedef struct {					// 16-bytes (128 bits) for ease of debugging
 	GT  	gt   : 8;
 	U32     acl  : 8;
-	GU		oid  : 16;
+	GS		oid  : 16;
 	union {
 		GI  	i;					// INT, SYM				32-bit
 		GF 	 	f;					// FLOAT			 	32-bit
@@ -154,7 +153,7 @@ typedef struct {					// 16-bytes (128 bits) for ease of debugging
 	};
 } GR;
 
-#define GR_OFF(r)	((struct RObj*)(MEMPTR((r)->off)))
+#define GR_OFF(r)	(MEMPTR((r)->off))
 #define GR_STR(r)	((struct RString*)GR_OFF(r))
 #define GR_RNG(r)	((struct RRange*) GR_OFF(r))
 #define GR_ARY(r)	((struct RArray*) GR_OFF(r))
@@ -163,6 +162,14 @@ typedef struct {					// 16-bytes (128 bits) for ease of debugging
 #define GR_OBJ(r)	((struct RObj*)   GR_OFF(r))
 #define GR_PRC(r)	((struct RProc*)  GR_OFF(r))
 #define GR_CLS(r)	((struct RClass*) GR_OFF(r))
+
+#define _CLS(off)	((struct RClass*)MEMPTR(off))
+#define _PRC(off)   ((struct RProc*)(off ? MEMPTR(off) : NULL))
+#define _RAW(r)		((U8*)MEMPTR(GR_STR(r)->raw))
+#define _REGS(r)	((GR*)MEMPTR((r)->regs))
+#define _VAR(r)		((GR*)((r)->var ? MEMPTR((r)->var) : NULL))
+
+#define _CALL(prc, r, ri)	(((guru_fptr)MEMPTR(_PRC(prc)->func))(r, ri));
 
 /* forward declarations */
 typedef void (*guru_fptr)(GR v[], U32 vi);
@@ -176,7 +183,7 @@ struct Vfunc {
 //================================================================
 /*!@brief
   Guru object header. (i.e. Ruby's RBasic)
-    rc  : reference counter
+    rc  : reference counter, sizeof class->vtbl[]
     kt  : [class,function] type for Class, Proc, lambda, iterator object type
         : proc=[0=Built-in C-func|PROC_IREP|PROC_LAMBDA]
         : cls =[0=Built-in class|CLASS_BY_USER]
@@ -205,37 +212,38 @@ struct Vfunc {
 		GI i;			\
     }
 
-typedef struct RString {		// 16-byte
+typedef struct RString {	// 16-byte
 	GURU_HDR;
-	GP				raw;		// (U8*) pointer to allocated buffer.
-	S32				xxx;		// reserved
+	GP				raw;	// (U8*) pointer to allocated buffer.
+	S32				xxx;	// reserved
 } guru_str;
 
 //================================================================
 /*! Define instance data handle.
 */
-typedef struct RProc {			// 48-byte
-	GURU_HDR;					// n, sid, kt are used
+typedef struct RProc {		// 24-byte
+	GURU_HDR;				// n, sid, kt are used
     union {
-//	    struct RIrep 	*irep;	// an IREP (Ruby code), defined in vm.h
-		GP				irep;	// (RIrep*) an IREP (Ruby code), defined in vm.h
-    	guru_fptr 		func;	// or a raw C function
+		struct {
+			GP	irep;		// (RIrep*) an IREP (Ruby code), defined in vm.h
+	    	GP 	regs;		// (GR*) pointer to register file for lambda
+		};
+    	struct {
+			GP 	func;		// (guru_fptr) for a raw C function
+	    	GP	next;		// (RProc*) next function in linked list
+		};
     };
-    union {
-    	GP				next;	// (RProc*) next function in linked list
-    	GP 				regs;	// (GR*) pointer to register file for lambda
-    };
-    U32		xxx;				// reserved for alignment
 #if GURU_DEBUG
-    GP		cname;				// (U8*) classname
-    GP		name;				// (U8*) function name
+    GP		cname;			// (U8*) classname
+    GP		name;			// (U8*) function name
+    U64		xxx;			// reserved for alignment
 #endif
 } guru_proc;
 
 #define PROC_IREP		0x1
 #define PROC_LAMBDA		0x2
-#define AS_IREP(p)		((p)->kt & PROC_IREP)
-#define AS_LAMBDA(p)	((p)->kt & PROC_LAMBDA)
+#define AS_IREP(px)		((px)->kt & PROC_IREP)
+#define AS_LAMBDA(px)	((px)->kt & PROC_LAMBDA)
 
 //================================================================
 /*!@brief
@@ -254,11 +262,6 @@ typedef struct RSes {			// 16-byte
 	U16 			trace;
 	struct RSes 	*next;
 } guru_ses;
-
-#define _CLS(off)   	((struct RClass*) MEMPTR(off))
-#define _PRC(off)   	((struct RProc*)  (off ? MEMPTR(off) : NULL))
-#define _REGS(r)		((GR*)MEMPTR((r)->regs))
-#define _VAR(r)			((GR*)((r)->var ? MEMPTR((r)->var) : NULL))
 
 #ifdef __cplusplus
 }
