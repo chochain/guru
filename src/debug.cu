@@ -147,7 +147,10 @@ _show_regs(GR *r, U32 ri)
 __HOST__ void
 _show_state_regs(guru_state *st, U32 lvl)
 {
-	if (st->prev) _show_state_regs(st->prev, lvl+1);		// back tracing recursion
+	if (st->prev) {
+		guru_state *st1 = (guru_state*)(guru_host_heap + st->prev);
+		_show_state_regs(st1, lvl+1);						// back tracing recursion
+	}
 	U32 n = st->nv;											// depth of current stack frame
 	GR  *regs = ST_REGS(st);
 	if (lvl==0) { 											// top most
@@ -167,7 +170,8 @@ _show_decode(guru_state *st, U32 code)
 	U32  n  = code>>7;
 	GAR  ar = *((GAR*)&n);
 	U32  a  = ar.a;
-	U32  up = (ar.c+1)<<(IN_LAMBDA(st) ? 0 : 1);
+	U32  in_lambda = st->prev && (((guru_state*)(guru_host_heap + st->prev))->flag & STATE_LAMBDA);
+	U32  up = (ar.c+1)<<(in_lambda ? 0 : 1);
 
 	switch (op) {
 	case OP_MOVE: 		printf(" r%-2d =r%-17d", a, ar.b);							return;
@@ -222,7 +226,7 @@ _disasm(guru_vm *vm, U32 level)
 	static U16 pc0 = 0xffff;
 	static U16 cnt = 0;
 
-	guru_state *st = vm->state;
+	guru_state *st = (guru_state*)(guru_host_heap + vm->state);
 
 	U16  pc    = st->pc;							// program counter
 	U32  *iseq = ST_ISEQ(st);
@@ -237,7 +241,8 @@ _disasm(guru_vm *vm, U32 level)
 
 	guru_irep  *ix0 = ST_IREP(st);
 	U8 idx = 'a';
-	if (!_match_irep(ST_IREP(st->prev ? st->prev : st), ix0, &idx)) idx='?';
+	guru_state *sx = st->prev ? (guru_state*)(guru_host_heap + st->prev) : st;
+	if (!_match_irep(ST_IREP(sx), ix0, &idx)) idx='?';
 	printf("%1d%c%-4d%-8s", vm->id, idx, pc, opc);
 
 	_show_decode(st, code);
@@ -290,7 +295,8 @@ debug_vm_irep(guru_vm *vm)
 
 	printf("  vm[%d]:\n", vm->id);
 	char c = 'a';
-	guru_irep *ix = (guru_irep*)(guru_host_heap + vm->state->irep);
+	guru_state *st = (guru_state*)(guru_host_heap + vm->state);
+	guru_irep  *ix = (guru_irep*)(guru_host_heap + st->irep);
 	_show_irep(ix, '0'+vm->id, &c);
 }
 
@@ -299,8 +305,11 @@ debug_disasm(guru_vm *vm)
 {
 	if (_debug<1 || !vm->state) return 0;
 
-	for (guru_state *st=vm->state; st->prev; st=st->prev) printf("  ");
-
+	guru_state *st = (guru_state*)(guru_host_heap + vm->state);
+	while (st->prev) {
+		printf("  ");
+		st = (guru_state*)(guru_host_heap + st->prev);
+	}
 	if (_disasm(vm, _debug)==0xffff) {
 		return -1;
 	}

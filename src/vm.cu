@@ -74,7 +74,7 @@ __free(guru_vm *vm)
 	if (vm->run!=VM_STATUS_STOP) return;
 
 	while (vm->state) {								// pop off call stack
-		vm_state_pop(vm, _REGS(vm->state)[1]);		// passing value of regs[1]
+		vm_state_pop(vm, _REGS(VM_STATE(vm))[1]);	// passing value of regs[1]
 	}
 	vm->run   = VM_STATUS_FREE;						// release the vm
 	vm->state = NULL;								// redundant?

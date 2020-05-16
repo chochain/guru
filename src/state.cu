@@ -46,12 +46,13 @@ _call(guru_vm *vm, GR r[], U32 ri)
 	GP 	irep  = px->irep;
 
 	if (AS_LAMBDA(px)) {
-		vm_state_push(vm, vm->state->irep, vm->state->pc, regs, ri);	// switch into callee's context
-		vm->state->flag |= STATE_LAMBDA;
-		vm_state_push(vm, irep, 0, r, ri);		// switch into lambda using closure stack frame
+		guru_state *st = VM_STATE(vm);
+		vm_state_push(vm, st->irep, st->pc, regs, ri);	// switch into callee's context
+		VM_STATE(vm)->flag |= STATE_LAMBDA;				// vm->state changed
+		vm_state_push(vm, irep, 0, r, ri);				// switch into lambda using closure stack frame
 	}
 	else if (AS_IREP(px)){
-		vm_state_push(vm, irep, 0, r, ri);		// switch into callee's context
+		vm_state_push(vm, irep, 0, r, ri);				// switch into callee's context
 	}
 	else ASSERT(1==0);
 }
@@ -62,8 +63,9 @@ _each(guru_vm *vm, GR r[], U32 ri)
 	GR *r1 = r+1;
 	ASSERT(r1->gt==GT_PROC);						// ensure it is a code block
 
-	U32	pc0   = vm->state->pc;
-	GP 	irep0 = vm->state->irep;
+	guru_state *st = VM_STATE(vm);
+	U32	pc0   = st->pc;
+	GP 	irep0 = st->irep;
 	GP 	irep1 = GR_PRC(r1)->irep;
 	GR 	git   = guru_iter_new(r, NULL);				// create iterator
 
@@ -71,11 +73,11 @@ _each(guru_vm *vm, GR r[], U32 ri)
 //	GR  *p = r1;
 //	for (U32 i=0; i<=ri; i++, *(p+1)=*p, p--);
 	*(r+1) = git;
-	*(r+2) = *_REGS(vm->state);
+	*(r+2) = *_REGS(st);
 
 	// allocate iterator state (using same stack frame)
 	vm_state_push(vm, irep0, pc0, r+2, ri);
-	vm->state->flag |= STATE_LOOP;
+	VM_STATE(vm)->flag |= STATE_LOOP;
 
 	// switch into callee's context with v[1]=1st element
 	vm_state_push(vm, irep1, 0, r+2, ri);
@@ -96,7 +98,7 @@ _new(guru_vm *vm, GR r[], U32 ri)
 	if (vm_method_exec(vm, r, ri, sid)) {		// run custom initializer if any
 		vm->err = 1;							// initializer not found
 	}
-	vm->state->flag |= STATE_NEW;
+	VM_STATE(vm)->flag |= STATE_NEW;
 }
 
 __GURU__ void
@@ -111,7 +113,7 @@ _lambda(guru_vm *vm, GR r[], U32 ri)
 	GR  *rf = guru_gr_alloc(n);
 	px->regs = MEMOFF(rf);
 
-	GR  *r0 = _REGS(vm->state);							// deep copy register file
+	GR  *r0 = _REGS(VM_STATE(vm));						// deep copy register file
 	for (U32 i=0; i<n; *rf++=*r0++, i++);
 
     *r = *(r+1);
@@ -123,7 +125,7 @@ _raise(guru_vm *vm, GR r[], U32 ri)
 {
 	ASSERT(vm->depth > 0);
 
-	vm->state->pc = vm->rescue[--vm->depth];	// pop from exception return stack
+	VM_STATE(vm)->pc = vm->rescue[--vm->depth];		// pop from exception return stack
 }
 
 typedef struct {
@@ -177,7 +179,7 @@ vm_state_push(guru_vm *vm, GP irep, U32 pc, GR r[], U32 ri)
 #if CC_DEBUG
 	PRINTF("!!!vm_state_push(%p, x%x, %d, %p, %d)\n", vm, irep, pc, r, ri);
 #endif // CC_DEBUG
-	guru_state 	*top = vm->state;
+	guru_state 	*top = VM_STATE(vm);
     guru_state 	*st  = (guru_state *)guru_alloc(sizeof(guru_state));
 
     ASSERT(st);
@@ -193,7 +195,7 @@ vm_state_push(guru_vm *vm, GP irep, U32 pc, GR r[], U32 ri)
     st->regs  = MEMOFF(r);			// TODO: should allocate another regfile
     st->argc  = ri;					// argument count
     st->flag  = 0;					// non-iterator
-    st->prev  = top;				// push into context stack
+    st->prev  = vm->state;			// push current state into context stack
 
     if (top) {						// keep stack frame depth
     	top->nv = IN_LAMBDA(st) ? GR_PRC(r)->n : vm->ar.a;
@@ -202,7 +204,7 @@ vm_state_push(guru_vm *vm, GP irep, U32 pc, GR r[], U32 ri)
     	st->nv = ((guru_irep*)MEMPTR(irep))->nr;			// top most stack frame depth
     }
 
-    vm->state = st;					// TODO: use array-based stack
+    vm->state = MEMOFF(st);			// TODO: use array-based stack
 }
 
 //================================================================
@@ -216,7 +218,7 @@ vm_state_push(guru_vm *vm, GP irep, U32 pc, GR r[], U32 ri)
 __GURU__ void
 vm_state_pop(guru_vm *vm, GR ret_val)
 {
-    guru_state 	*st = vm->state;
+    guru_state 	*st = VM_STATE(vm);
 
     if (!(st->flag & STATE_LAMBDA)) {
         guru_irep  *irep = (guru_irep*)MEMPTR(st->irep);
@@ -232,7 +234,7 @@ vm_state_pop(guru_vm *vm, GR ret_val)
 __GURU__ U32
 vm_loop_next(guru_vm *vm)
 {
-	guru_state *st   = vm->state;
+	guru_state *st   = VM_STATE(vm);
 	guru_irep  *irep = (guru_irep*)MEMPTR(st->irep);
 	GR *r0 = _REGS(st);
 	GR *rr = r0 - 1;									// iterator pointer

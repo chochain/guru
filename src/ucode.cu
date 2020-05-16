@@ -35,7 +35,7 @@ __GURU__ U32 _mutex_uc;
 // so, make sure value is kept before the release
 //
 #define _AR(r)          ((vm->ar.r))
-#define _R0             (_REGS(vm->state))
+#define _R0             (_REGS(VM_STATE(vm)))
 #define _R(r)			(_R0+_AR(r))
 #define _RA(r)			(ref_dec(_R(a)), *_R(a)=(r))
 #define _RA_X(r)    	(ref_inc(r), ref_dec(_R(a)), *_R(a)=*(r))
@@ -320,11 +320,11 @@ uc_setconst(guru_vm *vm)
 __GURU__ GR *
 _upvar(guru_vm *vm)
 {
-	guru_state *st = vm->state;
-	for (U32 i=0; i<=_AR(c); i++) {		// walk up stack frame
+	guru_state *st = VM_STATE(vm);
+	for (U32 i=0; i<=_AR(c); i++) {						// walk up stack frame
 		st = IN_LAMBDA(st)
-			? st->prev
-			: st->prev->prev;			// 1 extra for each_loop
+			? _STATE(st->prev)
+			: _STATE(_STATE(st->prev)->prev);			// 1 extra for each_loop
 	}
 	return _REGS(st) + _AR(b);
 }
@@ -370,7 +370,7 @@ uc_jmp(guru_vm *vm)
 {
 	GI sbx = _AR(bx) - MAX_sBx -1;
 
-	vm->state->pc += sbx;
+	VM_STATE(vm)->pc += sbx;
 }
 
 //================================================================
@@ -386,7 +386,7 @@ uc_jmpif (guru_vm *vm)
 	GR *ra = _R(a);
 
 	if (ra->gt > GT_FALSE) {
-		vm->state->pc += sbx;
+		VM_STATE(vm)->pc += sbx;
 	}
 	*ra = EMPTY;
 }
@@ -403,7 +403,7 @@ uc_jmpnot(guru_vm *vm)
 	GI sbx = _AR(bx) - MAX_sBx -1;
 	GR *ra = _R(a);
 	if (ra->gt <= GT_FALSE) {
-		vm->state->pc += sbx;
+		VM_STATE(vm)->pc += sbx;
 	}
 	*ra = EMPTY;
 }
@@ -421,7 +421,7 @@ uc_onerr(guru_vm *vm)
 
 	GI sbx = _AR(bx) - MAX_sBx -1;
 
-	vm->rescue[vm->depth++] = vm->state->pc + sbx;
+	vm->rescue[vm->depth++] = VM_STATE(vm)->pc + sbx;
 }
 
 //================================================================
@@ -553,7 +553,8 @@ uc_enter(guru_vm *vm)
     U32 off = (ax >> 18) & 0x1f;  						// number of args given
 
     if (adj){
-        vm->state->pc += vm->state->argc - off;			// jmp table lookup
+    	guru_state *st = VM_STATE(vm);
+        st->pc += st->argc - off;						// jmp table lookup
     }
 }
 
@@ -569,7 +570,7 @@ uc_return(guru_vm *vm)
 	GR  ret = *_R(a);							// return value
 	U32 brk = _AR(b);							// break
 
-	guru_state *st = vm->state;
+	guru_state *st = VM_STATE(vm);
 	if (IN_LOOP(st)) {
 		if (vm_loop_next(vm) && !brk) return;	// continue
 
@@ -599,9 +600,9 @@ uc_return(guru_vm *vm)
 __UCODE__
 uc_blkpush(guru_vm *vm)
 {
-	guru_state *st = vm->state;
+	guru_state *st = VM_STATE(vm);
 	for (U32 i=0; i<_AR(c); i++) {
-		st = st->prev->prev;
+		st = _STATE(_STATE(st->prev)->prev);
 	}
     GR *prc = _REGS(st)+st->argc+1;       	// get proc, regs[0] is the class
 
@@ -973,7 +974,7 @@ uc_class(guru_vm *vm)
 
     GS sid   = VM_SYM(vm, _AR(b));
     U8 *name = id2name(sid);
-    GP super = (r1->gt==GT_CLASS) ? r1->off : vm->state->klass;
+    GP super = (r1->gt==GT_CLASS) ? r1->off : VM_STATE(vm)->klass;
     GP cls   = guru_define_class(name, super);
 
 	_CLS(cls)->kt |= USER_DEF_CLASS;			// user defined (i.e. non-builtin) class
@@ -1049,7 +1050,7 @@ uc_tclass(guru_vm *vm)
 {
 	GR *ra = _R(a);
 
-	_RA_T(GT_CLASS, off=vm->state->klass);
+	_RA_T(GT_CLASS, off=VM_STATE(vm)->klass);
 	ra->acl |= ACL_SELF;
 	ra->acl &= ~ACL_SCLASS;
 }
@@ -1103,7 +1104,7 @@ _bin_to_u32(const void *s)
     return (x << 24) | ((x & 0xff00) << 8) | ((x >> 8) & 0xff00) | (x >> 24);
 }
 
-#define VM_BYTECODE(vm) (_bin_to_u32(U8PADD(VM_ISEQ(vm), sizeof(U32)*(vm)->state->pc)))
+#define VM_BYTECODE(vm) (_bin_to_u32(U8PADD(VM_ISEQ(vm), sizeof(U32)*VM_STATE(vm)->pc)))
 
 //===========================================================================================
 // GURU engine
@@ -1121,7 +1122,7 @@ ucode_prefetch(guru_vm *vm)
 	U32 n  = b >> 7;	      					// operands
 	vm->ar = *((GAR *)&n);        				// operands struct/union
 
-	vm->state->pc++;	// advance program counter (ready for next fetch)
+	VM_STATE(vm)->pc++;		// advance program counter (ready for next fetch)
 }
 
 __GURU__ __const__ UCODE ucode_vtbl[] = {
@@ -1287,11 +1288,11 @@ ucode_step(guru_vm *vm)
 	// GURU dispatcher unit
 	// using vtable (i.e. without switch branching)
 	//=======================================================================================
-	U32 *sx = (U32*)vm->state;							// for debugging
+	guru_state *st = VM_STATE(vm);						// for debugging
     ucode_vtbl[vm->op](vm);
 
     if (vm->err && vm->depth>0) {						// simple exception handler
-    	vm->state->pc = vm->rescue[--vm->depth];		// bubbling up
+    	st->pc = vm->rescue[--vm->depth];				// bubbling up
     	vm->err = 0;									// TODO: add exception type or code on stack
     }
 #endif // GURU_DEBUG

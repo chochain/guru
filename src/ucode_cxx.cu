@@ -31,7 +31,7 @@
 // so, make sure value is kept before the release
 //
 #define _AR(r)          ((_vm->ar.r))
-#define _R0             (_REGS(_vm->state))
+#define _R0             (_REGS(VM_STATE(_vm)))
 #define _R(r)			(_R0 + _AR(r))
 #define _RA(r)			(ref_dec(_R(a)), *_R(a)=(r))
 #define _RA_X(r)    	(ref_inc(r), ref_dec(_R(a)), *_R(a)=*(r))
@@ -41,8 +41,8 @@
 
 class Ucode::Impl
 {
-	guru_vm *_vm;
-	U32   	_mutex;
+	guru_vm    	*_vm;
+	U32  		_mutex;
 
 //================================================================
 /*!@brief
@@ -65,11 +65,11 @@ class Ucode::Impl
     __GURU__ GR*
     _upvar()
     {
-        guru_state *st = _vm->state;
-        for (U32 i=0; i<=_AR(c); i++) {		// walk up stack frame
+    	guru_state *st = VM_STATE(_vm);
+        for (U32 i=0; i<=_AR(c); i++) {						// walk up stack frame
             st = IN_LAMBDA(st)
-                ? st->prev
-                : st->prev->prev;			// 1 extra for each_loop
+                ? _STATE(st->prev)
+                : _STATE(_STATE(st->prev)->prev);			// 1 extra for each_loop
         }
         return _REGS(st) + _AR(b);
     }
@@ -407,7 +407,7 @@ class Ucode::Impl
     {
         GI sbx = _AR(bx) - MAX_sBx -1;
 
-        _vm->state->pc += sbx;
+        VM_STATE(_vm)->pc += sbx;
     }
 
 //================================================================
@@ -423,7 +423,7 @@ class Ucode::Impl
         GR *ra = _R(a);
 
         if (ra->gt > GT_FALSE) {
-            _vm->state->pc += sbx;
+            VM_STATE(_vm)->pc += sbx;
         }
         *ra = EMPTY;
     }
@@ -440,7 +440,7 @@ class Ucode::Impl
         GI sbx = _AR(bx) - MAX_sBx -1;
         GR *ra = _R(a);
         if (ra->gt <= GT_FALSE) {
-            _vm->state->pc += sbx;
+            VM_STATE(_vm)->pc += sbx;
         }
         *ra = EMPTY;
     }
@@ -458,7 +458,7 @@ class Ucode::Impl
 
         GI sbx = _AR(bx) - MAX_sBx -1;
 
-        _vm->rescue[_vm->depth++] = _vm->state->pc + sbx;
+        _vm->rescue[_vm->depth++] = VM_STATE(_vm)->pc + sbx;
     }
 
 //================================================================
@@ -568,7 +568,8 @@ class Ucode::Impl
         U32 off = (ax >> 18) & 0x1f;  					// number of args given
 
         if (adj){
-            _vm->state->pc += _vm->state->argc - off;	// jmp table lookup
+        	guru_state *st = VM_STATE(_vm);
+            st->pc += st->argc - off;					// jmp table lookup
         }
     }
 
@@ -584,7 +585,7 @@ class Ucode::Impl
         GR  ret = *_R(a);							// return value
         U32 brk = _AR(b);							// break
 
-        guru_state *st = _vm->state;
+        guru_state *st = VM_STATE(_vm);
         if (IN_LOOP(st)) {
             if (vm_loop_next(_vm) && !brk) return;	// continue
 
@@ -614,9 +615,9 @@ class Ucode::Impl
     __UCODE__
     blkpush()
     {
-        guru_state *st = _vm->state;
+        guru_state *st = VM_STATE(_vm);
         for (U32 i=0; i<_AR(c); i++) {
-            st = st->prev->prev;
+            st = _STATE(_STATE(st->prev)->prev);
         }
         GR *prc = _REGS(st)+st->argc+1;       	// get proc, regs[0] is the class
 
@@ -959,7 +960,7 @@ class Ucode::Impl
 
         GS sid   = VM_SYM(_vm, _AR(b));
         U8 *name = id2name(sid);
-        GP super = (r1->gt==GT_CLASS) ? r1->off : _vm->state->klass;
+        GP super = (r1->gt==GT_CLASS) ? r1->off : VM_STATE(_vm)->klass;
         GP cls   = guru_define_class(name, super);
 
         _CLS(cls)->kt |= USER_DEF_CLASS;			// user defined (i.e. non-builtin) class
@@ -1035,7 +1036,7 @@ class Ucode::Impl
     {
         GR *ra = _R(a);
 
-        _RA_T(GT_CLASS, off=_vm->state->klass);
+        _RA_T(GT_CLASS, off=VM_STATE(_vm)->klass);
         ra->acl |= ACL_SELF;
         ra->acl &= ~ACL_SCLASS;
     }
@@ -1089,12 +1090,13 @@ class Ucode::Impl
 */
     __GURU__ void prefetch()
     {
+    	guru_state *st = VM_STATE(_vm);
         U32 b  = _vm->bytecode = 							// fetch from _vm->state->pc
-			_bin_to_u32(U8PADD(VM_ISEQ(_vm), sizeof(U32)*_vm->state->pc));
+			_bin_to_u32(U8PADD(VM_ISEQ(_vm), sizeof(U32)*st->pc));
         U32 n  = b >> 7;	      							// operands
         _vm->ar = *((GAR *)&n);        						// operands struct/union
 
-        _vm->state->pc++;			// advance program counter (ready for next fetch)
+        st->pc++;					// advance program counter (ready for next fetch)
     }
 
     __GURU__ void dispatch()
@@ -1188,14 +1190,14 @@ class Ucode::Impl
             &Impl::stop,			//    OP_STOP,      stop VM
             &Impl::nop				//    OP_ERR,       Bx      raise RuntimeError with message Lit(Bx)
         };
-        guru_state *st = _vm->state;						// for debugging
+        guru_state *st = VM_STATE(_vm);						// for debugging
 
         (*this.*vtbl[_vm->op])();							// C++ calling a pointer to a member function
         													// C++ this._vt lookup is one extra dereference
         													// thus slower than straight C lookup
 
         if (_vm->err && _vm->depth>0) {						// simple exception handler
-            _vm->state->pc = _vm->rescue[--_vm->depth];		// bubbling up
+            st->pc = _vm->rescue[--_vm->depth];				// bubbling up
             _vm->err = 0;									// TODO: add exception type or code on stack
         }
     }
