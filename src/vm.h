@@ -69,7 +69,8 @@ typedef struct VM {				// 80-byte
     U16	step : 1;				// for single-step debug level
     U16 depth: 4;				// exception stack depth
     U16 err  : 8;				// error code
-    U32 xxx;					// reserved
+    GP  state;					// VM state (callinfo) linked list
+    cudaStream_t    st;			// 8-byte struct
 
     union {
         U32 bytecode;			// cached bytecode
@@ -80,15 +81,13 @@ typedef struct VM {				// 80-byte
     };
     GAR ar;						// 4-byte argument struct
 
-    struct RState  	*state;		// VM state (callinfo) linked list
-    cudaStream_t    st;			// 8-byte struct
-
     // TODO: pointers (for dynamic sizing), use array now for debugging
     U32 rescue[MAX_RESCUE_STACK];	// ONERR/RESCUE return stack
     GR 	regfile[MAX_REGFILE_SIZE];	// registers
 } guru_vm;
 
-#define VM_IREP(vm)    	((guru_irep*)MEMPTR((vm)->state->irep))
+#define VM_STATE(vm)	((guru_state*)MEMPTR((vm)->state))
+#define VM_IREP(vm)    	((guru_irep*)MEMPTR(VM_STATE(vm)->irep))
 #define VM_ISEQ(vm)	 	((U32*)IREP_ISEQ(VM_IREP(vm)))
 
 #define VM_REPS(vm,n)	(&IREP_REPS(VM_IREP(vm))[(n)])

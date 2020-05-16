@@ -54,16 +54,15 @@ typedef struct RState {			// 20-byte
     GP	irep;					// (guru_irep*) pointer to current irep block
 
     GP  regs;					// (GR*) pointer to current register (in VM register file)
-    U32 xxx;
-    struct RState	*prev;		// previous state (call stack)
+    GP  prev;					// previous state (call stack)
 } guru_state;					// VM context
 
 #define STATE_LOOP				0x1
 #define STATE_LAMBDA			0x2
 #define STATE_NEW				0x4
 
-#define IN_LOOP(st)				((st)->prev && ((st)->prev->flag & STATE_LOOP))
-#define IN_LAMBDA(st)			((st)->prev && ((st)->prev->flag & STATE_LAMBDA))
+#define IN_LOOP(st)				((st)->prev && (_STATE((st)->prev)->flag & STATE_LOOP))
+#define IN_LAMBDA(st)			((st)->prev && (_STATE((st)->prev)->flag & STATE_LAMBDA))
 #define IS_LAMBDA(st)			((st)->flag & STATE_LAMBDA)
 #define IS_NEW(st)				((st)->flag & STATE_NEW)
 
