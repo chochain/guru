@@ -55,7 +55,8 @@ typedef struct {
 			U16 cz: 2, bz: 14;
 		};
 	};
-	U32 a : 9;			// hopefully take up 32-bits total (4-byte)
+	U16 a : 9;					// hopefully take up 32-bits total (4-byte)
+	U16 x : 7;					// reserved
 } GAR;
 
 //================================================================
@@ -63,23 +64,24 @@ typedef struct {
   Virtual Machine
 */
 typedef struct VM {				// 80-byte
-    U32	id;						// allocation control
+    U16	id;						// allocation control
     U16	run  : 3;				// VM_STATUS_FREE, READY, RUN, HOLD
     U16	step : 1;				// for single-step debug level
-    U16 depth: 4;				// reserved
-    U16 err;					// reserved
+    U16 depth: 4;				// exception stack depth
+    U16 err  : 8;				// error code
+    U32 xxx;					// reserved
 
     union {
         U32 bytecode;			// cached bytecode
     	struct {
-    		U32 op	 : 7;		// cached opcode
-    		U32 opn  : 25;		// call stack depth
+    		U32 op: 7;			// cached opcode
+    		U32 ax: 25;			// call stack depth
     	};
     };
-    GAR ar;						// argument struct
+    GAR ar;						// 4-byte argument struct
 
     struct RState  	*state;		// VM state (callinfo) linked list
-    cudaStream_t    st;
+    cudaStream_t    st;			// 8-byte struct
 
     // TODO: pointers (for dynamic sizing), use array now for debugging
     U32 rescue[MAX_RESCUE_STACK];	// ONERR/RESCUE return stack
