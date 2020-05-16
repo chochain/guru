@@ -122,7 +122,7 @@ obj_eq3(GR r[], U32 ri)
 __CFUNC__
 obj_class(GR r[], U32 ri)
 {
-    GR ret { GT_CLASS, 0, 0, MEMOFF(class_by_obj(r)) };
+    GR ret { .gt=GT_CLASS, .acl=0, .oid=0, { .off=class_by_obj(r) }};
 
     RETURN_VAL(ret);
 }
@@ -175,7 +175,7 @@ obj_getiv(GR r[], U32 ri)
 __CFUNC__
 obj_setiv(GR r[], U32 ri)
 {
-    GU oid = r->oid;							// attribute 'x='
+    GS oid = r->oid;							// attribute 'x='
     ostore_set(r, oid-1, r+1);					// attribute 'x' (hopefully at one entry before 'x=')
 }
 
@@ -189,7 +189,7 @@ _name_w_eq_sign(GR *buf, U8 *s0)
     guru_buf_add_cstr(buf, s0);
     guru_buf_add_cstr(buf, "=");
 
-    U32 sid = create_sym((U8*)MEMPTR(GR_STR(buf)->raw));	// create the symbol
+    U32 sid = create_sym(_RAW(buf));					// create the symbol
 
     return id2name(sid);
 }
@@ -207,8 +207,8 @@ obj_attr_reader(GR r[], U32 ri)
     for (U32 i = 0; i < ri; i++, s++) {
         ASSERT(s->gt==GT_SYM);
 
-        U8 *name = id2name(s->i);						// reader only
-        guru_define_method(cls, name, obj_getiv);
+        U8 *name = id2name(s->i);
+        ASSERT(guru_define_method(cls, name, MEMOFF(obj_getiv)));
     }
 }
 
@@ -222,7 +222,7 @@ obj_attr_accessor(GR r[], U32 ri)
 	GP cls = IS_SCLASS(r) ? GR_CLS(r)->meta : r->off;	// fetch class offset
 #if CC_DEBUG
 	guru_class *cx = _CLS(cls);
-    printf("%p:%s, sc=%d self=%d #attr_accessor\n", cx, cx->name, IS_SCLASS(r), IS_SELF(r));
+    printf("%p:%s, sc=%d self=%d #attr_accessor\n", cx, MEMPTR(cx->name), IS_SCLASS(r), IS_SELF(r));
 #endif // CC_DEBUG
     GR buf = guru_str_buf(80);
 	GR *s  = r+1;
@@ -231,8 +231,8 @@ obj_attr_accessor(GR r[], U32 ri)
         U8 *a0  = id2name(s->i);						// reader
         U8 *a1  = _name_w_eq_sign(&buf, a0);			// writer
 
-        guru_define_method(cls, a0, obj_getiv);
-        guru_define_method(cls, a1, obj_setiv);
+        ASSERT(guru_define_method(cls, a0, MEMOFF(obj_getiv)));
+        ASSERT(guru_define_method(cls, a1, MEMOFF(obj_setiv)));
 
         guru_str_clr(&buf);
     }
@@ -250,7 +250,6 @@ obj_kind_of(GR r[], U32 ri)
         RETURN_BOOL(0);
     }
     GP cls = class_by_obj(r);
-
     while (cls) {
         if (cls==(r+1)->off) break;
         cls = _CLS(cls)->super;
@@ -265,12 +264,12 @@ obj_lambda(GR r[], U32 ri)
 {
 	ASSERT(r->gt==GT_CLASS && (r+1)->gt==GT_PROC);		// ensure it is a proc
 
-	guru_proc *prc = GR_PRC(r+1);						// mark it as a lambda
-	prc->kt |= PROC_LAMBDA;
+	guru_proc *px = GR_PRC(r+1);						// mark it as a lambda
+	px->kt |= PROC_LAMBDA;
 
-	U32	n   = prc->n = ri+3;
-	GR  *rf = guru_gr_alloc(n);
-	prc->regs = MEMOFF(rf);
+	U32	n    = px->n = ri+3;
+	GR  *rf  = guru_gr_alloc(n);
+	px->regs = MEMOFF(rf);
 
 	GR  *r0 = r - n;
 	for (U32 i=0; i<n; *rf++=*r0++, i++);
@@ -288,6 +287,7 @@ obj_to_s(GR r[], U32 ri)
 }
 
 __GURU__ __const__ Vfunc obj_vtbl[] = {
+	{ "puts",          	obj_puts 		},
 	{ "initialize", 	obj_nop 		},
     { "private",		obj_nop			},			// do nothing now
 	{ "!",				obj_not 		},
@@ -304,9 +304,8 @@ __GURU__ __const__ Vfunc obj_vtbl[] = {
     { "lambda",			obj_lambda		},
 	{ "is_a?",         	obj_kind_of		},
     { "kind_of?",      	obj_kind_of		},
-    { "puts",          	obj_puts 		},
-    { "print",         	obj_print		},
-    { "p", 				obj_p    		},
+	{ "print",         	obj_print		},
+	{ "p", 				obj_p    		},
 
     // the following functions depends on string, implemented in inspect.cu
     { "to_s",          	gr_to_s  		},
@@ -409,18 +408,6 @@ __GURU__ __const__ Vfunc sys_vtbl[] = {
 //================================================================
 // initialize
 // TODO: move into ROM
-//
-typedef struct Vclass {
-	GT					cidx;
-	U8 					*cname;
-	guru_class 			*super;
-	const struct Vfunc	*vtbl;
-	U32					nfunc;
-} guru_class_tbl;
-
-//#define CLASS_DEF(cidx, cname, vtbl) { cidx, (U8*)cname, vtbl==obj_vtbl ? NULL : guru_class_object, vtbl, sizeof(vtbl)/sizeof(Vfunc) }
-#define CLASS_DEF(cname, vtbl)	{ guru_add_class(cname, guru_class_object, vtbl, sizeof(vtbl)/sizeof(Vfunc)) }
-
 __GURU__ void
 _init_all_class(void)
 {
