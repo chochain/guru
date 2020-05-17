@@ -30,6 +30,18 @@ int	 vm_ready(U32 mid);
 
 __HOST__ int vm_get(U8 *ibuf);
 
+class VM_Pool {
+public:
+    VM_Pool(int step);
+    ~VM_Pool();
+
+    __HOST__ int start();
+    __HOST__ int get(char *ibuf);
+private:
+    class Impl;
+    Impl  *_impl;
+};
+
 #ifdef __cplusplus
 }
 #endif
