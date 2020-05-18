@@ -41,7 +41,8 @@
 
 class Ucode::Impl
 {
-	guru_vm    	*_vm;
+	guru_vm    	*_vm;			// cached vm
+	StateMgr    *_sm;			// stack manager object
 	U32  		_mutex;
 
 //================================================================
@@ -533,7 +534,7 @@ class Ucode::Impl
         GS  sid = VM_SYM(_vm, _AR(b));				// get given symbol or object id
         GR  *r  = _R(a);							// call stack, obj is receiver object
 
-        if (vm_method_exec(_vm, r, _AR(c), sid)) { 	// in state.cu, call stack will be wiped before return
+        if (_sm->exec_method(r, _AR(c), sid)) { 	// in state.cu, call stack will be wiped before return
             _vm->err = 1;							// method not found, raise exception
             GR buf   = guru_str_buf(80);			// put error message on return stack
             *(r+1)   = *_undef(&buf, r, sid);		// TODO: exception class
@@ -584,26 +585,26 @@ class Ucode::Impl
     {
         GR  ret = *_R(a);							// return value
         U32 brk = _AR(b);							// break
-
         guru_state *st = VM_STATE(_vm);
         if (IN_LOOP(st)) {
-            if (vm_loop_next(_vm) && !brk) return;	// continue
+            if (_sm->loop_next() && !brk) return;	// continue
 
             ret = *_R(a);							// fetch last returned value
             guru_iter_del(_REGS(st) - 1);			// release iterator
 
             // pop off iterator state
-            vm_state_pop(_vm, ret);					// pop off ITERATOR state
+            _sm->pop_state(ret);					// pop off ITERATOR state
             ret = *_R0;								// return the object itself
         }
         else if (IN_LAMBDA(st)) {
-            vm_state_pop(_vm, ret);					// pop off LAMBDA state
+            _sm->pop_state(ret);					// pop off LAMBDA state
         }
         else if (IS_NEW(st)) {
             ret = *_R0;								// return the object itself
         }
         ret.acl &= ~(ACL_SELF|ACL_SCLASS);			// turn off TCLASS and NEW flags if any
-        vm_state_pop(_vm, ret);						// pop callee's context
+
+        _sm->pop_state(ret);						// pop callee's context
     }
 
 //================================================================
@@ -979,10 +980,10 @@ class Ucode::Impl
     __UCODE__
     exec()
     {
-        ASSERT(_R0->gt == GT_CLASS);				// check
-        GP irep = MEMOFF(VM_REPS(_vm, _AR(bx)));	// child IREP[rb]
+        ASSERT(_R0->gt == GT_CLASS);							// check
+        GP irep = MEMOFF(VM_REPS(_vm, _AR(bx)));				// child IREP[rb]
 
-        vm_state_push(_vm, irep, 0, _R(a), 0);		// push call stack
+        _sm->push_state(irep, 0, _R(a), 0);						// push call stack
     }
 
 //================================================================
@@ -1091,9 +1092,9 @@ class Ucode::Impl
     __GURU__ void prefetch()
     {
     	guru_state *st = VM_STATE(_vm);
-        U32 b  = _vm->bytecode = 							// fetch from _vm->state->pc
+        U32 b   = _vm->bytecode = 							// fetch from _vm->state->pc
 			_bin_to_u32(U8PADD(VM_ISEQ(_vm), sizeof(U32)*st->pc));
-        U32 n  = b >> 7;	      							// operands
+        U32 n   = b >> 7;	      							// operands
         _vm->ar = *((GAR *)&n);        						// operands struct/union
 
         st->pc++;					// advance program counter (ready for next fetch)
@@ -1190,8 +1191,7 @@ class Ucode::Impl
             &Impl::stop,			//    OP_STOP,      stop VM
             &Impl::nop				//    OP_ERR,       Bx      raise RuntimeError with message Lit(Bx)
         };
-        guru_state *st = VM_STATE(_vm);						// for debugging
-
+        guru_state *st = VM_STATE(_vm);
         (*this.*vtbl[_vm->op])();							// C++ calling a pointer to a member function
         													// C++ this._vt lookup is one extra dereference
         													// thus slower than straight C lookup
@@ -1203,12 +1203,13 @@ class Ucode::Impl
     }
 
 public:
-    __GURU__ Impl(guru_vm *vm)
+    __GURU__ Impl(VM *vm)
     {
-        _vm = vm;
+    	_vm = (guru_vm*)vm;
+    	_sm = new StateMgr(vm);
     }
 
-    __GURU__ int run()
+    __GURU__ __INLINE__ int run()
     {
     	while (_vm->run==VM_STATUS_RUN) {					// run my (i.e. blockIdx.x) VM
     		// add before_fetch hooks here
@@ -1222,10 +1223,12 @@ public:
     }
 };	// end of class Ucode::Impl
 
-__GURU__ Ucode::Ucode(guru_vm *vm) : _impl(new Impl(vm)) {}
+__GURU__ Ucode::Ucode(VM *vm) : _impl(new Impl(vm)) {}
 __GURU__ Ucode::~Ucode() = default;
 
 __GURU__ int Ucode::run()
 {
 	return _impl->run();
 }
+
+
