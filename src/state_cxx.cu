@@ -291,7 +291,7 @@ public:
 	}
 
 	__GURU__ void
-	free()
+	free_states()
 	{
 		guru_state *st = _STATE(_vm->state);
 		while (st) {										// pop off call stack
@@ -327,8 +327,8 @@ StateMgr::exec_method(GR r[], U32 ri, GS sid)
 	return _impl->exec_method(r, ri, sid);
 }
 __GURU__ void
-StateMgr::free()
+StateMgr::free_states()
 {
-	_impl->free();
+	_impl->free_states();
 }
 

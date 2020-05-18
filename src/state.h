@@ -66,7 +66,6 @@ typedef struct RState {			// 20-byte
 #define IS_LAMBDA(st)			((st)->flag & STATE_LAMBDA)
 #define IS_NEW(st)				((st)->flag & STATE_NEW)
 
-
 __GURU__ void 	vm_state_push(guru_vm *vm, GP irep, U32 pc, GR r[], U32 ri);
 __GURU__ void	vm_state_pop(guru_vm *vm, GR ret_val);
 
@@ -74,6 +73,9 @@ __GURU__ void	vm_state_pop(guru_vm *vm, GR ret_val);
 __GURU__ U32	vm_loop_next(guru_vm *vm);
 __GURU__ U32	vm_method_exec(guru_vm *vm, GR r[], U32 ri, GS sid);
 
+#ifdef __cplusplus
+}
+#endif
 
 class StateMgr
 {
@@ -87,14 +89,11 @@ public:
 	// TODO: temp functions for call and new (due to VM passing required)
 	__GURU__ U32	loop_next();
 	__GURU__ U32	exec_method(GR r[], U32 ri, GS sid);
-	__GURU__ void	free();
+	__GURU__ void	free_states();
 
 private:
 	class Impl;
 	Impl  *_impl;
 };
 
-#ifdef __cplusplus
-}
-#endif
 #endif	// _GURU_SRC_STATE_H_

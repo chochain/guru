@@ -44,7 +44,7 @@ __GPU__ void _vm_exec(VM *vm)
 	if (vm->run!=VM_STATUS_STOP) return;
 
 	StateMgr *sm = new StateMgr(vm);					// needs a helper
-	sm->free();
+	sm->free_states();
 }
 
 __GPU__ void _vm_prep(VM *vm, U8 *u8_gr)

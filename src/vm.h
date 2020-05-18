@@ -94,6 +94,10 @@ typedef struct {				// 16-byte header + 8*4-byte rescue + 256*8-byte regfile
 #define VM_STR(vm,n)	(&IREP_POOL(VM_IREP(vm))[(n)])
 #define VM_SYM(vm,n)    ((IREP_POOL(VM_IREP(vm))[VM_IREP(vm)->p+(n)]).i)
 
+#ifdef __cplusplus
+}
+#endif
+
 class VM
 {
 public:
@@ -117,16 +121,13 @@ public:
     U32 rescue[MAX_RESCUE_STACK];	// ONERR/RESCUE return stack
     GR 	regfile[MAX_REGFILE_SIZE];	// registers
 
-    __GURU__ void  init(int i, int step);
-    __GURU__ void  prep(U8 *u8_gr);
-    __GURU__ void  exec();
+    __GURU__ void  	init(int i, int step);
+    __GURU__ void  	prep(U8 *u8_gr);
+    __GURU__ void  	exec();
 
 private:
-    __GURU__ void _transcode(U8 *u8_gr);
-    __GURU__ void _ready(GP irep);
+    __GURU__ void 	_transcode(U8 *u8_gr);
+    __GURU__ void 	_ready(GP irep);
 };
-    
-#ifdef __cplusplus
-}
-#endif
+
 #endif // GURU_SRC_VM_H_
