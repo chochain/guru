@@ -43,7 +43,7 @@ _add_index(const U8 *str, U32 hash)
     MEMCPY(buf, str, asz);
     _sym[idx]      = (U8*)buf;
 */
-    _sym[idx]      = (U8*)str;
+    _sym[idx]      = (U8*)str;			// shallow copy, need to keep source in the memory
     _sym_hash[idx] = hash;
 
 	return idx;
@@ -110,7 +110,7 @@ create_sym(const U8 *str)		// create new symbol
 	    printf("%2d> sym[%2d]%08x: %s\n", x, sid, _sym_hash[sid], _sym[sid]);
 	}
 	else {
-		printf("%2d> sym[%2d]%08x: %s==%s\n", x, sid, hash, str, _sym[sid]);
+		printf("%2d> sym[%2d]%08x:~%s\n", x, sid, hash, _sym[sid]);
 #endif // CC_DEBUG
 	}
 	return sid;
@@ -121,7 +121,6 @@ name2id(const U8 *str)
 {
 	U32 hash = HASH(str);
 	S32 sid  = _search(hash);
-
 
 #if CC_DEBUG
     printf("%2d> sym[%2d]%08x=>%s\n", threadIdx.x, sid, _sym_hash[sid], _sym[sid]);
@@ -151,16 +150,16 @@ id2name(GS sid)
   @return 	symbol object
 */
 __GURU__ void
-guru_sym_rom(GV *v)
+guru_sym_rom(GR *r)
 {
-	v->i = create_sym(U8PADD(v, v->off));
+	r->i = create_sym(U8PADD(r, r->off));
 }
 
-__GURU__ GV
+__GURU__ GR
 guru_sym_new(const U8 *str)
 {
-    GV v; { v.gt = GT_SYM; v.acl=0; v.i=create_sym(str); }
+    GR r; { r.gt=GT_SYM; r.acl=0; r.i=create_sym(str); }
 
-    return v;
+    return r;
 }
 

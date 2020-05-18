@@ -87,6 +87,17 @@ static const int _op_exe[] = {
 };
 #define SZ_EXE	(sizeof(_op_exe)/sizeof(int))
 
+#define h_STATE(off)  	((guru_state*)(guru_host_heap + (off)))
+#define h_OBJ(off)		((guru_obj*)(guru_host_heap + (off)))
+#define h_STR(off)		((guru_str*)(guru_host_heap + (off)))
+
+#define ST_IREP(st)		((guru_irep*)(guru_host_heap + (st)->irep))
+#define ST_REGS(st)		((GR*)(guru_host_heap + (st)->regs))
+#define ST_ISEQ(st)	 	((U32*)IREP_ISEQ(ST_IREP(st)))
+#define ST_STR(st,n)	(&IREP_POOL(ST_IREP(st))[(n)])
+#define ST_VAR(st,n)	(&IREP_POOL(ST_IREP(st))[(n)])
+#define ST_SYM(st,n)    ((IREP_POOL(ST_IREP(st))[ST_IREP(st)->p+(n)]).i)
+
 #define OUTBUF_SIZE	256
 U8 *_outbuf = NULL;
 U32 _debug  = 0;
@@ -109,24 +120,30 @@ _find_op(const int *lst, int op, int n)
 }
 
 __HOST__ int
-_find_irep(guru_irep *irep0, guru_irep *irep1, U8 *idx)
+_match_irep(guru_irep *ix, guru_irep *ix0, U8 *idx)
 {
-	if (irep0==irep1) return 1;
-	for (U32 i=0; i<irep0->r; i++) {
+	if (ix==ix0) return 1;
+
+	// search into children recursively
+	guru_irep *ix1 = IREP_REPS(ix);
+	for (U32 i=0; i<ix->r; i++, ix1++) {
 		*idx += 1;
-		if (_find_irep(IREP_REPS(irep0)+i, irep1, idx)) return 1;
+		if (_match_irep(ix1, ix0, idx)) return 1;
 	}
 	return 0;		// not found
 }
 
 __HOST__ void
-_show_regs(GV *v, U32 vi)
+_show_regs(GR *r, U32 ri)
 {
-	for (U32 i=0; i<vi; i++, v++) {
-		const char *t = _vtype[v->gt];
-		U8 c = (i==0) ? '|' : ' ';
-		if (HAS_REF(v))			printf("%s%d%c", t, v->self->rc, c);
-		else if (v->gt==GT_STR) printf("%s.%c", t, c);
+	for (U32 i=0; i<ri; i++, r++) {
+		const char *t = _vtype[r->gt];
+		U8  c  = (i==0) ? '|' : ' ';
+		if (HAS_REF(r)) {
+			U32 rc = h_OBJ(r->off)->rc;
+			printf("%s%d%c", t, rc, c);
+		}
+		else if (r->gt==GT_STR) printf("%s.%c", t, c);
 		else					printf("%s %c", t, c);
 	}
 }
@@ -134,29 +151,41 @@ _show_regs(GV *v, U32 vi)
 __HOST__ void
 _show_state_regs(guru_state *st, U32 lvl)
 {
-	if (st->prev) _show_state_regs(st->prev, lvl+1);		// back tracing recursion
+	if (st->prev) {
+		guru_state *st1 = h_STATE(st->prev);
+		_show_state_regs(st1, lvl+1);						// back tracing recursion
+	}
 	U32 n = st->nv;											// depth of current stack frame
-	if (lvl==0) {											// top most
-		for (n=st->irep->nr; n>0 && st->regs[n].gt==GT_EMPTY; n--);
+	GR  *regs = ST_REGS(st);
+	if (lvl==0) { 											// top most
+		guru_irep *irep = ST_IREP(st);
+		regs = ST_REGS(st) + irep->nr;
+		for (n=irep->nr; n>0 && regs->gt==GT_EMPTY; n--, regs--);
 		n++;
 	}
-	_show_regs((st->flag & STATE_LOOP) ? st->regs-2 : st->regs, n);
+	regs = ST_REGS(st);
+	_show_regs((st->flag & STATE_LOOP) ? regs-2 : regs, n);
 }
 
 __HOST__ void
-_show_decode(guru_vm *vm, U32 code)
+_show_decode(guru_state *st, U32 code)
 {
 	U16  op = code & 0x7f;
 	U32  n  = code>>7;
 	GAR  ar = *((GAR*)&n);
 	U32  a  = ar.a;
-	U32  up = (ar.c+1)<<(IN_LAMBDA(vm->state) ? 0 : 1);
+	U32  in_lambda = st->prev && (h_STATE(st->prev)->flag & STATE_LAMBDA);
+	U32  up = (ar.c+1)<<(in_lambda ? 0 : 1);
 
 	switch (op) {
 	case OP_MOVE: 		printf(" r%-2d =r%-17d", a, ar.b);							return;
-	case OP_STRING:		printf(" r%-2d ='%-17s", a, VM_STR(vm, ar.bx)->str->raw);	return;
+	case OP_STRING: {
+		guru_str *s0 = h_STR(ST_STR(st, ar.bx)->off);
+		printf(" r%-2d ='%-17s", a, guru_host_heap + s0->raw);
+		return;
+	}
 	case OP_LOADI:		printf(" r%-2d =%-18d",  a, ar.bx - MAX_sBx);				return;
-	case OP_LOADL:		printf(" r%-2d =%-18g",  a, VM_VAR(vm, ar.bx)->f);			return;
+	case OP_LOADL:		printf(" r%-2d =%-18g",  a, ST_VAR(st, ar.bx)->f);			return;
 	case OP_ADDI:
 	case OP_SUBI:		printf(" r%-2d ~%-18d",  a, ar.c);							return;
 	case OP_EXEC:		printf(" r%-2d +I%-17d", a, ar.bx+1);						return;
@@ -168,7 +197,7 @@ _show_decode(guru_vm *vm, U32 code)
 		else			printf(" r%-2d <r%-2d..r%-12d", a, ar.b, ar.b+ar.c-1);
 		return;
 	case OP_SCLASS:		printf(" r%-22d", ar.b);									return;
-	case OP_ENTER:		printf(" @%-22d", 1 + vm->state->argc - (n>>18));			return;
+	case OP_ENTER:		printf(" @%-22d", 1 + st->argc - (n>>18));			return;
 	case OP_RESCUE:
 		printf(" r%-2d =%1d?r%-15d", (ar.c ? a+1 : a), ar.c, (ar.c ? a : a+1));		return;
 	}
@@ -179,57 +208,75 @@ _show_decode(guru_vm *vm, U32 code)
 		printf(" r%-2d ,r%-17d", a, a+1);				return;
 	}
 	if (_find_op(_op_jmp, op, SZ_JMP) >= 0) {
-		printf(" r%-2d @%-18d", a, vm->state->pc+(ar.bx - MAX_sBx));	return;
+		printf(" r%-2d @%-18d", a, st->pc+(ar.bx - MAX_sBx));	return;
 	}
 
 	if (_outbuf==NULL) _outbuf = (U8*)cuda_malloc(OUTBUF_SIZE, 1);	// lazy alloc
 	if (_find_op(_op_sym, op, SZ_SYM) >= 0) {
-		GS sid = VM_SYM(vm, ar.bx);
+		GS sid = ST_SYM(st, ar.bx);
 		_id2name(sid, _outbuf);
 		printf(" r%-2d :%-18s", a, _outbuf);			return;
 	}
 	if (_find_op(_op_exe, op, SZ_EXE) >= 0) {
-		GS sid = VM_SYM(vm, ar.b);
+		GS sid = ST_SYM(st, ar.b);
 		_id2name(sid, _outbuf);
 		printf(" r%-2d #%-18s", a, _outbuf);			return;
 	}
 }
 
-__HOST__ void
+__HOST__ U16
 _disasm(guru_vm *vm, U32 level)
 {
-	U16  pc    = vm->state->pc;						// program counter
-	U32  *iseq = VM_ISEQ(vm);
+	static U16 pc0 = 0xffff;
+	static U16 cnt = 0;
+
+	guru_state *st = h_STATE(vm->state);
+
+	U16  pc    = st->pc;							// program counter
+	U32  *iseq = ST_ISEQ(st);
 	U32  code  = bin2u32(*(iseq + pc));				// convert to big endian
 	U16  op    = code & 0x7f;       				// in HOST mode, GET_OPCODE() is DEVICE code
-	U8   *opc  = (U8*)_opcode[GET_OP(op)];
+	U8   *opc  = (U8*)_opcode[GET_OP(op)];			// opcode text
 
-	guru_state *st    = vm->state;
-	guru_irep  *irep1 = st->irep;
-
-	U8 idx = 'a';
-	if (st->prev) {
-		if (!_find_irep(st->prev->irep, irep1, &idx)) idx='?';
+	if (op >= OP_MAX) {
+		printf("ERROR: st=%p, opcode %d out of range, bailing out...\n", st, op);
+		return 0xffff;
 	}
+
+	guru_irep  *ix0 = ST_IREP(st);
+	U8 idx = 'a';
+	guru_state *sx = st->prev ? h_STATE(st->prev) : st;
+	if (!_match_irep(ST_IREP(sx), ix0, &idx)) idx='?';
 	printf("%1d%c%-4d%-8s", vm->id, idx, pc, opc);
 
-	_show_decode(vm, code);
+	_show_decode(st, code);
 	printf("[");
-	_show_state_regs(vm->state, 0);
+	_show_state_regs(st, 0);
 	printf("]\n");
+
+	if (pc==pc0 && ++cnt>3) {
+		printf("ERROR: vm=%p, st=%p, run-away loop detected at pc=%d, bailing...\n", vm, st, pc);
+		return 0xffff;
+	}
+	pc0 = pc;
+
+	return pc;
 }
 
 __HOST__ void
-_show_irep(guru_irep *irep, char level, char *n)
+_show_irep(guru_irep *ix, int level, char *n)
 {
-	U32 a = (U32A)irep;
-	printf("\t%c irep[%c]=%08x: nreg=%d, nlocal=%d, pools=%d, syms=%d, reps=%d\n",
-				level, *n, a, irep->nr, irep->nv, irep->p, irep->s, irep->r);
+	printf("\tirep[%c] %p", *n, ix);
+	for (int i=0; i<=level; i++) {
+		printf("  ");
+	}
+	printf("nreg=%d, nlocal=%d, pools=%d, syms=%d, reps=%d\n",
+		ix->nr, ix->nv, ix->p, ix->s, ix->r);
 	// dump all children ireps
-	guru_irep *r0 = IREP_REPS(irep);
-	for (U32 i=0; i<irep->r; i++, r0++) {
+	guru_irep *ix0 = IREP_REPS(ix);
+	for (U32 i=0; i<ix->r; i++, ix0++) {
 		*n += (*n=='z') ? -57 : 1;		// a-z, A-Z
-		_show_irep(r0, level+1, n);
+		_show_irep(ix0, level+1, n);
 	}
 }
 
@@ -256,7 +303,9 @@ debug_vm_irep(guru_vm *vm)
 
 	printf("  vm[%d]:\n", vm->id);
 	char c = 'a';
-	_show_irep(vm->state->irep, '0'+vm->id, &c);
+	guru_state *st = h_STATE(vm->state);
+	guru_irep  *ix = ST_IREP(st);
+	_show_irep(ix, 0, &c);
 }
 
 __HOST__ int
@@ -264,10 +313,14 @@ debug_disasm(guru_vm *vm)
 {
 	if (_debug<1 || !vm->state) return 0;
 
-	for (guru_state *st=vm->state; st->prev; st=st->prev) printf("  ");
-
-	_disasm(vm, _debug);
-
+	guru_state *st = h_STATE(vm->state);
+	while (st->prev) {
+		printf("  ");
+		st = h_STATE(st->prev);
+	}
+	if (_disasm(vm, _debug)==0xffff) {
+		return -1;
+	}
 	return (_debug>1) ? guru_mmu_check(_debug) : 0;
 }
 

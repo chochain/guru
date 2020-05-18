@@ -10,6 +10,9 @@
   </pre>
 */
 #include "global.h"
+#if CC_DEBUG
+#include "puts.h"
+#endif // CC_DEBUG
 /*
   GLobal objects are stored in '_global' array.
   '_global' array is decending order by sid.
@@ -22,8 +25,8 @@ typedef enum {
 } _gtype;
 
 typedef struct {						// 32-bit
-    GU 			xid;
-    _gtype 		gt;
+    GS 		xid;
+    _gtype 	gt;
 } _gidx;
 
 #define _LOCK		{ MUTEX_LOCK(_mutex_gobj); }
@@ -33,15 +36,15 @@ typedef struct {						// 32-bit
 __GURU__ U32 	_mutex_gobj = 0;
 __GURU__ U32    _global_sz  = 0;
 __GURU__ _gidx 	_global_idx[MAX_GLOBAL_COUNT];
-__GURU__ GV 	_global[MAX_GLOBAL_COUNT];
-__GURU__ GV		_NIL = { .gt = GT_NIL, .acl=0 };
+__GURU__ GR 	_global[MAX_GLOBAL_COUNT];
+__GURU__ GR		_NIL = { .gt = GT_NIL, .acl=0 };
 
 /* search */
 /* linear search is not efficient! */
 /* TODO: Use binary search */
 #if CUDA_PROFILE_CDP
 __GPU__ void
-__idx(S32 *idx, GU xid, _gtype gt)
+__idx(S32 *idx, GS xid, _gtype gt)
 {
 	S32    i = threadIdx.x;
 	_gidx *p = _global_idx + i;
@@ -50,7 +53,7 @@ __idx(S32 *idx, GU xid, _gtype gt)
 }
 #else
 __GURU__ S32
-__idx(GU xid, _gtype gt)
+__idx(GS xid, _gtype gt)
 {
 	_gidx *p = _global_idx;
 	for (int i=0; i<_global_sz; i++, p++) {
@@ -61,7 +64,7 @@ __idx(GU xid, _gtype gt)
 #endif // CUDA_PROFILE_CDP
 
 __GURU__ S32
-_find_idx(GU xid, _gtype gt)
+_find_idx(GS xid, _gtype gt)
 {
 	static S32 idx;					// warning: outside of function scope
 #if CUDA_PROFILE_CDP
@@ -74,8 +77,8 @@ _find_idx(GU xid, _gtype gt)
 	return idx;
 }
 
-__GURU__ GV *
-_get(GU xid, _gtype gt)
+__GURU__ GR *
+_get(GS xid, _gtype gt)
 {
 	S32 i = _find_idx(xid, gt);
     if (i < 0) return &_NIL;		// not found
@@ -84,7 +87,7 @@ _get(GU xid, _gtype gt)
 }
 
 __GURU__ void
-_set(GU xid, GV *v, _gtype gt)
+_set(GS xid, GR *r, _gtype gt)
 {
     S32 i = _find_idx(xid, gt);
 
@@ -99,38 +102,38 @@ _set(GU xid, GV *v, _gtype gt)
     }
     _global_idx[i].xid = xid;
     _global_idx[i].gt  = gt;
-    _global[i] = *v;
+    _global[i] = *r;
     _UNLOCK;
 
 #if CC_DEBUG
-    PRINTF("G[%d]=", i);	guru_puts(v, 1);
+    PRINTF("G[%d]=", i);	guru_puts(r, 1);
 #endif // CC_DEBUG
 }
 
 /* add */
 /* TODO: Check reference count */
 __GURU__ void
-global_set(GU xid, GV *v)
+global_set(GS xid, GR *r)
 {
-    _set(xid, v, GURU_GLOBAL_OBJECT);
+    _set(xid, r, GURU_GLOBAL_OBJECT);
 }
 
 __GURU__ void
-const_set(GU xid, GV *v)
+const_set(GS xid, GR *r)
 {
-    _set(xid, v, GURU_CONST_OBJECT);
+    _set(xid, r, GURU_CONST_OBJECT);
 }
 
 /* get */
-__GURU__ GV *
-global_get(GU xid)
+__GURU__ GR *
+global_get(GS xid)
 {
     return _get(xid, GURU_GLOBAL_OBJECT);
 }
 
 /* add const */
-__GURU__ GV *
-const_get(GU xid)
+__GURU__ GR *
+const_get(GS xid)
 {
     return _get(xid, GURU_CONST_OBJECT);
 }

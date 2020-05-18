@@ -170,6 +170,7 @@ enum OPCODE {
     OP_RSVD4,     /*         reserved instruction #4                         */
     // 0x50
     OP_RESUME = 0x50,  // using OP_HOLD inside guru only
+    OP_MAX
 };
 
 __GURU__ void ucode_prefetch(guru_vm *vm);
@@ -182,7 +183,7 @@ __GURU__ void ucode_step(guru_vm *vm);
 class Ucode								// interface class
 {
 public:
-	__GURU__ Ucode(guru_vm *vm);
+	__GURU__ Ucode(VM *vm);
 	__GURU__ ~Ucode();
 
 	__GURU__ int run();

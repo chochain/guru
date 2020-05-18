@@ -20,6 +20,12 @@
 extern "C" {
 #endif
 
+extern U8 *guru_host_heap;										// accessed by host code
+extern __GURU__ U8 *guru_device_heap;							// accessed by kernel code
+
+#define MEMOFF(p)		(U8POFF(p, guru_device_heap))
+#define MEMPTR(i)		(U8PADD(guru_device_heap, i))
+
 typedef struct RMem {
 	U32 	total;
 	U32		nfree;
@@ -41,8 +47,8 @@ __GURU__ void 			*guru_alloc(U32 sz);
 __GURU__ void 			*guru_realloc(void *ptr, U32 sz);
 __GURU__ void 			guru_free(void *ptr);
 
-__GURU__ GV				*guru_gv_alloc(U32 n);					// array of gv
-__GURU__ GV				*guru_gv_realloc(GV *gv, U32 sz);
+__GURU__ GR				*guru_gr_alloc(U32 n);					// array of GR
+__GURU__ GR				*guru_gr_realloc(GR *gv, U32 sz);
 
 // CUDA memory management functions
 __HOST__ void 			*cuda_malloc(U32 sz, U32 mem_type);		// mem_type: 0=>managed, 1=>device

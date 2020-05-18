@@ -12,6 +12,7 @@
 */
 #include "guru.h"
 #include "symbol.h"
+#include "mmu.h"
 #include "base.h"
 
 #include "class.h"
@@ -23,19 +24,19 @@
 #include "c_range.h"
 
 #if !GURU_USE_STRING
-__CFUNC__	gv_to_s(GV v[], U32 vi)			{}
-__CFUNC__ 	ary_join(GV v[], U32 vi)		{}
-__CFUNC__	str_sprintf(GV v[], U32 vi)		{}
-__CFUNC__	str_printf(GV v[], U32 vi)		{}
+__CFUNC__	gr_to_s(GR r[], U32 ri)			{}
+__CFUNC__ 	ary_join(GR r[], U32 ri)		{}
+__CFUNC__	str_sprintf(GR r[], U32 ri)		{}
+__CFUNC__	str_printf(GR r[], U32 ri)		{}
 
 #else
 
-__GURU__ void _to_s(GV *s, GV *v, U32 n);			// forward declaration
+__GURU__ void _to_s(GR *s, GR *r, U32 n);			// forward declaration
 
 //================================================================
 //! Nil class
 __GURU__ void
-_nil(GV *s)
+_nil(GR *s)
 {
 	// do nothing
 }
@@ -43,7 +44,7 @@ _nil(GV *s)
 //================================================================
 //! False class
 __GURU__ void
-_false(GV *buf)
+_false(GR *buf)
 {
     guru_buf_add_cstr(buf, "false");
 }
@@ -51,7 +52,7 @@ _false(GV *buf)
 //================================================================
 //! True class
 __GURU__ void
-_true(GV *buf)
+_true(GR *buf)
 {
     guru_buf_add_cstr(buf, "true");
 }
@@ -59,16 +60,16 @@ _true(GV *buf)
 //================================================================
 //! Integer class
 __GURU__ void
-_int(GV *buf, GV v[], U32 vi)
+_int(GR *buf, GR r[], U32 ri)
 {
     U32 aoff = 'a' - 10;
-    U32 base = vi ? v[1].i : 10;				// if base given
+    U32 base = ri ? r[1].i : 10;				// if base given
 
     ASSERT(base >=2 && base <= 36);
 
     U8 tmp[64+2];								// int64 + terminate + 1
     U8 *p = tmp + sizeof(tmp) - 1;	*p='\0';	// fill from the tail of the buffer
-    GI i  = v[0].i;
+    GI i  = r[0].i;
 	U8 sng = i<0 ? (i=-i, '-') : 0;
     do {
         U32 x = i % base;
@@ -87,9 +88,9 @@ _int(GV *buf, GV v[], U32 vi)
   @param  ptr	pointer
 */
 __GURU__ void
-_phex(GV *s, void *ptr)
+_phex(GR *s, void *ptr)
 {
-	GV iv[2]; { iv[0].gt=GT_INT; iv[1].gt=GT_INT; }
+	GR iv[2]; { iv[0].gt=GT_INT; iv[1].gt=GT_INT; }
 	iv[1].i = 16;
 	iv[0].i = (U32A)ptr;
 
@@ -99,7 +100,7 @@ _phex(GV *s, void *ptr)
 //================================================================
 // Float class not implemented yet
 __GURU__ void
-_flt(GV *s, GV *v)
+_flt(GR *s, GR *r)
 {
 	NA("flt");
 }
@@ -107,49 +108,49 @@ _flt(GV *s, GV *v)
 //================================================================
 // Symbol class
 __GURU__ void
-_sym(GV *buf, GV *v)
+_sym(GR *buf, GR *r)
 {
 	guru_buf_add_cstr(buf, ":");
-    guru_buf_add_cstr(buf, id2name(v->i));
+    guru_buf_add_cstr(buf, id2name(r->i));
 }
 
 //================================================================
 //! Proc class
 __GURU__ void
-_prc(GV *buf, GV *v)
+_prc(GR *buf, GR *r)
 {
 	guru_buf_add_cstr(buf, "<#Proc:");
-	_phex(buf, v->proc);
+	_phex(buf, GR_PRC(r));
 	guru_buf_add_cstr(buf, ">");
 }
 
 //================================================================
 //! String class
 __GURU__ void
-_str(GV *buf, GV *v)
+_str(GR *buf, GR *r)
 {
 	guru_buf_add_cstr(buf, "\"");
-	guru_buf_add_cstr(buf, (U8 *)v->str->raw);
+	guru_buf_add_cstr(buf, _RAW(r));
 	guru_buf_add_cstr(buf, "\"");
 }
 
 
 __GURU__ void
-_cls(GV *buf, GV *v)
+_cls(GR *buf, GR *r)
 {
-	U8 *name = id2name(v->cls->sid);
+	U8 *name = id2name(GR_CLS(r)->sid);
 	guru_buf_add_cstr(buf, name);
 }
 
 __GURU__ void
-_obj(GV *buf, GV *v)
+_obj(GR *buf, GR *r)
 {
-	ASSERT(v->gt==GT_OBJ);
-	U8 *name = id2name(class_by_obj(v)->sid);
+	ASSERT(r->gt==GT_OBJ);
+	U8 *cname = id2name(_CLS(class_by_obj(r))->sid);
 	guru_buf_add_cstr(buf, "#<");
-	guru_buf_add_cstr(buf, name);
+	guru_buf_add_cstr(buf, cname);
 	guru_buf_add_cstr(buf, ":");
-	_phex(buf, v->self);
+	_phex(buf, GR_OBJ(r));
 	guru_buf_add_cstr(buf, ">");
 }
 
@@ -157,10 +158,11 @@ _obj(GV *buf, GV *v)
 //================================================================
 //! Array class
 __GURU__ void
-_ary(GV *buf, GV *v)
+_ary(GR *buf, GR *r)
 {
-    U32 n  = v->array->n;
-	GV  *o = v->array->data;
+	guru_array *ary = GR_ARY(r);
+    U32 n  = ary->n;
+	GR  *o = ary->data;
     for (U32 i=0; i < n; i++) {
     	guru_buf_add_cstr(buf, (const U8 *)(i==0 ? "[" : ", "));
     	_to_s(buf, o++, 0);				// array element
@@ -171,12 +173,13 @@ _ary(GV *buf, GV *v)
 //================================================================
 //! Hash class
 __GURU__ void
-_hsh(GV *buf, GV *v)
+_hsh(GR *buf, GR *r)
 {
-    ASSERT(v->gt==GT_HASH);
+    ASSERT(r->gt==GT_HASH);
 
-    int n  = v->array->n;
-    GV  *o = v->array->data;
+    guru_array *ary = GR_ARY(r);
+    int n  = ary->n;
+    GR  *o = ary->data;
     for (U32 i=0; i<n; i+=2) {
     	guru_buf_add_cstr(buf, (const U8 *)(i==0 ? "{" : ", "));
 
@@ -190,36 +193,37 @@ _hsh(GV *buf, GV *v)
 //================================================================
 //! Range class
 __GURU__ void
-_rng(GV *buf, GV *v)
+_rng(GR *buf, GR *r)
 {
-    ASSERT(v->gt==GT_RANGE);
+    ASSERT(r->gt==GT_RANGE);
 
+    guru_range *rng = GR_RNG(r);
     for (U32 i=0; i<2; i++) {
         guru_buf_add_cstr(buf, (const U8 *)(i==0 ? "" : ".."));
-        GV o = (i==0) ? v->range->first : v->range->last;
+        GR o = (i==0) ? rng->first : rng->last;
         _to_s(buf, &o, 0);
     }
 }
 #endif  // GURU_USE_ARRAY
 
 __GURU__ void
-_to_s(GV *buf, GV v[], U32 n)
+_to_s(GR *buf, GR r[], U32 n)
 {
-	switch (v->gt) {
+	switch (r->gt) {
     case GT_NIL:
     case GT_EMPTY:	_nil(buf);			break;
     case GT_FALSE:	_false(buf);		break;
     case GT_TRUE:	_true(buf);			break;
-    case GT_INT: 	_int(buf, v, n);	break;
-    case GT_FLOAT: 	_flt(buf, v);		break;
-    case GT_SYM:    _sym(buf, v);		break;
-    case GT_PROC:	_prc(buf, v);		break;
-    case GT_CLASS:	_cls(buf, v);		break;
-    case GT_OBJ:	_obj(buf, v);		break;
-    case GT_ARRAY:	_ary(buf, v);		break;
-    case GT_STR: 	_str(buf, v);		break;
-    case GT_HASH:  	_hsh(buf, v);		break;
-    case GT_RANGE:  _rng(buf, v);		break;
+    case GT_INT: 	_int(buf, r, n);	break;
+    case GT_FLOAT: 	_flt(buf, r);		break;
+    case GT_SYM:    _sym(buf, r);		break;
+    case GT_PROC:	_prc(buf, r);		break;
+    case GT_CLASS:	_cls(buf, r);		break;
+    case GT_OBJ:	_obj(buf, r);		break;
+    case GT_ARRAY:	_ary(buf, r);		break;
+    case GT_STR: 	_str(buf, r);		break;
+    case GT_HASH:  	_hsh(buf, r);		break;
+    case GT_RANGE:  _rng(buf, r);		break;
     default: ASSERT(1==0);		// unknown type
     }
 }
@@ -227,36 +231,36 @@ _to_s(GV *buf, GV v[], U32 n)
 //! Object#to_s factory function
 #define BUF_SIZE	512
 __CFUNC__
-gv_to_s(GV v[], U32 vi)
+gr_to_s(GR r[], U32 ri)
 {
-	GV buf = guru_str_buf(BUF_SIZE);
+	GR buf = guru_str_buf(BUF_SIZE);
 
-	_to_s(&buf, v, vi);
+	_to_s(&buf, r, ri);
 
 	RETURN_VAL(buf);
 }
 
 __CFUNC__
-int_chr(GV v[], U32 vi)
+int_chr(GR r[], U32 ri)
 {
-    U8 buf[2] = { (U8)v->i, '\0' };
+    U8 buf[2] = { (U8)r->i, '\0' };
 
     RETURN_VAL(guru_str_new(buf));
 }
 
 __CFUNC__
-ary_join(GV v[], U32 vi)
+ary_join(GR r[], U32 ri)
 {
-	ASSERT(v->gt==GT_ARRAY);
-	guru_array *a = v->array;
+	ASSERT(r->gt==GT_ARRAY);
+	guru_array *a = GR_ARY(r);
 
-	GV ret = guru_str_buf(BUF_SIZE);
-	GV *r  = a->data;
-	for (U32 i=0; i<a->n; i++, r++) {
-		if (r->gt!=GT_STR)	_to_s(&ret, r, 0);
-		else                guru_buf_add_cstr(&ret, (U8 *)r->str->raw);
-		if (vi==0 || (i+1)>=a->n) continue;
-		guru_buf_add_cstr(&ret, (U8 *)(v+1)->str->raw);
+	GR ret = guru_str_buf(BUF_SIZE);
+	GR *d  = a->data;
+	for (U32 i=0; i<a->n; i++, d++) {
+		if (d->gt==GT_STR)	guru_buf_add_cstr(&ret, _RAW(d));
+		else 				_to_s(&ret, d, 0);
+		if (ri==0 || (i+1)>=a->n) continue;
+		guru_buf_add_cstr(&ret, _RAW(r+1));
 	}
 	RETURN_VAL(ret);
 }
@@ -265,7 +269,7 @@ ary_join(GV v[], U32 vi)
 /*! (method) sprintf
  */
 __CFUNC__
-gv_sprintf(GV v[], U32 vi)
+gr_sprintf(GR r[], U32 ri)
 {
 	NA("string#sprintf");
 }
@@ -274,7 +278,7 @@ gv_sprintf(GV v[], U32 vi)
 /*! (method) printf
  */
 __CFUNC__
-gv_printf(GV v[], U32 vi)
+gr_printf(GR r[], U32 ri)
 {
 	NA("string#printf");
 }

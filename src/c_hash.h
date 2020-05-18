@@ -28,14 +28,14 @@ typedef struct RHash {
     // (NOTE)
     //  Needs to be same members and order as RArray.
     GURU_HDR;
-    GV *data;
+    GR *data;
 
     // TODO: and other member for search.
 } guru_hash;
 
-__GURU__ GV 		guru_hash_new(int size);
-__GURU__ void       guru_hash_del(GV *hash);
-__GURU__ int        guru_hash_cmp(const GV *v0, const GV *v1);
+__GURU__ GR 		guru_hash_new(int size);
+__GURU__ void       guru_hash_del(GR *hash);
+__GURU__ int        guru_hash_cmp(const GR *r0, const GR *r1);
 
 __GURU__ void       guru_init_class_hash();
 

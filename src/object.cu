@@ -31,16 +31,16 @@
 #include "inspect.h"
 
 __GURU__ void
-guru_obj_del(GV *v)
+guru_obj_del(GR *r)
 {
-	ASSERT(v->gt==GT_OBJ);
+	ASSERT(r->gt==GT_OBJ);
 
-	ostore_del(v);
+	ostore_del(r);
 }
 
 //================================================================
 __CFUNC__
-obj_nop(GV v[], U32 vi)
+obj_nop(GR r[], U32 ri)
 {
 	// do nothing
 }
@@ -49,34 +49,34 @@ obj_nop(GV v[], U32 vi)
 /*! (method) p
  */
 __CFUNC__
-obj_p(GV v[], U32 vi)
+obj_p(GR r[], U32 ri)
 {
-	guru_p(v, vi);
+	guru_p(r, ri);
 }
 
 //================================================================
 /*! (method) puts
  */
 __CFUNC__
-obj_puts(GV v[], U32 vi)
+obj_puts(GR r[], U32 ri)
 {
-	guru_puts(v+1, vi);
+	guru_puts(r+1, ri);
 }
 
 //================================================================
 /*! (method) print
  */
 __CFUNC__
-obj_print(GV v[], U32 vi)
+obj_print(GR r[], U32 ri)
 {
-	guru_puts(v+1, vi);
+	guru_puts(r+1, ri);
 }
 
 //================================================================
 /*! (operator) !
  */
 __CFUNC__
-obj_not(GV v[], U32 vi)
+obj_not(GR r[], U32 ri)
 {
     RETURN_FALSE();
 }
@@ -85,9 +85,9 @@ obj_not(GV v[], U32 vi)
 /*! (operator) !=
  */
 __CFUNC__
-obj_neq(GV v[], U32 vi)
+obj_neq(GR r[], U32 ri)
 {
-    S32 t = guru_cmp(v, v+1);
+    S32 t = guru_cmp(r, r+1);
     RETURN_BOOL(t);
 }
 
@@ -95,9 +95,9 @@ obj_neq(GV v[], U32 vi)
 /*! (operator) <=>
  */
 __CFUNC__
-obj_cmp(GV v[], U32 vi)
+obj_cmp(GR r[], U32 ri)
 {
-    S32 t = guru_cmp(v, v+1);
+    S32 t = guru_cmp(r, r+1);
     RETURN_INT(t);
 }
 
@@ -105,13 +105,13 @@ obj_cmp(GV v[], U32 vi)
 /*! (operator) ===
  */
 __CFUNC__
-obj_eq3(GV v[], U32 vi)
+obj_eq3(GR r[], U32 ri)
 {
-    if (v->gt != GT_CLASS) {
-    	RETURN_BOOL(guru_cmp(v, v+1)==0);
+    if (r->gt != GT_CLASS) {
+    	RETURN_BOOL(guru_cmp(r, r+1)==0);
     }
     else {
-    	GV ret = kind_of(v);
+    	GR ret = kind_of(r);
     	RETURN_VAL(ret);
     }
 }
@@ -120,63 +120,63 @@ obj_eq3(GV v[], U32 vi)
 /*! (method) class
  */
 __CFUNC__
-obj_class(GV v[], U32 vi)
+obj_class(GR r[], U32 ri)
 {
-    GV ret;  { ret.gt = GT_CLASS; ret.acl=0; }
-    ret.cls = class_by_obj(v);
+    GR ret { .gt=GT_CLASS, .acl=0, .oid=0, { .off=class_by_obj(r) }};
 
     RETURN_VAL(ret);
 }
 
 __GURU__ void
-_extend(guru_class *cls, guru_class *mod)
+_extend(GP cls, GP mod)
 {
+	guru_class *cx  = _CLS(cls);
 	guru_class *dup = (guru_class*)guru_alloc(sizeof(guru_class));
-	MEMCPY(dup, mod, sizeof(guru_class));		// TODO: deep copy so vtbl can be modified later
+	MEMCPY(dup, _CLS(mod), sizeof(guru_class));	// TODO: deep copy so vtbl can be modified later
 
-	dup->super = cls->super;					// put module as the super-class
-	cls->super = dup;
+	dup->super = cx->super;							// put module as the super-class
+	cx->super  = MEMOFF(dup);
 }
 
 //================================================================
 /*! (method) include
  */
 __CFUNC__
-obj_include(GV v[], U32 vi)
+obj_include(GR r[], U32 ri)
 {
-	ASSERT(v->gt==GT_CLASS && (v+1)->gt==GT_CLASS);
-	_extend(v->cls, (v+1)->cls);
+	ASSERT(r->gt==GT_CLASS && (r+1)->gt==GT_CLASS);
+	_extend(r->off, (r+1)->off);
 }
 
 //================================================================
 /*! (method) extend
  */
 __CFUNC__
-obj_extend(GV v[], U32 vi)
+obj_extend(GR r[], U32 ri)
 {
-	ASSERT(v->gt==GT_CLASS && v[1].gt==GT_CLASS);
+	ASSERT(r->gt==GT_CLASS && (r+1)->gt==GT_CLASS);
 
-	guru_class_add_meta(v);						// lazily add metaclass if needed
-	_extend(v->cls->meta, (v+1)->cls);			// add to class methods
+	guru_class_add_meta(r);						// lazily add metaclass if needed
+	_extend(GR_CLS(r)->meta, (r+1)->off);		// add to class methods
 }
 
 //================================================================
 /*! (method) instance variable getter
  */
 __CFUNC__
-obj_getiv(GV v[], U32 vi)
+obj_getiv(GR r[], U32 ri)
 {
-    RETURN_VAL(ostore_get(v, v->oid));			// attribute 'x'
+    RETURN_VAL(ostore_get(r, r->oid));			// attribute 'x'
 }
 
 //================================================================
 /*! (method) instance variable setter
  */
 __CFUNC__
-obj_setiv(GV v[], U32 vi)
+obj_setiv(GR r[], U32 ri)
 {
-    GU oid = v->oid;							// attribute 'x='
-    ostore_set(v, oid-1, v+1);					// attribute 'x' (hopefully at one entry before 'x=')
+    GS oid = r->oid;							// attribute 'x='
+    ostore_set(r, oid-1, r+1);					// attribute 'x' (hopefully at one entry before 'x=')
 }
 
 
@@ -184,12 +184,12 @@ obj_setiv(GV v[], U32 vi)
 /*! append '=' to create name for attr_writer
  */
 __GURU__ U8 *
-_name_w_eq_sign(GV *buf, U8 *s0)
+_name_w_eq_sign(GR *buf, U8 *s0)
 {
     guru_buf_add_cstr(buf, s0);
     guru_buf_add_cstr(buf, "=");
 
-    U32 sid = create_sym((U8*)buf->str->raw);			// create the symbol
+    U32 sid = create_sym(_RAW(buf));					// create the symbol
 
     return id2name(sid);
 }
@@ -198,17 +198,17 @@ _name_w_eq_sign(GV *buf, U8 *s0)
 /*! (class method) access method 'attr_reader'
  */
 __CFUNC__
-obj_attr_reader(GV v[], U32 vi)
+obj_attr_reader(GR r[], U32 ri)
 {
-	ASSERT(v->gt==GT_CLASS);
-	guru_class *cls = v->cls;							// fetch class
+	ASSERT(r->gt==GT_CLASS);
+	GP cls = r->off;									// fetch class offset
 
-	GV *s = v+1;
-    for (U32 i = 0; i < vi; i++, s++) {
+	GR *s = r+1;
+    for (U32 i = 0; i < ri; i++, s++) {
         ASSERT(s->gt==GT_SYM);
 
-        U8 *name = id2name(s->i);						// reader only
-        guru_define_method(cls, name, obj_getiv);
+        U8 *name = id2name(s->i);
+        ASSERT(guru_define_method(cls, name, MEMOFF(obj_getiv)));
     }
 }
 
@@ -216,22 +216,23 @@ obj_attr_reader(GV v[], U32 vi)
 /*! (class method) access method 'attr_accessor'
  */
 __CFUNC__
-obj_attr_accessor(GV v[], U32 vi)
+obj_attr_accessor(GR r[], U32 ri)
 {
-	ASSERT(v->gt==GT_CLASS);
-	guru_class *cls = IS_SCLASS(v) ? v->cls->meta : v->cls;		// fetch class
+	ASSERT(r->gt==GT_CLASS);
+	GP cls = IS_SCLASS(r) ? GR_CLS(r)->meta : r->off;	// fetch class offset
 #if CC_DEBUG
-    printf("%p:%s, sc=%d self=%d #attr_accessor\n", cls, cls->name, IS_SCLASS(v), IS_SELF(v));
+	guru_class *cx = _CLS(cls);
+    printf("%p:%s, sc=%d self=%d #attr_accessor\n", cx, MEMPTR(cx->name), IS_SCLASS(r), IS_SELF(r));
 #endif // CC_DEBUG
-    GV buf = guru_str_buf(80);
-	GV *s  = v+1;
-    for (U32 i=0; i < vi; i++, s++) {
+    GR buf = guru_str_buf(80);
+	GR *s  = r+1;
+    for (U32 i=0; i < ri; i++, s++) {
         ASSERT(s->gt==GT_SYM);
         U8 *a0  = id2name(s->i);						// reader
         U8 *a1  = _name_w_eq_sign(&buf, a0);			// writer
 
-        guru_define_method(cls, a0, obj_getiv);
-        guru_define_method(cls, a1, obj_setiv);
+        ASSERT(guru_define_method(cls, a0, MEMOFF(obj_getiv)));
+        ASSERT(guru_define_method(cls, a1, MEMOFF(obj_setiv)));
 
         guru_str_clr(&buf);
     }
@@ -242,17 +243,16 @@ obj_attr_accessor(GV v[], U32 vi)
 /*! (method) is_a, kind_of
  */
 __CFUNC__
-obj_kind_of(GV v[], U32 vi)
+obj_kind_of(GR r[], U32 ri)
 {
-	ASSERT(v->gt==GT_OBJ);
-    if ((v+1)->gt != GT_CLASS) {
+	ASSERT(r->gt==GT_OBJ);
+    if ((r+1)->gt != GT_CLASS) {
         RETURN_BOOL(0);
     }
-    const guru_class *cls = class_by_obj(v);
-
+    GP cls = class_by_obj(r);
     while (cls) {
-        if (cls == (v+1)->cls) break;
-        cls = cls->super;
+        if (cls==(r+1)->off) break;
+        cls = _CLS(cls)->super;
     }
 }
 
@@ -260,31 +260,34 @@ obj_kind_of(GV v[], U32 vi)
 /*! lambda function
  */
 __CFUNC__
-obj_lambda(GV v[], U32 vi)
+obj_lambda(GR r[], U32 ri)
 {
-	ASSERT(v->gt==GT_CLASS && (v+1)->gt==GT_PROC);		// ensure it is a proc
+	ASSERT(r->gt==GT_CLASS && (r+1)->gt==GT_PROC);		// ensure it is a proc
 
-	guru_proc *prc = (v+1)->proc;						// mark it as a lambda
-	prc->kt |= PROC_LAMBDA;
+	guru_proc *px = GR_PRC(r+1);						// mark it as a lambda
+	px->kt |= PROC_LAMBDA;
 
-	U32	n   = prc->n 	= vi+3;
-	GV  *r  = prc->regs = guru_gv_alloc(n);
-	GV  *r0 = v - n;
-	for (U32 i=0; i<n; *r++=*r0++, i++);
+	U32	n    = px->n = ri+3;
+	GR  *rf  = guru_gr_alloc(n);
+	px->regs = MEMOFF(rf);
 
-    *v = *(v+1);
-	(v+1)->gt = GT_EMPTY;
+	GR  *r0 = r - n;
+	for (U32 i=0; i<n; *rf++=*r0++, i++);
+
+    *r = *(r+1);
+	(r+1)->gt = GT_EMPTY;
 }
 
 //=====================================================================
-//! deprecated, use inspect#gv_to_s instead
+//! deprecated, use inspect#gr_to_s instead
 __CFUNC__
-obj_to_s(GV v[], U32 vi)
+obj_to_s(GR r[], U32 ri)
 {
 	ASSERT(1==0);				// handled in ucode
 }
 
 __GURU__ __const__ Vfunc obj_vtbl[] = {
+	{ "puts",          	obj_puts 		},
 	{ "initialize", 	obj_nop 		},
     { "private",		obj_nop			},			// do nothing now
 	{ "!",				obj_not 		},
@@ -301,15 +304,14 @@ __GURU__ __const__ Vfunc obj_vtbl[] = {
     { "lambda",			obj_lambda		},
 	{ "is_a?",         	obj_kind_of		},
     { "kind_of?",      	obj_kind_of		},
-    { "puts",          	obj_puts 		},
-    { "print",         	obj_print		},
-    { "p", 				obj_p    		},
+	{ "print",         	obj_print		},
+	{ "p", 				obj_p    		},
 
     // the following functions depends on string, implemented in inspect.cu
-    { "to_s",          	gv_to_s  		},
-    { "inspect",       	gv_to_s  		},
-    { "sprintf",		gv_sprintf		},
-    { "printf",			gv_printf		}
+    { "to_s",          	gr_to_s  		},
+    { "inspect",       	gr_to_s  		},
+    { "sprintf",		gr_sprintf		},
+    { "printf",			gr_printf		}
  };
 
 //================================================================
@@ -318,20 +320,20 @@ __GURU__ __const__ Vfunc obj_vtbl[] = {
 
 __GURU__ __const__ Vfunc prc_vtbl[] = {
 //    	{ "call", 	prc_call	},		// handled  by ucode#uc_send
-	{ "to_s", 	gv_to_s		},
-	{ "inspect",gv_to_s		}
+	{ "to_s", 	gr_to_s		},
+	{ "inspect",gr_to_s		}
 };
 
 //================================================================
 // Nil class
 __CFUNC__
-nil_false_not(GV v[], U32 vi)
+nil_false_not(GR r[], U32 ri)
 {
-    v->gt = GT_TRUE;
+    r->gt = GT_TRUE;
 }
 
 __CFUNC__
-nil_inspect(GV v[], U32 vi)
+nil_inspect(GR r[], U32 ri)
 {
     RETURN_VAL(guru_str_new("nil"));
 }
@@ -342,7 +344,7 @@ nil_inspect(GV v[], U32 vi)
 __GURU__ __const__ Vfunc nil_vtbl[] = {
 	{ "!", 			nil_false_not	},
 	{ "inspect", 	nil_inspect		},
-	{ "to_s", 		gv_to_s			}
+	{ "to_s", 		gr_to_s			}
 };
 
 //================================================================
@@ -350,34 +352,34 @@ __GURU__ __const__ Vfunc nil_vtbl[] = {
  */
 __GURU__ __const__ Vfunc false_vtbl[] = {
 	{ "!", 		nil_false_not	},
-	{ "to_s",    gv_to_s		},
-	{ "inspect", gv_to_s		}
+	{ "to_s",    gr_to_s		},
+	{ "inspect", gr_to_s		}
 };
 
 __GURU__ __const__ Vfunc true_vtbl[] = {
-	{ "to_s", 		gv_to_s 	},
-	{ "inspect", 	gv_to_s		}
+	{ "to_s", 		gr_to_s 	},
+	{ "inspect", 	gr_to_s		}
 };
 
 //================================================================
 /*! Symbol class
  */
-__CFUNC__ sym_nop(GV v[], U32 vi) {}
+__CFUNC__ sym_nop(GR r[], U32 ri) {}
 
 __CFUNC__
-sym_to_s(GV v[], U32 vi)
+sym_to_s(GR r[], U32 ri)
 {
-	GV ret = guru_str_new(id2name(v->i));
+	GR ret = guru_str_new(id2name(r->i));
     RETURN_VAL(ret);
 }
 
 //================================================================
 // initialize
 __GURU__ __const__ Vfunc sym_vtbl[] = {
-	{ "id2name", 	gv_to_s		},
+	{ "id2name", 	gr_to_s		},
 	{ "to_sym",     sym_nop		},
 	{ "to_s", 		sym_to_s	}, 	// no leading ':'
-	{ "inspect", 	gv_to_s		}
+	{ "inspect", 	gr_to_s		}
 };
 
 #if GURU_DEBUG
@@ -385,17 +387,17 @@ __GURU__ __const__ Vfunc sym_vtbl[] = {
 /*! System class (guru only, i.e. non-Ruby)
  */
 __CFUNC__
-sys_mstat(GV v[], U32 vi)
+sys_mstat(GR r[], U32 ri)
 {
-	GV  si; { si.gt=GT_INT; si.acl=0; }
-	GV  ret = guru_array_new(8);
+	GR  si; { si.gt=GT_INT; si.acl=0; }
+	GR  ret = guru_array_new(8);
 	U32 s[8];
 	guru_mmu_stat((guru_mstat*)s);
 	for (U32 i=0; i<8; i++) {
 		si.i = s[i];
 		guru_array_push(&ret, &si);
 	}
-	*v = ret;
+	*r = ret;
 }
 
 __GURU__ __const__ Vfunc sys_vtbl[] = {
@@ -406,18 +408,6 @@ __GURU__ __const__ Vfunc sys_vtbl[] = {
 //================================================================
 // initialize
 // TODO: move into ROM
-//
-typedef struct Vclass {
-	GT					cidx;
-	U8 					*cname;
-	guru_class 			*super;
-	const struct Vfunc	*vtbl;
-	U32					nfunc;
-} guru_class_tbl;
-
-//#define CLASS_DEF(cidx, cname, vtbl) { cidx, (U8*)cname, vtbl==obj_vtbl ? NULL : guru_class_object, vtbl, sizeof(vtbl)/sizeof(Vfunc) }
-#define CLASS_DEF(cname, vtbl)	{ guru_add_class(cname, guru_class_object, vtbl, sizeof(vtbl)/sizeof(Vfunc)) }
-
 __GURU__ void
 _init_all_class(void)
 {

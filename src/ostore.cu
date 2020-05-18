@@ -1,6 +1,6 @@
 /*! @file
   @brief
-  GURU - object store implementation (as a sorted array of GV, indexed by GV.sid)
+  GURU - object store implementation (as a sorted array of GR, indexed by GR.sid)
 
   <pre>
   Copyright (C) 2019- GreenII
@@ -23,12 +23,12 @@
   @return		result. It's not necessarily found.
 */
 __GURU__ S32
-_bsearch(guru_obj *o, GU oid)
+_bsearch(guru_obj *o, GS oid)
 {
     S32 i0 = 0;
     S32 i1 = o->n - 1;	if (i1 < 0) return -1;
 
-    GV *v = o->var;								// point at 1st attribute
+    GR *v = _VAR(o);							// point at 1st attribute
     while (i0 < i1) {
     	S32 m = (i0 + i1) >>1;					// middle i.e. div by 2
         if ((v+m)->oid < oid) {
@@ -47,10 +47,10 @@ _bsearch(guru_obj *o, GU oid)
   @param  size	size.
   @return		0: success, 1: failed
 */
-__GURU__ GV *
-_resize(GV *v0, U32 sz)
+__GURU__ GR*
+_resize(GR *r0, U32 sz)
 {
-    return (GV *)guru_realloc(v0, sizeof(GV) * sz);
+    return (GR*)guru_realloc(r0, sizeof(GR) * sz);
 }
 
 //================================================================
@@ -62,48 +62,51 @@ _resize(GV *v0, U32 sz)
   @return			0: success, -1:failed
 */
 __GURU__ S32
-_set(guru_obj *o, GU oid, GV *val)
+_set(guru_obj *o, GS oid, GR*val)
 {
     S32 idx = _bsearch(o, oid);
-	GV  *r  = o->var;
-    GV  *v  = r + idx;
-    if (idx >= 0 && v->oid==oid) {
-        ref_dec(v);									// replace existed attribute
-        SET_VAL(v, oid, val);
+	GR  *v  = _VAR(o);
+    GR  *r  = v + idx;
+    if (idx >= 0 && r->oid==oid) {
+        ref_dec(r);									// replace existed attribute
+        SET_VAL(r, oid, val);
         return 0;
     }
     // new attribute
     if ((o->n+1) > o->sz) {							// too small?
     	U32 nsz = o->sz + 4;						// expand some
-        o->var = r = _resize(r, nsz);
-        if (!r) return -1;
+        v = _resize(v, nsz);
+        if (!v) return (o->var=0, -1);
+        o->var = MEMOFF(v);
         o->sz  = nsz;
     }
-    v = r + (++idx);								// use next slot
+    r = v + (++idx);								// use next slot
 
     // shift attributes out for insertion
-    GV *t = r + o->n;
+    GR *t = v + o->n;
     for (U32 i=o->n; i > idx; i--, t--) {
     	*(t) = *(t-1);
     }
-    SET_VAL(v, oid, val);
+    SET_VAL(r, oid, val);
     o->n++;
 
     return 0;
 }
 
 //================================================================
-/*! getter
+/*! getter the following objects which shared the same structure
+	GT_OBJ:   r->self->var
+	GT_CLASS: r->cls->var
 
   @param  st	pointer to instance store handle.
   @param  oid	object store ID.
-  @return		pointer to GV .
+  @return		pointer to GR .
 */
-__GURU__ GV*
-_get(guru_obj *o, GU oid)
+__GURU__ GR*
+_get(guru_obj *o, GS oid)
 {
     S32 idx = _bsearch(o, oid);
-    GV  *v  = o->var + idx;
+    GR  *v  = _VAR(o) + idx;
     if (idx < 0 || v->oid != oid) return NULL;
 
     return v;
@@ -115,19 +118,19 @@ _get(guru_obj *o, GU oid)
   @param  cls	Pointer to Class (guru_class).
   @return       guru_ostore object with zero attribute
 */
-__GURU__ GV
-ostore_new(guru_class *cls)
+__GURU__ GR
+ostore_new(GP cls)
 {
-    GV v; { v.gt=GT_OBJ; v.acl = ACL_HAS_REF|ACL_SELF; }
-
-    guru_obj *o = v.self = (guru_obj *)guru_alloc(sizeof(guru_obj));
+    guru_obj *o = (guru_obj *)guru_alloc(sizeof(guru_obj));
 
     o->rc  = 1;
-    o->var = NULL;	// attributes, lazy allocation until _set is called
+    o->var = 0;				// attributes, lazy allocation until _set is called
     o->cls = cls;
     o->sz  = o->n = 0;
 
-    return v;
+    GR r { GT_OBJ, ACL_HAS_REF|ACL_SELF, 0, MEMOFF(o) };
+
+    return r;
 }
 
 //================================================================
@@ -136,15 +139,16 @@ ostore_new(guru_class *cls)
   @param  v	pointer to target value
 */
 __GURU__ void
-ostore_del(GV *v)
+ostore_del(GR *r)
 {
-	GV *r = v->self->var;
+	guru_obj *o = GR_OBJ(r);
+	GR       *v = _VAR(o);
 
-	if (r==NULL) return;
+	if (v==NULL) return;
 
-    for (U32 i=0; i<v->self->n; i++, ref_dec(r++));
+    for (U32 i=0; i<o->n; i++, ref_dec(v++));
 
-    guru_free(v);
+    guru_free(r);
 }
 
 //================================================================
@@ -155,15 +159,15 @@ ostore_del(GV *v)
   @param  val	pointer to value.
 */
 __GURU__ void
-ostore_set(GV *v, GU oid, GV *val)
+ostore_set(GR *r, GS oid, GR *val)
 {
-	guru_obj *o = v->self;				// NOTE: guru_obj->self->var, guru_class->cls->var share the same struct
-	if (o->var==NULL) {
-		o->var = guru_gv_alloc(4);		// lazy allocation
-	    o->sz  = 4;						// number of local variables
-		ref_inc(v);						// itself has been referenced now
+	guru_obj *o = GR_OBJ(r);				// NOTE: guru_obj->var, guru_class->var share the same struct
+	if (!o->var) {
+		o->var = MEMOFF(guru_gr_alloc(4));	// lazy allocation
+	    o->sz  = 4;							// number of local variables
+		ref_inc(r);							// itself has been referenced now
 	}
-	_set(o, oid, ref_inc(val));			// referenced by the object now
+	_set(o, oid, ref_inc(val));				// referenced by the object now
 }
 
 //================================================================
@@ -173,14 +177,12 @@ ostore_set(GV *v, GU oid, GV *val)
   @param  oid	attribute id.
   @return		value.
 */
-__GURU__ GV
-ostore_get(GV *v, GU oid)
+__GURU__ GR
+ostore_get(GR *r, GS oid)
 {
 //	NOTE: common struct header
-// 		GT_OBJ:   v->self->var
-//      GT_CLASS: v->cls->var
 //
-	GV *val = _get(v->self, oid);
+	GR *val = _get(GR_OBJ(r), oid);
 
     return val ? *ref_inc(val) : NIL;
 }

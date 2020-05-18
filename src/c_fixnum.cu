@@ -19,29 +19,29 @@
 #include "inspect.h"
 
 // macro to fetch from stack objects
-#define _INT(n)		(v[(n)].i)
-#define _FLOAT(n)	(v[(n)].f)
+#define _INT(n)		(r[(n)].i)
+#define _FLOAT(n)	(r[(n)].f)
 
 __GURU__ S32
-guru_int_cmp(const GV *v0, const GV *v1)
+guru_int_cmp(const GR *r0, const GR *r1)
 {
-	return -1 + (v0->i==v1->i) + (v0->i > v1->i)*2;
+	return -1 + (r0->i==r1->i) + (r0->i > r1->i)*2;
 }
 
 __GURU__ S32
-guru_flt_cmp(const GV *v0, const GV *v1)
+guru_flt_cmp(const GR *r0, const GR *r1)
 {
-	return -1 + (v0->f==v1->f) + (v0->f > v1->f)*2;
+	return -1 + (r0->f==r1->f) + (r0->f > r1->f)*2;
 }
 
 //================================================================
 /*! (operator) [] bit reference
  */
 __CFUNC__
-int_bitref(GV v[], U32 vi)
+int_bitref(GR r[], U32 ri)
 {
-    if (0 <= v[1].i && v[1].i < 32) {
-        RETURN_INT((v[0].i & (1 << v[1].i)) ? 1 : 0);
+    if (0 <= r[1].i && r[1].i < 32) {
+        RETURN_INT((r[0].i & (1 << r[1].i)) ? 1 : 0);
     }
     else {
         RETURN_INT(0);
@@ -52,7 +52,7 @@ int_bitref(GV v[], U32 vi)
 /*! (operator) unary -
  */
 __CFUNC__
-int_negative(GV v[], U32 vi)
+int_negative(GR r[], U32 ri)
 {
     GI n = _INT(0);
     RETURN_INT(-n);
@@ -62,9 +62,9 @@ int_negative(GV v[], U32 vi)
 /*! (operator) ** power
  */
 __CFUNC__
-int_power(GV v[], U32 vi)
+int_power(GR r[], U32 ri)
 {
-    ASSERT(v[1].gt==GT_INT);
+    ASSERT(r[1].gt==GT_INT);
 
     GI x = (_INT(1) < 0) ? 0 : 1;
     for (U32 i=0; i < _INT(1); i++, x *= _INT(0));
@@ -72,8 +72,8 @@ int_power(GV v[], U32 vi)
     RETURN_INT(x);
 
 #if GURU_USE_FLOAT && GURU_USE_MATH
-    else if (v[1].gt == GT_FLOAT) {
-        RETURN_FLOAT(pow(v[0].i, v[1].f));
+    else if (r[1].gt == GT_FLOAT) {
+        RETURN_FLOAT(pow(r[0].i, r[1].f));
     }
 #endif // GURU_USE_FLOAT && GURU_USE_MATH
 }
@@ -83,47 +83,47 @@ int_power(GV v[], U32 vi)
 /*! (operator) %
  */
 __CFUNC__
-int_mod(GV v[], U32 vi)
+int_mod(GR r[], U32 ri)
 {
     GI n = _INT(1);
-    RETURN_INT(v->i % n);
+    RETURN_INT(r->i % n);
 }
 
 //================================================================
 /*! (operator) &; bit operation AND
  */
 __CFUNC__
-int_and(GV v[], U32 vi)
+int_and(GR r[], U32 ri)
 {
     GI n = _INT(1);
-    RETURN_INT(v->i & n);
+    RETURN_INT(r->i & n);
 }
 
 //================================================================
 /*! (operator) |; bit operation OR
  */
 __CFUNC__
-int_or(GV v[], U32 vi)
+int_or(GR r[], U32 ri)
 {
     GI n = _INT(1);
-    RETURN_INT(v->i | n);
+    RETURN_INT(r->i | n);
 }
 
 //================================================================
 /*! (operator) ^; bit operation XOR
  */
 __CFUNC__
-int_xor(GV v[], U32 vi)
+int_xor(GR r[], U32 ri)
 {
     GI n = _INT(1);
-    RETURN_INT(v->i ^ n);
+    RETURN_INT(r->i ^ n);
 }
 
 //================================================================
 /*! (operator) ~; bit operation NOT
  */
 __CFUNC__
-int_not(GV v[], U32 vi)
+int_not(GR r[], U32 ri)
 {
     GI n = _INT(0);
     RETURN_INT(~n);
@@ -133,30 +133,30 @@ int_not(GV v[], U32 vi)
 /*! (operator) <<; bit operation LEFT_SHIFT
  */
 __CFUNC__
-int_lshift(GV v[], U32 vi)
+int_lshift(GR r[], U32 ri)
 {
     GI n = _INT(1);
-    RETURN_INT(v->i << n);
+    RETURN_INT(r->i << n);
 }
 
 //================================================================
 /*! (operator) >>; bit operation RIGHT_SHIFT
  */
 __CFUNC__
-int_rshift(GV v[], U32 vi)
+int_rshift(GR r[], U32 ri)
 {
     GI n = _INT(1);
-    RETURN_INT(v->i >> n);
+    RETURN_INT(r->i >> n);
 }
 
 //================================================================
 /*! (method) abs
  */
 __CFUNC__
-int_abs(GV v[], U32 vi)
+int_abs(GR r[], U32 ri)
 {
-    if (v[0].i < 0) {
-        v[0].i = -v[0].i;
+    if (r[0].i < 0) {
+        r[0].i = -r[0].i;
     }
 }
 
@@ -165,7 +165,7 @@ int_abs(GV v[], U32 vi)
 /*! (method) to_f
  */
 __CFUNC__
-int_to_f(GV v[], U32 vi)
+int_to_f(GR r[], U32 ri)
 {
     GF f = _INT(0);
     RETURN_FLOAT(f);
@@ -188,8 +188,8 @@ __GURU__ __const__ Vfunc int_vtbl[] = {
 
 	// the following functions require string, implemented in inspect.cu
 	{ "chr", 	int_chr			},
-	{ "to_s", 	gv_to_s			},
-	{ "inspect",gv_to_s			}
+	{ "to_s", 	gr_to_s			},
+	{ "inspect",gr_to_s			}
 };
 
 __GURU__ void
@@ -207,7 +207,7 @@ guru_init_class_int(void)
 /*! (operator) unary -
  */
 __CFUNC__
-flt_negative(GV v[], U32 vi)
+flt_negative(GR r[], U32 ri)
 {
     GF f = _FLOAT(0);
     RETURN_FLOAT(-f);
@@ -218,16 +218,16 @@ flt_negative(GV v[], U32 vi)
 /*! (operator) ** power
  */
 __CFUNC__
-flt_power(GV v[], U32 vi)
+flt_power(GR r[], U32 ri)
 {
     GF n = 0;
-    switch (v[1].gt) {
-    case GT_INT: 	n = v[1].i;	break;
-    case GT_FLOAT:	n = v[1].d;	break;
+    switch (r[1].gt) {
+    case GT_INT: 	n = r[1].i;	break;
+    case GT_FLOAT:	n = r[1].d;	break;
     default: break;
     }
 
-    RETURN_FLOAT(pow(v[0].d, n));
+    RETURN_FLOAT(pow(r[0].d, n));
 }
 #endif // GURU_USE_MATH
 
@@ -235,10 +235,10 @@ flt_power(GV v[], U32 vi)
 /*! (method) abs
  */
 __CFUNC__
-flt_abs(GV v[], U32 vi)
+flt_abs(GR r[], U32 ri)
 {
-    if (v[0].f < 0) {
-        v[0].f = -v[0].f;
+    if (r[0].f < 0) {
+        r[0].f = -r[0].f;
     }
 }
 
@@ -246,7 +246,7 @@ flt_abs(GV v[], U32 vi)
 /*! (method) to_i
  */
 __CFUNC__
-flt_to_i(GV v[], U32 vi)
+flt_to_i(GR r[], U32 ri)
 {
     GI i = (GI)_FLOAT(0);
     RETURN_INT(i);
@@ -262,8 +262,8 @@ __GURU__ __const__ Vfunc flt_vtbl[] = {
 #endif // GURU_USE_MATH
 	{ "abs", 		flt_abs			},
 	{ "to_i", 		flt_to_i		},
-	{ "to_s", 		gv_to_s			},
-	{ "inspect", 	gv_to_s			}
+	{ "to_s", 		gr_to_s			},
+	{ "inspect", 	gr_to_s			}
 };
 __GURU__ void
 guru_init_class_float(void)

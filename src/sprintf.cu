@@ -324,7 +324,7 @@ guru_printf(const U8 *fstr, ...)
 }
 
 __GURU__ void
-guru_vprintf(const U8 *fstr, GV v[], U32 vi)		// << from c_string.cu
+guru_vprintf(const U8 *fstr, GR r[], U32 ri)		// << from c_string.cu
 {
 	U8  buf[PRINT_BUFSIZE];
     U32 i   = 0;
@@ -332,47 +332,47 @@ guru_vprintf(const U8 *fstr, GV v[], U32 vi)		// << from c_string.cu
     guru_print pa, *pf = _init(&pa, buf, PRINT_BUFSIZE, fstr);
 
     while (ret==0 && _next(pf)) {
-        if (i > vi) {
+        if (i > ri) {
         	console_str("#guru_vprint ArgumentError\n");
         }
         switch(pf->fmt.type) {
         case 'c':
-            if (v[i].gt==GT_INT) {
-                ret = __char(pf, v[i].i);
+            if (r[i].gt==GT_INT) {
+                ret = __char(pf, r[i].i);
             }
             break;
         case 's':
-            if (v[i].gt==GT_STR) {
-                ret = __str(pf, (U8*)v[i].str->raw, ' ');
+            if (r[i].gt==GT_STR) {
+                ret = __str(pf, _RAW(r+i), ' ');
             }
-            else if (v[i].gt==GT_SYM) {
-                ret = __str(pf, id2name(v[i].i), ' ');
+            else if (r[i].gt==GT_SYM) {
+                ret = __str(pf, id2name(r[i].i), ' ');
             }
             break;
         case 'd':
         case 'i':
         case 'u':
-            if (v[i].gt==GT_INT) {
-                ret = __int(pf, v[i].i, 10);
+            if (r[i].gt==GT_INT) {
+                ret = __int(pf, r[i].i, 10);
 #if GURU_USE_FLOAT
-            } else if (v[i].gt==GT_FLOAT) {
-                ret = __int(pf, (GI)v[i].f, 10);
+            } else if (r[i].gt==GT_FLOAT) {
+                ret = __int(pf, (GI)r[i].f, 10);
 #endif // GURU_USE_FLOAT
-            } else if (v[i].gt==GT_STR) {
-                GI ival = ATOI(v[i].str->raw, 10);
+            } else if (r[i].gt==GT_STR) {
+                GI ival = ATOI(_RAW(r+i), 10);
                 ret = __int(pf, ival, 10);
             }
             break;
         case 'b':
         case 'B':
-            if (v[i].gt==GT_INT) {
-                ret = __int(pf, v[i].i, 2);
+            if (r[i].gt==GT_INT) {
+                ret = __int(pf, r[i].i, 2);
             }
             break;
         case 'x':
         case 'X':
-            if (v[i].gt==GT_INT) {
-                ret = __int(pf, v[i].i, 16);
+            if (r[i].gt==GT_INT) {
+                ret = __int(pf, r[i].i, 16);
             }
             break;
 #if GURU_USE_FLOAT
@@ -381,11 +381,11 @@ guru_vprintf(const U8 *fstr, GV v[], U32 vi)		// << from c_string.cu
         case 'E':
         case 'g':
         case 'G':
-            if (v[i].gt==GT_FLOAT) {
-                ret = __float(pf, v[i].f);
+            if (r[i].gt==GT_FLOAT) {
+                ret = __float(pf, r[i].f);
             }
-            else if (v[i].gt==GT_INT) {
-            	ret = __float(pf, v[i].i);
+            else if (r[i].gt==GT_INT) {
+            	ret = __float(pf, r[i].i);
             }
             break;
 #endif // GURU_USE_FLOAT

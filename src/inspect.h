@@ -19,12 +19,12 @@
 extern "C" {
 #endif
 
-__CFUNC__ 	gv_to_s(GV v[], U32 vi);
-__CFUNC__	int_chr(GV v[], U32 vi);
-__CFUNC__ 	ary_join(GV v[], U32 vi);
+__CFUNC__ 	gr_to_s(GR r[], U32 ri);
+__CFUNC__	int_chr(GR r[], U32 ri);
+__CFUNC__ 	ary_join(GR r[], U32 ri);
 
-__CFUNC__	gv_sprintf(GV v[], U32 vi);
-__CFUNC__	gv_printf(GV v[], U32 vi);
+__CFUNC__	gr_sprintf(GR r[], U32 ri);
+__CFUNC__	gr_printf(GR r[], U32 ri);
 
 #ifdef __cplusplus
 }

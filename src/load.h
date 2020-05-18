@@ -50,7 +50,7 @@ typedef struct {
 #define __ATOF(v)	ATOF(v)
 #endif // GURU_HOST_GRIT_IMAGE
 
-__CODE__ GRIT *parse_bytecode(U8 *src);		// parsed on HOST, image passed into GPU
+__CODE__ U8 *parse_bytecode(U8 *src);		// parsed on HOST, image passed into GPU
 #ifdef __cplusplus
 }
 #endif

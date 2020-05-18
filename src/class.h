@@ -25,33 +25,31 @@ extern "C" {
 */
 typedef struct RClass {			// 64-byte
 	GURU_HDR;
-	GV				*var;		// class variables
-	struct RClass	*meta;
-
-	struct RClass 	*super;		// guru_class[super]
-    guru_proc 		*vtbl;		// c-func array (in constant memory, rc is the number of functions)
-
-    guru_proc		*flist;		// guru_proc[rprocs], linked list
+	GP				var;		// (GR*) class variables
+	GP				meta;		// (RClass*) offset to guru_class*
+	GP				super;		// (RClass*) offset to guru_class*
+    GP				vtbl;		// (RProc*) c-func array (in constant memory, rc is the number of functions)
+    GP				flist;		// (RProc*) head of guru_proc linked list
 #if GURU_DEBUG
-    U8				*name;		// for debug. TODO: remove
+    GP				name;		// (U8*) for debug. TODO: remove
 #endif // GURU_DEBUG
 } guru_class;
 
 #define USER_DEF_CLASS	0x1
-#define IS_BUILTIN(cls)	(!(cls->kt & USER_DEF_CLASS))
+#define IS_BUILTIN(clsx)	(!(clsx->kt & USER_DEF_CLASS))
 
-__GURU__ guru_class *guru_rom_get_class(GT cidx);
-__GURU__ guru_class *guru_rom_set_class(GT cidx, const char *name, GT super_cidx, const Vfunc vtbl[], int n);
+__GURU__ GP 	guru_rom_get_class(GT cidx);
+__GURU__ GP 	guru_rom_set_class(GT cidx, const char *name, GT super_cidx, const Vfunc vtbl[], int n);
+__GURU__ GP 	guru_define_class(const U8 *name, GP super);
+__GURU__ GP 	guru_class_add_meta(GR *r);				// lazy add metaclass to a class
 
-__GURU__ guru_class *guru_define_class(const U8 *name, guru_class *super);
-__GURU__ guru_proc  *guru_define_method(guru_class *cls, const U8 *name, guru_fptr cfunc);
-__GURU__ guru_class *guru_class_add_meta(GV *v);			// lazy add metaclass to a class
+__GURU__ GP     guru_define_method(GP cls, const U8 *name, GP cfunc);
 
 // common class functions
-__GURU__ GV 		inspect(GV *v, GV *obj);				// inspect obj using v[] as stack
-__GURU__ GV 		kind_of(GV *v);							// whether v1 is a kind of v0
-__GURU__ guru_class *class_by_obj(GV *v);
-__GURU__ guru_proc  *proc_by_sid(GV *v, GS sid);
+__GURU__ GR 	inspect(GR *v, GR *obj);				// inspect obj using v[] as stack
+__GURU__ GR 	kind_of(GR *v);							// whether v1 is a kind of v0
+__GURU__ GP		class_by_obj(GR *v);
+__GURU__ GP  	proc_by_sid(GR *v, GS sid);
 
 #ifdef __cplusplus
 }

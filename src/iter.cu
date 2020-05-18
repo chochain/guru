@@ -26,53 +26,52 @@
   @param  step	stepping object
   @return
 */
-__GURU__ GV
-guru_iter_new(GV *obj, GV *step)
+__GURU__ GR
+guru_iter_new(GR *obj, GR *step)
 {
-    GV v; { v.gt=GT_ITER; v.acl=ACL_HAS_REF; }
-
-    guru_iter *it = v.iter = (guru_iter *)guru_alloc(sizeof(guru_iter));
+    guru_iter *it = (guru_iter *)guru_alloc(sizeof(guru_iter));
     it->rc   = 1;
     it->n    = obj->gt;			// reuse the field
     it->step = step;
+    it->range= ref_inc(obj);
 
-    it->range = ref_inc(obj);
+    GR r { GT_ITER, ACL_HAS_REF, 0, MEMOFF(it) };
     switch (obj->gt) {
     case GT_INT: {
     	it->i	= obj->i;
     	it->inc = (obj->i=0, obj);
     } break;
     case GT_RANGE: {
-    	guru_range *r = obj->range;
+    	guru_range *r = GR_RNG(obj);
     	ASSERT(r->first.gt==GT_INT || r->first.gt==GT_FLOAT);
 
     	it->i    = 0;
-    	it->inc  = guru_gv_alloc(1);
+    	it->inc  = guru_gr_alloc(1);
     	*it->inc = r->first;
     } break;
     case GT_ARRAY: {
-    	guru_array *a = obj->array;
+    	guru_array *a = GR_ARY(obj);
     	it->i    = 0;
     	it->inc  = ref_inc(a->data);
     } break;
     case GT_HASH: {
-    	guru_hash *h = obj->hash;
+    	guru_hash *h = GR_HSH(obj);
     	it->i	 = 0;
     	it->inc  = ref_inc(h->data);	ref_inc(h->data+1);
     } break;
     default: ASSERT(1==0);			// TODO: other types not supported yet
     }
-    return v;
+    return r;
 }
 
 // return next iterator element
 //
 __GURU__ U32
-guru_iter_next(GV *v)
+guru_iter_next(GR *r)
 {
-	ASSERT(v->gt==GT_ITER);
+	ASSERT(r->gt==GT_ITER);
 
-	guru_iter *it = v->iter;
+	guru_iter *it = GR_ITR(r);
 	U32 nvar;
 	switch (it->n) {				// ranging object type (field reused)
 	case GT_INT: {
@@ -80,7 +79,7 @@ guru_iter_next(GV *v)
 		nvar = (it->inc->i < it->i);
 	} break;
 	case GT_RANGE: {
-		guru_range *r = it->range->range;
+		guru_range *r = GR_RNG(it->range);
 		U32 keep;
 		if (it->inc->gt==GT_FLOAT) {
 			it->inc->f += (it->step ? it->step->f : 1.0);
@@ -93,18 +92,19 @@ guru_iter_next(GV *v)
 		nvar = (keep) ? 1 : 0;
 	} break;
 	case GT_ARRAY: {
-		guru_array *a = it->range->array;
-		GV         *d = &a->data[it->i];
+		guru_array *a = GR_ARY(it->range);
+		GR         *d = &a->data[it->i];
 		ref_dec(d);
 		if ((it->i + 1) < a->n) {
-			it->i += (nvar = 1);
+			it->i += 1;
 			it->inc = ref_inc(++d);
+			nvar  = 1;
 		}
 		else nvar=0;
 	} break;
 	case GT_HASH: {
-		guru_hash *h = it->range->hash;
-		GV        *d = &h->data[it->i];
+		guru_hash *h = GR_HSH(it->range);
+		GR        *d = &h->data[it->i];
 		ref_dec(d);
 		ref_dec(d+1);
 		if ((it->i+2) < h->n) {
@@ -124,15 +124,15 @@ guru_iter_next(GV *v)
   @param  target 	pointer to range object.
 */
 __GURU__ void
-guru_iter_del(GV *v)
+guru_iter_del(GR *r)
 {
-	ASSERT(v->gt==GT_ITER);
-	guru_iter *it = v->iter;
+	ASSERT(r->gt==GT_ITER);
+	guru_iter *it = GR_ITR(r);
 
 	if (it->n==GT_RANGE) guru_free(it->inc);
 
     ref_dec(it->range);
     guru_free(it);
 
-    *v = EMPTY;
+    *r = EMPTY;
 }

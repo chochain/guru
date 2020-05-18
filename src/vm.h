@@ -55,38 +55,38 @@ typedef struct {
 			U16 cz: 2, bz: 14;
 		};
 	};
-	U32 a : 9;			// hopefully take up 32-bits total (4-byte)
+	U16 a : 9;					// hopefully take up 32-bits total (4-byte)
+	U16 x : 7;					// reserved
 } GAR;
 
 //================================================================
 /*!@brief
   Virtual Machine
 */
-typedef struct VM {				// 80-byte
-    U32	id;						// allocation control
+typedef struct {				// 16-byte header + 8*4-byte rescue + 256*8-byte regfile
+    U16	id;						// allocation control
     U16	run  : 3;				// VM_STATUS_FREE, READY, RUN, HOLD
     U16	step : 1;				// for single-step debug level
-    U16 depth: 4;				// reserved
-    U16 err;					// reserved
+    U16 depth: 4;				// exception stack depth
+    U16 err  : 8;				// error code
+    GP  state;					// VM state (callinfo) linked list
 
     union {
         U32 bytecode;			// cached bytecode
     	struct {
-    		U32 op	 : 7;		// cached opcode
-    		U32 opn  : 25;		// call stack depth
+    		U32 op: 7;			// cached opcode
+    		U32 ax: 25;			// call stack depth
     	};
     };
-    GAR ar;						// argument struct
-
-    struct RState  	*state;		// VM state (callinfo) linked list
-    cudaStream_t    st;
+    GAR ar;						// 4-byte argument struct
 
     // TODO: pointers (for dynamic sizing), use array now for debugging
     U32 rescue[MAX_RESCUE_STACK];	// ONERR/RESCUE return stack
-    GV 	regfile[MAX_REGFILE_SIZE];	// registers
+    GR 	regfile[MAX_REGFILE_SIZE];	// registers
 } guru_vm;
 
-#define VM_IREP(vm)    	((vm)->state->irep)
+#define VM_STATE(vm)	((guru_state*)MEMPTR((vm)->state))
+#define VM_IREP(vm)    	((guru_irep*)MEMPTR(VM_STATE(vm)->irep))
 #define VM_ISEQ(vm)	 	((U32*)IREP_ISEQ(VM_IREP(vm)))
 
 #define VM_REPS(vm,n)	(&IREP_REPS(VM_IREP(vm))[(n)])
@@ -94,6 +94,38 @@ typedef struct VM {				// 80-byte
 #define VM_STR(vm,n)	(&IREP_POOL(VM_IREP(vm))[(n)])
 #define VM_SYM(vm,n)    ((IREP_POOL(VM_IREP(vm))[VM_IREP(vm)->p+(n)]).i)
 
+class VM
+{
+public:
+    U16	id;						// allocation control
+    U16	run  : 3;				// VM_STATUS_FREE, READY, RUN, HOLD
+    U16	step : 1;				// for single-step debug level
+    U16 depth: 4;				// exception stack depth
+    U16 err  : 8;				// error code
+    GP  state;					// VM state (callinfo) linked list
+
+    union {
+        U32 bytecode;			// cached bytecode
+    	struct {
+    		U32 op: 7;			// cached opcode
+    		U32 ax: 25;			// call stack depth
+    	};
+    };
+    GAR ar;						// 4-byte argument struct
+
+    // TODO: pointers (for dynamic sizing), use array now for debugging
+    U32 rescue[MAX_RESCUE_STACK];	// ONERR/RESCUE return stack
+    GR 	regfile[MAX_REGFILE_SIZE];	// registers
+
+    __GURU__ void  init(int i, int step);
+    __GURU__ void  prep(U8 *u8_gr);
+    __GURU__ void  exec();
+
+private:
+    __GURU__ void _transcode(U8 *u8_gr);
+    __GURU__ void _ready(GP irep);
+};
+    
 #ifdef __cplusplus
 }
 #endif
