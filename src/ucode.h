@@ -183,7 +183,7 @@ __GURU__ void ucode_step(guru_vm *vm);
 class Ucode								// interface class
 {
 public:
-	__GURU__ Ucode(guru_vm *vm);
+	__GURU__ Ucode(VM *vm);
 	__GURU__ ~Ucode();
 
 	__GURU__ int run();

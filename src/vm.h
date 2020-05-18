@@ -63,14 +63,13 @@ typedef struct {
 /*!@brief
   Virtual Machine
 */
-typedef struct VM {				// 80-byte
+typedef struct {				// 16-byte header + 8*4-byte rescue + 256*8-byte regfile
     U16	id;						// allocation control
     U16	run  : 3;				// VM_STATUS_FREE, READY, RUN, HOLD
     U16	step : 1;				// for single-step debug level
     U16 depth: 4;				// exception stack depth
     U16 err  : 8;				// error code
     GP  state;					// VM state (callinfo) linked list
-    cudaStream_t    st;			// 8-byte struct
 
     union {
         U32 bytecode;			// cached bytecode
@@ -95,6 +94,38 @@ typedef struct VM {				// 80-byte
 #define VM_STR(vm,n)	(&IREP_POOL(VM_IREP(vm))[(n)])
 #define VM_SYM(vm,n)    ((IREP_POOL(VM_IREP(vm))[VM_IREP(vm)->p+(n)]).i)
 
+class VM
+{
+public:
+    U16	id;						// allocation control
+    U16	run  : 3;				// VM_STATUS_FREE, READY, RUN, HOLD
+    U16	step : 1;				// for single-step debug level
+    U16 depth: 4;				// exception stack depth
+    U16 err  : 8;				// error code
+    GP  state;					// VM state (callinfo) linked list
+
+    union {
+        U32 bytecode;			// cached bytecode
+    	struct {
+    		U32 op: 7;			// cached opcode
+    		U32 ax: 25;			// call stack depth
+    	};
+    };
+    GAR ar;						// 4-byte argument struct
+
+    // TODO: pointers (for dynamic sizing), use array now for debugging
+    U32 rescue[MAX_RESCUE_STACK];	// ONERR/RESCUE return stack
+    GR 	regfile[MAX_REGFILE_SIZE];	// registers
+
+    __GURU__ void  init(int i, int step);
+    __GURU__ void  prep(U8 *u8_gr);
+    __GURU__ void  exec();
+
+private:
+    __GURU__ void _transcode(U8 *u8_gr);
+    __GURU__ void _ready(GP irep);
+};
+    
 #ifdef __cplusplus
 }
 #endif

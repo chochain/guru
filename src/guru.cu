@@ -21,16 +21,17 @@ extern "C" __GPU__  void guru_console_init(U8 *buf, U32 sz);
 U8 *guru_host_heap;				// guru global memory
 U8 *_guru_out;					// guru output stream
 guru_ses *_ses_list = NULL; 	// session linked-list
+VM_Pool  *_vm_pool  = NULL;
 
 //
 // _fetch_bytecode:
 //     	read raw bytecode from input file (or stream) into CUDA managed memory
 //		for later CUDA IREP image building
 //
-__HOST__ U8 *
-_fetch_bytecode(const U8 *rite_fname)
+__HOST__ char *
+_fetch_bytecode(const char *rite_fname)
 {
-  FILE *fp = fopen((const char *)rite_fname, "rb");
+  FILE *fp = fopen(rite_fname, "rb");
 
   if (!fp) {
     fprintf(stderr, "File not found\n");
@@ -42,7 +43,7 @@ _fetch_bytecode(const U8 *rite_fname)
   size_t sz = ftell(fp);
   fseek(fp, 0, SEEK_SET);
 
-  U8 *req = (U8*)cuda_malloc(sz, 1);			// allocate bytecode storage
+  char *req = (char*)cuda_malloc(sz, 1);			// allocate bytecode storage
 
   if (req) {
 	  fread(req, sizeof(char), sz, fp);
@@ -70,10 +71,18 @@ guru_setup(int step, int trace)
 		fprintf(stderr, "ERROR: output buffer allocation error!\n");
 		return -2;
 	}
+#if GURU_CXX_CODEBASE
+	_vm_pool = new VM_Pool(step);
+	if (!_vm_pool) {
+		fprintf(stderr, "ERROR: VM memory block allocation error!\n");
+		return -3;
+	}
+#else
 	if (vm_pool_init(step)) {										// allocate VM pool
 		fprintf(stderr, "ERROR: VM memory block allocation error!\n");
 		return -3;
 	}
+#endif // GURU_CXX_CODEBASE
 	_ses_list = NULL;
 
 	guru_mmu_init<<<1,1>>>(mem, BLOCK_MEMORY_SIZE);			// setup memory management
@@ -103,13 +112,17 @@ guru_load(char *rite_name)
 
 	ses->stdout = _guru_out;
 
-	U8 *ins = _fetch_bytecode((U8*)rite_name);
+	char *ins = _fetch_bytecode(rite_name);
 	if (!ins) {
 		fprintf(stderr, "ERROR: bytecode request allocation error!\n");
 		return -1;
 	}
 
+#if GURU_CXX_CODEBASE
+	int id = ses->id = _vm_pool->get(ins);
+#else
 	int id = ses->id = vm_get(ins);
+#endif // GURU_CXX_CODEBASE
 	cuda_free(ins);
 
 	if (id==-1) {
@@ -135,6 +148,9 @@ guru_run()
 
 	// parse BITE code into each vm
 	// TODO: work producer (enqueue)
+#if GURU_CXX_CODEBASE
+	_vm_pool->start();
+#else
 	for (guru_ses *ses=_ses_list; ses!=NULL; ses=ses->next) {
 		if (vm_ready(ses->id)) {
 			fprintf(stderr, "ERROR: VM state failed to go into READY state!\n");
@@ -142,7 +158,7 @@ guru_run()
 	}
 	// kick up main loop until all VM are done
 	vm_main_start();
-
+#endif // GURU_CXX_CODEBASE
 	debug_mmu_stat();
 	debug_log("guru session completed.");
 
