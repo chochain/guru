@@ -21,14 +21,14 @@
 extern "C" {
 #endif
 
-int  vm_pool_init(U32 step);
+int  vm_pool_init(int step);
 int  vm_main_start();
 
-int	 vm_hold(U32 mid);
-int	 vm_stop(U32 mid);
-int	 vm_ready(U32 mid);
+int	 vm_hold(int mid);
+int	 vm_stop(int mid);
+int	 vm_ready(int mid);
 
-__HOST__ int vm_get(U8 *ibuf);
+__HOST__ int vm_get(char *ibuf);
 
 #ifdef __cplusplus
 }

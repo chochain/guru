@@ -40,9 +40,9 @@ guru_vm *_vm_pool;
 U32      _vm_cnt = 0;
 cudaStream_t	_st_pool[MIN_VM_COUNT];
 
+#if GURU_CXX_CODEBASE
 __GURU__ Ucode *_uc_pool[MIN_VM_COUNT] = { NULL, NULL };
-
-__GURU__ Ucode *_uc_pool[MIN_VM_COUNT] = { NULL, NULL };
+#endif // GURU_CXX_CODEBASE
 
 pthread_mutex_t 	_mutex_pool;
 #define _LOCK		(pthread_mutex_lock(&_mutex_pool))
@@ -87,9 +87,10 @@ __free(guru_vm *vm)
 // from source memory pointers to GR[] (i.e. regfile)
 //
 __GURU__ void
-__transcode(GRIT *gr)
+__transcode(U8 *u8_gr)
 {
-	GR *r = (GR*)U8PADD(gr, gr->pool);
+	GRIT *gr = (GRIT*)u8_gr;
+	GR   *r  = (GR*)U8PADD(gr, gr->pool);
 	for (U32 i=0; i < gr->psz; i++, r++) {			// symbol table
 		switch (r->gt) {
 		case GT_SYM: guru_sym_rom(r);	break;
@@ -113,13 +114,15 @@ _prep(guru_vm *vm,  U8 *u8_gr)
 	if (blockIdx.x!=0 || threadIdx.x!=0) return;	// singleton thread
 
 	if (vm->run==VM_STATUS_FREE) {
-		GRIT *gr  = (GRIT*)u8_gr;
-	    GP   irep = MEMOFF(U8PADD(gr, gr->reps));
-		__transcode(gr);
+	    GP irep = MEMOFF(U8PADD(u8_gr, ((GRIT*)u8_gr)->reps));
+		__transcode(u8_gr);
 		__ready(vm, irep);
+
+#if GURU_CXX_CODEBASE
 		if (!_uc_pool[vm->id]) {
 			_uc_pool[vm->id] = new Ucode(vm);
 		}
+#endif // GURU_CXX_CODEBASE
 	}
 }
 #else
@@ -129,8 +132,9 @@ _prep(guru_vm *vm, U8 *ibuf)
 	if (blockIdx.x!=0 || threadIdx.x!=0) return;	// singleton thread
 
 	if (vm->run==VM_STATUS_FREE) {
-		GRIT *gr = (GRIT*)parse_bytecode(ibuf);
-		__transcode(gr);
+		U8 *u8_gr = parse_bytecode(ibuf);
+	    GP irep   = MEMOFF(U8PADD(gr, gr->reps));
+		__transcode(u8_gr);
 		__ready(vm, gr);
 	}
 }
@@ -149,19 +153,10 @@ _exec(guru_vm *vm)
 	if (blockIdx.x!=0 || threadIdx.x!=0) return;	// TODO: single thread for now
 
 #if GURU_CXX_CODEBASE
-<<<<<<< HEAD
- 	extern __shared__ Ucode uc[];
-
- 	uc[blockIdx.x] = *_uc_pool[vm->id];
-
-=======
-	extern __shared__ Ucode uc[];
-
  	uc[blockIdx.x] = *_uc_pool[vm->id];
  	__syncthreads();
 
->>>>>>> u32off
-	if (uc[blockIdx.x].run()) {
+ 	if (uc[blockIdx.x].run()) {
 		__free(vm);
 	}
 	return;
@@ -182,7 +177,7 @@ _exec(guru_vm *vm)
 }
 
 __HOST__ int
-vm_pool_init(U32 step)
+vm_pool_init(int step)
 {
 	guru_vm *vm = _vm_pool = (guru_vm *)cuda_malloc(sizeof(guru_vm) * MIN_VM_COUNT, 1);
 	if (!vm) return -1;
@@ -200,7 +195,7 @@ vm_pool_init(U32 step)
 __HOST__ int
 _has_job() {
 	guru_vm *vm = _vm_pool;
-	for (U32 i=0; i<MIN_VM_COUNT; i++, vm++) {
+	for (int i=0; i<MIN_VM_COUNT; i++, vm++) {
 		if (vm->run==VM_STATUS_RUN && !vm->err) return 1;
 	}
 	return 0;
@@ -212,7 +207,7 @@ vm_main_start()
 	// TODO: spin off as a server thread
 	do {
 		guru_vm *vm = _vm_pool;
-		for (U32 i=0; i<MIN_VM_COUNT; i++, vm++) {
+		for (int i=0; i<MIN_VM_COUNT; i++, vm++) {
 			if (!vm->state || vm->run!=VM_STATUS_RUN) continue;
 			// add pre-hook here
 			if (debug_disasm(vm)) {
@@ -228,7 +223,7 @@ vm_main_start()
 			}
 			// add post-hook here
 		}
-		GPU_SYNC();									// TODO: cooperative thread group
+		GPU_SYNC();								// TODO: cooperative thread group
 #if GURU_USE_CONSOLE
 		guru_console_flush(ses->out, ses->trace);	// dump output buffer
 #endif  // GURU_USE_CONSOLE
@@ -238,7 +233,7 @@ vm_main_start()
 }
 
 __HOST__ int
-vm_get(U8 *ibuf)
+vm_get(char *ibuf)
 {
 	if (!_vm_pool) 				return -1;
 	if (_vm_cnt>=MIN_VM_COUNT) 	return -1;
@@ -246,7 +241,7 @@ vm_get(U8 *ibuf)
 	guru_vm *vm = &_vm_pool[_vm_cnt];
 
 #if GURU_HOST_GRIT_IMAGE
-	U8 *gr = parse_bytecode(ibuf);
+	U8 *gr = parse_bytecode((U8*)ibuf);
 	if (!gr) return -2;
 
 	_prep<<<1,1,0,_st_pool[_vm_cnt]>>>(vm, gr);
@@ -261,7 +256,7 @@ vm_get(U8 *ibuf)
 }
 
 __HOST__ int
-_set_status(U32 mid, U32 new_status, U32 status_flag)
+_set_status(int mid, int new_status, int status_flag)
 {
 	guru_vm *vm = &_vm_pool[mid];
 	if (!(vm->run & status_flag)) return -1;		// transition state machine
@@ -273,6 +268,6 @@ _set_status(U32 mid, U32 new_status, U32 status_flag)
 	return 0;
 }
 
-__HOST__ int vm_ready(U32 mid) { return _set_status(mid, VM_STATUS_RUN,  VM_STATUS_READY); }
-__HOST__ int vm_hold(U32 mid)  { return _set_status(mid, VM_STATUS_HOLD, VM_STATUS_RUN);   }
-__HOST__ int vm_stop(U32 mid)  { return _set_status(mid, VM_STATUS_STOP, VM_STATUS_RUN);   }
+__HOST__ int vm_ready(int mid) { return _set_status(mid, VM_STATUS_RUN,  VM_STATUS_READY); }
+__HOST__ int vm_hold(int mid)  { return _set_status(mid, VM_STATUS_HOLD, VM_STATUS_RUN);   }
+__HOST__ int vm_stop(int mid)  { return _set_status(mid, VM_STATUS_STOP, VM_STATUS_RUN);   }

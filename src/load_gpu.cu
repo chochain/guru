@@ -303,7 +303,7 @@ _fill_grit(GRIT *gr, rite_size *sz, int ix, U8 **bp)
 	}
 }
 
-__GURU__ GRIT*
+__GURU__ U8*
 _build_image(U8 **bp)
 {
     U8   *p  = *bp;
@@ -312,7 +312,7 @@ _build_image(U8 **bp)
     rite_size sz { .rsz=1, .psz=0, .isz=0, .ssz=0 };
     _fill_grit(gr, &sz, 0, bp);
 
-	return gr;
+	return (U8*)gr;
 }
 
 //================================================================
@@ -339,13 +339,13 @@ _load_lvar(GRIT *gr, U8 **bp)
 
   @param  src	Pointer to bytecode.
 */
-__GURU__ GRIT*
-parse_bytecode(U8 *src)
+__GURU__ U8*
+parse_bytecode(char *src)
 {
 	U8 **bp = &src;
     int ret = _check_header(bp);
 
-    GRIT *gr;
+    U8 *gr;
     while (ret==NO_ERROR) {
         if (MEMCMP(*bp, "IREP", 4)==0) {						// switch alternative
         	*bp += 4 + sizeof(U32);								// skip "IREP", irep_sz
