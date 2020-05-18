@@ -44,16 +44,11 @@
 							</tool>
 						</toolChain>
 					</folderInfo>
-					<folderInfo id="com.nvidia.cuda.ide.ten_two.configuration.debug.1061253450.2109540570" name="/" resourcePath="bak">
-						<toolChain id="com.nvidia.cuda.tools.toolchain.ten_two.exe.debug.198801729" name="CUDA Toolkit 10.2" superClass="com.nvidia.cuda.tools.toolchain.ten_two.exe.debug" unusedChildren="">
-							<tool id="nvcc.compiler.base.1165268077" name="NVCC Compiler" superClass="nvcc.compiler.base.540447248"/>
-							<tool id="nvcc.linker.base.1044336316" name="NVCC Linker" superClass="nvcc.linker.base.1650927973"/>
-							<tool id="nvcc.archiver.base.459559009" name="NVCC Archiver" superClass="nvcc.archiver.base.274558441"/>
-							<tool id="com.nvidia.host.assembler.1619904711" name="Host Assembler" superClass="com.nvidia.host.assembler.903678360"/>
-						</toolChain>
-					</folderInfo>
+					<fileInfo id="com.nvidia.cuda.ide.ten_two.configuration.debug.1061253450.1428162721" name="ucode.cu" rcbsApplicability="disable" resourcePath="src/ucode.cu" toolsToInvoke="nvcc.compiler.base.540447248.1868578839">
+						<tool id="nvcc.compiler.base.540447248.1868578839" name="NVCC Compiler" superClass="nvcc.compiler.base.540447248"/>
+					</fileInfo>
 					<sourceEntries>
-						<entry excluding="bak|src/load_gpu.cu|src/symbol_orig.cu|src/puts.cu|src/cuda.cu|src/guru_test.cu|src/c_str_ascii.cu|src/alloc.cu|test|orig|ext" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
+						<entry excluding="src/ucode.cu|src/vm.cu|src/state.cu|src/guru_test.cu|bak|src/load_gpu.cu|src/symbol_orig.cu|src/puts.cu|src/cuda.cu|src/c_str_ascii.cu|src/alloc.cu|test|orig|ext" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
 					</sourceEntries>
 				</configuration>
 			</storageModule>

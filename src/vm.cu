@@ -38,6 +38,7 @@
 
 guru_vm *_vm_pool;
 U32      _vm_cnt = 0;
+cudaStream_t	_st_pool[MIN_VM_COUNT];
 
 __GURU__ Ucode *_uc_pool[MIN_VM_COUNT] = { NULL, NULL };
 
@@ -52,7 +53,7 @@ pthread_mutex_t 	_mutex_pool;
   @param  vm  Pointer to VM
 */
 __GURU__ void
-__ready(guru_vm *vm, GRIT *gr)
+__ready(guru_vm *vm, GP irep)
 {
 	GR *r = vm->regfile;
 	for (U32 i=0; i<MAX_REGFILE_SIZE; i++, r++) {	// wipe register
@@ -64,7 +65,6 @@ __ready(guru_vm *vm, GRIT *gr)
     vm->run   = VM_STATUS_READY;
     vm->depth = vm->err = 0;
 
-    GP irep = MEMOFF(U8PADD(gr, gr->reps));
     vm_state_push(vm, irep, 0, vm->regfile, 0);
 }
 
@@ -106,13 +106,15 @@ __transcode(GRIT *gr)
 //
 #if GURU_HOST_GRIT_IMAGE
 __GPU__ void
-_get(guru_vm *vm, GRIT *gr)
+_prep(guru_vm *vm,  U8 *u8_gr)
 {
 	if (blockIdx.x!=0 || threadIdx.x!=0) return;	// singleton thread
 
 	if (vm->run==VM_STATUS_FREE) {
+		GRIT *gr  = (GRIT*)u8_gr;
+	    GP   irep = MEMOFF(U8PADD(gr, gr->reps));
 		__transcode(gr);
-		__ready(vm, gr);
+		__ready(vm, irep);
 		if (!_uc_pool[vm->id]) {
 			_uc_pool[vm->id] = new Ucode(vm);
 		}
@@ -120,12 +122,12 @@ _get(guru_vm *vm, GRIT *gr)
 }
 #else
 __GPU__ void
-_get(guru_vm *vm, U8 *ibuf)
+_prep(guru_vm *vm, U8 *ibuf)
 {
 	if (blockIdx.x!=0 || threadIdx.x!=0) return;	// singleton thread
 
 	if (vm->run==VM_STATUS_FREE) {
-		GRIT *gr = parse_bytecode(ibuf);
+		GRIT *gr = (GRIT*)parse_bytecode(ibuf);
 		__transcode(gr);
 		__ready(vm, gr);
 	}
@@ -177,11 +179,11 @@ vm_pool_init(U32 step)
 	if (!vm) return -1;
 
 	for (U32 i=0; i<MIN_VM_COUNT; i++, vm++) {
+		cudaStreamCreateWithFlags(&_st_pool[i], cudaStreamNonBlocking);
 		vm->id    = i;
 		vm->step  = step;
 		vm->depth = vm->err  = 0;
 		vm->run   = VM_STATUS_FREE;					// VM not allocated
-		cudaStreamCreateWithFlags(&vm->st, cudaStreamNonBlocking);
 	}
 	return 0;
 }
@@ -208,7 +210,7 @@ vm_main_start()
 				vm->err = 1;						// stop a run-away loop
 			}
 			else {
-				_exec<<<1,1,sizeof(Ucode)*MIN_VM_COUNT,vm->st>>>(vm);		// guru -x to run without single-stepping
+				_exec<<<1,1,sizeof(Ucode)*MIN_VM_COUNT,_st_pool[i]>>>(vm);		// guru -x to run without single-stepping
 			}
 			cudaError_t e = cudaGetLastError();
 			if (e) {
@@ -235,12 +237,12 @@ vm_get(U8 *ibuf)
 	guru_vm *vm = &_vm_pool[_vm_cnt];
 
 #if GURU_HOST_GRIT_IMAGE
-	GRIT *gr = (GRIT*)parse_bytecode(ibuf);
+	U8 *gr = parse_bytecode(ibuf);
 	if (!gr) return -2;
 
-	_get<<<1,1,0,vm->st>>>(vm, gr);
+	_prep<<<1,1,0,_st_pool[_vm_cnt]>>>(vm, gr);
 #else
-	_get<<<1,1,0,vm->st>>>(vm, ibuf);				// acquire VM, vm status will changed
+	_prep<<<1,1,0,_sp_pool[_vm_cnt]>>>(vm, ibuf);				// acquire VM, vm status will changed
 #endif // GURU_HOST_GRIT_IMAGE
 	GPU_SYNC();
 
