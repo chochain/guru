@@ -79,7 +79,7 @@ class VM_Pool::Impl
 		if (!(vm->run & status_flag)) return -1;		// transition state machine
 
 		_LOCK;
-		vm->run = new_status;
+			vm->run = new_status;
 		_UNLOCK;
 
 		return 0;

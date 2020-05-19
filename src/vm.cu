@@ -40,13 +40,11 @@ guru_vm *_vm_pool;
 U32      _vm_cnt = 0;
 cudaStream_t	_st_pool[MIN_VM_COUNT];
 
-__GURU__ Ucode *_uc_pool[MIN_VM_COUNT] = { NULL, NULL };
-
-__GURU__ Ucode *_uc_pool[MIN_VM_COUNT] = { NULL, NULL };
-
 pthread_mutex_t 	_mutex_pool;
 #define _LOCK		(pthread_mutex_lock(&_mutex_pool))
 #define _UNLOCK		(pthread_mutex_unlock(&_mutex_pool))
+
+__GURU__ Ucode *_uc_pool[MIN_VM_COUNT] = { NULL };
 
 //================================================================
 /*!@brief

@@ -52,6 +52,34 @@ __GURU__ GP		class_by_obj(GR *v);
 __GURU__ GP  	proc_by_sid(GR *v, GS sid);
 
 #ifdef __cplusplus
-}
+};
 #endif
+
+class ClassMgr
+{
+	class  Impl;
+	Impl        *_impl;
+	guru_class 	_class_list[GT_MAX];
+
+	__GURU__ ClassMgr();										// private constructor for singleon class
+	__GURU__ ~ClassMgr();
+public:
+
+	static __GURU__ ClassMgr *getInstance();
+
+	__GURU__ GP	rom_get_class(GT cidx);
+	__GURU__ GP	rom_set_class(GT cidx, const char *name, GT super_cidx, const Vfunc vtbl[], int n);
+
+	__GURU__ GP	define_class(const U8 *name, GP super);
+	__GURU__ GP	class_add_meta(GR *r);				// lazy add metaclass to a class
+	__GURU__ GP	define_method(GP cls, const U8 *name, GP cfunc);
+
+	// common class functions
+	__GURU__ GR	inspect(GR *v, GR *obj);				// inspect obj using v[] as stack
+	__GURU__ GR	kind_of(GR *v);							// whether v1 is a kind of v0
+	__GURU__ GP	class_by_obj(GR *v);
+	__GURU__ GP	proc_by_sid(GR *v, GS sid);
+	__GURU__ GR send(GR r[], GR *rcv, const U8 *method, U32 argc, ...);
+};
+#define CLS_MGR		(ClassMgr::getInstance())
 #endif
