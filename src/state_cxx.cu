@@ -190,7 +190,7 @@ public:
 	push_state(GP irep, U32 pc, GR r[], U32 ri)
 	{
 	#if CC_DEBUG
-		PRINTF("!!!vm_state_push(%p, x%x, %d, %p, %d)\n", vm, irep, pc, r, ri);
+		PRINTF("!!!vm_state_push(%p, x%x, %d, %p, %d)\n", _vm, irep, pc, r, ri);
 	#endif // CC_DEBUG
 		guru_state 	*top = VM_STATE(_vm);
 	    guru_state 	*st  = (guru_state *)guru_alloc(sizeof(guru_state));
@@ -267,7 +267,7 @@ public:
 	exec_method(GR r[], U32 ri, GS sid)
 	{
 	#if CC_DEBUG
-	    PRINTF("!!!vm_method_exec(%p, %p, %d, %d)\n", vm, r, ri, sid);
+	    PRINTF("!!!vm_method_exec(%p, %p, %d, %d)\n", _vm, r, ri, sid);
 	#endif // CC_DEBUG
 	    GP prc = proc_by_sid(r, sid);						// v->gt in [GT_OBJ, GT_CLASS]
 

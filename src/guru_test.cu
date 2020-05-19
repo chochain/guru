@@ -26,7 +26,10 @@ U8 *guru_host_heap;					// guru global memory
 
 U8 *_guru_out;						// guru output stream
 guru_ses *_ses_list = NULL; 		// session linked-list
+
+#if GURU_CXX_CODEBASE
 VM_Pool  *_vm_pool  = NULL;
+#endif // GURU_CXX_CODEBASE
 
 __GPU__ void
 _mmu_alloc(U8 **b, U32 sz)

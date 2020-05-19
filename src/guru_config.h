@@ -40,7 +40,7 @@
 #define GURU_64BIT_ALIGN_REQUIRED 	1
 #define GURU_32BIT_ALIGN_REQUIRED 	1
 #define GURU_HOST_GRIT_IMAGE		1
-#define GURU_CXX_CODEBASE           1
+#define GURU_CXX_CODEBASE           0
 #define GURU_DEBUG					1
 #define BLOCK_MEMORY_SIZE 			(128*1024)
 
