@@ -86,9 +86,10 @@ __free(guru_vm *vm)
 // from source memory pointers to GR[] (i.e. regfile)
 //
 __GURU__ void
-__transcode(GRIT *gr)
+__transcode(U8 *u8_gr)
 {
-	GR *r = (GR*)U8PADD(gr, gr->pool);
+	GRIT *gr = (GRIT*)u8_gr;
+	GR   *r  = (GR*)U8PADD(gr, gr->pool);
 	for (U32 i=0; i < gr->psz; i++, r++) {			// symbol table
 		switch (r->gt) {
 		case GT_SYM: guru_sym_rom(r);	break;
@@ -112,10 +113,10 @@ _prep(guru_vm *vm,  U8 *u8_gr)
 	if (blockIdx.x!=0 || threadIdx.x!=0) return;	// singleton thread
 
 	if (vm->run==VM_STATUS_FREE) {
-		GRIT *gr  = (GRIT*)u8_gr;
-	    GP   irep = MEMOFF(U8PADD(gr, gr->reps));
-		__transcode(gr);
+	    GP irep = MEMOFF(U8PADD(u8_gr, ((GRIT*)u8_gr)->reps));
+		__transcode(u8_gr);
 		__ready(vm, irep);
+
 #if GURU_CXX_CODEBASE
 		if (!_uc_pool[vm->id]) {
 			_uc_pool[vm->id] = new Ucode(vm);
@@ -130,8 +131,9 @@ _prep(guru_vm *vm, U8 *ibuf)
 	if (blockIdx.x!=0 || threadIdx.x!=0) return;	// singleton thread
 
 	if (vm->run==VM_STATUS_FREE) {
-		GRIT *gr = (GRIT*)parse_bytecode(ibuf);
-		__transcode(gr);
+		U8 *u8_gr = parse_bytecode(ibuf);
+	    GP irep   = MEMOFF(U8PADD(gr, gr->reps));
+		__transcode(u8_gr);
 		__ready(vm, gr);
 	}
 }
@@ -194,7 +196,7 @@ vm_pool_init(int step)
 __HOST__ int
 _has_job() {
 	guru_vm *vm = _vm_pool;
-	for (U32 i=0; i<MIN_VM_COUNT; i++, vm++) {
+	for (int i=0; i<MIN_VM_COUNT; i++, vm++) {
 		if (vm->run==VM_STATUS_RUN && !vm->err) return 1;
 	}
 	return 0;
@@ -206,7 +208,7 @@ vm_main_start()
 	// TODO: spin off as a server thread
 	do {
 		guru_vm *vm = _vm_pool;
-		for (U32 i=0; i<MIN_VM_COUNT; i++, vm++) {
+		for (int i=0; i<MIN_VM_COUNT; i++, vm++) {
 			if (!vm->state || vm->run!=VM_STATUS_RUN) continue;
 			// add pre-hook here
 			if (debug_disasm(vm)) {
@@ -222,7 +224,7 @@ vm_main_start()
 			}
 			// add post-hook here
 		}
-		GPU_SYNC();									// TODO: cooperative thread group
+		GPU_SYNC();								// TODO: cooperative thread group
 #if GURU_USE_CONSOLE
 		guru_console_flush(ses->out, ses->trace);	// dump output buffer
 #endif  // GURU_USE_CONSOLE

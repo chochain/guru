@@ -65,9 +65,9 @@ __GURU__ void
 VM::prep(U8 *ibuf)
 {
 	if (vm->run==VM_STATUS_FREE) {
-		GRIT *gr = (GRIT*)parse_bytecode(ibuf);
-		__transcode(gr);
-		__ready(vm, gr);
+		U8 *u8_gr = parse_bytecode(ibuf);
+		_transcode(u8_gr);
+		_ready(MEMOFF(U8PADD(u8_gr, ((GRIT*)u8_gr)->reps)));
     }
 }
 #endif // GURU_HOST_GRIT_IMAGE

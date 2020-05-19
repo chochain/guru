@@ -16,3 +16,4 @@
     - state_cxx.cu, ucode_cxx.cu, vmx.cu, vm_cxx.cu, class_cxx.cu
   C++ codebase:    guru_config.h#GURU_CXX_CODEBASE == 1
     - state.cu, ucode.cu, vm.cu, class.cu
+
