@@ -34,7 +34,7 @@ __GURU__ U32 _mutex_uc;
 // becareful with the following macros, because they release regs[ra] first
 // so, make sure value is kept before the release
 //
-#define _AR(r)          ((vm->ar.r))
+#define _AR(r)          (vm->r)
 #define _R0             (_REGS(VM_STATE(vm)))
 #define _R(r)			(_R0+_AR(r))
 #define _RA(r)			(ref_dec(_R(a)), *_R(a)=(r))
@@ -417,11 +417,12 @@ uc_jmpnot(guru_vm *vm)
 __UCODE__
 uc_onerr(guru_vm *vm)
 {
-	ASSERT(vm->depth < (MAX_RESCUE_STACK-1));
+	ASSERT(vm->depth < (VM_RESCUE_STACK-1));
 
 	GI sbx = _AR(bx) - MAX_sBx -1;
 
-	vm->rescue[vm->depth++] = VM_STATE(vm)->pc + sbx;
+	U32 *u = (U32*)MEMPTR(vm->regfile + sizeof(GR)*(VM_REGFILE_SIZE - (vm->depth+1)));
+	RESCUE_PUSH(vm, VM_STATE(vm)->pc + sbx);
 }
 
 //================================================================
@@ -547,8 +548,7 @@ uc_call(guru_vm *vm)
 __UCODE__
 uc_enter(guru_vm *vm)
 {
-	U32 ax  = (vm->bytecode>>7) & 0x1ffffff;			// a special decoder case
-
+	U32 ax  = vm->ax;									// a special decoder case
 	U32 adj = (ax >> 13) & 0x1f;  						// has default args
     U32 off = (ax >> 18) & 0x1f;  						// number of args given
 
@@ -1118,9 +1118,8 @@ _bin_to_u32(const void *s)
 __GURU__ void
 ucode_prefetch(guru_vm *vm)
 {
-	U32 b  = vm->bytecode = VM_BYTECODE(vm);	// fetch from vm->state->pc
-	U32 n  = b >> 7;	      					// operands
-	vm->ar = *((GAR *)&n);        				// operands struct/union
+	U32 bcode  = VM_BYTECODE(vm);						// fetch from vm->state->pc
+	vm->rbcode = ((bcode & 0x7f)<<25) | (bcode>>7);		// rotate bytecode (for nvcc bit-field limitation)
 
 	VM_STATE(vm)->pc++;		// advance program counter (ready for next fetch)
 }
@@ -1292,7 +1291,7 @@ ucode_step(guru_vm *vm)
     ucode_vtbl[vm->op](vm);
 
     if (vm->err && vm->depth>0) {						// simple exception handler
-    	st->pc = vm->rescue[--vm->depth];				// bubbling up
+    	st->pc = RESCUE_POP(vm);						// bubbling up
     	vm->err = 0;									// TODO: add exception type or code on stack
     }
 #endif // GURU_DEBUG

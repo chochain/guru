@@ -56,8 +56,9 @@ __GURU__ Ucode *_uc_pool[MIN_VM_COUNT] = { NULL };
 __GURU__ void
 __ready(guru_vm *vm, GP irep)
 {
-	GR *r = vm->regfile;
-	for (U32 i=0; i<MAX_REGFILE_SIZE; i++, r++) {	// wipe register
+	GR *r0 = (GR*)MEMPTR(vm->regfile);
+	GR *r  = r0;
+	for (U32 i=0; i<VM_REGFILE_SIZE; i++, r++) {	// wipe register
 		r->gt  = (i==0) ? GT_CLASS : GT_EMPTY;		// reg[0] is "self"
 		r->acl = 0;
 		r->off = (i==0) ? guru_rom_get_class(GT_OBJ) : 0;
@@ -66,7 +67,7 @@ __ready(guru_vm *vm, GP irep)
     vm->run   = VM_STATUS_READY;
     vm->depth = vm->err = 0;
 
-    vm_state_push(vm, irep, 0, vm->regfile, 0);
+    vm_state_push(vm, irep, 0, r0, 0);
 }
 
 __GURU__ void
@@ -181,14 +182,17 @@ __HOST__ int
 vm_pool_init(int step)
 {
 	guru_vm *vm = _vm_pool = (guru_vm *)cuda_malloc(sizeof(guru_vm) * MIN_VM_COUNT, 1);
-	if (!vm) return -1;
+	GR      *rf = (GR*)cuda_malloc(sizeof(GR) * VM_REGFILE_SIZE * MIN_VM_COUNT, 1);
+	if (!vm || !rf) return -1;
 
-	for (U32 i=0; i<MIN_VM_COUNT; i++, vm++) {
+	for (U32 i=0; i<MIN_VM_COUNT; i++, vm++, rf+=VM_REGFILE_SIZE) {
+		vm->id      = i;
+		vm->step    = step;
+		vm->depth   = vm->err     = 0;
+		vm->run     = VM_STATUS_FREE;					// VM not allocated
+		vm->regfile = U8POFF(rf, guru_host_heap);
+
 		cudaStreamCreateWithFlags(&_st_pool[i], cudaStreamNonBlocking);
-		vm->id    = i;
-		vm->step  = step;
-		vm->depth = vm->err  = 0;
-		vm->run   = VM_STATUS_FREE;					// VM not allocated
 	}
 	return 0;
 }
@@ -215,7 +219,12 @@ vm_main_start()
 				vm->err = 1;						// stop a run-away loop
 			}
 			else {
-				_exec<<<1,1,sizeof(Ucode)*MIN_VM_COUNT,_st_pool[i]>>>(vm);		// guru -x to run without single-stepping
+#if GURU_CXX_CODEBASE
+				U32 bsz = sizeof(Ucode)*MIN_VM_COUNT;
+#else
+				U32 bsz = 0;
+#endif // GURU_CXX_CODEBASE
+				_exec<<<1,1, bsz,_st_pool[i]>>>(vm);		// guru -x to run without single-stepping
 			}
 			cudaError_t e = cudaGetLastError();
 			if (e) {

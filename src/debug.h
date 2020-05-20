@@ -20,6 +20,26 @@
 extern "C" {
 #endif
 
+//================================================================
+// instructions: packed 32 bit
+// ----------------------------
+//   A:B:C:OP = 9: 9: 7: 7
+//    A:Bx:OP = 9:   16: 7
+// A:Bz:Cz:OP = 9: 14:2: 7
+//      Ax:OP = 25     : 7
+typedef struct {
+	union {
+		U16 bx;
+		struct {
+			U16 c : 7, b : 9;
+		};
+		struct {
+			U16 cz: 2, bz: 14;
+		};
+	};
+	U16 a: 9, x: 7;				// hopefully take up 32-bits total (4-byte)
+} GAR;
+
 void debug_init(U32 flag);
 void debug_mmu_stat();
 void debug_vm_irep(guru_vm *vm);

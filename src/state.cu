@@ -109,7 +109,7 @@ _lambda(guru_vm *vm, GR r[], U32 ri)
 	guru_proc *px = GR_PRC(r+1);						// mark it as a lambda
 	px->kt |= PROC_LAMBDA;
 
-	U32	n   = px->n = vm->ar.a;
+	U32	n   = px->n = vm->a;
 	GR  *rf = guru_gr_alloc(n);
 	px->regs = MEMOFF(rf);
 
@@ -125,7 +125,7 @@ _raise(guru_vm *vm, GR r[], U32 ri)
 {
 	ASSERT(vm->depth > 0);
 
-	VM_STATE(vm)->pc = vm->rescue[--vm->depth];		// pop from exception return stack
+	VM_STATE(vm)->pc = RESCUE_POP(vm);		// pop from exception return stack
 }
 
 typedef struct {
@@ -179,15 +179,15 @@ vm_state_push(guru_vm *vm, GP irep, U32 pc, GR r[], U32 ri)
 #if CC_DEBUG
 	PRINTF("!!!vm_state_push(%p, x%x, %d, %p, %d)\n", vm, irep, pc, r, ri);
 #endif // CC_DEBUG
-	guru_state 	*top = VM_STATE(vm);
+	guru_state  *top = vm->state ? VM_STATE(vm) : NULL;
     guru_state 	*st  = (guru_state *)guru_alloc(sizeof(guru_state));
 
     ASSERT(st);
 
     switch(r->gt) {
     case GT_OBJ:
-    case GT_CLASS: 	st->klass = r->off;				break;
-    case GT_PROC: 	st->klass = _REGS(top)->off; 	break;			// top->regs[0].off
+    case GT_CLASS: 	st->klass = r->off;			 break;
+    case GT_PROC: 	st->klass = _REGS(top)->off; break; 	// top->regs[0].off (top != NULL)
     default: ASSERT(1==0);
     }
     st->irep  = irep;
@@ -198,7 +198,7 @@ vm_state_push(guru_vm *vm, GP irep, U32 pc, GR r[], U32 ri)
     st->prev  = vm->state;			// push current state into context stack
 
     if (top) {						// keep stack frame depth
-    	top->nv = IN_LAMBDA(st) ? GR_PRC(r)->n : vm->ar.a;
+    	top->nv = IN_LAMBDA(st) ? GR_PRC(r)->n : vm->a;
     }
     else {
     	st->nv = ((guru_irep*)MEMPTR(irep))->nr;			// top most stack frame depth
