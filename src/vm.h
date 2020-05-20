@@ -52,7 +52,7 @@ typedef struct {				// 16-byte header + 8*4-byte rescue + 256*8-byte regfile
     U16	id;						// allocation control
     U16	run  : 3;				// VM_STATUS_FREE, READY, RUN, HOLD
     U16	step : 1;				// for single-step debug level
-    U16 depth: 4;				// exception stack depth
+    U16 xcp  : 4;				// exception stack depth
     U16 err  : 8;				// error code
 
     union {
@@ -77,8 +77,8 @@ typedef struct {				// 16-byte header + 8*4-byte rescue + 256*8-byte regfile
     GP  state;					// VM state (callinfo) linked list
 } guru_vm;
 
-#define RESCUE_PUSH(vm, pc)	(*(U32*)MEMPTR((vm)->regfile + sizeof(GR)*(VM_REGFILE_SIZE - ++(vm)->depth)) = (pc))
-#define RESCUE_POP(vm)		(*(U32*)MEMPTR((vm)->regfile + sizeof(GR)*(VM_REGFILE_SIZE - (vm)->depth--)))
+#define RESCUE_PUSH(vm, pc)	(*(U32*)MEMPTR((vm)->regfile + sizeof(GR)*(VM_REGFILE_SIZE - ++(vm)->xcp)) = (pc))
+#define RESCUE_POP(vm)		(*(U32*)MEMPTR((vm)->regfile + sizeof(GR)*(VM_REGFILE_SIZE - (vm)->xcp--)))
 
 #define VM_STATE(vm)	((guru_state*)MEMPTR((vm)->state))
 #define VM_IREP(vm)    	((guru_irep*)MEMPTR(VM_STATE(vm)->irep))

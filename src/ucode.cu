@@ -417,11 +417,11 @@ uc_jmpnot(guru_vm *vm)
 __UCODE__
 uc_onerr(guru_vm *vm)
 {
-	ASSERT(vm->depth < (VM_RESCUE_STACK-1));
+	ASSERT(vm->xcp < (VM_RESCUE_STACK-1));
 
 	GI sbx = _AR(bx) - MAX_sBx -1;
 
-	U32 *u = (U32*)MEMPTR(vm->regfile + sizeof(GR)*(VM_REGFILE_SIZE - (vm->depth+1)));
+	U32 *u = (U32*)MEMPTR(vm->regfile + sizeof(GR)*(VM_REGFILE_SIZE - (vm->xcp+1)));
 	RESCUE_PUSH(vm, VM_STATE(vm)->pc + sbx);
 }
 
@@ -465,9 +465,9 @@ uc_poperr(guru_vm *vm)
 {
 	U32 a = _AR(a);
 
-	ASSERT(vm->depth >= a);
+	ASSERT(vm->xcp >= a);
 
-	vm->depth -= a;
+	vm->xcp -= a;
 }
 
 //================================================================
@@ -1290,7 +1290,7 @@ ucode_step(guru_vm *vm)
 	guru_state *st = VM_STATE(vm);						// for debugging
     ucode_vtbl[vm->op](vm);
 
-    if (vm->err && vm->depth>0) {						// simple exception handler
+    if (vm->err && vm->xcp>0) {							// simple exception handler
     	st->pc = RESCUE_POP(vm);						// bubbling up
     	vm->err = 0;									// TODO: add exception type or code on stack
     }

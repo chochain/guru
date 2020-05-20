@@ -123,7 +123,7 @@ _lambda(guru_vm *vm, GR r[], U32 ri)
 __GURU__ void
 _raise(guru_vm *vm, GR r[], U32 ri)
 {
-	ASSERT(vm->depth > 0);
+	ASSERT(vm->xcp > 0);
 
 	VM_STATE(vm)->pc = RESCUE_POP(vm);		// pop from exception return stack
 }

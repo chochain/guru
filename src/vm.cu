@@ -36,17 +36,17 @@
 
 #include "ucode.h"
 
-guru_vm *_vm_pool;
-U32      _vm_cnt = 0;
-cudaStream_t	_st_pool[MIN_VM_COUNT];
+guru_vm 			*_vm_pool;
+U32      			_vm_cnt = 0;
+cudaStream_t		_st_pool[MIN_VM_COUNT];
+#if GURU_CXX_CODEBASE
+__GURU__ Ucode *_uc_pool[MIN_VM_COUNT] = { NULL };
+#endif // GURU_CXX_CODEBASE
 
 pthread_mutex_t 	_mutex_pool;
 #define _LOCK		(pthread_mutex_lock(&_mutex_pool))
 #define _UNLOCK		(pthread_mutex_unlock(&_mutex_pool))
 
-#if GURU_CXX_CODEBASE
-__GURU__ Ucode *_uc_pool[MIN_VM_COUNT] = { NULL };
-#endif // GURU_CXX_CODEBASE
 //================================================================
 /*!@brief
   VM initializer.
@@ -65,7 +65,7 @@ __ready(guru_vm *vm, GP irep)
 	}
     vm->state = NULL;
     vm->run   = VM_STATUS_READY;
-    vm->depth = vm->err = 0;
+    vm->xcp   = vm->err = 0;
 
     vm_state_push(vm, irep, 0, r0, 0);
 }
@@ -188,7 +188,7 @@ vm_pool_init(int step)
 	for (U32 i=0; i<MIN_VM_COUNT; i++, vm++, rf+=VM_REGFILE_SIZE) {
 		vm->id      = i;
 		vm->step    = step;
-		vm->depth   = vm->err     = 0;
+		vm->xcp     = vm->err     = 0;
 		vm->run     = VM_STATUS_FREE;					// VM not allocated
 		vm->regfile = U8POFF(rf, guru_host_heap);
 
