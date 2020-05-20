@@ -180,6 +180,7 @@ __GURU__ void ucode_step(guru_vm *vm);
 }
 #endif
 
+#if GURU_CXX_CODEBASE
 class Ucode								// interface class
 {
 public:
@@ -192,5 +193,6 @@ private:
 	class Impl;
 	Impl *_impl;						// implementation object (Pimpl idiom)
 };
+#endif // GURU_CXX_CODEBASE
 
 #endif

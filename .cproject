@@ -44,11 +44,12 @@
 							</tool>
 						</toolChain>
 					</folderInfo>
-					<fileInfo id="com.nvidia.cuda.ide.ten_two.configuration.debug.1061253450.1050668728" name="ucode.cu" rcbsApplicability="disable" resourcePath="src/ucode.cu" toolsToInvoke="nvcc.compiler.base.540447248.1020341379">
-						<tool id="nvcc.compiler.base.540447248.1020341379" name="NVCC Compiler" superClass="nvcc.compiler.base.540447248"/>
+					<fileInfo id="com.nvidia.cuda.ide.ten_two.configuration.debug.1061253450.1875200413" name="main.c" rcbsApplicability="disable" resourcePath="src/main.c" toolsToInvoke="nvcc.compiler.base.540447248.1398719106">
+						<tool id="nvcc.compiler.base.540447248.1398719106" name="NVCC Compiler" superClass="nvcc.compiler.base.540447248"/>
 					</fileInfo>
+					<fileInfo id="com.nvidia.cuda.ide.ten_two.configuration.debug.1061253450.310047043" name="jk.h" rcbsApplicability="disable" resourcePath="src/jk.h" toolsToInvoke=""/>
 					<sourceEntries>
-						<entry excluding="src/state_cxx.cu|src/ucode_cxx.cu|src/vm_cxx.cu|src/vmx.cu|src/class_cxx.cu|src/guru_test.cu|bak|src/load_gpu.cu|src/symbol_orig.cu|src/puts.cu|src/cuda.cu|src/c_str_ascii.cu|src/alloc.cu|test|orig|ext" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
+						<entry excluding="src/jk.h|src/jk.c|src/state_cxx.cu|src/ucode_cxx.cu|src/vm_cxx.cu|src/vmx.cu|src/class_cxx.cu|src/guru_test.cu|bak|src/load_gpu.cu|src/symbol_orig.cu|src/puts.cu|src/cuda.cu|src/c_str_ascii.cu|src/alloc.cu|test|orig|ext" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
 					</sourceEntries>
 				</configuration>
 			</storageModule>

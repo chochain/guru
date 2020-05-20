@@ -19,8 +19,8 @@
 #define MAX_VM_COUNT 		16
 
 /* maximum size of exception stack and registers, which determine how deep call stack can go */
-#define MAX_RESCUE_STACK 	8
-#define MAX_REGFILE_SIZE 	128
+#define VM_RESCUE_STACK 	8
+#define VM_REGFILE_SIZE 	64
 
 /* max objects in symbol and global/constant caches allowed */
 #define MAX_SYMBOL_COUNT 	256

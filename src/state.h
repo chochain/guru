@@ -77,6 +77,7 @@ __GURU__ U32	vm_method_exec(guru_vm *vm, GR r[], U32 ri, GS sid);
 }
 #endif
 
+#if GURU_CXX_CODEBASE
 class StateMgr
 {
 public:
@@ -95,5 +96,6 @@ private:
 	class Impl;
 	Impl  *_impl;
 };
+#endif  // GURU_CXX_CODEBASE
 
 #endif	// _GURU_SRC_STATE_H_
