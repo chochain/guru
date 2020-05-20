@@ -168,11 +168,9 @@ _show_state_regs(guru_state *st, U32 lvl)
 }
 
 __HOST__ void
-_show_decode(guru_state *st, U32 code)
+_show_decode(guru_state *st, GAR ar)
 {
-	U16  op = code & 0x7f;
-	U32  n  = code>>7;
-	GAR  ar = *((GAR*)&n);
+	U32  op = ar.op;
 	U32  a  = ar.a;
 	U32  in_lambda = st->prev && (h_STATE(st->prev)->flag & STATE_LAMBDA);
 	U32  up = (ar.c+1)<<(in_lambda ? 0 : 1);
@@ -197,7 +195,7 @@ _show_decode(guru_state *st, U32 code)
 		else			printf(" r%-2d <r%-2d..r%-12d", a, ar.b, ar.b+ar.c-1);
 		return;
 	case OP_SCLASS:		printf(" r%-22d", ar.b);									return;
-	case OP_ENTER:		printf(" @%-22d", 1 + st->argc - (n>>18));			return;
+	case OP_ENTER:		printf(" @%-22d", 1 + st->argc - (ar.ax>>18)&0x1f);			return;
 	case OP_RESCUE:
 		printf(" r%-2d =%1d?r%-15d", (ar.c ? a+1 : a), ar.c, (ar.c ? a : a+1));		return;
 	}
@@ -235,7 +233,9 @@ _disasm(guru_vm *vm, U32 level)
 	U16  pc    = st->pc;							// program counter
 	U32  *iseq = ST_ISEQ(st);
 	U32  code  = bin2u32(*(iseq + pc));				// convert to big endian
-	U16  op    = code & 0x7f;       				// in HOST mode, GET_OPCODE() is DEVICE code
+	U32  rcode = ((code & 0x7f)<<25) | (code>>7);
+	GAR  ar  { rcode };								// fit into RITE decoder template
+	U8   op    = ar.op;
 	U8   *opc  = (U8*)_opcode[GET_OP(op)];			// opcode text
 
 	if (op >= OP_MAX) {
@@ -249,7 +249,7 @@ _disasm(guru_vm *vm, U32 level)
 	if (!_match_irep(ST_IREP(sx), ix0, &idx)) idx='?';
 	printf("%1d%c%-4d%-8s", vm->id, idx, pc, opc);
 
-	_show_decode(st, code);
+	_show_decode(st, ar);
 	printf("[");
 	_show_state_regs(st, 0);
 	printf("]\n");

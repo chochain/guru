@@ -27,17 +27,23 @@ extern "C" {
 //    A:Bx:OP = 9:   16: 7
 // A:Bz:Cz:OP = 9: 14:2: 7
 //      Ax:OP = 25     : 7
-typedef struct {
-	union {
-		U16 bx;
-		struct {
-			U16 c : 7, b : 9;
+typedef union {
+    U32 rbcode;				// cached bytecode (rotated op to MSBs due to nvcc bit-field limitation)
+    struct {
+    	U32 ax: 25, op: 7;	// call stack depth
+    };
+	struct {
+		union {
+			U16 bx;
+			struct {
+				U16 c : 7, b : 9;
+			};
+			struct {
+				U16 cz: 2, bz: 14;
+			};
 		};
-		struct {
-			U16 cz: 2, bz: 14;
-		};
+		U16 a : 9;
 	};
-	U16 a: 9, x: 7;				// hopefully take up 32-bits total (4-byte)
 } GAR;
 
 void debug_init(U32 flag);
