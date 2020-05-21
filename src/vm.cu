@@ -23,6 +23,7 @@
 #include <pthread.h>
 
 #include "guru.h"
+#include "base.h"
 #include "util.h"
 #include "mmu.h"
 #include "symbol.h"
@@ -56,18 +57,19 @@ pthread_mutex_t 	_mutex_pool;
 __GURU__ void
 __ready(guru_vm *vm, GP irep)
 {
-	GR *r0 = (GR*)MEMPTR(vm->regfile);
-	GR *r  = r0;
-	for (U32 i=0; i<VM_REGFILE_SIZE; i++, r++) {	// wipe register
-		r->gt  = (i==0) ? GT_CLASS : GT_EMPTY;		// reg[0] is "self"
-		r->acl = 0;
-		r->off = (i==0) ? guru_rom_get_class(GT_OBJ) : 0;
-	}
-    vm->state = NULL;
-    vm->run   = VM_STATUS_READY;
-    vm->xcp   = vm->err = 0;
+    // allocate register file & rescue return stack
+	GR v { GT_CLASS, 0, 0, guru_rom_get_class(GT_OBJ) };
+	GR *rf = (GR*)guru_alloc(sizeof(GR) * VM_REGFILE_SIZE);
+	GR *r  = rf;
+    for (U32 i=0; rf && i<VM_REGFILE_SIZE; i++, r++) {	// wipe register
+    	*r = (i==0) ? v : EMPTY;
+    }
+	vm->run     = VM_STATUS_READY;
+    vm->xcp     = vm->err = (rf==NULL);
+    vm->state   = NULL;
+	vm->regfile = MEMOFF(rf);
 
-    vm_state_push(vm, irep, 0, r0, 0);
+    vm_state_push(vm, irep, 0, rf, 0);
 }
 
 __GURU__ void
@@ -182,15 +184,13 @@ __HOST__ int
 vm_pool_init(int step)
 {
 	guru_vm *vm = _vm_pool = (guru_vm *)cuda_malloc(sizeof(guru_vm) * MIN_VM_COUNT, 1);
-	GR      *rf = (GR*)cuda_malloc(sizeof(GR) * VM_REGFILE_SIZE * MIN_VM_COUNT, 1);
-	if (!vm || !rf) return -1;
+	if (!vm) return -1;
 
-	for (U32 i=0; i<MIN_VM_COUNT; i++, vm++, rf+=VM_REGFILE_SIZE) {
-		vm->id      = i;
-		vm->step    = step;
-		vm->xcp     = vm->err     = 0;
-		vm->run     = VM_STATUS_FREE;					// VM not allocated
-		vm->regfile = U8POFF(rf, guru_host_heap);
+	for (U32 i=0; i<MIN_VM_COUNT; i++, vm++) {
+		vm->id   = i;
+		vm->step = step;
+		vm->xcp  = vm->err = 0;
+		vm->run  = VM_STATUS_FREE;				// VM not allocated
 
 		cudaStreamCreateWithFlags(&_st_pool[i], cudaStreamNonBlocking);
 	}
@@ -215,25 +215,22 @@ vm_main_start()
 		for (int i=0; i<MIN_VM_COUNT; i++, vm++) {
 			if (!vm->state || vm->run!=VM_STATUS_RUN) continue;
 			// add pre-hook here
-			if (debug_disasm(vm)) {
-				vm->err = 1;						// stop a run-away loop
-			}
-			else {
+			debug_disasm(vm);
 #if GURU_CXX_CODEBASE
-				U32 bsz = sizeof(Ucode)*MIN_VM_COUNT;
+			U32 bsz = sizeof(Ucode)*MIN_VM_COUNT;
 #else
-				U32 bsz = 0;
+			U32 bsz = 0;						// shared memory allotment
 #endif // GURU_CXX_CODEBASE
-				_exec<<<1,1, bsz,_st_pool[i]>>>(vm);		// guru -x to run without single-stepping
-			}
+			_exec<<<1,1, bsz,_st_pool[i]>>>(vm);		// guru -x to run without single-stepping
+
 			cudaError_t e = cudaGetLastError();
-			if (e) {
+			if (e!=cudaSuccess) {
 				printf("CUDA ERROR: %s, bailing\n", cudaGetErrorString(e));
 				vm->err = 1;
 			}
 			// add post-hook here
 		}
-		GPU_SYNC();								// TODO: cooperative thread group
+		GPU_SYNC();									// TODO: cooperative thread group
 #if GURU_USE_CONSOLE
 		guru_console_flush(ses->out, ses->trace);	// dump output buffer
 #endif  // GURU_USE_CONSOLE

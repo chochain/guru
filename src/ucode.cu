@@ -1121,7 +1121,8 @@ ucode_prefetch(guru_vm *vm)
 	U32 bcode  = VM_BYTECODE(vm);						// fetch from vm->state->pc
 	vm->rbcode = ((bcode & 0x7f)<<25) | (bcode>>7);		// rotate bytecode (for nvcc bit-field limitation)
 
-	VM_STATE(vm)->pc++;		// advance program counter (ready for next fetch)
+	guru_state *st = VM_STATE(vm);
+	st->pc++;											// advance program counter (ready for next fetch)
 }
 
 __GURU__ __const__ UCODE ucode_vtbl[] = {

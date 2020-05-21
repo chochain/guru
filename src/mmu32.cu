@@ -25,8 +25,9 @@
 #define _UNLOCK			{ MUTEX_FREE(_mutex_mem); }
 
 // memory pool
-__GURU__ U8	*guru_device_heap;									// CUDA kernel global memory pool
-__GURU__ volatile U32 	_mutex_mem;
+__GURU__ U8				*guru_device_heap;						// CUDA kernel global memory pool
+__GURU__ U32 			_heap_size;
+__GURU__ U32 			_mutex_mem;
 
 // free memory bitmap
 __GURU__ U32 			_l1_map;								// use lower 24 bits
@@ -51,10 +52,10 @@ __mmu_ok()											// mmu sanity check
 		p0  = p1;
 		p1  = (used_block*)BLK_AFTER(p0);
 	}
-	if (tot!=BLOCK_MEMORY_SIZE) {
+	if (tot!=_heap_size) {
 		return 0;
 	}
-	return (!p1 && tot==BLOCK_MEMORY_SIZE);
+	return (!p1 && tot==_heap_size);
 }
 
 #define MMU_CHECK
@@ -322,13 +323,14 @@ _split(free_block *blk, U32 bsz)
   @param  size	size. (max 4G)
 */
 __GURU__ void
-_init_mmu(void *mem, U32 size)
+_init_mmu(void *mem, U32 heap_size)
 {
-    ASSERT(size > 0);
+    ASSERT(heap_size > 0);
 
-    U32 bsz = size - sizeof(free_block);
+    U32 bsz = heap_size - sizeof(free_block);
 
     guru_device_heap = (U8*)mem;
+    _heap_size   = heap_size;
     _mutex_mem	 = 0;
 
     // initialize entire memory pool as the first block
