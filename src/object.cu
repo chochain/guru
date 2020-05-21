@@ -183,7 +183,7 @@ obj_setiv(GR r[], U32 ri)
 //================================================================
 /*! append '=' to create name for attr_writer
  */
-__GURU__ U8 *
+__GURU__ U8*
 _name_w_eq_sign(GR *buf, U8 *s0)
 {
     guru_buf_add_cstr(buf, s0);
@@ -191,7 +191,7 @@ _name_w_eq_sign(GR *buf, U8 *s0)
 
     U32 sid = create_sym(_RAW(buf));					// create the symbol
 
-    return id2name(sid);
+    return _STR(id2name(sid));
 }
 
 //================================================================
@@ -207,7 +207,7 @@ obj_attr_reader(GR r[], U32 ri)
     for (U32 i = 0; i < ri; i++, s++) {
         ASSERT(s->gt==GT_SYM);
 
-        U8 *name = id2name(s->i);
+        U8 *name = _STR(id2name(s->i));
         ASSERT(guru_define_method(cls, name, MEMOFF(obj_getiv)));
     }
 }
@@ -228,7 +228,7 @@ obj_attr_accessor(GR r[], U32 ri)
 	GR *s  = r+1;
     for (U32 i=0; i < ri; i++, s++) {
         ASSERT(s->gt==GT_SYM);
-        U8 *a0  = id2name(s->i);						// reader
+        U8 *a0  = _STR(id2name(s->i));					// reader
         U8 *a1  = _name_w_eq_sign(&buf, a0);			// writer
 
         ASSERT(guru_define_method(cls, a0, MEMOFF(obj_getiv)));
@@ -369,7 +369,8 @@ __CFUNC__ sym_nop(GR r[], U32 ri) {}
 __CFUNC__
 sym_to_s(GR r[], U32 ri)
 {
-	GR ret = guru_str_new(id2name(r->i));
+	U8 *s  = _STR(id2name(r->i));
+	GR ret = guru_str_new(s);
     RETURN_VAL(ret);
 }
 

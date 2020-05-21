@@ -44,30 +44,30 @@ __GURU__ U32 _mutex_cls;
   }
 */
 __GURU__ GR
-_send(GR r[], GR *rcv, const U8 *method, U32 argc, ...)
+_send(GR r[], GR *rcv, const char *method, U32 argc, ...)
 {
-    GR *regs = r + 2;	     		// allocate 2 for stack
-    GS sid   = name2id(method);		// symbol lookup
-    GP prc   = proc_by_sid(r, sid);	// find method for receiver object
+    GR *regs = r + 2;	     			// allocate 2 for stack
+    GS sid   = name2id((U8*)method);	// symbol lookup
+    GP prc   = proc_by_sid(r, sid);		// find method for receiver object
 
     ASSERT(prc);
 
     // create call stack.
-    regs[0] = *ref_inc(rcv);		// create call stack, start with receiver object
+    regs[0] = *ref_inc(rcv);			// create call stack, start with receiver object
 
-    va_list ap;						// setup calling registers
+    va_list ap;							// setup calling registers
     va_start(ap, argc);
     for (U32 i = 1; i <= argc+1; i++) {
         regs[i] = (i>argc) ? NIL : *va_arg(ap, GR *);
     }
     va_end(ap);
 
-    _CALL(prc, regs, argc);	// call method, put return value in regs[0]
+    _CALL(prc, regs, argc);				// call method, put return value in regs[0]
 
 #if GURU_DEBUG
-    GR *x = r;						// _wipe_stack
+    GR *x = r;							// _wipe_stack
     for (U32 i=1; i<=argc+1; i++) {
-    	*x++ = EMPTY;				// clean up the stack
+    	*x++ = EMPTY;					// clean up the stack
     }
 #endif
     return regs[0];
@@ -76,13 +76,13 @@ _send(GR r[], GR *rcv, const U8 *method, U32 argc, ...)
 __GURU__ GR
 inspect(GR *r, GR *obj)
 {
-	return _send(r, obj, (U8*)"inspect", 0);
+	return _send(r, obj, "inspect", 0);
 }
 
 __GURU__ GR
 kind_of(GR *r)		// whether v1 is a kind of v0
 {
-	return _send(r, r+1, (U8*)"kind_of?", 1, r);
+	return _send(r, r+1, "kind_of?", 1, r);
 }
 
 //================================================================
@@ -228,7 +228,7 @@ proc_by_sid(GR *r, GS sid)
     	cls = cx->super;
     }
 #if CC_DEBUG
-	U8* fname = id2name(sid);
+	U8* fname = Id2Name(sid);
     PRINTF("!!!proc_by_sid(%p, %d)=>%s %d[x%04x]\n", r, sid, fname, prc, prc);
 #endif // CC_DEBUG
     return prc;
@@ -256,7 +256,7 @@ _define_class(const U8 *name, GP cls, GP super)
     cx->vtbl   = 0;
     cx->flist  = 0;						// head of list
 #ifdef GURU_DEBUG
-    cx->name   = MEMOFF(id2name(sid));	// retrieve from stored symbol table (the one caller passed might be destroyed)
+    cx->name   = id2name(sid);			// retrieve from stored symbol table (the one caller passed might be destroyed)
 #endif
 
     GR  r { .gt=GT_CLASS, .acl=0, .oid=0, { .off=cls }};
@@ -305,8 +305,8 @@ guru_define_method(GP cls, const U8 *name, GP cfunc)
     _UNLOCK;
 
 #ifdef GURU_DEBUG
-    px->cname = MEMOFF(id2name(cx->sid));
-    px->name  = MEMOFF(id2name(px->sid));
+    px->cname = id2name(cx->sid);
+    px->name  = id2name(px->sid);
 #endif
 
     return MEMOFF(px);
@@ -368,8 +368,8 @@ guru_rom_set_class(GT cidx, const char *name, GT super_cidx, const Vfunc vtbl[],
     	px->func = MEMOFF(fp->func);
     	px->next = 0;
 #ifdef GURU_DEBUG
-    	px->cname= MEMOFF(id2name(cx->sid));
-    	px->name = MEMOFF(id2name(px->sid));
+    	px->cname= id2name(cx->sid);
+    	px->name = id2name(px->sid);
 #endif
     }
 	return cls;

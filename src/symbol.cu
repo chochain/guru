@@ -21,7 +21,8 @@
 
 __GURU__ U32    _mutex_sym = 0;
 __GURU__ S32 	_sym_idx = 0;					// point to the last(free) sym_list array.
-__GURU__ U8*	_sym[MAX_SYMBOL_COUNT];
+
+__GURU__ S32	_sym[MAX_SYMBOL_COUNT];			// list of arrays
 __GURU__ U32	_sym_hash[MAX_SYMBOL_COUNT];
 
 //================================================================
@@ -43,7 +44,7 @@ _add_index(const U8 *str, U32 hash)
     MEMCPY(buf, str, asz);
     _sym[idx]      = (U8*)buf;
 */
-    _sym[idx]      = (U8*)str;			// shallow copy, need to keep source in the memory
+    _sym[idx]      = MEMOFF(str);			// shallow copy, need to keep source in the memory
     _sym_hash[idx] = hash;
 
 	return idx;
@@ -107,10 +108,10 @@ create_sym(const U8 *str)		// create new symbol
 	if (sid<0) {
 		sid  = _add_index(str, hash);
 #if CC_DEBUG
-	    printf("%2d> sym[%2d]%08x: %s\n", x, sid, _sym_hash[sid], _sym[sid]);
+	    printf("%2d> sym[%2d]%08x: %s\n", x, sid, _sym_hash[sid], (U8*)MEMPTR(_sym[sid]));
 	}
 	else {
-		printf("%2d> sym[%2d]%08x:~%s\n", x, sid, hash, _sym[sid]);
+		printf("%2d> sym[%2d]%08x:~%s\n", x, sid, hash, (U8*)MEMPTR(_sym[sid]));
 #endif // CC_DEBUG
 	}
 	return sid;
@@ -136,7 +137,7 @@ name2id(const U8 *str)
   @return const char*	String.
   @retval NULL		Invalid sym_id was given.
 */
-__GURU__ U8*
+__GURU__ GP
 id2name(GS sid)
 {
     return (sid < _sym_idx) ? _sym[sid] : NULL;

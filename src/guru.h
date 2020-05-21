@@ -166,6 +166,7 @@ typedef struct {					// 16-bytes (128 bits) for ease of debugging
 #define _CLS(off)	((struct RClass*)MEMPTR(off))
 #define _PRC(off)   ((struct RProc*)(off ? MEMPTR(off) : NULL))
 #define _STATE(off) ((struct RState*)(off ? MEMPTR(off) : NULL))
+#define _STR(off)	((U8*)MEMPTR(off))
 #define _RAW(r)		((U8*)MEMPTR(GR_STR(r)->raw))
 #define _REGS(r)	((GR*)MEMPTR((r)->regs))
 #define _VAR(r)		((GR*)((r)->var ? MEMPTR((r)->var) : NULL))

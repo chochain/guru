@@ -13,7 +13,6 @@
 #include "symbol.h"
 #include "global.h"
 #include "mmu.h"
-#include "inspect.h"
 #include "ostore.h"
 #include "iter.h"
 
@@ -195,13 +194,12 @@ uc_setglobal(guru_vm *vm)
 /*!@brief
   sid of attr name with '@' sign removed
 */
-__GURU__ __INLINE__ GS
-_name2id_wo_at_sign(guru_vm *vm)
+__GURU__ __INLINE__ U8*
+_name_wo_at_sign(guru_vm *vm)
 {
-    GS sid   = VM_SYM(vm, _AR(bx));
-    U8 *name = id2name(sid);			// attribute name with leading '@'
+    GS sid = VM_SYM(vm, _AR(bx));
 
-    return name2id(name+1);				// skip the '@'
+    return _STR(id2name(sid)) + 1;			// attribute name with leading '@'
 }
 
 //================================================================
@@ -216,8 +214,8 @@ uc_getiv(guru_vm *vm)
 	GR *r  = _R0;
 	ASSERT(r->gt==GT_OBJ || r->gt==GT_CLASS);
 
-    GS sid = _name2id_wo_at_sign(vm);
-    GR ret = ostore_get(r, sid);
+    U8* namex = _name_wo_at_sign(vm);
+    GR  ret   = ostore_get(r, name2id(namex));
 
     _RA(ret);
 }
@@ -234,8 +232,8 @@ uc_setiv(guru_vm *vm)
 	GR *r  = _R0;
 	ASSERT(r->gt==GT_OBJ || r->gt==GT_CLASS);
 
-    GS sid = _name2id_wo_at_sign(vm);
-    ostore_set(r, sid, _R(a));
+    U8 *namex = _name_wo_at_sign(vm);
+    ostore_set(r, name2id(namex), _R(a));
 }
 
 //================================================================
@@ -493,13 +491,13 @@ uc_raise(guru_vm *vm)
 __GURU__ GR *
 _undef(GR *buf, GR *r, GS sid)
 {
-	U8 *fname = id2name(sid);
-	U8 *cname = id2name(_CLS(class_by_obj(r))->sid);
+	GP fname = id2name(sid);
+	GP cname = id2name(_CLS(class_by_obj(r))->sid);
 
 	guru_buf_add_cstr(buf, "undefined method '");
-	guru_buf_add_cstr(buf, fname);
+	guru_buf_add_cstr(buf, _STR(fname));
 	guru_buf_add_cstr(buf, "' for class #");
-	guru_buf_add_cstr(buf, cname);
+	guru_buf_add_cstr(buf, _STR(cname));
 
 	return buf;
 }
@@ -973,7 +971,7 @@ uc_class(guru_vm *vm)
 	GR *r1 = _R(a)+1;
 
     GS sid   = VM_SYM(vm, _AR(b));
-    U8 *name = id2name(sid);
+    U8 *name = _STR(id2name(sid));
     GP super = (r1->gt==GT_CLASS) ? r1->off : VM_STATE(vm)->klass;
     GP cls   = guru_define_class(name, super);
 
@@ -1028,8 +1026,8 @@ uc_method(guru_vm *vm)
     _UNLOCK;
 
 #ifdef GURU_DEBUG
-    px->cname = MEMOFF(id2name(cx->sid));
-    px->name  = MEMOFF(id2name(px->sid));
+    px->cname = id2name(cx->sid);
+    px->name  = id2name(px->sid);
 #endif // GURU_DEBUG
 #if CC_DEBUG
     PRINTF("!!!created %s method %s:%p->%d\n",

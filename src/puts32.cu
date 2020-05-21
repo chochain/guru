@@ -40,18 +40,18 @@ _p(GR *r)
     case GT_INT: 	PRINTF("%d", r->i);		break;
     case GT_FLOAT:  PRINTF("%.7g", r->f);	break;		// 23-digit fraction ~= 1/16M => 7 digit
     case GT_CLASS: {
-    	U8 *name = id2name(GR_CLS(r)->sid);
+    	U8 *name = _STR(id2name(GR_CLS(r)->sid));
     	PRINTF("%s", name);
     } break;
     case GT_OBJ: {
-    	U8 *name = id2name(_CLS(class_by_obj(r))->sid);
+    	U8 *name = _STR(id2name(_CLS(class_by_obj(r))->sid));
     	PRINTF("#<%s:%p>", name, GR_OBJ(r));
     } break;
     case GT_PROC:
     	PRINTF("#<Proc:%p>", GR_PRC(r));
     	break;
     case GT_SYM: {
-        U8 *name = id2name(r->i);
+        U8 *name = _STR(id2name(r->i));
         STRCHR(name, ';') ? PRINTF("\"%s\"", name) : PRINTF(":%s", name);
     } break;
     case GT_STR:
@@ -103,8 +103,8 @@ _print(GR *r)
 	U32 cr = 1;
 
     switch (r->gt){		// somehow, Ruby handled the following differently
-    case GT_NIL: 		/* print blank */    	break;
-    case GT_SYM: PRINTF(":%s", id2name(r->i));	break;
+    case GT_NIL: 		/* print blank */   			break;
+    case GT_SYM: PRINTF(":%s", _STR(id2name(r->i)));	break;
     case GT_STR: {
     	U8  *s  = _RAW(r);
     	U32 len = STRLENB(s);

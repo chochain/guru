@@ -346,7 +346,7 @@ guru_vprintf(const U8 *fstr, GR r[], U32 ri)		// << from c_string.cu
                 ret = __str(pf, _RAW(r+i), ' ');
             }
             else if (r[i].gt==GT_SYM) {
-                ret = __str(pf, id2name(r[i].i), ' ');
+                ret = __str(pf, _STR(id2name(r[i].i)), ' ');
             }
             break;
         case 'd':
