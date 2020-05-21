@@ -154,7 +154,7 @@ _name2class(const U8 *name)
   @param  sid
   @return proc pointer
 */
-#if CUDA_PROFILE_CDP
+#if CUDA_ENABLE_CDP
 __GPU__ void
 __scan_vtbl(S32 *idx, U32 cls, GS sid)
 {
@@ -196,7 +196,7 @@ __scan_flist(guru_class *cx, GS sid)
 	}
 	return 0;
 }
-#endif // CUDA_PROFILE_CDP
+#endif // CUDA_ENABLE_CDP
 
 __GURU__ S32 _proc_idx[32];
 __GURU__ GP
@@ -206,7 +206,7 @@ proc_by_sid(GR *r, GS sid)
     GP prc = 0;
 
     while (cls) {
-#if CUDA_PROFILE_CDP
+#if CUDA_ENABLE_CDP
     	/* CC: hold! CUDA 10.2 profiler does not support CDP yet,
         if (IS_BUILTIN(cls)) {
         	S32 *idx = &_proc_idx[threadIdx.x];
@@ -220,7 +220,7 @@ proc_by_sid(GR *r, GS sid)
     	guru_class *cx = _CLS(cls);
     	prc = __scan_vtbl(cx, sid);		// search for C-functions
     	if (prc) break;
-#endif // CUDA_PROFILE_CDP
+#endif // CUDA_ENABLE_CDP
 
     	prc = __scan_flist(cx, sid);	// TODO: combine flist into vtbl[]
     	if (prc) break;

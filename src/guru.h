@@ -51,7 +51,7 @@ extern "C" {
 
 #endif
 
-#define MAX_BUFFER_SIZE 	4096			// 4K
+#define OUTPUT_BUF_SIZE 	4096			// 4K
 
 //================================================================
 /*!@brief

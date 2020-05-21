@@ -20,7 +20,7 @@
 
 /* maximum size of exception stack and registers, which determine how deep call stack can go */
 #define VM_RESCUE_STACK 	8
-#define VM_REGFILE_SIZE 	64
+#define VM_REGFILE_SIZE 	128
 
 /* max objects in symbol and global/constant caches allowed */
 #define MAX_SYMBOL_COUNT 	256
@@ -39,16 +39,16 @@
 /* 1: 32bit alignment */
 #define GURU_64BIT_ALIGN_REQUIRED 	1
 #define GURU_32BIT_ALIGN_REQUIRED 	1
+#define GURU_HEAP_SIZE 				(128*1024)
 #define GURU_HOST_GRIT_IMAGE		1
 #define GURU_CXX_CODEBASE           0
-#define GURU_DEBUG					1
-#define BLOCK_MEMORY_SIZE 			(128*1024)
 
+#define GURU_DEBUG					1
 #define CC_DEBUG					0
 
 /* CUDA dependent flags */
 #define CUDA_MIN_MEMBLOCK_SIZE		0x200
-#define CUDA_PROFILE_CDP            0
+#define CUDA_ENABLE_CDP            	0
 
 #endif
 

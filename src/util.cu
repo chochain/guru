@@ -126,7 +126,7 @@ _hash(const char *str, int bsz)
 	int x  = threadIdx.x;
 	int *h = &_warp_h[x];   *h=0;                           // each calling thread takes a slot
 
-#if CUDA_PROFILE_CDP
+#if CUDA_ENABLE_CDP
 	cudaStream_t st;
 	cudaStreamCreateWithFlags(&st, cudaStreamNonBlocking);  // wrapper overhead ~= 84us
 
@@ -142,7 +142,7 @@ _hash(const char *str, int bsz)
 	GPU_SYNC();
 
 	cudaStreamDestroy(st);
-#endif // CUDA_PROFILE_CDP
+#endif // CUDA_ENABLE_CDP
 
 	return *h;
 }

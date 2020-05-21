@@ -42,7 +42,7 @@ __GURU__ GR		_NIL = { .gt = GT_NIL, .acl=0 };
 /* search */
 /* linear search is not efficient! */
 /* TODO: Use binary search */
-#if CUDA_PROFILE_CDP
+#if CUDA_ENABLE_CDP
 __GPU__ void
 __idx(S32 *idx, GS xid, _gtype gt)
 {
@@ -61,19 +61,19 @@ __idx(GS xid, _gtype gt)
 	}
 	return -1;
 }
-#endif // CUDA_PROFILE_CDP
+#endif // CUDA_ENABLE_CDP
 
 __GURU__ S32
 _find_idx(GS xid, _gtype gt)
 {
 	static S32 idx;					// warning: outside of function scope
-#if CUDA_PROFILE_CDP
+#if CUDA_ENABLE_CDP
 	idx = -1;
 	__idx<<<1, 32*(1+(_global_sz>>5))>>>(&idx, xid, gt);
 	GPU_CHK();						// make sure idx is captured
 #else
 	idx = __idx(xid, gt);
-#endif // CUDA_PROFILE_CDP
+#endif // CUDA_ENABLE_CDP
 	return idx;
 }
 

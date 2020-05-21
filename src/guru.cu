@@ -63,12 +63,12 @@ guru_setup(int step, int trace)
 	debug_init(trace);												// initialize logger
 	debug_log("guru initializing...");
 
-	U8 *mem = guru_host_heap = (U8*)cuda_malloc(BLOCK_MEMORY_SIZE, 1);	// allocate main block (i.e. RAM)
+	U8 *mem = guru_host_heap = (U8*)cuda_malloc(GURU_HEAP_SIZE, 1);	// allocate main block (i.e. RAM)
 	if (!mem) {
 		fprintf(stderr, "ERROR: failed to allocate device main memory block!\n");
 		return -1;
 	}
-	U8 *out = _guru_out = (U8*)cuda_malloc(MAX_BUFFER_SIZE, 1);		// allocate output buffer
+	U8 *out = _guru_out = (U8*)cuda_malloc(OUTPUT_BUF_SIZE, 1);		// allocate output buffer
 	if (!_guru_out) {
 		fprintf(stderr, "ERROR: output buffer allocation error!\n");
 		return -2;
@@ -87,10 +87,10 @@ guru_setup(int step, int trace)
 #endif // GURU_CXX_CODEBASE
 	_ses_list = NULL;
 
-	guru_mmu_init<<<1,1>>>(mem, BLOCK_MEMORY_SIZE);			// setup memory management
+	guru_mmu_init<<<1,1>>>(mem, GURU_HEAP_SIZE);			// setup memory management
 	guru_core_init<<<1,1>>>();								// setup basic classes	(TODO: => ROM)
 #if GURU_USE_CONSOLE
-	guru_console_init<<<1,1>>>(out, MAX_BUFFER_SIZE);		// initialize output buffer
+	guru_console_init<<<1,1>>>(out, OUTPUT_BUF_SIZE);		// initialize output buffer
 #endif
 
     U32 sz0, sz1;
