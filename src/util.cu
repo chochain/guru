@@ -426,6 +426,6 @@ d_atof(const char *s)
         s++;
     }
     return sign
-    		* (v + (f==0 ? 0.0 : f * exp10((double)r)))
-    		* (e==0 ? 1.0 : exp10((double)esign * e));
+    		* (v + (f==0 ? 0.0f : f * exp10((double)r)))
+    		* (e==0 ? 1.0f : exp10((double)esign * e));
 }

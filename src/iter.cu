@@ -82,7 +82,7 @@ guru_iter_next(GR *r)
 		guru_range *r = GR_RNG(it->range);
 		U32 keep;
 		if (it->inc->gt==GT_FLOAT) {
-			it->inc->f += (it->step ? it->step->f : 1.0);
+			it->inc->f += (it->step ? it->step->f : 1.0f);
 			keep = IS_INCLUDE(r) ? (it->inc->f <= r->last.f) : (it->inc->f < r->last.f);
 		}
 		else {

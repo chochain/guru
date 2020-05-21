@@ -34,6 +34,7 @@ __HOST__ int vm_get(char *ibuf);
 }
 #endif
 
+#if GURU_CXX_CODEBASE
 class VM_Pool {
 public:
     VM_Pool(int step);
@@ -45,6 +46,7 @@ private:
     class Impl;
     Impl  *_impl;
 };
+#endif // GURU_CXX_CODEBASE
 
 #endif
 

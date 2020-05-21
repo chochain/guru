@@ -55,6 +55,7 @@ __GURU__ GP  	proc_by_sid(GR *v, GS sid);
 };
 #endif
 
+#if GURU_CXX_CODEBASE
 class ClassMgr
 {
 	class  Impl;
@@ -82,4 +83,6 @@ public:
 	__GURU__ GR send(GR r[], GR *rcv, const U8 *method, U32 argc, ...);
 };
 #define CLS_MGR		(ClassMgr::getInstance())
+#endif // GURU_CXX_CODEBASE
+
 #endif
