@@ -222,12 +222,9 @@ _show_decode(guru_state *st, GAR ar)
 	}
 }
 
-__HOST__ U16
+__HOST__ void
 _disasm(guru_vm *vm, U32 level)
 {
-	static U16 pc0 = 0xffff;
-	static U16 cnt = 0;
-
 	guru_state *st = h_STATE(vm->state);
 
 	U16  pc    = st->pc;							// program counter
@@ -240,9 +237,7 @@ _disasm(guru_vm *vm, U32 level)
 
 	if (op >= OP_MAX) {
 		printf("ERROR: st=%p, opcode %d out of range, bailing out...\n", st, op);
-		return 0xffff;
 	}
-
 	guru_irep  *ix0 = ST_IREP(st);
 	U8 idx = 'a';
 	guru_state *sx = st->prev ? h_STATE(st->prev) : st;
@@ -253,14 +248,6 @@ _disasm(guru_vm *vm, U32 level)
 	printf("[");
 	_show_state_regs(st, 0);
 	printf("]\n");
-
-	if (pc==pc0 && ++cnt>3) {
-		printf("ERROR: vm=%p, st=%p, run-away loop detected at pc=%d, bailing...\n", vm, st, pc);
-		return 0xffff;
-	}
-	pc0 = pc;
-
-	return pc;
 }
 
 __HOST__ void
@@ -308,20 +295,19 @@ debug_vm_irep(guru_vm *vm)
 	_show_irep(ix, 0, &c);
 }
 
-__HOST__ int
+__HOST__ void
 debug_disasm(guru_vm *vm)
 {
-	if (_debug<1 || !vm->state) return 0;
+	if (_debug<1 || !vm->state) return;
 
 	guru_state *st = h_STATE(vm->state);
 	while (st->prev) {
 		printf("  ");
 		st = h_STATE(st->prev);
 	}
-	if (_disasm(vm, _debug)==0xffff) {
-		return -1;
-	}
-	return (_debug>1) ? guru_mmu_check(_debug) : 0;
+	_disasm(vm, _debug);
+
+	if (_debug>1) guru_mmu_check(_debug);
 }
 
 __HOST__ void
