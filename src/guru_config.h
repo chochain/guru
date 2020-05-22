@@ -43,7 +43,7 @@
 #define GURU_HOST_GRIT_IMAGE		1
 #define GURU_CXX_CODEBASE           0
 
-#define GURU_DEBUG					0
+#define GURU_DEBUG					1
 #define CC_DEBUG					0
 
 /* CUDA dependent flags */
