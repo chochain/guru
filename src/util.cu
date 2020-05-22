@@ -12,11 +12,13 @@
   </pre>
 */
 #include <stdint.h>
-#include <cooperative_groups.h>
 #include "guru_config.h"
 #include "util.h"
 
+#if GURU_ENABLE_CDP
+#include <cooperative_groups.h>
 namespace cg = cooperative_groups;
+#endif // GURU_ENABLE_CDP
 
 typedef unsigned char U8;
 typedef unsigned int  U16;
@@ -77,6 +79,7 @@ _loop_hash(const char *str, int bsz)
     return h;
 }
 
+#if GURU_ENABLE_CDP
 //================================================================
 /*! Calculate hash value
 
@@ -117,6 +120,7 @@ _dyna_hash2d(int *hash, const char *str, int bsz)
 	}
 	*hash = h[0];
 }
+#endif // GURU_ENABLE_CDP
 
 __device__ int
 _hash(const char *str, int bsz)
