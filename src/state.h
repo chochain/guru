@@ -35,10 +35,6 @@ typedef struct RIrep {			// 32-byte
     S16	iseq;					// offset to ISEQ block
 } guru_irep;
 
-#define IREP_ISEQ(i)	((U32*)U8PADD(i, (i)->iseq))
-#define IREP_REPS(i)    ((guru_irep*)U8PADD(i, (i)->reps))
-#define IREP_POOL(i)    ((GR*)U8PADD(i, (i)->pool))
-
 //================================================================
 /*!@brief
   Call information
@@ -57,6 +53,9 @@ typedef struct RState {			// 20-byte
     GP  prev;					// previous state (call stack)
 } guru_state;					// VM context
 
+//============================================================================================
+// State status flag  macros
+//
 #define STATE_LOOP				0x1
 #define STATE_LAMBDA			0x2
 #define STATE_NEW				0x4
@@ -65,6 +64,25 @@ typedef struct RState {			// 20-byte
 #define IN_LAMBDA(st)			((st)->prev && (_STATE((st)->prev)->flag & STATE_LAMBDA))
 #define IS_LAMBDA(st)			((st)->flag & STATE_LAMBDA)
 #define IS_NEW(st)				((st)->flag & STATE_NEW)
+
+//============================================================================================
+// IREP attribute access macros
+//
+#define IREP_ISEQ(i)	((U32*)U8PADD(i, (i)->iseq))
+#define IREP_REPS(i)    ((guru_irep*)U8PADD(i, (i)->reps))
+#define IREP_POOL(i)    ((GR*)U8PADD(i, (i)->pool))
+
+//============================================================================================
+// VM attribute access macros
+//
+#define VM_STATE(vm)	((guru_state*)MEMPTR((vm)->state))
+#define VM_IREP(vm)    	((guru_irep*)MEMPTR(VM_STATE(vm)->irep))
+#define VM_ISEQ(vm)	 	((U32*)IREP_ISEQ(VM_IREP(vm)))
+
+#define VM_REPS(vm,n)	(&IREP_REPS(VM_IREP(vm))[(n)])
+#define VM_VAR(vm,n)	(&IREP_POOL(VM_IREP(vm))[(n)])
+#define VM_STR(vm,n)	(&IREP_POOL(VM_IREP(vm))[(n)])
+#define VM_SYM(vm,n)    ((IREP_POOL(VM_IREP(vm))[VM_IREP(vm)->p+(n)]).i)
 
 __GURU__ void 	vm_state_push(guru_vm *vm, GP irep, U32 pc, GR r[], U32 ri);
 __GURU__ void	vm_state_pop(guru_vm *vm, GR ret_val);
