@@ -80,15 +80,6 @@ typedef struct {				// 16-byte header + 8*4-byte rescue + 256*8-byte regfile
 #define RESCUE_PUSH(vm, pc)	(*(U32*)MEMPTR((vm)->regfile + sizeof(GR)*(VM_REGFILE_SIZE - ++(vm)->xcp)) = (pc))
 #define RESCUE_POP(vm)		(*(U32*)MEMPTR((vm)->regfile + sizeof(GR)*(VM_REGFILE_SIZE - (vm)->xcp--)))
 
-#define VM_STATE(vm)	((guru_state*)MEMPTR((vm)->state))
-#define VM_IREP(vm)    	((guru_irep*)MEMPTR(VM_STATE(vm)->irep))
-#define VM_ISEQ(vm)	 	((U32*)IREP_ISEQ(VM_IREP(vm)))
-
-#define VM_REPS(vm,n)	(&IREP_REPS(VM_IREP(vm))[(n)])
-#define VM_VAR(vm,n)	(&IREP_POOL(VM_IREP(vm))[(n)])
-#define VM_STR(vm,n)	(&IREP_POOL(VM_IREP(vm))[(n)])
-#define VM_SYM(vm,n)    ((IREP_POOL(VM_IREP(vm))[VM_IREP(vm)->p+(n)]).i)
-
 #ifdef __cplusplus
 }
 #endif
