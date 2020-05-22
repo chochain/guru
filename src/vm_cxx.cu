@@ -98,7 +98,7 @@ VM::_transcode(U8 *u8_gr)
 {
 	GRIT *gr = (GRIT*)u8_gr;
 	GR   *r  = (GR*)U8PADD(gr, gr->pool);
-	for (U32 i=0; i < gr->psz; i++, r++) {			// symbol table
+	for (int i=0; i < gr->psz; i++, r++) {			// symbol table
 		switch (r->gt) {
 		case GT_SYM: guru_sym_rom(r);	break;
 		case GT_STR: guru_str_rom(r);	break;		// instantiate the string
@@ -119,7 +119,7 @@ __GURU__ void
 VM::_ready(GP irep)
 {
 	GR *r = regfile;
-	for (U32 i=0; i<MAX_REGFILE_SIZE; i++, r++) {	// wipe register
+	for (int i=0; i<MAX_REGFILE_SIZE; i++, r++) {	// wipe register
 		r->gt  = (i==0) ? GT_CLASS : GT_EMPTY;		// reg[0] is "self"
 		r->acl = 0;
 		r->off = (i==0) ? guru_rom_get_class(GT_OBJ) : 0;

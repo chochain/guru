@@ -61,7 +61,7 @@ _p(GR *r)
     	guru_array *ary = GR_ARY(r);
         GR *p = ary->data;
     	U32 n = ary->n;
-        for (U32 i=0; i < n; i++, p++) {
+        for (int i=0; i < n; i++, p++) {
             PRINTF(i==0 ? "[" : ", ");
             _p(p);			// recursive call
         }
@@ -72,7 +72,7 @@ _p(GR *r)
     	guru_hash *hsh = GR_HSH(r);
         GR *p = hsh->data;
     	U32 n = hsh->n;
-        for (U32 i=0; i < n; i+=2, p+=2) {
+        for (int i=0; i < n; i+=2, p+=2) {
         	PRINTF(i==0 ? "{" : ", ");
         	_p(p);
             PRINTF("=>");
@@ -117,7 +117,7 @@ _print(GR *r)
     	guru_array *ary = GR_ARY(r);
         GR *p = ary->data;
     	U32 n = ary->n;
-        for (U32 i=0; i < n; i++, p++) {
+        for (int i=0; i < n; i++, p++) {
             if (_print(p)) PRINTF("\n");		// recursive call
         }
         cr = 0;
@@ -130,7 +130,7 @@ _print(GR *r)
 __GURU__ void
 guru_puts(GR r[], U32 ri)
 {
-    for (U32 i=0; ri>0 && i < ri; i++) {
+    for (int i=0; ri>0 && i < ri; i++) {
     	if (_print(&r[i])) PRINTF("\n");
     }
 }
@@ -138,7 +138,7 @@ guru_puts(GR r[], U32 ri)
 __GURU__ void
 guru_p(GR r[], U32 ri)
 {
-    for (U32 i=1; ri>0 && i <= ri; i++) {
+    for (int i=1; ri>0 && i <= ri; i++) {
         _p(&r[i]);
         PRINTF("\n");
     }

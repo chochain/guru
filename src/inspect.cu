@@ -163,7 +163,7 @@ _ary(GR *buf, GR *r)
 	guru_array *ary = GR_ARY(r);
     U32 n  = ary->n;
 	GR  *o = ary->data;
-    for (U32 i=0; i < n; i++) {
+    for (int i=0; i < n; i++) {
     	guru_buf_add_cstr(buf, (const U8 *)(i==0 ? "[" : ", "));
     	_to_s(buf, o++, 0);				// array element
 	}
@@ -180,7 +180,7 @@ _hsh(GR *buf, GR *r)
     guru_array *ary = GR_ARY(r);
     int n  = ary->n;
     GR  *o = ary->data;
-    for (U32 i=0; i<n; i+=2) {
+    for (int i=0; i<n; i+=2) {
     	guru_buf_add_cstr(buf, (const U8 *)(i==0 ? "{" : ", "));
 
     	_to_s(buf, o++, 0);				// key
@@ -198,7 +198,7 @@ _rng(GR *buf, GR *r)
     ASSERT(r->gt==GT_RANGE);
 
     guru_range *rng = GR_RNG(r);
-    for (U32 i=0; i<2; i++) {
+    for (int i=0; i<2; i++) {
         guru_buf_add_cstr(buf, (const U8 *)(i==0 ? "" : ".."));
         GR o = (i==0) ? rng->first : rng->last;
         _to_s(buf, &o, 0);
@@ -256,7 +256,7 @@ ary_join(GR r[], U32 ri)
 
 	GR ret = guru_str_buf(BUF_SIZE);
 	GR *d  = a->data;
-	for (U32 i=0; i<a->n; i++, d++) {
+	for (int i=0; i<a->n; i++, d++) {
 		if (d->gt==GT_STR)	guru_buf_add_cstr(&ret, _RAW(d));
 		else 				_to_s(&ret, d, 0);
 		if (ri==0 || (i+1)>=a->n) continue;

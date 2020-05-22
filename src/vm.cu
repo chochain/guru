@@ -61,7 +61,7 @@ __ready(guru_vm *vm, GP irep)
 	GR v { GT_CLASS, 0, 0, guru_rom_get_class(GT_OBJ) };
 	GR *rf = (GR*)guru_alloc(sizeof(GR) * VM_REGFILE_SIZE);
 	GR *r  = rf;
-    for (U32 i=0; rf && i<VM_REGFILE_SIZE; i++, r++) {	// wipe register
+    for (int i=0; rf && i<VM_REGFILE_SIZE; i++, r++) {	// wipe register
     	*r = (i==0) ? v : EMPTY;
     }
 	vm->run     = VM_STATUS_READY;
@@ -93,7 +93,7 @@ __transcode(U8 *u8_gr)
 {
 	GRIT *gr = (GRIT*)u8_gr;
 	GR   *r  = (GR*)U8PADD(gr, gr->pool);
-	for (U32 i=0; i < gr->psz; i++, r++) {			// symbol table
+	for (int i=0; i < gr->psz; i++, r++) {			// symbol table
 		switch (r->gt) {
 		case GT_SYM: guru_sym_rom(r);	break;
 		case GT_STR: guru_str_rom(r);	break;		// instantiate the string
@@ -186,7 +186,7 @@ vm_pool_init(int step)
 	guru_vm *vm = _vm_pool = (guru_vm *)cuda_malloc(sizeof(guru_vm) * MIN_VM_COUNT, 1);
 	if (!vm) return -1;
 
-	for (U32 i=0; i<MIN_VM_COUNT; i++, vm++) {
+	for (int i=0; i<MIN_VM_COUNT; i++, vm++) {
 		vm->id   = i;
 		vm->step = step;
 		vm->xcp  = vm->err = 0;

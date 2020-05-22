@@ -67,7 +67,7 @@ int_power(GR r[], U32 ri)
     ASSERT(r[1].gt==GT_INT);
 
     GI x = (_INT(1) < 0) ? 0 : 1;
-    for (U32 i=0; i < _INT(1); i++, x *= _INT(0));
+    for (int i=0; i < _INT(1); i++, x *= _INT(0));
 
     RETURN_INT(x);
 

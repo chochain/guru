@@ -43,7 +43,7 @@ _is_space(U8 ch)
 {
     static const char ws[] = " \t\r\n\f\v";	// '\0' on tail
 
-    for (U32 i=0; i < sizeof(ws); i++) {
+    for (int i=0; i < sizeof(ws); i++) {
         if (ch==ws[i]) return true;
     }
     return false;
@@ -144,7 +144,7 @@ _index(const GR *r, const GR *pattern, U32 offset)
     U32 sz  = _bsz(pattern);
     U32 nz  = _bsz(r) - sz - offset;
 
-    for (U32 i=0; nz>0 && i <= nz; i++, p0++) {
+    for (int i=0; nz>0 && i <= nz; i++, p0++) {
         if (MEMCMP(p0, p1, sz)==0) {
             return p1 - _RAW(r);	// matched.
         }
@@ -374,7 +374,7 @@ str_mul(GR r[], U32 ri)
     GR ret = _blank(sz * r[1].i);
 
     U8 *p = _RAW(&ret);
-    for (U32 i = 0; i < r[1].i; i++) {
+    for (int i = 0; i < r[1].i; i++) {
         MEMCPY(p, _RAW(r), sz);
         p += sz;
     }
@@ -709,7 +709,7 @@ str_inspect(GR r[], U32 ri)
     U8 *p = tmp;
     U8 *s = (U8*)_RAW(r);
 
-    for (U32 i=0; i < _bsz(r); i++, s++) {
+    for (int i=0; i < _bsz(r); i++, s++) {
         if (*s >= ' ' && *s < 0x80) {
         	*p++ = *s;
         }

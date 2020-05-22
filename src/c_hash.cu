@@ -71,14 +71,14 @@ _search(const GR *kv, const GR *key)
     U32  n = _size(kv);
 
 #ifdef GURU_HASH_SEARCH_LINER
-    for (U32 i=0; i < n; i++, p+=2) {
+    for (int i=0; i < n; i++, p+=2) {
         if (guru_cmp(p, key)==0) return p;
     }
     return NULL;
 #endif
 
 #ifdef GURU_HASH_SEARCH_LINER_ITERATOR
-    for (U32 i=0; i < n; i++, p+=2) {
+    for (int i=0; i < n; i++, p+=2) {
         if (guru_cmp(p, key)==0) return p;
     }
     return NULL;
@@ -202,7 +202,7 @@ _hash_dup(const GR *kv)
     GR  *d  = _data(&ret);
     GR  *s  = _data(kv);
     U32 n2  = GR_HSH(&ret)->n = n<<1;	// n pairs (k,v)
-    for (U32 i=0; i < n2; i++) {
+    for (int i=0; i < n2; i++) {
     	*d++ = *ref_inc(s++);			// referenced by the new hash now
     }
     return ret;
@@ -235,7 +235,7 @@ guru_hash_cmp(const GR *r0, const GR *r1)
     if (n0 != _size(r1)) 			return 1;	// size different
 
     GR *p0 = _data(r0);
-    for (U32 i=0; i < n0; i++, p0+=2) {			// walk the hash element by element
+    for (int i=0; i < n0; i++, p0+=2) {			// walk the hash element by element
         GR *p1 = _search(r1, p0);				// check key
         if (p1==NULL) 				return 1;	// no key found
         if (guru_cmp(p0+1, p1+1)) 	return 1;	// compare data
@@ -340,7 +340,7 @@ hsh_has_value(GR r[], U32 ri)
 {
     GR  *p = _data(r);
     U32 n  = _size(r);
-    for (U32 i=0; i<n; i++, p+=2) {
+    for (int i=0; i<n; i++, p+=2) {
         if (guru_cmp(p+1, r+1)==0) {	// value to value
             RETURN_BOOL(1);
         }
@@ -356,7 +356,7 @@ hsh_key(GR r[], U32 ri)
 {
     GR  *p = _data(r);
     U32 n  = _size(r);
-    for (U32 i=0; i<n; i++, p+=2) {
+    for (int i=0; i<n; i++, p+=2) {
         if (guru_cmp(p+1, r+1)==0) {
             RETURN_VAL(*p);
         }
@@ -374,7 +374,7 @@ hsh_keys(GR r[], U32 ri)
     int n  = _size(r);
     GR ret = guru_array_new(n);
 
-    for (U32 i=0; i<n; i++, p+=2) {
+    for (int i=0; i<n; i++, p+=2) {
         guru_array_push(&ret, p);
     }
     RETURN_VAL(ret);
@@ -400,7 +400,7 @@ hsh_merge(GR r[], U32 ri)		// non-destructive merge
     GR  ret = _hash_dup(r);
     U32 n   = _size(r+1);
     GR *p   = _data(r+1);
-    for (U32 i=0; i < n; i++, p+=2) {
+    for (int i=0; i < n; i++, p+=2) {
         _set(&ret, p, p+1);
     }
     RETURN_VAL(ret);
@@ -416,7 +416,7 @@ hsh_merge_self(GR r[], U32 ri)
 
 	GR *p  = _data(r+1);
     U32 n  = _size(r+1);
-    for (U32 i=0; i<n; i++, p+=2) {
+    for (int i=0; i<n; i++, p+=2) {
         _set(r, p, p+1);
     }
 }
@@ -431,7 +431,7 @@ hsh_values(GR r[], U32 ri)
     int n  = _size(r);
     GR ret = guru_array_new(n);
 
-    for (U32 i=0; i<n; i++, p+=2) {
+    for (int i=0; i<n; i++, p+=2) {
         guru_array_push(&ret, p+1);
     }
     RETURN_VAL(ret);

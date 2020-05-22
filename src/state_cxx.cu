@@ -34,7 +34,7 @@ class StateMgr::Impl
 	_wipe_stack(GR r[], U32 ri)
 	{
 		GR *x = r;
-		for (U32 i=0; i<ri; i++, x++) {
+		for (int i=0; i<ri; i++, x++) {
 			ref_dec(x);
 			*x = EMPTY;
 		}
@@ -75,7 +75,7 @@ class StateMgr::Impl
 
 		// push stack out (1 space for iterator)
 		//	GR  *p = r1;
-		//	for (U32 i=0; i<=ri; i++, *(p+1)=*p, p--);
+		//	for (int i=0; i<=ri; i++, *(p+1)=*p, p--);
 		*(r+1) = git;
 		*(r+2) = *_REGS(st);
 
@@ -118,7 +118,7 @@ class StateMgr::Impl
 		px->regs = MEMOFF(rf);
 
 		GR  *r0 = _REGS(VM_STATE(_vm));						// deep copy register file
-		for (U32 i=0; i<n; *rf++=*r0++, i++);
+		for (int i=0; i<n; *rf++=*r0++, i++);
 
 		*r = *(r+1);
 		(r+1)->gt = GT_EMPTY;

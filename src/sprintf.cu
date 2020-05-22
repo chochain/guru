@@ -139,7 +139,7 @@ __char(guru_print *pf, U8 ch)
         if (_size(pf)) *pf->p++ = ch;
         else return -1;
     }
-    for (U32 i=0; i < pf->fmt.width; i++) {
+    for (int i=0; i < pf->fmt.width; i++) {
         if (_size(pf)) *pf->p++ = ' ';
         else return -1;
     }

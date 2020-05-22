@@ -62,7 +62,7 @@ __mmu_ok()											// mmu sanity check
 //#define MMU_CHECK		ASSERT(__mmu_ok())
 #else
 #define MMU_CHECK
-#endif // CC_DEBUG
+#endif // GURU_DEBUG
 
 //================================================================
 // most significant bit that is set
@@ -369,7 +369,7 @@ guru_alloc(U32 sz)
 #if GURU_DEBUG
     U32 *p = (U32*)BLK_DATA(blk);				// point to raw space allocated
     sz >>= 2;
-    for (U32 i=0; i < (sz>16 ? 16 : sz); i++) *p++ = 0xaaaaaaaa;
+    for (int i=0; i < (sz>16 ? 16 : sz); i++) *p++ = 0xaaaaaaaa;
 #endif
 	_UNLOCK;
 
@@ -441,7 +441,7 @@ guru_free(void *ptr)
     if (BLK_AFTER(blk)) {
     	U32 *p = (U32*)U8PADD(blk, sizeof(used_block));
     	U32 sz = blk->bsz ? (blk->bsz - sizeof(used_block))>>2 : 0;
-    	for (U32 i=0; i< (sz>32 ? 32 : sz); i++) *p++=0xffffffff;
+    	for (int i=0; i< (sz>32 ? 32 : sz); i++) *p++=0xffffffff;
     }
 #endif
     _mark_free(blk);
@@ -545,7 +545,7 @@ __GPU__ void
 _dump_freelist()
 {
 	printf("%14s","");
-	for (U32 i=0; i<FL_SLOTS; i++) {
+	for (int i=0; i<FL_SLOTS; i++) {
 		if (!_free_list[i]) continue;
 
 		printf("%02x=>[", i);

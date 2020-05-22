@@ -31,7 +31,7 @@ _write(GT gt, GT fmt, U32 sz, U8 *buf)
 
 	guru_print_node *n = (guru_print_node *)_output_ptr;
 	U8 *d = n->data, *s = buf;
-	for (U32 i=0; i<sz; i++, *d++=*s++);			// mini memcpy
+	for (int i=0; i<sz; i++, *d++=*s++);			// mini memcpy
 
 	n->id   = blockIdx.x;							// VM.id
 	n->gt   = gt;
@@ -185,7 +185,7 @@ _host_print(guru_print_node *node, U32 trace)
 		argc = (int)node->fmt;
 		memcpy(fmt, (U8*)node->data, node->size);
 		printf("%s", (char *)fmt);
-		for (U32 i=0; i<argc; i++) {
+		for (int i=0; i<argc; i++) {
 			node = NEXTNODE(node);					// point to next parameter
 			node = _host_print(node, trace);	// recursive call
 		}

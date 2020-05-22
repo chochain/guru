@@ -66,7 +66,7 @@ class VM_Pool::Impl
 	_has_job()
 	{
     	VM *vm = _vm_pool;
-    	for (U32 i=0; i<MIN_VM_COUNT; i++, vm++) {
+    	for (int i=0; i<MIN_VM_COUNT; i++, vm++) {
     		if (vm->run==VM_STATUS_RUN && !vm->err) return 1;
     	}
     	return 0;
@@ -94,7 +94,7 @@ public:
 	{
 		VM *vm = _vm_pool = (VM*)cuda_malloc(sizeof(VM) * MIN_VM_COUNT, 1);
 
-		for (U32 i=0; i<MIN_VM_COUNT; i++, vm++) {
+		for (int i=0; i<MIN_VM_COUNT; i++, vm++) {
 			cudaStreamCreateWithFlags(&_st_pool[i], cudaStreamNonBlocking);
 			_vm_init<<<1,1, 0, _st_pool[i]>>>(vm, i, step);
 		}
@@ -103,7 +103,7 @@ public:
 
 	~Impl()
 	{
-		for (U32 i=0; i<MIN_VM_COUNT; i++) {
+		for (int i=0; i<MIN_VM_COUNT; i++) {
 			cudaStreamDestroy(_st_pool[i]);
 		}
 	}
@@ -114,7 +114,7 @@ public:
 		// TODO: spin off as a server thread
 		do {
 			VM *vm = (VM*)_vm_pool;
-			for (U32 i=0; i<MIN_VM_COUNT; i++, vm++) {		// TODO: parallel
+			for (int i=0; i<MIN_VM_COUNT; i++, vm++) {		// TODO: parallel
 				if (!vm->state || vm->run!=VM_STATUS_RUN) continue;
 				// add pre-hook here
 				if (debug_disasm((guru_vm*)vm)) {

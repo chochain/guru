@@ -19,8 +19,6 @@
 #include "base.h"
 #include "class.h"
 
-#define CHK_ERR		ASSERT(cudaGetLastError()==cudaSuccess)
-
 class ClassMgr::Impl
 {
 public:
@@ -158,7 +156,7 @@ ClassMgr::rom_set_class(GT cidx, const char *name, GT super_cidx, const Vfunc vt
     cx->vtbl = MEMOFF(px);						// built-in proc list
 
     Vfunc *fp = (Vfunc*)vtbl;					// TODO: nvcc allocates very sparsely for String literals
-    for (U32 i=0; i<n; i++, px++, fp++) {
+    for (int i=0; i<n; i++, px++, fp++) {
     	px->rc   = px->kt = px->n = 0;			// built-in class type (not USER_DEF_CLASS)
     	px->sid  = create_sym((U8*)fp->name);	// raw string function table defined in code
     	px->func = MEMOFF(fp->func);
@@ -370,7 +368,7 @@ ClassMgr::send(GR r[], GR *rcv, const U8 *method, U32 argc, ...)
 
     va_list ap;						// setup calling registers
     va_start(ap, argc);
-    for (U32 i = 1; i <= argc+1; i++) {
+    for (int i = 1; i <= argc+1; i++) {
         regs[i] = (i>argc) ? NIL : *va_arg(ap, GR *);
     }
     va_end(ap);
@@ -379,7 +377,7 @@ ClassMgr::send(GR r[], GR *rcv, const U8 *method, U32 argc, ...)
 
 #if GURU_DEBUG
     GR *x = r;						// _wipe_stack
-    for (U32 i=1; i<=argc+1; i++) {
+    for (int i=1; i<=argc+1; i++) {
     	*x++ = EMPTY;				// clean up the stack
     }
 #endif

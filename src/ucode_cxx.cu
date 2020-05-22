@@ -67,7 +67,7 @@ class Ucode::Impl
     _upvar()
     {
     	guru_state *st = VM_STATE(_vm);
-        for (U32 i=0; i<=_AR(c); i++) {						// walk up stack frame
+        for (int i=0; i<=_AR(c); i++) {						// walk up stack frame
             st = IN_LAMBDA(st)
                 ? _STATE(st->prev)
                 : _STATE(_STATE(st->prev)->prev);			// 1 extra for each_loop
@@ -98,7 +98,7 @@ class Ucode::Impl
     __GURU__ void
     _stack_copy(GR *d, GR *s, U32 n)
     {
-        for (U32 i=0; i < n; i++, d++, s++) {
+        for (int i=0; i < n; i++, d++, s++) {
             *d = *ref_inc(s);			// now referenced by array/hash
             *s = EMPTY;					// DEBUG: clean element from call stack
         }
@@ -617,7 +617,7 @@ class Ucode::Impl
     blkpush()
     {
         guru_state *st = VM_STATE(_vm);
-        for (U32 i=0; i<_AR(c); i++) {
+        for (int i=0; i<_AR(c); i++) {
             st = _STATE(_STATE(st->prev)->prev);
         }
         GR *prc = _REGS(st)+st->argc+1;       	// get proc, regs[0] is the class

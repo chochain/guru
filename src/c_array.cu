@@ -68,7 +68,7 @@ _resize(guru_array *h, U32 nsz)
     	? guru_gr_realloc(h->data, sz)
         : guru_gr_alloc(sz);
     h->sz = sz;
-    for (U32 i=h->n; i<sz; i++) {			// DEBUG: lazy fill here, instead of when resized
+    for (int i=h->n; i<sz; i++) {			// DEBUG: lazy fill here, instead of when resized
     	h->data[i] = EMPTY;
     }
 }
@@ -150,7 +150,7 @@ _insert(GR *ary, S32 idx, GR *set_val)
     h->n++;
 
     if (ndx >= h->n) {										// clear empty cells
-        for (U32 i = h->n-1; i < ndx; i++) {
+        for (int i = h->n-1; i < ndx; i++) {
             h->data[i] = NIL;
         }
         h->n = ndx;
@@ -211,7 +211,7 @@ _get(GR *r, U32 ri, S32 n1, S32 n2)
 		dn = n2-n1+1,
 		sz = (dn > da) ? da : dn;
 	GR ret = guru_array_new(sz);
-    for (U32 i=n1; i <= n2 && i < h->n; i++) {
+    for (int i=n1; i <= n2 && i < h->n; i++) {
     	_push(&ret, &h->data[i]);
     }
     return ret;
@@ -261,7 +261,7 @@ _minmax(GR *ary, GR **pp_min_value, GR **pp_max_value)
     GR *p_min_value = h->data;
     GR *p_max_value = h->data;
     GR *p           = h->data;
-    for (U32 i = 1; i < h->n; i++, p++) {
+    for (int i = 1; i < h->n; i++, p++) {
         if (guru_cmp(p, p_min_value) < 0) p_min_value = p;
         if (guru_cmp(p, p_max_value) > 0) p_max_value = p;
     }
@@ -301,7 +301,7 @@ guru_array_del(GR *ary)
 {
     guru_array 	*h = GR_ARY(ary);
     GR 			*p = h->data;
-    for (U32 i=0; i < h->n; i++, ref_dec(p++));		// released element from the array
+    for (int i=0; i < h->n; i++, ref_dec(p++));		// released element from the array
 
     if (h->data) guru_free(h->data);				// release data block
     guru_free(h);									// release header block
@@ -343,7 +343,7 @@ guru_array_clr(GR *ary)
 {
     guru_array *h = GR_ARY(ary);
     GR *p = h->data;
-    for (U32 i=0; i < h->n; i++, p++) {
+    for (int i=0; i < h->n; i++, p++) {
     	ref_dec(p);
     }
     h->n = 0;
@@ -370,7 +370,7 @@ guru_array_cmp(const GR *a0, const GR *a1)
 	GR *d0 = h0->data;
 	GR *d1 = h1->data;
 
-	for (U32 i=0; i < h0->n && i < h1->n; i++) {
+	for (int i=0; i < h0->n && i < h1->n; i++) {
         S32 res = guru_cmp(d0++, d1++);
         if (res != 0) return res;
     }
@@ -397,7 +397,7 @@ ary_new(GR r[], U32 ri)
     }
     else if (ri==2 && r[1].gt==GT_INT && r[1].i >= 0) {		// new(num, value)
         ret = guru_array_new(r[1].i);
-        for (U32 i=0; i < r[1].i; i++) {
+        for (int i=0; i < r[1].i; i++) {
             _set(&ret, i, &r[2]);
         }
     }
@@ -444,7 +444,7 @@ ary_sub(GR r[], U32 ri)
     GR ret = guru_array_new(n0);		// TODO: shrink after adding elements
 
     GR *v0 = h0->data;
-    for (U32 i=0; i < n0; i++, v0++) {
+    for (int i=0; i < n0; i++, v0++) {
     	GR *v1 = h1->data;				// scan thrugh v1 array to find matching elements
     	U32 j;
     	for (j=0; j < n1 && guru_cmp(v0, v1++); j++);
@@ -465,7 +465,7 @@ ary_get(GR r[], U32 ri)
 	}
 	else {
         ret = guru_array_new(ri);
-        for (U32 i=0; i < ri; i++) {
+        for (int i=0; i < ri; i++) {
             _set(&ret, i, r+1+i);
         }
 	}
@@ -536,7 +536,7 @@ _index(GR r[])
 {
     guru_array *h = GR_ARY(r);
     GR *p = h->data;
-    for (U32 i=0; i < h->n; i++, p++) {
+    for (int i=0; i < h->n; i++, p++) {
         if (guru_cmp(p, r+1)==0) {
             return i;
         }
@@ -613,7 +613,7 @@ ary_reverse(GR r[], U32 ri)
 	GR ret = guru_array_new(a->n);
 
 	GR *d  = a->data + a->n - 1;
-	for (U32 i=0; i<a->n; i++, d--) {
+	for (int i=0; i<a->n; i++, d--) {
     	guru_array_push(&ret, d);
     }
     RETURN_VAL(ret);
@@ -655,7 +655,7 @@ ary_dup(GR r[], U32 ri)
 
     GR ret = guru_array_new(h0->n);		// create new array
     GR *p0 = h0->data;
-    for (U32 i=0; i < h0->n; i++, p0++) {
+    for (int i=0; i < h0->n; i++, p0++) {
     	_set(&ret, i, p0);				// shallow copy
     }
     RETURN_VAL(ret);

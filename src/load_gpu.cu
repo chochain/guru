@@ -95,7 +95,7 @@ _get_rite_size(rite_size *sz, U8 **bp)
 
     // POOL block
     U32 psz = BU32(p);		p += sizeof(U32);			// pool element count
-    for (U32 i=0; i<psz; i++) {							// 1st pass (skim through pool)
+    for (int i=0; i<psz; i++) {							// 1st pass (skim through pool)
     	U8  tt  = *p++;
     	U32 len = BU16(p);	p += sizeof(U16)+len;
     	sz->ssz += (tt==0)
@@ -103,7 +103,7 @@ _get_rite_size(rite_size *sz, U8 **bp)
     }
     // SYM block
     U32 ysz = BU32(p);		p += sizeof(U32);			// symbol element count
-    for (U32 i=0; i<ysz; i++) {							// 1st pass (skim through sym)
+    for (int i=0; i<ysz; i++) {							// 1st pass (skim through sym)
     	U32 len = BU16(p)+1;	p += sizeof(U16)+len;
     	sz->ssz += ALIGN4(len);
     }
@@ -250,7 +250,7 @@ _load_irep(GRIT *gr, rite_size *sz, int ix, U8 **bp)
     U8 *stbl = (U8*)U8PADD(gr, gr->stbl + sz->ssz);
     U8 *stbl0= stbl;
     U32 psz  = r0->p = BU32(p);	p += sizeof(U32);		// pool element count
-    for (U32 i=0; i<psz; i++) {							// 1st pass (skim through pool)
+    for (int i=0; i<psz; i++) {							// 1st pass (skim through pool)
         U32  tt = *p++;
         U32  len = BU16(p);    	p += sizeof(U16);
     	_to_gv(pool++, &stbl, p, tt, len);
@@ -258,7 +258,7 @@ _load_irep(GRIT *gr, rite_size *sz, int ix, U8 **bp)
     }
     // SYM block
     U32 ysz = r0->s = BU32(p);	p += sizeof(U32);		// symbol element count
-    for (U32 i=0; i<ysz; i++) {							// 1st pass (skim through sym)
+    for (int i=0; i<ysz; i++) {							// 1st pass (skim through sym)
     	U32 len = BU16(p)+1;	p += sizeof(U16);
     	_to_gv(pool++, &stbl, p, 3, len);
     	p += len;
@@ -298,7 +298,7 @@ _fill_grit(GRIT *gr, rite_size *sz, int ix, U8 **bp)
     sz->rsz += rsz;								// total allocated (big brother)
 
     // traverse irep-tree recursively
-	for (U32 i=0; i<rsz; i++) {
+	for (int i=0; i<rsz; i++) {
 		_fill_grit(gr, sz, ix+i, bp);
 	}
 }

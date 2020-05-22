@@ -84,7 +84,7 @@ _set(guru_obj *o, GS oid, GR*val)
 
     // shift attributes out for insertion
     GR *t = v + o->n;
-    for (U32 i=o->n; i > idx; i--, t--) {
+    for (int i=o->n; i > idx; i--, t--) {
     	*(t) = *(t-1);
     }
     SET_VAL(r, oid, val);
@@ -146,7 +146,7 @@ ostore_del(GR *r)
 
 	if (v==NULL) return;
 
-    for (U32 i=0; i<o->n; i++, ref_dec(v++));
+    for (int i=0; i<o->n; i++, ref_dec(v++));
 
     guru_free(r);
 }

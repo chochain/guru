@@ -204,7 +204,7 @@ obj_attr_reader(GR r[], U32 ri)
 	GP cls = r->off;									// fetch class offset
 
 	GR *s = r+1;
-    for (U32 i = 0; i < ri; i++, s++) {
+    for (int i = 0; i < ri; i++, s++) {
         ASSERT(s->gt==GT_SYM);
 
         U8 *name = _STR(id2name(s->i));
@@ -226,7 +226,7 @@ obj_attr_accessor(GR r[], U32 ri)
 #endif // CC_DEBUG
     GR buf = guru_str_buf(80);
 	GR *s  = r+1;
-    for (U32 i=0; i < ri; i++, s++) {
+    for (int i=0; i < ri; i++, s++) {
         ASSERT(s->gt==GT_SYM);
         U8 *a0  = _STR(id2name(s->i));					// reader
         U8 *a1  = _name_w_eq_sign(&buf, a0);			// writer
@@ -272,7 +272,7 @@ obj_lambda(GR r[], U32 ri)
 	px->regs = MEMOFF(rf);
 
 	GR  *r0 = r - n;
-	for (U32 i=0; i<n; *rf++=*r0++, i++);
+	for (int i=0; i<n; *rf++=*r0++, i++);
 
     *r = *(r+1);
 	(r+1)->gt = GT_EMPTY;
@@ -394,7 +394,7 @@ sys_mstat(GR r[], U32 ri)
 	GR  ret = guru_array_new(8);
 	U32 s[8];
 	guru_mmu_stat((guru_mstat*)s);
-	for (U32 i=0; i<8; i++) {
+	for (int i=0; i<8; i++) {
 		si.i = s[i];
 		guru_array_push(&ret, &si);
 	}
