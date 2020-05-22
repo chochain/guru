@@ -124,7 +124,7 @@ ostore_new(GP cls)
     guru_obj *o = (guru_obj *)guru_alloc(sizeof(guru_obj));
 
     o->rc  = 1;
-    o->var = 0;				// attributes, lazy allocation until _set is called
+    o->var = 0;					// attributes, lazy allocation until _set is called
     o->cls = cls;
     o->sz  = o->n = 0;
 
@@ -185,4 +185,26 @@ ostore_get(GR *r, GS oid)
 	GR *val = _get(GR_OBJ(r), oid);
 
     return val ? *ref_inc(val) : NIL;
+}
+
+//================================================================
+/*! class instance variable getter
+
+  @param  v		pointer to target.
+  @param  oid	attribute id.
+  @return		value.
+*/
+__GURU__ GR
+ostore_getcv(GR *r, GS oid)
+{
+	ASSERT(r->gt==GT_OBJ);
+
+	GP cls = GR_OBJ(r)->cls;								// get class of given object
+	GR cv  { .gt=GT_CLASS, .acl=0, .oid=0, { .off=cls }};
+	GR ret { GT_NIL };
+	while (cls) {
+		if ((ret=ostore_get(&cv, oid)).gt!=GT_NIL) break;	// fetch class variable
+		cv.off = cls = _CLS(cls)->super;					// not found, search parent class
+	}
+	return ret;
 }

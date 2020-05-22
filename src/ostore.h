@@ -23,6 +23,7 @@ __GURU__ GR 	ostore_new(GP cls);
 __GURU__ void   ostore_del(GR *r);
 __GURU__ void   ostore_set(GR *r, GS oid, GR *val);
 __GURU__ GR 	ostore_get(GR *r, GS oid);
+__GURU__ GR		ostore_getcv(GR *r, GS oid);
 
 #ifdef __cplusplus
 }
