@@ -113,7 +113,7 @@ _id2name(GS sid, U8 *str)
 __HOST__ int
 _find_op(const int *lst, int op, int n)
 {
-	for (U32 i=0; i<n; i++) {
+	for (int i=0; i<n; i++) {
 		if (op==lst[i]) return i;
 	}
 	return -1;
@@ -126,7 +126,7 @@ _match_irep(guru_irep *ix, guru_irep *ix0, U8 *idx)
 
 	// search into children recursively
 	guru_irep *ix1 = IREP_REPS(ix);
-	for (U32 i=0; i<ix->r; i++, ix1++) {
+	for (int i=0; i<ix->r; i++, ix1++) {
 		*idx += 1;
 		if (_match_irep(ix1, ix0, idx)) return 1;
 	}
@@ -136,7 +136,7 @@ _match_irep(guru_irep *ix, guru_irep *ix0, U8 *idx)
 __HOST__ void
 _show_regs(GR *r, U32 ri)
 {
-	for (U32 i=0; i<ri; i++, r++) {
+	for (int i=0; i<ri; i++, r++) {
 		const char *t = _vtype[r->gt];
 		U8  c  = (i==0) ? '|' : ' ';
 		if (HAS_REF(r)) {
@@ -261,7 +261,7 @@ _show_irep(guru_irep *ix, int level, char *n)
 		ix->nr, ix->nv, ix->p, ix->s, ix->r);
 	// dump all children ireps
 	guru_irep *ix0 = IREP_REPS(ix);
-	for (U32 i=0; i<ix->r; i++, ix0++) {
+	for (int i=0; i<ix->r; i++, ix0++) {
 		*n += (*n=='z') ? -57 : 1;		// a-z, A-Z
 		_show_irep(ix0, level+1, n);
 	}
@@ -322,8 +322,11 @@ debug_log(const char *msg)
 	if (_debug) printf("%.3f> %s\n", ms, msg);
 }
 
-#else	// GURU_DEBUG
-__HOST__ void debug_show_irep(guru_irep *irep, U32 ioff, char level, char *idx) {}
-__HOST__ void debug_trace() {}
+#else	// !GURU_DEBUG
+__HOST__ void	debug_init(U32 flag) 		{}
+__HOST__ void	debug_log(const char *msg) 	{}
+__HOST__ void	debug_mmu_stat()			{}
+__HOST__ void	debug_disasm(guru_vm *vm)	{}
+__HOST__ void	debug_vm_irep(guru_vm *vm)	{}
 #endif 	// GURU_DEBUG
 

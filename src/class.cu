@@ -24,6 +24,7 @@
 #define CHK_ERR		ASSERT(cudaGetLastError()==cudaSuccess)
 
 __GURU__ U32 _mutex_cls;
+__GURU__ guru_class *_rom_class = NULL;		// cached class
 
 //================================================================
 /*! (BETA) Call any method of the object, but written by C.
@@ -57,7 +58,7 @@ _send(GR r[], GR *rcv, const char *method, U32 argc, ...)
 
     va_list ap;							// setup calling registers
     va_start(ap, argc);
-    for (U32 i = 1; i <= argc+1; i++) {
+    for (int i = 1; i <= argc+1; i++) {
         regs[i] = (i>argc) ? NIL : *va_arg(ap, GR *);
     }
     va_end(ap);
@@ -66,7 +67,7 @@ _send(GR r[], GR *rcv, const char *method, U32 argc, ...)
 
 #if GURU_DEBUG
     GR *x = r;							// _wipe_stack
-    for (U32 i=1; i<=argc+1; i++) {
+    for (int i=1; i<=argc+1; i++) {
     	*x++ = EMPTY;					// clean up the stack
     }
 #endif
@@ -168,10 +169,10 @@ __scan_vtbl(S32 *idx, U32 cls, GS sid)
 __GURU__ GP
 __scan_vtbl(guru_class *cx, GS sid)
 {
-	U8 *cname = MEMPTR(cx->name);
 	guru_proc *px = _PRC(cx->vtbl);				// sequential search thru the array
 	for (int i=0; i < cx->rc; i++, px++) {		// TODO: parallel search (i.e. CDP, see above)
 #if CC_DEBUG
+		U8 *cname = _STR(cx->name);
 		PRINTF("!!!vtbl scaning %p:%s[%2d] %p:%s->%d == %d\n", cx, cname, i, px, MEMPTR(px->name), px->sid, sid);
 #endif // CC_DEBUG
 		if (px->sid==sid) return MEMOFF(px);
@@ -182,11 +183,11 @@ __scan_vtbl(guru_class *cx, GS sid)
 __GURU__ GP
 __scan_flist(guru_class *cx, GS sid)
 {
-	U8 *cname = MEMPTR(cx->name);
 	GP prc = cx->flist;							// walk IREP linked-list
 	while (prc) {								// TODO: IREP should be added into guru_class->vtbl[]
 		guru_proc *px = _PRC(prc);
 #if CC_DEBUG
+		U8 *cname = _STR(cx->name);
 		PRINTF("!!!flst scaning %p:%s %p:%s->%d == %d\n", cx, cname, px, MEMPTR(px->name), px->sid, sid);
 #endif // CC_DEBUG
 		if (px->sid==sid) {
@@ -255,7 +256,7 @@ _define_class(const U8 *name, GP cls, GP super)
     cx->super  = super;
     cx->vtbl   = 0;
     cx->flist  = 0;						// head of list
-#ifdef GURU_DEBUG
+#if GURU_DEBUG
     cx->name   = id2name(sid);			// retrieve from stored symbol table (the one caller passed might be destroyed)
 #endif
 
@@ -304,7 +305,7 @@ guru_define_method(GP cls, const U8 *name, GP cfunc)
     cx->flist = MEMOFF(px);						// TODO: change to array implementation
     _UNLOCK;
 
-#ifdef GURU_DEBUG
+#if GURU_DEBUG
     px->cname = id2name(cx->sid);
     px->name  = id2name(px->sid);
 #endif
@@ -340,14 +341,12 @@ guru_class_add_meta(GR *r)						// lazy add metaclass to a class
 /* methods to add builtin (ROM) class/proc for GURU
  * it uses (const U8 *) for static string
  */
-__GURU__ guru_class *_class_list = NULL;
-
 __GURU__ GP
 guru_rom_get_class(GT idx) {
-	if (_class_list==NULL) {					// lazy allocation
-		_class_list = (guru_class*)guru_alloc(sizeof(guru_class)*GT_MAX);
+	if (_rom_class==NULL) {					// lazy allocation
+		_rom_class = (guru_class*)guru_alloc(sizeof(guru_class)*GT_MAX);
 	}
-	return idx==GT_EMPTY ? 0 : MEMOFF(&_class_list[idx]);
+	return idx==GT_EMPTY ? 0 : MEMOFF(&_rom_class[idx]);
 }
 
 __GURU__ GP
@@ -362,12 +361,12 @@ guru_rom_set_class(GT cidx, const char *name, GT super_cidx, const Vfunc vtbl[],
     cx->vtbl = MEMOFF(px);						// built-in proc list
 
     Vfunc *fp = (Vfunc*)vtbl;					// TODO: nvcc allocates very sparsely for String literals
-    for (U32 i=0; i<n; i++, px++, fp++) {
+    for (int i=0; i<n; i++, px++, fp++) {
     	px->rc   = px->kt = px->n = 0;			// built-in class type (not USER_DEF_CLASS)
     	px->sid  = create_sym((U8*)fp->name);	// raw string function table defined in code
     	px->func = MEMOFF(fp->func);
     	px->next = 0;
-#ifdef GURU_DEBUG
+#if GURU_DEBUG
     	px->cname= id2name(cx->sid);
     	px->name = id2name(px->sid);
 #endif

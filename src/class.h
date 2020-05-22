@@ -23,7 +23,7 @@ extern "C" {
 /*!@brief
   Guru class object.
 */
-typedef struct RClass {			// 64-byte
+typedef struct RClass {			// 32-byte
 	GURU_HDR;
 	GP				var;		// (GR*) class variables
 	GP				meta;		// (RClass*) offset to guru_class*
@@ -32,6 +32,8 @@ typedef struct RClass {			// 64-byte
     GP				flist;		// (RProc*) head of guru_proc linked list
 #if GURU_DEBUG
     GP				name;		// (U8*) for debug. TODO: remove
+#else
+    GP				xxx;		// 4-byte alignment
 #endif // GURU_DEBUG
 } guru_class;
 

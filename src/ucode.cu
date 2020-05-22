@@ -319,7 +319,7 @@ __GURU__ GR *
 _upvar(guru_vm *vm)
 {
 	guru_state *st = VM_STATE(vm);
-	for (U32 i=0; i<=_AR(c); i++) {						// walk up stack frame
+	for (int i=0; i<=_AR(c); i++) {						// walk up stack frame
 		st = IN_LAMBDA(st)
 			? _STATE(st->prev)
 			: _STATE(_STATE(st->prev)->prev);			// 1 extra for each_loop
@@ -599,7 +599,7 @@ __UCODE__
 uc_blkpush(guru_vm *vm)
 {
 	guru_state *st = VM_STATE(vm);
-	for (U32 i=0; i<_AR(c); i++) {
+	for (int i=0; i<_AR(c); i++) {
 		st = _STATE(_STATE(st->prev)->prev);
 	}
     GR *prc = _REGS(st)+st->argc+1;       	// get proc, regs[0] is the class
@@ -865,7 +865,7 @@ uc_strcat(guru_vm *vm)
 __GURU__ void
 _stack_copy(GR *d, GR *s, U32 n)
 {
-	for (U32 i=0; i < n; i++, d++, s++) {
+	for (int i=0; i < n; i++, d++, s++) {
 		*d = *ref_inc(s);			// now referenced by array/hash
 		*s = EMPTY;					// DEBUG: clean element from call stack
 	}
@@ -1025,7 +1025,7 @@ uc_method(guru_vm *vm)
 
     _UNLOCK;
 
-#ifdef GURU_DEBUG
+#if GURU_DEBUG
     px->cname = id2name(cx->sid);
     px->name  = id2name(px->sid);
 #endif // GURU_DEBUG
@@ -1123,6 +1123,7 @@ ucode_prefetch(guru_vm *vm)
 	st->pc++;											// advance program counter (ready for next fetch)
 }
 
+#if GURU_DEBUG
 __GURU__ __const__ UCODE ucode_vtbl[] = {
 	NULL, 			// 	  OP_NOP = 0,
 // 0x1 Register File
@@ -1200,7 +1201,7 @@ __GURU__ __const__ UCODE ucode_vtbl[] = {
 // 0x42 Class
 	NULL,			//    OP_OCLASS,    A       R(A) := ::Object
 	uc_class,		//    OP_CLASS,     A B     R(A) := newclass(R(A),Syms(B),R(A+1))
-	uc_class,		//    OP_MODULE,    A B     R(A) := newmodule(R(A),Syms(B))
+	uc_class,		//    OP_MODULE,    A B     R(A) := newmoducule(R(A),Syms(B))
 	uc_exec,		//    OP_EXEC,      A Bx    R(A) := blockexec(R(A),SEQ[Bx])
 	uc_method,		//    OP_METHOD,    A B     R(A).newmethod(Syms(B),R(A+1))
 	uc_sclass,		//    OP_SCLASS,    A B     R(A) := R(B).singleton_class
@@ -1210,10 +1211,12 @@ __GURU__ __const__ UCODE ucode_vtbl[] = {
 	uc_stop,		//    OP_STOP,      stop VM
 	NULL			//    OP_ERR,       Bx      raise RuntimeError with message Lit(Bx)
 };
+#endif
 
 __GURU__ void
 ucode_step(guru_vm *vm)
 {
+	guru_state *st = VM_STATE(vm);						// for debugging
 	//=======================================================================================
 	// GURU dispatcher unit
 	// TODO: dispatch vtable[op](vm) without switch branching
@@ -1233,6 +1236,8 @@ ucode_step(guru_vm *vm)
     case OP_SETGLOBAL:  uc_setglobal (vm); break;
     case OP_GETIV:      uc_getiv     (vm); break;
     case OP_SETIV:      uc_setiv     (vm); break;
+    case OP_GETCV:		uc_getcv	 (vm); break;
+    case OP_SETCV:	    uc_setcv     (vm); break;
     case OP_GETCONST:   uc_getconst  (vm); break;
     case OP_SETCONST:   uc_setconst  (vm); break;
     case OP_GETUPVAR:   uc_getupvar  (vm); break;
@@ -1241,6 +1246,11 @@ ucode_step(guru_vm *vm)
     case OP_JMP:        uc_jmp       (vm); break;
     case OP_JMPIF:      uc_jmpif     (vm); break;
     case OP_JMPNOT:     uc_jmpnot    (vm); break;
+// EXCEPTION
+    case OP_ONERR:		uc_onerr     (vm); break;
+    case OP_RESCUE:		uc_rescue    (vm); break;
+    case OP_POPERR:		uc_poperr	 (vm); break;
+    case OP_RAISE:		uc_raise	 (vm); break;
 // CALL
     case OP_SEND:
     case OP_SENDB:      uc_send      (vm); break;
@@ -1269,9 +1279,11 @@ ucode_step(guru_vm *vm)
     case OP_RANGE:      uc_range     (vm); break;
 // CLASS, PROC (STACK ops)
     case OP_LAMBDA:     uc_lambda    (vm); break;
-    case OP_CLASS:      uc_class     (vm); break;
+    case OP_CLASS:
+    case OP_MODULE:	    uc_class	 (vm); break;
     case OP_EXEC:       uc_exec      (vm); break;
     case OP_METHOD:     uc_method    (vm); break;
+    case OP_SCLASS:	    uc_sclass    (vm); break;
     case OP_TCLASS:     uc_tclass    (vm); break;
 // CONTROL
     case OP_STOP:       uc_stop      (vm); break;
@@ -1286,13 +1298,12 @@ ucode_step(guru_vm *vm)
 	// GURU dispatcher unit
 	// using vtable (i.e. without switch branching)
 	//=======================================================================================
-	guru_state *st = VM_STATE(vm);						// for debugging
     ucode_vtbl[vm->op](vm);
+#endif // GURU_DEBUG
 
     if (vm->err && vm->xcp>0) {							// simple exception handler
     	st->pc = RESCUE_POP(vm);						// bubbling up
     	vm->err = 0;									// TODO: add exception type or code on stack
     }
-#endif // GURU_DEBUG
 }
 

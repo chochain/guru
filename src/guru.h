@@ -223,7 +223,7 @@ typedef struct RString {	// 16-byte
 //================================================================
 /*! Define instance data handle.
 */
-typedef struct RProc {		// 24-byte
+typedef struct RProc {		// 32-byte
 	GURU_HDR;				// n, sid, kt are used
     union {
 		struct {
