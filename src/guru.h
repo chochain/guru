@@ -194,8 +194,8 @@ struct Vfunc {
         : Iterator range object type (i.e. GT_*)
     sz  : storage space for built-in complex objects (i.e. Array, Hash, String)
     bsz : byte count for string
-    xx  : reserved
-    sid : symbol id for Class, Proc
+    pid : proc id for Proc
+    cid : class id for Class, Proc
     i   : 32-bit value used by Iterator
 */
 #define GURU_HDR  		\
@@ -208,44 +208,11 @@ struct Vfunc {
 			U16	bsz;	\
 		};				\
 		struct {		\
-			U16 xx;		\
-			U16 sid;	\
+			U16 pid;	\
+			U16 cid;	\
 		};				\
 		GI i;			\
     }
-
-typedef struct RString {	// 16-byte
-	GURU_HDR;
-	GP				raw;	// (U8*) pointer to allocated buffer.
-	S32				xxx;	// reserved
-} guru_str;
-
-//================================================================
-/*! Define instance data handle.
-*/
-typedef struct RProc {		// 32-byte
-	GURU_HDR;				// n, sid, kt are used
-    union {
-		struct {
-			GP	irep;		// (RIrep*) an IREP (Ruby code), defined in vm.h
-	    	GP 	regs;		// (GR*) pointer to register file for lambda
-		};
-    	struct {
-			GP 	func;		// (guru_fptr) for a raw C function
-	    	GP	next;		// (RProc*) next function in linked list
-		};
-    };
-#if GURU_DEBUG
-    GP		cname;			// (U8*) classname
-    GP		name;			// (U8*) function name
-    U64		xxx;			// reserved for alignment
-#endif
-} guru_proc;
-
-#define PROC_IREP		0x1
-#define PROC_LAMBDA		0x2
-#define AS_IREP(px)		((px)->kt & PROC_IREP)
-#define AS_LAMBDA(px)	((px)->kt & PROC_LAMBDA)
 
 //================================================================
 /*!@brief
@@ -256,6 +223,12 @@ typedef struct RObj {			// 24-byte
 	GP				var;		// (GR*) instance variables
 	GP				cls;		// (RClass*) class that this object belongs to (RClass*)
 } guru_obj;
+
+typedef struct RString {	// 16-byte
+	GURU_HDR;
+	GP				raw;	// (U8*) pointer to allocated buffer.
+	S32				xxx;	// reserved
+} guru_str;
 
 typedef struct RSes {			// 16-byte
 	U8				*stdin;		// input stream

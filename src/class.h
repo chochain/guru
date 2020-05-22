@@ -31,7 +31,7 @@ typedef struct RClass {			// 32-byte
     GP				vtbl;		// (RProc*) c-func array (in constant memory, rc is the number of functions)
     GP				flist;		// (RProc*) head of guru_proc linked list
 #if GURU_DEBUG
-    GP				name;		// (U8*) for debug. TODO: remove
+    GP				cname;		// (U8*) for debug. TODO: remove
 #else
     GP				xxx;		// 4-byte alignment
 #endif // GURU_DEBUG
@@ -39,6 +39,33 @@ typedef struct RClass {			// 32-byte
 
 #define USER_DEF_CLASS	0x1
 #define IS_BUILTIN(clsx)	(!(clsx->kt & USER_DEF_CLASS))
+
+//================================================================
+/*! Define instance data handle.
+*/
+typedef struct RProc {		// 32-byte
+	GURU_HDR;				// n, sid, kt are used
+    union {
+		struct {
+			GP	irep;		// (RIrep*) an IREP (Ruby code), defined in vm.h
+	    	GP 	regs;		// (GR*) pointer to register file for lambda
+		};
+    	struct {
+			GP 	func;		// (guru_fptr) for a raw C function
+	    	GP	next;		// (RProc*) next function in linked list
+		};
+    };
+#if GURU_DEBUG
+    GP		cname;			// (U8*) classname
+    GP		name;			// (U8*) function name
+    U64		xxx;			// reserved
+#endif
+} guru_proc;
+
+#define PROC_IREP		0x1
+#define PROC_LAMBDA		0x2
+#define AS_IREP(px)		((px)->kt & PROC_IREP)
+#define AS_LAMBDA(px)	((px)->kt & PROC_LAMBDA)
 
 __GURU__ GP 	guru_rom_get_class(GT cidx);
 __GURU__ GP 	guru_rom_set_class(GT cidx, const char *name, GT super_cidx, const Vfunc vtbl[], int n);
@@ -51,7 +78,7 @@ __GURU__ GP     guru_define_method(GP cls, const U8 *name, GP cfunc);
 __GURU__ GR 	inspect(GR *v, GR *obj);				// inspect obj using v[] as stack
 __GURU__ GR 	kind_of(GR *v);							// whether v1 is a kind of v0
 __GURU__ GP		class_by_obj(GR *v);
-__GURU__ GP  	proc_by_sid(GR *v, GS sid);
+__GURU__ GP  	proc_by_id(GR *v, GS pid);
 
 #ifdef __cplusplus
 };
@@ -81,7 +108,7 @@ public:
 	__GURU__ GR	inspect(GR *v, GR *obj);				// inspect obj using v[] as stack
 	__GURU__ GR	kind_of(GR *v);							// whether v1 is a kind of v0
 	__GURU__ GP	class_by_obj(GR *v);
-	__GURU__ GP	proc_by_sid(GR *v, GS sid);
+	__GURU__ GP	proc_by_id(GR *v, GS pid);
 	__GURU__ GR send(GR r[], GR *rcv, const U8 *method, U32 argc, ...);
 };
 #define CLS_MGR		(ClassMgr::getInstance())

@@ -82,13 +82,13 @@ class Ucode::Impl
   create undefined method error message (different between mruby1.4 and ruby2.x
 */
     __GURU__ GR*
-    _undef(GR *buf, GR *r, GS sid)
+    _undef(GR *buf, GR *r, GS pid)
     {
-        U8 *fname = id2name(sid);
-        U8 *cname = id2name(_CLS(class_by_obj(r))->sid);
+        U8 *pname = id2name(pid);
+        U8 *cname = id2name(_CLS(class_by_obj(r))->cid);
 
         guru_buf_add_cstr(buf, "undefined method '");
-        guru_buf_add_cstr(buf, fname);
+        guru_buf_add_cstr(buf, pname);
         guru_buf_add_cstr(buf, "' for class #");
         guru_buf_add_cstr(buf, cname);
 
@@ -935,12 +935,14 @@ class Ucode::Impl
     {
         U32 bz = _AR(bx) >> 2;					// Bz, Cz a special decoder case
 
-        guru_proc *px = (guru_proc *)guru_alloc(sizeof(guru_proc));
+        guru_class *cx = _CLS(VM_STATE(vm)->klass);
+        guru_proc  *px = (guru_proc *)guru_alloc(sizeof(guru_proc));
 
         px->rc   = 0;
         px->kt   = PROC_IREP;
         px->n    = 0;							// no param
-        px->sid  = 0xffff;						// anonymous function
+        px->pid  = 0xffff;						// anonymous function
+        px->cid  = cx->cid;						// current class
         px->irep = MEMOFF(VM_REPS(_vm, bz));	// fetch from children irep list
 
         _RA_T(GT_PROC, off=MEMOFF(px));			// regs[ra].proc = prc
@@ -1008,19 +1010,20 @@ class Ucode::Impl
         guru_proc  *px = GR_PRC(r+1);				// override (if exist) with proc by OP_LAMBDA
         MUTEX_LOCK(_mutex);
 
-        px->sid  = sid;								// assign sid to proc, overload if prc already exists
+        px->pid  = pid;								// assign sid to proc, overload if prc already exists
+        px->cid  = cx->cid;
         px->next = cx->flist;						// add to top of vtable, so it will be found first
         cx->flist = MEMOFF(px);						// if there is a sub-class override
 
         MUTEX_FREE(_mutex);
 
 #ifdef GURU_DEBUG
-        px->cname = MEMOFF(id2name(cx->sid));
-        px->name  = MEMOFF(id2name(px->sid));
+        px->cname = MEMOFF(id2name(px->cid));
+        px->name  = MEMOFF(id2name(px->pid));
 #endif // GURU_DEBUG
 #if CC_DEBUG
         PRINTF("!!!created %s method %s:%p->%d\n",
-        		prc ? "override" : "new", MEMPTR(px->name), px, px->sid);
+        		prc ? "override" : "new", MEMPTR(px->name), px, px->pid);
 #endif // CC_DEBUG
         r->acl &= ~ACL_SELF;						// clear CLASS modification flags if any
         *(r+1) = EMPTY;								// clean up proc

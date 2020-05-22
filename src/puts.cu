@@ -52,10 +52,10 @@ _print(GV *v)
     case GT_FLOAT:  console_float(v->f);				break;
 #endif // GURU_USE_FLOAT
     case GT_SYMBOL: console_str(id2name(v->i));			break;
-    case GT_CLASS:  console_str(id2name(v->cls->sid));  break;
+    case GT_CLASS:  console_str(id2name(v->cls->cid));  break;
     case GT_OBJ:
     	console_str("#<");
-    	console_str(id2name(class_by_obj(v)->sid));
+    	console_str(id2name(class_by_obj(v)->cid));
         console_str(":");
         console_ptr((void *)v->self);
         console_str(">");

@@ -138,7 +138,7 @@ _str(GR *buf, GR *r)
 __GURU__ void
 _cls(GR *buf, GR *r)
 {
-	U8* name = _STR(id2name(GR_CLS(r)->sid));
+	U8* name = _STR(id2name(GR_CLS(r)->cid));					// ~= class->cname
 	guru_buf_add_cstr(buf, name);
 }
 
@@ -146,7 +146,7 @@ __GURU__ void
 _obj(GR *buf, GR *r)
 {
 	ASSERT(r->gt==GT_OBJ);
-	U8 *cname = _STR(id2name(_CLS(class_by_obj(r))->sid));
+	U8 *cname = _STR(id2name(_CLS(class_by_obj(r))->cid));		// ~= class->cname
 	guru_buf_add_cstr(buf, "#<");
 	guru_buf_add_cstr(buf, cname);
 	guru_buf_add_cstr(buf, ":");

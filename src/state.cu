@@ -131,11 +131,11 @@ _raise(guru_vm *vm, GR r[], U32 ri)
 typedef struct {
 	const char  *name;								// raw string usually
 	void (*func)(guru_vm *vm, GR r[], U32 ri);		// C-function pointer
-	GS			sid;
+	GS			pid;
 } Xf;
 
 __GURU__ U32
-_method_missing(guru_vm *vm, GR r[], U32 ri, GS sid)
+_method_missing(guru_vm *vm, GR r[], U32 ri, GS pid)
 {
 	static Xf miss_vtbl[] = {
 		{ "call", 	_call,   0 },			// C-based prc_call (hacked handler, it needs vm->state)
@@ -148,23 +148,23 @@ _method_missing(guru_vm *vm, GR r[], U32 ri, GS sid)
 	static int xfcnt = sizeof(miss_vtbl)/sizeof(Xf);
 
 	Xf *xp = miss_vtbl;
-	if (miss_vtbl[0].sid==0) {				// lazy init
+	if (miss_vtbl[0].pid==0) {				// lazy init
 		for (int i=0; i<xfcnt; i++, xp++) {
-			xp->sid = create_sym((U8*)xp->name);
+			xp->pid = create_sym((U8*)xp->name);
 		}
 		xp = miss_vtbl;						// rewind
 	}
 	for (int i=0; i<xfcnt; i++, xp++) {
 #if CC_DEBUG
-		PRINTF("!!!missing_func %p:%s->%d == %d\n", xp, xp->name, xp->sid, sid);
+		PRINTF("!!!missing_func %p:%s->%d == %d\n", xp, xp->name, xp->pid, pid);
 #endif // CC_DEBUG
-		if (xp->sid==sid) {
+		if (xp->pid==pid) {
 			xp->func(vm, r, ri);
 			return 0;
 		}
 	}
 #if CC_DEBUG
-	printf("0x%02x not found -------\n", sid);
+	printf("0x%02x not found -------\n", pid);
 #endif // CC_DEBUG
 	_wipe_stack(r+1, ri+1);			// wipe call stack and return
 	return 1;
@@ -255,15 +255,15 @@ vm_loop_next(guru_vm *vm)
 }
 
 __GURU__ U32
-vm_method_exec(guru_vm *vm, GR r[], U32 ri, GS sid)
+vm_method_exec(guru_vm *vm, GR r[], U32 ri, GS pid)
 {
 #if CC_DEBUG
-    PRINTF("!!!vm_method_exec(%p, %p, %d, %d)\n", vm, r, ri, sid);
+    PRINTF("!!!vm_method_exec(%p, %p, %d, %d)\n", vm, r, ri, pid);
 #endif // CC_DEBUG
-    GP prc = proc_by_sid(r, sid);						// v->gt in [GT_OBJ, GT_CLASS]
+    GP prc = proc_by_id(r, pid);						// v->gt in [GT_OBJ, GT_CLASS]
 
     if (prc==0) {										// not found, try VM functions
-    	return _method_missing(vm, r, ri, sid);
+    	return _method_missing(vm, r, ri, pid);
     }
     guru_proc *px = _PRC(prc);
     if (AS_IREP(px)) {									// a Ruby-based IREP
@@ -273,7 +273,7 @@ vm_method_exec(guru_vm *vm, GR r[], U32 ri, GS sid)
 #if CC_DEBUG
     	PRINTF("!!!_CALL(x%x, %p, %d)\n", prc, r, ri);
 #endif // CC_DEBUG
-    	r->oid = sid;									// parameter sid is passed as object id
+    	r->oid = pid;									// parameter pid is passed as object id
     	_CALL(prc, r, ri);								// call C-based function
     	_wipe_stack(r+1, ri+1);
     	r->acl &= ~(ACL_SCLASS|ACL_SELF);

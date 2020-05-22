@@ -222,7 +222,7 @@ obj_attr_accessor(GR r[], U32 ri)
 	GP cls = IS_SCLASS(r) ? GR_CLS(r)->meta : r->off;	// fetch class offset
 #if CC_DEBUG
 	guru_class *cx = _CLS(cls);
-    printf("%p:%s, sc=%d self=%d #attr_accessor\n", cx, MEMPTR(cx->name), IS_SCLASS(r), IS_SELF(r));
+    printf("%p:%s, sc=%d self=%d #attr_accessor\n", cx, MEMPTR(cx->cname), IS_SCLASS(r), IS_SELF(r));
 #endif // CC_DEBUG
     GR buf = guru_str_buf(80);
 	GR *s  = r+1;

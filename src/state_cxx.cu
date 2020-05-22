@@ -139,7 +139,7 @@ class StateMgr::Impl
 		typedef struct {
 			const char  *name;						// raw string usually
 			MISSX	    func;						// C-function pointer
-			GS			sid;
+			GS			pid;
 		} Xf;
 		static Xf miss_vtbl[] = {
 			{ "call", 	&Impl::_call,   0 },		// C-based prc_call (hacked handler, it needs vm->state)
@@ -154,15 +154,15 @@ class StateMgr::Impl
 		Xf *xp = miss_vtbl;
 		if (miss_vtbl[0].sid==0) {					// lazy init
 			for (int i=0; i<xfcnt; i++, xp++) {
-				xp->sid = create_sym((U8*)xp->name);
+				xp->pid = create_sym((U8*)xp->name);
 			}
 			xp = miss_vtbl;							// rewind
 		}
 		for (int i=0; i<xfcnt; i++, xp++) {
 #if CC_DEBUG
-			PRINTF("!!!missing_func %p:%s->%d == %d\n", xp, xp->name, xp->sid, sid);
+			PRINTF("!!!missing_func %p:%s->%d == %d\n", xp, xp->name, xp->pid, pid);
 #endif // CC_DEBUG
-			if (xp->sid==sid) {
+			if (xp->pid==pid) {
 				(*this.*xp->func)(r, ri);
 				return 0;
 			}

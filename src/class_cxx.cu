@@ -48,40 +48,40 @@ public:
 	*/
 	#if CUDA_ENABLE_CDP
 	static __GPU__ void
-	scan_vtbl(S32 *idx, U32 cls, GS sid)
+	scan_vtbl(S32 *idx, U32 cls, GS pid)
 	{
 		U32 x = threadIdx.x + blockIdx.x * blockDim.x;
 		guru_class *cx = _CLS(cls);
-		if (x < cx->rc && (_PRC(cx->vtbl)+x)->sid==sid) {
+		if (x < cx->rc && (_PRC(cx->vtbl)+x)->pid==pid) {
 			*idx = x;
 		}
 	}
 	#else
 	__GURU__ GP
-	scan_vtbl(guru_class *cx, GS sid)
+	scan_vtbl(guru_class *cx, GS pid)
 	{
 		U8 *cname = MEMPTR(cx->name);
 		guru_proc *px = _PRC(cx->vtbl);				// sequential search thru the array
 		for (int i=0; i < cx->rc; i++, px++) {		// TODO: parallel search (i.e. CDP, see above)
 	#if CC_DEBUG
-			PRINTF("!!!vtbl scaning %p:%s[%2d] %p:%s->%d == %d\n", cx, cname, i, px, MEMPTR(px->name), px->sid, sid);
+			PRINTF("!!!vtbl scaning %p:%s[%2d] %p:%s->%d == %d\n", cx, cname, i, px, MEMPTR(px->name), px->pid, pid);
 	#endif // CC_DEBUG
-			if (px->sid==sid) return MEMOFF(px);
+			if (px->pid==pid) return MEMOFF(px);
 		}
 		return 0;
 	}
 
 	__GURU__ GP
-	scan_flist(guru_class *cx, GS sid)
+	scan_flist(guru_class *cx, GS pid)
 	{
 		U8 *cname = MEMPTR(cx->name);
 		GP prc = cx->flist;							// walk IREP linked-list
 		while (prc) {								// TODO: IREP should be added into guru_class->vtbl[]
 			guru_proc *px = _PRC(prc);
 	#if CC_DEBUG
-			PRINTF("!!!flst scaning %p:%s %p:%s->%d == %d\n", cx, cname, px, MEMPTR(px->name), px->sid, sid);
+			PRINTF("!!!flst scaning %p:%s %p:%s->%d == %d\n", cx, cname, px, MEMPTR(px->name), px->pid, pid);
 	#endif // CC_DEBUG
-			if (px->sid==sid) {
+			if (px->pid==pid) {
 				return prc;
 			}
 			prc = px->next;
@@ -102,10 +102,10 @@ public:
 	define_class(const U8 *name, GP cls, GP super)
 	{
 		guru_class *cx = _CLS(cls);
-		GS         sid = create_sym(name);
+		GS         cid = create_sym(name);
 
 	    cx->rc     = cx->n = cx->kt = 0;	// BUILT-IN class
-	    cx->sid    = sid;
+	    cx->cid    = cid;
 	    cx->var    = 0;						// class variables, lazily allocated when needed
 	    cx->meta   = 0;						// meta-class, lazily allocated when needed
 	    cx->super  = super;
@@ -150,7 +150,7 @@ ClassMgr::rom_set_class(GT cidx, const char *name, GT super_cidx, const Vfunc vt
 	GP cls   = rom_get_class(cidx);
 	GP super = rom_get_class(super_cidx);
 
-	guru_class *cx = _impl->define_class((U8*)name, cls, super);
+	guru_class *cx = _impl->define_class(name, cls, super);
     guru_proc  *px = (guru_proc *)guru_alloc(sizeof(guru_proc) * n);
     cx->rc   = n;								// number of built-in functions
     cx->vtbl = MEMOFF(px);						// built-in proc list
@@ -158,12 +158,13 @@ ClassMgr::rom_set_class(GT cidx, const char *name, GT super_cidx, const Vfunc vt
     Vfunc *fp = (Vfunc*)vtbl;					// TODO: nvcc allocates very sparsely for String literals
     for (int i=0; i<n; i++, px++, fp++) {
     	px->rc   = px->kt = px->n = 0;			// built-in class type (not USER_DEF_CLASS)
-    	px->sid  = create_sym((U8*)fp->name);	// raw string function table defined in code
+    	px->pid  = create_sym(fp->name);		// raw string function table defined in code
+    	px->cid  = cx->cid;
     	px->func = MEMOFF(fp->func);
     	px->next = 0;
 #ifdef GURU_DEBUG
-    	px->cname= MEMOFF(id2name(cx->sid));
-    	px->name = MEMOFF(id2name(px->sid));
+    	px->cname= MEMOFF(id2name(px->cid));
+    	px->name = MEMOFF(id2name(px->pid));
 #endif
     }
 	return cls;
@@ -226,7 +227,8 @@ ClassMgr::define_method(GP cls, const U8 *name, GP cfunc)
     guru_class *cx = _CLS(cls);
 
     px->rc = px->kt = px->n = 0;				// No LAMBDA register file, C-function (from BUILT-IN class)
-    px->sid   = create_sym(name);
+    px->pid   = create_sym(name);				// proc id
+    px->cid   = cx->cid;						// class id
     px->func  = cfunc;							// set function pointer
 
     MUTEX_LOCK(_mutex);
@@ -235,8 +237,8 @@ ClassMgr::define_method(GP cls, const U8 *name, GP cfunc)
     MUTEX_FREE(_mutex);
 
 #ifdef GURU_DEBUG
-    px->cname = MEMOFF(id2name(cx->sid));
-    px->name  = MEMOFF(id2name(px->sid));
+    px->cname = MEMOFF(id2name(px->cid));
+    px->name  = MEMOFF(id2name(px->pid));
 #endif
 
     return MEMOFF(px);
@@ -358,8 +360,8 @@ __GURU__ GR
 ClassMgr::send(GR r[], GR *rcv, const U8 *method, U32 argc, ...)
 {
     GR *regs = r + 2;	     		// allocate 2 for stack
-    GS sid   = name2id(method);		// symbol lookup
-    GP prc   = proc_by_sid(r, sid);	// find method for receiver object
+    GS pid   = name2id(method);		// symbol lookup
+    GP prc   = proc_by_id(r, pid);	// find method for receiver object
 
     ASSERT(prc);
 

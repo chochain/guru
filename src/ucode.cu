@@ -248,17 +248,9 @@ uc_getcv(guru_vm *vm)
 	GR *r  = _R0;
 	GS sid = VM_SYM(vm, _AR(bx));
 
-	ASSERT(r->gt==GT_OBJ);
+	GR ret = ostore_getcv(r, sid);
 
-	guru_obj *o = GR_OBJ(r);
-	GP cls = o->cls;
-	GR cv  { .gt=GT_CLASS, .acl=0, .oid=0, { .off=cls }};
-	GR ret { GT_NIL };
-	while (cls) {
-		if ((ret=ostore_get(&cv, sid)).gt!=GT_NIL) break;
-		cv.off = cls = _CLS(cls)->super;
-	}
-    _RA(ret);
+	_RA(ret);
 }
 
 //================================================================
@@ -419,7 +411,6 @@ uc_onerr(guru_vm *vm)
 
 	GI sbx = _AR(bx) - MAX_sBx -1;
 
-	U32 *u = (U32*)MEMPTR(vm->regfile + sizeof(GR)*(VM_REGFILE_SIZE - (vm->xcp+1)));
 	RESCUE_PUSH(vm, VM_STATE(vm)->pc + sbx);
 }
 
@@ -489,13 +480,13 @@ uc_raise(guru_vm *vm)
   create undefined method error message (different between mruby1.4 and ruby2.x
 */
 __GURU__ GR *
-_undef(GR *buf, GR *r, GS sid)
+_undef(GR *buf, GR *r, GS pid)
 {
-	GP fname = id2name(sid);
-	GP cname = id2name(_CLS(class_by_obj(r))->sid);
+	GP pname = id2name(pid);
+	GP cname = id2name(_CLS(class_by_obj(r))->cid);
 
 	guru_buf_add_cstr(buf, "undefined method '");
-	guru_buf_add_cstr(buf, _STR(fname));
+	guru_buf_add_cstr(buf, _STR(pname));
 	guru_buf_add_cstr(buf, "' for class #");
 	guru_buf_add_cstr(buf, _STR(cname));
 
@@ -512,15 +503,15 @@ _undef(GR *buf, GR *r, GS sid)
 __UCODE__
 uc_send(guru_vm *vm)
 {
-    GS  sid = VM_SYM(vm, _AR(b));				// get given symbol or object id
+    GS  xid = VM_SYM(vm, _AR(b));				// get given symbol id or object id
     GR  *r  = _R(a);							// call stack, obj is receiver object
 #if CC_DEBUG
-    PRINTF("!!!uc_send(%p) R(%d)=%p, sid=%d\n", vm, vm->ar.a, r, sid);
+    PRINTF("!!!uc_send(%p) R(%d)=%p, xid=%d\n", vm, vm->a, r, xid);
 #endif // CC_DEBUG
-    if (vm_method_exec(vm, r, _AR(c), sid)) { 	// in state.cu, call stack will be wiped before return
+    if (vm_method_exec(vm, r, _AR(c), xid)) { 	// in state.cu, call stack will be wiped before return
     	vm->err = 1;							// raise exception
     	GR buf  = guru_str_buf(80);				// put error message on return stack
-    	*(r+1)  = *_undef(&buf, r, sid);		// TODO: exception class
+    	*(r+1)  = *_undef(&buf, r, xid);		// TODO: exception class
     }
 }
 
@@ -845,13 +836,13 @@ uc_string(guru_vm *vm)
 __UCODE__
 uc_strcat(guru_vm *vm)
 {
-    GS sid = name2id((U8*)"to_s");				// from global symbol pool
+    GS pid = name2id((U8*)"to_s");				// from global symbol pool
 	GR *s0 = _R(a), *s1 = _R(b);
 
-    GP prc0 = proc_by_sid(s0, sid);
-    GP prc1 = proc_by_sid(s1, sid);
+    GP prc0 = proc_by_id(s0, pid);
+    GP prc1 = proc_by_id(s1, pid);
 
-    if (prc0) _CALL(prc0, s0, 0);					// can it be an IREP?
+    if (prc0) _CALL(prc0, s0, 0);				// can it be an IREP?
     if (prc1) _CALL(prc1, s1, 0);
 
     guru_buf_add_cstr(ref_inc(s0), _RAW(s1));	// ref counts increased as _dup updated
@@ -946,12 +937,14 @@ uc_lambda(guru_vm *vm)
 {
 	U32 bz = _AR(bx) >> 2;					// Bz, Cz a special decoder case
 
-    guru_proc *px = (guru_proc *)guru_alloc(sizeof(guru_proc));
+    guru_class *cx = _CLS(VM_STATE(vm)->klass);	// current class
+    guru_proc  *px = (guru_proc *)guru_alloc(sizeof(guru_proc));
 
     px->rc   = 0;
     px->kt   = PROC_IREP;
     px->n    = 0;							// no param
-    px->sid  = 0xffff;						// anonymous function
+    px->pid  = 0xffff;						// anonymous function
+    px->cid  = cx->cid;
     px->irep = MEMOFF(VM_REPS(vm, bz));		// fetch from children irep list
 
     _RA_T(GT_PROC, off=MEMOFF(px));			// regs[ra].prc = prc
@@ -1010,28 +1003,29 @@ uc_method(guru_vm *vm)
     ASSERT(r->gt==GT_OBJ || r->gt == GT_CLASS);	// enforce class checking
 
     // check whether the name has been defined in current class (i.e. vm->state->klass)
-    GS sid = VM_SYM(vm, _AR(b));				// fetch name from IREP symbol table
+    GS pid = VM_SYM(vm, _AR(b));				// fetch name from IREP symbol table
     GP cls = class_by_obj(r);					// fetch active class
-    GP prc = proc_by_sid(r, sid);				// fetch proc from class or obj's vtbl
+    GP prc = proc_by_id(r, pid);				// fetch proc from class or obj's vtbl
 
     // add proc to class
     guru_class *cx = _CLS(cls);
     guru_proc  *px = GR_PRC(r+1);				// override (if exist) with proc by OP_LAMBDA
     _LOCK;
 
-    px->sid   = sid;							// assign sid to proc, overload if prc already exists
+    px->pid   = pid;							// assign sid to proc, overload if prc already exists
+    px->cid   = cx->cid;						// copy class id
     px->next  = cx->flist;						// add to top of vtable, so it will be found first
     cx->flist = MEMOFF(px);						// if there is a sub-class override
 
     _UNLOCK;
 
 #if GURU_DEBUG
-    px->cname = id2name(cx->sid);
-    px->name  = id2name(px->sid);
+    px->cname = id2name(px->cid);
+    px->name  = id2name(px->pid);
 #endif // GURU_DEBUG
 #if CC_DEBUG
     PRINTF("!!!created %s method %s:%p->%d\n",
-    		prc ? "override" : "new", MEMPTR(px->name), px, px->sid);
+    		prc ? "override" : "new", MEMPTR(px->name), px, px->pid);
 #endif // CC_DEBUG
     r->acl &= ~ACL_SELF;						// clear CLASS modification flags if any
     *(r+1) = EMPTY;								// clean up proc
