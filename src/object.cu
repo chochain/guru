@@ -25,6 +25,7 @@
 #include "c_range.h"
 
 #include "base.h"
+#include "static.h"
 #include "object.h"
 
 #include "puts.h"
@@ -189,9 +190,9 @@ _name_w_eq_sign(GR *buf, U8 *s0)
     guru_buf_add_cstr(buf, s0);
     guru_buf_add_cstr(buf, "=");
 
-    U32 sid = create_sym(_RAW(buf));					// create the symbol
+    U32 sid = create_sym(GR_RAW(buf));					// create the symbol
 
-    return _STR(id2name(sid));
+    return _RAW(id2name(sid));
 }
 
 //================================================================
@@ -207,7 +208,7 @@ obj_attr_reader(GR r[], U32 ri)
     for (int i = 0; i < ri; i++, s++) {
         ASSERT(s->gt==GT_SYM);
 
-        U8 *name = _STR(id2name(s->i));
+        U8 *name = _RAW(id2name(s->i));
         ASSERT(guru_define_method(cls, name, MEMOFF(obj_getiv)));
     }
 }
@@ -228,7 +229,7 @@ obj_attr_accessor(GR r[], U32 ri)
 	GR *s  = r+1;
     for (int i=0; i < ri; i++, s++) {
         ASSERT(s->gt==GT_SYM);
-        U8 *a0  = _STR(id2name(s->i));					// reader
+        U8 *a0  = _RAW(id2name(s->i));					// reader
         U8 *a1  = _name_w_eq_sign(&buf, a0);			// writer
 
         ASSERT(guru_define_method(cls, a0, MEMOFF(obj_getiv)));
@@ -369,7 +370,7 @@ __CFUNC__ sym_nop(GR r[], U32 ri) {}
 __CFUNC__
 sym_to_s(GR r[], U32 ri)
 {
-	U8 *s  = _STR(id2name(r->i));
+	U8 *s  = _RAW(id2name(r->i));
 	GR ret = guru_str_new(s);
     RETURN_VAL(ret);
 }
@@ -443,8 +444,14 @@ guru_core_init(void)
 {
 	if (blockIdx.x!=0 || threadIdx.x!=0) return;
 
+	guru_rom_init();
 	//
 	// TODO: load image into context memory
 	//
 	_init_all_class();
+
+#if GURU_DEBUG
+	guru_rom *rom = &guru_device_rom;
+    PRINTF("ROM createdd with ncls=%d, nprc=%d, nsym=%d, nstr=%d\n", rom->ncls, rom->nprc, rom->nsym, rom->nstr);
+#endif // GURU_DEBUG
 }

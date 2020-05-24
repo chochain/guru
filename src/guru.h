@@ -66,20 +66,20 @@ typedef enum {
     GT_INT,
     GT_FLOAT,
     GT_SYM,
+    GT_SYS,
 
     GT_CLASS 	= 0x8,
     GT_PROC,
-    GT_SYS,
 
     /* non-primitive */
-    GT_OBJ 		= 0x10,
+    GT_OBJ 		= 0xa,
     GT_ARRAY,
     GT_STR,
     GT_RANGE,
     GT_HASH,
     GT_ITER,
 
-    GT_MAX      = 0x18
+    GT_MAX      = 0x10
 } GT;
 
 #define GT_BOOL(v)		((v) ? GT_TRUE : GT_FALSE)
@@ -162,12 +162,13 @@ typedef struct {					// 16-bytes (128 bits) for ease of debugging
 #define GR_OBJ(r)	((struct RObj*)   GR_OFF(r))
 #define GR_PRC(r)	((struct RProc*)  GR_OFF(r))
 #define GR_CLS(r)	((struct RClass*) GR_OFF(r))
+#define GR_RAW(r)	((U8*)MEMPTR(GR_STR(r)->raw))
 
 #define _CLS(off)	((struct RClass*)MEMPTR(off))
 #define _PRC(off)   ((struct RProc*)(off ? MEMPTR(off) : NULL))
 #define _STATE(off) ((struct RState*)(off ? MEMPTR(off) : NULL))
-#define _STR(off)	((U8*)MEMPTR(off))
-#define _RAW(r)		((U8*)MEMPTR(GR_STR(r)->raw))
+#define _SYM(off)	((guru_sym*)MEMPTR(off))
+#define _RAW(off)	((U8*)MEMPTR(off))
 #define _REGS(r)	((GR*)MEMPTR((r)->regs))
 #define _VAR(r)		((GR*)((r)->var ? MEMPTR((r)->var) : NULL))
 

@@ -199,7 +199,7 @@ _name_wo_at_sign(guru_vm *vm)
 {
     GS sid = VM_SYM(vm, _AR(bx));
 
-    return _STR(id2name(sid)) + 1;			// attribute name with leading '@'
+    return _RAW(id2name(sid)) + 1;			// attribute name with leading '@'
 }
 
 //================================================================
@@ -486,9 +486,9 @@ _undef(GR *buf, GR *r, GS pid)
 	GP cname = id2name(_CLS(class_by_obj(r))->cid);
 
 	guru_buf_add_cstr(buf, "undefined method '");
-	guru_buf_add_cstr(buf, _STR(pname));
+	guru_buf_add_cstr(buf, _RAW(pname));
 	guru_buf_add_cstr(buf, "' for class #");
-	guru_buf_add_cstr(buf, _STR(cname));
+	guru_buf_add_cstr(buf, _RAW(cname));
 
 	return buf;
 }
@@ -845,7 +845,7 @@ uc_strcat(guru_vm *vm)
     if (prc0) _CALL(prc0, s0, 0);				// can it be an IREP?
     if (prc1) _CALL(prc1, s1, 0);
 
-    guru_buf_add_cstr(ref_inc(s0), _RAW(s1));	// ref counts increased as _dup updated
+    guru_buf_add_cstr(ref_inc(s0), GR_RAW(s1));	// ref counts increased as _dup updated
 
     ref_dec(s1);
     *s1 = EMPTY;
@@ -964,7 +964,7 @@ uc_class(guru_vm *vm)
 	GR *r1 = _R(a)+1;
 
     GS sid   = VM_SYM(vm, _AR(b));
-    U8 *name = _STR(id2name(sid));
+    U8 *name = _RAW(id2name(sid));
     GP super = (r1->gt==GT_CLASS) ? r1->off : VM_STATE(vm)->klass;
     GP cls   = guru_define_class(name, super);
 

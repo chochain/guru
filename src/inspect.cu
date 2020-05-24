@@ -111,7 +111,7 @@ __GURU__ void
 _sym(GR *buf, GR *r)
 {
 	guru_buf_add_cstr(buf, ":");
-    guru_buf_add_cstr(buf, _STR(id2name(r->i)));
+    guru_buf_add_cstr(buf, _RAW(id2name(r->i)));
 }
 
 //================================================================
@@ -130,7 +130,7 @@ __GURU__ void
 _str(GR *buf, GR *r)
 {
 	guru_buf_add_cstr(buf, "\"");
-	guru_buf_add_cstr(buf, _RAW(r));
+	guru_buf_add_cstr(buf, GR_RAW(r));
 	guru_buf_add_cstr(buf, "\"");
 }
 
@@ -138,7 +138,7 @@ _str(GR *buf, GR *r)
 __GURU__ void
 _cls(GR *buf, GR *r)
 {
-	U8* name = _STR(id2name(GR_CLS(r)->cid));					// ~= class->cname
+	U8* name = _RAW(id2name(GR_CLS(r)->cid));					// ~= class->cname
 	guru_buf_add_cstr(buf, name);
 }
 
@@ -146,7 +146,7 @@ __GURU__ void
 _obj(GR *buf, GR *r)
 {
 	ASSERT(r->gt==GT_OBJ);
-	U8 *cname = _STR(id2name(_CLS(class_by_obj(r))->cid));		// ~= class->cname
+	U8 *cname = _RAW(id2name(_CLS(class_by_obj(r))->cid));		// ~= class->cname
 	guru_buf_add_cstr(buf, "#<");
 	guru_buf_add_cstr(buf, cname);
 	guru_buf_add_cstr(buf, ":");
@@ -257,10 +257,10 @@ ary_join(GR r[], U32 ri)
 	GR ret = guru_str_buf(BUF_SIZE);
 	GR *d  = a->data;
 	for (int i=0; i<a->n; i++, d++) {
-		if (d->gt==GT_STR)	guru_buf_add_cstr(&ret, _RAW(d));
+		if (d->gt==GT_STR)	guru_buf_add_cstr(&ret, GR_RAW(d));
 		else 				_to_s(&ret, d, 0);
 		if (ri==0 || (i+1)>=a->n) continue;
-		guru_buf_add_cstr(&ret, _RAW(r+1));
+		guru_buf_add_cstr(&ret, GR_RAW(r+1));
 	}
 	RETURN_VAL(ret);
 }

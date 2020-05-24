@@ -10,6 +10,7 @@
   </pre>
 */
 #include "global.h"
+
 #if CC_DEBUG
 #include "puts.h"
 #endif // CC_DEBUG

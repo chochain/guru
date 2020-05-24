@@ -80,20 +80,6 @@ PARSE_WIDTH:
     return p;
 }
 
-__GURU__ void
-_dump_obj_size(void)
-{
-	console_str("\nvalue=");
-	console_int(sizeof(GR));
-	console_str("\ninstance=");
-	console_int(sizeof(RObj));
-    console_str("\nproc=");
-    console_int(sizeof(RProc));
-    console_str("\nstring=");
-    console_int(sizeof(RString));
-    console_str("\n");
-}
-
 __GPU__ void
 guru_console_init(U8 *buf, U32 sz)
 {

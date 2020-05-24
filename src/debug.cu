@@ -27,7 +27,7 @@ __id2str(GS sid, U8 *str)
 {
 	if (blockIdx.x!=0 || threadIdx.x!=0) return;
 
-	U8 *s = _STR(id2name(sid));
+	U8 *s = _RAW(id2name(sid));
 	STRCPY(str, s);
 }
 
