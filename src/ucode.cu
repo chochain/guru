@@ -10,8 +10,9 @@
   </pre>
 */
 #include "guru.h"
-#include "symbol.h"
+#include "static.h"
 #include "global.h"
+#include "symbol.h"
 #include "mmu.h"
 #include "ostore.h"
 #include "iter.h"
@@ -109,7 +110,7 @@ uc_loadsym(guru_vm *vm)
 {
 	GS sid = VM_SYM(vm, _AR(bx));
 
-	_RA_T(GT_SYM, i=sid);
+	_RA_T(GT_SYM, i=(GI)sid);
 }
 
 //================================================================
@@ -199,7 +200,7 @@ _name_wo_at_sign(guru_vm *vm)
 {
     GS sid = VM_SYM(vm, _AR(bx));
 
-    return _RAW(id2name(sid)) + 1;			// attribute name with leading '@'
+    return _RAW(sid) + 1;			// attribute name with leading '@'
 }
 
 //================================================================
@@ -278,8 +279,11 @@ uc_setcv(guru_vm *vm)
 __UCODE__
 uc_getconst(guru_vm *vm)
 {
-    GS sid = VM_SYM(vm, _AR(bx));
-    GR *r  = const_get(sid);
+    GS sid = VM_SYM(vm, _AR(bx));			// In Ruby, class is a constant, too
+
+    GP cls = class_by_id(sid);				// search class rom first
+    GR ret { GT_CLASS, 0, 0, { cls } };
+    GR *r  = cls ? &ret : const_get(sid);	// then search constant cache
 
     _RA(*r);
 }
@@ -296,7 +300,7 @@ uc_setconst(guru_vm *vm)
 	GS sid = VM_SYM(vm, _AR(bx));
 	GR *ra = _R(a);
 
-	ra->acl &= ~ACL_HAS_REF;		// set it to constant
+	ra->acl &= ~ACL_HAS_REF;				// set it to constant
 
     const_set(sid, ra);
 }
@@ -482,13 +486,10 @@ uc_raise(guru_vm *vm)
 __GURU__ GR *
 _undef(GR *buf, GR *r, GS pid)
 {
-	GP pname = id2name(pid);
-	GP cname = id2name(_CLS(class_by_obj(r))->cid);
-
 	guru_buf_add_cstr(buf, "undefined method '");
-	guru_buf_add_cstr(buf, _RAW(pname));
+	guru_buf_add_cstr(buf, _RAW(pid));
 	guru_buf_add_cstr(buf, "' for class #");
-	guru_buf_add_cstr(buf, _RAW(cname));
+	guru_buf_add_cstr(buf, _RAW(_CLS(class_by_obj(r))->cid));
 
 	return buf;
 }
@@ -964,7 +965,7 @@ uc_class(guru_vm *vm)
 	GR *r1 = _R(a)+1;
 
     GS sid   = VM_SYM(vm, _AR(b));
-    U8 *name = _RAW(id2name(sid));
+    U8 *name = _RAW(sid);
     GP super = (r1->gt==GT_CLASS) ? r1->off : VM_STATE(vm)->klass;
     GP cls   = guru_define_class(name, super);
 
@@ -1004,11 +1005,10 @@ uc_method(guru_vm *vm)
 
     // check whether the name has been defined in current class (i.e. vm->state->klass)
     GS pid = VM_SYM(vm, _AR(b));				// fetch name from IREP symbol table
-    GP cls = class_by_obj(r);					// fetch active class
     GP prc = proc_by_id(r, pid);				// fetch proc from class or obj's vtbl
 
     // add proc to class
-    guru_class *cx = _CLS(cls);
+    guru_class *cx = _CLS(class_by_obj(r));		// fetch active class
     guru_proc  *px = GR_PRC(r+1);				// override (if exist) with proc by OP_LAMBDA
     _LOCK;
 
