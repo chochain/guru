@@ -232,7 +232,7 @@ _chomp(GR *r)
   @return 	string object
 */
 __GURU__ void
-guru_str_rom(GR *r)					// cannot use U8P, need lots of casting
+guru_str_transcode(GR *r)			// cannot use U8P, need lots of casting
 {
     U8 *raw = U8PADD(r, r->off);
 
@@ -690,7 +690,10 @@ str_strip_self(GR r[], U32 ri)
 __CFUNC__
 str_to_sym(GR r[], U32 ri)
 {
-    RETURN_VAL(guru_sym_new(GR_RAW(r)));
+	U8 *str = GR_RAW(r);
+    GR ret { GT_SYM, 0, 0, { guru_rom_add_sym((char*)str) } };
+
+    RETURN_VAL(ret);
 }
 
 //================================================================
@@ -769,7 +772,7 @@ __GURU__ __const__ Vfunc str_vtbl[] = {
 __GURU__ void
 guru_init_class_string()
 {
-    guru_rom_set_class(GT_STR, "String", GT_OBJ, str_vtbl, VFSZ(str_vtbl));
+    guru_rom_add_class(GT_STR, "String", GT_OBJ, str_vtbl, VFSZ(str_vtbl));
     guru_register_func(GT_STR, (guru_init_func)guru_str_new, guru_str_del, guru_str_cmp);
 }
 

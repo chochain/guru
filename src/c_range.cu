@@ -14,7 +14,8 @@
 #include "mmu.h"
 
 #include "base.h"
-#include "class.h"
+#include "static.h"
+#include "class.h"				// kind_of
 #include "c_range.h"
 
 #include "inspect.h"
@@ -146,6 +147,6 @@ __GURU__ __const__ Vfunc rng_vtbl[] = {
 __GURU__ void
 guru_init_class_range()
 {
-    guru_rom_set_class(GT_RANGE, "Range", GT_OBJ, rng_vtbl, VFSZ(rng_vtbl));
+    guru_rom_add_class(GT_RANGE, "Range", GT_OBJ, rng_vtbl, VFSZ(rng_vtbl));
     guru_register_func(GT_RANGE, NULL, guru_range_del, guru_range_cmp);
 }

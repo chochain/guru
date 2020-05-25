@@ -13,7 +13,8 @@
 */
 #include "guru.h"
 #include "util.h"
-#include "symbol.h"		// id2name
+#include "static.h"		// guru_rom_get_sym
+#include "symbol.h"
 #include "mmu.h"
 #include "ostore.h"		// ostore_new
 #include "iter.h"
@@ -150,7 +151,7 @@ _method_missing(guru_vm *vm, GR r[], U32 ri, GS pid)
 	Xf *xp = miss_vtbl;
 	if (miss_vtbl[0].pid==0) {				// lazy init
 		for (int i=0; i<xfcnt; i++, xp++) {
-			xp->pid = create_sym((U8*)xp->name);
+			xp->pid = guru_rom_add_sym(xp->name);
 		}
 		xp = miss_vtbl;						// rewind
 	}
@@ -260,7 +261,7 @@ vm_method_exec(guru_vm *vm, GR r[], U32 ri, GS pid)
 #if CC_DEBUG
     PRINTF("!!!vm_method_exec(%p, %p, %d, %d)\n", vm, r, ri, pid);
 #endif // CC_DEBUG
-    GP prc = proc_by_id(r, pid);						// v->gt in [GT_OBJ, GT_CLASS]
+    GP prc = proc_by_id(r, pid);						// r->gt in [GT_OBJ, GT_CLASS]
 
     if (prc==0) {										// not found, try VM functions
     	return _method_missing(vm, r, ri, pid);
