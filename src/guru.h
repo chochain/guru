@@ -106,6 +106,7 @@ typedef S32			GI;						// signed integer
 typedef F32	 		GF;						// float
 typedef U16			GS;						// symbol index
 typedef S32			GP;						// offset, i.e. object pointer
+typedef S32			GX;						// index, to object[]
 
 // pointer arithmetic, this will not work in multiple segment implementation
 #define U8PADD(p, n)	((U8*)(p) + (n))					// add
@@ -154,6 +155,8 @@ typedef struct {					// 16-bytes (128 bits) for ease of debugging
 } GR;
 
 #define GR_OFF(r)	(MEMPTR((r)->off))
+#define GR_CLS(r)	((struct RClass*) GR_OFF(r))
+
 #define GR_STR(r)	((struct RString*)GR_OFF(r))
 #define GR_RNG(r)	((struct RRange*) GR_OFF(r))
 #define GR_ARY(r)	((struct RArray*) GR_OFF(r))
@@ -161,14 +164,12 @@ typedef struct {					// 16-bytes (128 bits) for ease of debugging
 #define GR_ITR(r)	((struct RIter*)  GR_OFF(r))
 #define GR_OBJ(r)	((struct RObj*)   GR_OFF(r))
 #define GR_PRC(r)	((struct RProc*)  GR_OFF(r))
-#define GR_CLS(r)	((struct RClass*) GR_OFF(r))
 #define GR_RAW(r)	((U8*)MEMPTR(GR_STR(r)->raw))
 
+#define _STATE(off) ((struct RState*)(off ? MEMPTR(off) : NULL))
 #define _CLS(off)	((struct RClass*)MEMPTR(off))
 #define _PRC(off)   ((struct RProc*)(off ? MEMPTR(off) : NULL))
-#define _STATE(off) ((struct RState*)(off ? MEMPTR(off) : NULL))
-#define _SYM(off)	((guru_sym*)MEMPTR(off))
-#define _RAW(off)	((U8*)MEMPTR(off))
+
 #define _REGS(r)	((GR*)MEMPTR((r)->regs))
 #define _VAR(r)		((GR*)((r)->var ? MEMPTR((r)->var) : NULL))
 
@@ -182,6 +183,11 @@ struct Vfunc {
 	guru_fptr 	func;			// C-function pointer
 };
 #define VFSZ(vtbl)		(sizeof(vtbl)/sizeof(Vfunc))
+
+typedef struct RSymbol {		// Symbol container
+	GP			raw;
+	U32			hash;
+} guru_sym;
 
 //================================================================
 /*!@brief
@@ -209,8 +215,8 @@ struct Vfunc {
 			U16	bsz;	\
 		};				\
 		struct {		\
-			U16 pid;	\
-			U16 cid;	\
+			GS 	pid;	\
+			GS 	cid;	\
 		};				\
 		GI i;			\
     }
@@ -221,14 +227,14 @@ struct Vfunc {
 */
 typedef struct RObj {			// 24-byte
 	GURU_HDR;
-	GP				var;		// (GR*) instance variables
+	GP				var;		// (GR*) instance + cid variables
 	GP				cls;		// (RClass*) class that this object belongs to (RClass*)
 } guru_obj;
 
-typedef struct RString {	// 16-byte
+typedef struct RString {		// 16-byte
 	GURU_HDR;
-	GP				raw;	// (U8*) pointer to allocated buffer.
-	S32				xxx;	// reserved
+	GP				raw;		// (U8*) pointer to allocated buffer.
+	S32				xxx;		// reserved
 } guru_str;
 
 typedef struct RSes {			// 16-byte

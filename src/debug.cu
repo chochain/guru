@@ -12,6 +12,7 @@
 */
 #include "guru.h"
 #include "util.h"
+#include "static.h"
 #include "mmu.h"
 #include "symbol.h"
 
@@ -27,7 +28,7 @@ __id2str(GS sid, U8 *str)
 {
 	if (blockIdx.x!=0 || threadIdx.x!=0) return;
 
-	U8 *s = _RAW(id2name(sid));
+	U8 *s = _RAW(sid);
 	STRCPY(str, s);
 }
 
@@ -36,9 +37,8 @@ __id2str(GS sid, U8 *str)
 //========================================================================================
 #if GURU_DEBUG
 static const char *_vtype[] = {
-	"___","nil","f  ","t  ","num","flt","sym","",		// 0x0
-	"cls","prc","","","","","","",						// 0x8
-	"obj","ary","str","rng","hsh","itr"					// 0x10
+	"___","nil","f  ","t  ","num","flt","sym","sys",	// 0x0
+	"cls","prc","obj","ary","str","rng","hsh","itr"		// 0x8
 };
 
 static const char *_opcode[] = {
