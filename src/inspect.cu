@@ -11,6 +11,7 @@
   </pre>
 */
 #include "guru.h"
+#include "static.h"
 #include "symbol.h"
 #include "mmu.h"
 #include "base.h"
@@ -111,7 +112,7 @@ __GURU__ void
 _sym(GR *buf, GR *r)
 {
 	guru_buf_add_cstr(buf, ":");
-    guru_buf_add_cstr(buf, _RAW(id2name(r->i)));
+    guru_buf_add_cstr(buf, _RAW(r->i));
 }
 
 //================================================================
@@ -138,7 +139,7 @@ _str(GR *buf, GR *r)
 __GURU__ void
 _cls(GR *buf, GR *r)
 {
-	U8* name = _RAW(id2name(GR_CLS(r)->cid));					// ~= class->cname
+	U8* name = _RAW(GR_CLS(r)->cid);					// ~= class->cname
 	guru_buf_add_cstr(buf, name);
 }
 
@@ -146,7 +147,7 @@ __GURU__ void
 _obj(GR *buf, GR *r)
 {
 	ASSERT(r->gt==GT_OBJ);
-	U8 *cname = _RAW(id2name(_CLS(class_by_obj(r))->cid));		// ~= class->cname
+	U8 *cname = _RAW(_CLS(class_by_obj(r))->cid);		// ~= class->cname
 	guru_buf_add_cstr(buf, "#<");
 	guru_buf_add_cstr(buf, cname);
 	guru_buf_add_cstr(buf, ":");

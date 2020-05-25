@@ -190,9 +190,9 @@ _name_w_eq_sign(GR *buf, U8 *s0)
     guru_buf_add_cstr(buf, s0);
     guru_buf_add_cstr(buf, "=");
 
-    U32 sid = create_sym(GR_RAW(buf));					// create the symbol
+    U32 sid = guru_rom_add_sym((char*)GR_RAW(buf));		// create the symbol
 
-    return _RAW(id2name(sid));
+    return _RAW(sid);
 }
 
 //================================================================
@@ -208,7 +208,7 @@ obj_attr_reader(GR r[], U32 ri)
     for (int i = 0; i < ri; i++, s++) {
         ASSERT(s->gt==GT_SYM);
 
-        U8 *name = _RAW(id2name(s->i));
+        U8 *name = _RAW(s->i);
         ASSERT(guru_define_method(cls, name, MEMOFF(obj_getiv)));
     }
 }
@@ -229,7 +229,7 @@ obj_attr_accessor(GR r[], U32 ri)
 	GR *s  = r+1;
     for (int i=0; i < ri; i++, s++) {
         ASSERT(s->gt==GT_SYM);
-        U8 *a0  = _RAW(id2name(s->i));					// reader
+        U8 *a0  = _RAW(s->i);							// reader
         U8 *a1  = _name_w_eq_sign(&buf, a0);			// writer
 
         ASSERT(guru_define_method(cls, a0, MEMOFF(obj_getiv)));
@@ -370,7 +370,7 @@ __CFUNC__ sym_nop(GR r[], U32 ri) {}
 __CFUNC__
 sym_to_s(GR r[], U32 ri)
 {
-	U8 *s  = _RAW(id2name(r->i));
+	U8 *s  = _RAW(r->i);
 	GR ret = guru_str_new(s);
     RETURN_VAL(ret);
 }
@@ -413,15 +413,15 @@ __GURU__ __const__ Vfunc sys_vtbl[] = {
 __GURU__ void
 _init_all_class(void)
 {
-    guru_rom_set_class(GT_OBJ,	"Object", 		GT_EMPTY, 	obj_vtbl, 	VFSZ(obj_vtbl));
+    guru_rom_add_class(GT_OBJ,	"Object", 		GT_EMPTY, 	obj_vtbl, 	VFSZ(obj_vtbl));
 
-    guru_rom_set_class(GT_NIL, 	"NilClass", 	GT_OBJ, 	nil_vtbl,  	VFSZ(nil_vtbl));
-    guru_rom_set_class(GT_FALSE,"FalseClass", 	GT_OBJ, 	false_vtbl,	VFSZ(false_vtbl));
-    guru_rom_set_class(GT_TRUE, "TrueClass",  	GT_OBJ, 	true_vtbl, 	VFSZ(true_vtbl));
-    guru_rom_set_class(GT_SYM,  "Symbol", 		GT_OBJ, 	sym_vtbl, 	VFSZ(sym_vtbl));
-    guru_rom_set_class(GT_PROC, "Proc",     	GT_OBJ, 	prc_vtbl,  	VFSZ(prc_vtbl));
+    guru_rom_add_class(GT_NIL, 	"NilClass", 	GT_OBJ, 	nil_vtbl,  	VFSZ(nil_vtbl));
+    guru_rom_add_class(GT_FALSE,"FalseClass", 	GT_OBJ, 	false_vtbl,	VFSZ(false_vtbl));
+    guru_rom_add_class(GT_TRUE, "TrueClass",  	GT_OBJ, 	true_vtbl, 	VFSZ(true_vtbl));
+    guru_rom_add_class(GT_SYM,  "Symbol", 		GT_OBJ, 	sym_vtbl, 	VFSZ(sym_vtbl));
+    guru_rom_add_class(GT_PROC, "Proc",     	GT_OBJ, 	prc_vtbl,  	VFSZ(prc_vtbl));
 #if GURU_DEBUG
-    guru_rom_set_class(GT_SYS, 	"Sys", 			GT_OBJ, 	sys_vtbl,  	VFSZ(sys_vtbl));
+    guru_rom_add_class(GT_SYS, 	"Sys", 			GT_OBJ, 	sys_vtbl,  	VFSZ(sys_vtbl));
 #endif
 
     guru_register_func(GT_OBJ, NULL, guru_obj_del, NULL);
@@ -450,8 +450,8 @@ guru_core_init(void)
 	//
 	_init_all_class();
 
-#if GURU_DEBUG
+#if CC_DEBUG
 	guru_rom *rom = &guru_device_rom;
     PRINTF("ROM createdd with ncls=%d, nprc=%d, nsym=%d, nstr=%d\n", rom->ncls, rom->nprc, rom->nsym, rom->nstr);
-#endif // GURU_DEBUG
+#endif // CC_DEBUG
 }

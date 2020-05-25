@@ -15,6 +15,7 @@
 
 #include "guru.h"
 #include "util.h"
+#include "static.h"
 #include "mmu.h"
 #include "symbol.h"
 #include "console.h"
@@ -346,7 +347,7 @@ guru_vprintf(const U8 *fstr, GR r[], U32 ri)		// << from c_string.cu
                 ret = __str(pf, GR_RAW(r+i), ' ');
             }
             else if (r[i].gt==GT_SYM) {
-                ret = __str(pf, _RAW(id2name(r[i].i)), ' ');
+                ret = __str(pf, _RAW(r[i].i), ' ');
             }
             break;
         case 'd':
