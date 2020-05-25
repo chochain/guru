@@ -17,12 +17,12 @@
 extern "C" {
 #endif
 
-__GURU__ GS     create_sym(const U8 *str);		// create new symbol, returns sid
+// struct RSymbol, and guru_sym are defined in guru.h
+
 __GURU__ GS   	name2id(const U8 *str);			// sid by name
 __GURU__ GP		id2name(GS sid);				// name (string) offset by sid
 
-__GURU__ void   guru_sym_rom(GR *r);			// ROMable symbol
-__GURU__ GR		guru_sym_new(const U8 *str);	// create a symbol GR
+__GURU__ void   guru_sym_transcode(GR *r);		// ROMable symbol
 
 #ifdef __cplusplus
 }

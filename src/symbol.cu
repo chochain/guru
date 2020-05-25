@@ -12,6 +12,7 @@
 #include "guru.h"
 #include "util.h"
 #include "mmu.h"
+#include "static.h"
 #include "symbol.h"
 
 #define DYNA_SEARCH_THRESHOLD 	128				// meta-parameter
@@ -56,7 +57,7 @@ _add_index(const U8 *str, U32 hash)
 __GURU__ S32
 _loop_search(U32 hash)
 {
-    for (S32 i=0; i<_sym_idx; i++) {
+    for (int i=0; i<_sym_idx; i++) {
     	if (_sym_hash[i]==hash) return i;
     }
     return -1;
@@ -94,40 +95,24 @@ _search(U32 hash)
 
 	return *idx;				// each parent thread gets one result back
 #else
-	return _loop_search(hash);
+	S32 sid = guru_rom_get_sym(hash);
+
+	return (sid>0) ? sid : _loop_search(hash);
 #endif // CUDA_ENABLE_CDP
-}
-
-__GURU__ GS
-create_sym(const U8 *str)		// create new symbol
-{
-	U32 hash = HASH(str);
-	S32 sid  = _search(hash);
-
-	U32 x    = threadIdx.x;
-	if (sid<0) {
-		sid  = _add_index(str, hash);
-#if CC_DEBUG
-	    printf("%2d> sym[%2d]%08x: %s\n", x, sid, _sym_hash[sid], (U8*)MEMPTR(_sym[sid]));
-	}
-	else {
-		printf("%2d> sym[%2d]%08x:~%s\n", x, sid, hash, (U8*)MEMPTR(_sym[sid]));
-#endif // CC_DEBUG
-	}
-	return sid;
 }
 
 __GURU__ GS
 name2id(const U8 *str)
 {
-	U32 hash = HASH(str);
-	S32 sid  = _search(hash);
+	S32 sid  = guru_rom_add_sym((char*)str);
 
 #if CC_DEBUG
-    printf("%2d> sym[%2d]%08x=>%s\n", threadIdx.x, sid, _sym_hash[sid], _sym[sid]);
+	guru_sym *sym = _SYM(sid);
+	U8       *raw = _RAW(sid);
+    printf("%2d> sym[%2d]%08x=>%s\n", threadIdx.x, sid, sym, raw);
 #endif // CC_DEBUG
 
-	return sid;					// different value for each parent thread
+	return sid;						// different value for each parent thread
 }
 
 //================================================================
@@ -140,7 +125,9 @@ name2id(const U8 *str)
 __GURU__ GP
 id2name(GS sid)
 {
-    return (sid < _sym_idx) ? _sym[sid] : NULL;
+	guru_sym *sym = _SYM(sid);
+
+    return guru_device_rom.str + sym->raw;
 }
 
 //================================================================
@@ -151,16 +138,8 @@ id2name(GS sid)
   @return 	symbol object
 */
 __GURU__ void
-guru_sym_rom(GR *r)
+guru_sym_transcode(GR *r)
 {
-	r->i = create_sym(U8PADD(r, r->off));
+	GS sid = guru_rom_add_sym((char*)U8PADD(r, r->off));
+	r->i = (GI)sid;
 }
-
-__GURU__ GR
-guru_sym_new(const U8 *str)
-{
-    GR r; { r.gt=GT_SYM; r.acl=0; r.i=create_sym(str); }
-
-    return r;
-}
-

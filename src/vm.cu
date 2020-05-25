@@ -29,6 +29,7 @@
 #include "symbol.h"
 #include "c_string.h"
 
+#include "static.h"
 #include "class.h"
 #include "state.h"
 #include "vmx.h"
@@ -58,7 +59,7 @@ __GURU__ void
 __ready(guru_vm *vm, GP irep)
 {
     // allocate register file & rescue return stack
-	GR v { GT_CLASS, 0, 0, guru_rom_get_class(GT_OBJ) };
+	GR v { GT_CLASS, 0, 0, { guru_rom_get_class(GT_OBJ) }};
 	GR *rf = (GR*)guru_alloc(sizeof(GR) * VM_REGFILE_SIZE);
 	GR *r  = rf;
     for (int i=0; rf && i<VM_REGFILE_SIZE; i++, r++) {	// wipe register
@@ -95,8 +96,8 @@ __transcode(U8 *u8_gr)
 	GR   *r  = (GR*)U8PADD(gr, gr->pool);
 	for (int i=0; i < gr->psz; i++, r++) {			// symbol table
 		switch (r->gt) {
-		case GT_SYM: guru_sym_rom(r);	break;
-		case GT_STR: guru_str_rom(r);	break;		// instantiate the string
+		case GT_SYM: guru_sym_transcode(r);	break;
+		case GT_STR: guru_str_transcode(r);	break;	// instantiate the string
 		default:
 			// do nothing
 			break;
