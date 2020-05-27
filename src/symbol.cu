@@ -55,27 +55,31 @@ _add_index(const U8 *str, U32 hash)
 /*! search index table
  */
 __GURU__ S32
-_loop_search(U32 hash)
+_loop_search(U8 *str)
 {
+	U32 hash = HASH(str);
     for (int i=0; i<_sym_idx; i++) {
     	if (_sym_hash[i]==hash) return i;
     }
     return -1;
 }
 
+#if GURU_ENABLE_CDP
 __GPU__ void
-_dyna_search(S32 *idx, const U32 hash)
+_dyna_search(S32 *idx, const U8 *str)
 {
 	U32 x = threadIdx.x + blockIdx.x*blockDim.x;
 
+	U32 hash = HASH(str);
 	if (x<_sym_idx && _sym_hash[x]==hash) {
 		*idx = x;				// capture the index
 	}
 }
+#endif // GURU_ENABLE_CDP
 
 __GURU__ S32 _warp_i[32];
 __GURU__ S32
-_search(U32 hash)
+_search(U8 *str)
 {
 #if CUDA_ENABLE_CDP
 	if (_sym_idx<DYNA_SEARCH_THRESHOLD) return _loop_search(hash);
@@ -95,16 +99,16 @@ _search(U32 hash)
 
 	return *idx;				// each parent thread gets one result back
 #else
-	S32 sid = guru_rom_get_sym(hash);
+	S32 sid = guru_rom_get_sym((char*)str);
 
-	return (sid>0) ? sid : _loop_search(hash);
+	return (sid>0) ? sid : _loop_search(str);
 #endif // CUDA_ENABLE_CDP
 }
 
 __GURU__ GS
 name2id(const U8 *str)
 {
-	S32 sid  = guru_rom_add_sym((char*)str);
+	S32 sid = guru_rom_get_sym((char*)str);
 
 #if CC_DEBUG
 	guru_sym *sym = _SYM(sid);
