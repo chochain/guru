@@ -58,8 +58,8 @@ __mmu_ok()											// mmu sanity check
 	return (!p1 && tot==_heap_size);
 }
 
-#define MMU_CHECK
-//#define MMU_CHECK		ASSERT(__mmu_ok())
+//#define MMU_CHECK
+#define MMU_CHECK		ASSERT(__mmu_ok())
 #else
 #define MMU_CHECK
 #endif // GURU_DEBUG

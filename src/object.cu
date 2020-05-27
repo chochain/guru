@@ -411,7 +411,7 @@ __GURU__ __const__ Vfunc sys_vtbl[] = {
 // initialize
 // TODO: move into ROM
 __GURU__ void
-_init_all_class(void)
+_install_all_class(void)
 {
     guru_rom_add_class(GT_OBJ,	"Object", 		GT_EMPTY, 	obj_vtbl, 	VFSZ(obj_vtbl));
 
@@ -445,13 +445,11 @@ guru_core_init(void)
 	if (blockIdx.x!=0 || threadIdx.x!=0) return;
 
 	guru_rom_init();
-	//
-	// TODO: load image into context memory
-	//
-	_init_all_class();
+	_install_all_class();		// TODO: load image into context memory
 
 #if CC_DEBUG
 	guru_rom *rom = &guru_device_rom;
     PRINTF("ROM createdd with ncls=%d, nprc=%d, nsym=%d, nstr=%d\n", rom->ncls, rom->nprc, rom->nsym, rom->nstr);
 #endif // CC_DEBUG
+	guru_rom_burn();
 }
