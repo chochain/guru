@@ -41,10 +41,13 @@ extern __GURU__ guru_rom 	guru_device_rom;
 #define _RAW(sid)	((U8*)MEMPTR(guru_device_rom.str + _SYM(sid)->raw))
 
 __GURU__ int	guru_rom_init();
-__GURU__ void 	guru_rom_add_class(GT cidx, const char *name, GT super_cidx, const Vfunc vtbl[], int n);
+__GURU__ void	guru_rom_burn();
+
+__GURU__ GP 	guru_rom_add_class(GT cidx, const char *name, GT super_cidx, const Vfunc vtbl[], int n);
 __GURU__ GP 	guru_rom_get_class(GT cidx);
 __GURU__ GP		guru_rom_add_sym(const char *s1);		// create new symbol
-__GURU__ S32	guru_rom_get_sym(U32 hash);
+__GURU__ S32	guru_rom_get_sym(const char *s1);
+__GURU__ GP		guru_define_method(GP cls, const U8 *name, GP cfunc);
 
 /*
 #define ROMPTR(off)	(U8PADD(&guru_host_rom->rom, off))
