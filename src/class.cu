@@ -12,6 +12,7 @@
 */
 #include <stdarg.h>
 #include "guru.h"
+#include "util.h"
 #include "global.h"
 #include "symbol.h"
 #include "mmu.h"
@@ -19,11 +20,6 @@
 #include "base.h"
 #include "static.h"
 #include "class.h"
-
-#define _LOCK		{ MUTEX_LOCK(_mutex_cls); }
-#define _UNLOCK 	{ MUTEX_FREE(_mutex_cls); }
-
-__GURU__ U32 _mutex_cls;
 
 //================================================================
 /*! (BETA) Call any method of the object, but written by C.
@@ -226,6 +222,11 @@ proc_by_id(GR *r, GS pid)
     GP prc = 0;
 
     while (cls) {
+    	guru_class *cx = _CLS(cls);
+
+    	prc = __scan_flist(cx, pid);	// TODO: combine flist into vtbl[]
+    	if (prc) break;
+
 #if CUDA_ENABLE_CDP
     	/* CC: hold! CUDA 10.2 profiler does not support CDP yet,
         if (IS_BUILTIN(cls)) {
@@ -237,13 +238,9 @@ proc_by_id(GR *r, GS pid)
         }
         */
 #else
-    	guru_class *cx = _CLS(cls);
     	prc = __scan_vtbl(cx, pid);		// search for C-functions
     	if (prc) break;
 #endif // CUDA_ENABLE_CDP
-
-    	prc = __scan_flist(cx, pid);	// TODO: combine flist into vtbl[]
-    	if (prc) break;
 
     	cls = cx->super;
     }
@@ -258,79 +255,15 @@ proc_by_id(GR *r, GS pid)
 /*!@brief
   define class
 
-  @param  vm		pointer to vm.
   @param  name		class name.
   @param  super		super class.
 */
-__GURU__ guru_class*
-_define_class(const U8 *name, GP cls, GP super)
-{
-	guru_class *cx = _CLS(cls);			// offset from _rom->cls
-	GP         cid = guru_rom_add_sym((char*)name);
-
-    cx->rc     = cx->n = cx->kt = 0;	// BUILT-IN class
-    cx->cid    = cid;					// offset to symbol
-    cx->var    = 0;						// class variables, lazily allocated when needed
-    cx->meta   = 0;						// meta-class, lazily allocated when needed
-    cx->super  = super;
-    cx->vtbl   = 0;
-    cx->flist  = 0;						// head of list
-#if GURU_DEBUG
-    cx->cname  = id2name(cid);			// retrieve from stored symbol table (the one caller passed might be destroyed)
-#endif
-
-    GR  r { .gt=GT_CLASS, .acl=0, .oid=0, { .off=MEMOFF(cx) }};
-    const_set(cid, &r);					// register new class in constant cache
-
-    return cx;
-}
-
 __GURU__ GP
 guru_define_class(const U8 *name, GP super)
 {
-    GP cls = _name2class(name);
-    if (cls) return cls;
+	GT super_cid = (GT)((super - guru_rom_get_class(GT_OBJ))/sizeof(guru_class) + GT_OBJ);
 
-    // class does not exist, create a new one
-    guru_class *cx = (guru_class *)guru_alloc(sizeof(guru_class));
-    _define_class(name, (cls=MEMOFF(cx)), super);
-
-    return cls;
-}
-
-//================================================================
-/*!@brief
-  define class method or instance method.
-
-  @param  vm		pointer to vm.
-  @param  cls		pointer to class.
-  @param  name		method name.
-  @param  cfunc		pointer to function.
-*/
-__GURU__ GP
-guru_define_method(GP cls, const U8 *name, GP cfunc)
-{
-    if (!cls) cls = guru_rom_get_class(GT_OBJ);	// set default to Object.
-
-    guru_proc  *px = (guru_proc*)guru_alloc(sizeof(guru_proc));
-    guru_class *cx = _CLS(cls);
-
-    px->rc = px->kt = px->n = 0;				// No LAMBDA register file, C-function (from BUILT-IN class)
-    px->pid   = guru_rom_add_sym((char*)name);
-    px->cid   = cx->cid;						// keep class id
-    px->func  = cfunc;							// set function pointer
-
-    _LOCK;										// cached class
-    px->next  = cx->flist;						// add as the new list head
-    cx->flist = MEMOFF(px);						// TODO: change to array implementation
-    _UNLOCK;
-
-#if GURU_DEBUG
-    px->cname = id2name(px->cid);
-    px->name  = id2name(px->pid);
-#endif
-
-    return MEMOFF(px);
+	return guru_rom_add_class(GT_EMPTY, (char*)name, super_cid, NULL, 0);
 }
 
 //================================================================

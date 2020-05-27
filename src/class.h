@@ -69,7 +69,6 @@ typedef struct RProc {		// 32-byte
 
 __GURU__ GP 	guru_define_class(const U8 *name, GP super);
 __GURU__ GP 	guru_class_add_meta(GR *r);				// lazy add metaclass to a class
-__GURU__ GP     guru_define_method(GP cls, const U8 *name, GP cfunc);
 
 // common class functions
 __GURU__ GR 	inspect(GR *v, GR *obj);				// inspect obj using v[] as stack
