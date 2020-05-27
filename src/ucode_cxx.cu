@@ -851,7 +851,7 @@ class Ucode::Impl
         if (prc0) _CALL(prc0, s0, 0);
         if (prc1) _CALL(prc1, s1, 0);
 
-        guru_buf_add_cstr(ref_inc(s0), _RAW(s1));	// ref counts increased as _dup updated
+        guru_buf_add_cstr(ref_inc(s0), GR_RAW(s1));	// ref counts increased as _dup updated
 
         ref_dec(s1);
         *s1 = EMPTY;

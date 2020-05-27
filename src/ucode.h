@@ -25,46 +25,6 @@ extern "C" {
 
 typedef void (*UCODE)(guru_vm *vm);				// microcode function prototype
 
-/*
- * bytecode decoder marcos, deprecated by guru3_7
- *
-// common OPs
-#define GET_RA(i)               (((i) >> 23) & 0x1ff)
-#define GET_RB(i)               (((i) >> 14) & 0x1ff)
-#define GET_RC(i)               (((i) >>  7) & 0x7f)
-
-// special format for JUMP (Ax 25-bit address), Int/Sym (Bx 16-bit value)
-#define GET_Ax(i)               (((i) >>  7) & 0x1ffffff)
-#define GET_Bx(i)               ((U16)((i) >>  7) & 0xffff)
-#define GET_sBx(i)              (GET_Bx(i)-MAX_sBx)
-#define GET_b(i)                (GET_Bx(i) >> 2)
-
-#define GET_UNPACK_b(i,n1,n2)   (((i) >> (7+(n2))) & ((1<<(n1))-1))
-#define GET_UNPACK_c(i,n1,n2)   ((int)((((mrb_code)(i)) >> 7) & ((1<<(n2))-1)))
-
-#define MK_OP(op)               ((op & 0x7f)<<24)
-#define MK_RA(c)                ((c & 0x0ff)<<1  | (c & 0x01)>>8)
-#define MK_RB(c)                ((c & 0x1fc)<<6  | (c & 0x03)<<22)
-#define MK_RC(c)                ((c & 0x07e)<<15 | (c & 0x01)<<31)
-
-// the following are not implemented
-#define MK_Bx(v)                ((mrb_code)((v) & 0xffff) << 7)
-#define MK_sBx(v)               MK_Bx((v) + MAX_sBx)
-#define MK_Ax(v)                ((mrb_code)((v) & 0x1ffffff) << 7)
-#define MK_PACK(b,n1,c,n2)      ((((b) & ((1<<n1)-1)) << (7+n2))|(((c) & ((1<<n2)-1)) << 7))
-#define MK_bc(b,c)              MK_PACK(b,14,c,2)
-
-#define OP_A(op,a)              (MK_OP(op)    |MK_RA(a))
-#define OP_AB(op,a,b)           (OP_A(op,a)   |MK_RB(b))
-#define OP_ABC(op,a,b,c)        (OP_AB(op,a,b)|MK_RC(c))
-#define OP_ABx(op,a,bx)         (OP_A(op,a)   |MK_RBx(bx))
-#define OP_Bx(op,bx)            (MK_OP(op)    |MK_Bx(bx))
-#define OP_sBx(op,sbx)          (MK_OP(op)    |MK_sBx(sbx))
-#define OP_AsBx(op,a,sbx)       (OP_A(op,a)   |MK_sBx(sbx))
-#define OP_Ax(op,ax)            (MK_OP(op)    |MK_Ax(ax))
-#define OP_Abc(op,a,b,c)        (OP_A(op,a)   |MK_bc(b,c))
-*/
-
 //================================================================
 /*!@brief
 
