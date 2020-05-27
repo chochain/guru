@@ -16,11 +16,12 @@ INCDIRS=-I/usr/local/cuda/include -I./src
 SRC =   main.c 
 CORE= 	util.cu global.cu mmu32.cu symbol.cu \
 		base.cu ostore.cu iter.cu
-EXT =   c_fixnum.cu c_range.cu c_string.cu c_array.cu c_hash.cu 
+EXT =   c_fixnum.cu c_range.cu c_string.cu c_array.cu c_hash.cu
 GURU= 	$(CORE) $(EXT) \
         guru_test.cu load.cu class.cu static.cu state.cu \
 		object.cu ucode.cu vm.cu \
 		inspect.cu console.cu debug.cu sprintf.cu puts32.cu
+CXX =   class_cxx.cu state_cxx.cu ucode_cxx.cu vm_cxx.cu vmx.cu
 CUDA=   cuda.cu
 LIB = 	libguru.a
 
@@ -46,7 +47,7 @@ $(LIB): $(OBJS)
 main.o: main.c gurux.h
 	$(CC) $(CCFLAGS) $<
 
-util.o: util.cu			vm_config.h
+util.o: util.cu			vm_config.h util.h
 
 global.o: global.cu	    vm_config.h guru.h global.h
 
@@ -74,7 +75,7 @@ guru_test.o: guru_test.cu $(_CORE) helper_cuda.h helper_string.h
 
 guru.o: guru.cu         $(_CORE) vmx.h
 
-class.o: class.cu	    $(_CORE) class.h
+class.o: class.cu	    $(_CORE) class.h global.h symbol.h
 
 static.o: static.cu	    $(_CORE) class.h static.h
 

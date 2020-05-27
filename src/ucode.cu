@@ -936,19 +936,15 @@ uc_range(guru_vm *vm)
 __UCODE__
 uc_lambda(guru_vm *vm)
 {
-	U32 bz = _AR(bx) >> 2;					// Bz, Cz a special decoder case
+	GR *obj = _R(a) - 1;
+	GP cls  = class_by_obj(obj);			// current class
+	GP irep = MEMOFF(VM_REPS(vm, vm->bz));	// fetch from children irep list
 
-    guru_class *cx = _CLS(VM_STATE(vm)->klass);	// current class
-    guru_proc  *px = (guru_proc *)guru_alloc(sizeof(guru_proc));
+	GP prc  = guru_define_method(cls, NULL, irep);
 
-    px->rc   = 0;
-    px->kt   = PROC_IREP;
-    px->n    = 0;							// no param
-    px->pid  = 0xffff;						// anonymous function
-    px->cid  = cx->cid;
-    px->irep = MEMOFF(VM_REPS(vm, bz));		// fetch from children irep list
+    _PRC(prc)->kt = PROC_IREP;				// instead of C-function
 
-    _RA_T(GT_PROC, off=MEMOFF(px));			// regs[ra].prc = prc
+    _RA_T(GT_PROC, off=prc);				// regs[ra].prc = prc
 }
 
 //================================================================
@@ -1005,27 +1001,15 @@ uc_method(guru_vm *vm)
 
     // check whether the name has been defined in current class (i.e. vm->state->klass)
     GS pid = VM_SYM(vm, _AR(b));				// fetch name from IREP symbol table
-    GP prc = proc_by_id(r, pid);				// fetch proc from class or obj's vtbl
 
-    // add proc to class
-    guru_class *cx = _CLS(class_by_obj(r));		// fetch active class
-    guru_proc  *px = GR_PRC(r+1);				// override (if exist) with proc by OP_LAMBDA
+    guru_proc *px = GR_PRC(r+1);				// override (if exist) with proc by OP_LAMBDA
     _LOCK;
-
-    px->pid   = pid;							// assign sid to proc, overload if prc already exists
-    px->cid   = cx->cid;						// copy class id
-    px->next  = cx->flist;						// add to top of vtable, so it will be found first
-    cx->flist = MEMOFF(px);						// if there is a sub-class override
-
+    px->pid = pid;								// assign sid to proc, overload if prc already exists
     _UNLOCK;
 
-#if GURU_DEBUG
-    px->cname = id2name(px->cid);
-    px->name  = id2name(px->pid);
-#endif // GURU_DEBUG
 #if CC_DEBUG
     PRINTF("!!!created %s method %s:%p->%d\n",
-    		prc ? "override" : "new", MEMPTR(px->name), px, px->pid);
+    		prc ? "override" : "new", _RAW(px->pid), px, px->pid);
 #endif // CC_DEBUG
     r->acl &= ~ACL_SELF;						// clear CLASS modification flags if any
     *(r+1) = EMPTY;								// clean up proc
