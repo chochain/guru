@@ -51,6 +51,8 @@ typedef struct RState {			// 20-byte
 
     GP  regs;					// (GR*) pointer to current register (in VM register file)
     GP  prev;					// previous state (call stack)
+
+    U64 xxx;					// reserved
 } guru_state;					// VM context
 
 //============================================================================================
