@@ -19,9 +19,9 @@ extern "C" {
 #endif
 
 #define MAX_ROM_CLASS		32
-#define MAX_ROM_PROC		192
-#define MAX_ROM_SYMBOL		128
-#define MAX_ROM_STRBUF		1024
+#define MAX_ROM_PROC		256
+#define MAX_ROM_SYMBOL		256
+#define MAX_ROM_STRBUF		2048
 
 typedef struct {
 	U32		sig;				// reserved for signature, versions, flags
