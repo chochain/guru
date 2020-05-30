@@ -87,18 +87,19 @@ guru_rom_add_sym(const char *s1)						// create new symbol
 	guru_sym *sym = _SYM(ns);
 	sym->hash = HASH(s1);
 	sym->raw  = _rom->nstr;								// offset from _rom->str
-	U32  bsz  = STRLENB(s1)+1;							// add '\0'
+	U32  asz  = STRLENB(s1)+1;							// add '\0'
 
 	U8   *s0  = MEMPTR(_rom->str)+sym->raw;
-	MEMCPY(s0, s1, bsz);								// deep copy
+	MEMCPY(s0, s1, asz);								// deep copy
 
-#if CC_DEBUG
-	PRINTF("  sym[%02d]->str%04x:x%08x %s\n", ns, _rom->nstr, hsh1, s1);
-	ASSERT((_rom->nstr + ALIGN4(bsz)) < MAX_ROM_STRBUF);
+#if GURU_DEBUG
+	ASSERT((_rom->nstr + ALIGN4(asz)) < MAX_ROM_STRBUF);
 	ASSERT((_rom->nsym + 1) < MAX_ROM_SYMBOL);
+#endif // GURU_DEBUG
+#if CC_DEBUG
+	PRINTF("  sym[%02d]->str%04x:x%08x %s\n", ns, _rom->nstr, sym->hash, s1);
 #endif // CC_DEBUG
-
-	_rom->nstr += ALIGN4(bsz);
+	_rom->nstr += ALIGN4(asz);
 	_rom->nsym++;
 
 	return ns;
@@ -114,16 +115,14 @@ __GURU__ GP
 guru_rom_add_class(GT cid, const char *name, GT super_cid, const Vfunc vtbl[], int n)
 {
 #if CC_DEBUG
-    PRINTF("%s:: class[%d] defined with %d method(s) at vtbl[%2d]\n", name, cid, n, _rom->#define _LOCK		{ MUTEX_LOCK(_mutex_cls); }
-#define _UNLOCK 	{ MUTEX_FREE(_mutex_cls); }
-
-__GURU__ U32 _mutex_cls;
-
-nprc);
-    ASSERT((_rom->nprc + n) < MAX_ROM_PROC);	// size checking
+    PRINTF("%s:: class[%d] defined with %d method(s) at vtbl[%2d]\n", name, cid, n, _rom->nprc);
 #endif // CC_DEBUG
 
-	guru_class *cx  = _define_class(name, ((cid==GT_EMPTY) ? (GT)_rom->ncls : cid), super_cid);
+#if GURU_DEBUG
+    ASSERT((_rom->nprc + n) < MAX_ROM_PROC);	// size checking
+#endif // GURU_DEBUG
+
+    guru_class *cx  = _define_class(name, ((cid==GT_EMPTY) ? (GT)_rom->ncls : cid), super_cid);
     guru_proc  *px  = _PRC(_rom->prc) + _rom->nprc;
 
     cx->rc   = n;								// number of built-in functions
@@ -156,6 +155,10 @@ __GURU__ GP
 guru_define_method(GP cls, const U8 *name, GP cfunc)
 {
     if (!cls) cls = guru_rom_get_class(GT_OBJ);	// set default to Object.
+
+#if GURU_DEBUG
+    ASSERT((_rom->nprc + 1) < MAX_ROM_PROC);
+#endif // GURU_DEBUG
 
     guru_proc  *px  = _PRC(_rom->prc) + _rom->nprc++;
     guru_class *cx = _CLS(cls);

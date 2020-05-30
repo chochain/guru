@@ -1008,8 +1008,7 @@ uc_method(guru_vm *vm)
     _UNLOCK;
 
 #if CC_DEBUG
-    PRINTF("!!!created %s method %s:%p->%d\n",
-    		prc ? "override" : "new", _RAW(px->pid), px, px->pid);
+    PRINTF("!!!uc_method %s:%p->%d\n", _RAW(px->pid), px, px->pid);
 #endif // CC_DEBUG
     r->acl &= ~ACL_SELF;						// clear CLASS modification flags if any
     *(r+1) = EMPTY;								// clean up proc

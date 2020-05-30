@@ -20,7 +20,7 @@
 
 extern "C" __GPU__  void guru_core_init(void);
 extern "C" __GPU__  void guru_console_init(U8 *buf, U32 sz);
-extern "C" __HOST__ int  vm_pool_init(U32 step);
+extern "C" __HOST__ int  vm_pool_init(int step);
 
 U8 *guru_host_heap;					// guru global memory
 
@@ -93,7 +93,7 @@ guru_setup(int step, int trace)
 	_ses_list = NULL;
 
 	guru_mmu_init<<<1,1>>>(mem, GURU_HEAP_SIZE);				// setup memory management
-	guru_core_init<<<1,1>>>();									// setup basic classes
+//	guru_core_init<<<1,1>>>();									// setup basic classes
 //	guru_console_init<<<1,1>>>(out, OUTPUT_BUF_SIZE);			// initialize output buffer
 
 	U32 sz0, sz1;
@@ -118,28 +118,26 @@ guru_load(char *rite_fname)
 __HOST__ void
 guru_mem_test(int ncycle)
 {
-	U32 a[] = { 0x28, 0x8, 0x10, 0x38, 0x8, 0x10 };
-	U32 f[] = { 4, 1, 2 };
-	U32 b[] = { 0x18, 0x10 };
+	U32 a[] = { 0x1200, 0x280, 0x80, 0x38, 0x8, 0x1000 };
+	U32 f[] = { 5, 2, 3, 1 };
+	U32 b[] = { 0x1000, 0x18, 0x10 };
 	U8 *p   = (U8 *)cuda_malloc(12*sizeof(U8*), 1);
 	U8 **x  = (U8**)p;
 
 	for (int i=0; i<sizeof(a)>>2; i++) {
-		printf("\nalloc %d=>0x%02x", i, a[i]);
 		_mmu_alloc<<<1,1>>>(&x[i], a[i]);
 		guru_mmu_check(2);
-		printf("\t=>%p", x[i]);
+		printf("alloc %d:%04x=>%p\n", i, a[i], x[i]);
 	}
 	for (int i=0, j=f[0]; i<sizeof(f)>>2; j=f[++i]) {
-		printf("\nfree %d=>%p", j, x[j]);
+		printf("free %d=>%p\n", j, x[j]);
 		_mmu_free<<<1,1>>>(x[j]);
 		guru_mmu_check(2);
 	}
 	for (int i=0; i<sizeof(b)>>2; i++) {
-		printf("\nalloc %d=>0x%02x", i, b[i]);
 		_mmu_alloc<<<1,1>>>(&x[i+6], b[i]);
 		guru_mmu_check(2);
-		printf("\t=>%p", x[i+6]);
+		printf("alloc %d:%04x=>%p\n", i, b[i], x[i+6]);
 	}
 }
 
@@ -235,8 +233,8 @@ _time(const char *fname, int ncycle, void (*fp)(int))
 __HOST__ int
 guru_run()
 {
-	//_time("mem_test", 10, &guru_mem_test);
-	_time("hash_test", 1000, &guru_hash_test);
+	_time("mem_test", 1, &guru_mem_test);
+	//_time("hash_test", 1000, &guru_hash_test);
 
 	cudaDeviceReset();
 
