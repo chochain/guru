@@ -19,32 +19,11 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+/* TODO: 8-byte aligned so lower 3 bits can be utilized for flags
 
-// TODO: utilize lower 2 bits for flags
-/*
-#define BLOCK_FREE_FLAG	0x1
-#define BLOCK_TAIL_FLAG	0x2
-#define BLOCK_SIZE(b) 	((b)->size & ~(BLOCK_FREE_FLAG|BLOCK_TAIL_FLAG))
-#define IS_FREE(b)		((b)->size & BLOCK_FREE_FLAG)
-#define IS_TAIL(b)		((b)->size & BLOCK_TAIL_FLAG)
-#define SET_FREE(b)		((b)->size &= ~BLOCK_FREE_FLAG)
-#define SET_TAIL(b)		((b)->size &= ~BLOCK_TAIL_FLAG)
-#define NEXT_BLOCK(b)   ((U8P)b + b->size)
-#define PREV_BLOCK(b)	((U8P)b - b->poff)
-
-typedef struct used_block {			// 4-bytes
-  U32 bsz;   						// lower 2 bits used as flags
-} used_block;
-
-typedef struct free_block {			// 4-bytes (+ 4 bytes free space)
-  U32 bsz;   						//
-  U32 poff;							// positive offset to previous block
-}
-
-GURU_MEM_BLOCK:
+GURU_MEM_BLOCK
  	 bsz : block size, header included (max 2G)
  	 psz : prior adjacent memory block size
- 	 flag: lower 4 bit might be used
 */
 #define GURU_MEM_BLOCK				\
 	U32 bsz;						\
@@ -76,26 +55,26 @@ typedef struct free_block {			// 16-bytes (i.e. mininum allocation per block)
 
 #define MN_BITS			3									// 00000000 00000000 00000000 00000XXX  // 8-bytes smallest blocksize
 #define L2_BITS     	3   								// 00000000 00000000 00000000 00XXX000  // 8 entires
-#define L1_BITS     	8									// 00000000 00000000 00XXXXXX XX000000  // 8 levels (for 16K)
+#define L1_BITS     	12									// 00000000 000000XX XXXXXXXX XX000000  // 12 levels (for 256K), check GURU_HEAP_SIZE
 #define BASE_BITS   	(L2_BITS+MN_BITS)
 
-#define TIC(n)      	(1 << n)
+#define TIC(n)      	(1 << (n))
 #define L2_MASK 		((1<<L2_BITS)-1)
 #define MIN_BLOCK		(1 << MN_BITS)
 
 #define L1(i) 			((i) >> L2_BITS)
 #define L2(i) 			((i) & L2_MASK)
-#define FL_SLOTS		(L1_BITS * (1 << L2_BITS))			// slots for free_list pointers (10*8 entries for 16K memory)
+#define FL_SLOTS		(L1_BITS * (1 << L2_BITS))			// slots for free_list pointers (12*8 entries for 256K memory)
 
 #define L1_MAP(i)       (_l1_map)
 #define L2_MAP(i)       (_l2_map[L1(i)])
 #define INDEX(l1, l2)   ((l1<<L2_BITS) | l2)
 
 #define SET_L1(i)		(L1_MAP(i) |= TIC(L1(i)))
-#define CLR_L1(i)	    (L1_MAP(i) &= ~TIC(L1(i)))
 #define SET_L2(i)	    (L2_MAP(i) |= TIC(L2(i)))
-#define CLR_L2(i)		(L2_MAP(i) &= ~TIC(L2(i)))
 #define SET_MAP(i)      { SET_L1(i); SET_L2(i); }
+#define CLR_L1(i)	    (L1_MAP(i) &= ~TIC(L1(i)))
+#define CLR_L2(i)		(L2_MAP(i) &= ~TIC(L2(i)))
 #define CLEAR_MAP(i)	{ CLR_L2(i); if ((L2_MAP(i))==0) CLR_L1(i); }
 
 #define MIN_BLOCK_SIZE	(sizeof(free_block))				// 16-byte (need space for prev/next pointers)
