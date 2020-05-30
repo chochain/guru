@@ -57,6 +57,7 @@ def sq(a)
     a.each do |lo|
         v, k = [], []
         a.each do |hi|
+            puts "(#{hi},#{lo})"
             gua = yield(hi,lo)
             k << "#{gua.sn[0]}#{gua.k}"
             v << "#{gua.sn[1]}#{gua.v}"
