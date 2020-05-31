@@ -26,7 +26,6 @@
 #include "state.h"
 #include "ucode.h"
 
-#define UCODE_STRBUF_SIZE	255
 #define _LOCK		{ MUTEX_LOCK(_mutex_uc); }
 #define _UNLOCK		{ MUTEX_FREE(_mutex_uc); }
 
@@ -224,7 +223,7 @@ uc_getiv(guru_vm *vm)
 
 //================================================================
 /*!@brief
-  OP_SETIV
+  OP_SETIV	(set instance variable)
 
   ivset(Syms(Bx),R(A))
 */
@@ -234,8 +233,11 @@ uc_setiv(guru_vm *vm)
 	GR *r  = _R0;
 	ASSERT(r->gt==GT_OBJ || r->gt==GT_CLASS);
 
-    U8 *namex = _name_wo_at_sign(vm);
-    ostore_set(r, name2id(namex), _R(a));
+	U8 *namex = _name_wo_at_sign(vm);
+	GR *ra    = _R(a);
+
+	guru_str_pack(ra);						// compact, in case of a str_buf
+    ostore_set(r, name2id(namex), ra);		// store instance variable
 }
 
 //================================================================
@@ -505,15 +507,15 @@ _undef(GR *buf, GR *r, GS pid)
 __UCODE__
 uc_send(guru_vm *vm)
 {
-    GS  xid = VM_SYM(vm, _AR(b));				// get given symbol id or object id
-    GR  *r  = _R(a);							// call stack, obj is receiver object
+    GS  xid = VM_SYM(vm, _AR(b));					// get given symbol id or object id
+    GR  *r  = _R(a);								// call stack, obj is receiver object
 #if CC_DEBUG
     PRINTF("!!!uc_send(%p) R(%d)=%p, xid=%d\n", vm, vm->a, r, xid);
 #endif // CC_DEBUG
-    if (vm_method_exec(vm, r, _AR(c), xid)) { 	// in state.cu, call stack will be wiped before return
-    	vm->err = 1;							// raise exception
-    	GR buf  = guru_str_buf(79);				// put error message on return stack
-    	*(r+1)  = *_undef(&buf, r, xid);		// TODO: exception class
+    if (vm_method_exec(vm, r, _AR(c), xid)) { 		// in state.cu, call stack will be wiped before return
+    	vm->err = 1;								// raise exception
+    	GR buf  = guru_str_buf(GURU_STRBUF_SIZE);	// put error message on return stack
+    	*(r+1)  = *_undef(&buf, r, xid);			// TODO: exception class
     }
 }
 
