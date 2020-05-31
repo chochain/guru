@@ -93,11 +93,18 @@ __GURU__ void
 __transcode(U8 *u8_gr)
 {
 	GRIT *gr = (GRIT*)u8_gr;
-	GR   *r  = (GR*)U8PADD(gr, gr->pool);
-	for (int i=0; i < gr->psz; i++, r++) {			// symbol table
+	GR   *r0 = (GR*)U8PADD(gr, gr->pool), *r = r0;
+	U32  n   = 0;
+	for (int i=0; i < gr->psz; i++, r++) {
+		if (r->gt==GT_STR) n++;
+	}
+	guru_str *str = (guru_str*)guru_alloc(sizeof(guru_str)*n);
+
+	r = r0;
+	for (int i=0; i < gr->psz; i++, r++) {					// symbol table
 		switch (r->gt) {
-		case GT_SYM: guru_sym_transcode(r);	break;
-		case GT_STR: guru_str_transcode(r);	break;	// instantiate the string
+		case GT_SYM: guru_sym_transcode(r);			break;
+		case GT_STR: guru_str_transcode(r, str++);	break;	// instantiate the string
 		default:
 			// do nothing
 			break;
