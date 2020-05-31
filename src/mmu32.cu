@@ -47,9 +47,9 @@ __GURU__ free_block		*_free_list[FL_SLOTS];
 #define bin2u32(x) ((x << 24) | ((x & 0xff00) << 8) | ((x >> 8) & 0xff00) | (x >> 24))
 
 __GURU__ void
-_dump_freelist(const char *hdr)
+_dump_freelist(const char *hdr, int sz)
 {
-	PRINTF("!!!%-6s L1=%04x:", hdr, _l1_map);
+	PRINTF("!!!%6s(x%04x) L1=%04x:", hdr, sz, _l1_map);
 	for (int i=0; i<L1_BITS; i++) { PRINTF(" %02x", _l2_map[i]); }
 	for (int i=0; i<FL_SLOTS; i++) {
 		if (!_free_list[i]) continue;
@@ -72,7 +72,7 @@ _mmu_freelist()
 {
 	if (threadIdx.x!=0 || blockIdx.x!=0) return;
 
-	_dump_freelist("check");
+	_dump_freelist("check", 0);
 }
 
 //================================================================
@@ -182,9 +182,7 @@ __idx(U32 sz)
     U32 l1 = v > BASE_BITS ? v - BASE_BITS : 0;
     U32 n  = v > BASE_BITS ? v - MN_BITS : MN_BITS;
     U32 l2 = sz >> n;
-#if CC_DEBUG
-    PRINTF("!!!sz=%04x:v=%1x, L1=%02x,L2=%02x => INDEX=%x\n", sz, v, l1, l2, INDEX(l1, l2));
-#endif // CC_DEBUG
+//    PRINTF("!!!sz=%04x:v=%1x, L1=%02x,L2=%02x => INDEX=%x\n", sz, v, l1, l2, INDEX(l1, l2));
     return INDEX(l1, l2);
 }
 
@@ -434,6 +432,9 @@ _init_mmu(void *mem, U32 heap_size)
 __GURU__ void*
 guru_alloc(U32 sz)
 {
+	if (sz < 4) {
+		sz += 1; sz -= 1;
+	}
     U32 bsz = sz + sizeof(used_block);			// logical => physical size
     CHECK_MEMSZ(bsz);							// check alignment & sizing
 
@@ -445,10 +446,10 @@ guru_alloc(U32 sz)
 	_UNLOCK;
 
 #if GURU_DEBUG
+    _dump_freelist("alloc", sz);
     U32 *p = (U32*)BLK_DATA(blk);				// point to raw space allocated
     sz >>= 2;
     for (int i=0; i < (sz>16 ? 16 : sz); i++) *p++ = 0xaaaaaaaa;
-    _dump_freelist("alloc");
 #endif
 
 	return BLK_DATA(blk);						// pointer to raw space
@@ -488,7 +489,7 @@ guru_realloc(void *p0, U32 sz)
 
     guru_free(p0);										// reclaim block
 #if GURU_DEBUG
-	_dump_freelist("ralloc");
+	_dump_freelist("ralloc", sz);
 #endif // GURU_DEBUG
 
     return p1;
@@ -516,6 +517,7 @@ guru_free(void *ptr)
 
 	_LOCK;
     free_block *blk = (free_block *)BLK_HEAD(ptr);			// get block header
+    U32 sz = blk->bsz;
 
     _merge_with_next(blk);
 #if GURU_DEBUG
@@ -533,7 +535,7 @@ guru_free(void *ptr)
 
     MMU_CHECK;
 #if GURU_DEBUG
-	_dump_freelist("free");
+	_dump_freelist("free", sz);
 #endif // GURU_DEBUG
 }
 
