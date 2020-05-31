@@ -216,6 +216,7 @@ obj_attr_reader(GR r[], U32 ri)
 //================================================================
 /*! (class method) access method 'attr_accessor'
  */
+#define ATTR_BUFSIZE	255
 __CFUNC__
 obj_attr_accessor(GR r[], U32 ri)
 {
@@ -225,7 +226,7 @@ obj_attr_accessor(GR r[], U32 ri)
 	guru_class *cx = _CLS(cls);
     printf("%p:%s, sc=%d self=%d #attr_accessor\n", cx, _RAW(cx->cid), IS_SCLASS(r), IS_SELF(r));
 #endif // CC_DEBUG
-    GR buf = guru_str_buf(80);
+    GR buf = guru_str_buf(ATTR_BUFSIZE);
 	GR *s  = r+1;
     for (int i=0; i < ri; i++, s++) {
         ASSERT(s->gt==GT_SYM);

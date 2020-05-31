@@ -20,6 +20,8 @@
 #include "c_range.h"
 #include "c_string.h"
 
+#define STRBUF_SIZE		255
+
 #if !GURU_USE_STRING
 __GURU__ GR		guru_str_new(const U8 *src) { return NIL(); }			// cannot use U8P, need lots of casting
 __GURU__ void	guru_str_del(GR *r)			{}
@@ -216,18 +218,19 @@ _chomp(GR *r)
   @return 	string object
 */
 __GURU__ void
-guru_str_transcode(GR *r)			// cannot use U8P, need lots of casting
+guru_str_transcode(GR *r, guru_str *h)			// cannot use U8P, need lots of casting
 {
     U8 *raw = U8PADD(r, r->off);
 
+/*
 	//  Allocate handle and to point to ROM string
     guru_str *h = (guru_str *)guru_alloc(sizeof(guru_str));
-
+*/
     ASSERT(((U32A)h & 7)==0);		// check alignment
 
     h->rc  = 0;
     h->sz  = STRLENB(raw);
-    h->bsz = h->sz+1;
+    h->bsz = ALIGN4(h->sz+1);
     h->raw = MEMOFF(raw);
 
     r->off = MEMOFF(h);				// overwrite GR
@@ -292,16 +295,17 @@ guru_str_add(GR *s0, GR *s1)
 {
 	ASSERT(s1->gt==GT_STR);
 
-    U32 sz0    = _sz(s0);
-    U32 sz1    = _sz(s1);
-    U32 new_sz = sz0 + sz1;
-    GR  ret    = _blank(new_sz);
+	GR buf = *s0;
+	if (STRBUF_SIZE > GR_STR(s0)->bsz) {
+		buf = guru_str_buf(STRBUF_SIZE);		// auto plus 1 for '\0'
+		guru_buf_add_cstr(&buf, GR_RAW(s0));
+	}
+	else {
+		ref_inc(s0);
+	}
+	guru_buf_add_cstr(&buf, GR_RAW(s1));		// ref counts increased as _dup updated
 
-    U8  *raw = GR_RAW(&ret);
-    MEMCPY(raw, 	GR_RAW(s0), sz0);
-    MEMCPY(raw+sz0, GR_RAW(s1), sz1+1);
-
-    return ret;
+    return buf;
 }
 
 //================================================================
@@ -313,13 +317,14 @@ guru_str_add(GR *s0, GR *s1)
 __GURU__ GR
 guru_buf_add_cstr(GR *buf, const U8 *str)
 {
+    guru_str *sb  = GR_STR(buf);
+    U8       *tmp = GR_RAW(buf);
+
     U32 sz0    = _sz(buf);
     U32 sz1    = STRLENB(str);
     U32 new_sz = sz0 + sz1;
     U32 bsz    = ALIGN8(new_sz + 1);			// '\0' and 8-byte aligned
-    U8  *tmp = GR_RAW(buf);
 
-    guru_str *sb = GR_STR(buf);
     if (bsz > sb->bsz) {
     	tmp = (U8*)guru_realloc(tmp, bsz);
     	sb->bsz = bsz;
@@ -337,9 +342,7 @@ guru_buf_add_cstr(GR *buf, const U8 *str)
 __CFUNC__
 str_add(GR r[], U32 ri)
 {
-    ASSERT(r[1].gt == GT_STR);
-
-    GR ret = guru_str_add(r, r+1);
+    GR ret = guru_str_add(r, r+1);				// will check (r+1)->gt==GT_STR
 
     RETURN_VAL(ret);
 }
@@ -684,7 +687,7 @@ str_to_sym(GR r[], U32 ri)
 
 //================================================================
 //! Inspect
-#define BUF_SIZE 80
+#define BUF_SIZE 79
 
 __CFUNC__
 str_inspect(GR r[], U32 ri)

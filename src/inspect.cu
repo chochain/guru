@@ -24,6 +24,8 @@
 #include "c_hash.h"
 #include "c_range.h"
 
+#define INSPECT_STRBUF_SIZE		255			// auto plus 1 for '\0'
+
 #if !GURU_USE_STRING
 __CFUNC__	gr_to_s(GR r[], U32 ri)			{}
 __CFUNC__ 	ary_join(GR r[], U32 ri)		{}
@@ -230,11 +232,11 @@ _to_s(GR *buf, GR r[], U32 n)
 }
 //================================================================
 //! Object#to_s factory function
-#define BUF_SIZE	512
+#define GRS_BUFSIZE	255			// auto plus 1 for '\0'
 __CFUNC__
 gr_to_s(GR r[], U32 ri)
 {
-	GR buf = guru_str_buf(BUF_SIZE);
+	GR buf = guru_str_buf(GRS_BUFSIZE);
 
 	_to_s(&buf, r, ri);
 
@@ -255,7 +257,7 @@ ary_join(GR r[], U32 ri)
 	ASSERT(r->gt==GT_ARRAY);
 	guru_array *a = GR_ARY(r);
 
-	GR ret = guru_str_buf(BUF_SIZE);
+	GR ret = guru_str_buf(INSPECT_STRBUF_SIZE);
 	GR *d  = a->data;
 	for (int i=0; i<a->n; i++, d++) {
 		if (d->gt==GT_STR)	guru_buf_add_cstr(&ret, GR_RAW(d));

@@ -26,6 +26,7 @@
 #include "state.h"
 #include "ucode.h"
 
+#define UCODE_STRBUF_SIZE	255
 #define _LOCK		{ MUTEX_LOCK(_mutex_uc); }
 #define _UNLOCK		{ MUTEX_FREE(_mutex_uc); }
 
@@ -511,7 +512,7 @@ uc_send(guru_vm *vm)
 #endif // CC_DEBUG
     if (vm_method_exec(vm, r, _AR(c), xid)) { 	// in state.cu, call stack will be wiped before return
     	vm->err = 1;							// raise exception
-    	GR buf  = guru_str_buf(80);				// put error message on return stack
+    	GR buf  = guru_str_buf(79);				// put error message on return stack
     	*(r+1)  = *_undef(&buf, r, xid);		// TODO: exception class
     }
 }
@@ -837,21 +838,16 @@ uc_string(guru_vm *vm)
 __UCODE__
 uc_strcat(guru_vm *vm)
 {
-    GS pid = name2id((U8*)"to_s");				// from global symbol pool
 	GR *s0 = _R(a), *s1 = _R(b);
 
-    GP prc0 = proc_by_id(s0, pid);
-    GP prc1 = proc_by_id(s1, pid);
+	ASSERT(s0->gt==GT_STR && s1->gt==GT_STR);
 
-    if (prc0) _CALL(prc0, s0, 0);				// can it be an IREP?
-    if (prc1) _CALL(prc1, s1, 0);
-
-    guru_buf_add_cstr(ref_inc(s0), GR_RAW(s1));	// ref counts increased as _dup updated
+	GR buf = guru_str_add(s0, s1);				// ref_cnt is set
 
     ref_dec(s1);
     *s1 = EMPTY;
 
-    _RA(*s0);									// this will clean out sa
+    _RA(buf);									// this will clean out sa
 }
 
 __GURU__ void
