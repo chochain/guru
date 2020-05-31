@@ -39,12 +39,12 @@
 /* 1: 32bit alignment */
 #define GURU_64BIT_ALIGN_REQUIRED 	1
 #define GURU_32BIT_ALIGN_REQUIRED 	1
-#define GURU_HEAP_SIZE 				(128*1024)
+#define GURU_HEAP_SIZE 				(32*1024)
 #define GURU_HOST_GRIT_IMAGE		1
 #define GURU_CXX_CODEBASE           0
 
 #define GURU_DEBUG					1
-#define CC_DEBUG					0
+#define CC_DEBUG					1
 
 /* CUDA dependent flags */
 #define CUDA_MIN_MEMBLOCK_SIZE		0x200

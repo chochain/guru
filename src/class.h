@@ -55,11 +55,6 @@ typedef struct RProc {		// 32-byte
 	    	GP	next;		// (RProc*) next function in linked list
 		};
     };
-#if GURU_DEBUG
-    GP		cname;			// (U8*) classname
-    GP		name;			// (U8*) function name
-    U64		xxx;			// reserved
-#endif
 } guru_proc;
 
 #define PROC_IREP		0x1

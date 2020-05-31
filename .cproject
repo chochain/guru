@@ -28,7 +28,7 @@
 								<option defaultValue="nvcc.compiler.optimization.level.none" id="nvcc.compiler.optimization.level.526411503" name="Optimization Level" superClass="nvcc.compiler.optimization.level" valueType="enumerated"/>
 								<option id="nvcc.compiler.pic.1554137831" name="Position Independent Code (-fPIC)" superClass="nvcc.compiler.pic"/>
 								<option id="nvcc.compiler.cpp11option.1976279052" name="Enable C++11 support (-std=c++11)" superClass="nvcc.compiler.cpp11option" value="true" valueType="boolean"/>
-								<option id="nvcc.compiler.ptxasoptions.2021938949" name="ptaxas options (-Xptxas)" superClass="nvcc.compiler.ptxasoptions" valueType="stringList"/>
+								<option id="nvcc.compiler.ptxasoptions.2021938949" name="ptaxas options (-Xptxas)" superClass="nvcc.compiler.ptxasoptions"/>
 								<inputType id="nvcc.compiler.input.cu.635388794" superClass="nvcc.compiler.input.cu"/>
 								<inputType id="nvcc.compiler.input.cpp.947493864" superClass="nvcc.compiler.input.cpp"/>
 								<inputType id="nvcc.compiler.input.c.1581702970" superClass="nvcc.compiler.input.c"/>
@@ -45,8 +45,11 @@
 							</tool>
 						</toolChain>
 					</folderInfo>
+					<fileInfo id="com.nvidia.cuda.ide.ten_two.configuration.debug.1061253450.418415709" name="guru.cu" rcbsApplicability="disable" resourcePath="src/guru.cu" toolsToInvoke="nvcc.compiler.base.540447248.374878108">
+						<tool id="nvcc.compiler.base.540447248.374878108" name="NVCC Compiler" superClass="nvcc.compiler.base.540447248"/>
+					</fileInfo>
 					<sourceEntries>
-						<entry excluding="src/jk.h|src/jk.c|src/state_cxx.cu|src/ucode_cxx.cu|src/vm_cxx.cu|src/vmx.cu|src/class_cxx.cu|src/guru_test.cu|bak|src/load_gpu.cu|src/symbol_orig.cu|src/puts.cu|src/cuda.cu|src/c_str_ascii.cu|src/alloc.cu|test|orig|ext" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
+						<entry excluding="src/guru_test.cu|src/jk.h|src/jk.c|src/state_cxx.cu|src/ucode_cxx.cu|src/vm_cxx.cu|src/vmx.cu|src/class_cxx.cu|bak|src/load_gpu.cu|src/symbol_orig.cu|src/puts.cu|src/cuda.cu|src/c_str_ascii.cu|src/alloc.cu|test|orig|ext" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
 					</sourceEntries>
 				</configuration>
 			</storageModule>

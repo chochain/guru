@@ -182,12 +182,12 @@ __scan_vtbl(guru_class *cx, GS pid)
 {
 	guru_proc *px = _PRC(cx->vtbl);				// sequential search thru the array
 	for (int i=0; i<cx->rc; i++, px++) {	// TODO: parallel search (i.e. CDP, see above)
-#if CC_DEBUG
-		U8 *cname = _RAW(cx->cid);
-		U8 *pname = _RAW(px->pid);
-		PRINTF("!!!vtbl scaning %p:%s[%2d] %p:%s->%d == %d\n", cx, cname, i, px, pname, px->pid, pid);
-#endif // CC_DEBUG
 		if (px->pid==pid) {
+#if CC_DEBUG
+			U8 *cname = _RAW(cx->cid);
+			U8 *pname = _RAW(px->pid);
+			PRINTF("!!!vtbl[%d] hit %p:%p %s#%s -> %d\n", i, cx, px, cname, pname, pid);
+#endif // CC_DEBUG
 			return MEMOFF(px);
 		}
 	}
@@ -198,16 +198,18 @@ __GURU__ GP
 __scan_flist(guru_class *cx, GS pid)
 {
 	GP prc = cx->flist;							// walk IREP linked-list
+	int i=0;
 	while (prc) {								// TODO: IREP should be added into guru_class->vtbl[]
 		guru_proc *px = _PRC(prc);
-#if CC_DEBUG
-		U8 *cname = _RAW(cx->cid);
-		U8 *pname = _RAW(px->pid);
-		PRINTF("!!!flst scaning %p:%s %p:%s->%d == %d\n", cx, cname, px, pname, px->pid, pid);
-#endif // CC_DEBUG
 		if (px->pid==pid) {
+#if CC_DEBUG
+			U8 *cname = _RAW(cx->cid);
+			U8 *pname = _RAW(px->pid);
+			PRINTF("!!!flst[%d] hit %p:%p %s#%s -> %d\n", i, cx, px, cname, pname, pid);
+#endif // CC_DEBUG
 			return prc;
 		}
+		i++;
 		prc = px->next;
 	}
 	return 0;

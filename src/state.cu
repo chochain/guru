@@ -156,16 +156,16 @@ _method_missing(guru_vm *vm, GR r[], U32 ri, GS pid)
 		xp = miss_vtbl;						// rewind
 	}
 	for (int i=0; i<xfcnt; i++, xp++) {
-#if CC_DEBUG
-		PRINTF("!!!missing_func %p:%s->%d == %d\n", xp, xp->name, xp->pid, pid);
-#endif // CC_DEBUG
 		if (xp->pid==pid) {
+#if CC_DEBUG
+			PRINTF("!!!missing_func %p:%s -> %d\n", xp, xp->name, pid);
+#endif // CC_DEBUG
 			xp->func(vm, r, ri);
 			return 0;
 		}
 	}
 #if CC_DEBUG
-	printf("0x%02x not found -------\n", pid);
+	PRINTF("0x%02x not found -------\n", pid);
 #endif // CC_DEBUG
 	_wipe_stack(r+1, ri+1);			// wipe call stack and return
 	return 1;
