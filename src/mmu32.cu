@@ -51,7 +51,7 @@ _dump_freelist(const char *hdr, int sz)
 {
 	PRINTF("!!!%6s(x%04x) L1=%04x:", hdr, sz, _l1_map);
 	for (int i=0; i<L1_BITS; i++) { PRINTF(" %02x", _l2_map[i]); }
-	for (int i=0; i<FL_SLOTS; i++) {
+	for (int i=FL_SLOTS-1; i>=0; i--) {
 		if (!_free_list[i]) continue;
 		PRINTF(" [%02x]=>[", i);
 		for (free_block *b = _free_list[i]; b!=NULL; b=NEXT_FREE(b)) {

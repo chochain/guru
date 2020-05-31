@@ -20,8 +20,6 @@
 #include "c_range.h"
 #include "c_string.h"
 
-#define STRBUF_SIZE		255
-
 #if !GURU_USE_STRING
 __GURU__ GR		guru_str_new(const U8 *src) { return NIL(); }			// cannot use U8P, need lots of casting
 __GURU__ void	guru_str_del(GR *r)			{}
@@ -260,6 +258,24 @@ guru_str_clr(GR *s)
 	return *s;
 }
 
+__GURU__ GR
+guru_str_pack(GR *s)						// compact string space
+{
+	if (s->gt!=GT_STR) return *s;
+
+	guru_str *src = GR_STR(s);
+	U8 *raw = GR_RAW(s);
+	U32 sz  = src->sz;
+	U32 bsz = src->bsz = ALIGN8(sz+1);
+    U8 *dst = (U8*)guru_alloc(bsz);			// 8-byte aligned
+
+	MEMCPY(dst, raw, sz+1);
+	guru_free(raw);
+
+	return *s;
+}
+
+
 //================================================================
 /*! destructor
 
@@ -296,8 +312,8 @@ guru_str_add(GR *s0, GR *s1)
 	ASSERT(s1->gt==GT_STR);
 
 	GR buf = *s0;
-	if (STRBUF_SIZE > GR_STR(s0)->bsz) {
-		buf = guru_str_buf(STRBUF_SIZE);		// auto plus 1 for '\0'
+	if (GURU_STRBUF_SIZE > GR_STR(s0)->bsz) {
+		buf = guru_str_buf(GURU_STRBUF_SIZE);	// auto plus 1 for '\0'
 		guru_buf_add_cstr(&buf, GR_RAW(s0));
 	}
 	else {
@@ -687,7 +703,7 @@ str_to_sym(GR r[], U32 ri)
 
 //================================================================
 //! Inspect
-#define BUF_SIZE 79
+#define BUF_SIZE 255
 
 __CFUNC__
 str_inspect(GR r[], U32 ri)
