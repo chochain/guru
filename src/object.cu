@@ -368,14 +368,6 @@ __GURU__ __const__ Vfunc true_vtbl[] = {
  */
 __CFUNC__ sym_nop(GR r[], U32 ri) {}
 
-__CFUNC__
-sym_to_s(GR r[], U32 ri)
-{
-	U8 *s  = _RAW(r->i);
-	GR ret = guru_str_new(s);
-    RETURN_VAL(ret);
-}
-
 //================================================================
 // initialize
 __GURU__ __const__ Vfunc sym_vtbl[] = {

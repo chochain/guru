@@ -23,6 +23,7 @@
 #include "c_range.h"
 
 #include "base.h"
+#include "inspect.h"
 #include "state.h"
 #include "ucode.h"
 
@@ -840,16 +841,21 @@ uc_string(guru_vm *vm)
 __UCODE__
 uc_strcat(guru_vm *vm)
 {
-	GR *s0 = _R(a), *s1 = _R(b);
+	GR *s0 = _R(a), *rb = _R(b), *s1 = rb;
 
-	ASSERT(s0->gt==GT_STR && s1->gt==GT_STR);
+	ASSERT(s0->gt==GT_STR);
 
-	GR buf = guru_str_add(s0, s1);				// ref_cnt is set
+	switch (s1->gt) {
+	case GT_STR: /* do nothing */	break;
+	case GT_SYM: sym_to_s(s1, 0); 	break;
+	default:     gr_to_s(s1, 0);
+	}
+	GR buf = guru_str_add(s0, s1);	// ref_cnt is set
 
     ref_dec(s1);
-    *s1 = EMPTY;
+    *rb = EMPTY;
 
-    _RA(buf);									// this will clean out sa
+    _RA(buf);						// this will clean out sa
 }
 
 __GURU__ void

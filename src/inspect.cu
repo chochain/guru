@@ -230,11 +230,18 @@ _to_s(GR *buf, GR r[], U32 n)
 }
 //================================================================
 //! Object#to_s factory function
-#define GRS_BUFSIZE	255			// auto plus 1 for '\0'
+__CFUNC__
+sym_to_s(GR r[], U32 ri)		// no leading ':' (Ruby's quirky)
+{
+	U8 *s  = _RAW(r->i);
+	GR ret = guru_str_new(s);
+    RETURN_VAL(ret);
+}
+
 __CFUNC__
 gr_to_s(GR r[], U32 ri)
 {
-	GR buf = guru_str_buf(GRS_BUFSIZE);
+	GR buf = guru_str_buf(GURU_STRBUF_SIZE);
 
 	_to_s(&buf, r, ri);
 
