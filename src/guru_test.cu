@@ -118,24 +118,27 @@ guru_load(char *rite_fname)
 __HOST__ void
 guru_mem_test(int ncycle)
 {
-	U32 a[] = { 0x1200, 0x280, 0x80, 0x38, 0x8, 0x1000 };
-	U32 f[] = { 5, 2, 3, 1 };
-	U32 b[] = { 0x1000, 0x18, 0x10 };
-	U8 *p   = (U8 *)cuda_malloc(12*sizeof(U8*), 1);
+	U32 a[] = { 0x8, 0x1200, 0x280, 0x20, 0x8, 0x10, 0x1000 };
+	U32 f[] = { 4, 2, 1, 5 };
+	U32 b[] = { 0x1000, 0x18, 0x480 };
+	U32 asz = sizeof(a)/sizeof(U32);
+	U32 fsz = sizeof(f)/sizeof(U32);
+	U32 bsz = sizeof(b)/sizeof(U32);
+	U8 *p   = (U8 *)cuda_malloc(asz*sizeof(U8*), 1);
 	U8 **x  = (U8**)p;
 
-	for (int i=0; i<sizeof(a)>>2; i++) {
+	for (int i=0; i<asz; i++) {
 		_mmu_alloc<<<1,1>>>(&x[i], a[i]);
 		guru_mmu_check(2);
 		printf("alloc %d:%04x=>%p\n", i, a[i], x[i]);
 	}
-	for (int i=0, j=f[0]; i<sizeof(f)>>2; j=f[++i]) {
+	for (int i=0, j=f[0]; i<fsz; j=f[++i]) {
 		printf("free %d=>%p\n", j, x[j]);
 		_mmu_free<<<1,1>>>(x[j]);
 		guru_mmu_check(2);
 	}
-	for (int i=0; i<sizeof(b)>>2; i++) {
-		_mmu_alloc<<<1,1>>>(&x[i+6], b[i]);
+	for (int i=0; i<bsz; i++) {
+		_mmu_alloc<<<1,1>>>(&x[i+asz], b[i]);
 		guru_mmu_check(2);
 		printf("alloc %d:%04x=>%p\n", i, b[i], x[i+6]);
 	}

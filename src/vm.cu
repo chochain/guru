@@ -98,7 +98,7 @@ __transcode(U8 *u8_gr)
 	for (int i=0; i < gr->psz; i++, r++) {
 		if (r->gt==GT_STR) n++;
 	}
-	guru_str *str = (guru_str*)guru_alloc(sizeof(guru_str)*n);
+	guru_str *str = n ? (guru_str*)guru_alloc(sizeof(guru_str)*n) : NULL;
 
 	r = r0;
 	for (int i=0; i < gr->psz; i++, r++) {					// symbol table

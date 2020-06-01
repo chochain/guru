@@ -49,6 +49,7 @@ __GURU__ free_block		*_free_list[FL_SLOTS];
 __GURU__ void
 _dump_freelist(const char *hdr, int sz)
 {
+#if CC_DEBUG
 	PRINTF("!!!%6s(x%04x) L1=%04x:", hdr, sz, _l1_map);
 	for (int i=0; i<L1_BITS; i++) { PRINTF(" %02x", _l2_map[i]); }
 	for (int i=FL_SLOTS-1; i>=0; i--) {
@@ -65,6 +66,7 @@ _dump_freelist(const char *hdr, int sz)
 		PRINTF(" ] ");
 	}
 	PRINTF("\n");
+#endif // CC_DEBUG
 }
 
 __GPU__ void
@@ -167,22 +169,24 @@ __xfs(U32 x)
 
   @param  alloc_size	alloc size
   @retval int			index of free_blocks
+
+  mrbc:
+    l1 = __xls(sz>>BASE_BITS);
+    n  = (l1==0) ? (l1 + MN_BITS) : (l1 + MN_BITS - 1);
+    l2 = (sz >> n) & ((1 << L2_BITS) - 1);
+
+  original thesis:
+    l1 = __xls(sz);
+    l2 = (sz ^ (1<<l1)) >> (l1 - L2_BITS);
 */
 __GURU__ U32
 __idx(U32 sz)
 {
-/* old
-	U32 v  = __xls(sz);
-	U32 l1 = v<BASE_BITS ? 0 : v - BASE_BITS + 1;	// 1st level index
-
-	U32 n  = l1<2 ? 0 : l1 - 1;						// down shifting bit
-    U32 l2 = (sz >> (n+MN_BITS)) & L2_MASK; 		// 2nd level index (with lower bits)
-*/
-    U32 v  = __xls(sz) + 1;							// 1 means LSB
-    U32 l1 = v > BASE_BITS ? v - BASE_BITS : 0;
-    U32 n  = v > BASE_BITS ? v - MN_BITS : MN_BITS;
-    U32 l2 = sz >> n;
-//    PRINTF("!!!sz=%04x:v=%1x, L1=%02x,L2=%02x => INDEX=%x\n", sz, v, l1, l2, INDEX(l1, l2));
+	U32 l1 = __xls(sz >> BASE_BITS) + 1;					// __xls returns -1 if no bit is set
+	U32 l2 = (sz >> __xls(sz >> L2_BITS)) & L2_MASK;		// extra __xls call to avoid branch divergence
+#if CC_DEBUG
+    PRINTF("!!!__idx(%04x):      [%02x,%02x] => INDEX=%x\n", sz, l1, l2, INDEX(l1, l2));
+#endif // CC_DEBUG
     return INDEX(l1, l2);
 }
 
@@ -256,24 +260,9 @@ _mark_free(free_block *blk)
 	ASSERT(IS_USED(blk));
 
 	U32 index = __idx(blk->bsz);
-#if CC_DEBUG
-	U32 *l1m = &_l1_map;
-	U8  *l2m = _l2_map;
-    U32 l1 = L1(index);
-    U32 l2 = L2(index);
-    U32 t1 = TIC(l1);
-    U32 t2 = TIC(l2);
-    U32 m1 = L1_MAP(index);
-    U32 m2 = L2_MAP(index);
-    U32 x  = *l1m;
-#endif // CC_DEBUG
 
     SET_MAP(index);								// set ticks for available maps
 
-#if CC_DEBUG
-    U32 m1x = L1_MAP(index);
-    U32 m2x = L2_MAP(index);
-#endif // CC_DEBUG
     // update block attributes
     free_block *head = _free_list[index];
 
@@ -348,14 +337,16 @@ _find_free_index(U32 sz)
     U32 l2  = L2(index);
     U32 avl = _l2_map[l1];			    		// check any 2nd level available
     if (avl >> l2) {
-    	l2 = __xls(avl);						// get first available l2 index
+    	l2 = __xls(avl);						// MSB represent lowest size slot
     }
-    else if ((avl = _l1_map)) {					// check if 1st level available
-        l1 = __xls(avl);        				// allocate new 1st & 2nd level indices
-        l2 = __xls(_l2_map[l1]);
+    else if (avl=(_l1_map >> l1)) {				// check available 1st level map (that fits the size)
+    	l1 = __ffs(avl << l1) - 1; 	       		// allocate lowest bit
+    	l2 = __xls(_l2_map[l1]);
     }
     else return -1;								// out of memory
-
+#if CC_DEBUG
+    PRINTF("!!!found(%04x): a=%02x [%02x,%02x] => INDEX=%x\n", sz, avl, l1, l2, INDEX(l1, l2));
+#endif // CC_DEBUG
     return INDEX(l1, l2);               		// index to freelist head
 }
 
@@ -432,11 +423,11 @@ _init_mmu(void *mem, U32 heap_size)
 __GURU__ void*
 guru_alloc(U32 sz)
 {
-	if (sz < 4) {
-		sz += 1; sz -= 1;
-	}
     U32 bsz = sz + sizeof(used_block);			// logical => physical size
     CHECK_MEMSZ(bsz);							// check alignment & sizing
+	if ((bsz&7) || bsz<MIN_BLOCK_SIZE) {
+		sz += 1; sz -= 1;
+	}
 
     _LOCK;
 	U32 index 		= _find_free_index(bsz);
@@ -479,20 +470,23 @@ guru_realloc(void *p0, U32 sz)
     if (bsz == blk->bsz) return p0;						// fits right in
     if (bsz < blk->bsz) {								// enough space now
     	if ((blk->bsz - bsz) > (sizeof(used_block)+MIN_BLOCK)) {	// but is it too big?
+    		_LOCK;
     		_split((free_block*)blk, bsz);				// allocate the block, free up the rest
+    		_UNLOCK;
     	}
-    	return p0;
     }
-    // not big enough block found, new alloc and deep copy
-    void *p1 = guru_alloc(bsz);
-    MEMCPY(p1, p0, sz);									// deep copy, !!using CUDA provided memcpy
+    else {
+    	// not big enough block found, new alloc and deep copy
+    	void *tmp = guru_alloc(bsz);
+    	MEMCPY(tmp, p0, sz);							// deep copy, !!using CUDA provided memcpy
 
-    guru_free(p0);										// reclaim block
+    	guru_free(p0);									// reclaim block
+    	p0 = tmp;
+    }
 #if GURU_DEBUG
-	_dump_freelist("ralloc", sz);
+    _dump_freelist("ralloc", sz);
 #endif // GURU_DEBUG
-
-    return p1;
+    return p0;
 }
 
 __GURU__ GR*
