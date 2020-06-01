@@ -73,8 +73,9 @@ _set(guru_obj *o, GS oid, GR*val)
         return 0;
     }
     // new attribute
-    if ((o->n+1) > o->sz) {							// too small?
-    	U32 nsz = o->sz + 4;						// expand some
+    U32 sz = o->sz;
+    if ((o->n+1) > sz) {							// too small?
+    	U32 nsz = sz + (sz>>1);						// expand to 1.5x size
         v = _resize(v, nsz);
         if (!v) return (o->var=0, -1);
         o->var = MEMOFF(v);
