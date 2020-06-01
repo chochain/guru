@@ -264,13 +264,10 @@ guru_str_pack(GR *s)						// compact string space
 	if (s->gt!=GT_STR) return *s;
 
 	guru_str *src = GR_STR(s);
-	U8 *raw = GR_RAW(s);
 	U32 sz  = src->sz;
 	U32 bsz = src->bsz = ALIGN8(sz+1);
-    U8 *dst = (U8*)guru_alloc(bsz);			// 8-byte aligned
 
-	MEMCPY(dst, raw, sz+1);
-	guru_free(raw);
+	src->raw = MEMOFF(guru_realloc(GR_RAW(s), bsz));
 
 	return *s;
 }
@@ -341,9 +338,9 @@ guru_buf_add_cstr(GR *buf, const U8 *str)
     U32 new_sz = sz0 + sz1;
     U32 bsz    = ALIGN8(new_sz + 1);			// '\0' and 8-byte aligned
 
-    if (bsz > sb->bsz) {
-    	tmp = (U8*)guru_realloc(tmp, bsz);
-    	sb->bsz = bsz;
+    while (bsz > sb->bsz) {
+    	sb->bsz += GURU_STRBUF_SIZE>>1;
+    	tmp = (U8*)guru_realloc(tmp, sb->bsz);
     	sb->raw = MEMOFF(tmp);
     }
     MEMCPY(tmp + sz0, str, sz1+1);
