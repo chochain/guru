@@ -648,7 +648,7 @@ uc_subi(guru_vm *vm)
 //
 // arithmetic template (poorman's C++)
 //
-#define AOP(a, OP) ({					\
+#define ALU_OP(a, OP) ({				\
 	GR *r0 = _R(a);						\
 	GR *r1 = r0+1;						\
 	if (r0->gt==GT_INT) {				\
@@ -685,7 +685,7 @@ uc_subi(guru_vm *vm)
 __UCODE__
 uc_add(guru_vm *vm)
 {
-	AOP(a, +);
+	ALU_OP(a, +);
 }
 
 //================================================================
@@ -697,7 +697,7 @@ uc_add(guru_vm *vm)
 __UCODE__
 uc_sub(guru_vm *vm)
 {
-	AOP(a, -);
+	ALU_OP(a, -);
 }
 
 //================================================================
@@ -709,7 +709,7 @@ uc_sub(guru_vm *vm)
 __UCODE__
 uc_mul(guru_vm *vm)
 {
-	AOP(a, *);
+	ALU_OP(a, *);
 }
 
 //================================================================
@@ -726,7 +726,7 @@ uc_div(guru_vm *vm)
 	if (r->gt==GT_INT && (r+1)->i==0) {
 		vm->err = 1;
 	}
-	else AOP(a, /);
+	else ALU_OP(a, /);
 }
 
 //================================================================
@@ -746,7 +746,7 @@ uc_eq(guru_vm *vm)
 }
 
 // comparator template (poorman's C++)
-#define NCMP(a, OP)	({									\
+#define ALU_CMP(a, OP)	({								\
 	GR *r0 = _R(a);										\
 	GR *r1 = r0+1;										\
 	if ((r0)->gt==GT_INT) {								\
@@ -780,7 +780,7 @@ uc_eq(guru_vm *vm)
 __UCODE__
 uc_lt(guru_vm *vm)
 {
-	NCMP(a, <);
+	ALU_CMP(a, <);
 }
 
 //================================================================
@@ -792,7 +792,7 @@ uc_lt(guru_vm *vm)
 __UCODE__
 uc_le(guru_vm *vm)
 {
-	NCMP(a, <=);
+	ALU_CMP(a, <=);
 }
 
 //================================================================
@@ -804,7 +804,7 @@ uc_le(guru_vm *vm)
 __UCODE__
 uc_gt(guru_vm *vm)
 {
-	NCMP(a, >);
+	ALU_CMP(a, >);
 }
 
 //================================================================
@@ -816,7 +816,7 @@ uc_gt(guru_vm *vm)
 __UCODE__
 uc_ge(guru_vm *vm)
 {
-	NCMP(a, >=);
+	ALU_CMP(a, >=);
 }
 
 //================================================================

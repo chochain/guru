@@ -41,6 +41,7 @@
 guru_vm 			*_vm_pool;
 U32      			_vm_cnt = 0;
 cudaStream_t		_st_pool[MIN_VM_COUNT];
+
 #if GURU_CXX_CODEBASE
 __GURU__ Ucode *_uc_pool[MIN_VM_COUNT] = { NULL };
 #endif // GURU_CXX_CODEBASE
@@ -130,7 +131,7 @@ _prep(guru_vm *vm,  U8 *u8_gr)
 
 #if GURU_CXX_CODEBASE
 		if (!_uc_pool[vm->id]) {
-			_uc_pool[vm->id] = new Ucode(vm);
+			_uc_pool[vm->id] = new Ucode((VM*)vm);
 		}
 #endif // GURU_CXX_CODEBASE
 	}
