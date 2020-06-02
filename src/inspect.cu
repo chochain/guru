@@ -32,7 +32,7 @@ __CFUNC__	str_printf(GR r[], U32 ri)		{}
 
 #else
 
-__GURU__ void _to_s(GR *s, GR *r, U32 n);			// forward declaration
+__GURU__ void _append(GR *s, GR *r, U32 n);			// forward declaration
 
 //================================================================
 //! Nil class
@@ -161,14 +161,16 @@ _obj(GR *buf, GR *r)
 __GURU__ void
 _ary(GR *buf, GR *r)
 {
+	static const U8 *head[] = { ", ", "["  };
+	static const U8 *tail[] = { "]",  "[]" };
 	guru_array *ary = GR_ARY(r);
     U32 n  = ary->n;
 	GR  *o = ary->data;
     for (int i=0; i < n; i++) {
-    	guru_buf_add_cstr(buf, (const U8 *)(i==0 ? "[" : ", "));
-    	_to_s(buf, o++, 0);				// array element
+    	guru_buf_add_cstr(buf, head[i==0]);
+    	_append(buf, o++, 0);				// array element
 	}
-	guru_buf_add_cstr(buf, (const U8 *)(n==0 ? "[]" : "]"));
+	guru_buf_add_cstr(buf, tail[n==0]);
 }
 
 //================================================================
@@ -184,9 +186,9 @@ _hsh(GR *buf, GR *r)
     for (int i=0; i<n; i+=2) {
     	guru_buf_add_cstr(buf, (const U8 *)(i==0 ? "{" : ", "));
 
-    	_to_s(buf, o++, 0);				// key
+    	_append(buf, o++, 0);				// key
         guru_buf_add_cstr(buf, "=>");
-        _to_s(buf, o++, 0);				// value
+        _append(buf, o++, 0);				// value
     }
     guru_buf_add_cstr(buf, (const U8 *)(n==0 ? "{}" : "}"));
 }
@@ -202,13 +204,13 @@ _rng(GR *buf, GR *r)
     for (int i=0; i<2; i++) {
         guru_buf_add_cstr(buf, (const U8 *)(i==0 ? "" : ".."));
         GR o = (i==0) ? rng->first : rng->last;
-        _to_s(buf, &o, 0);
+        _append(buf, &o, 0);
     }
 }
 #endif  // GURU_USE_ARRAY
 
 __GURU__ void
-_to_s(GR *buf, GR r[], U32 n)
+_append(GR *buf, GR r[], U32 n)
 {
 	switch (r->gt) {
     case GT_NIL:
@@ -243,7 +245,7 @@ gr_to_s(GR r[], U32 ri)
 {
 	GR buf = guru_str_buf(GURU_STRBUF_SIZE);
 
-	_to_s(&buf, r, ri);
+	_append(&buf, r, ri);
 
 	RETURN_VAL(buf);
 }
@@ -266,7 +268,7 @@ ary_join(GR r[], U32 ri)
 	GR *d  = a->data;
 	for (int i=0; i<a->n; i++, d++) {
 		if (d->gt==GT_STR)	guru_buf_add_cstr(&ret, GR_RAW(d));
-		else 				_to_s(&ret, d, 0);
+		else 				_append(&ret, d, 0);
 		if (ri==0 || (i+1)>=a->n) continue;
 		guru_buf_add_cstr(&ret, GR_RAW(r+1));
 	}

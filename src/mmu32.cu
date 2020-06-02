@@ -35,7 +35,6 @@ __GURU__ U8 			_l2_map[L1_BITS];						// 8-bit, (16-bit requires too many FL_SLO
 __GURU__ free_block		*_free_list[FL_SLOTS];
 
 #if GURU_DEBUG
-#define MMU_CHECK		ASSERT(__mmu_ok())
 //================================================================
 /*! statistics
 
@@ -49,12 +48,11 @@ __GURU__ free_block		*_free_list[FL_SLOTS];
 __GURU__ void
 _dump_freelist(const char *hdr, int sz)
 {
-#if CC_DEBUG
-	PRINTF("!!!%6s(x%04x) L1=%04x:", hdr, sz, _l1_map);
-	for (int i=0; i<L1_BITS; i++) { PRINTF(" %02x", _l2_map[i]); }
+	PRINTF("mmu#%6s(x%04x) L1=%03x: ", hdr, sz, _l1_map);
+	for (int i=L1_BITS-1; i>=0; i--) { PRINTF("%02x%s", _l2_map[i], i%4==0 ? " " : ""); }
 	for (int i=FL_SLOTS-1; i>=0; i--) {
 		if (!_free_list[i]) continue;
-		PRINTF(" [%02x]=>[", i);
+		PRINTF("[%02x]=>[", i);
 		for (free_block *b = _free_list[i]; b!=NULL; b=NEXT_FREE(b)) {
 			U32 a = (U32A)b;		// when using b directly, higher bit will bleed into second parameter
 			PRINTF(" %06x:%04x", a & 0xffffff, b->bsz);
@@ -66,20 +64,57 @@ _dump_freelist(const char *hdr, int sz)
 		PRINTF(" ] ");
 	}
 	PRINTF("\n");
-#endif // CC_DEBUG
 }
 
 __GPU__ void
-_mmu_freelist()
+_mmu_freelist(U32 sz)
 {
 	if (threadIdx.x!=0 || blockIdx.x!=0) return;
 
-	_dump_freelist("check", 0);
+	_dump_freelist("check", sz);
 }
 
 //================================================================
 // MMU JTAG sanity check - memory pool walker
 //
+__GPU__ void
+_alloc_stat(guru_mstat *s)
+{
+	if (threadIdx.x!=0 || blockIdx.x!=0) return;
+
+	guru_mstat v;
+	guru_mmu_stat(&v);
+
+	*s = v;
+}
+
+__HOST__ U32
+guru_mmu_check(U32 level)
+{
+	guru_mstat *s;
+
+	if (level==0) return 0;
+
+	cudaMallocManaged(&s, sizeof(guru_mstat));				// allocate host memory
+	if (level & 1) {
+		_alloc_stat<<<1,1>>>(s);
+		GPU_SYNC();
+		printf("%14smem=%d(0x%x): free=%d(0x%x), used=%d(0x%x), nblk=%d, nfrag=%d, %d%% allocated\n",
+			"", s->total, s->total, s->free, s->free, s->used, s->used, s->nblk, s->nfrag, s->pct_used);
+	}
+	if (level & 2) {
+		_mmu_freelist<<<1,1>>>(s->free);
+		GPU_SYNC();
+	}
+	cudaFree(s);
+	return 0;
+}
+#else
+__HOST__ U32 guru_mmu_check(U32 level);
+#endif // GURU_DEBUG
+
+#if MMU_DEBUG
+#define MMU_SCAN		ASSERT(__mmu_ok())
 __GURU__ int
 __mmu_ok()											// mmu sanity check
 {
@@ -101,43 +136,9 @@ __mmu_ok()											// mmu sanity check
 #endif // CC_DEBUG
 	return (tot==_heap_size && !p1);				// last check
 }
-
-__GPU__ void
-_alloc_stat(guru_mstat *s)
-{
-	if (threadIdx.x!=0 || blockIdx.x!=0) return;
-
-	guru_mstat v;
-	guru_mmu_stat(&v);
-
-	*s = v;
-}
-
-__HOST__ U32
-guru_mmu_check(U32 level)
-{
-	if (level==0) return 0;
-	if (level & 1) {
-		guru_mstat *s;
-		cudaMallocManaged(&s, sizeof(guru_mstat));				// allocate host memory
-
-		_alloc_stat<<<1,1>>>(s);
-		GPU_SYNC();
-
-		printf("%14smem=%d(0x%x): free=%d(0x%x), used=%d(0x%x), nblk=%d, nfrag=%d, %d%% allocated\n",
-			"", s->total, s->total, s->free, s->free, s->used, s->used, s->nblk, s->nfrag, s->pct_used);
-		cudaFree(s);
-	}
-	if (level & 2) {
-		_mmu_freelist<<<1,1>>>();
-		GPU_SYNC();
-	}
-	return 0;
-}
 #else
-__HOST__ U32 guru_mmu_check(U32 trace);
-#define MMU_CHECK
-#endif // GURU_DEBUG
+#define MMU_SCAN
+#endif // MMU_DEBUG
 
 //================================================================
 // most significant bit that is set
@@ -173,7 +174,7 @@ __xfs(U32 x)
   mrbc:
     l1 = __xls(sz>>BASE_BITS);
     n  = (l1==0) ? (l1 + MN_BITS) : (l1 + MN_BITS - 1);
-    l2 = (sz >> n) & ((1 << L2_BITS) - 1);
+    l2 = (sz >> n) & L2_MASKS;
 
   original thesis:
     l1 = __xls(sz);
@@ -182,10 +183,11 @@ __xfs(U32 x)
 __GURU__ U32
 __idx(U32 sz)
 {
-	U32 l1 = __xls(sz >> BASE_BITS) + 1;					// __xls returns -1 if no bit is set
-	U32 l2 = (sz >> __xls(sz >> L2_BITS)) & L2_MASK;		// extra __xls call to avoid branch divergence
+	static const U32 off[2] = { 1, 0 };
+	U32 l1 = __xls(sz >> BASE_BITS) + 1;		// __xls returns -1 if no bit is set
+	U32 l2 = (sz >> (l1 + MN_BITS - off[l1==0])) & L2_MASK;
 #if CC_DEBUG
-    PRINTF("!!!__idx(%04x):      [%02x,%02x] => INDEX=%x\n", sz, l1, l2, INDEX(l1, l2));
+    PRINTF("mmu#__idx(%04x):      INDEX(%x,%x) => %x\n", sz, l1, l2, INDEX(l1, l2));
 #endif // CC_DEBUG
     return INDEX(l1, l2);
 }
@@ -217,7 +219,7 @@ __unmap(free_block *blk)
     }
     blk->next = blk->prev = 0xeeeeeeee;			// wipe for debugging
 
-    MMU_CHECK;
+    MMU_SCAN;
 }
 
 //================================================================
@@ -241,10 +243,10 @@ __pack(free_block *b0, free_block *b1)
 	b2->psz += b1->psz & ~FREE_FLAG;	// watch for the block->flag
     b0->bsz += b1->bsz;					// include the block header
 
-#if GURU_DEBUG
+#if MMU_DEBUG
     *((U64*)b1) = 0xeeeeeeeeeeeeeeee;	// wipe b1 header
-#endif
-    MMU_CHECK;
+#endif // MMU_DEBUG
+    MMU_SCAN;
 }
 
 //================================================================
@@ -333,19 +335,21 @@ _find_free_index(U32 sz)
     if (_free_list[index]) return index;		// free block available, use it
 
     // no previous block exist, create a new one
-    U32 l1  = L1(index);
-    U32 l2  = L2(index);
-    U32 avl = _l2_map[l1];			    		// check any 2nd level available
-    if (avl >> l2) {
-    	l2 = __xls(avl);						// MSB represent lowest size slot
+    U32 l1 = L1(index);
+    U32 l2 = L2(index);
+    U32 m1, m2 = _l2_map[l1]>>l2;
+    if (m2) {									// check any 2nd level slot available
+    	l2 = __ffs(m2 << l2) - 1;				// MSB represent the smallest slot that fits
     }
-    else if (avl=(_l1_map >> l1)) {				// check available 1st level map (that fits the size)
-    	l1 = __ffs(avl << l1) - 1; 	       		// allocate lowest bit
-    	l2 = __xls(_l2_map[l1]);
+    else if (m1=(_l1_map >> (l1+1))) {			// look one level up
+    	l1 = __ffs(m1 << l1); 	       			// allocate lowest available bit
+    	l2 = __ffs(_l2_map[l1]) - 1;			// get smallest size
     }
-    else return -1;								// out of memory
+    else {
+    	l1 = l2 = 0xff;							// out of memory
+    }
 #if CC_DEBUG
-    PRINTF("!!!found(%04x): a=%02x [%02x,%02x] => INDEX=%x\n", sz, avl, l1, l2, INDEX(l1, l2));
+    PRINTF("mmu#found(%04x): %2x_%x INDEX(%x,%x) => %x\n", sz, m1, m2, l1, l2, INDEX(l1, l2));
 #endif // CC_DEBUG
     return INDEX(l1, l2);               		// index to freelist head
 }
@@ -378,7 +382,7 @@ _split(free_block *blk, U32 bsz)
     }
     _mark_free(free);			// add to free_list and set (free, tail, next, prev) fields
 
-    MMU_CHECK;
+    MMU_SCAN;
 }
 
 //================================================================
@@ -411,7 +415,7 @@ _init_mmu(void *mem, U32 heap_size)
     tail->psz = bsz;
     SET_USED(tail);
 
-    MMU_CHECK;
+    MMU_SCAN;
 }
 
 //================================================================
@@ -436,12 +440,12 @@ guru_alloc(U32 sz)
 	_split(blk, bsz);							// allocate the block, free up the rest
 	_UNLOCK;
 
-#if GURU_DEBUG
+#if MMU_DEBUG
     _dump_freelist("alloc", sz);
     U32 *p = (U32*)BLK_DATA(blk);				// point to raw space allocated
     sz >>= 2;
     for (int i=0; i < (sz>16 ? 16 : sz); i++) *p++ = 0xaaaaaaaa;
-#endif
+#endif // MMU_DEBUG
 
 	return BLK_DATA(blk);						// pointer to raw space
 }
@@ -483,9 +487,9 @@ guru_realloc(void *p0, U32 sz)
     	guru_free(p0);									// reclaim block
     	p0 = tmp;
     }
-#if GURU_DEBUG
+#if MMU_DEBUG
     _dump_freelist("ralloc", sz);
-#endif // GURU_DEBUG
+#endif // MMU_DEBUG
     return p0;
 }
 
@@ -514,23 +518,23 @@ guru_free(void *ptr)
     U32 sz = blk->bsz;
 
     _merge_with_next(blk);
-#if GURU_DEBUG
+#if MMU_DEBUG
     if (BLK_AFTER(blk)) {
     	U32 *p = (U32*)U8PADD(blk, sizeof(used_block));
     	U32 sz = blk->bsz ? (blk->bsz - sizeof(used_block))>>2 : 0;
     	for (int i=0; i< (sz>32 ? 32 : sz); i++) *p++=0xffffffff;
     }
-#endif
+#endif // MMU_DEBUG
     _mark_free(blk);
 
     // the block is free now, try to merge a free block before if exists
     blk = _merge_with_prev(blk);
     _UNLOCK;
 
-    MMU_CHECK;
-#if GURU_DEBUG
+    MMU_SCAN;
+#if MMU_DEBUG
 	_dump_freelist("free", sz);
-#endif // GURU_DEBUG
+#endif // MMU_DEBUG
 }
 
 //================================================================

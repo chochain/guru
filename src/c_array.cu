@@ -441,16 +441,16 @@ ary_sub(GR r[], U32 ri)
     guru_array 	*h0 = GR_ARY(r), 	*h1 = GR_ARY(r+1);
     U32 		n0  = h0->n,	  	n1  = h1->n;
 
-    GR ret = guru_array_new(n0);		// TODO: shrink after adding elements
+    GR ret = guru_array_new(n0);			// TODO: shrink after adding elements
 
     GR *v0 = h0->data;
     for (int i=0; i < n0; i++, v0++) {
-    	GR *v1 = h1->data;				// scan thrugh v1 array to find matching elements
+    	GR *v1 = h1->data;					// scan thrugh v1 array to find matching elements
     	U32 j;
     	for (j=0; j < n1 && guru_cmp(v0, v1++); j++);
-    	if (j>=n1) _push(&ret, v0);
+    	if (j>=n1) _push(&ret, v0);			// v0 does not belong to any of v1
     }
-    RETURN_VAL(ret);					// both array will be released by caller's _wipe_stack
+    RETURN_VAL(ret);						// both array will be released by caller's _wipe_stack
 }
 
 //================================================================
