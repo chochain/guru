@@ -258,21 +258,6 @@ guru_str_clr(GR *s)
 	return *s;
 }
 
-__GURU__ GR
-guru_str_pack(GR *s)						// compact string space
-{
-	if (s->gt!=GT_STR) return *s;
-
-	guru_str *src = GR_STR(s);
-	U32 sz  = src->sz;
-	U32 bsz = src->bsz = ALIGN8(sz+1);
-
-	src->raw = MEMOFF(guru_realloc(GR_RAW(s), bsz));
-
-	return *s;
-}
-
-
 //================================================================
 /*! destructor
 
@@ -374,12 +359,12 @@ str_mul(GR r[], U32 ri)
     }
     GR ret = _blank(sz * r[1].i);
 
-    U8 *p = GR_RAW(&ret);
-    for (int i = 0; i < r[1].i; i++) {
-        MEMCPY(p, GR_RAW(r), sz);
-        p += sz;
+    U8 *s0 = GR_RAW(r);
+    U8 *s1 = GR_RAW(&ret);
+    for (int i=0; i < r[1].i; i++, s1+=sz) {
+        MEMCPY(s1, s0, sz);
     }
-    *p = '\0';
+    *s1 = '\0';
 
     RETURN_VAL(ret);
 }

@@ -44,6 +44,20 @@ guru_destroy(GR *r)
 	_d_vtbl[r->gt](r);
 }
 
+__GURU__ GR
+guru_pack(GR *s)						// compact storage space
+{
+	if (s->gt!=GT_STR) return *s;		// string only (for now)
+
+	guru_str *src = GR_STR(s);
+	U32 sz  = src->sz;
+	U32 bsz = src->bsz = ALIGN8(sz+1);
+
+	src->raw = MEMOFF(guru_realloc(GR_RAW(s), bsz));
+
+	return *s;
+}
+
 //================================================================
 /*! compare two GRs
 
