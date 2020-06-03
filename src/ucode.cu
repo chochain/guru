@@ -237,7 +237,7 @@ uc_setiv(guru_vm *vm)
 	U8 *namex = _name_wo_at_sign(vm);
 	GR *ra    = _R(a);
 
-	guru_str_pack(ra);						// compact, in case of a str_buf
+	guru_pack(ra);							// compact to save space
     ostore_set(r, name2id(namex), ra);		// store instance variable
 }
 
@@ -352,7 +352,7 @@ uc_setupvar(guru_vm *vm)
     GR *ur = _upvar(vm);			// pointer to caller's register file
     GR *ra = _R(a);
 
-    ref_dec(ur);
+	ref_dec(ur);
     ref_inc(ra);
     *ur = *ra;                   	// update outer-scope vars
 }

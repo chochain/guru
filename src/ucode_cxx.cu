@@ -270,7 +270,7 @@ class Ucode::Impl
     	U8 *namex = _name_wo_at_sign();
     	GR *ra    = _R(a);
 
-    	guru_str_pack(ra);						// compact, in case of a str_buf
+    	guru_pack(ra);							// compact, in case of a str_buf
         ostore_set(r, name2id(namex), ra);		// store instance variable
     }
     //================================================================
