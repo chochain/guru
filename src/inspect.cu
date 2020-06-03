@@ -264,13 +264,15 @@ ary_join(GR r[], U32 ri)
 	ASSERT(r->gt==GT_ARRAY);
 	guru_array *a = GR_ARY(r);
 
-	GR ret = guru_str_buf(GURU_STRBUF_SIZE);
-	GR *d  = a->data;
+	GR ret  = guru_str_buf(GURU_STRBUF_SIZE);
+	U8 *sep = ri>0 ? GR_RAW(r+1) : NULL;
+	GR *d   = a->data;
 	for (int i=0; i<a->n; i++, d++) {
 		if (d->gt==GT_STR)	guru_buf_add_cstr(&ret, GR_RAW(d));
 		else 				_append(&ret, d, 0);
-		if (ri==0 || (i+1)>=a->n) continue;
-		guru_buf_add_cstr(&ret, GR_RAW(r+1));
+		if (sep && (i+1)<a->n) {							// last element?
+			guru_buf_add_cstr(&ret, sep);					// add separator
+		}
 	}
 	RETURN_VAL(ret);
 }
