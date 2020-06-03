@@ -43,7 +43,6 @@
     guru_array_remove	T		Data does not remain in the container
 
  (others)
-    guru_array_resize
     guru_array_clr
     guru_array_cmp
     guru_array_minmax
@@ -56,17 +55,18 @@ __GURU__ void
 _resize(guru_array *h, U32 nsz)
 {
     U32 sz = 0;
-    if (nsz >= h->sz) {						// need resize?
-        sz = nsz;
+    if (nsz > h->sz) {						// need bigger?
+        sz = ALIGN4(nsz);
     }
     else if (h->n >= h->sz) {
-        sz = h->n + 4;						// auto allocate extra 4 elements
+        sz = ALIGN4(h->n + 1);				// auto allocate extra 4 elements
     }
-    if (sz==0) return;
+    if (sz==0) return;						// no resizing needed
 
     h->data = h->data
-    	? guru_gr_realloc(h->data, sz)
+    	? guru_gr_realloc(h->data, sz)		// deep copy
         : guru_gr_alloc(sz);
+
     h->sz = sz;
     for (int i=h->n; i<sz; i++) {			// DEBUG: lazy fill here, instead of when resized
     	h->data[i] = EMPTY;
@@ -87,7 +87,7 @@ _set(GR *ary, S32 idx, GR *val)
     U32 ndx = (idx < 0) ? h->sz + idx : idx;
 
     if (ndx >= h->sz) {
-        _resize(h, ndx + 4);					// adjust array size
+        _resize(h, ndx+1);						// expand array size
     }
     if (ndx < h->n) {
         ref_dec(&h->data[ndx]);					// release existing data
@@ -106,7 +106,7 @@ _push(GR *ary, GR *set_val)
     guru_array *h = GR_ARY(ary);
 
     if (h->n >= h->sz) {
-        _resize(h, h->sz + 6);
+        _resize(h, h->n+1);						// expand array size
     }
     h->data[h->n++] = *ref_inc(set_val);
 }
@@ -139,15 +139,15 @@ _insert(GR *ary, S32 idx, GR *set_val)
 {
     guru_array *h = GR_ARY(ary);
     U32 ndx = 1 + (idx < 0) ? h->sz+idx : idx;
-    _resize(h, ndx);
-
-    if (ndx < h->n) {										// move data
-    	U32 sz = sizeof(GR)*(h->n - ndx);
-        MEMCPY(h->data + ndx + 1, h->data + ndx, sz);		// rshift (copy backward, does this work?)
+    if ((h->n+1) >= h->sz) {
+    	_resize(h, h->n+1);
     }
-
-    h->data[ndx] = *ref_inc(set_val);						// set data
+    if (ndx < h->n) {										// move data
+    	U32 bsz = sizeof(GR)*(h->n - ndx);
+        MEMCPY(h->data + ndx + 1, h->data + ndx, bsz);		// rshift (copy backward, does this work?)
+    }
     h->n++;
+    _set(ary, idx, set_val);								// set data
 
     if (ndx >= h->n) {										// clear empty cells
         for (int i = h->n-1; i < ndx; i++) {
@@ -308,19 +308,6 @@ guru_array_del(GR *ary)
 }
 
 //================================================================
-/*! resize buffer
-
-  @param  ary	pointer to target value
-  @param  size	size
-  @return	error_code
-*/
-__GURU__ void
-guru_array_resize(guru_array *h, U32 new_sz)
-{
-	_resize(h, new_sz);
-}
-
-//================================================================
 /*! push a data to tail
 
   @param  ary		pointer to target value
@@ -330,6 +317,7 @@ guru_array_resize(guru_array *h, U32 new_sz)
 __GURU__ void
 guru_array_push(GR *ary, GR *set_val)
 {
+	guru_pack(set_val);
 	_push(ary, set_val);
 }
 
@@ -416,18 +404,19 @@ ary_add(GR r[], U32 ri)
 {
     ASSERT(r[0].gt==GT_ARRAY && r[1].gt==GT_ARRAY);		// array only (for now)
 
-    guru_array 	*h0 = GR_ARY(r), 	*h1 = GR_ARY(r+1);
-    U32 		n0  = h0->n, 		n1  = h1->n;
+    guru_array *h0 = GR_ARY(r), *h1 = GR_ARY(r+1);
+    U32         n0 = h0->n,      n1 = h1->n;
 
-    GR ret = guru_array_new(n0 + n1);		// new array with ref count already set to 1
-    GR *ra = GR_ARY(&ret)->data;
-
-    MEMCPY(ra,      h0->data, sizeof(GR) * n0);
-    MEMCPY(ra + n0, h1->data, sizeof(GR) * n1);
-
-    GR_ARY(&ret)->n = n0 + n1;				// reset element count
-
-    RETURN_VAL(ret);						// both array will be released by caller's _wipe_stack
+    GR ret = guru_array_new(n0+n1);						// non destructive
+    GR *d = h0->data;
+    for (int i=0; i<n0; i++) {
+    	_push(&ret, d++);
+    }
+    d = h1->data;
+    for (int i=0; i<n1; i++) {
+    	_push(&ret, d++);
+    }
+    RETURN_VAL(ret);
 }
 
 //================================================================
@@ -614,7 +603,7 @@ ary_reverse(GR r[], U32 ri)
 
 	GR *d  = a->data + a->n - 1;
 	for (int i=0; i<a->n; i++, d--) {
-    	guru_array_push(&ret, d);
+    	_push(&ret, d);
     }
     RETURN_VAL(ret);
 }
