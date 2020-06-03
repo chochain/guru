@@ -204,16 +204,20 @@ __unmap(free_block *blk)
 
 	U32 index = __idx(blk->bsz);
     free_block *n = _free_list[index] = NEXT_FREE(blk);
+    free_block *p = blk->prev ? PREV_FREE(blk) : NULL;
     if (n) {									// up link
     	// blk->next->prev = blk->prev;
-    	n->prev = blk->prev ? U8POFF(n, PREV_FREE(blk)) : 0;
-    	ASSERT((n->prev&7)==0);
+    	if (blk->prev) {
+    		n->prev = U8POFF(p, n);
+    		ASSERT((n->prev&7)==0);
+    		SET_FREE(n);
+    	}
+    	else n->prev = 0;
     }
     else {										// 1st of the link
         CLEAR_MAP(index);						// clear the index bit
     }
     if (blk->prev) {							// down link
-    	free_block *p = PREV_FREE(blk);
     	// blk->prev->next = blk->next;
     	p->next = blk->next ? U8POFF(n, p) : 0;
     }
@@ -429,9 +433,6 @@ guru_alloc(U32 sz)
 {
     U32 bsz = sz + sizeof(used_block);			// logical => physical size
     CHECK_MEMSZ(bsz);							// check alignment & sizing
-	if ((bsz&7) || bsz<MIN_BLOCK_SIZE) {
-		sz += 1; sz -= 1;
-	}
 
     _LOCK;
 	U32 index 		= _find_free_index(bsz);
@@ -439,6 +440,8 @@ guru_alloc(U32 sz)
 
 	_split(blk, bsz);							// allocate the block, free up the rest
 	_UNLOCK;
+
+	ASSERT(blk->bsz >= bsz);					// make sure it provides big enough a block
 
 #if MMU_DEBUG
     _dump_freelist("alloc", sz);
@@ -472,25 +475,23 @@ guru_realloc(void *p0, U32 sz)
     	_merge_with_next((free_block *)blk);			// try to get the block bigger
     }
     if (bsz == blk->bsz) return p0;						// fits right in
-    if (bsz < blk->bsz) {								// enough space now
-    	if ((blk->bsz - bsz) > (sizeof(used_block)+MIN_BLOCK)) {	// but is it too big?
-    		_LOCK;
-    		_split((free_block*)blk, bsz);				// allocate the block, free up the rest
-    		_UNLOCK;
-    	}
+    if ((blk->bsz > bsz) && ((blk->bsz - bsz) > GURU_STRBUF_SIZE)) {	// a really big block
+    	_LOCK;
+    	_split((free_block*)blk, bsz);
+    	_UNLOCK;
+    	return p0;
     }
-    else {
-    	// not big enough block found, new alloc and deep copy
-    	void *tmp = guru_alloc(bsz);
-    	MEMCPY(tmp, p0, sz);							// deep copy, !!using CUDA provided memcpy
+    //
+    // compacting, mostly for str buffer
+    // instead of splitting, since Ruby reuse certain sizes
+    // it is better to allocate a block and release the original one
+    //
+    void *ret = guru_alloc(bsz);
+    MEMCPY(ret, p0, sz);								// deep copy, !!using CUDA provided memcpy
 
-    	guru_free(p0);									// reclaim block
-    	p0 = tmp;
-    }
-#if MMU_DEBUG
-    _dump_freelist("ralloc", sz);
-#endif // MMU_DEBUG
-    return p0;
+    guru_free(p0);										// reclaim block
+
+    return ret;
 }
 
 __GURU__ GR*
@@ -515,13 +516,14 @@ guru_free(void *ptr)
 
 	_LOCK;
     free_block *blk = (free_block *)BLK_HEAD(ptr);			// get block header
-    U32 sz = blk->bsz;
 
     _merge_with_next(blk);
+
 #if MMU_DEBUG
+    U32 bsz = blk->bsz;
     if (BLK_AFTER(blk)) {
     	U32 *p = (U32*)U8PADD(blk, sizeof(used_block));
-    	U32 sz = blk->bsz ? (blk->bsz - sizeof(used_block))>>2 : 0;
+    	U32 sz = bsz ? (bsz - sizeof(used_block))>>2 : 0;
     	for (int i=0; i< (sz>32 ? 32 : sz); i++) *p++=0xffffffff;
     }
 #endif // MMU_DEBUG
@@ -533,7 +535,7 @@ guru_free(void *ptr)
 
     MMU_SCAN;
 #if MMU_DEBUG
-	_dump_freelist("free", sz);
+	_dump_freelist("free", bsz);
 #endif // MMU_DEBUG
 }
 
