@@ -120,17 +120,30 @@ _find_op(const int *lst, int op, int n)
 }
 
 __HOST__ int
-_match_irep(guru_irep *ix, guru_irep *ix0, U8 *idx)
+_match_irep(guru_irep *ix, guru_irep *ix0, U8 *n)
 {
 	if (ix==ix0) return 1;
 
 	// search into children recursively
 	guru_irep *ix1 = IREP_REPS(ix);
 	for (int i=0; i<ix->r; i++, ix1++) {
-		*idx += 1;
-		if (_match_irep(ix1, ix0, idx)) return 1;
+		*n += (*n=='z') ? -57 : 1;		// a-z, A-Z
+		if (_match_irep(ix1, ix0, n)) return 1;
 	}
 	return 0;		// not found
+}
+
+__HOST__ U8
+_get_irep_id(guru_state *st)
+{
+	guru_state *sx = st;
+	while (sx->prev) sx = h_STATE(sx->prev);			// find the root IREP
+
+	guru_irep  *ix0 = ST_IREP(st);						// current IREP
+	U8 idx = 'a';
+	if (!_match_irep(ST_IREP(sx), ix0, &idx)) idx='?';	// recursively find the id
+
+	return idx;
 }
 
 __HOST__ void
@@ -238,10 +251,8 @@ _disasm(guru_vm *vm, U32 level)
 	if (op >= OP_MAX) {
 		printf("ERROR: st=%p, opcode %d out of range, bailing out...\n", st, op);
 	}
-	guru_irep  *ix0 = ST_IREP(st);
-	U8 idx = 'a';
-	guru_state *sx = st->prev ? h_STATE(st->prev) : st;
-	if (!_match_irep(ST_IREP(sx), ix0, &idx)) idx='?';
+
+	U8 idx = _get_irep_id(st);
 	printf("%1d%c%-4d%-8s", vm->id, idx, pc, opc);
 
 	_show_decode(st, ar);
@@ -260,10 +271,10 @@ _show_irep(guru_irep *ix, int level, char *n)
 	printf("nreg=%d, nlocal=%d, pools=%d, syms=%d, reps=%d\n",
 		ix->nr, ix->nv, ix->p, ix->s, ix->r);
 	// dump all children ireps
-	guru_irep *ix0 = IREP_REPS(ix);
-	for (int i=0; i<ix->r; i++, ix0++) {
+	guru_irep *ix1 = IREP_REPS(ix);
+	for (int i=0; i<ix->r; i++, ix1++) {
 		*n += (*n=='z') ? -57 : 1;		// a-z, A-Z
-		_show_irep(ix0, level+1, n);
+		_show_irep(ix1, level+1, n);
 	}
 }
 

@@ -475,7 +475,8 @@ guru_realloc(void *p0, U32 sz)
     	_merge_with_next((free_block *)blk);			// try to get the block bigger
     }
     if (bsz == blk->bsz) return p0;						// fits right in
-    if ((blk->bsz > bsz) && ((blk->bsz - bsz) > GURU_STRBUF_SIZE)) {	// a really big block
+    if ((blk->bsz > bsz) &&
+    		((blk->bsz - bsz) > GURU_STRBUF_SIZE)) {	// split a really big block
     	_LOCK;
     	_split((free_block*)blk, bsz);
     	_UNLOCK;
