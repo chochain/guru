@@ -866,6 +866,8 @@ _stack_copy(GR *d, GR *s, U32 n)
 		*s = EMPTY;					// DEBUG: clean element from call stack
 	}
 }
+
+#if GURU_USE_ARRAY
 //================================================================
 /*!@brief
   Create Array object
@@ -875,17 +877,13 @@ _stack_copy(GR *d, GR *s, U32 n)
 __UCODE__
 uc_array(guru_vm *vm)
 {
-#if GURU_USE_ARRAY
-    U32 n = _AR(c);
-    GR  v = (GR)guru_array_new(n);			// ref_cnt is 1 already
+    U32 n   = _AR(c);
+    GR  ret = (GR)guru_array_new(n);		// ref_cnt is 1 already
 
-    guru_array *h = GR_ARY(&v);
+    guru_array *h = GR_ARY(&ret);
     if ((h->n=n)>0) _stack_copy(h->data, _R(b), n);
 
-    _RA(v);									// no need to ref_inc
-#else
-    QUIT("Array class");
-#endif // GURU_USE_ARRAY
+    _RA(ret);								// no need to ref_inc
 }
 
 //================================================================
@@ -937,9 +935,8 @@ uc_aset(guru_vm *vm)
 __UCODE__
 uc_apost(guru_vm *vm)
 {
-    QUIT("Array class");
+    ASSERT(1==0);
 }
-
 //================================================================
 /*!@brief
   Create Hash object
@@ -949,7 +946,6 @@ uc_apost(guru_vm *vm)
 __UCODE__
 uc_hash(guru_vm *vm)
 {
-#if GURU_USE_ARRAY
 	U32 n   = _AR(c);						// number of kv pairs
     GR  ret = guru_hash_new(n);				// ref_cnt is already set to 1
 
@@ -957,9 +953,6 @@ uc_hash(guru_vm *vm)
     if ((h->n=(n<<1))>0) _stack_copy(h->data, _R(b), h->n);
 
     _RA(ret);							    // new hash on stack top
-#else
-    QUIT("Hash class");
-#endif // GURU_USE_ARRAY
 }
 
 //================================================================
@@ -971,17 +964,22 @@ uc_hash(guru_vm *vm)
 __UCODE__
 uc_range(guru_vm *vm)
 {
-#if GURU_USE_ARRAY
 	U32 x   = _AR(c);						// exclude_end
 	GR  *p0 = _R(b), *p1 = p0+1;
     GR  v   = guru_range_new(p0, p1, !x);	// p0, p1 ref cnt will be increased
     *p1 = EMPTY;
 
     _RA(v);									// release and  reassign
-#else
-    QUIT("Range class");
-#endif // GURU_USE_ARRAY
 }
+#else
+__UCODE__ 	uc_array(guru_vm *vm)	{ QUIT("Array class"); }
+__UCODE__	uc_arypush(guru_vm *vm)	{}
+__UCODE__	uc_aref(guru_vm *vm)	{}
+__UCODE__	uc_aset(guru_vm *vm)	{}
+__UCODE__	uc_apost(guru_vm *vm)	{}
+__UCODE__	uc_hash(guru_vm *vm)	{ QUIT("Hash class"); }
+__UCODE__	uc_range(guru_vm *vm) 	{ QUIT("Range class"); }
+#endif // GURU_USE_ARRAY
 
 //================================================================
 /*!@brief
