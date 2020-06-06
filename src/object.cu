@@ -283,12 +283,15 @@ obj_lambda(GR r[], U32 ri)
 //================================================================
 /*! pseudo random number generator
  */
+__GURU__ int _seed = 123456789;
 __CFUNC__
 obj_rand(GR r[], U32 ri)
 {
 	GR ret { GT_INT, 0, 0, 0 };
-
-	if (ri && (r+1)->gt!=GT_INT) {
+	if (ri && (r+1)->gt==GT_INT) {
+		_seed = ret.i = (1103515245 * _seed + 12345) % (r+1)->i;
+	}
+	else {
 		ret.gt = GT_FLOAT;
 		// return [0.0..1.0);
 	}
