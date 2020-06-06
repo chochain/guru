@@ -22,11 +22,22 @@
   @param  oid	attribute id.
   @return		result. It's not necessarily found.
 */
+#if !GURU_DEBUG
+__GURU__ S32
+_search(guru_obj *o, GS oid)
+{
+	GR *v = _VAR(o);
+	for (int i=0; i<o->n; i++, v++) {
+		if (v->oid==oid) return i;
+	}
+	return -1;
+}
+#else
 __GURU__ S32
 _bsearch(guru_obj *o, GS oid)
 {
     S32 i0 = 0;
-    S32 i1 = o->n - 1;	if (i1 < 0) return -1;
+    S32 i1 = o->n - 1;	if (i1<0) return -1;
 
     GR *v = _VAR(o);							// point at 1st attribute
     while (i0 < i1) {
@@ -39,6 +50,7 @@ _bsearch(guru_obj *o, GS oid)
     }
     return i0;
 }
+#endif // GURU_DEBUG
 
 //================================================================
 /*! resize buffer
@@ -48,9 +60,9 @@ _bsearch(guru_obj *o, GS oid)
   @return		0: success, 1: failed
 */
 __GURU__ GR*
-_resize(GR *r0, U32 sz)
+_resize(GR *r0, U32 nsz)
 {
-    return (GR*)guru_realloc(r0, sizeof(GR) * sz);
+    return (GR*)guru_realloc(r0, sizeof(GR) * nsz);
 }
 
 //================================================================
@@ -61,13 +73,14 @@ _resize(GR *r0, U32 sz)
   @param  val		value to be set.
   @return			0: success, -1:failed
 */
+#if !GURU_DEBUG
 __GURU__ S32
 _set(guru_obj *o, GS oid, GR*val)
 {
-    S32 idx = _bsearch(o, oid);
+    S32 idx = _search(o, oid);
 	GR  *v  = _VAR(o);
-    GR  *r  = v + idx;
-    if (idx >= 0 && r->oid==oid) {
+    if (idx >= 0) {
+        GR  *r = v + idx;
         ref_dec(r);									// replace existed attribute
         SET_VAL(r, oid, val);
         return 0;
@@ -81,19 +94,45 @@ _set(guru_obj *o, GS oid, GR*val)
         o->var = MEMOFF(v);
         o->sz  = nsz;
     }
-    r = v + (++idx);								// use next slot
+    GR *r = v + o->n++;								// use next slot
+    SET_VAL(r, oid, val);
 
+    return 0;
+}
+#else
+__GURU__ S32
+_bset(guru_obj *o, GS oid, GR*val)
+{
+	S32 idx = _bsearch(o, oid);
+	GR  *v  = _VAR(o);
+    GR  *r  = v + idx;
+    if (idx >= 0 && r->oid==oid) {
+        ref_dec(r);									// replace existed attribute
+        SET_VAL(r, oid, val);
+        return 0;
+    }
+    // new attribute
+    U32 sz = o->sz;
+    if ((o->n+1) > sz) {							// too small?
+    	U32 nsz = sz + 4;							// fixed size expansion helps reuse blocks
+        v = _resize(v, nsz);
+        r = v + idx;
+        if (!v) return (o->var=0, -1);
+        o->var = MEMOFF(v);
+        o->sz  = nsz;
+    }
     // shift attributes out for insertion
+    if (r->oid < oid) ++idx;						// insert to right
     GR *t = v + o->n;
     for (int i=o->n; i > idx; i--, t--) {
     	*(t) = *(t-1);
     }
-    SET_VAL(r, oid, val);
+    SET_VAL(v+idx, oid, val);
     o->n++;
 
     return 0;
 }
-
+#endif // GURU_DEBUG
 //================================================================
 /*! getter the following objects which shared the same structure
 	GT_OBJ:   r->self->var
@@ -103,8 +142,17 @@ _set(guru_obj *o, GS oid, GR*val)
   @param  oid	object store ID.
   @return		pointer to GR .
 */
+#if !GURU_DEBUG
 __GURU__ GR*
 _get(guru_obj *o, GS oid)
+{
+    S32 idx = _search(o, oid);
+
+    return (idx>=0) ? _VAR(o)+idx : NULL;
+}
+#else
+__GURU__ GR*
+_bget(guru_obj *o, GS oid)
 {
     S32 idx = _bsearch(o, oid);
     GR  *v  = _VAR(o) + idx;
@@ -112,6 +160,7 @@ _get(guru_obj *o, GS oid)
 
     return v;
 }
+#endif // GURU_DEBUG
 
 //================================================================
 /*! guru_var constructor
@@ -168,7 +217,12 @@ ostore_set(GR *r, GS oid, GR *val)
 	    o->sz  = 4;							// number of local variables
 		ref_inc(r);							// itself has been referenced now
 	}
+
+#if !GURU_DEBUG
 	_set(o, oid, ref_inc(val));				// referenced by the object now
+#else
+	_bset(o, oid, ref_inc(val));			// referenced by the object now
+#endif // GURU_DEBUG
 }
 
 //================================================================
@@ -183,8 +237,11 @@ ostore_get(GR *r, GS oid)
 {
 //	NOTE: common struct header
 //
+#if !GURU_DEBUG
 	GR *val = _get(GR_OBJ(r), oid);
-
+#else
+	GR *val = _bget(GR_OBJ(r), oid);		// get via binary search
+#endif // GURU_DEBUG
     return val ? *ref_inc(val) : NIL;
 }
 
