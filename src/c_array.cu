@@ -129,7 +129,9 @@ _pop(GR *ary)
 //================================================================
 /*! insert a data
 
-  @param  ary		pointer to target value
+  @param  ary		pointer to target value__GURU__ void       guru_array_get(GR *ary, S32 idx);
+__GURU__ void       guru_array_set(GR *ary, S32 idx, GR *set_val);
+
   @param  idx		index
   @param  set_val	set value
   @return			error_code
@@ -314,11 +316,25 @@ guru_array_del(GR *ary)
   @param  set_val	set value
   @return			error_code
 */
-__GURU__ void
+__GURU__ GR
 guru_array_push(GR *ary, GR *set_val)
 {
 	guru_pack(set_val);
 	_push(ary, set_val);
+
+	return *ary;
+}
+
+__GURU__ GR
+guru_array_get(GR *ary, S32 idx)
+{
+    return _get(ary, 1, idx, idx);
+}
+
+__GURU__ void
+guru_array_set(GR *ary, S32 idx, GR *set_val)
+{
+	_set(ary, idx, set_val);
 }
 
 //================================================================

@@ -44,7 +44,7 @@ __GURU__ U32 _mutex_uc;
 
 #define SKIP(x)			{ NA(x); return; }
 #define RAISE(x)	    { _RA(guru_str_new(x)); vm->err = 1; return; }
-#define QUIT(x)			{ vm->quit=1; NA(x); return; }
+#define QUIT(x)			{ vm->err=1; vm->run=VM_STATUS_STOP; NA(x); return; }
 
 __GURU__ __INLINE__ GR *nop()	{ return NULL; }
 
@@ -196,12 +196,12 @@ uc_setglobal(guru_vm *vm)
 /*!@brief
   sid of attr name with '@' sign removed
 */
-__GURU__ __INLINE__ U8*
-_name_wo_at_sign(guru_vm *vm)
+__GURU__ __INLINE__ GS
+_sid_wo_at_sign(guru_vm *vm)
 {
     GS sid = VM_SYM(vm, _AR(bx));
 
-    return _RAW(sid) + 1;			// attribute name with leading '@'
+    return name2id(_RAW(sid) + 1);			// attribute name with leading '@'
 }
 
 //================================================================
@@ -216,8 +216,8 @@ uc_getiv(guru_vm *vm)
 	GR *r  = _R0;
 	ASSERT(r->gt==GT_OBJ || r->gt==GT_CLASS);
 
-    U8* namex = _name_wo_at_sign(vm);
-    GR  ret   = ostore_get(r, name2id(namex));
+    GS  sid = _sid_wo_at_sign(vm);			// attribute name with leading '@'
+    GR  ret = ostore_get(r, sid);
 
     _RA(ret);
 }
@@ -234,11 +234,11 @@ uc_setiv(guru_vm *vm)
 	GR *r  = _R0;
 	ASSERT(r->gt==GT_OBJ || r->gt==GT_CLASS);
 
-	U8 *namex = _name_wo_at_sign(vm);
-	GR *ra    = _R(a);
-
+	GS sid = _sid_wo_at_sign(vm);
+	GR *ra = _R(a);
 	guru_pack(ra);							// compact to save space
-    ostore_set(r, name2id(namex), ra);		// store instance variable
+
+    ostore_set(r, sid, ra);					// store instance variable
 }
 
 //================================================================
@@ -890,6 +890,58 @@ uc_array(guru_vm *vm)
 
 //================================================================
 /*!@brief
+ * Array concat
+
+ R(A) := ary_push(R(A),R(B))
+ */
+__UCODE__
+uc_arypush(guru_vm *vm)
+{
+	GR ret = guru_array_push(_R(a), _R(b));
+
+	_RA(ret);
+}
+
+//================================================================
+/*!@brief
+ * get Array element by index
+
+ R(A) := R(B)[C]
+ */
+__UCODE__
+uc_aref(guru_vm *vm)
+{
+	GR ret = guru_array_get(_R(b), vm->c);
+
+	_RA(ret);
+}
+
+//================================================================
+/*!@brief
+ * set Array element by index
+
+  R(B)[C] := R(A)
+  */
+__UCODE__
+uc_aset(guru_vm *vm)
+{
+	guru_array_set(_R(b), vm->c, _R(a));
+}
+
+//================================================================
+/*!@brief
+ * update multiple Array elements
+
+  *R(A),R(A+1)..R(A+C) := R(A)[B..]
+  */
+__UCODE__
+uc_apost(guru_vm *vm)
+{
+    QUIT("Array class");
+}
+
+//================================================================
+/*!@brief
   Create Hash object
 
   R(A) := hash_new(R(B),R(B+1)..R(B+C))
@@ -1167,13 +1219,14 @@ __GURU__ __const__ UCODE ucode_vtbl[] = {
 	uc_le,			//    OP_LE,        A B C   R(A) := R(A)<=R(A+1) (Syms[B]=:<=,C=1)
 	uc_gt,			//    OP_GT,        A B C   R(A) := R(A)>R(A+1)  (Syms[B]=:>,C=1)
 	uc_ge,			//    OP_GE,        A B C   R(A) := R(A)>=R(A+1) (Syms[B]=:>=,C=1)
-// 0x37 Complex Object
+// 0x37 Array Object
 	uc_array,		//    OP_ARRAY,     A B C   R(A) := ary_new(R(B),R(B+1)..R(B+C))
-	NULL,			//    OP_ARYCAT,    A B     ary_cat(R(A),R(B))
-	NULL,			//    OP_ARYPUSH,   A B     ary_push(R(A),R(B))
-	NULL,			//    OP_AREF,      A B C   R(A) := R(B)[C]
-	NULL,			//    OP_ASET,      A B C   R(B)[C] := R(A)
-	NULL,			//    OP_APOST,     A B C   *R(A),R(A+1)..R(A+C) := R(A)[B..]
+	uc_arypush,		//    OP_ARYCAT,    A B     ary_cat(R(A),R(B))
+	uc_arypush,		//    OP_ARYPUSH,   A B     ary_push(R(A),R(B))
+	uc_aref,		//    OP_AREF,      A B C   R(A) := R(B)[C]
+	uc_aset,		//    OP_ASET,      A B C   R(B)[C] := R(A)
+	uc_apost,		//    OP_APOST,     A B C   *R(A),R(A+1)..R(A+C) := R(A)[B..]
+// 0x3d String Object
 	uc_string,		//    OP_STRING,    A Bx    R(A) := str_dup(Lit(Bx))
 	uc_strcat,		//    OP_STRCAT,    A B     str_cat(R(A),R(B))
 	uc_hash,		//    OP_HASH,      A B C   R(A) := hash_new(R(B),R(B+1)..R(B+C))
@@ -1253,9 +1306,14 @@ ucode_step(guru_vm *vm)
     case OP_GT:         uc_gt        (vm); break;
     case OP_GE:         uc_ge        (vm); break;
 // BUILT-IN class (TODO: tensor)
+    case OP_ARRAY:      uc_array     (vm); break;
+    case OP_ARYCAT:
+    case OP_ARYPUSH:	uc_arypush 	 (vm); break;
+    case OP_AREF:		uc_aref		 (vm); break;
+    case OP_ASET:		uc_aset		 (vm); break;
+    case OP_APOST:		uc_apost	 (vm); break;
     case OP_STRING:     uc_string    (vm); break;
     case OP_STRCAT:     uc_strcat    (vm); break;
-    case OP_ARRAY:      uc_array     (vm); break;
     case OP_HASH:       uc_hash      (vm); break;
     case OP_RANGE:      uc_range     (vm); break;
 // CLASS, PROC (STACK ops)
