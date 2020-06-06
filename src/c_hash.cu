@@ -64,25 +64,13 @@ _data(const GR *kv) {
 __GURU__ GR*
 _search(const GR *kv, const GR *key)
 {
-#ifndef GURU_HASH_SEARCH_LINER
-#define GURU_HASH_SEARCH_LINER
-#endif
     GR  *p = GR_HSH(kv)->data;
     U32  n = _size(kv);
 
-#ifdef GURU_HASH_SEARCH_LINER
     for (int i=0; i < n; i++, p+=2) {
         if (guru_cmp(p, key)==0) return p;
     }
     return NULL;
-#endif
-
-#ifdef GURU_HASH_SEARCH_LINER_ITERATOR
-    for (int i=0; i < n; i++, p+=2) {
-        if (guru_cmp(p, key)==0) return p;
-    }
-    return NULL;
-#endif
 }
 
 //================================================================
@@ -104,8 +92,8 @@ _set(GR *kv, GR *key, GR *val)
     else {
     	ref_dec(r);					// release previous kv elements
     	ref_dec(r+1);
-        *(r)   = *key;
-        *(r+1) = *val;
+        *(r)   = *ref_inc(key);
+        *(r+1) = *ref_inc(val);
     }
 }
 

@@ -45,17 +45,17 @@ guru_destroy(GR *r)
 }
 
 __GURU__ GR
-guru_pack(GR *s)						// compact storage space
+guru_pack(GR *r)										// compact storage space
 {
-	if (s->gt!=GT_STR) return *s;		// string only (for now)
+	if (r->gt!=GT_STR || HAS_NO_REF(r)) return *r;		// string only (for now)
 
-	guru_str *src = GR_STR(s);
+	guru_str *src = GR_STR(r);
 	U32 sz  = src->sz;
 	U32 bsz = src->bsz = ALIGN8(sz+1);
 
-	src->raw = MEMOFF(guru_realloc(GR_RAW(s), bsz));
+	src->raw = MEMOFF(guru_realloc(GR_RAW(r), bsz));
 
-	return *s;
+	return *r;
 }
 
 //================================================================
