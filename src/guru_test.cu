@@ -118,13 +118,13 @@ guru_load(char *rite_fname)
 __HOST__ void
 guru_mem_test(int ncycle)
 {
-	U32 a[] = { 0x8, 0x10, 0x18, 0x20, 0x28, 0x30, 0x1200, 0x280, 0x20, 0x8, 0x10, 0x1000 };
+	U32 a[] = { 0x1200, 0x80, 0x78, 0x8, 0x10, 0x1000, 0x100 };
 	U32 f[] = { 4, 2, 1, 5 };
-	U32 b[] = { 0x1000, 0x18, 0x480 };
+	U32 b[] = { 0x100, 0x10, 0x1010 };
 	U32 asz = sizeof(a)/sizeof(U32);
 	U32 fsz = sizeof(f)/sizeof(U32);
 	U32 bsz = sizeof(b)/sizeof(U32);
-	U8 *p   = (U8 *)cuda_malloc(asz*sizeof(U8*), 1);
+	U8 *p   = (U8 *)cuda_malloc(128*sizeof(U8*), 1);
 	U8 **x  = (U8**)p;
 
 	for (int i=0; i<asz; i++) {

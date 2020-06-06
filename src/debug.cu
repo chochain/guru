@@ -49,7 +49,7 @@ static const char *_opcode[] = {
     "SEND","SENDB","","CALL","","","ENTER","",
     "","RETURN","","BLKPUSH","ADD ","ADDI","SUB ","SUBI",
     "MUL ","DIV ","EQ  ","LT  ","LE  ","GT  ","GE  ","ARRAY",
-    "","","","","","STRING","STRCAT","HASH",
+    "ARYCAT","ARYPUSH","AREF","ASET","APOST","STRING","STRCAT","HASH",
     "LAMBDA","RANGE","","CLASS","MODULE","EXEC","METHOD","SCLASS",
     "TCLASS","","STOP","","","","","",
     "ABORT"

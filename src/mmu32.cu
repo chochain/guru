@@ -178,14 +178,15 @@ __xfs(U32 x)
 
   original thesis:
     l1 = __xls(sz);
+    l2 = (sz >> (l1 - MN_BITS)) - (1<<MN_BITS);
+    l1 = __xls(sz);
     l2 = (sz ^ (1<<l1)) >> (l1 - L2_BITS);
 */
 __GURU__ U32
 __idx(U32 sz)
 {
-	static const U32 off[2] = { 1, 0 };
 	U32 l1 = __xls(sz >> BASE_BITS) + 1;		// __xls returns -1 if no bit is set
-	U32 l2 = (sz >> (l1 + MN_BITS - off[l1==0])) & L2_MASK;
+	U32 l2 = (sz >> (l1 + MN_BITS - (l1!=0))) & L2_MASK;
 #if CC_DEBUG
     PRINTF("mmu#__idx(%04x):      INDEX(%x,%x) => %x\n", sz, l1, l2, INDEX(l1, l2));
 #endif // CC_DEBUG
@@ -217,13 +218,15 @@ __unmap(free_block *blk)
     else {										// 1st of the link
         CLEAR_MAP(index);						// clear the index bit
     }
-    if (blk->prev) {							// down link
+    if (blk->prev) {							// down link_l2_map[l2m2
     	// blk->prev->next = blk->next;
     	p->next = blk->next ? U8POFF(n, p) : 0;
     }
     blk->next = blk->prev = 0xeeeeeeee;			// wipe for debugging
 
+#if MMU_DEBUG
     MMU_SCAN;
+#endif // MMU_SCAN
 }
 
 //================================================================
@@ -250,7 +253,6 @@ __pack(free_block *b0, free_block *b1)
 #if MMU_DEBUG
     *((U64*)b1) = 0xeeeeeeeeeeeeeeee;	// wipe b1 header
 #endif // MMU_DEBUG
-    MMU_SCAN;
 }
 
 //================================================================
@@ -307,6 +309,9 @@ _merge_with_next(free_block *b0)
 		__pack(b0, b1);
 		b1 = (free_block *)BLK_AFTER(b0);	// try the already expanded block again
 	}
+#if MMU_DEBUG
+	MMU_SCAN
+#endif // MMU_DEBUG
 }
 
 __GURU__ free_block*
@@ -321,6 +326,9 @@ _merge_with_prev(free_block *b1)
 	SET_USED(b0);							// _mark_free assume b0 to be a USED block
 	_mark_free(b0);
 
+#if MMU_DEBUG
+	MMU_SCAN;
+#endif // MMU_DEBUG
     return b0;
 }
 
@@ -336,14 +344,17 @@ _find_free_index(U32 sz)
 {
     U32 index = __idx(sz);						// find free_list index by size
 
-    if (_free_list[index]) return index;		// free block available, use it
+    if ((sz <= (1<<BASE_BITS+1)) && _free_list[index]) {
+    	return index;
+    }
 
     // no previous block exist, create a new one
     U32 l1 = L1(index);
     U32 l2 = L2(index);
-    U32 m1, m2 = _l2_map[l1]>>l2;
+    U32 o2 = l2;
+    U32 m1, m2 = _l2_map[l1]>>(l2+1);
     if (m2) {									// check any 2nd level slot available
-    	l2 = __ffs(m2 << l2) - 1;				// MSB represent the smallest slot that fits
+    	l2 = __ffs(m2 << l2);					// MSB represent the smallest slot that fits
     }
     else if (m1=(_l1_map >> (l1+1))) {			// look one level up
     	l1 = __ffs(m1 << l1); 	       			// allocate lowest available bit
@@ -353,7 +364,7 @@ _find_free_index(U32 sz)
     	l1 = l2 = 0xff;							// out of memory
     }
 #if CC_DEBUG
-    PRINTF("mmu#found(%04x): %2x_%x INDEX(%x,%x) => %x\n", sz, m1, m2, l1, l2, INDEX(l1, l2));
+    PRINTF("mmu#found(%04x): %2x_%x INDEX(%x,%x) => %x, o2=%x, m2=%x\n", sz, m1, m2, l1, l2, INDEX(l1, l2), o2, _l2_map[l1]);
 #endif // CC_DEBUG
     return INDEX(l1, l2);               		// index to freelist head
 }
@@ -381,12 +392,14 @@ _split(free_block *blk, U32 bsz)
     blk->bsz  = bsz;												// allocate target block
 
     if (aft) {
-        aft->psz = U8POFF(aft, free)|(aft->psz&FREE_FLAG);			// backward offset (positive)
+        aft->psz = U8POFF(aft, free) | (aft->psz & FREE_FLAG);		// backward offset (positive)
         _merge_with_next(free);										// _combine if possible
     }
     _mark_free(free);			// add to free_list and set (free, tail, next, prev) fields
 
+#if MMU_DEBUG
     MMU_SCAN;
+#endif // MMU_SCAN
 }
 
 //================================================================
@@ -419,7 +432,9 @@ _init_mmu(void *mem, U32 heap_size)
     tail->psz = bsz;
     SET_USED(tail);
 
+#if MMU_DEBUG
     MMU_SCAN;
+#endif // MMU_DEBUG
 }
 
 //================================================================
@@ -444,6 +459,7 @@ guru_alloc(U32 sz)
 	ASSERT(blk->bsz >= bsz);					// make sure it provides big enough a block
 
 #if MMU_DEBUG
+	MMU_SCAN;
     _dump_freelist("alloc", sz);
     U32 *p = (U32*)BLK_DATA(blk);				// point to raw space allocated
     sz >>= 2;
@@ -466,7 +482,9 @@ guru_realloc(void *p0, U32 sz)
 	ASSERT(p0);
 
 	U32 bsz = sz + sizeof(used_block);					// include the header
+#if MMU_DEBUG
 	CHECK_MEMSZ(bsz);									// assume it is aligned already
+#endif // MMU_DEBUG
 
     used_block *blk = (used_block *)BLK_HEAD(p0);
     ASSERT(IS_USED(blk));								// make sure it is used
@@ -492,6 +510,9 @@ guru_realloc(void *p0, U32 sz)
 
     guru_free(p0);										// reclaim block
 
+#if MMU_DEBUG
+    MMU_SCAN;
+#endif // MMU_SCAN
     return ret;
 }
 
@@ -517,11 +538,13 @@ guru_free(void *ptr)
 
 	_LOCK;
     free_block *blk = (free_block *)BLK_HEAD(ptr);			// get block header
+#if MMU_DEBUG
+    U32 bsz = blk->bsz;
+#endif // MMU_DEBUG
 
     _merge_with_next(blk);
 
 #if MMU_DEBUG
-    U32 bsz = blk->bsz;
     if (BLK_AFTER(blk)) {
     	U32 *p = (U32*)U8PADD(blk, sizeof(used_block));
     	U32 sz = bsz ? (bsz - sizeof(used_block))>>2 : 0;
@@ -534,8 +557,8 @@ guru_free(void *ptr)
     blk = _merge_with_prev(blk);
     _UNLOCK;
 
-    MMU_SCAN;
 #if MMU_DEBUG
+    MMU_SCAN;
 	_dump_freelist("free", bsz);
 #endif // MMU_DEBUG
 }
