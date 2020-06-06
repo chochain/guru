@@ -165,7 +165,7 @@ _method_missing(guru_vm *vm, GR r[], U32 ri, GS pid)
 		}
 	}
 #if CC_DEBUG
-	PRINTF("0x%02x not found -------\n", pid);
+	PRINTF("ERROR: method not found (pid=x%04x)-------\n", pid);
 #endif // CC_DEBUG
 	_wipe_stack(r+1, ri+1);			// wipe call stack and return
 	return 1;

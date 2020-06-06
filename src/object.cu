@@ -280,6 +280,21 @@ obj_lambda(GR r[], U32 ri)
 	(r+1)->gt = GT_EMPTY;
 }
 
+//================================================================
+/*! pseudo random number generator
+ */
+__CFUNC__
+obj_rand(GR r[], U32 ri)
+{
+	GR ret { GT_INT, 0, 0, 0 };
+
+	if (ri && (r+1)->gt!=GT_INT) {
+		ret.gt = GT_FLOAT;
+		// return [0.0..1.0);
+	}
+	RETURN_VAL(ret);
+}
+
 //=====================================================================
 //! deprecated, use inspect#gr_to_s instead
 __CFUNC__
@@ -303,9 +318,10 @@ __GURU__ __const__ Vfunc obj_vtbl[] = {
 //      { "raise",			obj_raise		},			// handled by state#_method_missing
 	{ "attr_reader",   	obj_attr_reader 	},
 	{ "attr_accessor", 	obj_attr_accessor	},
-    { "lambda",			obj_lambda		},
 	{ "is_a?",         	obj_kind_of		},
     { "kind_of?",      	obj_kind_of		},
+    { "lambda",			obj_lambda		},
+	{ "rand",           obj_rand        },
 	{ "print",         	obj_print		},
 	{ "p", 				obj_p    		},
 
