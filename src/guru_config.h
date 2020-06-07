@@ -20,7 +20,7 @@
  *   cc  : for my development only, default 0
  */
 #define GURU_DEBUG			1
-#define MMU_DEBUG			1
+#define MMU_DEBUG			0
 #define CC_DEBUG			0
 
 /* min, maximum number of VMs */

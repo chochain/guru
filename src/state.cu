@@ -17,6 +17,7 @@
 #include "symbol.h"
 #include "mmu.h"
 #include "ostore.h"		// ostore_new
+#include "c_array.h"
 #include "iter.h"
 
 #include "base.h"
@@ -59,34 +60,49 @@ _call(guru_vm *vm, GR r[], U32 ri)
 }
 
 __GURU__ void
-_each(guru_vm *vm, GR r[], U32 ri)
+__loop(guru_vm *vm, GR r[], U32 ri, U32 collect)
 {
-	GR *r1 = r+1;
+	GR *r1 = r + 1;
 	ASSERT(r1->gt==GT_PROC);						// ensure it is a code block
 
 	guru_state *st = VM_STATE(vm);
 	U32	pc0   = st->pc;
-	GP 	irep0 = st->irep;
-	GP 	irep1 = GR_PRC(r1)->irep;
+	GP 	irep0 = st->irep;							// current context
+	GP 	irep1 = GR_PRC(r1)->irep;					// callee IREP
 	GR 	git   = guru_iter_new(r, NULL);				// create iterator
 
 	// push stack out (1 space for iterator)
-//	GR  *p = r1;
-//	for (int i=0; i<=ri; i++, *(p+1)=*p, p--);
-	*(r+1) = git;
-	*(r+2) = *_REGS(st);
+	GR *p = r;
+	if (collect) {
+		*(++p) = guru_array_new(4);					// replace prc with map array
+	}
+	*(++p) = git;
+	*(++p) = *_REGS(st);
 
 	// allocate iterator state (using same stack frame)
-	vm_state_push(vm, irep0, pc0, r+2, ri);
+	vm_state_push(vm, irep0, pc0, p, ri);
 	VM_STATE(vm)->flag |= STATE_LOOP;
 
 	// switch into callee's context with v[1]=1st element
-	vm_state_push(vm, irep1, 0, r+2, ri);
+	vm_state_push(vm, irep1, 0, p, ri);
 	guru_iter *it = GR_ITR(&git);
-	*(r+3) = *(it->inc);
+	*(++p) = *(it->inc);
 	if (it->n==GT_HASH) {
-		*(r+4) = *(it->inc+1);
+		*(++p) = *(it->inc+1);
 	}
+	VM_STATE(vm)->flag |= (collect ? STATE_COLLECT : 0);
+}
+
+__GURU__ void
+_each(guru_vm *vm, GR r[], U32 ri)
+{
+	__loop(vm, r, ri, 0);
+}
+
+__GURU__ void
+_map(guru_vm *vm, GR r[], U32 ri)
+{
+	__loop(vm, r, ri, 1);
 }
 
 __GURU__ void
@@ -139,12 +155,14 @@ __GURU__ U32
 _method_missing(guru_vm *vm, GR r[], U32 ri, GS pid)
 {
 	static Xf miss_vtbl[] = {
-		{ "call", 	_call,   0 },			// C-based prc_call (hacked handler, it needs vm->state)
-		{ "each",   _each,   0 },			// push into call stack, obj at stack[0]
-		{ "times",  _each,   0 },			// looper
-		{ "new",    _new,    0 },
-		{ "lambda", _lambda, 0 },			// create object
-		{ "raise",  _raise,  0 }			// exception handler
+		{ "call", 		_call,   0 },			// C-based prc_call (hacked handler, it needs vm->state)
+		{ "each",   	_each,   0 },			// push into call stack, obj at stack[0]
+		{ "times",  	_each,   0 },			// looper
+		{ "map",    	_map,    0 },			// mapper
+		{ "collect",	_map,    0 },
+		{ "new",    	_new,    0 },
+		{ "lambda", 	_lambda, 0 },			// create object
+		{ "raise",  	_raise,  0 }			// exception handler
 	};
 	static int xfcnt = sizeof(miss_vtbl)/sizeof(Xf);
 
@@ -167,7 +185,7 @@ _method_missing(guru_vm *vm, GR r[], U32 ri, GS pid)
 #if CC_DEBUG
 	PRINTF("ERROR: method not found (pid=x%04x)-------\n", pid);
 #endif // CC_DEBUG
-	_wipe_stack(r+1, ri+1);			// wipe call stack and return
+	_wipe_stack(r+1, ri+1);					// wipe call stack and return
 	return 1;
 }
 //================================================================
@@ -221,7 +239,7 @@ vm_state_pop(guru_vm *vm, GR ret_val)
 {
     guru_state 	*st = VM_STATE(vm);
 
-    if (!(st->flag & STATE_LAMBDA)) {
+    if (!IS_LAMBDA(st)) {
         guru_irep  *irep = (guru_irep*)MEMPTR(st->irep);
         GR         *regs = _REGS(st);
     	ref_inc(&ret_val);								// to be referenced by the caller
@@ -238,18 +256,18 @@ vm_loop_next(guru_vm *vm)
 	guru_state *st   = VM_STATE(vm);
 	guru_irep  *irep = (guru_irep*)MEMPTR(st->irep);
 	GR *r0 = _REGS(st);
-	GR *rr = r0 - 1;									// iterator pointer
+	GR *it = r0 - 1;									// iterator pointer
 
-	U32 nvar = guru_iter_next(rr);						// get next iterator element
+	U32 nvar = guru_iter_next(it);						// get next iterator element
 	if (nvar==0) return 0;								// end of loop, bail
 
 	GR  *x = r0 + (nvar+1);								// wipe stack for next loop
 	U32 n  = irep->nr - (nvar+1);
 	_wipe_stack(x, n);
 
-	guru_iter *it = GR_ITR(rr);							// get iterator itself
-	*(r0+1) = *it->inc;									// fetch next loop index
-	if (nvar>1) *(r0+2) = *(it->inc+1);					// range
+	guru_iter *ix = GR_ITR(it);							// get iterator object itself
+	*(r0+1) = *ix->inc;									// fetch next loop index
+	if (nvar>1) *(r0+2) = *(ix->inc+1);					// range
 	st->pc = 0;
 
 	return 1;

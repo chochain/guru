@@ -194,30 +194,27 @@ uc_setglobal(guru_vm *vm)
 
 //================================================================
 /*!@brief
-  sid of attr name with '@' sign removed
-*/
-__GURU__ __INLINE__ GS
-_sid_wo_at_sign(guru_vm *vm)
-{
-    GS sid = VM_SYM(vm, _AR(bx));
-
-    return name2id(_RAW(sid) + 1);			// attribute name with leading '@'
-}
-
-//================================================================
-/*!@brief
   OP_GETIV
 
   R(A) := ivget(Syms(Bx))
 */
+__GURU__ __INLINE__ GS
+_sid_wo_at_sign(guru_vm *vm)
+{
+	GS sid     = VM_SYM(vm, _AR(bx));
+	char *name = (char*)_RAW(sid);
+
+	return guru_rom_add_sym(name+1);	// skip leading '@'
+}
+
 __UCODE__
 uc_getiv(guru_vm *vm)
 {
 	GR *r  = _R0;
 	ASSERT(r->gt==GT_OBJ || r->gt==GT_CLASS);
 
-    GS  sid = _sid_wo_at_sign(vm);			// attribute name with leading '@'
-    GR  ret = ostore_get(r, sid);
+    GS sid = _sid_wo_at_sign(vm);
+    GR ret = ostore_get(r, sid);
 
     _RA(ret);
 }
@@ -236,8 +233,8 @@ uc_setiv(guru_vm *vm)
 
 	GS sid = _sid_wo_at_sign(vm);
 	GR *ra = _R(a);
-	guru_pack(ra);							// compact to save space
 
+	guru_pack(ra);							// compact to save space
     ostore_set(r, sid, ra);					// store instance variable
 }
 
@@ -252,7 +249,6 @@ uc_getcv(guru_vm *vm)
 {
 	GR *r  = _R0;
 	GS sid = VM_SYM(vm, _AR(bx));
-
 	GR ret = ostore_getcv(r, sid);
 
 	_RA(ret);
@@ -514,7 +510,7 @@ uc_send(guru_vm *vm)
     PRINTF("!!!uc_send(%p) R(%d)=%p, xid=%d\n", vm, vm->a, r, xid);
 #endif // CC_DEBUG
     if (vm_method_exec(vm, r, _AR(c), xid)) { 		// in state.cu, call stack will be wiped before return
-    	vm->err = 1;								// raise exception
+    	vm->err = 2;								// raise Method Not Found exception
     	GR buf  = guru_str_buf(GURU_STRBUF_SIZE);	// put error message on return stack
     	*(r+1)  = *_undef(&buf, r, xid);			// TODO: exception class
     }
@@ -561,22 +557,31 @@ uc_enter(guru_vm *vm)
 __UCODE__
 uc_return(guru_vm *vm)
 {
-	GR  ret = *_R(a);							// return value
+	GR  *ra = _R(a);
+	GR  *ma = _R0 - 2;							// mapper array
+
+	guru_state *st = VM_STATE(vm);				// get current context
+	U32 map = IS_COLLECT(st);					// is a mapper?
 	U32 brk = _AR(b);							// break
+	GR  ret = *ra;								// default return value
 
-	guru_state *st = VM_STATE(vm);
 	if (IN_LOOP(st)) {
+		if (map) {
+			guru_array_push(ma, ra);
+		}
 		if (vm_loop_next(vm) && !brk) return;	// continue
-
-		ret = *_R(a);							// fetch last returned value
+		if (map) {
+			*ra = *ma;							// replace return value with collected array
+			*ma = EMPTY;
+		}
 		guru_iter_del(_REGS(st) - 1);			// release iterator
 
 		// pop off iterator state
-		vm_state_pop(vm, ret);					// pop off ITERATOR state
-		ret = *_R0;								// return the object itself
+		vm_state_pop(vm, *ra);					// pop off ITERATOR state and transfer last returned value
+		ret = *_R0;								// fetch return value
 	}
 	else if (IN_LAMBDA(st)) {
-		vm_state_pop(vm, ret);					// pop off LAMBDA state
+		vm_state_pop(vm, ret);					// pop off LAMBDA state, transfer current stack top value
 	}
 	else if (IS_NEW(st)) {
 		ret = *_R0;								// return the object itself
