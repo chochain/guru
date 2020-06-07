@@ -233,9 +233,12 @@ vm_main_start()
 			_exec<<<1,1, bsz,_st_pool[i]>>>(vm);		// guru -x to run without single-stepping
 
 			cudaError_t e = cudaGetLastError();
-			if (e!=cudaSuccess) {
+			if (e != cudaSuccess) {
 				printf("CUDA ERROR: %s, bailing\n", cudaGetErrorString(e));
-				vm->err = 1;
+				vm->err = 3;
+			}
+			else if (vm->err) {
+				debug_error(vm);
 			}
 			// add post-hook here
 		}

@@ -41,6 +41,10 @@ static const char *_vtype[] = {
 	"cls","prc","obj","ary","str","rng","hsh","itr"		// 0x8
 };
 
+static const char *_errcode[] = {
+	"", "ERROR", "Method Not Found", "CUDA"
+};
+
 static const char *_opcode[] = {
     "NOP ",	"MOVE",	"LOADL","LOADI","LOADSYM","LOADNIL","LOADSLF","LOADT",
     "LOADF","GETGBL","SETGBL","GETSPC","SETSPC","GETIV","SETIV","GETCV",
@@ -176,8 +180,8 @@ _show_state_regs(guru_state *st, U32 lvl)
 		for (n=irep->nr; n>0 && regs->gt==GT_EMPTY; n--, regs--);
 		n++;
 	}
-	regs = ST_REGS(st);
-	_show_regs((st->flag & STATE_LOOP) ? regs-2 : regs, n);
+	regs = ST_REGS(st) - (IS_LOOP(st) ? (IS_COLLECT(st) ? 3 : 2) : 0);
+	_show_regs(regs, n);
 }
 
 __HOST__ void
@@ -319,6 +323,14 @@ debug_disasm(guru_vm *vm)
 	_disasm(vm, _debug);
 
 	if (_debug>1) guru_mmu_check(_debug);
+}
+
+__HOST__ void
+debug_error(guru_vm *vm)
+{
+	if (_debug<1 || !vm->err) return;
+
+	printf("ERROR: %s\n", _errcode[vm->err]);
 }
 
 __HOST__ void
