@@ -150,6 +150,66 @@ int_rshift(GR r[], U32 ri)
 }
 
 //================================================================
+/*! (operator) %
+ */
+__CFUNC__
+int_mod_set(GR r[], U32 ri)
+{
+    GI n = _INT(1);
+    RETURN_INT(r->i %= n);
+}
+
+//================================================================
+/*! (operator) &; bit operation AND
+ */
+__CFUNC__
+int_and_set(GR r[], U32 ri)
+{
+    GI n = _INT(1);
+    RETURN_INT(r->i &= n);
+}
+
+//================================================================
+/*! (operator) |; bit operation OR
+ */
+__CFUNC__
+int_or_set(GR r[], U32 ri)
+{
+    GI n = _INT(1);
+    RETURN_INT(r->i |= n);
+}
+
+//================================================================
+/*! (operator) ^; bit operation XOR
+ */
+__CFUNC__
+int_xor_set(GR r[], U32 ri)
+{
+    GI n = _INT(1);
+    RETURN_INT(r->i ^= n);
+}
+
+//================================================================
+/*! (operator) <<; bit operation LEFT_SHIFT
+ */
+__CFUNC__
+int_lshift_set(GR r[], U32 ri)
+{
+    GI n = _INT(1);
+    RETURN_INT(r->i <<= n);
+}
+
+//================================================================
+/*! (operator) >>; bit operation RIGHT_SHIFT
+ */
+__CFUNC__
+int_rshift_set(GR r[], U32 ri)
+{
+    GI n = _INT(1);
+    RETURN_INT(r->i >>= n);
+}
+
+//================================================================
 /*! (method) abs
  */
 __CFUNC__
@@ -183,6 +243,12 @@ __GURU__ __const__ Vfunc int_vtbl[] = {
 	{ "~", 		int_not			},
 	{ "<<", 	int_lshift		},
 	{ ">>", 	int_rshift		},
+	{ "%=", 	int_mod_set		},
+	{ "&=", 	int_and_set		},
+	{ "|=", 	int_or_set		},
+	{ "^=", 	int_xor_set		},
+	{ "<<=", 	int_lshift_set	},
+	{ ">>=", 	int_rshift_set	},
 	{ "abs",	int_abs			},
 	{ "to_f",	int_to_f		},
 
