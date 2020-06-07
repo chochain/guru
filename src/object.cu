@@ -62,6 +62,8 @@ __CFUNC__
 obj_puts(GR r[], U32 ri)
 {
 	guru_puts(r+1, ri);
+	ref_dec(r);
+	*r = EMPTY;
 }
 
 //================================================================
@@ -71,6 +73,8 @@ __CFUNC__
 obj_print(GR r[], U32 ri)
 {
 	guru_puts(r+1, ri);
+	ref_dec(r);
+	*r = EMPTY;
 }
 
 //================================================================
@@ -184,15 +188,14 @@ obj_setiv(GR r[], U32 ri)
 //================================================================
 /*! append '=' to create name for attr_writer
  */
-__GURU__ U8*
-_name_w_eq_sign(GR *buf, U8 *s0)
+__GURU__ __INLINE__ U8*
+_postfix_eq_sign(GR *buf, U8* s0)
 {
-    guru_buf_add_cstr(buf, s0);
+	guru_str_clr(buf);
+	guru_buf_add_cstr(buf, s0);
     guru_buf_add_cstr(buf, "=");
 
-    U32 sid = guru_rom_add_sym((char*)GR_RAW(buf));		// create the symbol
-
-    return _RAW(sid);
+    return GR_RAW(buf);
 }
 
 //================================================================
@@ -203,12 +206,11 @@ obj_attr_reader(GR r[], U32 ri)
 {
 	ASSERT(r->gt==GT_CLASS);
 	GP cls = r->off;									// fetch class offset
-
-	GR *s = r+1;
+	GR *s  = r+1;
     for (int i = 0; i < ri; i++, s++) {
         ASSERT(s->gt==GT_SYM);
 
-        U8 *name = _RAW(s->i);
+        U8 *name = _RAW(s->i);							// SYM2RAW
         ASSERT(guru_define_method(cls, name, MEMOFF(obj_getiv)));
     }
 }
@@ -226,17 +228,14 @@ obj_attr_accessor(GR r[], U32 ri)
 	guru_class *cx = _CLS(cls);
     printf("%p:%s, sc=%d self=%d #attr_accessor\n", cx, _RAW(cx->cid), IS_SCLASS(r), IS_SELF(r));
 #endif // CC_DEBUG
-    GR buf = guru_str_buf(ATTR_BUFSIZE);
 	GR *s  = r+1;
+	GR buf = guru_str_buf(GURU_STRBUF_SIZE);
     for (int i=0; i < ri; i++, s++) {
         ASSERT(s->gt==GT_SYM);
-        U8 *a0  = _RAW(s->i);							// reader
-        U8 *a1  = _name_w_eq_sign(&buf, a0);			// writer
-
+        U8 *a0 = _RAW(s->i);							// reader
+        U8 *a1 = _postfix_eq_sign(&buf, a0);			// writer
         ASSERT(guru_define_method(cls, a0, MEMOFF(obj_getiv)));
         ASSERT(guru_define_method(cls, a1, MEMOFF(obj_setiv)));
-
-        guru_str_clr(&buf);
     }
     guru_str_del(&buf);
 }
@@ -283,17 +282,17 @@ obj_lambda(GR r[], U32 ri)
 //================================================================
 /*! pseudo random number generator
  */
-__GURU__ int _seed = 123456789;
 __CFUNC__
 obj_rand(GR r[], U32 ri)
 {
-	GR ret { GT_INT, 0, 0, 0 };
+	static int _seed = 123456789;
+
+	_seed = 1103515245 * _seed + 12345;
+	GR ret { GT_FLOAT, 0, 0, 0x3f000000 | (_seed & 0x7fffff) };
+
 	if (ri && (r+1)->gt==GT_INT) {
-		_seed = ret.i = (1103515245 * _seed + 12345) % (r+1)->i;
-	}
-	else {
-		ret.gt = GT_FLOAT;
-		// return [0.0..1.0);
+		ret.gt = GT_INT;
+		ret.i  = _seed % (r+1)->i;
 	}
 	RETURN_VAL(ret);
 }
