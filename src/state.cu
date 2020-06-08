@@ -73,9 +73,7 @@ __loop(guru_vm *vm, GR r[], U32 ri, U32 collect)
 
 	// push stack out (1 space for iterator)
 	GR *p = r;
-	if (collect) {
-		*(++p) = guru_array_new(4);					// replace prc with map array
-	}
+	*(++p) = collect ? guru_array_new(4) : EMPTY;	// replace prc with map array
 	*(++p) = git;
 	*(++p) = *_REGS(st);
 

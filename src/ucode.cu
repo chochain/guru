@@ -557,37 +557,40 @@ uc_enter(guru_vm *vm)
 __UCODE__
 uc_return(guru_vm *vm)
 {
+	guru_state *st = VM_STATE(vm);				// get current context
+
 	GR  *ra = _R(a);
 	GR  *ma = _R0 - 2;							// mapper array
-
-	guru_state *st = VM_STATE(vm);				// get current context
 	U32 map = IS_COLLECT(st);					// is a mapper?
 	U32 brk = _AR(b);							// break
-	GR  ret = *ra;								// default return value
+	GR  ret = *ra;								// return value
 
 	if (IN_LOOP(st)) {
 		if (map) {
-			guru_array_push(ma, ra);
+			guru_array_push(ma, ra);			// collect return value
 		}
 		if (vm_loop_next(vm) && !brk) return;	// continue
-		if (map) {
-			*ra = *ma;							// replace return value with collected array
-			*ma = EMPTY;
-		}
+
 		guru_iter_del(_REGS(st) - 1);			// release iterator
 
 		// pop off iterator state
 		vm_state_pop(vm, *ra);					// pop off ITERATOR state and transfer last returned value
-		ret = *_R0;								// fetch return value
+		ret = *_R0;								// capture return value from inner loop
 	}
 	else if (IN_LAMBDA(st)) {
-		vm_state_pop(vm, ret);					// pop off LAMBDA state, transfer current stack top value
+		vm_state_pop(vm, *ra);					// pop off LAMBDA state, transfer current stack top value
 	}
 	else if (IS_NEW(st)) {
 		ret = *_R0;								// return the object itself
 	}
 	ret.acl &= ~(ACL_SELF|ACL_SCLASS);			// turn off TCLASS and NEW flags if any
-	vm_state_pop(vm, ret);						// pop callee's context
+	vm_state_pop(vm, map ? EMPTY : ret);		// pop callee's context
+
+	if (map) {									// put return array back to caller stack
+		ref_dec(ma-1);							// TODO: this is a hack, needs a better way
+		*(ma-1) = *ma;
+		*ma     = EMPTY;
+	}
 }
 
 //================================================================

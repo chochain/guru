@@ -172,16 +172,17 @@ _show_state_regs(guru_state *st, U32 lvl)
 		guru_state *st1 = h_STATE(st->prev);
 		_show_state_regs(st1, lvl+1);						// back tracing recursion
 	}
-	U32 n = st->nv;											// depth of current stack frame
-	GR  *regs = ST_REGS(st);
+	U32 n  = st->nv;										// depth of current stack frame
+	GR  *r = ST_REGS(st);
 	if (lvl==0) { 											// top most
 		guru_irep *irep = ST_IREP(st);
-		regs = ST_REGS(st) + irep->nr;
-		for (n=irep->nr; n>0 && regs->gt==GT_EMPTY; n--, regs--);
+		r = ST_REGS(st) + irep->nr;
+		for (n=irep->nr; n>0 && r->gt==GT_EMPTY; n--, r--);
 		n++;
 	}
-	regs = ST_REGS(st) - (IS_LOOP(st) ? (IS_COLLECT(st) ? 3 : 2) : 0);
-	_show_regs(regs, n);
+	r = ST_REGS(st);
+	if (IS_LOOP(st)) _show_regs(r-3, n+1);					// alloc for looper
+	else			 _show_regs(r,   n);
 }
 
 __HOST__ void
