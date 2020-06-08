@@ -40,7 +40,7 @@ __GURU__ U32 _mutex_uc;
 #define _R(r)			(_R0+_AR(r))
 #define _RA(r)			(ref_dec(_R(a)), *_R(a)=(r))
 #define _RA_X(r)    	(ref_inc(r), ref_dec(_R(a)), *_R(a)=*(r))
-#define _RA_T(t,e)      (_R(a)->gt=(t), _R(a)->acl=0, _R(a)->e)
+#define _RA_T(t,e)      (ref_dec(_R(a)), _R(a)->gt=(t), _R(a)->acl=0, _R(a)->e)
 
 #define SKIP(x)			{ NA(x); return; }
 #define RAISE(x)	    { _RA(guru_str_new(x)); vm->err = 1; return; }
@@ -1256,7 +1256,6 @@ __GURU__ __const__ UCODE ucode_vtbl[] = {
 __GURU__ void
 ucode_step(guru_vm *vm)
 {
-	guru_state *st = VM_STATE(vm);						// for debugging
 	//=======================================================================================
 	// GURU dispatcher unit
 	// TODO: dispatch vtable[op](vm) without switch branching
@@ -1343,11 +1342,13 @@ ucode_step(guru_vm *vm)
 	// GURU dispatcher unit
 	// using vtable (i.e. without switch branching)
 	//=======================================================================================
-    ucode_vtbl[vm->op](vm);
+	GR *r = _REGS(VM_STATE(vm));						// for debugging
+
+	ucode_vtbl[vm->op](vm);
 #endif // GURU_DEBUG
 
     if (vm->err && vm->xcp>0) {							// simple exception handler
-    	st->pc = RESCUE_POP(vm);						// bubbling up
+    	VM_STATE(vm)->pc = RESCUE_POP(vm);				// bubbling up
     	vm->err = 0;									// TODO: add exception type or code on stack
     }
 }

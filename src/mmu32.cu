@@ -188,7 +188,7 @@ __idx(U32 sz)
 	U32 l1 = __xls(sz >> BASE_BITS) + 1;		// __xls returns -1 if no bit is set
 	U32 l2 = (sz >> (l1 + MN_BITS - (l1!=0))) & L2_MASK;
 #if CC_DEBUG
-    PRINTF("mmu#__idx(%04x):      INDEX(%x,%x) => %x\n", sz, l1, l2, INDEX(l1, l2));
+    PRINTF("mmu#__idx(%04x):       INDEX(%x,%x) => %x\n", sz, l1, l2, INDEX(l1, l2));
 #endif // CC_DEBUG
     return INDEX(l1, l2);
 }

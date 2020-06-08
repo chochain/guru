@@ -197,7 +197,7 @@ _show_decode(guru_state *st, GAR ar)
 	case OP_MOVE: 		printf(" r%-2d =r%-17d", a, ar.b);							return;
 	case OP_STRING: {
 		guru_str *s0 = h_STR(ST_STR(st, ar.bx)->off);
-		printf(" r%-2d ='%-17s", a, guru_host_heap + s0->raw);
+		printf(" r%-2d ='%-18s", a, guru_host_heap + s0->raw);
 		return;
 	}
 	case OP_LOADI:		printf(" r%-2d =%-18d",  a, ar.bx - MAX_sBx);				return;
