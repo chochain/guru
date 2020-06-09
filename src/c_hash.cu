@@ -109,7 +109,7 @@ _get(GR *kv, GR *key)
 {
     GR *r = _search(kv, key);
 
-    return r ? *ref_inc(r+1) : NIL;
+    return r ? *(r+1) : NIL;
 }
 
 //================================================================
