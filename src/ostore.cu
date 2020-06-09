@@ -192,13 +192,12 @@ __GURU__ void
 ostore_del(GR *r)
 {
 	guru_obj *o = GR_OBJ(r);
-	GR       *v = _VAR(o);
+	GR *p = _VAR(o);
 
-	if (v==NULL) return;
+    for (int i=0; i<o->n; i++, ref_dec(p++));
 
-    for (int i=0; i<o->n; i++, ref_dec(v++));
-
-    guru_free(r);
+    if (o->var) guru_free(MEMPTR(o->var));
+    guru_free(o);
 }
 
 //================================================================
@@ -215,7 +214,6 @@ ostore_set(GR *r, GS oid, GR *val)
 	if (!o->var) {
 		o->var = MEMOFF(guru_gr_alloc(4));	// lazy allocation
 	    o->sz  = 4;							// number of local variables
-		ref_inc(r);							// itself has been referenced now
 	}
 
 #if !GURU_DEBUG

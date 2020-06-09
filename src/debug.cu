@@ -197,7 +197,7 @@ _show_decode(guru_state *st, GAR ar)
 	case OP_MOVE: 		printf(" r%-2d =r%-17d", a, ar.b);							return;
 	case OP_STRING: {
 		guru_str *s0 = h_STR(ST_STR(st, ar.bx)->off);
-		printf(" r%-2d ='%-18s", a, guru_host_heap + s0->raw);
+		printf(" r%-2d ='%-17s", a, guru_host_heap + s0->raw);
 		return;
 	}
 	case OP_LOADI:		printf(" r%-2d =%-18d",  a, ar.bx - MAX_sBx);				return;
@@ -212,6 +212,8 @@ _show_decode(guru_state *st, GAR ar)
 		if (ar.c<1)		printf(" r%-2d < %-17s", a, op==OP_ARRAY ? "[]" : "{}");
 		else			printf(" r%-2d <r%-2d..r%-12d", a, ar.b, ar.b+ar.c-1);
 		return;
+	case OP_AREF:		printf(" r%-2d =r%-2d+%-2d%12s", a, ar.b, ar.c, "");		return;
+	case OP_ASET:		printf(" r%-2d+%-2d =r%-12d", ar.b, ar.c, a);				return;
 	case OP_SCLASS:		printf(" r%-22d", ar.b);									return;
 	case OP_ENTER:		printf(" @%-22d", 1 + st->argc - (ar.ax>>18)&0x1f);			return;
 	case OP_RESCUE:
