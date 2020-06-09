@@ -36,7 +36,7 @@
 #define _R(r)			(_R0 + _AR(r))
 #define _RA(r)			(ref_dec(_R(a)), *_R(a)=(r))
 #define _RA_X(r)    	(ref_inc(r), ref_dec(_R(a)), *_R(a)=*(r))
-#define _RA_T(t,e)      (_R(a)->gt=(t), _R(a)->acl=0, _R(a)->e)
+#define _RA_T(t,e)      (ref_dec(_R(a)), _R(a)->gt=(t), _R(a)->acl=0, _R(a)->e)
 
 #define SKIP(x)			{ NA(x); return; }
 #define VM_BYTECODE(vm) (_bin_to_u32(U8PADD(VM_ISEQ(vm), sizeof(U32)*VM_STATE(vm)->pc)))

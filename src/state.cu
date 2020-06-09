@@ -220,7 +220,6 @@ vm_state_push(guru_vm *vm, GP irep, U32 pc, GR r[], U32 ri)
     else {
     	st->nv = ((guru_irep*)MEMPTR(irep))->nr;			// top most stack frame depth
     }
-
     vm->state = MEMOFF(st);			// TODO: use array-based stack
 }
 
@@ -240,8 +239,10 @@ vm_state_pop(guru_vm *vm, GR ret_val)
     if (!IS_LAMBDA(st)) {
         guru_irep  *irep = (guru_irep*)MEMPTR(st->irep);
         GR         *regs = _REGS(st);
-    	ref_inc(&ret_val);								// to be referenced by the caller
-    	_wipe_stack(regs, irep->nr);
+    	if (!IS_NEW(st)) {								// new() returns itself, keep ref cnt
+    		ref_inc(&ret_val);							// to be referenced by the caller
+    	}
+    	_wipe_stack(regs+1, irep->nr);
     	regs[0] = ret_val;								// put return value on top of current stack
     }
     vm->state = st->prev;								// restore previous state
