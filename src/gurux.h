@@ -18,4 +18,17 @@ void    guru_teardown(int sig);
 }
 #endif
 
+class Guru								// interface class
+{
+	class Impl;
+	Impl	*_impl;
+
+public:
+	Guru(int step, int trace);
+	~Guru();
+
+	int	load(char *rite_name);
+	int	run();
+};
+
 #endif

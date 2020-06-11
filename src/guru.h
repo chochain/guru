@@ -248,5 +248,4 @@ typedef struct RSes {			// 16-byte
 #ifdef __cplusplus
 }
 #endif
-
 #endif

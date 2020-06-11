@@ -26,6 +26,7 @@
 #include "load.h"
 #include "debug.h"
 
+pthread_mutex_t 	_mutex;
 #define _LOCK		(pthread_mutex_trylock(&_mutex))
 #define _UNLOCK		(pthread_mutex_unlock(&_mutex))
 
@@ -69,7 +70,6 @@ class VM_Pool::Impl
 	VM 	*_pool = NULL;
 	U32	_idx   = 0;
 
-	pthread_mutex_t _mutex;
 	cudaStream_t    _st[MIN_VM_COUNT];						// a stream per each VM
 
 	int
@@ -88,14 +88,10 @@ class VM_Pool::Impl
 		VM *vm = &_pool[mid];
 		if (!(vm->run & status_flag)) return -1;		// transition state machine
 
-		if (_LOCK) {
-			vm->run = new_status;
-			_UNLOCK;
-		}
-		else {
-			fprintf(stderr, "ERROR: set_status failed, thread do not have the lock\n");
-			return -1;
-		}
+		_LOCK;
+		vm->run = new_status;
+		_UNLOCK;
+
 		return 0;
 	}
 

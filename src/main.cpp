@@ -4,13 +4,6 @@
 #include <signal.h>
 #include "gurux.h"
 
-#if 0
-#include "../ext/c_ext.h"
-#include "../ext/c_ext_sprintf.h"
-
-int  do_cuda(void);
-#endif
-
 #define TRACE_MASK  	0x3
 #define VM_EXEC_FLAG  	0x8000
 
@@ -44,12 +37,24 @@ int _opt(int argc, char *argv[], int *opt)
     return n;
 }
 
+#define GURU_CXX_CODEBASE	1
+
 int main(int argc, char *argv[])
 {
 	int opt, n = _opt(argc, argv, &opt);
 	int trace = opt & TRACE_MASK;
 	int step  = (opt & VM_EXEC_FLAG) ? 0 : 1;
 
+#if GURU_CXX_CODEBASE
+	Guru *guru = new Guru(step, trace);
+
+	for (int i=n+1; i<argc; i++) {		// TODO: producer
+		char *fname = argv[i];
+		if (guru->load(fname)) return -2;
+	}
+	guru->run();						// TODO: consumer
+
+#else
 	if (signal(SIGINT, guru_teardown)==SIG_ERR) {	// register interrupt handler
 		fprintf(stderr, "ERROR: SIGINT, use kill -9");
 	}
@@ -62,6 +67,7 @@ int main(int argc, char *argv[])
 	}
 	guru_run();							// TODO: consumer
 	guru_teardown(0);
+#endif // GURU_CXX_CODEBASE
 
 	return 0;
 }

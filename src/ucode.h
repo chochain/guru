@@ -51,7 +51,8 @@ enum OPCODE {
     OP_GETCV,     /* A Bx    R(A) := cvget(Syms(Bx))                         */
     OP_SETCV,     /* A Bx    cvset(Syms(Bx),R(A))                            */
     OP_GETCONST,  /* A Bx    R(A) := constget(Syms(Bx))                      */
-    OP_SETCONST,  /* A Bx    constset(Syms(Bx),R(A))                         */
+    OP_SETCONST,  /* A Bx    constset(Syms(Bx),R(A))    class Guru
+                         */
     OP_GETMCNST,  /* A Bx    R(A) := R(A)::Syms(Bx)                          */
     OP_SETMCNST,  /* A Bx    R(A+1)::Syms(Bx) := R(A)                        */
     OP_GETUPVAR,  /* A B C   R(A) := uvget(B,C)                              */
@@ -114,7 +115,8 @@ enum OPCODE {
     // 0x42 Class Instructions
     OP_OCLASS,    /* A       R(A) := ::Object                                */
     OP_CLASS,     /* A B     R(A) := newclass(R(A), Syms(B),R(A+1))          */
-    OP_MODULE,    /* A B     R(A) := newmodule(R(A),Syms(B))                 */
+    OP_MODULE,    /* A B     R(A) := newmodule(R(A),Symsclass Guru
+    (B))                 */
     OP_EXEC,      /* A Bx    R(A) := blockexec(R(A),SEQ[Bx])                 */
     OP_METHOD,    /* A B     R(A).newmethod(Syms(B),R(A+1))                  */
     OP_SCLASS,    /* A B     R(A) := R(B).singleton_class                    */

@@ -20,8 +20,6 @@
   	    flush output per step (optional)
   </pre>
 */
-#include <pthread.h>
-
 #include "guru.h"
 #include "base.h"
 #include "util.h"
