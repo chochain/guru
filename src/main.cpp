@@ -42,17 +42,17 @@ int _opt(int argc, char *argv[], int *opt)
 int main(int argc, char *argv[])
 {
 	int opt, n = _opt(argc, argv, &opt);
-	int trace = opt & TRACE_MASK;
-	int step  = (opt & VM_EXEC_FLAG) ? 0 : 1;
+	int trace  = opt & TRACE_MASK;
+	int step   = (opt & VM_EXEC_FLAG) ? 0 : 1;
 
 #if GURU_CXX_CODEBASE
 	Guru *guru = new Guru(step, trace);
 
-	for (int i=n+1; i<argc; i++) {		// TODO: producer
+	for (int i=n+1; i<argc; i++) {					// TODO: producer
 		char *fname = argv[i];
 		if (guru->load(fname)) return -2;
 	}
-	guru->run();						// TODO: consumer
+	guru->run();									// TODO: consumer
 
 #else
 	if (signal(SIGINT, guru_teardown)==SIG_ERR) {	// register interrupt handler
@@ -61,11 +61,11 @@ int main(int argc, char *argv[])
 
 	if (guru_setup(step, trace)) return -1;
 
-	for (int i=n+1; i<argc; i++) {		// TODO: producer
+	for (int i=n+1; i<argc; i++) {					// TODO: producer
 		char *fname = argv[i];
 		if (guru_load(fname)) return -2;
 	}
-	guru_run();							// TODO: consumer
+	guru_run();										// TODO: consumer
 	guru_teardown(0);
 #endif // GURU_CXX_CODEBASE
 

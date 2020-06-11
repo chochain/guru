@@ -85,9 +85,9 @@ class ClassMgr
 
 	__GURU__ ClassMgr();										// private constructor for singleon class
 	__GURU__ ~ClassMgr();
-public:
 
-	static __GURU__ ClassMgr *getInstance();
+public:
+	__GURU__ static ClassMgr *getInstance();
 
 	__GURU__ GP	define_class(const U8 *name, GP super);
 	__GURU__ GP	class_add_meta(GR *r);				// lazy add metaclass to a class
