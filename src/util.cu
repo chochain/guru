@@ -233,7 +233,7 @@ d_memcpy(void *d, const void *s, size_t n)
 
 	if ((U32)ds < (U32)ss) {								// copy forward
 		if ((t | (uintptr_t)ds) & WMASK) {
-			int i = ((t ^ (uintptr_t)ds) & WMASK || n < WSIZE)		// align operands
+			int i = (((t ^ (uintptr_t)ds) & WMASK) || (n < WSIZE))		// align operands
 				? n
 				: WSIZE - (t & WMASK);
 			n -= i;
@@ -246,7 +246,7 @@ d_memcpy(void *d, const void *s, size_t n)
 		ss += n;
 		ds += n;
 		if ((t | (uintptr_t)ds) & WMASK) {
-			int i = ((t ^ (uintptr_t)ds) & WMASK || n <= WSIZE)
+			int i = (((t ^ (uintptr_t)ds) & WMASK) || (n <= WSIZE))
 				? n
 				: t & WMASK;
 			n -= i;

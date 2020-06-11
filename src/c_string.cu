@@ -161,11 +161,11 @@ _strip(GR *r, U32 mode)
 	U8  *p0 = GR_RAW(r), *raw = p0;					// head of string
     U8  *p1 = p0 + sz0 - 1;							// tail of string
 
-    for (; mode&0x01 && p0 <= p1; p0++) {			// left-side
+    for (; (mode&0x01) && (p0 <= p1); p0++) {			// left-side
     	if (*p0=='\0') 		 break;
     	if (!_is_space(*p0)) break;
     }
-    for (; mode&0x02 && p0 <= p1; p1--) {			// right-side
+    for (; (mode&0x02) && (p0 <= p1); p1--) {			// right-side
     	if (!_is_space(*p1)) break;
     }
     U32 new_sz = p1 - p0 + 1;

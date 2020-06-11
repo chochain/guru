@@ -356,7 +356,7 @@ _find_free_index(U32 sz)
     if (m2) {									// check any 2nd level slot available
     	l2 = __ffs(m2 << l2);					// MSB represent the smallest slot that fits
     }
-    else if (m1=(_l1_map >> (l1+1))) {			// look one level up
+    else if ((m1=(_l1_map >> (l1+1)))!=0) {		// look one level up
     	l1 = __ffs(m1 << l1); 	       			// allocate lowest available bit
     	l2 = __ffs(_l2_map[l1]) - 1;			// get smallest size
     }
