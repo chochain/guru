@@ -36,15 +36,15 @@ __HOST__ int vm_get(char *ibuf);
 
 #if GURU_CXX_CODEBASE
 class VM_Pool {
+    class Impl;
+    Impl  *_impl;
+
 public:
     VM_Pool(int step);
     ~VM_Pool();
 
     __HOST__ int 	start();
     __HOST__ int 	get(char *ibuf);
-private:
-    class Impl;
-    Impl  *_impl;
 };
 #endif // GURU_CXX_CODEBASE
 

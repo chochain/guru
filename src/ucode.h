@@ -143,15 +143,14 @@ __GURU__ void ucode_step(guru_vm *vm);
 #if GURU_CXX_CODEBASE
 class Ucode								// interface class
 {
+	class Impl;
+	Impl *_impl;						// implementation object (Pimpl idiom)
+
 public:
 	__GURU__ Ucode(VM *vm);
 	__GURU__ ~Ucode();
 
 	__GURU__ int run();
-
-private:
-	class Impl;
-	Impl *_impl;						// implementation object (Pimpl idiom)
 };
 #endif // GURU_CXX_CODEBASE
 

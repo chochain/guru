@@ -103,6 +103,9 @@ __GURU__ U32	vm_method_exec(guru_vm *vm, GR r[], U32 ri, GS sid);
 #if GURU_CXX_CODEBASE
 class StateMgr
 {
+	class Impl;
+	Impl  *_impl;
+
 public:
 	__GURU__ StateMgr(VM *vm);
 	__GURU__ ~StateMgr();
@@ -114,10 +117,6 @@ public:
 	__GURU__ U32	loop_next();
 	__GURU__ U32	exec_method(GR r[], U32 ri, GS sid);
 	__GURU__ void	free_states();
-
-private:
-	class Impl;
-	Impl  *_impl;
 };
 #endif  // GURU_CXX_CODEBASE
 
