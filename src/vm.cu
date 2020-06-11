@@ -42,10 +42,6 @@ guru_vm 			*_vm_pool;
 U32      			_vm_cnt = 0;
 cudaStream_t		_st_pool[MIN_VM_COUNT];
 
-#if GURU_CXX_CODEBASE
-__GURU__ Ucode *_uc_pool[MIN_VM_COUNT] = { NULL };
-#endif // GURU_CXX_CODEBASE
-
 pthread_mutex_t 	_mutex_pool;
 #define _LOCK		(pthread_mutex_lock(&_mutex_pool))
 #define _UNLOCK		(pthread_mutex_unlock(&_mutex_pool))
@@ -57,7 +53,7 @@ pthread_mutex_t 	_mutex_pool;
   @param  vm  Pointer to VM
 */
 __GURU__ void
-__ready(guru_vm *vm, GP irep)
+__setup(guru_vm *vm, GP irep)
 {
     // allocate register file & rescue return stack
 	GR v { GT_CLASS, 0, 0, { guru_rom_get_class(GT_OBJ) }};
@@ -120,25 +116,19 @@ __transcode(U8 *u8_gr)
 //
 #if GURU_HOST_GRIT_IMAGE
 __GPU__ void
-_prep(guru_vm *vm,  U8 *u8_gr)
+_load_grit(guru_vm *vm,  U8 *u8_gr)
 {
 	if (blockIdx.x!=0 || threadIdx.x!=0) return;	// singleton thread
 
 	if (vm->run==VM_STATUS_FREE) {
 	    GP irep = MEMOFF(U8PADD(u8_gr, ((GRIT*)u8_gr)->reps));
 		__transcode(u8_gr);
-		__ready(vm, irep);
-
-#if GURU_CXX_CODEBASE
-		if (!_uc_pool[vm->id]) {
-			_uc_pool[vm->id] = new Ucode((VM*)vm);
-		}
-#endif // GURU_CXX_CODEBASE
+		__setup(vm, irep);
 	}
 }
 #else
 __GPU__ void
-_prep(guru_vm *vm, U8 *ibuf)
+_load_grit(guru_vm *vm, U8 *ibuf)
 {
 	if (blockIdx.x!=0 || threadIdx.x!=0) return;	// singleton thread
 
@@ -146,7 +136,7 @@ _prep(guru_vm *vm, U8 *ibuf)
 		U8 *u8_gr = parse_bytecode(ibuf);
 	    GP irep   = MEMOFF(U8PADD(gr, gr->reps));
 		__transcode(u8_gr);
-		__ready(vm, gr);
+		__load_grit(vm, gr);
 	}
 }
 #endif // GURU_HOST_GRIT_IMAGE
@@ -163,17 +153,6 @@ _exec(guru_vm *vm)
 {
 	if (blockIdx.x!=0 || threadIdx.x!=0) return;	// TODO: single thread for now
 
-#if GURU_CXX_CODEBASE
-	extern __shared__ Ucode uc[];
-
- 	uc[blockIdx.x] = *_uc_pool[vm->id];
- 	__syncthreads();
-
-	if (uc[blockIdx.x].run()) {
-		__free(vm);
-	}
-	return;
-#else
 	// start up instruction and dispatcher unit
 	while (vm->run==VM_STATUS_RUN) {				// run my (i.e. blockIdx.x) VM
 		// add before_fetch hooks here
@@ -186,7 +165,6 @@ _exec(guru_vm *vm)
 	if (vm->run==VM_STATUS_STOP) {					// whether my VM is completed
 		__free(vm);									// free up my vm_state, return VM to free pool
 	}
-#endif // GURU_USE_CXX
 }
 
 __HOST__ int
@@ -225,12 +203,8 @@ vm_main_start()
 			if (!vm->state || vm->run!=VM_STATUS_RUN) continue;
 			// add pre-hook here
 			debug_disasm(vm);
-#if GURU_CXX_CODEBASE
-			U32 bsz = sizeof(Ucode)*MIN_VM_COUNT;
-#else
-			U32 bsz = 0;						// shared memory allotment
-#endif // GURU_CXX_CODEBASE
-			_exec<<<1,1, bsz,_st_pool[i]>>>(vm);		// guru -x to run without single-stepping
+
+			_exec<<<1,1, 0,_st_pool[i]>>>(vm);		// guru -x to run without single-stepping
 
 			cudaError_t e = cudaGetLastError();
 			if (e != cudaSuccess) {
