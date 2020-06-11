@@ -45,18 +45,19 @@ class Ucode::Impl
 {
 	guru_vm    	*_vm;			// cached vm
 	StateMgr    *_sm;			// stack manager object
-	U32  		_mutex;
+	U32  		_mutex = 0;
 
     //================================================================
     /*!@brief
       sid of attr name with '@' sign removed
      */
-    __GURU__ __INLINE__ U8*
-    _name_wo_at_sign()
+    __GURU__ __INLINE__ GS
+    _sid_wo_at_sign()
     {
-        GS sid = VM_SYM(_vm, _AR(bx));
+        GS sid     = VM_SYM(_vm, _AR(bx));
+        char *name = (char*)_RAW(sid);
 
-        return _RAW(sid) + 1;			// attribute name with leading '@'
+        return guru_rom_add_sym(name+1);	// skip leading '@'
     }
     //================================================================
     /*!@brief
@@ -252,8 +253,10 @@ class Ucode::Impl
     	GR *r  = _R0;
     	ASSERT(r->gt==GT_OBJ || r->gt==GT_CLASS);
 
-        U8* namex = _name_wo_at_sign();
-        GR  ret   = ostore_get(r, name2id(namex));
+        GS sid = _sid_wo_at_sign();
+        GR ret = ostore_get(r, sid);
+
+        _RA(ret);
     }
     //================================================================
     /*!@brief
@@ -267,11 +270,11 @@ class Ucode::Impl
     	GR *r  = _R0;
     	ASSERT(r->gt==GT_OBJ || r->gt==GT_CLASS);
 
-    	U8 *namex = _name_wo_at_sign();
-    	GR *ra    = _R(a);
+    	GS sid = _sid_wo_at_sign();
+    	GR *ra = _R(a);
 
-    	guru_pack(ra);							// compact, in case of a str_buf
-        ostore_set(r, name2id(namex), ra);		// store instance variable
+    	guru_pack(ra);				// compact, in case of a str_buf
+        ostore_set(r, sid, ra);		// store instance variable
     }
     //================================================================
     /*!@brief
@@ -284,17 +287,8 @@ class Ucode::Impl
     {
         GR *r  = _R0;
         GS sid = VM_SYM(_vm, _AR(bx));
-
-        ASSERT(r->gt==GT_OBJ);
-
-        guru_obj *o = GR_OBJ(r);
-        GP cls = o->cls;
-        GR cv  { .gt=GT_CLASS, .acl=0, .oid=0, { .off=cls }};
-        GR ret { GT_NIL };
-        while (cls) {
-        	if ((ret=ostore_get(&cv, sid)).gt!=GT_NIL) break;
-        	cv.off = cls =_CLS(cls)->super;
-        }
+        GR ret = ostore_getcv(r, sid);
+        
         _RA(ret);
     }
     //================================================================
@@ -322,7 +316,9 @@ class Ucode::Impl
     getconst()
     {
         GS sid = VM_SYM(_vm, _AR(bx));
-        GR *r  = const_get(sid);
+        GP cls = class_by_id(sid);                 // search class rom first
+        GR ret { GT_CLASS, 0, 0, { cls } };
+        GR *r  = cls ? &ret : const_get(sid);      // then search constant cache
 
         _RA(*r);
     }
@@ -497,13 +493,13 @@ class Ucode::Impl
     __UCODE__
     send()
     {
-        GS  sid = VM_SYM(_vm, _AR(b));				// get given symbol or object id
+        GS  xid = VM_SYM(_vm, _AR(b));				// get given symbol or object id
         GR  *r  = _R(a);							// call stack, obj is receiver object
 
-        if (_sm->exec_method(r, _AR(c), sid)) { 	// in state.cu, call stack will be wiped before return
-            _vm->err = 1;							// method not found, raise exception
-            GR buf   = guru_str_buf(80);			// put error message on return stack
-            *(r+1)   = *_undef(&buf, r, sid);		// TODO: exception class
+        if (_sm->exec_method(r, _AR(c), xid)) { 	// in state.cu, call stack will be wiped before return
+            _vm->err = 2;							// method not found, raise exception
+            GR buf   = guru_str_buf(GURU_STRBUF_SIZE);	// put error message on return stack
+            *(r+1)   = *_undef(&buf, r, xid);		// TODO: exception class
         }
     }
     //================================================================
@@ -545,10 +541,18 @@ class Ucode::Impl
     __UCODE__
     return_()
     {
-        GR  ret = *_R(a);							// return value
-        U32 brk = _AR(b);							// break
         guru_state *st = VM_STATE(_vm);
+        
+        GR  *ra = _R(a);							// return value
+        GR  *ma = _R0 - 2;                          // is a mapper?
+        U32 map = IS_COLLECT(st);
+        U32 brk = _AR(b);							// break
+        GR  ret = *ra;
+        
         if (IN_LOOP(st)) {
+            if (map) {
+                guru_array_push(ma, ra);
+            }
             if (_sm->loop_next() && !brk) return;	// continue
 
             ret = *_R(a);							// fetch last returned value
@@ -567,6 +571,11 @@ class Ucode::Impl
         ret.acl &= ~(ACL_SELF|ACL_SCLASS);			// turn off TCLASS and NEW flags if any
 
         _sm->pop_state(ret);						// pop callee's context
+        if (map) {                                  // put return array to caller stack
+            ref_dec(ma-1);                          // TODO: this is a hack, needs a better way
+            *(ma-1) = *ma;
+            *ma     = EMPTY;
+        }
     }
     //================================================================
     /*!@brief
@@ -692,7 +701,7 @@ class Ucode::Impl
     	GR *r = _R(a);
 
     	if (r->gt==GT_INT && (r+1)->i==0) {
-    		_vm->err = 1;
+    		_vm->err = 4;
     	}
     	else ALU_OP(a, /);
     }
@@ -807,6 +816,8 @@ class Ucode::Impl
 
         _RA(buf);						// this will clean out sa
     }
+    
+#if GURU_USE_ARRAY
     //================================================================
     /*!@brief
   	  Create Array object
@@ -816,7 +827,6 @@ class Ucode::Impl
     __UCODE__
     array()
     {
-#if GURU_USE_ARRAY
         U32 n = _AR(c);
         GR  v = (GR)guru_array_new(n);			// ref_cnt is 1 already
 
@@ -824,10 +834,59 @@ class Ucode::Impl
         if ((h->n=n)>0) _stack_copy(h->data, _R(b), n);
 
         _RA(v);									// no need to ref_inc
-#else
-        QUIT("Array class");
-#endif // GURU_USE_ARRAY
     }
+    //================================================================
+    /*!@brief
+     Array concat
+
+ 	 R(A) := ary_push(R(A),R(B))
+     */
+    __UCODE__
+    arypush()
+    {
+    	GR ret = guru_array_push(_R(a), _R(b));
+
+    	_RA(ret);
+    }
+
+    //================================================================
+    /*!@brief
+ 	 get Array element by index
+
+ 	 R(A) := R(B)[C]
+     */
+    __UCODE__
+    aref()
+    {
+    	GR ret = guru_array_get(_R(b), _vm->c);
+
+    	_RA(ret);
+    }
+
+    //================================================================
+    /*!@brief
+ 	 set Array element by index
+
+  	  R(B)[C] := R(A)
+     */
+    __UCODE__
+    aset()
+    {
+    	guru_array_set(_R(b), _vm->c, _R(a));
+    }
+
+    //================================================================
+    /*!@brief
+ 	 update multiple Array elements
+
+     *R(A),R(A+1)..R(A+C) := R(A)[B..]
+     */
+    __UCODE__
+    apost()
+    {
+    	ASSERT(1==0);
+    }
+
     //================================================================
     /*!@brief
   	  Create Hash object
@@ -837,7 +896,6 @@ class Ucode::Impl
     __UCODE__
     hash()
     {
-#if GURU_USE_ARRAY
         U32 n   = _AR(c);						// number of kv pairs
         GR  ret = guru_hash_new(n);				// ref_cnt is already set to 1
 
@@ -845,9 +903,6 @@ class Ucode::Impl
         if ((h->n=(n<<1))>0) _stack_copy(h->data, _R(b), h->n);
 
         _RA(ret);							    // new hash on stack top
-#else
-        QUIT("Hash class");
-#endif // GURU_USE_ARRAY
     }
     //================================================================
     /*!@brief
@@ -858,17 +913,23 @@ class Ucode::Impl
     __UCODE__
     range()
     {
-#if GURU_USE_ARRAY
         U32 x   = _AR(c);						// exclude_end
         GR  *p0 = _R(b), *p1 = p0+1;
         GR  r   = guru_range_new(p0, p1, !x);	// p0, p1 ref cnt will be increased
         *p1 = EMPTY;
 
         _RA(r);									// release and  reassign
-#else
-        QUIT("Range class");
-#endif // GURU_USE_ARRAY
     }
+#else
+    __UCODE__ 	array()	    { QUIT("Array class"); }
+    __UCODE__	arypush()	{}
+    __UCODE__	aref()	    {}
+    __UCODE__	aset()	    {}
+    __UCODE__	apost()	    {}
+    __UCODE__	hash()	    { QUIT("Hash class"); }
+    __UCODE__	range() 	{ QUIT("Range class"); }
+#endif // GURU_USE_ARRAY
+    
     //================================================================
     /*!@brief
   	  OP_LAMBDA
@@ -878,19 +939,14 @@ class Ucode::Impl
     __UCODE__
     lambda()
     {
-        U32 bz = _AR(bx) >> 2;					// Bz, Cz a special decoder case
+        GR *obj = _R(a) - 1;
+        GP cls  = class_by_obj(obj);             // current class
+        GP irep = MEMOFF(VM_REPS(_vm, _vm->bz)); // fetch from children irep list
+        GP prc  = guru_define_method(cls, NULL, irep);
 
-        guru_class *cx = _CLS(VM_STATE(_vm)->klass);
-        guru_proc  *px = (guru_proc *)guru_alloc(sizeof(guru_proc));
+        _PRC(prc)->kt = PROC_IREP;
 
-        px->rc   = 0;
-        px->kt   = PROC_IREP;
-        px->n    = 0;							// no param
-        px->pid  = 0xffff;						// anonymous function
-        px->cid  = cx->cid;						// current class
-        px->irep = MEMOFF(VM_REPS(_vm, bz));	// fetch from children irep list
-
-        _RA_T(GT_PROC, off=MEMOFF(px));			// regs[ra].proc = prc
+        _RA_T(GT_PROC, off=prc);			      // regs[ra].proc = prc
     }
     //================================================================
     /*!@brief
@@ -1095,11 +1151,11 @@ class Ucode::Impl
             &Impl::ge,				//    OP_GE,        A B C   R(A) := R(A)>=R(A+1) (Syms[B]=:>=,C=1)
             // 0x37 Complex Object
             &Impl::array,			//    OP_ARRAY,     A B C   R(A) := ary_new(R(B),R(B+1)..R(B+C))
-            &Impl::nop,				//    OP_ARYCAT,    A B     ary_cat(R(A),R(B))
-            &Impl::nop,				//    OP_ARYPUSH,   A B     ary_push(R(A),R(B))
-            &Impl::nop,				//    OP_AREF,      A B C   R(A) := R(B)[C]
-            &Impl::nop,				//    OP_ASET,      A B C   R(B)[C] := R(A)
-            &Impl::nop,				//    OP_APOST,     A B C   *R(A),R(A+1)..R(A+C) := R(A)[B..]
+            &Impl::arypush,			//    OP_ARYCAT,    A B     ary_cat(R(A),R(B))
+            &Impl::arypush,			//    OP_ARYPUSH,   A B     ary_push(R(A),R(B))
+            &Impl::aref,			//    OP_AREF,      A B C   R(A) := R(B)[C]
+            &Impl::aset,			//    OP_ASET,      A B C   R(B)[C] := R(A)
+            &Impl::apost,			//    OP_APOST,     A B C   *R(A),R(A+1)..R(A+C) := R(A)[B..]
             &Impl::string,			//    OP_STRING,    A Bx    R(A) := str_dup(Lit(Bx))
             &Impl::strcat,			//    OP_STRCAT,    A B     str_cat(R(A),R(B))
             &Impl::hash,			//    OP_HASH,      A B C   R(A) := hash_new(R(B),R(B+1)..R(B+C))

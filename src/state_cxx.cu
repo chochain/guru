@@ -13,9 +13,11 @@
 */
 #include "guru.h"
 #include "util.h"
+#include "static.h"
 #include "symbol.h"		// id2name
 #include "mmu.h"
 #include "ostore.h"		// ostore_new
+#include "c_array.h"	// guru_array_new
 #include "iter.h"
 
 #include "base.h"
@@ -27,6 +29,39 @@ class StateMgr::Impl
 	guru_vm *_vm;
 
 	//================================================================
+	__GURU__ void
+    __loop(GR r[], U32 ri, U32 collect)
+	{
+		GR *r1 = r+1;
+		ASSERT(r1->gt==GT_PROC);						// ensure it is a code block
+
+		guru_state *st = VM_STATE(_vm);
+		U32	pc0   = st->pc;
+		GP 	irep0 = st->irep;
+		GP 	irep1 = GR_PRC(r1)->irep;
+		GR 	git   = guru_iter_new(r, NULL);				// create iterator
+
+		// push stack out (1 space for iterator)
+		GR *p = r;
+		//	for (int i=0; i<=ri; i++, *(p+1)=*p, p--);
+        *(++p) = collect ? guru_array_new(4) : EMPTY;   // replace prc with collection array
+		*(++p) = git;
+		*(++p) = *_REGS(st);
+
+		// allocate iterator state (using same stack frame)
+		push_state(irep0, pc0, p, ri);
+		VM_STATE(_vm)->flag |= STATE_LOOP;
+
+		// switch into callee's context with v[1]=1st element
+		push_state(irep1, 0, p, ri);
+		guru_iter *it = GR_ITR(&git);
+		*(++p) = *(it->inc);
+		if (it->n==GT_HASH) {
+			*(++p) = *(it->inc+1);
+		}
+        VM_STATE(_vm)->flag |= (collect ? STATE_COLLECT : 0);
+	}
+
 	/*!@brief
   	  Clean up call stack
 	 */
@@ -61,36 +96,17 @@ class StateMgr::Impl
 		else ASSERT(1==0);
 	}
 
-	__GURU__ void
-	_each(GR r[], U32 ri)
-	{
-		GR *r1 = r+1;
-		ASSERT(r1->gt==GT_PROC);						// ensure it is a code block
+    __GURU__ void
+    _each(GR r[], U32 ri)
+    {
+        __loop(r, ri, 0);
+    }
 
-		guru_state *st = VM_STATE(_vm);
-		U32	pc0   = st->pc;
-		GP 	irep0 = st->irep;
-		GP 	irep1 = GR_PRC(r1)->irep;
-		GR 	git   = guru_iter_new(r, NULL);				// create iterator
-
-		// push stack out (1 space for iterator)
-		//	GR  *p = r1;
-		//	for (int i=0; i<=ri; i++, *(p+1)=*p, p--);
-		*(r+1) = git;
-		*(r+2) = *_REGS(st);
-
-		// allocate iterator state (using same stack frame)
-		push_state(irep0, pc0, r+2, ri);
-		VM_STATE(_vm)->flag |= STATE_LOOP;
-
-		// switch into callee's context with v[1]=1st element
-		push_state(irep1, 0, r+2, ri);
-		guru_iter *it = GR_ITR(&git);
-		*(r+3) = *(it->inc);
-		if (it->n==GT_HASH) {
-			*(r+4) = *(it->inc+1);
-		}
-	}
+    __GURU__ void
+    _map(GR r[], U32 ri)
+    {
+        __loop(r, ri, 1);
+    }
 
 	__GURU__ void
 	_new(GR r[], U32 ri)
@@ -113,7 +129,7 @@ class StateMgr::Impl
 		guru_proc *px = GR_PRC(r+1);						// mark it as a lambda
 		px->kt |= PROC_LAMBDA;
 
-		U32	n   = px->n = _vm->ar.a;
+		U32	n   = px->n = _vm->a;
 		GR  *rf = guru_gr_alloc(n);
 		px->regs = MEMOFF(rf);
 
@@ -127,13 +143,13 @@ class StateMgr::Impl
 	__GURU__ void
 	_raise(GR r[], U32 ri)
 	{
-		ASSERT(_vm->depth > 0);
+		ASSERT(_vm->xcp > 0);
 
-		VM_STATE(_vm)->pc = _vm->rescue[--_vm->depth];		// pop from exception return stack
+		VM_STATE(_vm)->pc = RESCUE_POP(_vm);		// pop from exception return stack
 	}
 
 	__GURU__ U32
-	_exec_missing(GR r[], U32 ri, GS sid)
+	_exec_missing(GR r[], U32 ri, GS pid)
 	{
         typedef void (Impl::*MISSX)(GR r[], U32);	// internal handler of missing function
 		typedef struct {
@@ -145,6 +161,8 @@ class StateMgr::Impl
 			{ "call", 	&Impl::_call,   0 },		// C-based prc_call (hacked handler, it needs vm->state)
 			{ "each",   &Impl::_each,   0 },		// push into call stack, obj at stack[0]
 			{ "times",  &Impl::_each,   0 },		// looper
+			{ "map",    &Impl::_map,    0 },		// mapper
+			{ "collect",&Impl::_map,    0 },
 			{ "new",    &Impl::_new,    0 },
 			{ "lambda", &Impl::_lambda, 0 },		// create object
 			{ "raise",  &Impl::_raise,  0 }			// exception handler
@@ -152,31 +170,30 @@ class StateMgr::Impl
 		static int xfcnt = sizeof(miss_vtbl)/sizeof(Xf);
 
 		Xf *xp = miss_vtbl;
-		if (miss_vtbl[0].sid==0) {					// lazy init
+		if (miss_vtbl[0].pid==0) {					// lazy init
 			for (int i=0; i<xfcnt; i++, xp++) {
-				xp->pid = create_sym((U8*)xp->name);
+				xp->pid = guru_rom_add_sym(xp->name);
 			}
 			xp = miss_vtbl;							// rewind
 		}
 		for (int i=0; i<xfcnt; i++, xp++) {
-#if CC_DEBUG
-			PRINTF("!!!missing_func %p:%s->%d == %d\n", xp, xp->name, xp->pid, pid);
-#endif // CC_DEBUG
 			if (xp->pid==pid) {
+#if CC_DEBUG
+                PRINTF("!!!missing_func %p:%s -> %d\n", xp, xp->name, xp->pid);
+#endif // CC_DEBUG
 				(*this.*xp->func)(r, ri);
 				return 0;
 			}
 		}
 #if CC_DEBUG
-		printf("0x%02x not found -------\n", sid);
+		printf("0x%02x not found -------\n", pid);
 #endif // CC_DEBUG
 		_wipe_stack(r+1, ri+1);						// wipe call stack and return
 		return 1;
 	}
 
 public:
-	__GURU__
-	Impl(guru_vm *vm) : _vm(vm) {}
+	__GURU__ Impl(guru_vm *vm) : _vm(vm) {}
 
 	//================================================================
 	/*!@brief
@@ -200,7 +217,7 @@ public:
 	    switch(r->gt) {
 	    case GT_OBJ:
 	    case GT_CLASS: 	st->klass = r->off;				break;
-	    case GT_PROC: 	st->klass = _REGS(top)->off; 	break;			// top->regs[0].off
+	    case GT_PROC: 	st->klass = _REGS(top)->off; 	break;	// top->regs[0].off
 	    default: ASSERT(1==0);
 	    }
 	    st->irep  = irep;
@@ -211,12 +228,12 @@ public:
 	    st->prev  = _vm->state;			// push current state into context stack
 
 	    if (top) {						// keep stack frame depth
-	    	top->nv = IN_LAMBDA(st) ? GR_PRC(r)->n : _vm->ar.a;
+	    	top->nv = IN_LAMBDA(st) ? GR_PRC(r)->n : _vm->a;
 	    }
 	    else {
 	    	st->nv  = ((guru_irep*)MEMPTR(irep))->nr;			// top most stack frame depth
 	    }
-	    _vm->state = MEMOFF(st);			// TODO: use array-based stack
+	    _vm->state = MEMOFF(st);		// TODO: use array-based stack
 	}
 
 	//================================================================
@@ -264,15 +281,15 @@ public:
 	}
 
 	__GURU__ U32
-	exec_method(GR r[], U32 ri, GS sid)
+	exec_method(GR r[], U32 ri, GS pid)
 	{
 	#if CC_DEBUG
-	    PRINTF("!!!vm_method_exec(%p, %p, %d, %d)\n", _vm, r, ri, sid);
+	    PRINTF("!!!vm_method_exec(%p, %p, %d, %d)\n", _vm, r, ri, pid);
 	#endif // CC_DEBUG
-	    GP prc = proc_by_sid(r, sid);						// v->gt in [GT_OBJ, GT_CLASS]
+	    GP prc = proc_by_id(r, pid);						// v->gt in [GT_OBJ, GT_CLASS]
 
 	    if (prc==0) {										// not found, try VM functions
-	    	return _exec_missing(r, ri, sid);
+	    	return _exec_missing(r, ri, pid);
 	    }
 	    guru_proc *px = _PRC(prc);
 	    if (AS_IREP(px)) {									// a Ruby-based IREP
@@ -282,7 +299,7 @@ public:
 	#if CC_DEBUG
 	    	PRINTF("!!!_CALL(x%x, %p, %d)\n", prc, r, ri);
 	#endif // CC_DEBUG
-	    	r->oid = sid;									// parameter sid is passed as object id
+	    	r->oid = pid;									// parameter sid is passed as object id
 	    	_CALL(prc, r, ri);								// call C-based function
 	    	_wipe_stack(r+1, ri+1);
 	    	r->acl &= ~(ACL_SCLASS|ACL_SELF);
@@ -303,7 +320,9 @@ public:
 
 	}
 };
-
+//
+// interface class
+//
 __GURU__ StateMgr::StateMgr(VM *vm) : _impl(new Impl((guru_vm*)vm)) {}
 __GURU__ StateMgr::~StateMgr() = default;
 __GURU__ void

@@ -25,6 +25,7 @@
 #include "guru.h"
 #include "base.h"
 #include "util.h"
+#include "static.h"
 #include "mmu.h"
 #include "symbol.h"
 #include "c_string.h"
@@ -35,14 +36,12 @@
 #include "vmx.h"
 #include "load.h"
 
-#include "ucode.h"
-
 __GURU__ void
 VM::init(int id_, int step_)
 {
 	id    = id_;
 	step  = step_;
-	depth = err  = 0;
+	xcp   = err  = 0;
 	run   = VM_STATUS_FREE;					// VM not allocated
 }
 
@@ -53,41 +52,24 @@ VM::init(int id_, int step_)
 //
 #if GURU_HOST_GRIT_IMAGE
 __GURU__ void
-VM::prep(U8 *u8_gr)
+VM::load_grit(U8 *u8_gr)
 {
 	if (run==VM_STATUS_FREE) {
 		_transcode(u8_gr);
-		_ready(MEMOFF(U8PADD(u8_gr, ((GRIT*)u8_gr)->reps)));
+		_setup(MEMOFF(U8PADD(u8_gr, ((GRIT*)u8_gr)->reps)));
     }
 }
 #else
 __GURU__ void
-VM::prep(U8 *ibuf)
+VM::load_grit(U8 *ibuf)
 {
 	if (vm->run==VM_STATUS_FREE) {
 		U8 *u8_gr = parse_bytecode(ibuf);
 		_transcode(u8_gr);
-		_ready(MEMOFF(U8PADD(u8_gr, ((GRIT*)u8_gr)->reps)));
+		_setup(MEMOFF(U8PADD(u8_gr, ((GRIT*)u8_gr)->reps)));
     }
 }
 #endif // GURU_HOST_GRIT_IMAGE
-
-//================================================================
-/*!@brief
-  execute one ISEQ instruction for each VM
-
-  @param  vm    A pointer of VM.
-  @retval 0  No error.
-*/
-__GURU__ void
-VM::exec()
-{
-	static Ucode *uc_pool[MIN_VM_COUNT] = { NULL, NULL };
-	if (!uc_pool[id]) {										// lazy allocation
-		uc_pool[id] = new Ucode(this);
-	}
-	uc_pool[id]->run();										// whether my VM is completed
-}
 
 //================================================================
 // Transcode Pooled objects and Symbol table recursively
@@ -97,11 +79,17 @@ __GURU__ void
 VM::_transcode(U8 *u8_gr)
 {
 	GRIT *gr = (GRIT*)u8_gr;
-	GR   *r  = (GR*)U8PADD(gr, gr->pool);
-	for (int i=0; i < gr->psz; i++, r++) {			// symbol table
+	GR   *r0 = (GR*)U8PADD(gr, gr->pool), *r = r0;
+	U32  n   = 0;
+	for (int i=0; i < gr->psz; i++, r0++) {
+		if (r0->gt==GT_STR) n++;
+	}
+	guru_str *str = n ? (guru_str*)guru_alloc(sizeof(guru_str)*n) : NULL;
+
+	for (int i=0; i < gr->psz; i++, r++) {						// symbol table
 		switch (r->gt) {
-		case GT_SYM: guru_sym_rom(r);	break;
-		case GT_STR: guru_str_rom(r);	break;		// instantiate the string
+		case GT_SYM: guru_sym_transcode(r);			break;
+		case GT_STR: guru_str_transcode(r, str++);	break;		// instantiate the string
 		default:
 			// do nothing
 			break;
@@ -116,18 +104,19 @@ VM::_transcode(U8 *u8_gr)
   @param  vm  Pointer to VM
  */
 __GURU__ void
-VM::_ready(GP irep)
+VM::_setup(GP irep)
 {
-	GR *r = regfile;
-	for (int i=0; i<MAX_REGFILE_SIZE; i++, r++) {	// wipe register
-		r->gt  = (i==0) ? GT_CLASS : GT_EMPTY;		// reg[0] is "self"
-		r->acl = 0;
-		r->off = (i==0) ? guru_rom_get_class(GT_OBJ) : 0;
-	}
-	state = NULL;
-	run   = VM_STATUS_READY;
-	depth = err = 0;
+	GR v { GT_CLASS, 0, 0, guru_rom_get_class(GT_OBJ) };
+	GR *rf = (GR*)guru_alloc(sizeof(GR) * VM_REGFILE_SIZE);
+	GR *r  = rf;
+    for (int i=0; rf && i<VM_REGFILE_SIZE; i++, r++) {	// wipe register
+    	*r = (i==0) ? v : EMPTY;
+    }
+	run     = VM_STATUS_READY;
+    xcp     = err = (rf==NULL);
+    state   = NULL;
+	regfile = MEMOFF(rf);
 
-	StateMgr *sm = new StateMgr(this);				// needs a helper
-	sm->push_state(irep, 0, regfile, 0);
+	StateMgr *sm = new StateMgr(this);					// needs a helper
+	sm->push_state(irep, 0, rf, 0);
 }

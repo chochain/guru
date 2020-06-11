@@ -14,6 +14,7 @@
 #include "guru.h"
 #include "global.h"
 #include "symbol.h"
+#include "static.h"
 #include "mmu.h"
 
 #include "base.h"
@@ -60,13 +61,16 @@ public:
 	__GURU__ GP
 	scan_vtbl(guru_class *cx, GS pid)
 	{
-		U8 *cname = MEMPTR(cx->name);
 		guru_proc *px = _PRC(cx->vtbl);				// sequential search thru the array
 		for (int i=0; i < cx->rc; i++, px++) {		// TODO: parallel search (i.e. CDP, see above)
+            if (px->pid==pid) {
 	#if CC_DEBUG
-			PRINTF("!!!vtbl scaning %p:%s[%2d] %p:%s->%d == %d\n", cx, cname, i, px, MEMPTR(px->name), px->pid, pid);
+                U8 *cname = _RAW(cx->cid);
+                U8 *pname = _RAW(px->pid);
+                PRINTF("!!!vtbl[%d] hit %p:%p %s#%s -> %d\n", i, cx, px, cname, pname, pid);
 	#endif // CC_DEBUG
-			if (px->pid==pid) return MEMOFF(px);
+                return MEMOFF(px);
+            }
 		}
 		return 0;
 	}
@@ -74,52 +78,24 @@ public:
 	__GURU__ GP
 	scan_flist(guru_class *cx, GS pid)
 	{
-		U8 *cname = MEMPTR(cx->name);
 		GP prc = cx->flist;							// walk IREP linked-list
+        int i = 0;
 		while (prc) {								// TODO: IREP should be added into guru_class->vtbl[]
 			guru_proc *px = _PRC(prc);
-	#if CC_DEBUG
-			PRINTF("!!!flst scaning %p:%s %p:%s->%d == %d\n", cx, cname, px, MEMPTR(px->name), px->pid, pid);
-	#endif // CC_DEBUG
 			if (px->pid==pid) {
+	#if CC_DEBUG
+                U8 *cname = _RAW(cx->cid);
+                U8 *pname = _RAW(px->pid);
+                PRINTF("!!!flst[%d] hit %p:%p %s#%s -> %d\n", i, cx, px, cname, pname, pid);
+	#endif // CC_DEBUG
 				return prc;
 			}
+            i++;
 			prc = px->next;
 		}
 		return 0;
 	}
 	#endif // CUDA_ENABLE_CDP
-
-	//================================================================
-	/*!@brief
-	  define class
-
-	  @param  vm		pointer to vm.
-	  @param  name		class name.
-	  @param  super		super class.
-	*/
-	__GURU__ guru_class*
-	define_class(const U8 *name, GP cls, GP super)
-	{
-		guru_class *cx = _CLS(cls);
-		GS         cid = create_sym(name);
-
-	    cx->rc     = cx->n = cx->kt = 0;	// BUILT-IN class
-	    cx->cid    = cid;
-	    cx->var    = 0;						// class variables, lazily allocated when needed
-	    cx->meta   = 0;						// meta-class, lazily allocated when needed
-	    cx->super  = super;
-	    cx->vtbl   = 0;
-	    cx->flist  = 0;						// head of list
-	#ifdef GURU_DEBUG
-	    cx->name   = MEMOFF(id2name(sid));	// retrieve from stored symbol table (the one caller passed might be destroyed)
-	#endif
-
-	    GR  r { .gt=GT_CLASS, .acl=0, .oid=0, { .off=cls }};
-	    const_set(sid, &r);					// register new class in constant cache
-
-	    return cx;
-	}
 };
 
 __GURU__	ClassMgr::ClassMgr() : _impl(new Impl)	{}
@@ -138,49 +114,11 @@ __GURU__ ClassMgr *ClassMgr::getInstance()
  * it uses (const U8 *) for static string
  */
 __GURU__ GP
-ClassMgr::rom_get_class(GT idx) {
-	static guru_class _class_list[GT_MAX];
-
-	return idx==GT_EMPTY ? 0 : MEMOFF(&_class_list[idx]);
-}
-
-__GURU__ GP
-ClassMgr::rom_set_class(GT cidx, const char *name, GT super_cidx, const Vfunc vtbl[], int n)
-{
-	GP cls   = rom_get_class(cidx);
-	GP super = rom_get_class(super_cidx);
-
-	guru_class *cx = _impl->define_class(name, cls, super);
-    guru_proc  *px = (guru_proc *)guru_alloc(sizeof(guru_proc) * n);
-    cx->rc   = n;								// number of built-in functions
-    cx->vtbl = MEMOFF(px);						// built-in proc list
-
-    Vfunc *fp = (Vfunc*)vtbl;					// TODO: nvcc allocates very sparsely for String literals
-    for (int i=0; i<n; i++, px++, fp++) {
-    	px->rc   = px->kt = px->n = 0;			// built-in class type (not USER_DEF_CLASS)
-    	px->pid  = create_sym(fp->name);		// raw string function table defined in code
-    	px->cid  = cx->cid;
-    	px->func = MEMOFF(fp->func);
-    	px->next = 0;
-#ifdef GURU_DEBUG
-    	px->cname= MEMOFF(id2name(px->cid));
-    	px->name = MEMOFF(id2name(px->pid));
-#endif
-    }
-	return cls;
-}
-
-__GURU__ GP
 ClassMgr::define_class(const U8 *name, GP super)
 {
-    GP cls = _impl->name2class(name);
-    if (cls) return cls;
-
-    // class does not exist, create a new one
-    guru_class *cx = (guru_class *)guru_alloc(sizeof(guru_class));
-    _impl->define_class(name, (cls=MEMOFF(cx)), super);
-
-    return cls;
+    GT super_cid = (GT)((super - guru_rom_get_class(GT_OBJ))/sizeof(guru_class) + GT_OBJ);
+    
+    return guru_rom_add_class(GT_EMPTY, (char*)name, super_cid, NULL, 0);
 }
 
 //================================================================
@@ -219,38 +157,20 @@ ClassMgr::class_add_meta(GR *r)			// lazy add metaclass to a class
 __GURU__ GP
 ClassMgr::define_method(GP cls, const U8 *name, GP cfunc)
 {
-	static U32 _mutex;
-
-    if (!cls) cls = rom_get_class(GT_OBJ);	// set default to Object.
-
-    guru_proc  *px = (guru_proc*)guru_alloc(sizeof(guru_proc));
-    guru_class *cx = _CLS(cls);
-
-    px->rc = px->kt = px->n = 0;				// No LAMBDA register file, C-function (from BUILT-IN class)
-    px->pid   = create_sym(name);				// proc id
-    px->cid   = cx->cid;						// class id
-    px->func  = cfunc;							// set function pointer
-
-    MUTEX_LOCK(_mutex);
-    	px->next  = cx->flist;					// add as the new list head
-    	cx->flist = MEMOFF(px);					// TODO: change to array implementation
-    MUTEX_FREE(_mutex);
-
-#ifdef GURU_DEBUG
-    px->cname = MEMOFF(id2name(px->cid));
-    px->name  = MEMOFF(id2name(px->pid));
-#endif
-
-    return MEMOFF(px);
+	return guru_define_method(cls, name, cfunc);
 }
 
 __GURU__ GP
-ClassMgr::proc_by_sid(GR *r, GS sid)
+ClassMgr::proc_by_id(GR *r, GS pid)
 {
 	GP cls = class_by_obj(r);
     GP prc = 0;
 
     while (cls) {
+    	guru_class *cx = _CLS(cls);
+    	prc = _impl->scan_vtbl(cx, pid);		// search for C-functions
+    	if (prc) break;
+        
 #if CUDA_ENABLE_CDP
     	static S32 _proc_idx[32];
 
@@ -264,19 +184,16 @@ ClassMgr::proc_by_sid(GR *r, GS sid)
         }
         */
 #else
-    	guru_class *cx = _CLS(cls);
-    	prc = _impl->scan_vtbl(cx, sid);		// search for C-functions
+
+    	prc = _impl->scan_flist(cx, pid);		// TODO: combine flist into vtbl[]
     	if (prc) break;
 #endif // CUDA_ENABLE_CDP
-
-    	prc = _impl->scan_flist(cx, sid);	// TODO: combine flist into vtbl[]
-    	if (prc) break;
 
     	cls = cx->super;
     }
 #if CC_DEBUG
-	U8* fname = id2name(sid);
-    PRINTF("!!!proc_by_sid(%p, %d)=>%s %d[x%04x]\n", r, sid, fname, prc, prc);
+	U8* pname = _RAW(pid);
+    PRINTF("!!!proc_by_id(%p, %d)=>%s %d[x%04x]\n", r, pid, pname, prc, prc);
 #endif // CC_DEBUG
     return prc;
 }
@@ -294,6 +211,10 @@ ClassMgr::class_by_obj(GR *r)
 {
 #if CC_DEBUG
 	PRINTF("!!!class_by_obj(%p) r->gt=%d, r->off=x%x: ", r, r->gt, r->off);
+	const char *tname[] = {
+			"???", "Nil", "False", "True", "Integer", "Float", "Symbol", "Sys",
+            "", "Proc", "", "Array", "String", "Range", "Hash", "???"
+	};
 #endif // CC_DEBUG
 	GP ret;
 	switch (r->gt) {
@@ -305,20 +226,20 @@ ClassMgr::class_by_obj(GR *r)
     } break;
     case GT_CLASS: {
     	guru_class *cx = GR_CLS(r);
-    	GP scls = cx->meta ? cx->meta : rom_get_class(GT_OBJ);
+    	GP scls = cx->meta ? cx->meta : guru_rom_get_class(GT_OBJ);
     	GP cls  = r->off;
 #if CC_DEBUG
-    	PRINTF(" CLS[x%04x]=%s:%p", cls, MEMPTR(cx->name), cx);
+    	PRINTF(" CLS[x%04x]=%s:%p", cls, _RAW(cx->cid), cx);
 #endif // CC_DEBUG
     	ret  = IS_BUILTIN(cx)
     		? cls
     		: (IS_SCLASS(r) ? scls : (IS_SELF(r) ? cls : scls));
     } break;
     default:
+    	ret = guru_rom_get_class(r->gt);
 #if CC_DEBUG
-    	PRINTF("???");
+        PRINTF(" CLS[x%04x]=%s:%p", ret, tname[r->gt], GR_CLS(r));
 #endif // CC_DEBUG
-    	ret = rom_get_class(r->gt);
     }
 #if CC_DEBUG
 	PRINTF("=> x%04x\n", ret);
@@ -336,6 +257,18 @@ __GURU__ GR
 ClassMgr::kind_of(GR *r)		// whether v1 is a kind of v0
 {
 	return send(r, r+1, (U8*)"kind_of?", 1, r);
+}
+
+__GURU__ GP
+ClassMgr::class_by_id(GS cid)
+{
+	guru_class *cx = _CLS(guru_device_rom.cls);
+	for (int i=0; i<guru_device_rom.ncls; i++, cx++) {
+		if (cx->cid == cid) {
+			return MEMOFF(cx);
+		}
+	}
+	return 0;
 }
 
 //================================================================
