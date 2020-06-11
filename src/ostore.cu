@@ -256,7 +256,7 @@ ostore_getcv(GR *r, GS oid)
 	ASSERT(r->gt==GT_OBJ);
 
 	GP cls = GR_OBJ(r)->cls;								// get class of given object
-	GR cv  { .gt=GT_CLASS, .acl=0, .oid=0, { .off=cls }};
+	GR cv  { GT_CLASS, 0, 0, cls };
 	GR ret { GT_NIL };
 	while (cls) {
 		if ((ret=ostore_get(&cv, oid)).gt!=GT_NIL) break;	// fetch class variable

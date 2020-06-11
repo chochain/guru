@@ -127,7 +127,7 @@ obj_eq3(GR r[], U32 ri)
 __CFUNC__
 obj_class(GR r[], U32 ri)
 {
-    GR ret { .gt=GT_CLASS, .acl=0, .oid=0, { .off=class_by_obj(r) }};
+    GR ret { GT_CLASS, 0, 0, class_by_obj(r) };
 
     RETURN_VAL(ret);
 }
