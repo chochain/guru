@@ -88,7 +88,7 @@ __CFUNC__
 rng_eq3(GR r[], U32 ri)
 {
     if (r->gt == GT_CLASS) {
-        GR ret = kind_of(r);
+        GR ret = ClassMgr::getInstance()->kind_of(r);
         RETURN_VAL(ret);
     }
 

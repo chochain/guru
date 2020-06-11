@@ -44,7 +44,12 @@ _p(GR *r)
     	PRINTF("%s", name);
     } break;
     case GT_OBJ: {
-    	U8 *name = _RAW(_CLS(class_by_obj(r))->cid);			// ~= class->cname
+#if GURU_CXX_CODEBASE
+    	GP cls = ClassMgr::getInstance()->class_by_obj(r);
+#else
+    	GP cls = class_by_obj(r);
+#endif // GURU_CXX_CODEBASE
+    	U8 *name = _RAW(_CLS(cls)->cid);						// ~= class->cname
     	PRINTF("#<%s:%p>", name, GR_OBJ(r));
     } break;
     case GT_PROC:

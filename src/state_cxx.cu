@@ -283,24 +283,24 @@ public:
 	__GURU__ U32
 	exec_method(GR r[], U32 ri, GS pid)
 	{
+
 	#if CC_DEBUG
 	    PRINTF("!!!vm_method_exec(%p, %p, %d, %d)\n", _vm, r, ri, pid);
 	#endif // CC_DEBUG
-	    GP prc = proc_by_id(r, pid);						// v->gt in [GT_OBJ, GT_CLASS]
-
-	    if (prc==0) {										// not found, try VM functions
+	    GP prc = ClassMgr::getInstance()->proc_by_id(r, pid);	// v->gt in [GT_OBJ, GT_CLASS]
+	    if (prc==0) {											// not found, try VM functions
 	    	return _exec_missing(r, ri, pid);
 	    }
 	    guru_proc *px = _PRC(prc);
-	    if (AS_IREP(px)) {									// a Ruby-based IREP
-	    	push_state(px->irep, 0, r, ri);					// switch to callee's context
+	    if (AS_IREP(px)) {										// a Ruby-based IREP
+	    	push_state(px->irep, 0, r, ri);						// switch to callee's context
 	    }
-	    else {												// must be a C-function
+	    else {													// must be a C-function
 	#if CC_DEBUG
 	    	PRINTF("!!!_CALL(x%x, %p, %d)\n", prc, r, ri);
 	#endif // CC_DEBUG
-	    	r->oid = pid;									// parameter sid is passed as object id
-	    	_CALL(prc, r, ri);								// call C-based function
+	    	r->oid = pid;										// parameter sid is passed as object id
+	    	_CALL(prc, r, ri);									// call C-based function
 	    	_wipe_stack(r+1, ri+1);
 	    	r->acl &= ~(ACL_SCLASS|ACL_SELF);
 	    }

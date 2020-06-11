@@ -147,7 +147,8 @@ __GURU__ void
 _obj(GR *buf, GR *r)
 {
 	ASSERT(r->gt==GT_OBJ);
-	U8 *cname = _RAW(_CLS(class_by_obj(r))->cid);		// ~= class->cname
+	GP cls    = ClassMgr::getInstance()->class_by_obj(r);
+	U8 *cname = _RAW(_CLS(cls)->cid);					// ~= class->cname
 	guru_buf_add_cstr(buf, "#<");
 	guru_buf_add_cstr(buf, cname);
 	guru_buf_add_cstr(buf, ":");

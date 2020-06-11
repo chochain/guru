@@ -116,7 +116,11 @@ obj_eq3(GR r[], U32 ri)
     	RETURN_BOOL(guru_cmp(r, r+1)==0);
     }
     else {
+#if GURU_CXX_CODEBASE
+    	GR ret = ClassMgr::getInstance()->kind_of(r);
+#else
     	GR ret = kind_of(r);
+#endif // GURU_CXX_CODEBASE
     	RETURN_VAL(ret);
     }
 }
@@ -127,7 +131,12 @@ obj_eq3(GR r[], U32 ri)
 __CFUNC__
 obj_class(GR r[], U32 ri)
 {
-    GR ret { GT_CLASS, 0, 0, class_by_obj(r) };
+#if GURU_CXX_CODEBASE
+	GP cls = ClassMgr::getInstance()->class_by_obj(r);
+#else
+	GP cls = class_by_obj(r);
+#endif // GURU_CXX_CODEBASE
+    GR ret { GT_CLASS, 0, 0, cls };
 
     RETURN_VAL(ret);
 }
@@ -161,7 +170,7 @@ obj_extend(GR r[], U32 ri)
 {
 	ASSERT(r->gt==GT_CLASS && (r+1)->gt==GT_CLASS);
 
-	guru_class_add_meta(r);						// lazily add metaclass if needed
+	ClassMgr::getInstance()->class_add_meta(r);						// lazily add metaclass if needed
 	_extend(GR_CLS(r)->meta, (r+1)->off);		// add to class methods
 }
 
@@ -250,7 +259,11 @@ obj_kind_of(GR r[], U32 ri)
     if ((r+1)->gt != GT_CLASS) {
         RETURN_BOOL(0);
     }
+#if GURU_CXX_CODEBASE
+    GP cls = ClassMgr::getInstance()->class_by_obj(r);
+#else
     GP cls = class_by_obj(r);
+#endif // GURU_CXX_CODEBASE
     while (cls) {
         if (cls==(r+1)->off) break;
         cls = _CLS(cls)->super;

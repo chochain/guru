@@ -45,6 +45,7 @@ class Ucode::Impl
 {
 	guru_vm    	*_vm;			// cached vm
 	StateMgr    *_sm;			// stack manager object
+	ClassMgr	*_cm;
 	U32  		_mutex = 0;
 
     //================================================================
@@ -86,7 +87,7 @@ class Ucode::Impl
         guru_buf_add_cstr(buf, "undefined method '");
         guru_buf_add_cstr(buf, _RAW(pid));
         guru_buf_add_cstr(buf, "' for class #");
-        guru_buf_add_cstr(buf, _RAW(_CLS(class_by_obj(r))->cid));
+        guru_buf_add_cstr(buf, _RAW(_CLS(_cm->class_by_obj(r))->cid));
 
         return buf;
     }
@@ -316,7 +317,7 @@ class Ucode::Impl
     getconst()
     {
         GS sid = VM_SYM(_vm, _AR(bx));
-        GP cls = class_by_id(sid);                 // search class rom first
+        GP cls = _cm->class_by_id(sid);            // search class rom first
         GR ret { GT_CLASS, 0, 0, { cls } };
         GR *r  = cls ? &ret : const_get(sid);      // then search constant cache
 
@@ -940,13 +941,13 @@ class Ucode::Impl
     lambda()
     {
         GR *obj = _R(a) - 1;
-        GP cls  = class_by_obj(obj);             // current class
-        GP irep = MEMOFF(VM_REPS(_vm, _vm->bz)); // fetch from children irep list
+        GP cls  = _cm->class_by_obj(obj);   			// current class
+        GP irep = MEMOFF(VM_REPS(_vm, _vm->bz)); 		// fetch from children irep list
         GP prc  = guru_define_method(cls, NULL, irep);
 
         _PRC(prc)->kt = PROC_IREP;
 
-        _RA_T(GT_PROC, off=prc);			      // regs[ra].proc = prc
+        _RA_T(GT_PROC, off=prc);			      		// regs[ra].proc = prc
     }
     //================================================================
     /*!@brief
@@ -964,7 +965,7 @@ class Ucode::Impl
         GS sid   = VM_SYM(_vm, _AR(b));
         U8 *name = _RAW(sid);
         GP super = (r1->gt==GT_CLASS) ? r1->off : VM_STATE(_vm)->klass;
-        GP cls   = guru_define_class(name, super);
+        GP cls   = _cm->define_class(name, super);
 
         _CLS(cls)->kt |= USER_DEF_CLASS;			// user defined (i.e. non-builtin) class
 
@@ -1040,12 +1041,12 @@ class Ucode::Impl
         GR *r = _R(b);
         if (r->gt==GT_OBJ) {							// singleton class (extending an object)
             const U8 *name  = (U8*)"_single";
-            GP super = class_by_obj(r);
-            GP cls   = guru_define_class(name, super);
+            GP super = _cm->class_by_obj(r);
+            GP cls   = _cm->define_class(name, super);
             GR_OBJ(r)->cls = cls;
         }
         else if (r->gt==GT_CLASS) {						// meta class (for class methods)
-            guru_class_add_meta(r);						// lazily add metaclass if needed
+            _cm->class_add_meta(r);						// lazily add metaclass if needed
         }
         else ASSERT(1==0);
 
@@ -1190,6 +1191,7 @@ public:
     {
     	_vm = (guru_vm*)vm;
     	_sm = new StateMgr(vm);
+    	_cm = ClassMgr::getInstance();
     }
 
     __GURU__ __INLINE__ int run()

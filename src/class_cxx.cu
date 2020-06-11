@@ -103,7 +103,8 @@ __GURU__	ClassMgr::~ClassMgr() = default;
 
 __GURU__ ClassMgr *ClassMgr::getInstance()
 {
-	static ClassMgr *_self;
+	static ClassMgr *_self = NULL;
+
 	if (!_self) {
 		_self = new ClassMgr();
 	}
