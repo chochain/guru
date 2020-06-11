@@ -20,7 +20,7 @@
  *   cc  : for my development only, default 0
  */
 #define GURU_DEBUG			1
-#define MMU_DEBUG			1
+#define MMU_DEBUG			0
 #define CC_DEBUG			0
 
 /* min, maximum number of VMs */
@@ -60,7 +60,7 @@
 #define GURU_HEAP_SIZE 				(48*1024)
 #define GURU_STRBUF_SIZE			(256-1)
 #define GURU_HOST_GRIT_IMAGE		1
-#define GURU_CXX_CODEBASE           0
+#define GURU_CXX_CODEBASE           1
 /* CUDA dependent flags */
 #define CUDA_MIN_MEMBLOCK_SIZE		0x200
 #define CUDA_ENABLE_CDP            	0

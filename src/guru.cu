@@ -92,6 +92,7 @@ guru_setup(int step, int trace)
 #if GURU_USE_CONSOLE
 	guru_console_init<<<1,1>>>(out, OUTPUT_BUF_SIZE);		// initialize output buffer
 #endif
+	GPU_SYNC();
 
     U32 sz0, sz1;
 	cudaDeviceGetLimit((size_t *)&sz0, cudaLimitStackSize);

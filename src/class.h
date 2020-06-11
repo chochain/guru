@@ -89,9 +89,6 @@ public:
 
 	static __GURU__ ClassMgr *getInstance();
 
-	__GURU__ GP	rom_get_class(GT cidx);
-	__GURU__ GP	rom_set_class(GT cidx, const char *name, GT super_cidx, const Vfunc vtbl[], int n);
-
 	__GURU__ GP	define_class(const U8 *name, GP super);
 	__GURU__ GP	class_add_meta(GR *r);				// lazy add metaclass to a class
 	__GURU__ GP	define_method(GP cls, const U8 *name, GP cfunc);
@@ -100,6 +97,7 @@ public:
 	__GURU__ GR	inspect(GR *v, GR *obj);				// inspect obj using v[] as stack
 	__GURU__ GR	kind_of(GR *v);							// whether v1 is a kind of v0
 	__GURU__ GP	class_by_obj(GR *v);
+	__GURU__ GP class_by_id(GS cid);
 	__GURU__ GP	proc_by_id(GR *v, GS pid);
 	__GURU__ GR send(GR r[], GR *rcv, const U8 *method, U32 argc, ...);
 };

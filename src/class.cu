@@ -216,7 +216,6 @@ __scan_flist(guru_class *cx, GS pid)
 }
 #endif // CUDA_ENABLE_CDP
 
-__GURU__ S32 _proc_idx[32];
 __GURU__ GP
 proc_by_id(GR *r, GS pid)
 {
@@ -230,6 +229,7 @@ proc_by_id(GR *r, GS pid)
     	if (prc) break;
 
 #if CUDA_ENABLE_CDP
+        static __GURU__ S32 _proc_idx[32];
     	/* CC: hold! CUDA 10.2 profiler does not support CDP yet,
         if (IS_BUILTIN(cls)) {
         	S32 *idx = &_proc_idx[threadIdx.x];

@@ -42,7 +42,7 @@ static const char *_vtype[] = {
 };
 
 static const char *_errcode[] = {
-	"", "ERROR", "Method Not Found", "CUDA"
+	"", "ERROR", "Method Not Found", "CUDA", "Divided by zero"
 };
 
 static const char *_opcode[] = {

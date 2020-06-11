@@ -732,7 +732,7 @@ uc_div(guru_vm *vm)
 	GR *r = _R(a);
 
 	if (r->gt==GT_INT && (r+1)->i==0) {
-		vm->err = 1;
+		vm->err = 4;
 	}
 	else ALU_OP(a, /);
 }
