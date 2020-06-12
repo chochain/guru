@@ -73,9 +73,9 @@ __device__ double		d_atof(const char *s);
 #define ATOI(s)			atol(s)
 #define ATOF(s)			atof(s)
 
-#endif	// __CUDACC__
+#endif	// defined(__CUDACC__)
 
 #ifdef __cplusplus
 }
 #endif
-#endif
+#endif // GURU_SRC_UTIL_H_

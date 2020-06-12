@@ -131,5 +131,4 @@ public:
     __GURU__ void  	load_grit(U8 *u8_gr);
 };
 #endif // GURU_CXX_CODEBASE
-
 #endif // GURU_SRC_VM_H_

@@ -38,4 +38,4 @@ __GURU__ void	guru_iter_del(GR *r);
 #ifdef __cplusplus
 }
 #endif
-#endif
+#endif // GURU_SRC_C_ITER_H_

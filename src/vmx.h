@@ -47,6 +47,5 @@ public:
     __HOST__ int 	get(char *ibuf);
 };
 #endif // GURU_CXX_CODEBASE
-
-#endif
+#endif // GURU_SRC_VMX_H_
 

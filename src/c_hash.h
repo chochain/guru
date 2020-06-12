@@ -43,4 +43,4 @@ __GURU__ void       guru_init_class_hash();
 #ifdef __cplusplus
 }
 #endif
-#endif
+#endif // GURU_SRC_C_HASH_H_

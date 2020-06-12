@@ -27,4 +27,4 @@ __GURU__ void   guru_sym_transcode(GR *r);		// ROMable symbol
 #ifdef __cplusplus
 }
 #endif
-#endif
+#endif // GURU_SRC_SYMBOL_H_

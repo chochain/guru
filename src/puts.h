@@ -25,4 +25,4 @@ __GURU__ void guru_p(GR r[], U32 ri);
 #ifdef __cplusplus
 }
 #endif
-#endif
+#endif // GURU_SRC_PUTS_H_

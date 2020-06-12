@@ -60,4 +60,4 @@ __GURU__ GP		guru_define_method(GP cls, const U8 *name, GP cfunc);
 #ifdef __cplusplus
 }
 #endif
-#endif
+#endif // GURU_SRC_STATIC_H_

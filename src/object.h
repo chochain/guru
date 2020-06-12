@@ -27,4 +27,4 @@ __GURU__ void     	guru_obj_del(GR *r);						// a facade to ostore_del
 #ifdef __cplusplus
 }
 #endif
-#endif
+#endif // GURU_SRC_OBJECT_H_

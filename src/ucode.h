@@ -156,4 +156,4 @@ public:
 };
 #endif // GURU_CXX_CODEBASE
 
-#endif
+#endif // GURU_SRC_OPCODE_H_

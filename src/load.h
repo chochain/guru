@@ -54,4 +54,4 @@ __CODE__ U8 *parse_bytecode(U8 *src);		// parsed on HOST, image passed into GPU
 #ifdef __cplusplus
 }
 #endif
-#endif
+#endif // GURU_SRC_LOAD_H_

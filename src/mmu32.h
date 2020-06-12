@@ -83,4 +83,4 @@ typedef struct free_block {			// 16-bytes (i.e. mininum allocation per block)
 #ifdef __cplusplus
 }
 #endif
-#endif
+#endif // GURU_SRC_MMU32_H_

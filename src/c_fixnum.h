@@ -24,4 +24,4 @@ __GURU__ void guru_init_class_float();
 #ifdef __cplusplus
 }
 #endif
-#endif
+#endif // GURU_SRC_C_NUMERIC_H_

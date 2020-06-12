@@ -47,4 +47,4 @@ extern __GURU__ GR 	EMPTY;
 #ifdef __cplusplus
 }
 #endif
-#endif
+#endif // GURU_SRC_BASE_H_

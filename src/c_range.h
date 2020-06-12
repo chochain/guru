@@ -42,4 +42,4 @@ __GURU__ void       guru_init_class_range();
 #ifdef __cplusplus
 }
 #endif
-#endif
+#endif // GURU_SRC_C_RANGE_H_

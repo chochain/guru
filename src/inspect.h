@@ -30,4 +30,4 @@ __CFUNC__	gr_printf(GR r[], U32 ri);
 #ifdef __cplusplus
 }
 #endif
-#endif
+#endif // GURU_SRC_INSPECT_H_

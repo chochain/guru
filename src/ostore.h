@@ -28,4 +28,4 @@ __GURU__ GR		ostore_getcv(GR *r, GS oid);
 #ifdef __cplusplus
 }
 #endif
-#endif
+#endif // GURU_SRC_OSTORE_H_

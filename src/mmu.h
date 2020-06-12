@@ -59,4 +59,4 @@ __HOST__ U32 			guru_mmu_check(U32 level);
 #ifdef __cplusplus
 }
 #endif
-#endif
+#endif // GURU_SRC_MMU_H_

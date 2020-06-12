@@ -38,4 +38,4 @@ __GURU__ void   guru_init_class_string(void);
 #ifdef __cplusplus
 }
 #endif
-#endif
+#endif // GURU_SRC_C_STRING_H_

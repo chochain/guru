@@ -45,4 +45,4 @@ __HOST__ void guru_console_flush(U8 *output_buf, U32 trace);
 #ifdef __cplusplus
 }
 #endif
-#endif
+#endif // GURU_SRC_CONSOLE_H_

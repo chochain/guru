@@ -49,7 +49,7 @@ extern "C" {
 #define ALIGN(sz) 			((sz) + (-(sz) & 3))
 #define ASSERT(X) 			assert(x)
 
-#endif
+#endif // defined(__CUDACC__)
 
 #define OUTPUT_BUF_SIZE 	4096			// 4K
 
@@ -248,4 +248,5 @@ typedef struct RSes {			// 16-byte
 #ifdef __cplusplus
 }
 #endif
-#endif
+
+#endif // GURU_SRC_GURU_H_

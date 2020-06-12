@@ -27,4 +27,4 @@ __GURU__ GR 	*const_get(GS xid);
 #ifdef __cplusplus
 }
 #endif
-#endif
+#endif // GURU_SRC_GLOBAL_H_

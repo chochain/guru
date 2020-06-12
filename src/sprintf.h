@@ -48,4 +48,4 @@ __GURU__ void guru_vprintf(const U8 *fstr, GR r[], U32 ri);
 #ifdef __cplusplus
 }
 #endif
-#endif
+#endif // GURU_SRC_SPRINTF_H_

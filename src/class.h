@@ -104,4 +104,4 @@ public:
 #define CLS_MGR		(ClassMgr::getInstance())
 #endif // GURU_CXX_CODEBASE
 
-#endif
+#endif // GURU_SRC_CLASS_H_
