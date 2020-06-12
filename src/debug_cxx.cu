@@ -48,7 +48,6 @@ __id2str(GS sid, U8 *str)
 
 class Debug::Impl
 {
-    guru_vm *_vm;
     U8      *_outbuf = NULL;
     U32     _debug   = 0;
     
@@ -266,7 +265,7 @@ class Debug::Impl
         }
 
         U8 idx = _get_irep_id(st);
-        printf("%1d%c%-4d%-8s", _vm->id, idx, pc, opc);
+        printf("%1d%c%-4d%-8s", vm->id, idx, pc, opc);
 
         _show_decode(st, ar);
         printf("[");
@@ -339,11 +338,22 @@ public:
     }
 
     __HOST__ void
-    error(guru_vm *vm)
+    err(int ec)
     {
-        if (_debug<1 || !vm->err) return;
+        if (_debug<1 || !ec) return;
 
-        printf("ERROR: %s\n", _errcode[vm->err]);
+        switch(ec) {
+        case -11: log("ERROR: failed to allocate device main memory block!"); 	break;
+        case -12: log("ERROR: output buffer allocation error!"); 			 	break;
+        case -13: log("ERROR: VM memory block allocation error!");			 	break;
+    	case -21: log("ERROR: session memory allocation error!");				break;
+    	case -22: log("ERROR: bytecode memory allocation error!"); 				break;
+    	case -31: log("ERROR: VM pool memory allocation error!");				break;
+    	case -32: log("ERROR: No more VM available!");						 	break;
+    	case -33: log("ERROR: bytecode parse failure!");						break;
+    	case -34: log("ERROR: failed to transition VM state!"); 				break;
+    	default: printf("ERROR: %s\n", _errcode[ec]);
+    	}
     }
     
     __HOST__ void
@@ -371,9 +381,9 @@ Debug *Debug::getInstance(U32 flag)
 	}
 	return _self;
 }
-void Debug::mmu_stat()           {  _impl->mmu_stat();  }
-void Debug::vm_irep(guru_vm *vm) {  _impl->vm_irep(vm); }
-void Debug::disasm(guru_vm *vm)  {  _impl->disasm(vm);  }
-void Debug::error(guru_vm *vm)   {  _impl->error(vm);   }
-void Debug::log(const char *msg) { _impl->log(msg);     }
+void Debug::mmu_stat()           { _impl->mmu_stat();  }
+void Debug::vm_irep(guru_vm *vm) { _impl->vm_irep(vm); }
+void Debug::disasm(guru_vm *vm)  { _impl->disasm(vm);  }
+void Debug::err(int err)   		 { _impl->err(err);    }
+void Debug::log(const char *msg) { _impl->log(msg);    }
 

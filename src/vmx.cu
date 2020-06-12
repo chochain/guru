@@ -137,7 +137,7 @@ public:
 				cudaError_t e = cudaGetLastError();
 				if (e) {
 					fprintf(stderr, "CUDA ERROR: %s, bailing\n", cudaGetErrorString(e));
-					vm->err = 1;
+					vm->err = 4;
 				}
 				// add post-hook here
 			}
@@ -153,14 +153,14 @@ public:
 	__HOST__ S32
 	vm_get(U8 *ibuf)
 	{
-		if (!_pool) 				return -1;
-		if (_idx>=MIN_VM_COUNT) 	return -1;
+		if (!_pool) 				return -31;				// pool memory allocation error
+		if (_idx>=MIN_VM_COUNT) 	return -32;				// out of VM
 
 		VM *vm = &_pool[_idx];
 
 #if GURU_HOST_GRIT_IMAGE
 		U8 *gr = (U8*)parse_bytecode(ibuf);
-		if (!gr) 					return -2;
+		if (!gr) 					return -33;
 
 		_vm_load_grit<<<1,1>>>(vm, gr);
 #else
@@ -169,7 +169,7 @@ public:
 		GPU_SYNC();
 
 		_debug->vm_irep((guru_vm*)vm);
-		if (ready(_idx)) 			return -3;
+		if (ready(_idx)) 			return -44;
 
 		return _idx++;
 	}

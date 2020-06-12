@@ -80,7 +80,8 @@ public:
 	{
 		GP prc = cx->flist;							// walk IREP linked-list
         int i = 0;
-		while (prc) {								// TODO: IREP should be added into guru_class->vtbl[]
+		while (prc) {
+			// TODO: IREP should be added into guru_class->vtbl[]
 			guru_proc *px = _PRC(prc);
 			if (px->pid==pid) {
 	#if CC_DEBUG

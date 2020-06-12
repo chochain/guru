@@ -72,7 +72,7 @@ public:
 	void mmu_stat();
 	void vm_irep(guru_vm *vm);
 	void disasm(guru_vm *vm);
-	void error(guru_vm *vm);
+	void err(int ec);
 	void log(const char *msg);
 };
 #endif // GURU_CXX_CODEBASE

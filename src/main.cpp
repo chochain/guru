@@ -50,7 +50,7 @@ int main(int argc, char *argv[])
 		char *fname = argv[i];
 		if (guru->load(fname)) return -2;
 	}
-	guru->run();									// TODO: consumer
+	return guru->run();								// TODO: consumer
 #else
 	if (signal(SIGINT, guru_teardown)==SIG_ERR) {	// register interrupt handler
 		fprintf(stderr, "ERROR: SIGINT, use kill -9");
@@ -64,7 +64,7 @@ int main(int argc, char *argv[])
 	}
 	guru_run();										// TODO: consumer
 	guru_teardown(0);
-#endif // GURU_CXX_CODEBASE
 
 	return 0;
+#endif // GURU_CXX_CODEBASE
 }

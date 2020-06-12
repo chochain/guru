@@ -75,13 +75,13 @@ public:
 	init(int step, int trace)
 	{
 		U8 *mem = guru_host_heap = (U8*)cuda_malloc(GURU_HEAP_SIZE, 1);	// allocate main block (i.e. RAM)
-		if (!mem) 		return -1;
+		if (!mem) 		return 11;
 
 		U8 *out = _guru_out = (U8*)cuda_malloc(OUTPUT_BUF_SIZE, 1);		// allocate output buffer
-		if (!_guru_out) return -2;
+		if (!_guru_out) return 12;
 
 		_vm_pool = new VM_Pool(step, trace);
-		if (!_vm_pool) 	return -3;
+		if (!_vm_pool) 	return 13;
 
 		guru_mmu_init<<<1,1>>>(mem, GURU_HEAP_SIZE);			// setup memory management
 		guru_core_init<<<1,1>>>();								// setup basic classes	(TODO: => ROM)
@@ -97,10 +97,10 @@ public:
 	get_ses(char *rite_name)
 	{
 		guru_ses *ses = (guru_ses *)malloc(sizeof(guru_ses));
-		if (!ses) return -3;
+		if (!ses) return -21;				// session memory allocation error
 
 		char *ins = _fetch_bytecode(rite_name);
-		if (!ins) return -4;
+		if (!ins) return -22;				// bytecode memory allocation error
 
 		int id = ses->id = _vm_pool->get(ins);
 		cuda_free(ins);
@@ -131,15 +131,8 @@ Guru::Guru(int step, int trace) : _impl(new Impl())
 	d->log("guru initializing...");
 
 	int rst = _impl->init(step, trace);
-
-	switch (rst) {
-	case -1: d->log("ERROR: failed to allocate device main memory block!\n"); 	break;
-	case -2: d->log("ERROR: output buffer allocation error!\n"); 				break;
-	case -3: d->log("ERROR: VM memory block allocation error!\n");				break;
-	default: break;
-	}
-
 	if (rst) {
+		d->err(rst);
 		d->log("guru initialized failed, bailing out...");
 		exit(-1);
 	}
@@ -165,16 +158,7 @@ Guru::load(char *rite_name)
 
 	int id = _impl->get_ses(rite_name);
 
-	if (id>=0) return 0;
-
-	switch (id) {
-	case -1: d->log("ERROR: bytecode parsing error!\n");			break;
-	case -2: d->log("ERROR: No more VM available!\n");				break;
-	case -3: d->log("ERROR: session memory allocation error!\n");	break;
-	case -4: d->log("ERROR: bytecode memory allocation error!\n"); 	break;
-	default: break;
-	}
-	return 1;
+	return id>=0 ? 0 : (d->err(id), 1);
 }
 
 __HOST__ int
@@ -186,6 +170,9 @@ Guru::run()
 	d->mmu_stat();
 
 	int rst = _impl->run();
+	if (rst) {
+		d->err(rst);
+	}
 
 	d->mmu_stat();
 	d->log("guru session completed.");
