@@ -20,7 +20,7 @@
 extern "C" {
 #endif
 
-extern U8 *guru_host_heap;										// accessed by host code
+extern          U8 *guru_host_heap;								// accessed by host code
 extern __GURU__ U8 *guru_device_heap;							// accessed by kernel code
 
 #define MEMOFF(p)		(U8POFF(p, guru_device_heap))

@@ -25,6 +25,7 @@
 #define _UNLOCK			{ MUTEX_FREE(_mutex_mem); }
 
 // memory pool
+		 U8 			*guru_host_heap;						// guru host global memory
 __GURU__ U8				*guru_device_heap;						// CUDA kernel global memory pool
 __GURU__ U32 			_heap_size;
 __GURU__ U32 			_mutex_mem;

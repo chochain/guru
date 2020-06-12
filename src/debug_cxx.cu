@@ -120,8 +120,9 @@ class Debug::Impl
 
     #define bin2u32(x) ((x << 24) | ((x & 0xff00) << 8) | ((x >> 8) & 0xff00) | (x >> 24))
     __HOST__ int
-    _find_op(vector<int>lst, int op, int n)
+    _find_op(vector<int>lst, int op)
     {
+    	int n = lst.size();
         for (int i=0; i<n; i++) {
             if (op==lst[i]) return i;
         }
@@ -224,23 +225,23 @@ class Debug::Impl
         case OP_RESCUE:
             printf(" r%-2d =%1d?r%-15d", (ar.c ? a+1 : a), ar.c, (ar.c ? a : a+1));		return;
         }
-        if (_find_op(_op_bru, op, SZ_BRU) >= 0) {
+        if (_find_op(_op_bru, op) >= 0) {
             printf(" r%-22d", a);							return;
         }
-        if (_find_op(_op_alu, op, SZ_ALU) >= 0) {
+        if (_find_op(_op_alu, op) >= 0) {
             printf(" r%-2d ,r%-17d", a, a+1);				return;
         }
-        if (_find_op(_op_jmp, op, SZ_JMP) >= 0) {
+        if (_find_op(_op_jmp, op) >= 0) {
             printf(" r%-2d @%-18d", a, st->pc+(ar.bx - MAX_sBx));	return;
         }
 
         if (_outbuf==NULL) _outbuf = (U8*)cuda_malloc(OUTBUF_SIZE, 1);	// lazy alloc
-        if (_find_op(_op_sym, op, SZ_SYM) >= 0) {
+        if (_find_op(_op_sym, op) >= 0) {
             GS sid = ST_SYM(st, ar.bx);
             _id2name(sid, _outbuf);
             printf(" r%-2d :%-18s", a, _outbuf);			return;
         }
-        if (_find_op(_op_exe, op, SZ_EXE) >= 0) {
+        if (_find_op(_op_exe, op) >= 0) {
             GS sid = ST_SYM(st, ar.b);
             _id2name(sid, _outbuf);
             printf(" r%-2d #%-18s", a, _outbuf);			return;

@@ -18,8 +18,6 @@ extern "C" __GPU__  void guru_mmu_init(void *ptr, U32 sz);
 extern "C" __GPU__  void guru_core_init(void);
 extern "C" __GPU__  void guru_console_init(U8 *buf, U32 sz);
 
-U8 *guru_host_heap;				// guru global memory
-
 class Guru::Impl
 {
 	VM_Pool  *_vm_pool  = NULL;
