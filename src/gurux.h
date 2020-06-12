@@ -17,7 +17,6 @@ void    guru_teardown(int sig);
 #ifdef __cplusplus
 }
 #endif
-#define GURU_CXX_CODEBASE	1
 
 #if GURU_CXX_CODEBASE
 class Guru								// interface class

@@ -22,14 +22,8 @@ extern "C" __GPU__  void guru_core_init(void);
 extern "C" __GPU__  void guru_console_init(U8 *buf, U32 sz);
 extern "C" __HOST__ int  vm_pool_init(int step);
 
-U8 *guru_host_heap;					// guru global memory
-
 U8 *_guru_out;						// guru output stream
 guru_ses *_ses_list = NULL; 		// session linked-list
-
-#if GURU_CXX_CODEBASE
-VM_Pool  *_vm_pool  = NULL;
-#endif // GURU_CXX_CODEBASE
 
 __GPU__ void
 _mmu_alloc(U8 **b, U32 sz)
@@ -78,18 +72,10 @@ guru_setup(int step, int trace)
 		fprintf(stderr, "ERROR: output buffer allocation error!\n");
 		return -2;
 	}
-#if GURU_CXX_CODEBASE
-	_vm_pool = new VM_Pool(step);
-	if (!_vm_pool) {
-		fprintf(stderr, "ERROR: VM memory block allocation error!\n");
-		return -3;
-	}
-#else
 	if (vm_pool_init(step)) {
 		fprintf(stderr, "ERROR: VM memory block allocation error!\n");
 		return -3;
 	}
-#endif // GURU_CXX_CODEBASE
 	_ses_list = NULL;
 
 	guru_mmu_init<<<1,1>>>(mem, GURU_HEAP_SIZE);				// setup memory management

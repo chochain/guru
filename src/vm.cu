@@ -237,9 +237,9 @@ vm_get(char *ibuf)
 	U8 *gr = parse_bytecode((U8*)ibuf);
 	if (!gr) return -2;
 
-	_prep<<<1,1,0,_st_pool[_vm_cnt]>>>(vm, gr);
+	_load_grit<<<1,1,0,_st_pool[_vm_cnt]>>>(vm, gr);
 #else
-	_prep<<<1,1,0,_sp_pool[_vm_cnt]>>>(vm, ibuf);				// acquire VM, vm status will changed
+	_load_grit<<<1,1,0,_sp_pool[_vm_cnt]>>>(vm, ibuf);				// acquire VM, vm status will changed
 #endif // GURU_HOST_GRIT_IMAGE
 	GPU_SYNC();
 

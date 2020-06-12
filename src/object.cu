@@ -170,7 +170,11 @@ obj_extend(GR r[], U32 ri)
 {
 	ASSERT(r->gt==GT_CLASS && (r+1)->gt==GT_CLASS);
 
+#if GURU_CXX_CODEBASE
 	ClassMgr::getInstance()->class_add_meta(r);						// lazily add metaclass if needed
+#else
+	guru_class_add_meta(r);
+#endif // GURU_CXX_CODEBASE
 	_extend(GR_CLS(r)->meta, (r+1)->off);		// add to class methods
 }
 

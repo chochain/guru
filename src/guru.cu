@@ -18,13 +18,8 @@ extern "C" __GPU__  void guru_mmu_init(void *ptr, U32 sz);
 extern "C" __GPU__  void guru_core_init(void);
 extern "C" __GPU__  void guru_console_init(U8 *buf, U32 sz);
 
-U8 *guru_host_heap;				// guru global memory
 U8 *_guru_out;					// guru output stream
 guru_ses *_ses_list = NULL; 	// session linked-list
-
-#if GURU_CXX_CODEBASE
-VM_Pool  *_vm_pool  = NULL;
-#endif // GURU_CXX_CODEBASE
 //
 // _fetch_bytecode:
 //     	read raw bytecode from input file (or stream) into CUDA managed memory
@@ -73,18 +68,10 @@ guru_setup(int step, int trace)
 		fprintf(stderr, "ERROR: output buffer allocation error!\n");
 		return -2;
 	}
-#if GURU_CXX_CODEBASE
-	_vm_pool = new VM_Pool(step);
-	if (!_vm_pool) {
-		fprintf(stderr, "ERROR: VM memory block allocation error!\n");
-		return -3;
-	}
-#else
 	if (vm_pool_init(step)) {										// allocate VM pool
 		fprintf(stderr, "ERROR: VM memory block allocation error!\n");
 		return -3;
 	}
-#endif // GURU_CXX_CODEBASE
 	_ses_list = NULL;
 
 	guru_mmu_init<<<1,1>>>(mem, GURU_HEAP_SIZE);			// setup memory management
@@ -121,11 +108,7 @@ guru_load(char *rite_name)
 		return -1;
 	}
 
-#if GURU_CXX_CODEBASE
-	int id = ses->id = _vm_pool->get(ins);
-#else
 	int id = ses->id = vm_get(ins);
-#endif // GURU_CXX_CODEBASE
 	cuda_free(ins);
 
 	if (id==-1) {
@@ -151,9 +134,6 @@ guru_run()
 
 	// parse BITE code into each vm
 	// TODO: work producer (enqueue)
-#if GURU_CXX_CODEBASE
-	_vm_pool->start();
-#else
 	for (guru_ses *ses=_ses_list; ses!=NULL; ses=ses->next) {
 		if (vm_ready(ses->id)) {
 			fprintf(stderr, "ERROR: VM state failed to go into READY state!\n");
@@ -161,7 +141,7 @@ guru_run()
 	}
 	// kick up main loop until all VM are done
 	vm_main_start();
-#endif // GURU_CXX_CODEBASE
+
 	debug_mmu_stat();
 	debug_log("guru session completed.");
 

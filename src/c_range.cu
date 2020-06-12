@@ -88,7 +88,11 @@ __CFUNC__
 rng_eq3(GR r[], U32 ri)
 {
     if (r->gt == GT_CLASS) {
+#if GURU_CXX_CODEBASE
         GR ret = ClassMgr::getInstance()->kind_of(r);
+#else
+        GR ret = kind_of(r);
+#endif // GURU_CXX_CODEBASE
         RETURN_VAL(ret);
     }
 
