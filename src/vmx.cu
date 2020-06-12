@@ -67,10 +67,11 @@ __GPU__ void _vm_load_grit(VM *vm, U8 *u8_gr)
 
 class VM_Pool::Impl
 {
-	VM 	*_pool = NULL;
-	U32	_idx   = 0;
+	Debug 	*_debug  = NULL;
+	VM 		*_pool 	 = NULL;
+	U32		_idx   	 = 0;
 
-	cudaStream_t    _st[MIN_VM_COUNT];						// a stream per each VM
+	cudaStream_t _st[MIN_VM_COUNT];							// a stream per each VM
 
 	int
 	_has_job()
@@ -100,9 +101,10 @@ class VM_Pool::Impl
 	__HOST__ int stop(U32 mid)  { return _set_status(mid, VM_STATUS_STOP, VM_STATUS_RUN);   }
 
 public:
-	Impl(U32 step)
+	Impl(U32 step, U32 trace)
 	{
 		VM *vm = _pool = (VM*)cuda_malloc(sizeof(VM) * MIN_VM_COUNT, 1);
+		_debug = Debug::getInstance(trace);
 
 		for (int i=0; vm && i<MIN_VM_COUNT; i++, vm++) {
 			cudaStreamCreateWithFlags(&_st[i], cudaStreamNonBlocking);
@@ -127,14 +129,14 @@ public:
 			for (int i=0; i<MIN_VM_COUNT; i++, vm++) {		// TODO: parallel
 				if (!vm->state || vm->run!=VM_STATUS_RUN) continue;
 				// add pre-hook here
-				debug_disasm((guru_vm*)vm);
+				_debug->disasm((guru_vm*)vm);
 
 				U32 bsz = sizeof(Ucode)*MIN_VM_COUNT;
 				_vm_exec<<<1,1,bsz,_st[i]>>>(vm);			// guru -x to run without single-stepping
 
 				cudaError_t e = cudaGetLastError();
 				if (e) {
-					printf("CUDA ERROR: %s, bailing\n", cudaGetErrorString(e));
+					fprintf(stderr, "CUDA ERROR: %s, bailing\n", cudaGetErrorString(e));
 					vm->err = 1;
 				}
 				// add post-hook here
@@ -166,14 +168,14 @@ public:
 #endif // GURU_HOST_GRIT_IMAGE
 		GPU_SYNC();
 
-		debug_vm_irep((guru_vm*)vm);
+		_debug->vm_irep((guru_vm*)vm);
 		if (ready(_idx)) 			return -3;
 
 		return _idx++;
 	}
 };
 
-__HOST__ VM_Pool::VM_Pool(int step) : _impl(new Impl((U32)step)) {}
+__HOST__ VM_Pool::VM_Pool(int step, int trace) : _impl(new Impl((U32)step, (U32)trace)) {}
 __HOST__ VM_Pool::~VM_Pool() = default;
 
 __HOST__ int

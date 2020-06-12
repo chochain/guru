@@ -37,8 +37,6 @@ int _opt(int argc, char *argv[], int *opt)
     return n;
 }
 
-#define GURU_CXX_CODEBASE	1
-
 int main(int argc, char *argv[])
 {
 	int opt, n = _opt(argc, argv, &opt);
@@ -53,7 +51,6 @@ int main(int argc, char *argv[])
 		if (guru->load(fname)) return -2;
 	}
 	guru->run();									// TODO: consumer
-
 #else
 	if (signal(SIGINT, guru_teardown)==SIG_ERR) {	// register interrupt handler
 		fprintf(stderr, "ERROR: SIGINT, use kill -9");

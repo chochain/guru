@@ -18,7 +18,7 @@
   + set to "exclude" GPU-based RITE code loader
     - load_gpu.cu
   C only codebase: guru_config.h#GURU_CXX_CODEBASE == 0, to exclude 
-    - state_cxx.cu, ucode_cxx.cu, vmx.cu, vm_cxx.cu, class_cxx.cu
+    - state_cxx.cu, ucode_cxx.cu, vmx.cu, vm_cxx.cu, class_cxx.cu, debug_cxx.cu
   C++ codebase:    guru_config.h#GURU_CXX_CODEBASE == 1, to exclude
-    - state.cu, ucode.cu, vm.cu, class.cu
+    - state.cu, ucode.cu, vm.cu, class.cu, debug.cu
 

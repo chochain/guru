@@ -40,7 +40,7 @@ class VM_Pool {
     Impl  *_impl;
 
 public:
-    VM_Pool(int step);
+    VM_Pool(int step, int trace);
     ~VM_Pool();
 
     __HOST__ int 	start();

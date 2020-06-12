@@ -46,9 +46,12 @@
 						</toolChain>
 					</folderInfo>
 					<fileInfo id="com.nvidia.cuda.ide.ten_two.configuration.debug.1061253450.1048654922" name="console.h" rcbsApplicability="disable" resourcePath="src/console.h" toolsToInvoke=""/>
+					<fileInfo id="com.nvidia.cuda.ide.ten_two.configuration.debug.1061253450.1141392716" name="debug.cu" rcbsApplicability="disable" resourcePath="src/debug.cu" toolsToInvoke="nvcc.compiler.base.540447248.1858006524">
+						<tool id="nvcc.compiler.base.540447248.1858006524" name="NVCC Compiler" superClass="nvcc.compiler.base.540447248"/>
+					</fileInfo>
 					<fileInfo id="com.nvidia.cuda.ide.ten_two.configuration.debug.1061253450.843010427" name="sprintf.h" rcbsApplicability="disable" resourcePath="src/sprintf.h" toolsToInvoke=""/>
 					<sourceEntries>
-						<entry excluding="src/console.h|src/sprintf.h|src/console.cu|src/sprintf.cu|src/class.cu|src/main.c|src/guru.cu|src/guru_test.cu|src/vm.cu|src/state.cu|src/ucode.cu|src/jk.h|src/jk.c|bak|src/load_gpu.cu|src/symbol_orig.cu|src/puts.cu|src/cuda.cu|src/c_str_ascii.cu|src/alloc.cu|test|orig|ext" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
+						<entry excluding="src/debug.cu|src/console.h|src/sprintf.h|src/console.cu|src/sprintf.cu|src/class.cu|src/main.c|src/guru.cu|src/guru_test.cu|src/vm.cu|src/state.cu|src/ucode.cu|src/jk.h|src/jk.c|bak|src/load_gpu.cu|src/symbol_orig.cu|src/puts.cu|src/cuda.cu|src/c_str_ascii.cu|src/alloc.cu|test|orig|ext" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
 					</sourceEntries>
 				</configuration>
 			</storageModule>

@@ -56,5 +56,25 @@ void debug_log(const char *msg);
 #ifdef __cplusplus
 }
 #endif
-#endif
+
+#if GURU_CXX_CODEBASE
+class Debug
+{
+	class Impl;
+	Impl  *_impl;
+
+	Debug(U32 flag);
+	~Debug();
+
+public:
+	static Debug *getInstance(U32 flag);
+
+	void mmu_stat();
+	void vm_irep(guru_vm *vm);
+	void disasm(guru_vm *vm);
+	void error(guru_vm *vm);
+	void log(const char *msg);
+};
+#endif // GURU_CXX_CODEBASE
+#endif // GURU_SRC_DEBUG_H_
 

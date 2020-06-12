@@ -17,11 +17,14 @@ void    guru_teardown(int sig);
 #ifdef __cplusplus
 }
 #endif
+#define GURU_CXX_CODEBASE	1
 
+#if GURU_CXX_CODEBASE
 class Guru								// interface class
 {
 	class Impl;
 	Impl	*_impl;
+	int		_trace;
 
 public:
 	Guru(int step, int trace);
@@ -30,5 +33,5 @@ public:
 	int	load(char *rite_name);
 	int	run();
 };
-
-#endif
+#endif // GURU_CXX_CODEBASE
+#endif // GURU_SRC_GURUX_H_

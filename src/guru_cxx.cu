@@ -10,7 +10,7 @@
 #include "guru.h"
 #include "gurux.h"
 #include "mmu.h"				// guru_malloc
-#include "vmx.h"
+#include "vmx.h"				// VM_Pool
 #include "debug.h"
 
 // forward declaration for implementation
@@ -72,7 +72,7 @@ public:
 	}
 
 	__HOST__ int
-	init(int step)
+	init(int step, int trace)
 	{
 		U8 *mem = guru_host_heap = (U8*)cuda_malloc(GURU_HEAP_SIZE, 1);	// allocate main block (i.e. RAM)
 		if (!mem) 		return -1;
@@ -80,7 +80,7 @@ public:
 		U8 *out = _guru_out = (U8*)cuda_malloc(OUTPUT_BUF_SIZE, 1);		// allocate output buffer
 		if (!_guru_out) return -2;
 
-		_vm_pool = new VM_Pool(step);
+		_vm_pool = new VM_Pool(step, trace);
 		if (!_vm_pool) 	return -3;
 
 		guru_mmu_init<<<1,1>>>(mem, GURU_HEAP_SIZE);			// setup memory management
@@ -113,40 +113,34 @@ public:
 		return id;
 	}
 
-	__HOST__ int
+	__HOST__ __INLINE__ int
 	run()
 	{
-		debug_log("guru session starting...");
-		debug_mmu_stat();
-
-		// parse BITE code into each vm
 		// TODO: work producer (enqueue)
-		_vm_pool->start();
-
-		debug_mmu_stat();
-		debug_log("guru session completed.");
-
-		return 0;
+		return _vm_pool->start();
 	}
 };
 
 __HOST__
 Guru::Guru(int step, int trace) : _impl(new Impl())
 {
-	debug_init(trace);												// initialize logger
-	debug_log("guru initializing...");
+	_trace = trace;
 
-	int rst = _impl->init(step);
+	Debug *d = Debug::getInstance(trace);
+
+	d->log("guru initializing...");
+
+	int rst = _impl->init(step, trace);
 
 	switch (rst) {
-	case -1: fprintf(stderr, "ERROR: failed to allocate device main memory block!\n"); 	break;
-	case -2: fprintf(stderr, "ERROR: output buffer allocation error!\n"); 				break;
-	case -3: fprintf(stderr, "ERROR: VM memory block allocation error!\n");				break;
+	case -1: d->log("ERROR: failed to allocate device main memory block!\n"); 	break;
+	case -2: d->log("ERROR: output buffer allocation error!\n"); 				break;
+	case -3: d->log("ERROR: VM memory block allocation error!\n");				break;
 	default: break;
 	}
 
 	if (rst) {
-		debug_log("guru initialized failed, bailing out...");
+		d->log("guru initialized failed, bailing out...");
 		exit(-1);
 	}
 	else {
@@ -155,7 +149,7 @@ Guru::Guru(int step, int trace) : _impl(new Impl())
 		cudaDeviceSetLimit(cudaLimitStackSize, (size_t)sz0*4);
 		cudaDeviceGetLimit((size_t *)&sz1, cudaLimitStackSize);
 
-		debug_log("guru initialized, ready to go...");
+		d->log("guru initialized, ready to go...");
 	}
 }
 
@@ -165,17 +159,19 @@ Guru::~Guru() = default;
 __HOST__ int
 Guru::load(char *rite_name)
 {
-	debug_log("guru loading RITE image into ses->stdin memory...");
+	Debug *d = Debug::getInstance(_trace);
+
+	d->log("guru loading RITE image into ses->stdin memory...");
 
 	int id = _impl->get_ses(rite_name);
 
 	if (id>=0) return 0;
 
 	switch (id) {
-	case -1: fprintf(stderr, "ERROR: bytecode parsing error!\n");				break;
-	case -2: fprintf(stderr, "ERROR: No more VM available!\n");					break;
-	case -3: fprintf(stderr, "ERROR: session memory allocation error!\n");		break;
-	case -4: fprintf(stderr, "ERROR: bytecode memory allocation error!\n"); 	break;
+	case -1: d->log("ERROR: bytecode parsing error!\n");			break;
+	case -2: d->log("ERROR: No more VM available!\n");				break;
+	case -3: d->log("ERROR: session memory allocation error!\n");	break;
+	case -4: d->log("ERROR: bytecode memory allocation error!\n"); 	break;
 	default: break;
 	}
 	return 1;
@@ -184,5 +180,15 @@ Guru::load(char *rite_name)
 __HOST__ int
 Guru::run()
 {
-	return _impl->run();
+	Debug *d = Debug::getInstance(_trace);
+
+	d->log("guru session starting...");
+	d->mmu_stat();
+
+	int rst = _impl->run();
+
+	d->mmu_stat();
+	d->log("guru session completed.");
+
+	return rst;
 }
