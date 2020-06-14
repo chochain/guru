@@ -31,9 +31,8 @@
 // becareful with the following macros, because they release regs[ra] first
 // so, make sure value is kept before the release
 //
-#define _AR(r)          ((_vm->r))
 #define _R0             (_REGS(VM_STATE(_vm)))
-#define _R(r)			(_R0 + _AR(r))
+#define _R(r)			(_R0 + vm->r)
 #define _RA(r)			(ref_dec(_R(a)), *_R(a)=(r))
 #define _RA_X(r)    	(ref_inc(r), ref_dec(_R(a)), *_R(a)=*(r))
 #define _RA_T(t,e)      (ref_dec(_R(a)), _R(a)->gt=(t), _R(a)->acl=0, _R(a)->e)
@@ -55,7 +54,7 @@ class Ucode::Impl
     __GURU__ __INLINE__ GS
     _sid_wo_at_sign()
     {
-        GS sid     = VM_SYM(_vm, _AR(bx));
+        GS sid     = VM_SYM(_vm, vm->bx);
         char *name = (char*)_RAW(sid);
 
         return guru_rom_add_sym(name+1);	// skip leading '@'
@@ -68,12 +67,12 @@ class Ucode::Impl
     _upvar()
     {
     	guru_state *st = VM_STATE(_vm);
-        for (int i=0; i<=_AR(c); i++) {						// walk up stack frame
+        for (int i=0; i<=vm->c; i++) {						// walk up stack frame
             st = IN_LAMBDA(st)
                 ? _STATE(st->prev)
                 : _STATE(_STATE(st->prev)->prev);			// 1 extra for each_loop
         }
-        return _REGS(st) + _AR(b);
+        return _REGS(st) + vm->b;
     }
     //================================================================
     /*!@brief
@@ -140,7 +139,7 @@ class Ucode::Impl
     __UCODE__
     loadl()
     {
-        GR ret = *VM_VAR(_vm, _AR(bx));
+        GR ret = *VM_VAR(_vm, vm->bx);
         _RA(ret);
     }
     //================================================================
@@ -153,7 +152,7 @@ class Ucode::Impl
     __UCODE__
     loadi()
     {
-        GI sbx = _AR(bx) - MAX_sBx;
+        GI sbx = vm->bx - MAX_sBx;
 
         _RA_T(GT_INT, i=sbx);
     }
@@ -166,7 +165,7 @@ class Ucode::Impl
     __UCODE__
     loadsym()
     {
-        GS sid = VM_SYM(_vm, _AR(bx));
+        GS sid = VM_SYM(_vm, vm->bx);
 
         _RA_T(GT_SYM, i=sid);
     }
@@ -223,7 +222,7 @@ class Ucode::Impl
     __UCODE__
     getglobal()
     {
-        GS sid = VM_SYM(_vm, _AR(bx));
+        GS sid = VM_SYM(_vm, vm->bx);
 
         GR *r = global_get(sid);
 
@@ -238,7 +237,7 @@ class Ucode::Impl
     __UCODE__
     setglobal()
     {
-        GS sid = VM_SYM(_vm, _AR(bx));
+        GS sid = VM_SYM(_vm, vm->bx);
 
         global_set(sid, _R(a));
     }
@@ -287,7 +286,7 @@ class Ucode::Impl
     getcv()
     {
         GR *r  = _R0;
-        GS sid = VM_SYM(_vm, _AR(bx));
+        GS sid = VM_SYM(_vm, vm->bx);
         GR ret = ostore_getcv(r, sid);
         
         _RA(ret);
@@ -304,7 +303,7 @@ class Ucode::Impl
         GR *r = _R0;
         ASSERT(r->gt==GT_CLASS);
 
-        GS sid = VM_SYM(_vm, _AR(bx));
+        GS sid = VM_SYM(_vm, vm->bx);
         ostore_set(r, sid, _R(a));
     }
     //================================================================
@@ -316,7 +315,7 @@ class Ucode::Impl
     __UCODE__
     getconst()
     {
-        GS sid = VM_SYM(_vm, _AR(bx));
+        GS sid = VM_SYM(_vm, vm->bx);
         GP cls = _cm->class_by_id(sid);            // search class rom first
         GR ret { GT_CLASS, 0, 0, { cls } };
         GR *r  = cls ? &ret : const_get(sid);      // then search constant cache
@@ -332,7 +331,7 @@ class Ucode::Impl
     __UCODE__
     setconst()
     {
-        GS sid = VM_SYM(_vm, _AR(bx));
+        GS sid = VM_SYM(_vm, vm->bx);
         GR *ra = _R(a);
 
         ra->acl &= ~ACL_HAS_REF;		// set it to constant
@@ -376,7 +375,7 @@ class Ucode::Impl
     __UCODE__
     jmp()
     {
-        GI sbx = _AR(bx) - MAX_sBx -1;
+        GI sbx = vm->bx - MAX_sBx -1;
 
         VM_STATE(_vm)->pc += sbx;
     }
@@ -389,7 +388,7 @@ class Ucode::Impl
     __UCODE__
     jmpif()
     {
-        GI sbx = _AR(bx) - MAX_sBx - 1;
+        GI sbx = vm->bx - MAX_sBx - 1;
         GR *ra = _R(a);
 
         if (ra->gt > GT_FALSE) {
@@ -406,7 +405,7 @@ class Ucode::Impl
     __UCODE__
     jmpnot()
     {
-        GI sbx = _AR(bx) - MAX_sBx -1;
+        GI sbx = vm->bx - MAX_sBx -1;
         GR *ra = _R(a);
         if (ra->gt <= GT_FALSE) {
             VM_STATE(_vm)->pc += sbx;
@@ -424,7 +423,7 @@ class Ucode::Impl
     {
     	ASSERT(_vm->xcp < (VM_RESCUE_STACK-1));
 
-        GI sbx = _AR(bx) - MAX_sBx -1;
+        GI sbx = vm->bx - MAX_sBx -1;
 
     	RESCUE_PUSH(_vm, VM_STATE(_vm)->pc + sbx);
     }
@@ -439,7 +438,7 @@ class Ucode::Impl
     __UCODE__
     rescue()
     {
-        U32 c  = _AR(c);				// exception 0:set, 1:get
+        U32 c  = vm->c;				// exception 0:set, 1:get
         GR  *r = _R(a);					// object to receive the exception
         GR  *x = r + 1;					// exception on stack
 
@@ -465,7 +464,7 @@ class Ucode::Impl
     __UCODE__
     poperr()
     {
-    	U32 a = _AR(a);
+    	U32 a = vm->a;
 
     	ASSERT(_vm->xcp >= a);
 
@@ -494,10 +493,10 @@ class Ucode::Impl
     __UCODE__
     send()
     {
-        GS  xid = VM_SYM(_vm, _AR(b));				// get given symbol or object id
+        GS  xid = VM_SYM(_vm, vm->b);				// get given symbol or object id
         GR  *r  = _R(a);							// call stack, obj is receiver object
 
-        if (_sm->exec_method(r, _AR(c), xid)) { 	// in state.cu, call stack will be wiped before return
+        if (_sm->exec_method(r, vm->c, xid)) { 	// in state.cu, call stack will be wiped before return
             _vm->err = 2;							// method not found, raise exception
             GR buf   = guru_str_buf(GURU_STRBUF_SIZE);	// put error message on return stack
             *(r+1)   = *_undef(&buf, r, xid);		// TODO: exception class
@@ -547,7 +546,7 @@ class Ucode::Impl
         GR  *ra = _R(a);							// return value
         GR  *ma = _R0 - 2;                          // is a mapper?
         U32 map = IS_COLLECT(st);
-        U32 brk = _AR(b);							// break
+        U32 brk = vm->b;							// break
         GR  ret = *ra;
         
         if (IN_LOOP(st)) {
@@ -588,7 +587,7 @@ class Ucode::Impl
     blkpush()
     {
         guru_state *st = VM_STATE(_vm);
-        for (int i=0; i<_AR(c); i++) {
+        for (int i=0; i<vm->c; i++) {
             st = _STATE(_STATE(st->prev)->prev);
         }
         GR *prc = _REGS(st)+st->argc+1;       	// get proc, regs[0] is the class
@@ -607,7 +606,7 @@ class Ucode::Impl
     addi()
     {
         GR *r0 = _R(a);
-        U32 n  = _AR(c);
+        U32 n  = vm->c;
 
         if (r0->gt==GT_INT)     	r0->i += n;
 #if GURU_USE_FLOAT
@@ -626,7 +625,7 @@ class Ucode::Impl
     subi()
     {
         GR  *r0 = _R(a);
-        U32 n   = _AR(c);
+        U32 n   = vm->c;
 
         if (r0->gt==GT_INT) 		r0->i -= n;
 #if GURU_USE_FLOAT
@@ -789,7 +788,7 @@ class Ucode::Impl
     __UCODE__
     string()
     {
-        GR ret = *VM_STR(_vm, _AR(bx));
+        GR ret = *VM_STR(_vm, vm->bx);
         _RA(ret);
     }
     //================================================================
@@ -828,7 +827,7 @@ class Ucode::Impl
     __UCODE__
     array()
     {
-        U32 n = _AR(c);
+        U32 n = vm->c;
         GR  v = (GR)guru_array_new(n);			// ref_cnt is 1 already
 
         guru_array *h = GR_ARY(&v);
@@ -897,7 +896,7 @@ class Ucode::Impl
     __UCODE__
     hash()
     {
-        U32 n   = _AR(c);						// number of kv pairs
+        U32 n   = vm->c;						// number of kv pairs
         GR  ret = guru_hash_new(n);				// ref_cnt is already set to 1
 
         guru_hash *h = GR_HSH(&ret);
@@ -914,7 +913,7 @@ class Ucode::Impl
     __UCODE__
     range()
     {
-        U32 x   = _AR(c);						// exclude_end
+        U32 x   = vm->c;						// exclude_end
         GR  *p0 = _R(b), *p1 = p0+1;
         GR  r   = guru_range_new(p0, p1, !x);	// p0, p1 ref cnt will be increased
         *p1 = EMPTY;
@@ -962,7 +961,7 @@ class Ucode::Impl
     {
         GR *r1 = _R(a)+1;
 
-        GS sid   = VM_SYM(_vm, _AR(b));
+        GS sid   = VM_SYM(_vm, vm->b);
         U8 *name = _RAW(sid);
         GP super = (r1->gt==GT_CLASS) ? r1->off : VM_STATE(_vm)->klass;
         GP cls   = _cm->define_class(name, super);
@@ -983,7 +982,7 @@ class Ucode::Impl
     exec()
     {
         ASSERT(_R0->gt == GT_CLASS);							// check
-        GP irep = MEMOFF(VM_REPS(_vm, _AR(bx)));				// child IREP[rb]
+        GP irep = MEMOFF(VM_REPS(_vm, vm->bx));				// child IREP[rb]
 
         _sm->push_state(irep, 0, _R(a), 0);						// push call stack
     }
@@ -1000,7 +999,7 @@ class Ucode::Impl
         ASSERT(r->gt==GT_OBJ || r->gt == GT_CLASS);	// enforce class checking
 
         // check whether the name has been defined in current class (i.e. vm->state->klass)
-        GS pid = VM_SYM(_vm, _AR(b));				// fetch name from IREP symbol table
+        GS pid = VM_SYM(_vm, vm->b);				// fetch name from IREP symbol table
 
         guru_proc *px = GR_PRC(r+1);				// override (if exist) with proc by OP_LAMBDA
         MUTEX_LOCK(_mutex);
