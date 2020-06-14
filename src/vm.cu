@@ -211,9 +211,7 @@ vm_main_start()
 				printf("CUDA ERROR: %s, bailing\n", cudaGetErrorString(e));
 				vm->err = 3;
 			}
-			else if (vm->err) {
-				debug_error(vm);
-			}
+			debug_error(vm->err);
 			// add post-hook here
 		}
 		GPU_SYNC();									// TODO: cooperative thread group
@@ -228,14 +226,14 @@ vm_main_start()
 __HOST__ int
 vm_get(char *ibuf)
 {
-	if (!_vm_pool) 				return -1;
-	if (_vm_cnt>=MIN_VM_COUNT) 	return -1;
+	if (!_vm_pool) 				return -31;
+	if (_vm_cnt>=MIN_VM_COUNT) 	return -32;
 
 	guru_vm *vm = &_vm_pool[_vm_cnt];
 
 #if GURU_HOST_GRIT_IMAGE
 	U8 *gr = parse_bytecode((U8*)ibuf);
-	if (!gr) return -2;
+	if (!gr) 					return -33;
 
 	_load_grit<<<1,1,0,_st_pool[_vm_cnt]>>>(vm, gr);
 #else
@@ -252,7 +250,7 @@ __HOST__ int
 _set_status(int mid, int new_status, int status_flag)
 {
 	guru_vm *vm = &_vm_pool[mid];
-	if (!(vm->run & status_flag)) return -1;		// transition state machine
+	if (!(vm->run & status_flag)) return -34;		// transition state machine
 
 	_LOCK;
 	vm->run = new_status;
