@@ -41,7 +41,7 @@ guru_obj_del(GR *r)
 
 //================================================================
 __CFUNC__
-obj_nop(GR r[], U32 ri)
+obj_nop(GR r[], S32 ri)
 {
 	// do nothing
 }
@@ -50,7 +50,7 @@ obj_nop(GR r[], U32 ri)
 /*! (method) p
  */
 __CFUNC__
-obj_p(GR r[], U32 ri)
+obj_p(GR r[], S32 ri)
 {
 	guru_p(r, ri);
 }
@@ -59,18 +59,7 @@ obj_p(GR r[], U32 ri)
 /*! (method) puts
  */
 __CFUNC__
-obj_puts(GR r[], U32 ri)
-{
-	guru_puts(r+1, ri);
-	ref_dec(r);
-	*r = EMPTY;
-}
-
-//================================================================
-/*! (method) print
- */
-__CFUNC__
-obj_print(GR r[], U32 ri)
+obj_puts(GR r[], S32 ri)
 {
 	guru_puts(r+1, ri);
 	ref_dec(r);
@@ -81,7 +70,7 @@ obj_print(GR r[], U32 ri)
 /*! (operator) !
  */
 __CFUNC__
-obj_not(GR r[], U32 ri)
+obj_not(GR r[], S32 ri)
 {
     RETURN_FALSE();
 }
@@ -90,7 +79,7 @@ obj_not(GR r[], U32 ri)
 /*! (operator) !=
  */
 __CFUNC__
-obj_neq(GR r[], U32 ri)
+obj_neq(GR r[], S32 ri)
 {
     S32 t = guru_cmp(r, r+1);
     RETURN_BOOL(t);
@@ -100,7 +89,7 @@ obj_neq(GR r[], U32 ri)
 /*! (operator) <=>
  */
 __CFUNC__
-obj_cmp(GR r[], U32 ri)
+obj_cmp(GR r[], S32 ri)
 {
     S32 t = guru_cmp(r, r+1);
     RETURN_INT(t);
@@ -110,7 +99,7 @@ obj_cmp(GR r[], U32 ri)
 /*! (operator) ===
  */
 __CFUNC__
-obj_eq3(GR r[], U32 ri)
+obj_eq3(GR r[], S32 ri)
 {
     if (r->gt != GT_CLASS) {
     	RETURN_BOOL(guru_cmp(r, r+1)==0);
@@ -129,7 +118,7 @@ obj_eq3(GR r[], U32 ri)
 /*! (method) class
  */
 __CFUNC__
-obj_class(GR r[], U32 ri)
+obj_class(GR r[], S32 ri)
 {
 #if GURU_CXX_CODEBASE
 	GP cls = ClassMgr::getInstance()->class_by_obj(r);
@@ -156,7 +145,7 @@ _extend(GP cls, GP mod)
 /*! (method) include
  */
 __CFUNC__
-obj_include(GR r[], U32 ri)
+obj_include(GR r[], S32 ri)
 {
 	ASSERT(r->gt==GT_CLASS && (r+1)->gt==GT_CLASS);
 	_extend(r->off, (r+1)->off);
@@ -166,7 +155,7 @@ obj_include(GR r[], U32 ri)
 /*! (method) extend
  */
 __CFUNC__
-obj_extend(GR r[], U32 ri)
+obj_extend(GR r[], S32 ri)
 {
 	ASSERT(r->gt==GT_CLASS && (r+1)->gt==GT_CLASS);
 
@@ -182,7 +171,7 @@ obj_extend(GR r[], U32 ri)
 /*! (method) instance variable getter
  */
 __CFUNC__
-obj_getiv(GR r[], U32 ri)
+obj_getiv(GR r[], S32 ri)
 {
     RETURN_VAL(ostore_get(r, r->oid));			// attribute 'x'
 }
@@ -191,7 +180,7 @@ obj_getiv(GR r[], U32 ri)
 /*! (method) instance variable setter
  */
 __CFUNC__
-obj_setiv(GR r[], U32 ri)
+obj_setiv(GR r[], S32 ri)
 {
     GS oid = r->oid;							// attribute 'x='
     ostore_set(r, oid-1, r+1);					// attribute 'x' (hopefully at one entry before 'x=')
@@ -215,7 +204,7 @@ _postfix_eq_sign(GR *buf, U8* s0)
 /*! (class method) access method 'attr_reader'
  */
 __CFUNC__
-obj_attr_reader(GR r[], U32 ri)
+obj_attr_reader(GR r[], S32 ri)
 {
 	ASSERT(r->gt==GT_CLASS);
 	GP cls = r->off;									// fetch class offset
@@ -233,7 +222,7 @@ obj_attr_reader(GR r[], U32 ri)
  */
 #define ATTR_BUFSIZE	255
 __CFUNC__
-obj_attr_accessor(GR r[], U32 ri)
+obj_attr_accessor(GR r[], S32 ri)
 {
 	ASSERT(r->gt==GT_CLASS);
 	GP cls = IS_SCLASS(r) ? GR_CLS(r)->meta : r->off;	// fetch class offset
@@ -257,7 +246,7 @@ obj_attr_accessor(GR r[], U32 ri)
 /*! (method) is_a, kind_of
  */
 __CFUNC__
-obj_kind_of(GR r[], U32 ri)
+obj_kind_of(GR r[], S32 ri)
 {
 	ASSERT(r->gt==GT_OBJ);
     if ((r+1)->gt != GT_CLASS) {
@@ -278,7 +267,7 @@ obj_kind_of(GR r[], U32 ri)
 /*! lambda function
  */
 __CFUNC__
-obj_lambda(GR r[], U32 ri)
+obj_lambda(GR r[], S32 ri)
 {
 	ASSERT(r->gt==GT_CLASS && (r+1)->gt==GT_PROC);		// ensure it is a proc
 
@@ -300,7 +289,7 @@ obj_lambda(GR r[], U32 ri)
 /*! pseudo random number generator
  */
 __CFUNC__
-obj_rand(GR r[], U32 ri)
+obj_rand(GR r[], S32 ri)
 {
 	static int _seed = 123456789;
 
@@ -317,15 +306,15 @@ obj_rand(GR r[], U32 ri)
 //=====================================================================
 //! deprecated, use inspect#gr_to_s instead
 __CFUNC__
-obj_to_s(GR r[], U32 ri)
+obj_to_s(GR r[], S32 ri)
 {
 	ASSERT(1==0);				// handled in ucode
 }
 
 __GURU__ __const__ Vfunc obj_vtbl[] = {
-	{ "puts",          	obj_puts 		},
+	{ "puts",          	obj_puts 		},				// handled by state#_method_missing
 	{ "initialize", 	obj_nop 		},
-    { "private",		obj_nop			},			// do nothing now
+    { "private",		obj_nop			},				// do nothing now
 	{ "!",				obj_not 		},
 	{ "!=",          	obj_neq 		},
 	{ "<=>",           	obj_cmp 		},
@@ -341,7 +330,7 @@ __GURU__ __const__ Vfunc obj_vtbl[] = {
     { "kind_of?",      	obj_kind_of		},
     { "lambda",			obj_lambda		},
 	{ "rand",           obj_rand        },
-	{ "print",         	obj_print		},
+	{ "print",         	obj_puts		},
 	{ "p", 				obj_p    		},
 
     // the following functions depends on string, implemented in inspect.cu
@@ -364,13 +353,13 @@ __GURU__ __const__ Vfunc prc_vtbl[] = {
 //================================================================
 // Nil class
 __CFUNC__
-nil_false_not(GR r[], U32 ri)
+nil_false_not(GR r[], S32 ri)
 {
     r->gt = GT_TRUE;
 }
 
 __CFUNC__
-nil_inspect(GR r[], U32 ri)
+nil_inspect(GR r[], S32 ri)
 {
     RETURN_VAL(guru_str_new("nil"));
 }
@@ -401,7 +390,7 @@ __GURU__ __const__ Vfunc true_vtbl[] = {
 //================================================================
 /*! Symbol class
  */
-__CFUNC__ sym_nop(GR r[], U32 ri) {}
+__CFUNC__ sym_nop(GR r[], S32 ri) {}
 
 //================================================================
 // initialize
@@ -417,7 +406,7 @@ __GURU__ __const__ Vfunc sym_vtbl[] = {
 /*! System class (guru only, i.e. non-Ruby)
  */
 __CFUNC__
-sys_mstat(GR r[], U32 ri)
+sys_mstat(GR r[], S32 ri)
 {
 	GR  si; { si.gt=GT_INT; si.acl=0; }
 	GR  ret = guru_array_new(8);

@@ -15,6 +15,7 @@
 #include "static.h"
 #include "mmu.h"
 #include "class.h"		// class_by_obj
+#include "symbol.h"		// name2id
 
 #if GURU_USE_ARRAY
 #include "c_array.h"
@@ -133,7 +134,7 @@ _print(GR *r)
 }
 
 __GURU__ void
-guru_puts(GR r[], U32 ri)
+guru_puts(GR r[], S32 ri)
 {
     for (int i=0; ri>0 && i < ri; i++) {
     	if (_print(&r[i])) PRINTF("\n");
@@ -141,7 +142,7 @@ guru_puts(GR r[], U32 ri)
 }
 
 __GURU__ void
-guru_p(GR r[], U32 ri)
+guru_p(GR r[], S32 ri)
 {
     for (int i=1; ri>0 && i <= ri; i++) {
         _p(&r[i]);

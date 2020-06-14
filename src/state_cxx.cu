@@ -30,7 +30,7 @@ class StateMgr::Impl
 
 	//================================================================
 	__GURU__ void
-    __loop(GR r[], U32 ri, U32 collect)
+    __loop(GR r[], S32 ri, U32 collect)
 	{
 		GR *r1 = r+1;
 		ASSERT(r1->gt==GT_PROC);						// ensure it is a code block
@@ -66,7 +66,7 @@ class StateMgr::Impl
   	  Clean up call stack
 	 */
 	__GURU__ void
-	_wipe_stack(GR r[], U32 ri)
+	_wipe_stack(GR r[], S32 ri)
 	{
 		GR *x = r;
 		for (int i=0; i<ri; i++, x++) {
@@ -76,7 +76,7 @@ class StateMgr::Impl
 	}
 
 	__GURU__ void
-	_call(GR r[], U32 ri)
+	_call(GR r[], S32 ri)
 	{
 		ASSERT(r->gt==GT_PROC);
 
@@ -97,19 +97,19 @@ class StateMgr::Impl
 	}
 
     __GURU__ void
-    _each(GR r[], U32 ri)
+    _each(GR r[], S32 ri)
     {
         __loop(r, ri, 0);
     }
 
     __GURU__ void
-    _map(GR r[], U32 ri)
+    _map(GR r[], S32 ri)
     {
         __loop(r, ri, 1);
     }
 
 	__GURU__ void
-	_new(GR r[], U32 ri)
+	_new(GR r[], S32 ri)
 	{
 		ASSERT(r->gt==GT_CLASS);					// ensure it is a class object
 		GR obj = r[0] = ostore_new(r->off);			// instantiate object itself (with 0 var);
@@ -122,7 +122,7 @@ class StateMgr::Impl
 	}
 
 	__GURU__ void
-	_lambda(GR r[], U32 ri)
+	_lambda(GR r[], S32 ri)
 	{
 		ASSERT(r->gt==GT_CLASS && (r+1)->gt==GT_PROC);		// ensure it is a proc
 
@@ -141,7 +141,7 @@ class StateMgr::Impl
 	}
 
 	__GURU__ void
-	_raise(GR r[], U32 ri)
+	_raise(GR r[], S32 ri)
 	{
 		ASSERT(_vm->xcp > 0);
 
@@ -149,7 +149,7 @@ class StateMgr::Impl
 	}
 
 	__GURU__ U32
-	_exec_missing(GR r[], U32 ri, GS pid)
+	_exec_missing(GR r[], S32 ri, GS pid)
 	{
         typedef void (Impl::*MISSX)(GR r[], U32);	// internal handler of missing function
 		typedef struct {
@@ -204,7 +204,7 @@ public:
 		@param	rsz		- stack depth used
 	*/
 	__GURU__ void
-	push_state(GP irep, U32 pc, GR r[], U32 ri)
+	push_state(GP irep, U32 pc, GR r[], S32 ri)
 	{
 	#if CC_DEBUG
 		PRINTF("!!!vm_state_push(%p, x%x, %d, %p, %d)\n", _vm, irep, pc, r, ri);
@@ -281,7 +281,7 @@ public:
 	}
 
 	__GURU__ U32
-	exec_method(GR r[], U32 ri, GS pid)
+	exec_method(GR r[], S32 ri, GS pid)
 	{
 
 	#if CC_DEBUG
@@ -326,7 +326,7 @@ public:
 __GURU__ StateMgr::StateMgr(VM *vm) : _impl(new Impl((guru_vm*)vm)) {}
 __GURU__ StateMgr::~StateMgr() = default;
 __GURU__ void
-StateMgr::push_state(GP irep, U32 pc, GR r[], U32 ri)
+StateMgr::push_state(GP irep, U32 pc, GR r[], S32 ri)
 {
 	_impl->push_state(irep, pc, r, ri);
 }
@@ -341,7 +341,7 @@ StateMgr::loop_next()
 	return _impl->loop_next();
 }
 __GURU__ U32
-StateMgr::exec_method(GR r[], U32 ri, GS sid)
+StateMgr::exec_method(GR r[], S32 ri, GS sid)
 {
 	return _impl->exec_method(r, ri, sid);
 }

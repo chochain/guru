@@ -50,7 +50,7 @@ void debug_init(U32 flag);
 void debug_mmu_stat();
 void debug_vm_irep(guru_vm *vm);
 void debug_disasm(guru_vm *vm);
-void debug_error(guru_vm *vm);
+void debug_error(int ec);
 void debug_log(const char *msg);
 
 #ifdef __cplusplus

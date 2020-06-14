@@ -25,10 +25,10 @@
 #include "c_range.h"
 
 #if !GURU_USE_STRING
-__CFUNC__	gr_to_s(GR r[], U32 ri)			{}
-__CFUNC__ 	ary_join(GR r[], U32 ri)		{}
-__CFUNC__	str_sprintf(GR r[], U32 ri)		{}
-__CFUNC__	str_printf(GR r[], U32 ri)		{}
+__CFUNC__	gr_to_s(GR r[], S32 ri)			{}
+__CFUNC__ 	ary_join(GR r[], S32 ri)		{}
+__CFUNC__	str_sprintf(GR r[], S32 ri)		{}
+__CFUNC__	str_printf(GR r[], S32 ri)		{}
 
 #else
 
@@ -61,7 +61,7 @@ _true(GR *buf)
 //================================================================
 //! Integer class
 __GURU__ void
-_int(GR *buf, GR r[], U32 ri)
+_int(GR *buf, GR r[], S32 ri)
 {
     U32 aoff = 'a' - 10;
     U32 base = ri ? r[1].i : 10;				// if base given
@@ -238,7 +238,7 @@ _append(GR *buf, GR r[], U32 n)
 //================================================================
 //! Object#to_s factory function
 __CFUNC__
-sym_to_s(GR r[], U32 ri)		// no leading ':' (Ruby's quirky)
+sym_to_s(GR r[], S32 ri)		// no leading ':' (Ruby's quirky)
 {
 	U8 *s  = _RAW(r->i);
 	GR ret = guru_str_new(s);
@@ -246,7 +246,7 @@ sym_to_s(GR r[], U32 ri)		// no leading ':' (Ruby's quirky)
 }
 
 __CFUNC__
-gr_to_s(GR r[], U32 ri)
+gr_to_s(GR r[], S32 ri)
 {
 	GR buf = guru_str_buf(GURU_STRBUF_SIZE);
 
@@ -256,7 +256,7 @@ gr_to_s(GR r[], U32 ri)
 }
 
 __CFUNC__
-int_chr(GR r[], U32 ri)
+int_chr(GR r[], S32 ri)
 {
     U8 buf[2] = { (U8)r->i, '\0' };
 
@@ -264,7 +264,7 @@ int_chr(GR r[], U32 ri)
 }
 
 __CFUNC__
-ary_join(GR r[], U32 ri)
+ary_join(GR r[], S32 ri)
 {
 	ASSERT(r->gt==GT_ARRAY);
 	guru_array *a = GR_ARY(r);
@@ -286,7 +286,7 @@ ary_join(GR r[], U32 ri)
 /*! (method) sprintf
  */
 __CFUNC__
-gr_sprintf(GR r[], U32 ri)
+gr_sprintf(GR r[], S32 ri)
 {
 	NA("string#sprintf");
 }
@@ -295,7 +295,7 @@ gr_sprintf(GR r[], U32 ri)
 /*! (method) printf
  */
 __CFUNC__
-gr_printf(GR r[], U32 ri)
+gr_printf(GR r[], S32 ri)
 {
 	NA("string#printf");
 }

@@ -325,7 +325,7 @@ guru_printf(const U8 *fstr, ...)
 }
 
 __GURU__ void
-guru_vprintf(const U8 *fstr, GR r[], U32 ri)		// << from c_string.cu
+guru_vprintf(const U8 *fstr, GR r[], S32 ri)		// << from c_string.cu
 {
 	U8  buf[PRINT_BUFSIZE];
     U32 i   = 0;

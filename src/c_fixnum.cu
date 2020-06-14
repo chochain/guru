@@ -38,7 +38,7 @@ guru_flt_cmp(const GR *r0, const GR *r1)
 /*! (operator) [] bit reference
  */
 __CFUNC__
-int_bitref(GR r[], U32 ri)
+int_bitref(GR r[], S32 ri)
 {
     if (0 <= r[1].i && r[1].i < 32) {
         RETURN_INT((r[0].i & (1 << r[1].i)) ? 1 : 0);
@@ -52,7 +52,7 @@ int_bitref(GR r[], U32 ri)
 /*! (operator) unary -
  */
 __CFUNC__
-int_negative(GR r[], U32 ri)
+int_negative(GR r[], S32 ri)
 {
     GI n = _INT(0);
     RETURN_INT(-n);
@@ -62,7 +62,7 @@ int_negative(GR r[], U32 ri)
 /*! (operator) ** power
  */
 __CFUNC__
-int_power(GR r[], U32 ri)
+int_power(GR r[], S32 ri)
 {
     ASSERT(r[1].gt==GT_INT);
 
@@ -83,7 +83,7 @@ int_power(GR r[], U32 ri)
 /*! (operator) %
  */
 __CFUNC__
-int_mod(GR r[], U32 ri)
+int_mod(GR r[], S32 ri)
 {
     GI n = _INT(1);
     RETURN_INT(r->i % n);
@@ -93,7 +93,7 @@ int_mod(GR r[], U32 ri)
 /*! (operator) &; bit operation AND
  */
 __CFUNC__
-int_and(GR r[], U32 ri)
+int_and(GR r[], S32 ri)
 {
     GI n = _INT(1);
     RETURN_INT(r->i & n);
@@ -103,7 +103,7 @@ int_and(GR r[], U32 ri)
 /*! (operator) |; bit operation OR
  */
 __CFUNC__
-int_or(GR r[], U32 ri)
+int_or(GR r[], S32 ri)
 {
     GI n = _INT(1);
     RETURN_INT(r->i | n);
@@ -113,7 +113,7 @@ int_or(GR r[], U32 ri)
 /*! (operator) ^; bit operation XOR
  */
 __CFUNC__
-int_xor(GR r[], U32 ri)
+int_xor(GR r[], S32 ri)
 {
     GI n = _INT(1);
     RETURN_INT(r->i ^ n);
@@ -123,7 +123,7 @@ int_xor(GR r[], U32 ri)
 /*! (operator) ~; bit operation NOT
  */
 __CFUNC__
-int_not(GR r[], U32 ri)
+int_not(GR r[], S32 ri)
 {
     GI n = _INT(0);
     RETURN_INT(~n);
@@ -133,7 +133,7 @@ int_not(GR r[], U32 ri)
 /*! (operator) <<; bit operation LEFT_SHIFT
  */
 __CFUNC__
-int_lshift(GR r[], U32 ri)
+int_lshift(GR r[], S32 ri)
 {
     GI n = _INT(1);
     RETURN_INT(r->i << n);
@@ -143,7 +143,7 @@ int_lshift(GR r[], U32 ri)
 /*! (operator) >>; bit operation RIGHT_SHIFT
  */
 __CFUNC__
-int_rshift(GR r[], U32 ri)
+int_rshift(GR r[], S32 ri)
 {
     GI n = _INT(1);
     RETURN_INT(r->i >> n);
@@ -153,7 +153,7 @@ int_rshift(GR r[], U32 ri)
 /*! (operator) %
  */
 __CFUNC__
-int_mod_set(GR r[], U32 ri)
+int_mod_set(GR r[], S32 ri)
 {
     GI n = _INT(1);
     RETURN_INT(r->i %= n);
@@ -163,7 +163,7 @@ int_mod_set(GR r[], U32 ri)
 /*! (operator) &; bit operation AND
  */
 __CFUNC__
-int_and_set(GR r[], U32 ri)
+int_and_set(GR r[], S32 ri)
 {
     GI n = _INT(1);
     RETURN_INT(r->i &= n);
@@ -173,7 +173,7 @@ int_and_set(GR r[], U32 ri)
 /*! (operator) |; bit operation OR
  */
 __CFUNC__
-int_or_set(GR r[], U32 ri)
+int_or_set(GR r[], S32 ri)
 {
     GI n = _INT(1);
     RETURN_INT(r->i |= n);
@@ -183,7 +183,7 @@ int_or_set(GR r[], U32 ri)
 /*! (operator) ^; bit operation XOR
  */
 __CFUNC__
-int_xor_set(GR r[], U32 ri)
+int_xor_set(GR r[], S32 ri)
 {
     GI n = _INT(1);
     RETURN_INT(r->i ^= n);
@@ -193,7 +193,7 @@ int_xor_set(GR r[], U32 ri)
 /*! (operator) <<; bit operation LEFT_SHIFT
  */
 __CFUNC__
-int_lshift_set(GR r[], U32 ri)
+int_lshift_set(GR r[], S32 ri)
 {
     GI n = _INT(1);
     RETURN_INT(r->i <<= n);
@@ -203,7 +203,7 @@ int_lshift_set(GR r[], U32 ri)
 /*! (operator) >>; bit operation RIGHT_SHIFT
  */
 __CFUNC__
-int_rshift_set(GR r[], U32 ri)
+int_rshift_set(GR r[], S32 ri)
 {
     GI n = _INT(1);
     RETURN_INT(r->i >>= n);
@@ -213,7 +213,7 @@ int_rshift_set(GR r[], U32 ri)
 /*! (method) abs
  */
 __CFUNC__
-int_abs(GR r[], U32 ri)
+int_abs(GR r[], S32 ri)
 {
     if (r[0].i < 0) {
         r[0].i = -r[0].i;
@@ -225,7 +225,7 @@ int_abs(GR r[], U32 ri)
 /*! (method) to_f
  */
 __CFUNC__
-int_to_f(GR r[], U32 ri)
+int_to_f(GR r[], S32 ri)
 {
     GF f = _INT(0);
     RETURN_FLOAT(f);
@@ -273,7 +273,7 @@ guru_init_class_int(void)
 /*! (operator) unary -
  */
 __CFUNC__
-flt_negative(GR r[], U32 ri)
+flt_negative(GR r[], S32 ri)
 {
     GF f = _FLOAT(0);
     RETURN_FLOAT(-f);
@@ -284,7 +284,7 @@ flt_negative(GR r[], U32 ri)
 /*! (operator) ** power
  */
 __CFUNC__
-flt_power(GR r[], U32 ri)
+flt_power(GR r[], S32 ri)
 {
     GF n = 0;
     switch (r[1].gt) {
@@ -301,7 +301,7 @@ flt_power(GR r[], U32 ri)
 /*! (method) abs
  */
 __CFUNC__
-flt_abs(GR r[], U32 ri)
+flt_abs(GR r[], S32 ri)
 {
     if (r[0].f < 0) {
         r[0].f = -r[0].f;
@@ -312,7 +312,7 @@ flt_abs(GR r[], U32 ri)
 /*! (method) to_i
  */
 __CFUNC__
-flt_to_i(GR r[], U32 ri)
+flt_to_i(GR r[], S32 ri)
 {
     GI i = (GI)_FLOAT(0);
     RETURN_INT(i);

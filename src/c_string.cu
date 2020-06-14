@@ -338,7 +338,7 @@ guru_buf_add_cstr(GR *buf, const U8 *str)
 /*! (method) +
  */
 __CFUNC__
-str_add(GR r[], U32 ri)
+str_add(GR r[], S32 ri)
 {
     GR ret = guru_str_add(r, r+1);				// will check (r+1)->gt==GT_STR
 
@@ -349,7 +349,7 @@ str_add(GR r[], U32 ri)
 /*! (method) *
  */
 __CFUNC__
-str_mul(GR r[], U32 ri)
+str_mul(GR r[], S32 ri)
 {
 	U32 sz = _sz(r);
 
@@ -373,7 +373,7 @@ str_mul(GR r[], U32 ri)
 /*! (method) size, length
  */
 __CFUNC__
-str_len(GR r[], U32 ri)
+str_len(GR r[], S32 ri)
 {
     GI len = STRLEN(GR_RAW(r));
 
@@ -384,7 +384,7 @@ str_len(GR r[], U32 ri)
 /*! (method) to_i
  */
 __CFUNC__
-str_to_i(GR r[], U32 ri)
+str_to_i(GR r[], S32 ri)
 {
     U32 base = 10;
     if (ri) {
@@ -398,7 +398,7 @@ str_to_i(GR r[], U32 ri)
 
 //================================================================
 __CFUNC__
-str_to_s(GR r[], U32 ri)
+str_to_s(GR r[], S32 ri)
 {
     GR ret = _dup(r);
     RETURN_VAL(ret);
@@ -409,7 +409,7 @@ str_to_s(GR r[], U32 ri)
 /*! (method) to_f
  */
 __CFUNC__
-str_to_f(GR r[], U32 ri)
+str_to_f(GR r[], S32 ri)
 {
     GF d = ATOF(GR_RAW(r));
 
@@ -436,7 +436,7 @@ _slice(GR *r, U32 i, U32 n)
 /*! (method) []
  */
 __CFUNC__
-str_slice(GR r[], U32 ri)
+str_slice(GR r[], S32 ri)
 {
     U32 n  = _sz(r);
     GR *r1 = &r[1];
@@ -468,7 +468,7 @@ str_slice(GR r[], U32 ri)
 /*! (method) []=
  */
 __CFUNC__
-str_insert(GR r[], U32 ri)
+str_insert(GR r[], S32 ri)
 {
     S32 nth;
     S32 len;
@@ -519,7 +519,7 @@ str_insert(GR r[], U32 ri)
 /*! (method) chomp
  */
 __CFUNC__
-str_chomp(GR r[], U32 ri)
+str_chomp(GR r[], S32 ri)
 {
     GR ret = _dup(r);
     _chomp(&ret);
@@ -530,7 +530,7 @@ str_chomp(GR r[], U32 ri)
 /*! (method) chomp!
  */
 __CFUNC__
-str_chomp_self(GR r[], U32 ri)
+str_chomp_self(GR r[], S32 ri)
 {
     if (_chomp(r)==0) {
         RETURN_NIL();
@@ -541,7 +541,7 @@ str_chomp_self(GR r[], U32 ri)
 /*! (method) dup
  */
 __CFUNC__
-str_dup(GR r[], U32 ri)
+str_dup(GR r[], S32 ri)
 {
     RETURN_VAL(_dup(r));
 }
@@ -550,7 +550,7 @@ str_dup(GR r[], U32 ri)
 /*! (method) index
  */
 __CFUNC__
-str_index(GR r[], U32 ri)
+str_index(GR r[], S32 ri)
 {
     S32 index;
     S32 offset;
@@ -577,7 +577,7 @@ str_index(GR r[], U32 ri)
 /*! (method) include?
  */
 __CFUNC__
-str_include(GR r[], U32 ri)
+str_include(GR r[], S32 ri)
 {
     if (_index(r, r+1, 0)<0) RETURN_FALSE()
     else 					 RETURN_TRUE();
@@ -587,7 +587,7 @@ str_include(GR r[], U32 ri)
 /*! (method) ord
  */
 __CFUNC__
-str_ord(GR r[], U32 ri)
+str_ord(GR r[], S32 ri)
 {
     RETURN_INT(GR_RAW(r)[0]);
 }
@@ -596,7 +596,7 @@ str_ord(GR r[], U32 ri)
 /*! (method) split
  */
 __CFUNC__
-str_split(GR r[], U32 ri)
+str_split(GR r[], S32 ri)
 {
     NA("string#split");
 }
@@ -605,7 +605,7 @@ str_split(GR r[], U32 ri)
 /*! (method) lstrip
  */
 __CFUNC__
-str_lstrip(GR r[], U32 ri)
+str_lstrip(GR r[], S32 ri)
 {
     GR ret = _dup(r);
 
@@ -618,7 +618,7 @@ str_lstrip(GR r[], U32 ri)
 /*! (method) lstrip!
  */
 __CFUNC__
-str_lstrip_self(GR r[], U32 ri)
+str_lstrip_self(GR r[], S32 ri)
 {
     if (_strip(r, 0x01)==0) {			// 1: left side only
         RETURN_VAL(NIL);
@@ -629,7 +629,7 @@ str_lstrip_self(GR r[], U32 ri)
 /*! (method) rstrip
  */
 __CFUNC__
-str_rstrip(GR r[], U32 ri)
+str_rstrip(GR r[], S32 ri)
 {
     GR ret = _dup(r);
 
@@ -642,7 +642,7 @@ str_rstrip(GR r[], U32 ri)
 /*! (method) rstrip!
  */
 __CFUNC__
-str_rstrip_self(GR r[], U32 ri)
+str_rstrip_self(GR r[], S32 ri)
 {
     if (_strip(r, 0x02)==0) {			// 2: right side only
         RETURN_VAL(NIL);				// keep refc
@@ -653,7 +653,7 @@ str_rstrip_self(GR r[], U32 ri)
 /*! (method) strip
  */
 __CFUNC__
-str_strip(GR r[], U32 ri)
+str_strip(GR r[], S32 ri)
 {
     GR ret = _dup(r);
     _strip(&ret, 0x03);					// 3: left and right
@@ -664,7 +664,7 @@ str_strip(GR r[], U32 ri)
 /*! (method) strip!
  */
 __CFUNC__
-str_strip_self(GR r[], U32 ri)
+str_strip_self(GR r[], S32 ri)
 {
     if (_strip(r, 0x03)==0) {			// 3: left and right
         RETURN_VAL(NIL);				// keep refc
@@ -675,7 +675,7 @@ str_strip_self(GR r[], U32 ri)
 /*! (method) to_sym
  */
 __CFUNC__
-str_to_sym(GR r[], U32 ri)
+str_to_sym(GR r[], S32 ri)
 {
 	U8 *str = GR_RAW(r);
     GR ret { GT_SYM, 0, 0, { guru_rom_add_sym((char*)str) } };
@@ -688,7 +688,7 @@ str_to_sym(GR r[], U32 ri)
 #define BUF_SIZE 255
 
 __CFUNC__
-str_inspect(GR r[], U32 ri)
+str_inspect(GR r[], S32 ri)
 {
 	const char *hex = "0123456789ABCDEF";
     GR buf = guru_str_buf(BUF_SIZE*2);
@@ -723,6 +723,30 @@ str_inspect(GR r[], U32 ri)
 }
 
 //================================================================
+/*! (method) *
+ */
+__CFUNC__
+str_format(GR r[], S32 ri)
+{
+	U32 sz = _sz(r);
+
+    if (r[1].gt != GT_INT) {
+        PRINTF("TypeError\n");	// raise?
+        return;
+    }
+    GR ret = _blank(sz * r[1].i);
+
+    U8 *s0 = GR_RAW(r);
+    U8 *s1 = GR_RAW(&ret);
+    for (int i=0; i < r[1].i; i++, s1+=sz) {
+        MEMCPY(s1, s0, sz);
+    }
+    *s1 = '\0';
+
+    RETURN_VAL(ret);
+}
+
+//================================================================
 /*! initialize
  */
 __GURU__ __const__ Vfunc str_vtbl[] = {
@@ -753,7 +777,8 @@ __GURU__ __const__ Vfunc str_vtbl[] = {
 	{ "to_s",   	str_to_s		},
 	{ "to_sym",		str_to_sym		},
 	{ "to_f",		str_to_f		},
-	{ "inspect",	str_inspect		}
+	{ "inspect",	str_inspect		},
+	{ "%",			str_format      }
 };
 
 __GURU__ void

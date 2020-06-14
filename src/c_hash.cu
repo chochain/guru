@@ -235,7 +235,7 @@ guru_hash_cmp(const GR *r0, const GR *r1)
 /*! (method) new
  */
 __CFUNC__
-hsh_new(GR r[], U32 ri)
+hsh_new(GR r[], S32 ri)
 {
 	GR ret;
     if (ri==0) {											// in case of new()
@@ -251,7 +251,7 @@ hsh_new(GR r[], U32 ri)
 /*! (operator) []
  */
 __CFUNC__
-hsh_get(GR r[], U32 ri)
+hsh_get(GR r[], S32 ri)
 {
 	ASSERT(ri==1);
 	GR ret = _get(r, r+1);
@@ -263,7 +263,7 @@ hsh_get(GR r[], U32 ri)
 /*! (operator) []=
  */
 __CFUNC__
-hsh_set(GR r[], U32 ri)
+hsh_set(GR r[], S32 ri)
 {
 	ASSERT(ri==2);
     _set(r, r+1, r+2);		// k + v
@@ -277,7 +277,7 @@ hsh_set(GR r[], U32 ri)
 /*! (method) clear
  */
 __CFUNC__
-hsh_clr(GR r[], U32 ri)
+hsh_clr(GR r[], S32 ri)
 {
     _clr(r);
 }
@@ -286,7 +286,7 @@ hsh_clr(GR r[], U32 ri)
 /*! (method) dup
  */
 __CFUNC__
-hsh_dup(GR r[], U32 ri)
+hsh_dup(GR r[], S32 ri)
 {
     RETURN_VAL(_hash_dup(r));
 }
@@ -295,7 +295,7 @@ hsh_dup(GR r[], U32 ri)
 /*! (method) delete
  */
 __CFUNC__
-hsh_del(GR r[], U32 ri)
+hsh_del(GR r[], S32 ri)
 {
     // TODO : now, support only delete(key) -> object
     // TODO: re-index hash table if need.
@@ -306,7 +306,7 @@ hsh_del(GR r[], U32 ri)
 /*! (method) empty?
  */
 __CFUNC__
-hsh_empty(GR r[], U32 ri)
+hsh_empty(GR r[], S32 ri)
 {
     RETURN_BOOL(_size(r)==0);
 }
@@ -315,7 +315,7 @@ hsh_empty(GR r[], U32 ri)
 /*! (method) has_key?
  */
 __CFUNC__
-hsh_has_key(GR r[], U32 ri)
+hsh_has_key(GR r[], S32 ri)
 {
     RETURN_BOOL(_search(r, r+1)!=NULL);
 }
@@ -324,7 +324,7 @@ hsh_has_key(GR r[], U32 ri)
 /*! (method) has_value?
  */
 __CFUNC__
-hsh_has_value(GR r[], U32 ri)
+hsh_has_value(GR r[], S32 ri)
 {
     GR  *p = _data(r);
     U32 n  = _size(r);
@@ -340,7 +340,7 @@ hsh_has_value(GR r[], U32 ri)
 /*! (method) key
  */
 __CFUNC__
-hsh_key(GR r[], U32 ri)
+hsh_key(GR r[], S32 ri)
 {
     GR  *p = _data(r);
     U32 n  = _size(r);
@@ -356,7 +356,7 @@ hsh_key(GR r[], U32 ri)
 /*! (method) keys
  */
 __CFUNC__
-hsh_keys(GR r[], U32 ri)
+hsh_keys(GR r[], S32 ri)
 {
     GR *p  = _data(r);
     int n  = _size(r);
@@ -372,7 +372,7 @@ hsh_keys(GR r[], U32 ri)
 /*! (method) size,length,count
  */
 __CFUNC__
-hsh_size(GR r[], U32 ri)
+hsh_size(GR r[], S32 ri)
 {
     RETURN_INT(_size(r));
 }
@@ -381,7 +381,7 @@ hsh_size(GR r[], U32 ri)
 /*! (method) merge
  */
 __CFUNC__
-hsh_merge(GR r[], U32 ri)		// non-destructive merge
+hsh_merge(GR r[], S32 ri)		// non-destructive merge
 {
 	ASSERT((r+1)->gt==GT_HASH);	// other types not supported yet
 
@@ -398,7 +398,7 @@ hsh_merge(GR r[], U32 ri)		// non-destructive merge
 /*! (method) merge!
  */
 __CFUNC__
-hsh_merge_self(GR r[], U32 ri)
+hsh_merge_self(GR r[], S32 ri)
 {
 	ASSERT((r+1)->gt==GT_HASH);	// other types not supported yet
 
@@ -413,7 +413,7 @@ hsh_merge_self(GR r[], U32 ri)
 /*! (method) values
  */
 __CFUNC__
-hsh_values(GR r[], U32 ri)
+hsh_values(GR r[], S32 ri)
 {
     GR *p  = _data(r);
     int n  = _size(r);

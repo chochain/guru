@@ -151,7 +151,7 @@ _get_irep_id(guru_state *st)
 }
 
 __HOST__ void
-_show_regs(GR *r, U32 ri)
+_show_regs(GR *r, S32 ri)
 {
 	for (int i=0; i<ri; i++, r++) {
 		const char *t = _vtype[r->gt];
@@ -212,6 +212,8 @@ _show_decode(guru_state *st, GAR ar)
 		if (ar.c<1)		printf(" r%-2d < %-17s", a, op==OP_ARRAY ? "[]" : "{}");
 		else			printf(" r%-2d <r%-2d..r%-12d", a, ar.b, ar.b+ar.c-1);
 		return;
+	case OP_ARYCAT:
+	case OP_ARYPUSH:    printf(" r%-2d <r%-17d", a, ar.b);							return;
 	case OP_AREF:		printf(" r%-2d =r%-2d+%-2d%12s", a, ar.b, ar.c, "");		return;
 	case OP_ASET:		printf(" r%-2d+%-2d =r%-12d", ar.b, ar.c, a);				return;
 	case OP_SCLASS:		printf(" r%-22d", ar.b);									return;
@@ -329,11 +331,22 @@ debug_disasm(guru_vm *vm)
 }
 
 __HOST__ void
-debug_error(guru_vm *vm)
+debug_error(int ec)
 {
-	if (_debug<1 || !vm->err) return;
+	if (_debug<1 || !ec) return;
 
-	printf("ERROR: %s\n", _errcode[vm->err]);
+	switch (ec) {
+	case -11: fprintf(stderr, "ERROR: failed to allocate device main memory block!\n");	break;
+	case -12: fprintf(stderr, "ERROR: output buffer allocation error!\n");				break;
+	case -13: fprintf(stderr, "ERROR: VM Pool memory allocation error!\n");				break;
+	case -21: fprintf(stderr, "ERROR: session memory allocation error!\n");				break;
+	case -22: fprintf(stderr, "ERROR: bytecode memory allocation error!\n");			break;
+	case -31: fprintf(stderr, "ERROR: VM Pool=NULL!");									break;
+	case -32: fprintf(stderr, "ERROR: No more VM available!");						 	break;
+	case -33: fprintf(stderr, "ERROR: bytecode parse failure!");						break;
+	case -34: fprintf(stderr, "ERROR: failed to transition VM state!"); 				break;
+	default: printf("ERROR: %s\n", _errcode[ec]);
+	}
 }
 
 __HOST__ void

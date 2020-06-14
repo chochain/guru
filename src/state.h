@@ -41,7 +41,7 @@ typedef struct RIrep {			// 32-byte
 */
 typedef struct RState {			// 20-byte
     U32 pc;						// program counter
-    U8  argc;  					// number of arguments
+    S8  argc;  					// number of arguments
     U8  flag;					// iterator flag
     U8  nv;						// number of local vars (for screen dump)
     U8  temp;					// reserved
@@ -89,12 +89,12 @@ typedef struct RState {			// 20-byte
 #define VM_STR(vm,n)	(&IREP_POOL(VM_IREP(vm))[(n)])
 #define VM_SYM(vm,n)    ((IREP_POOL(VM_IREP(vm))[VM_IREP(vm)->p+(n)]).i)
 
-__GURU__ void 	vm_state_push(guru_vm *vm, GP irep, U32 pc, GR r[], U32 ri);
+__GURU__ void 	vm_state_push(guru_vm *vm, GP irep, U32 pc, GR r[], S32 ri);
 __GURU__ void	vm_state_pop(guru_vm *vm, GR ret_val);
 
 // TODO: temp functions for call and new (due to VM passing required)
 __GURU__ U32	vm_loop_next(guru_vm *vm);
-__GURU__ U32	vm_method_exec(guru_vm *vm, GR r[], U32 ri, GS sid);
+__GURU__ U32	vm_method_exec(guru_vm *vm, GR r[], S32 ri, GS sid);
 
 #ifdef __cplusplus
 }
@@ -110,12 +110,12 @@ public:
 	__GURU__ StateMgr(VM *vm);
 	__GURU__ ~StateMgr();
 
-	__GURU__ void 	push_state(GP irep, U32 pc, GR r[], U32 ri);
+	__GURU__ void 	push_state(GP irep, U32 pc, GR r[], S32 ri);
 	__GURU__ void	pop_state(GR ret_val);
 
 	// TODO: temp functions for call and new (due to VM passing required)
 	__GURU__ U32	loop_next();
-	__GURU__ U32	exec_method(GR r[], U32 ri, GS sid);
+	__GURU__ U32	exec_method(GR r[], S32 ri, GS sid);
 	__GURU__ void	free_states();
 };
 #endif  // GURU_CXX_CODEBASE

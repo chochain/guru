@@ -85,7 +85,7 @@ guru_range_cmp(const GR *r0, const GR *r1)
 /*! (method) ===
  */
 __CFUNC__
-rng_eq3(GR r[], U32 ri)
+rng_eq3(GR r[], S32 ri)
 {
     if (r->gt == GT_CLASS) {
 #if GURU_CXX_CODEBASE
@@ -112,7 +112,7 @@ rng_eq3(GR r[], U32 ri)
 /*! (method) first
  */
 __CFUNC__
-rng_first(GR r[], U32 ri)
+rng_first(GR r[], S32 ri)
 {
     RETURN_VAL(GR_RNG(r)->first);
 }
@@ -121,7 +121,7 @@ rng_first(GR r[], U32 ri)
 /*! (method) last
  */
 __CFUNC__
-rng_last(GR r[], U32 ri)
+rng_last(GR r[], S32 ri)
 {
     RETURN_VAL(GR_RNG(r)->last);
 }
@@ -130,7 +130,7 @@ rng_last(GR r[], U32 ri)
 /*! (method) exclude_end?
  */
 __CFUNC__
-rng_exclude_end(GR r[], U32 ri)
+rng_exclude_end(GR r[], S32 ri)
 {
     RETURN_BOOL(!IS_INCLUDE(GR_RNG(r)));
 }

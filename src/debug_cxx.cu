@@ -157,7 +157,7 @@ class Debug::Impl
     }
 
     __HOST__ void
-    _show_regs(GR *r, U32 ri)
+    _show_regs(GR *r, S32 ri)
     {
         for (int i=0; i<ri; i++, r++) {
             const char *t = _vtype[r->gt];
@@ -346,10 +346,10 @@ public:
         switch(ec) {
         case -11: log("ERROR: failed to allocate device main memory block!"); 	break;
         case -12: log("ERROR: output buffer allocation error!"); 			 	break;
-        case -13: log("ERROR: VM memory block allocation error!");			 	break;
+        case -13: log("ERROR: VM Pool memory allocation error!");				break;
     	case -21: log("ERROR: session memory allocation error!");				break;
     	case -22: log("ERROR: bytecode memory allocation error!"); 				break;
-    	case -31: log("ERROR: VM pool memory allocation error!");				break;
+    	case -31: log("ERROR: VM Pool=NULL!");									break;
     	case -32: log("ERROR: No more VM available!");						 	break;
     	case -33: log("ERROR: bytecode parse failure!");						break;
     	case -34: log("ERROR: failed to transition VM state!"); 				break;

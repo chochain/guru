@@ -200,7 +200,7 @@ _shift(GR *ary)
   @return			GR data at index position or Nil.
 */
 __GURU__ GR
-_get(GR *r, U32 ri, S32 n1, S32 n2)
+_get(GR *r, S32 ri, S32 n1, S32 n2)
 {
 	guru_array *h = GR_ARY(r);
 
@@ -325,6 +325,25 @@ guru_array_push(GR *ary, GR *set_val)
 	return *ary;
 }
 
+//================================================================
+/*! tabulate array into registers
+
+  @param  ary		pointer to target value
+  @param  set_val	set value
+  @return			error_code
+*/
+__GURU__ GR
+guru_array_splat(GR r[], GR *ary)
+{
+	guru_array *h = GR_ARY(ary);
+    GR *p  = h->data;
+    GR *ra = ref_inc(p++);
+    for (int i=1; i < h->n; i++) {		// released element from the array
+    	*(r+i) = *ref_inc(p++);
+    }
+    return *ra;
+}
+
 __GURU__ GR
 guru_array_get(GR *ary, S32 idx)
 {
@@ -385,7 +404,7 @@ guru_array_cmp(const GR *a0, const GR *a1)
 /*! method new
  */
 __CFUNC__
-ary_new(GR r[], U32 ri)
+ary_new(GR r[], S32 ri)
 {
 	GR ret;
     if (ri==0) {											// in case of new()
@@ -416,7 +435,7 @@ ary_new(GR r[], U32 ri)
 /*! (operator) +
  */
 __CFUNC__
-ary_add(GR r[], U32 ri)
+ary_add(GR r[], S32 ri)
 {
     ASSERT(r[0].gt==GT_ARRAY && r[1].gt==GT_ARRAY);		// array only (for now)
 
@@ -439,7 +458,7 @@ ary_add(GR r[], U32 ri)
 /*! (operator) -
  */
 __CFUNC__
-ary_sub(GR r[], U32 ri)
+ary_sub(GR r[], S32 ri)
 {
     ASSERT(r[0].gt==GT_ARRAY && r[1].gt==GT_ARRAY);		// array only (for now)
 
@@ -462,7 +481,7 @@ ary_sub(GR r[], U32 ri)
 /*! (operator) []
  */
 __CFUNC__
-ary_get(GR r[], U32 ri)
+ary_get(GR r[], S32 ri)
 {
 	GR ret;
 	if (r->gt==GT_ARRAY) {
@@ -481,7 +500,7 @@ ary_get(GR r[], U32 ri)
 /*! (operator) []=
  */
 __CFUNC__
-ary_set(GR r[], U32 ri)
+ary_set(GR r[], S32 ri)
 {
 	GT gt1 = r[1].gt;
 	GT gt2 = r[2].gt;
@@ -502,7 +521,7 @@ ary_set(GR r[], U32 ri)
 /*! (method) clear
  */
 __CFUNC__
-ary_clr(GR r[], U32 ri)
+ary_clr(GR r[], S32 ri)
 {
     guru_array_clr(r);
 }
@@ -511,7 +530,7 @@ ary_clr(GR r[], U32 ri)
 /*! (method) delete_at
  */
 __CFUNC__
-ary_del_at(GR r[], U32 ri)
+ary_del_at(GR r[], S32 ri)
 {
 	S32 n = r[1].i;
 
@@ -522,7 +541,7 @@ ary_del_at(GR r[], U32 ri)
 /*! (method) empty?
  */
 __CFUNC__
-ary_empty(GR r[], U32 ri)
+ary_empty(GR r[], S32 ri)
 {
     RETURN_BOOL(GR_ARY(r)->n==0);
 }
@@ -531,7 +550,7 @@ ary_empty(GR r[], U32 ri)
 /*! (method) size,length,count
  */
 __CFUNC__
-ary_size(GR r[], U32 ri)
+ary_size(GR r[], S32 ri)
 {
     RETURN_INT(GR_ARY(r)->n);
 }
@@ -553,7 +572,7 @@ _index(GR r[])
 /*! (method) index
  */
 __CFUNC__
-ary_index(GR r[], U32 ri)
+ary_index(GR r[], S32 ri)
 {
 	S32 i = _index(r);
 	if (i>=0) { RETURN_INT(i); }
@@ -564,7 +583,7 @@ ary_index(GR r[], U32 ri)
 /*! (method) first
  */
 __CFUNC__
-ary_first(GR r[], U32 ri)
+ary_first(GR r[], S32 ri)
 {
 	U32 n = r[1].gt==GT_INT;
 	GR  ret = _get(r, n ? 2 : 1, 0, n ? r[1].i-1 : 0);
@@ -575,7 +594,7 @@ ary_first(GR r[], U32 ri)
 /*! (method) last
  */
 __CFUNC__
-ary_last(GR r[], U32 ri)
+ary_last(GR r[], S32 ri)
 {
 	U32 n = r[1].gt==GT_INT;
 	GR  ret = _get(r, n ? 2 : 1, n ? -r[1].i : -1, -1);
@@ -586,7 +605,7 @@ ary_last(GR r[], U32 ri)
 /*! (method) push
  */
 __CFUNC__
-ary_push(GR r[], U32 ri)
+ary_push(GR r[], S32 ri)
 {
     guru_array_push(r, r+1);				// raise? ENOMEM
 }
@@ -595,7 +614,7 @@ ary_push(GR r[], U32 ri)
 /*! (method) pop
  */
 __CFUNC__
-ary_pop(GR r[], U32 ri)
+ary_pop(GR r[], S32 ri)
 {
     if (ri==0) {							// pop() -> object | nil
         RETURN_VAL(_pop(r));
@@ -612,7 +631,7 @@ ary_pop(GR r[], U32 ri)
 /*! (method) pop
  */
 __CFUNC__
-ary_reverse(GR r[], U32 ri)
+ary_reverse(GR r[], S32 ri)
 {
 	guru_array *a = GR_ARY(r);
 	GR ret = guru_array_new(a->n);
@@ -628,7 +647,7 @@ ary_reverse(GR r[], U32 ri)
 /*! (method) unshift
  */
 __CFUNC__
-ary_unshift(GR r[], U32 ri)
+ary_unshift(GR r[], S32 ri)
 {
     _unshift(r, r+1);						// raise? IndexError or ENOMEM
 }
@@ -637,7 +656,7 @@ ary_unshift(GR r[], U32 ri)
 /*! (method) shift
  */
 __CFUNC__
-ary_shift(GR r[], U32 ri)
+ary_shift(GR r[], S32 ri)
 {
     if (ri==0) {							// shift() -> object | nil
         RETURN_VAL(_shift(r));
@@ -654,7 +673,7 @@ ary_shift(GR r[], U32 ri)
 /*! (method) dup
  */
 __CFUNC__
-ary_dup(GR r[], U32 ri)
+ary_dup(GR r[], S32 ri)
 {
     guru_array *h0 = GR_ARY(r);
 
@@ -670,7 +689,7 @@ ary_dup(GR r[], U32 ri)
 /*! (method) include?
  */
 __CFUNC__
-ary_include(GR r[], U32 ri)
+ary_include(GR r[], S32 ri)
 {
     if (_index(r)<0) RETURN_FALSE()
     else 		     RETURN_TRUE();
@@ -681,7 +700,7 @@ ary_include(GR r[], U32 ri)
 /*! (method) min
  */
 __CFUNC__
-ary_min(GR r[], U32 ri)
+ary_min(GR r[], S32 ri)
 {
     // Subset of Array#min, not support min(n).
     GR *min, *max;
@@ -697,7 +716,7 @@ ary_min(GR r[], U32 ri)
 /*! (method) max
  */
 __CFUNC__
-ary_max(GR r[], U32 ri)
+ary_max(GR r[], S32 ri)
 {
     // Subset of Array#max, not support max(n).
     GR *min, *max;
@@ -712,7 +731,7 @@ ary_max(GR r[], U32 ri)
 /*! (method) minmax
  */
 __CFUNC__
-ary_minmax(GR r[], U32 ri)
+ary_minmax(GR r[], S32 ri)
 {
     GR nil = NIL;
     GR ret = guru_array_new(2);

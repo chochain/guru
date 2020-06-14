@@ -284,7 +284,7 @@ ClassMgr::class_by_id(GS cid)
   @param  argc		num of params.
 
   @example
-  void int_to_s(GR r[], U32 ri)
+  void int_to_s(GR r[], S32 ri)
   {
   	  GR *rcv = &r[1];
   	  GR ret  = _send(v, rcv, "to_s", argc);
