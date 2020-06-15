@@ -1,3 +1,5 @@
+# Array.each
+#
 def eachputs(ary)
     ary.each do |i|
         puts i
