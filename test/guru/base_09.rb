@@ -1,4 +1,4 @@
-# optional argumenets
+# default argumenets
     
 def a2(a=2, b=3)
     a+b
