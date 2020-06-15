@@ -23,6 +23,7 @@ typedef S32  (*guru_cmp_func)(const GR *r0, const GR *r1);
 __GURU__ void 	guru_register_func(GT t, guru_init_func fi, guru_destroy_func fd, guru_cmp_func fc);
 __GURU__ GR		guru_new(...);
 __GURU__ GR     guru_pack(GR *r);
+__GURU__ void   guru_splat(GR *r1, GR *r0, U32 n);
 __GURU__ void	guru_destroy(GR *r);
 __GURU__ S32  	guru_cmp(const GR *r0, const GR *r1);
 

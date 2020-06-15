@@ -31,7 +31,6 @@ typedef struct RArray {	// 16-byte
 __GURU__ GR 		guru_array_new(U32 sz);
 __GURU__ void       guru_array_del(GR *ary);
 __GURU__ GR         guru_array_push(GR *ary, GR *set_val);
-__GURU__ GR         guru_array_splat(GR r[], GR *ary);
 __GURU__ GR		    guru_array_get(GR *ary, S32 idx);
 __GURU__ void       guru_array_set(GR *ary, S32 idx, GR *set_val);
 __GURU__ void       guru_array_clr(GR *ary);

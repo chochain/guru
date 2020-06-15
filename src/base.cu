@@ -59,6 +59,22 @@ guru_pack(GR *r)										// compact storage space
 }
 
 //================================================================
+/*! tabulate array into registers
+
+  @param  ary		pointer to target value
+  @param  set_val	set value
+  @return			error_code
+*/
+__GURU__ void
+guru_splat(GR *r1, GR *r0, U32 n)
+{
+    for (int i=0; i < n; i++) {		// copy elements from the array
+        ref_dec(r1);
+    	*r1++ = *ref_inc(r0++);
+    }
+}
+
+//================================================================
 /*! compare two GRs
 
   @param  r0	Pointer to GR

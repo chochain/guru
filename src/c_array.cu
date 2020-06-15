@@ -325,25 +325,6 @@ guru_array_push(GR *ary, GR *set_val)
 	return *ary;
 }
 
-//================================================================
-/*! tabulate array into registers
-
-  @param  ary		pointer to target value
-  @param  set_val	set value
-  @return			error_code
-*/
-__GURU__ GR
-guru_array_splat(GR r[], GR *ary)
-{
-	guru_array *h = GR_ARY(ary);
-    GR *p  = h->data;
-    GR *ra = ref_inc(p++);
-    for (int i=1; i < h->n; i++) {		// released element from the array
-    	*(r+i) = *ref_inc(p++);
-    }
-    return *ra;
-}
-
 __GURU__ GR
 guru_array_get(GR *ary, S32 idx)
 {
