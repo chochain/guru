@@ -83,12 +83,14 @@ __GURU__ void
 __loop(guru_vm *vm, GR r[], S32 ri, U32 collect)
 {
 	GR *r1 = r + 1;
+
 	ASSERT(r1->gt==GT_PROC);						// ensure it is a code block
 
 	guru_state *st = VM_STATE(vm);
+	guru_proc  *px = GR_PRC(r1);
 	U32	pc0   = st->pc;
 	GP 	irep0 = st->irep;							// current context
-	GP 	irep1 = GR_PRC(r1)->irep;					// callee IREP
+	GP 	irep1 = px->irep;							// callee IREP
 	GR 	git   = guru_iter_new(r, NULL);				// create iterator
 
 	// push stack out (1 space for iterator)
@@ -98,11 +100,11 @@ __loop(guru_vm *vm, GR r[], S32 ri, U32 collect)
 	*(++p) = *_REGS(st);
 
 	// allocate iterator state (using same stack frame)
-	vm_state_push(vm, irep0, pc0, p, ri);
+	vm_state_push(vm, irep0, pc0, p, px->n);
 	VM_STATE(vm)->flag |= STATE_LOOP;
 
 	// switch into callee's context with v[1]=1st element
-	vm_state_push(vm, irep1, 0, p, ri);
+	vm_state_push(vm, irep1, 0, p, px->n);
 	guru_iter *it = GR_ITR(&git);
 	*(++p) = *(it->inc);
 	if (it->n==GT_HASH) {

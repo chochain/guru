@@ -602,7 +602,7 @@ typedef struct {
 	r0 += n
 
 __GURU__ GR*
-_enter_array(AX *ax, GR *r, guru_state *st, guru_array *h)
+_enter(AX *ax, GR *r, guru_state *st, guru_array *h)
 {
     S32 n    = st->argc;									// mruby.argc
 	U32 m12  = ax->req + ax->pst;							// mruby.m1, m2
@@ -611,36 +611,48 @@ _enter_array(AX *ax, GR *r, guru_state *st, guru_array *h)
 	U32 mlen = n < m12										// post argument count
 			? (f1 > 0 ? f1 : 0)
 			: ax->pst;
-    S32 mx   = n - mlen;									// mandatory argument count
-    S32 f2   = ax->pst - mlen;								// filter after POST
-    GR  *p   = h->data;
+	S32 mx   = n - mlen;									// mandatory argument count
+	S32 f2   = ax->pst - mlen;								// filter after POST
 
-    SPLAT(r, p, mx);										// copy mandatory arguments onto call stack
-    for (int i=0; i<f1; i++, *r++=EMPTY);					// TODO: extra space allocated for REST???
-    SPLAT(r, p, mlen);										// optional arguments
-    for (int i=0; i<f2; i++, *r++=EMPTY);					// TODO: extra space allocated after POST???
-    if (ax->opt) {											// finally, skip optional (default) value jump table
-    	st->pc += n - k - m12;
-    }
-    return r;
+	if (h) {
+		GR  *p = h->data;
+    	SPLAT(r, p, mx);									// copy mandatory arguments onto call stack
+    	for (int i=0; i<f1; i++, *r++=EMPTY);				// TODO: extra space allocated for REST???
+    	SPLAT(r, p, mlen);									// optional arguments
+    	for (int i=0; i<f2; i++, *r++=EMPTY);				// TODO: extra space allocated after POST???
+	}
+	else {
+		r += m12 + ax->opt;									// push call stack for block (if any)
+	}
+	if (ax->opt) {
+		st->pc += n - m12 -k;								// adjust entry point for default value jump table
+	}
+	return r;
 }
 
 __GURU__ GR*
-_enter_array_rest(AX *ax, GR *r, guru_state *st, guru_array *h)
+_enter_rest(AX *ax, GR *r, guru_state *st, guru_array *h)
 {
     S32 n  = st->argc;										// mruby.argc
     S32 mx = ax->req + ax->opt;								// mandatory + optional arguments
-    S32 rx = n - mx;										// rest of arguments
-    GR  *p = h->data;
-    SPLAT(r, p, mx);										// copy arguments from Array onto call stack
+    S32 rx = (n > mx) ? n - mx : 0;							// rest of arguments
+    GR  *p = h ? h->data : (r += mx);
 
-    ref_dec(r);												// stick rest of arguments go into an array if any
-    *r = guru_array_new(rx);								// create the "rest" array
-    for (int i=0; i<rx; i++) {
-    	guru_array_push(r, p++);
+    if (h) {
+    	SPLAT(r, p, mx);									// copy arguments from Array onto call stack
+        ref_dec(r);											// stick rest of arguments go into an array if any
     }
-    r++;
-    /* TODO: not sure what this does, check mruby::vm.c
+    GR a = guru_array_new(rx);								// create the "rest" array
+    for (int i=0; i<rx; i++, p++) {
+    	guru_array_push(&a, p);
+    	if (!h) {
+    		ref_dec(p);
+        	*p = EMPTY;
+    	}
+    }
+    *r++ = a;												// place "*rest" array on the call stack
+
+    /* TODO: not sure what this does, see mruby::vm.c
     if (ax->rst && (n > m12)) {								// not sure what this does
     	S32 rnum = n - m12 - karg;							// some left over arguments?
     	GR *p = _REGS(st) + 1 + mx;
@@ -650,39 +662,7 @@ _enter_array_rest(AX *ax, GR *r, guru_state *st, guru_array *h)
     	}
     }
     */
-    st->pc += ax->opt;										// finally, skip optional (default) value jump table
-
-    return r;
-}
-
-__GURU__ GR*
-_enter(AX *ax, GR *r, guru_state *st)
-{
-	S32 n   = st->argc;
-	S32 k   = 0;										// TODO: mruby.kargs, for keyworded argument
-	U32 m12 = ax->req + ax->pst;
-
-    if (ax->opt) {										// finally, skip optional (default) value jump table
-    	st->pc += n - k - m12;
-    }
-    return r + n;
-}
-
-__GURU__ GR*
-_enter_rest(AX *ax, GR *r, guru_state *st)
-{
-	S32 n  = st->argc;
-    S32 mx = ax->req + ax->opt;							// mandatory + optional arguments
-    S32 rx = n - mx;									// rest of arguments
-    GR *p  = (r += mx);
-
-    *r = guru_array_new(rx);							// create the "rest" array
-    for (int i=0; i<rx; i++) {
-    	guru_array_push(r, p);
-    	ref_dec(p++);
-    }
-    r++;
-    st->pc += ax->opt;									// advance pc jump table if any option given
+    st->pc += ax->opt + (mx > n ? n - mx : 0);
 
     return r;
 }
@@ -692,14 +672,14 @@ uc_enter(guru_vm *vm)
 {
 	U32 eax = vm->ax;
 	AX  *ax = (AX*)&eax;									// a special decoder case
-	U32 m12 = ax->req + ax->pst;
+	U32 m12 = ax->req + ax->pst;							// required + post arguments, mruby.m1, m2
 	U32 len = m12 + ax->rst + ax->opt;						// mruby.len
 	U32 kd  = ax->key || ax->dic;							// mruby.kd
 
 	guru_state *st = VM_STATE(vm);
     S32 n   = st->argc;										// mruby.argc
     GR  *r  = _REGS(st) + 1;								// mruby.argv
-    GR  b   = *(r + (n<0 ? 1 : n));							// mruby.blk: callback block (if any)
+    GR  *b  = r + (n<0 ? 1 : n);							// mruby.blk: callback block (if any)
 
     guru_array *h = (n<0) ? GR_ARY(r+1) : NULL;				// arguments is passed as Array (by OP_ARYCAT)
     if (h) {
@@ -708,18 +688,17 @@ uc_enter(guru_vm *vm)
     if (n < m12 || (!ax->rst && (n > (len+kd)))) {			// validate parameter count (rst: array_splat)
     	BAIL("parameter count mismatched", 5);
     }
+	U32 k = 0;												// TODO: mruby.kargs, for keyword argument
     if (kd) {												// hash (keyword) as the last argument
     	BAIL("SEND with keyword argument", 6);				// not supported yet
     }
-    r = h
-    	? ax->rst											// if REST, i.e. func(a,b,*c), is specified
-    		? _enter_array_rest(ax, r, st, h)
-    		: _enter_array(ax, r, st, h)
-        : (n < len)											// if more argument then specified
-    		? _enter_rest(ax, r, st)
-    		: _enter(ax, r, st);
-	if (ax->blk) {											// callback block exists
-		*r = b;
+    r = ax->rst												// if REST, i.e. func(a,b,*c), is specified
+    	? _enter_rest(ax, r, st, h)
+    	: _enter(ax, r, st, h);
+	if (ax->blk && (r != b)) {								// callback block exists
+		ref_dec(r);
+		*r = *b;
+		*b = EMPTY;
 	}
 }
 
@@ -1146,7 +1125,9 @@ uc_lambda(guru_vm *vm)
 
 	GP prc  = guru_define_method(cls, NULL, irep);
 
-    _PRC(prc)->kt = PROC_IREP;				// instead of C-function
+	guru_proc *px = _PRC(prc);
+    px->kt = PROC_IREP;						// instead of C-function
+    px->n  = (obj->gt==GT_HASH) ? vm->cz : vm->cz -1;						// TODO: assume this is parameter count
 
     _RA_T(GT_PROC, off=prc);				// regs[ra].prc = prc
 }
