@@ -9,7 +9,6 @@
 
 #if GURU_USE_CONSOLE		// use guru local implemented print functions (in puts, sprintf.cu)
 #define PRINTF				guru_printf
-#define VPRINTF				guru_vprintf
 #else						// use CUDA printf function
 #include <stdio.h>
 #define PRINTF				printf
@@ -92,6 +91,7 @@ typedef uint8_t		U8;
 
 typedef int32_t     S32;					// signed integer
 typedef int16_t		S16;
+typedef int8_t		S8;
 typedef uintptr_t   U32A;					// pointer address
 
 typedef double		F64;					// double precision float
@@ -176,7 +176,7 @@ typedef struct {					// 16-bytes (128 bits) for ease of debugging
 #define _CALL(prc, r, ri)	(((guru_fptr)MEMPTR(_PRC(prc)->func))(r, ri));
 
 /* forward declarations */
-typedef void (*guru_fptr)(GR v[], U32 vi);
+typedef void (*guru_fptr)(GR r[], S32 ri);
 struct Irep;
 struct Vfunc {
 	const char  *name;			// raw string usually
@@ -196,6 +196,7 @@ typedef struct RSymbol {		// Symbol container
     kt  : [class,function] type for Class, Proc, lambda, iterator object type
         : proc=[0=Built-in C-func|PROC_IREP|PROC_LAMBDA]
         : cls =[0=Built-in class|CLASS_BY_USER]
+        : rng =[0=Exclude, 1=Include]
     n   : Array, Hash actual number of elements in built-in object, or
         : Proc parameter count
         : Iterator range object type (i.e. GT_*)

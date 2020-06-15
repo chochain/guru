@@ -3,6 +3,7 @@
 #include <unistd.h>
 #include <signal.h>
 #include "gurux.h"
+#include "debug.h"
 
 #define TRACE_MASK  	0x3
 #define VM_EXEC_FLAG  	0x8000
@@ -56,7 +57,11 @@ int main(int argc, char *argv[])
 		fprintf(stderr, "ERROR: SIGINT, use kill -9");
 	}
 
-	if (guru_setup(step, trace)) return -1;
+	int rst = guru_setup(step, trace);
+	if (rst) {										// setup error?
+		debug_error(rst);
+		return -1;
+	}
 
 	for (int i=n+1; i<argc; i++) {					// TODO: producer
 		char *fname = argv[i];

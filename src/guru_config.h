@@ -57,7 +57,7 @@
  *    1 : use C++ set
  */
 #define GURU_32BIT_ALIGN_REQUIRED 	1
-#define GURU_HEAP_SIZE 				(48*1024)
+#define GURU_HEAP_SIZE 				(64*1024)
 #define GURU_STRBUF_SIZE			(256-1)
 #define GURU_HOST_GRIT_IMAGE		1
 #define GURU_CXX_CODEBASE           0

@@ -59,19 +59,11 @@ guru_setup(int step, int trace)
 	debug_log("guru initializing...");
 
 	U8 *mem = guru_host_heap = (U8*)cuda_malloc(GURU_HEAP_SIZE, 1);	// allocate main block (i.e. RAM)
-	if (!mem) {
-		fprintf(stderr, "ERROR: failed to allocate device main memory block!\n");
-		return -1;
-	}
+	if (!mem) 				return -11;
 	U8 *out = _guru_out = (U8*)cuda_malloc(OUTPUT_BUF_SIZE, 1);		// allocate output buffer
-	if (!_guru_out) {
-		fprintf(stderr, "ERROR: output buffer allocation error!\n");
-		return -2;
-	}
-	if (vm_pool_init(step)) {										// allocate VM pool
-		fprintf(stderr, "ERROR: VM memory block allocation error!\n");
-		return -3;
-	}
+	if (!_guru_out) 		return -12;
+	if (vm_pool_init(step)) return -13;								// allocate VM pool
+
 	_ses_list = NULL;
 
 	guru_mmu_init<<<1,1>>>(mem, GURU_HEAP_SIZE);			// setup memory management
@@ -98,27 +90,17 @@ guru_load(char *rite_name)
 
 
 	guru_ses *ses = (guru_ses *)malloc(sizeof(guru_ses));
-	if (!ses) return -1;		// memory allocation error
+	if (!ses) return -21;		// memory allocation error
 
 	ses->stdout = _guru_out;
 
 	char *ins = _fetch_bytecode(rite_name);
-	if (!ins) {
-		fprintf(stderr, "ERROR: bytecode request allocation error!\n");
-		return -1;
-	}
+	if (!ins) return -22;		// bytecode memory allocation error
 
 	int id = ses->id = vm_get(ins);
 	cuda_free(ins);
 
-	if (id==-1) {
-		fprintf(stderr, "ERROR: bytecode parsing error!\n");
-		return -1;
-	}
-	if (id==-2) {
-		fprintf(stderr, "ERROR: No more VM available!\n");
-		return -1;
-	}
+	if (id<0) return id;
 
 	ses->next = _ses_list;		// add to linked-list
 	_ses_list = ses;
@@ -135,9 +117,8 @@ guru_run()
 	// parse BITE code into each vm
 	// TODO: work producer (enqueue)
 	for (guru_ses *ses=_ses_list; ses!=NULL; ses=ses->next) {
-		if (vm_ready(ses->id)) {
-			fprintf(stderr, "ERROR: VM state failed to go into READY state!\n");
-		}
+		int id = vm_ready(ses->id);
+		if (id) return id;
 	}
 	// kick up main loop until all VM are done
 	vm_main_start();
