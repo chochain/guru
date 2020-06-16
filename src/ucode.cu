@@ -581,16 +581,6 @@ uc_return(guru_vm *vm)
   arg setup according to flags (23=5:5:1:5:5:1:1)		// default parameter
 
 */
-typedef struct {
-	U32 blk: 1;				// callback block
-	U32 dic: 1;				// keyword parameters (i.e. hash)
-	U32 key: 5;				// number of keys (I think!)
-	U32 pst: 5;				// POST (TODO: do not know what this is for!)
-	U32 rst: 1;				// REST
-	U32 opt: 5;				// optional parameters
-	U32 req: 5;				// number of parameters
-} AX;
-
 #define BAIL(msg, ec)	\
 	uc_return(vm);		\
 	vm->err = ec;		\

@@ -135,6 +135,16 @@ enum OPCODE {
     OP_MAX
 };
 
+typedef struct {
+	U32 blk: 1;				// callback block
+	U32 dic: 1;				// keyword parameters (i.e. hash)
+	U32 key: 5;				// number of keys (I think!)
+	U32 pst: 5;				// POST (TODO: do not know what this is for!)
+	U32 rst: 1;				// REST
+	U32 opt: 5;				// optional parameters
+	U32 req: 5;				// number of parameters
+} AX;
+
 __GURU__ void ucode_prefetch(guru_vm *vm);
 __GURU__ void ucode_step(guru_vm *vm);
 

@@ -217,7 +217,12 @@ _show_decode(guru_state *st, GAR ar)
 	case OP_AREF:		printf(" r%-2d =r%-2d+%-2d%12s", a, ar.b, ar.c, "");		return;
 	case OP_ASET:		printf(" r%-2d+%-2d =r%-12d", ar.b, ar.c, a);				return;
 	case OP_SCLASS:		printf(" r%-22d", ar.b);									return;
-	case OP_ENTER:		printf(" @%-22d", 1 + st->argc - (ar.ax>>18)&0x1f);			return;
+	case OP_ENTER: {
+		U32 rax = ar.ax;
+		AX  *ax = (AX*)&rax;
+		printf(" %d:%d:%d:%d:%d:%d:%d @%-8d",
+			ax->req, ax->opt, ax->rst, ax->pst, ax->key, ax->dic, ax->blk, 1 + st->argc - ax->req);
+	} 																				return;
 	case OP_RESCUE:
 		printf(" r%-2d =%1d?r%-15d", (ar.c ? a+1 : a), ar.c, (ar.c ? a : a+1));		return;
 	}
