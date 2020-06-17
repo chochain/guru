@@ -20,14 +20,9 @@
   In case of searching a global object, binary search is used.
   In case of adding a global object, insertion sort is used.
 */
-typedef enum {
-    GURU_CONST_OBJECT  = 0,				// for classes
-    GURU_GLOBAL_OBJECT					// Ruby global objects
-} _gtype;
-
 typedef struct {						// 32-bit
+    GP		cls;						// offset to class, 0 => global
     GS 		xid;
-    _gtype 	gt;
 } _gidx;
 
 #define _LOCK		{ MUTEX_LOCK(_mutex_gobj); }
@@ -45,64 +40,60 @@ __GURU__ GR		_NIL = { .gt = GT_NIL, .acl=0 };
 /* TODO: Use binary search */
 #if CUDA_ENABLE_CDP
 __GPU__ void
-__idx(S32 *idx, GS xid, _gtype gt)
+__idx(S32 *idx, GP cls, GS xid)
 {
 	S32    i = threadIdx.x;
 	_gidx *p = _global_idx + i;
 
-	if (i<_global_sz && p->xid == xid && p->gt == gt) *idx = i;
+	if (i<_global_sz && p->cls==cls && p->xid==xid) *idx = i;
 }
 #else
 __GURU__ S32
-__idx(GS xid, _gtype gt)
+__idx(GP cls, GS xid)
 {
 	_gidx *p = _global_idx;
 	for (int i=0; i<_global_sz; i++, p++) {
-		if (p->xid==xid && p->gt==gt) return i;
+		if (p->cls==cls && p->xid==xid) return i;
 	}
 	return -1;
 }
 #endif // CUDA_ENABLE_CDP
 
 __GURU__ S32
-_find_idx(GS xid, _gtype gt)
+_find_idx(GP cls, GS xid)
 {
 	static S32 idx;					// warning: outside of function scope
 #if CUDA_ENABLE_CDP
 	idx = -1;
-	__idx<<<1, 32*(1+(_global_sz>>5))>>>(&idx, xid, gt);
+	__idx<<<1, 32*(1+(_global_sz>>5))>>>(&idx, cls, xid);
 	GPU_CHK();						// make sure idx is captured
 #else
-	idx = __idx(xid, gt);
+	idx = __idx(cls, xid);
 #endif // CUDA_ENABLE_CDP
 	return idx;
 }
 
 __GURU__ GR *
-_get(GS xid, _gtype gt)
+_get(GP cls, GS xid)
 {
-	S32 i = _find_idx(xid, gt);
+	S32 i = _find_idx(cls, xid);
     if (i < 0) return &_NIL;		// not found
 
     return &_global[i];				// pointer to global object
 }
 
 __GURU__ void
-_set(GS xid, GR *r, _gtype gt)
+_set(GP cls, GS xid, GR *r)
 {
-    S32 i = _find_idx(xid, gt);
+    S32 i = _find_idx(cls, xid);
 
     _LOCK;
     if (i<0) {
     	i = _global_sz++;
     	ASSERT(i<MAX_GLOBAL_COUNT);	// maybe raise ex
     }
-    else {
-//    	ASSERT(i<0);
-    	ASSERT(1==1);
-    }
+    _global_idx[i].cls = cls;
     _global_idx[i].xid = xid;
-    _global_idx[i].gt  = gt;
     _global[i] = *r;
     _UNLOCK;
 
@@ -116,25 +107,25 @@ _set(GS xid, GR *r, _gtype gt)
 __GURU__ void
 global_set(GS xid, GR *r)
 {
-    _set(xid, r, GURU_GLOBAL_OBJECT);
-}
-
-__GURU__ void
-const_set(GS xid, GR *r)
-{
-    _set(xid, r, GURU_CONST_OBJECT);
+    _set(0, xid, r);
 }
 
 /* get */
 __GURU__ GR *
 global_get(GS xid)
 {
-    return _get(xid, GURU_GLOBAL_OBJECT);
+    return _get(0, xid);
+}
+
+__GURU__ void
+const_set(GP cls, GS xid, GR *r)
+{
+    _set(cls, xid, r);
 }
 
 /* add const */
 __GURU__ GR *
-const_get(GS xid)
+const_get(GP cls, GS xid)
 {
-    return _get(xid, GURU_CONST_OBJECT);
+    return _get(cls, xid);
 }

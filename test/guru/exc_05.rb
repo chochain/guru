@@ -1,7 +1,7 @@
 # raise exception
+MAX = 3
 
 class Tester
-    MAX = 3
     def test(n)
         i = 0
         while i<MAX

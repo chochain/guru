@@ -50,6 +50,9 @@ guru_rom_init()
 	rom->sym = MEMOFF(guru_alloc(sizeof(guru_sym)  *MAX_ROM_SYMBOL));
 	rom->str = MEMOFF(guru_alloc(sizeof(U8)        *MAX_ROM_STRBUF));
 
+	_CLS(guru_rom_get_class(GT_EMPTY))->cid = 0xffff;		// make sure it will not be used
+	_CLS(guru_rom_get_class(GT_CLASS))->cid = 0xffff;
+
 	return !(rom->cls && rom->prc && rom->sym && rom->str);
 }
 
@@ -108,7 +111,7 @@ guru_rom_add_sym(const char *s1)						// create new symbol
 __GURU__ GP
 guru_rom_get_class(GT cid)
 {
-	return cid ? MEMOFF(_CLS(_rom->cls)+cid) : 0;	// memory offset to the class object
+	return cid ? MEMOFF(_CLS(_rom->cls)+cid) : (GP)0;	// memory offset to the class object
 }
 
 __GURU__ GP

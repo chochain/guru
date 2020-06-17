@@ -67,7 +67,7 @@ typedef enum {
     GT_SYM,
     GT_SYS,
 
-    GT_CLASS 	= 0x8,
+    GT_CLASS    = 0x8,
     GT_PROC,
 
     /* non-primitive */

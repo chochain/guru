@@ -278,13 +278,24 @@ uc_setcv(guru_vm *vm)
 __UCODE__
 uc_getconst(guru_vm *vm)
 {
-    GS sid = VM_SYM(vm, vm->bx);			// In Ruby, class is a constant, too
+    GS sid = VM_SYM(vm, vm->bx);				// In Ruby, class is a constant, too
 
-    GP cls = class_by_id(sid);				// search class rom first
+    GP cls = class_by_id(sid);					// search class rom first
     GR ret { GT_CLASS, 0, 0, { cls } };
-    GR *r  = cls ? &ret : const_get(sid);	// then search constant cache
-
-    _RA(*r);
+    if (cls) {
+    	_RA(ret);
+    	return;									// return ROM class
+    }
+    // search into constant cache, recursively up class hierarchy if needed
+    ret.gt = GT_NIL;
+	GR *r0 = _R0;
+	cls    = (r0->gt==GT_CLASS) ? r0->off : class_by_obj(r0);
+    while (cls) {
+    	ret = *const_get(cls, sid);
+        if (ret.gt!=GT_NIL) break;
+    	cls = _CLS(cls)->super;
+   }
+    _RA(ret);
 }
 
 //================================================================
@@ -298,10 +309,12 @@ uc_setconst(guru_vm *vm)
 {
 	GS sid = VM_SYM(vm, vm->bx);
 	GR *ra = _R(a);
+	GR *r0 = _R0;
+	GP cls = (r0->gt==GT_CLASS) ? r0->off : class_by_obj(r0);
 
 	ra->acl &= ~ACL_HAS_REF;				// set it to constant
 
-    const_set(sid, ra);
+    const_set(cls, sid, ra);
 }
 
 
@@ -1448,7 +1461,7 @@ ucode_step(guru_vm *vm)
 			uc_stop,		//    OP_STOP,      stop VM
 			NULL			//    OP_ERR,       Bx      raise RuntimeError with message Lit(Bx)
 	};
-	GR *r = _REGS(VM_STATE(vm));						// for debugging
+	GR *r = _R0;										// for debugging
 
 	ucode_vtbl[vm->op](vm);
 #endif // GURU_DEBUG

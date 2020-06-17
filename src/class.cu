@@ -143,21 +143,6 @@ class_by_obj(GR *r)
 }
 
 //================================================================
-/*! get class by name
-
-  @param  name		class name.
-  @return		pointer to class object.
-*/
-__GURU__ GP
-_name2class(const U8 *name)
-{
-	GS sid = name2id(name);
-    GR *r  = const_get(sid);
-
-    return (r->gt==GT_CLASS) ? r->off : 0;
-}
-
-//================================================================
 /*!@brief
   walk linked list to find method from vtbl of class (and super class if needs to)
 

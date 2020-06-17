@@ -19,10 +19,10 @@ extern "C" {
 #endif
 
 __GURU__ void 	global_set(GS xid, GR *r);
-__GURU__ void 	const_set(GS xid,  GR *r);
-
 __GURU__ GR 	*global_get(GS xid);
-__GURU__ GR 	*const_get(GS xid);
+
+__GURU__ void 	const_set(GP cls, GS xid,  GR *r);
+__GURU__ GR 	*const_get(GP cls, GS xid);
     
 #ifdef __cplusplus
 }

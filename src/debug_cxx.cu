@@ -228,7 +228,7 @@ class Debug::Impl
     		AX  *ax = (AX*)&rax;
     		printf(" %d:%d:%d:%d:%d:%d:%d pc+%-6d",
     			ax->req, ax->opt, ax->rst, ax->pst, ax->key, ax->dic, ax->blk,
-    			(!ax->opt || st->argc & 0x40) ? 0 : (1 + st->argc - ax->req - ax->pst));
+    			(!ax->opt || (st->argc & 0x40)) ? 0 : (1 + st->argc - ax->req - ax->pst));
     	} 																				return;
         case OP_RESCUE:
             printf(" r%-2d =%1d?r%-15d", (ar.c ? a+1 : a), ar.c, (ar.c ? a : a+1));		return;
