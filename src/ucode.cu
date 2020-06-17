@@ -614,9 +614,9 @@ _enter(AX *ax, GR *r, guru_state *st, guru_array *h)
 	else {
 		r += m12 + ax->opt;									// push call stack for block (if any)
 	}
-	if (ax->opt) {
-		st->pc += n - m12 -k;								// adjust entry point for default value jump table
-	}
+    if (ax->opt) {											// see if any optional argument
+    	st->pc += n - m12 -k;								// adjust pc for default value jump table
+    }
 	return r;
 }
 
@@ -641,7 +641,6 @@ _enter_rest(AX *ax, GR *r, guru_state *st, guru_array *h)
     	}
     }
     *r++ = a;												// place "*rest" array on the call stack
-
     /* TODO: not sure what this does, see mruby::vm.c
     if (ax->rst && (n > m12)) {								// not sure what this does
     	S32 rnum = n - m12 - karg;							// some left over arguments?
@@ -652,7 +651,7 @@ _enter_rest(AX *ax, GR *r, guru_state *st, guru_array *h)
     	}
     }
     */
-    st->pc += ax->opt + (mx > n ? n - mx : 0);
+    st->pc += ax->opt + (n > mx ? 0 : n - mx);				// adjust for default value jump table
 
     return r;
 }
@@ -1110,16 +1109,16 @@ __UCODE__
 uc_lambda(guru_vm *vm)
 {
 	GR *obj = _R(a) - 1;
-	GP cls  = class_by_obj(obj);			// current class
-	GP irep = MEMOFF(VM_REPS(vm, vm->bz));	// fetch from children irep list
+	GP cls  = class_by_obj(obj);						// current class
+	GP irep = MEMOFF(VM_REPS(vm, vm->bz));				// fetch from children irep list
 
 	GP prc  = guru_define_method(cls, NULL, irep);
 
 	guru_proc *px = _PRC(prc);
-    px->kt = PROC_IREP;						// instead of C-function
-    px->n  = (obj->gt==GT_HASH) ? vm->cz : vm->cz -1;						// TODO: assume this is parameter count
+    px->kt = PROC_IREP;									// instead of C-function
+    px->n  = (obj->gt==GT_HASH) ? vm->cz : vm->cz>>1;	// TODO: not sure how Cz works,  assume this is parameter count
 
-    _RA_T(GT_PROC, off=prc);				// regs[ra].prc = prc
+    _RA_T(GT_PROC, off=prc);							// regs[ra].prc = prc
 }
 
 //================================================================

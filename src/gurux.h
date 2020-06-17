@@ -18,7 +18,6 @@ void    guru_teardown(int sig);
 }
 #endif
 
-#if GURU_CXX_CODEBASE
 class Guru								// interface class
 {
 	class Impl;
@@ -32,5 +31,4 @@ public:
 	int	load(char *rite_name);
 	int	run();
 };
-#endif // GURU_CXX_CODEBASE
 #endif // GURU_SRC_GURUX_H_

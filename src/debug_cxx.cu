@@ -218,10 +218,18 @@ class Debug::Impl
             if (ar.c<1)		printf(" r%-2d < %-17s", a, op==OP_ARRAY ? "[]" : "{}");
             else			printf(" r%-2d <r%-2d..r%-12d", a, ar.b, ar.b+ar.c-1);
             return;
+    	case OP_ARYCAT:
+    	case OP_ARYPUSH:    printf(" r%-2d <r%-17d", a, ar.b);							return;
         case OP_AREF:		printf(" r%-2d =r%-2d+%-2d%12s", a, ar.b, ar.c, "");		return;
         case OP_ASET:		printf(" r%-2d+%-2d =r%-12d", ar.b, ar.c, a);				return;
         case OP_SCLASS:		printf(" r%-22d", ar.b);									return;
-        case OP_ENTER:		printf(" @%-22d", 1 + st->argc - (ar.ax>>18)&0x1f);			return;
+    	case OP_ENTER: {
+    		U32 rax = ar.ax;
+    		AX  *ax = (AX*)&rax;
+    		printf(" %d:%d:%d:%d:%d:%d:%d pc+%-6d",
+    			ax->req, ax->opt, ax->rst, ax->pst, ax->key, ax->dic, ax->blk,
+    			(!ax->opt || st->argc & 0x40) ? 0 : (1 + st->argc - ax->req - ax->pst));
+    	} 																				return;
         case OP_RESCUE:
             printf(" r%-2d =%1d?r%-15d", (ar.c ? a+1 : a), ar.c, (ar.c ? a : a+1));		return;
         }

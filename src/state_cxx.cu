@@ -36,9 +36,10 @@ class StateMgr::Impl
 		ASSERT(r1->gt==GT_PROC);						// ensure it is a code block
 
 		guru_state *st = VM_STATE(_vm);
+		guru_proc  *px = GR_PRC(r1);
 		U32	pc0   = st->pc;
 		GP 	irep0 = st->irep;
-		GP 	irep1 = GR_PRC(r1)->irep;
+		GP 	irep1 = px->irep;
 		GR 	git   = guru_iter_new(r, NULL);				// create iterator
 
 		// push stack out (1 space for iterator)
@@ -49,11 +50,11 @@ class StateMgr::Impl
 		*(++p) = *_REGS(st);
 
 		// allocate iterator state (using same stack frame)
-		push_state(irep0, pc0, p, ri);
+		push_state(irep0, pc0, p, px->n);
 		VM_STATE(_vm)->flag |= STATE_LOOP;
 
 		// switch into callee's context with v[1]=1st element
-		push_state(irep1, 0, p, ri);
+		push_state(irep1, 0, p, px->n);
 		guru_iter *it = GR_ITR(&git);
 		*(++p) = *(it->inc);
 		if (it->n==GT_HASH) {
@@ -151,7 +152,7 @@ class StateMgr::Impl
 	__GURU__ U32
 	_exec_missing(GR r[], S32 ri, GS pid)
 	{
-        typedef void (Impl::*MISSX)(GR r[], U32);	// internal handler of missing function
+        typedef void (Impl::*MISSX)(GR r[], S32);	// internal handler of missing function
 		typedef struct {
 			const char  *name;						// raw string usually
 			MISSX	    func;						// C-function pointer
