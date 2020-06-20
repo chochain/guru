@@ -38,7 +38,9 @@ typedef struct RClass {			// 32-byte
 } guru_class;
 
 #define USER_DEF_CLASS	0x1
-#define IS_BUILTIN(clsx)	(!(clsx->kt & USER_DEF_CLASS))
+#define USER_META_CLASS	0x2
+#define IS_BUILTIN(cx)		(!(cx->kt & USER_DEF_CLASS))
+#define IS_META(cx)			(cx->kt & USER_META_CLASS)
 
 //================================================================
 /*! Define instance data handle.

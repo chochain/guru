@@ -20,6 +20,7 @@
 #include "base.h"
 #include "static.h"
 #include "class.h"
+#include "c_string.h"		// buffer
 
 //================================================================
 /*! (BETA) Call any method of the object, but written by C.
@@ -121,14 +122,14 @@ class_by_obj(GR *r)
     } break;
     case GT_CLASS: {
     	guru_class *cx = GR_CLS(r);
-    	GP scls = cx->meta ? cx->meta : guru_rom_get_class(GT_OBJ);
+    	GP meta = cx->meta ? cx->meta : guru_rom_get_class(GT_OBJ);
     	GP cls  = r->off;
 #if CC_DEBUG
     	PRINTF(" CLS[x%04x]=%s:%p", cls, _RAW(cx->cid), cx);
 #endif // CC_DEBUG
     	ret  = IS_BUILTIN(cx)
     		? cls
-    		: (IS_SCLASS(r) ? scls : (IS_SELF(r) ? cls : scls));
+    		: (IS_SCLASS(r) ? meta : (IS_SELF(r) ? cls : meta));
     } break;
     default:
     	ret = guru_rom_get_class(r->gt);
@@ -204,10 +205,10 @@ __scan_flist(guru_class *cx, GS pid)
 __GURU__ GP
 proc_by_id(GR *r, GS pid)
 {
-    GP cls = class_by_obj(r);
-    GP prc = 0;
+	GP cls = class_by_obj(r);
+	GP prc = 0;
 
-    while (cls) {
+	while (cls) {
     	guru_class *cx = _CLS(cls);
 
     	prc = __scan_flist(cx, pid);	// TODO: combine flist into vtbl[]
@@ -257,24 +258,35 @@ guru_define_class(const U8 *name, GP super)
 /*!@brief
   add metaclass to a class
 
-  @param  vm		pointer to vm.
-  @param  cls		pointer to class.
-  @param  name		method name.
-  @param  cfunc		pointer to function.
+  @param  r			pointer to class variable
 */
 __GURU__ GP
-guru_class_add_meta(GR *r)						// lazy add metaclass to a class
+guru_class_add_meta(GR *r)							// lazy add metaclass to a class
 {
 	ASSERT(r->gt==GT_CLASS);
 
-	guru_class *cx = GR_CLS(r);
+	guru_class *cx  = GR_CLS(r);
 	if (cx->meta) return cx->meta;
 
 	// lazily create the metaclass
-	U8 *name = (U8*)"_meta";
-	GP mcls  = guru_define_class(name, guru_rom_get_class(GT_OBJ));
+	U8  *cname = _RAW(cx->cid);
+	U32 sz     = STRLENB(cname);
+	U8  *buf   = (U8*)guru_alloc(ALIGN8(sz+2));
 
-	return cx->meta = mcls;					// self pointing =~ metaclass
+	*buf = '#';										// prefix meta class_name with '#'
+	MEMCPY(buf+1, cname, sz+1);
+
+	guru_class *super = _CLS(cx->super);
+	GP msuper  = super->meta ? super->meta : guru_rom_get_class(GT_OBJ);
+	GP mcls    = guru_define_class(buf, msuper);
+
+	guru_free(buf);
+
+	guru_class *mcx = _CLS(mcls);
+	mcx->kt   |= USER_META_CLASS;
+	mcx->meta  = (r+1)->off;						// backward pointing to module
+
+	return cx->meta = mcls;							// self pointing =~ metaclass
 }
 
 

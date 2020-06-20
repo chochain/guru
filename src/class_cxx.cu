@@ -228,14 +228,14 @@ ClassMgr::class_by_obj(GR *r)
     } break;
     case GT_CLASS: {
     	guru_class *cx = GR_CLS(r);
-    	GP scls = cx->meta ? cx->meta : guru_rom_get_class(GT_OBJ);
+    	GP meta = cx->meta ? cx->meta : guru_rom_get_class(GT_OBJ);
     	GP cls  = r->off;
 #if CC_DEBUG
     	PRINTF(" CLS[x%04x]=%s:%p", cls, _RAW(cx->cid), cx);
 #endif // CC_DEBUG
     	ret  = IS_BUILTIN(cx)
     		? cls
-    		: (IS_SCLASS(r) ? scls : (IS_SELF(r) ? cls : scls));
+    		: (IS_SCLASS(r) ? meta : (IS_SELF(r) ? cls : meta));
     } break;
     default:
     	ret = guru_rom_get_class(r->gt);
