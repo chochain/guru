@@ -42,13 +42,13 @@ static const char *_vtype[] = {
 };
 
 static const char *_errcode[] = {
-	"", "ERROR", "Method Not Found", "CUDA", "Divided by zero"
+	"", "ERROR", "Method Not Found", "CUDA", "Divided by zero", "ERR5", "ERR6"
 };
 
 static const char *_opcode[] = {
     "NOP ",	"MOVE",	"LOADL","LOADI","LOADSYM","LOADNIL","LOADSLF","LOADT",
     "LOADF","GETGBL","SETGBL","GETSPC","SETSPC","GETIV","SETIV","GETCV",
-    "SETCV","GETCONS","SETCONS","","","GETUVAR","SETUVAR","JMP ",
+    "SETCV","GETCONS","SETCONS","GETMCST","SETMCST","GETUVAR","SETUVAR","JMP ",
     "JMPIF","JMPNOT","ONERR","RESCUE","POPERR","RAISE","EPUSH","EPOP",
     "SEND","SENDB","","CALL","","","ENTER","",
     "","RETURN","","BLKPUSH","ADD ","ADDI","SUB ","SUBI",
@@ -81,7 +81,9 @@ static const int _op_jmp[] = {
 
 static const int _op_sym[] = {
 	OP_LOADSYM,
-	OP_GETGLOBAL, OP_SETGLOBAL, OP_GETCONST, OP_SETCONST,
+	OP_GETGLOBAL, OP_SETGLOBAL,
+	OP_GETCONST, OP_SETCONST,
+	OP_GETMCNST, OP_SETMCNST,
 	OP_GETIV, OP_SETIV, OP_SETCV, OP_GETCV
 };
 #define SZ_SYM	(sizeof(_op_sym)/sizeof(int))
@@ -203,7 +205,7 @@ _show_decode(guru_state *st, GAR ar)
 	case OP_LOADI:		printf(" r%-2d =%-18d",  a, ar.bx - MAX_sBx);				return;
 	case OP_LOADL:		printf(" r%-2d =%-18g",  a, ST_VAR(st, ar.bx)->f);			return;
 	case OP_ADDI:
-	case OP_SUBI:		printf(" r%-2d ~%-18d",  a, ar.c);							return;
+	case OP_SUBI:		printf(" r%-2d %-19d",   a, ar.c);							return;
 	case OP_EXEC:		printf(" r%-2d +I%-17d", a, ar.bx+1);						return;
 	case OP_GETUPVAR:   printf(" r%-2d =r^%-2d+%-13d",  a, up, ar.b);				return;
 	case OP_SETUPVAR:	printf(" r^%-2d+%-2d =r%-13d",  up, ar.b, a);				return;
@@ -225,7 +227,8 @@ _show_decode(guru_state *st, GAR ar)
 			(!ax->opt || (st->argc & 0x40)) ? 0 : (1 + st->argc - ax->req - ax->pst));
 	} 																				return;
 	case OP_RESCUE:
-		printf(" r%-2d =%1d?r%-15d", (ar.c ? a+1 : a), ar.c, (ar.c ? a : a+1));		return;
+		if (ar.c) 		printf(" r%-2d < x%-16d", a+1, a);
+		else			printf(" x%-2d < r%-16d", a, a+1);							return;
 	}
 	if (_find_op(_op_bru, op, SZ_BRU) >= 0) {
 		printf(" r%-22d", a);							return;

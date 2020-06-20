@@ -287,15 +287,20 @@ uc_getconst(guru_vm *vm)
     	return;									// return ROM class
     }
     // search into constant cache, recursively up class hierarchy if needed
-    ret.gt = GT_NIL;
+    ret    = NIL;
 	GR *r0 = _R0;
 	cls    = (r0->gt==GT_CLASS) ? r0->off : class_by_obj(r0);
     while (cls) {
-    	ret = *const_get(cls, sid);
+    	guru_class *cx = _CLS(cls);
+    	ret = *const_get(cls, sid);				// search the class itself
+    	if ((ret.gt==GT_NIL) && IS_META(cx)) {
+    		ret = *const_get(cx->meta, sid);	// try searching meta-class
+    	}
         if (ret.gt!=GT_NIL) break;
     	cls = _CLS(cls)->super;
    }
-    _RA(ret);
+//   vm->err = (ret.gt==GT_NIL);
+   _RA(ret);
 }
 
 //================================================================
@@ -317,6 +322,47 @@ uc_setconst(guru_vm *vm)
     const_set(cls, sid, ra);
 }
 
+//================================================================
+/*!@brief
+  OP_GETMCONST	get module constant
+
+  R(A) := R(A)::Syms(Bx)
+*/
+__UCODE__
+uc_getmconst(guru_vm *vm)
+{
+    GS sid = VM_SYM(vm, vm->bx);				// In Ruby, class is a constant, too
+    GR *ra = _R(a);
+	GP cls = (ra->gt==GT_CLASS) ? ra->off : class_by_obj(ra);
+	GR ret = NIL;
+    while (cls) {
+    	ret = *const_get(cls, sid);
+        if (ret.gt!=GT_NIL) break;
+    	cls = _CLS(cls)->super;
+    }
+    vm->err = (ret.gt==GT_NIL);
+    _RA(ret);
+}
+
+//================================================================
+/*!@brief
+  OP_SETMCONST set module constant
+
+  R(A+1)::Syms(Bx) := R(A)
+*/
+__UCODE__
+uc_setmconst(guru_vm *vm)
+{
+	GS sid = VM_SYM(vm, vm->bx);
+	GR *ra = _R(a);
+	GR *rm = ra + 1;
+
+	GP cls = (rm->gt==GT_CLASS) ? rm->off : class_by_obj(rm);
+
+	rm->acl &= ~ACL_HAS_REF;				// set it to constant
+
+    const_set(cls, sid, ra);
+}
 
 //================================================================
 /*!@brief
@@ -441,7 +487,7 @@ uc_onerr(guru_vm *vm)
 __UCODE__
 uc_rescue(guru_vm *vm)
 {
-	U32 c  = vm->c;				// exception 0:set, 1:get
+	U32 c  = vm->c;					// exception 0:set, 1:get
 	GR  *r = _R(a);					// object to receive the exception
 	GR  *x = r + 1;					// exception on stack
 
@@ -1228,7 +1274,7 @@ uc_sclass(guru_vm *vm)
 {
 	GR *r = _R(b);
 	if (r->gt==GT_OBJ) {							// singleton class (extending an object)
-		U8 *name = (U8*)"_single";
+		U8 *name = (U8*)"_S_";
 		GP super = class_by_obj(r);
 		GP cls   = guru_define_class(name, super);
 		GR_OBJ(r)->cls = cls;
@@ -1395,8 +1441,8 @@ ucode_step(guru_vm *vm)
 			uc_setcv,		//    OP_SETCV      A Bx    cvset(Syms(Bx),R(A))
 			uc_getconst,	//    OP_GETCONST   A Bx    R(A) := constget(Syms(Bx))
 			uc_setconst,	//    OP_SETCONST   A Bx    constset(Syms(Bx),R(A))
-			NULL,			//    OP_GETMCNST   A Bx    R(A) := R(A)::Syms(Bx)
-			NULL,			//    OP_SETMCNST   A Bx    R(A+1)::Syms(Bx) := R(A)
+			uc_getmconst,	//    OP_GETMCNST   A Bx    R(A) := R(A)::Syms(Bx)
+			uc_setmconst,	//    OP_SETMCNST   A Bx    R(A+1)::Syms(Bx) := R(A)
 			uc_getupvar,	//    OP_GETUPVAR   A B C   R(A) := uvget(B,C)
 			uc_setupvar,	//    OP_SETUPVAR   A B C   uvset(B,C,R(A))
 	// 0x17 Branch Unit
