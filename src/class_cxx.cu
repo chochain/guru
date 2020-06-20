@@ -40,7 +40,7 @@ public:
 
 	//================================================================
 	/*!@brief
-	  walk linked list to find method from vtbl of class (and super class if needs to)
+	  walk linked list to find method from mtbl of class (and super class if needs to)
 
 	  @param  vm
 	  @param  recv
@@ -49,19 +49,19 @@ public:
 	*/
 	#if CUDA_ENABLE_CDP
 	static __GPU__ void
-	scan_vtbl(S32 *idx, U32 cls, GS pid)
+	scan_mtbl(S32 *idx, U32 cls, GS pid)
 	{
 		U32 x = threadIdx.x + blockIdx.x * blockDim.x;
 		guru_class *cx = _CLS(cls);
-		if (x < cx->rc && (_PRC(cx->vtbl)+x)->pid==pid) {
+		if (x < cx->rc && (_PRC(cx->mtbl)+x)->pid==pid) {
 			*idx = x;
 		}
 	}
 	#else
 	__GURU__ GP
-	scan_vtbl(guru_class *cx, GS pid)
+	scan_mtbl(guru_class *cx, GS pid)
 	{
-		guru_proc *px = _PRC(cx->vtbl);				// sequential search thru the array
+		guru_proc *px = _PRC(cx->mtbl);				// sequential search thru the array
 		for (int i=0; i < cx->rc; i++, px++) {		// TODO: parallel search (i.e. CDP, see above)
             if (px->pid==pid) {
 	#if CC_DEBUG
@@ -81,7 +81,7 @@ public:
 		GP prc = cx->flist;							// walk IREP linked-list
         int i = 0;
 		while (prc) {
-			// TODO: IREP should be added into guru_class->vtbl[]
+			// TODO: IREP should be added into guru_class->mtbl[]
 			guru_proc *px = _PRC(prc);
 			if (px->pid==pid) {
 	#if CC_DEBUG
@@ -170,7 +170,7 @@ ClassMgr::proc_by_id(GR *r, GS pid)
 
     while (cls) {
     	guru_class *cx = _CLS(cls);
-    	prc = _impl->scan_vtbl(cx, pid);		// search for C-functions
+    	prc = _impl->scan_mtbl(cx, pid);		// search for C-functions
     	if (prc) break;
         
 #if CUDA_ENABLE_CDP
@@ -182,7 +182,7 @@ ClassMgr::proc_by_id(GR *r, GS pid)
         	*idx = -1;
         	__find_proc<<<(cls->rc>>5)+1, 32>>>(idx, cls, sid);
         	GPU_CHK();
-            if (*idx>=0) return &cls->vtbl[*idx];
+            if (*idx>=0) return &cls->mtbl[*idx];
         }
         */
 #else

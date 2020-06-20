@@ -232,7 +232,7 @@ int_to_f(GR r[], S32 ri)
 }
 #endif // GURU_USE_FLOAT
 
-__GURU__ __const__ Vfunc int_vtbl[] = {
+__GURU__ __const__ Vfunc int_mtbl[] = {
 	{ "[]", 	int_bitref		},
 	{ "-@", 	int_negative	},
 	{ "**", 	int_power		},
@@ -262,7 +262,7 @@ __GURU__ void
 guru_init_class_int(void)
 {
     guru_rom_add_class(
-    	GT_INT, "Integer", GT_OBJ, int_vtbl, sizeof(int_vtbl)/sizeof(Vfunc)
+    	GT_INT, "Integer", GT_OBJ, int_mtbl, sizeof(int_mtbl)/sizeof(Vfunc)
     );
     guru_register_func(GT_INT, NULL, NULL, guru_int_cmp);
 }
@@ -321,7 +321,7 @@ flt_to_i(GR r[], S32 ri)
 //================================================================
 /*! initialize class Float
  */
-__GURU__ __const__ Vfunc flt_vtbl[] = {
+__GURU__ __const__ Vfunc flt_mtbl[] = {
 	{ "-@", 		flt_negative	},
 #if     GURU_USE_MATH
 	{ "**", 		flt_power		},
@@ -334,7 +334,7 @@ __GURU__ __const__ Vfunc flt_vtbl[] = {
 __GURU__ void
 guru_init_class_float(void)
 {
-    guru_rom_add_class(GT_FLOAT, "Float", GT_OBJ, flt_vtbl, VFSZ(flt_vtbl));
+    guru_rom_add_class(GT_FLOAT, "Float", GT_OBJ, flt_mtbl, VFSZ(flt_mtbl));
     guru_register_func(GT_FLOAT, NULL, NULL, guru_flt_cmp);
 }
 

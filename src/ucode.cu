@@ -1419,7 +1419,7 @@ ucode_step(guru_vm *vm)
     	break;
     }
 #else
-	static const UCODE ucode_vtbl[] = {
+	static const UCODE ucode_mtbl[] = {
 			NULL, 			// 	  OP_NOP = 0,
 	// 0x1 Register File
 			uc_move,		//    OP_MOVE       A B     R(A) := R(B)
@@ -1509,7 +1509,7 @@ ucode_step(guru_vm *vm)
 	};
 	GR *r = _R0;										// for debugging
 
-	ucode_vtbl[vm->op](vm);
+	ucode_mtbl[vm->op](vm);
 #endif // GURU_DEBUG
 
     if (vm->err && vm->xcp>0) {							// simple exception handler

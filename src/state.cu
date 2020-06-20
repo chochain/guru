@@ -173,7 +173,7 @@ typedef struct {
 __GURU__ U32
 _method_missing(guru_vm *vm, GR r[], S32 ri, GS pid)
 {
-	static Xf miss_vtbl[] = {
+	static Xf miss_mtbl[] = {
 		{ "call", 		_call,   0 },			// C-based prc_call (hacked handler, it needs vm->state)
 		{ "each",   	_each,   0 },			// push into call stack, obj at stack[0]
 		{ "times",  	_each,   0 },			// looper
@@ -183,14 +183,14 @@ _method_missing(guru_vm *vm, GR r[], S32 ri, GS pid)
 		{ "lambda", 	_lambda, 0 },			// create object
 		{ "raise",  	_raise,  0 }			// exception handler
 	};
-	static int xfcnt = sizeof(miss_vtbl)/sizeof(Xf);
+	static int xfcnt = sizeof(miss_mtbl)/sizeof(Xf);
 
-	Xf *xp = miss_vtbl;
-	if (miss_vtbl[0].pid==0) {				// lazy init
+	Xf *xp = miss_mtbl;
+	if (miss_mtbl[0].pid==0) {				// lazy init
 		for (int i=0; i<xfcnt; i++, xp++) {
 			xp->pid = guru_rom_add_sym(xp->name);
 		}
-		xp = miss_vtbl;						// rewind
+		xp = miss_mtbl;						// rewind
 	}
 	for (int i=0; i<xfcnt; i++, xp++) {
 		if (xp->pid==pid) {

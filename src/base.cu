@@ -17,9 +17,9 @@
 #include "c_hash.h"
 #include "c_range.h"
 
-__GURU__ guru_init_func 	_i_vtbl[GT_MAX];
-__GURU__ guru_destroy_func 	_d_vtbl[GT_MAX];
-__GURU__ guru_cmp_func 		_c_vtbl[GT_MAX];
+__GURU__ guru_init_func 	_i_mtbl[GT_MAX];
+__GURU__ guru_destroy_func 	_d_mtbl[GT_MAX];
+__GURU__ guru_cmp_func 		_c_mtbl[GT_MAX];
 
 //================================================================
 // common values, forwarded in guru.h
@@ -33,15 +33,15 @@ __GURU__ GR EMPTY = { .gt=GT_EMPTY, .acl=0 };
 __GURU__ void
 guru_register_func(GT t, guru_init_func fi, guru_destroy_func fd, guru_cmp_func fc)
 {
-	_i_vtbl[t] = fi;
-	_d_vtbl[t] = fd;
-	_c_vtbl[t] = fc;
+	_i_mtbl[t] = fi;
+	_d_mtbl[t] = fd;
+	_c_mtbl[t] = fc;
 }
 
 __GURU__ void
 guru_destroy(GR *r)
 {
-	_d_vtbl[r->gt](r);
+	_d_mtbl[r->gt](r);
 }
 
 __GURU__ GR
@@ -118,7 +118,7 @@ guru_cmp(const GR *r0, const GR *r1)
     case GT_OBJ:
     case GT_PROC:
     case GT_CLASS:	return -1 + (r0->off==r1->off)  + (r0->off  > r1->off)*2;
-    default:    	return _c_vtbl[r1->gt](r0, r1);
+    default:    	return _c_mtbl[r1->gt](r0, r1);
     }
 }
 
@@ -137,7 +137,7 @@ ref_dec(GR *r)
     ASSERT(o->rc);							// rc > 0?
     if (--o->rc > 0) 		return r;		// still used, keep going
 
-    _d_vtbl[r->gt](r);						// table driven (no branch divergence)
+    _d_mtbl[r->gt](r);						// table driven (no branch divergence)
 
     return r;
 }

@@ -1194,7 +1194,7 @@ class Ucode::Impl
     {
         typedef void (Impl::*UCODEX)();			// microcode function prototype
 
-        const static UCODEX vtbl[] = {
+        const static UCODEX mtbl[] = {
     		&Impl::nop, 			// 	  OP_NOP = 0,
     		// 0x1 Register File
             &Impl::move,			//    OP_MOVE       A B     R(A) := R(B)
@@ -1282,7 +1282,7 @@ class Ucode::Impl
             &Impl::nop				//    OP_ERR,       Bx      raise RuntimeError with message Lit(Bx)
         };
     	GR *r = _REGS(VM_STATE(_vm));						// for debugging
-        (*this.*vtbl[_vm->op])();							// C++ calling a pointer to a member function
+        (*this.*mtbl[_vm->op])();							// C++ calling a pointer to a member function
         													// C++ this._vt lookup is one extra dereference
         													// thus slower than straight C lookup
         if (_vm->err && _vm->xcp>0) {						// simple exception handler

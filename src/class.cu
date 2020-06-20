@@ -145,7 +145,7 @@ class_by_obj(GR *r)
 
 //================================================================
 /*!@brief
-  walk linked list to find method from vtbl of class (and super class if needs to)
+  walk linked list to find method from mtbl of class (and super class if needs to)
 
   @param  vm
   @param  recv
@@ -154,25 +154,25 @@ class_by_obj(GR *r)
 */
 #if CUDA_ENABLE_CDP
 __GPU__ void
-__scan_vtbl(S32 *idx, U32 cls, GS pid)
+__scan_mtbl(S32 *idx, U32 cls, GS pid)
 {
 	U32 x = threadIdx.x + blockIdx.x * blockDim.x;
 	guru_class *cx = _CLS(cls);
-	if (x < cx->rc && (_PRC(cx->vtbl)+x)->pid==pid) {
+	if (x < cx->rc && (_PRC(cx->mtbl)+x)->pid==pid) {
 		*idx = x;
 	}
 }
 #else
 __GURU__ GP
-__scan_vtbl(guru_class *cx, GS pid)
+__scan_mtbl(guru_class *cx, GS pid)
 {
-	guru_proc *px = _PRC(cx->vtbl);				// sequential search thru the array
+	guru_proc *px = _PRC(cx->mtbl);				// sequential search thru the array
 	for (int i=0; i<cx->rc; i++, px++) {	// TODO: parallel search (i.e. CDP, see above)
 		if (px->pid==pid) {
 #if CC_DEBUG
 			U8 *cname = _RAW(cx->cid);
 			U8 *pname = _RAW(px->pid);
-			PRINTF("!!!vtbl[%d] hit %p:%p %s#%s -> %d\n", i, cx, px, cname, pname, pid);
+			PRINTF("!!!mtbl[%d] hit %p:%p %s#%s -> %d\n", i, cx, px, cname, pname, pid);
 #endif // CC_DEBUG
 			return MEMOFF(px);
 		}
@@ -185,7 +185,7 @@ __scan_flist(guru_class *cx, GS pid)
 {
 	GP prc = cx->flist;							// walk IREP linked-list
 	int i=0;
-	while (prc) {								// TODO: IREP should be added into guru_class->vtbl[]
+	while (prc) {								// TODO: IREP should be added into guru_class->mtbl[]
 		guru_proc *px = _PRC(prc);
 		if (px->pid==pid) {
 #if CC_DEBUG
@@ -211,7 +211,7 @@ proc_by_id(GR *r, GS pid)
 	while (cls) {
     	guru_class *cx = _CLS(cls);
 
-    	prc = __scan_flist(cx, pid);	// TODO: combine flist into vtbl[]
+    	prc = __scan_flist(cx, pid);	// TODO: combine flist into mtbl[]
     	if (prc) break;
 
 #if CUDA_ENABLE_CDP
@@ -222,11 +222,11 @@ proc_by_id(GR *r, GS pid)
         	*idx = -1;
         	__find_proc<<<(cls->rc>>5)+1, 32>>>(idx, cls, sid);
         	GPU_CHK();
-            if (*idx>=0) return &cls->vtbl[*idx];
+            if (*idx>=0) return &cls->mtbl[*idx];
         }
         */
 #else
-    	prc = __scan_vtbl(cx, pid);		// search for C-functions
+    	prc = __scan_mtbl(cx, pid);		// search for C-functions
     	if (prc) break;
 #endif // CUDA_ENABLE_CDP
 

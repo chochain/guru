@@ -28,7 +28,7 @@ typedef struct RClass {			// 32-byte
 	GP				var;		// (GR*) class variables
 	GP				meta;		// (RClass*) offset to guru_class*
 	GP				super;		// (RClass*) offset to guru_class*
-    GP				vtbl;		// (RProc*) c-func array (in constant memory, rc is the number of functions)
+    GP				mtbl;		// (RProc*) c-func array (in constant memory, rc is the number of functions)
     GP				flist;		// (RProc*) head of guru_proc linked list
 #if GURU_DEBUG
     GP				cname;		// (U8*) for debug. TODO: remove

@@ -43,7 +43,7 @@ extern __GURU__ guru_rom 	guru_device_rom;
 __GURU__ int	guru_rom_init();
 __GURU__ void	guru_rom_burn();
 
-__GURU__ GP 	guru_rom_add_class(GT cidx, const char *name, GT super_cidx, const Vfunc vtbl[], int n);
+__GURU__ GP 	guru_rom_add_class(GT cidx, const char *name, GT super_cidx, const Vfunc mtbl[], int n);
 __GURU__ GP 	guru_rom_get_class(GT cidx);
 __GURU__ GP		guru_rom_add_sym(const char *s1);		// create new symbol
 __GURU__ S32	guru_rom_get_sym(const char *s1);

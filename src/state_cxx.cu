@@ -158,7 +158,7 @@ class StateMgr::Impl
 			MISSX	    func;						// C-function pointer
 			GS			pid;
 		} Xf;
-		static Xf miss_vtbl[] = {
+		static Xf miss_mtbl[] = {
 			{ "call", 	&Impl::_call,   0 },		// C-based prc_call (hacked handler, it needs vm->state)
 			{ "each",   &Impl::_each,   0 },		// push into call stack, obj at stack[0]
 			{ "times",  &Impl::_each,   0 },		// looper
@@ -168,14 +168,14 @@ class StateMgr::Impl
 			{ "lambda", &Impl::_lambda, 0 },		// create object
 			{ "raise",  &Impl::_raise,  0 }			// exception handler
 		};
-		static int xfcnt = sizeof(miss_vtbl)/sizeof(Xf);
+		static int xfcnt = sizeof(miss_mtbl)/sizeof(Xf);
 
-		Xf *xp = miss_vtbl;
-		if (miss_vtbl[0].pid==0) {					// lazy init
+		Xf *xp = miss_mtbl;
+		if (miss_mtbl[0].pid==0) {					// lazy init
 			for (int i=0; i<xfcnt; i++, xp++) {
 				xp->pid = guru_rom_add_sym(xp->name);
 			}
-			xp = miss_vtbl;							// rewind
+			xp = miss_mtbl;							// rewind
 		}
 		for (int i=0; i<xfcnt; i++, xp++) {
 			if (xp->pid==pid) {

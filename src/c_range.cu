@@ -138,7 +138,7 @@ rng_exclude_end(GR r[], S32 ri)
 //================================================================
 /*! initialize
  */
-__GURU__ __const__ Vfunc rng_vtbl[] = {
+__GURU__ __const__ Vfunc rng_mtbl[] = {
 	{ "===",          rng_eq3			},
 	{ "first",        rng_first			},
 	{ "last",         rng_last			},
@@ -151,6 +151,6 @@ __GURU__ __const__ Vfunc rng_vtbl[] = {
 __GURU__ void
 guru_init_class_range()
 {
-    guru_rom_add_class(GT_RANGE, "Range", GT_OBJ, rng_vtbl, VFSZ(rng_vtbl));
+    guru_rom_add_class(GT_RANGE, "Range", GT_OBJ, rng_mtbl, VFSZ(rng_mtbl));
     guru_register_func(GT_RANGE, NULL, guru_range_del, guru_range_cmp);
 }

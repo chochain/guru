@@ -30,7 +30,7 @@ _define_class(const char *name, GT cid, GT super_cid)
     cx->var    = 0;								// class variables, lazily allocated when needed
     cx->meta   = 0;								// meta-class, lazily allocated when needed
     cx->super  = guru_rom_get_class(super_cid);
-    cx->vtbl   = 0;
+    cx->mtbl   = 0;
     cx->flist  = 0;								// head of list
 
     return cx;
@@ -115,10 +115,10 @@ guru_rom_get_class(GT cid)
 }
 
 __GURU__ GP
-guru_rom_add_class(GT cid, const char *name, GT super_cid, const Vfunc vtbl[], int n)
+guru_rom_add_class(GT cid, const char *name, GT super_cid, const Vfunc mtbl[], int n)
 {
 #if CC_DEBUG
-    PRINTF("%s:: class[%d] defined with %d method(s) at vtbl[%2d]\n", name, cid, n, _rom->nprc);
+    PRINTF("%s:: class[%d] defined with %d method(s) at mtbl[%2d]\n", name, cid, n, _rom->nprc);
 #endif // CC_DEBUG
 
 #if GURU_DEBUG
@@ -129,9 +129,9 @@ guru_rom_add_class(GT cid, const char *name, GT super_cid, const Vfunc vtbl[], i
     guru_proc  *px  = _PRC(_rom->prc) + _rom->nprc;
 
     cx->rc   = n;								// number of built-in functions
-    cx->vtbl = n ? MEMOFF(px) : 0;				// built-in proc starting index
+    cx->mtbl = n ? MEMOFF(px) : 0;				// built-in proc starting index
 
-    Vfunc *fp = (Vfunc*)vtbl;					// TODO: nvcc allocates very sparsely for String literals
+    Vfunc *fp = (Vfunc*)mtbl;					// TODO: nvcc allocates very sparsely for String literals
     for (int i=0; i<n; i++, px++, fp++) {
     	px->rc   = px->kt = px->n = 0;			// built-in class type (not USER_DEF_CLASS)
     	px->pid  = guru_rom_add_sym(fp->name);	// raw string function table defined in code

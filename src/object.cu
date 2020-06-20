@@ -135,7 +135,7 @@ _include(GP cls, GP mod)
 {
 	guru_class *cx  = _CLS(cls);
 	guru_class *dup = (guru_class*)guru_alloc(sizeof(guru_class));
-	MEMCPY(dup, _CLS(mod), sizeof(guru_class));							// TODO: deep copy so vtbl can be modified later
+	MEMCPY(dup, _CLS(mod), sizeof(guru_class));							// TODO: deep copy so mtbl can be modified later
 
 	dup->kt    |= USER_META_CLASS;
 	dup->meta   = mod;													// pointing backward, for get_const
@@ -313,7 +313,7 @@ obj_to_s(GR r[], S32 ri)
 	ASSERT(1==0);				// handled in ucode
 }
 
-__GURU__ __const__ Vfunc obj_vtbl[] = {
+__GURU__ __const__ Vfunc obj_mtbl[] = {
 	{ "puts",          	obj_puts 		},				// handled by state#_method_missing
 	{ "initialize", 	obj_nop 		},
     { "private",		obj_nop			},				// do nothing now
@@ -346,7 +346,7 @@ __GURU__ __const__ Vfunc obj_vtbl[] = {
 // ProcClass
 //================================================================
 
-__GURU__ __const__ Vfunc prc_vtbl[] = {
+__GURU__ __const__ Vfunc prc_mtbl[] = {
 //    	{ "call", 	prc_call	},		// handled  by ucode#uc_send
 	{ "to_s", 	gr_to_s		},
 	{ "inspect",gr_to_s		}
@@ -369,7 +369,7 @@ nil_inspect(GR r[], S32 ri)
 //================================================================
 /*! Nil class
  */
-__GURU__ __const__ Vfunc nil_vtbl[] = {
+__GURU__ __const__ Vfunc nil_mtbl[] = {
 	{ "!", 			nil_false_not	},
 	{ "inspect", 	nil_inspect		},
 	{ "to_s", 		gr_to_s			}
@@ -378,13 +378,13 @@ __GURU__ __const__ Vfunc nil_vtbl[] = {
 //================================================================
 /*! False class
  */
-__GURU__ __const__ Vfunc false_vtbl[] = {
+__GURU__ __const__ Vfunc false_mtbl[] = {
 	{ "!", 		nil_false_not	},
 	{ "to_s",    gr_to_s		},
 	{ "inspect", gr_to_s		}
 };
 
-__GURU__ __const__ Vfunc true_vtbl[] = {
+__GURU__ __const__ Vfunc true_mtbl[] = {
 	{ "to_s", 		gr_to_s 	},
 	{ "inspect", 	gr_to_s		}
 };
@@ -396,7 +396,7 @@ __CFUNC__ sym_nop(GR r[], S32 ri) {}
 
 //================================================================
 // initialize
-__GURU__ __const__ Vfunc sym_vtbl[] = {
+__GURU__ __const__ Vfunc sym_mtbl[] = {
 	{ "id2name", 	gr_to_s		},
 	{ "to_sym",     sym_nop		},
 	{ "to_s", 		sym_to_s	}, 	// no leading ':'
@@ -421,7 +421,7 @@ sys_mstat(GR r[], S32 ri)
 	*r = ret;
 }
 
-__GURU__ __const__ Vfunc sys_vtbl[] = {
+__GURU__ __const__ Vfunc sys_mtbl[] = {
 	{ "mstat", 		sys_mstat	}
 };
 
@@ -432,15 +432,15 @@ __GURU__ __const__ Vfunc sys_vtbl[] = {
 __GURU__ void
 _install_all_class(void)
 {
-    guru_rom_add_class(GT_OBJ,	"Object", 		GT_EMPTY, 	obj_vtbl, 	VFSZ(obj_vtbl));
+    guru_rom_add_class(GT_OBJ,	"Object", 		GT_EMPTY, 	obj_mtbl, 	VFSZ(obj_mtbl));
 
-    guru_rom_add_class(GT_NIL, 	"NilClass", 	GT_OBJ, 	nil_vtbl,  	VFSZ(nil_vtbl));
-    guru_rom_add_class(GT_FALSE,"FalseClass", 	GT_OBJ, 	false_vtbl,	VFSZ(false_vtbl));
-    guru_rom_add_class(GT_TRUE, "TrueClass",  	GT_OBJ, 	true_vtbl, 	VFSZ(true_vtbl));
-    guru_rom_add_class(GT_SYM,  "Symbol", 		GT_OBJ, 	sym_vtbl, 	VFSZ(sym_vtbl));
-    guru_rom_add_class(GT_PROC, "Proc",     	GT_OBJ, 	prc_vtbl,  	VFSZ(prc_vtbl));
+    guru_rom_add_class(GT_NIL, 	"NilClass", 	GT_OBJ, 	nil_mtbl,  	VFSZ(nil_mtbl));
+    guru_rom_add_class(GT_FALSE,"FalseClass", 	GT_OBJ, 	false_mtbl,	VFSZ(false_mtbl));
+    guru_rom_add_class(GT_TRUE, "TrueClass",  	GT_OBJ, 	true_mtbl, 	VFSZ(true_mtbl));
+    guru_rom_add_class(GT_SYM,  "Symbol", 		GT_OBJ, 	sym_mtbl, 	VFSZ(sym_mtbl));
+    guru_rom_add_class(GT_PROC, "Proc",     	GT_OBJ, 	prc_mtbl,  	VFSZ(prc_mtbl));
 #if GURU_DEBUG
-    guru_rom_add_class(GT_SYS, 	"Sys", 			GT_OBJ, 	sys_vtbl,  	VFSZ(sys_vtbl));
+    guru_rom_add_class(GT_SYS, 	"Sys", 			GT_OBJ, 	sys_mtbl,  	VFSZ(sys_mtbl));
 #endif
 
     guru_register_func(GT_OBJ, NULL, guru_obj_del, NULL);

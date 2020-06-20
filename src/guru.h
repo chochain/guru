@@ -182,7 +182,7 @@ struct Vfunc {
 	const char  *name;			// raw string usually
 	guru_fptr 	func;			// C-function pointer
 };
-#define VFSZ(vtbl)		(sizeof(vtbl)/sizeof(Vfunc))
+#define VFSZ(mtbl)		(sizeof(mtbl)/sizeof(Vfunc))
 
 typedef struct RSymbol {		// Symbol container
 	GP			raw;
@@ -192,7 +192,7 @@ typedef struct RSymbol {		// Symbol container
 //================================================================
 /*!@brief
   Guru object header. (i.e. Ruby's RBasic)
-    rc  : reference counter, sizeof class->vtbl[]
+    rc  : reference counter, sizeof class->mtbl[]
     kt  : [class,function] type for Class, Proc, lambda, iterator object type
         : proc=[0=Built-in C-func|PROC_IREP|PROC_LAMBDA]
         : cls =[0=Built-in class|CLASS_BY_USER]

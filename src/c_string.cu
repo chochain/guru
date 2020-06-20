@@ -749,7 +749,7 @@ str_format(GR r[], S32 ri)
 //================================================================
 /*! initialize
  */
-__GURU__ __const__ Vfunc str_vtbl[] = {
+__GURU__ __const__ Vfunc str_mtbl[] = {
 	{ "+",			str_add			},
 	{ "*",			str_mul			},
 	{ "size",		str_len			},
@@ -784,7 +784,7 @@ __GURU__ __const__ Vfunc str_vtbl[] = {
 __GURU__ void
 guru_init_class_string()
 {
-    guru_rom_add_class(GT_STR, "String", GT_OBJ, str_vtbl, VFSZ(str_vtbl));
+    guru_rom_add_class(GT_STR, "String", GT_OBJ, str_mtbl, VFSZ(str_mtbl));
     guru_register_func(GT_STR, (guru_init_func)guru_str_new, guru_str_del, guru_str_cmp);
 }
 
