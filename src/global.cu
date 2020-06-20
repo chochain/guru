@@ -33,7 +33,7 @@ __GURU__ U32 	_mutex_gobj = 0;
 __GURU__ U32    _global_sz  = 0;
 __GURU__ _gidx 	_global_idx[MAX_GLOBAL_COUNT];
 __GURU__ GR 	_global[MAX_GLOBAL_COUNT];
-__GURU__ GR		_NIL = { .gt = GT_NIL, .acl=0 };
+__GURU__ GR		_NIL = { .gt=GT_NIL, .acl=0 };
 
 /* search */
 /* linear search is not efficient! */
