@@ -27,7 +27,7 @@ _define_class(const char *name, GT cid, GT super_cid)
 
     cx->rc     = cx->n = cx->kt = 0;			// BUILT-IN class
     cx->cid    = guru_rom_add_sym(name);		// symbol id
-    cx->var    = 0;								// class variables, lazily allocated when needed
+    cx->ivar   = 0;								// class variables, lazily allocated when needed
     cx->meta   = 0;								// meta-class, lazily allocated when needed
     cx->super  = guru_rom_get_class(super_cid);
     cx->mtbl   = 0;

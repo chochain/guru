@@ -171,7 +171,7 @@ typedef struct {					// 16-bytes (128 bits) for ease of debugging
 #define _PRC(off)   ((struct RProc*)(off ? MEMPTR(off) : NULL))
 
 #define _REGS(r)	((GR*)MEMPTR((r)->regs))
-#define _VAR(r)		((GR*)((r)->var ? MEMPTR((r)->var) : NULL))
+#define _IVAR(r)	((GR*)((r)->ivar ? MEMPTR((r)->ivar) : NULL))
 
 #define _CALL(prc, r, ri)	(((guru_fptr)MEMPTR(_PRC(prc)->func))(r, ri));
 
@@ -226,9 +226,9 @@ typedef struct RSymbol {		// Symbol container
 /*!@brief
   physical store for Guru object instance.
 */
-typedef struct RObj {			// 24-byte
+typedef struct RObj {			// 16-byte
 	GURU_HDR;
-	GP				var;		// (GR*) instance + cid variables
+	GP				ivar;		// (GR*) object instance variables
 	GP				cls;		// (RClass*) class that this object belongs to (RClass*)
 } guru_obj;
 

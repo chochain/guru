@@ -26,7 +26,7 @@
 __GURU__ S32
 _search(guru_obj *o, GS oid)
 {
-	GR *v = _VAR(o);
+	GR *v = _IVAR(o);
 	for (int i=0; i<o->n; i++, v++) {
 		if (v->oid==oid) return i;
 	}
@@ -39,7 +39,7 @@ _bsearch(guru_obj *o, GS oid)
     S32 i0 = 0;
     S32 i1 = o->n - 1;	if (i1<0) return -1;
 
-    GR *v = _VAR(o);							// point at 1st attribute
+    GR *v = _IVAR(o);							// point at 1st attribute
     while (i0 < i1) {
     	S32 m = (i0 + i1) >>1;					// middle i.e. div by 2
         if ((v+m)->oid < oid) {
@@ -78,7 +78,7 @@ __GURU__ S32
 _set(guru_obj *o, GS oid, GR*val)
 {
     S32 idx = _search(o, oid);
-	GR  *v  = _VAR(o);
+	GR  *v  = _IVAR(o);
     if (idx >= 0) {
         GR  *r = v + idx;
         ref_dec(r);									// replace existed attribute
@@ -90,8 +90,8 @@ _set(guru_obj *o, GS oid, GR*val)
     if ((o->n+1) > sz) {							// too small?
     	U32 nsz = sz + 4;							// fixed size expansion helps reuse blocks
         v = _resize(v, nsz);
-        if (!v) return (o->var=0, -1);
-        o->var = MEMOFF(v);
+        if (!v) return (o->ivar=0, -1);
+        o->ivar = MEMOFF(v);
         o->sz  = nsz;
     }
     GR *r = v + o->n++;								// use next slot
@@ -104,7 +104,7 @@ __GURU__ S32
 _bset(guru_obj *o, GS oid, GR*val)
 {
 	S32 idx = _bsearch(o, oid);
-	GR  *v  = _VAR(o);
+	GR  *v  = _IVAR(o);
     GR  *r  = v + idx;
     if (idx >= 0 && r->oid==oid) {
         ref_dec(r);									// replace existed attribute
@@ -117,8 +117,8 @@ _bset(guru_obj *o, GS oid, GR*val)
     	U32 nsz = sz + 4;							// fixed size expansion helps reuse blocks
         v = _resize(v, nsz);
         r = v + idx;
-        if (!v) return (o->var=0, -1);
-        o->var = MEMOFF(v);
+        if (!v) return (o->ivar=0, -1);
+        o->ivar = MEMOFF(v);
         o->sz  = nsz;
     }
     // shift attributes out for insertion
@@ -135,8 +135,8 @@ _bset(guru_obj *o, GS oid, GR*val)
 #endif // GURU_DEBUG
 //================================================================
 /*! getter the following objects which shared the same structure
-	GT_OBJ:   r->self->var
-	GT_CLASS: r->cls->var
+	GT_OBJ:   r->self->ivar
+	GT_CLASS: r->cls->ivar
 
   @param  st	pointer to instance store handle.
   @param  oid	object store ID.
@@ -148,14 +148,14 @@ _get(guru_obj *o, GS oid)
 {
     S32 idx = _search(o, oid);
 
-    return (idx>=0) ? _VAR(o)+idx : NULL;
+    return (idx>=0) ? _IVAR(o)+idx : NULL;
 }
 #else
 __GURU__ GR*
 _bget(guru_obj *o, GS oid)
 {
     S32 idx = _bsearch(o, oid);
-    GR  *v  = _VAR(o) + idx;
+    GR  *v  = _IVAR(o) + idx;
     if (idx < 0 || v->oid != oid) return NULL;
 
     return v;
@@ -174,7 +174,7 @@ ostore_new(GP cls)
     guru_obj *o = (guru_obj *)guru_alloc(sizeof(guru_obj));
 
     o->rc  = 1;
-    o->var = 0;					// attributes, lazy allocation until _set is called
+    o->ivar = 0;					// attributes, lazy allocation until _set is called
     o->cls = cls;
     o->sz  = o->n = 0;
 
@@ -192,11 +192,11 @@ __GURU__ void
 ostore_del(GR *r)
 {
 	guru_obj *o = GR_OBJ(r);
-	GR *p = _VAR(o);
+	GR *p = _IVAR(o);
 
     for (int i=0; i<o->n; i++, ref_dec(p++));
 
-    if (o->var) guru_free(MEMPTR(o->var));
+    if (o->ivar) guru_free(MEMPTR(o->ivar));
     guru_free(o);
 }
 
@@ -210,10 +210,10 @@ ostore_del(GR *r)
 __GURU__ void
 ostore_set(GR *r, GS oid, GR *val)
 {
-	guru_obj *o = GR_OBJ(r);				// NOTE: guru_obj->var, guru_class->var share the same struct
-	if (!o->var) {
-		o->var = MEMOFF(guru_gr_alloc(4));	// lazy allocation
-	    o->sz  = 4;							// number of local variables
+	guru_obj *o = GR_OBJ(r);				// NOTE: guru_obj->ivar, guru_class->ivar share the same struct
+	if (!o->ivar) {
+		o->ivar = MEMOFF(guru_gr_alloc(4));	// lazy allocation
+	    o->sz   = 4;						// number of local variables
 	}
 
 #if !GURU_DEBUG

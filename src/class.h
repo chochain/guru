@@ -25,16 +25,12 @@ extern "C" {
 */
 typedef struct RClass {			// 32-byte
 	GURU_HDR;
-	GP				var;		// (GR*) class variables
-	GP				meta;		// (RClass*) offset to guru_class*
+	GP				ivar;		// (GR*) class-level instance variables
+	GP				ctbl;		// TODO: (GR*) constant table
 	GP				super;		// (RClass*) offset to guru_class*
+	GP				meta;		// (RClass*) offset to guru_class*
     GP				mtbl;		// (RProc*) c-func array (in constant memory, rc is the number of functions)
     GP				flist;		// (RProc*) head of guru_proc linked list
-#if GURU_DEBUG
-    GP				cname;		// (U8*) for debug. TODO: remove
-#else
-    GP				xxx;		// 4-byte alignment
-#endif // GURU_DEBUG
 } guru_class;
 
 #define USER_DEF_CLASS	0x1
