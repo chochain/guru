@@ -278,23 +278,22 @@ uc_setcv(guru_vm *vm)
 __UCODE__
 uc_getconst(guru_vm *vm)
 {
-    GS sid = VM_SYM(vm, vm->bx);				// In Ruby, class is a constant, too
-
-    GP cls = class_by_id(sid);					// search class rom first
-    GR ret { GT_CLASS, 0, 0, { cls } };
+    GS cid = VM_SYM(vm, vm->bx);				// In Ruby, class is a constant, too
+    GP cls = class_by_id(cid);					// search class rom first
     if (cls) {
+        GR ret { GT_CLASS, 0, 0, { cls } };
     	_RA(ret);
     	return;									// return ROM class
     }
     // search into constant cache, recursively up class hierarchy if needed
-    ret    = NIL;
+    GR ret = NIL;
 	GR *r0 = _R0;
 	cls    = (r0->gt==GT_CLASS) ? r0->off : class_by_obj(r0);
     while (cls) {
     	guru_class *cx = _CLS(cls);
-    	ret = *const_get(cls, sid);				// search the class itself
+    	ret = *const_get(cls, cid);				// search the class itself
     	if ((ret.gt==GT_NIL) && IS_META(cx)) {
-    		ret = *const_get(cx->meta, sid);	// try searching meta-class
+    		ret = *const_get(cx->meta, cid);	// try searching meta-class
     	}
         if (ret.gt!=GT_NIL) break;
     	cls = _CLS(cls)->super;
@@ -329,7 +328,7 @@ uc_setconst(guru_vm *vm)
   R(A) := R(A)::Syms(Bx)
 */
 __UCODE__
-uc_getmconst(guru_vm *vm)
+uc_getmcnst(guru_vm *vm)
 {
     GS sid = VM_SYM(vm, vm->bx);				// In Ruby, class is a constant, too
     GR *ra = _R(a);
@@ -351,7 +350,7 @@ uc_getmconst(guru_vm *vm)
   R(A+1)::Syms(Bx) := R(A)
 */
 __UCODE__
-uc_setmconst(guru_vm *vm)
+uc_setmcnst(guru_vm *vm)
 {
 	GS sid = VM_SYM(vm, vm->bx);
 	GR *ra = _R(a);
@@ -623,7 +622,7 @@ uc_return(guru_vm *vm)
 	else if (IS_NEW(st)) {
 		ret = *_R0;								// return the object itself
 	}
-	ret.acl &= ~(ACL_SELF|ACL_SCLASS);			// turn off TCLASS and NEW flags if any
+	ret.acl &= ~(ACL_TCLASS|ACL_SCLASS);		// turn off TCLASS and NEW flags if any
 	vm_state_pop(vm, map ? EMPTY : ret);		// pop callee's context
 
 	if (map) {									// put return array back to caller stack
@@ -1191,18 +1190,29 @@ uc_lambda(guru_vm *vm)
 __UCODE__
 uc_class(guru_vm *vm)
 {
-	GR *r1 = _R(a)+1;
-
-    GS sid   = VM_SYM(vm, vm->b);
-    U8 *name = _RAW(sid);
+	GR *r1   = _R(a)+1;
     GP super = (r1->gt==GT_CLASS) ? r1->off : VM_STATE(vm)->klass;
-    GP cls   = guru_define_class(name, super);
-
-	_CLS(cls)->kt |= USER_DEF_CLASS;			// user defined (i.e. non-builtin) class
+    GS cid   = VM_SYM(vm, vm->b);
+    GP cls   = guru_define_class(NULL, cid, super);
 
     _RA_T(GT_CLASS, off=cls);
-
 	*r1 = EMPTY;
+}
+
+//================================================================
+/*!@brief
+  OP_MODULE
+
+  R(A) := newmoducule(R(A),Syms(B))
+*/
+__UCODE__
+uc_module(guru_vm *vm)
+{
+	GS cid = VM_SYM(vm, vm->b);
+	GP cls = class_by_id(cid);					// check whether the class exists
+	GP mod = cls ? cls : guru_define_class(NULL, cid, guru_rom_get_class(GT_OBJ));
+
+    _RA_T(GT_CLASS, off=mod);
 }
 
 //================================================================
@@ -1243,7 +1253,7 @@ uc_method(guru_vm *vm)
 #if CC_DEBUG
     PRINTF("!!!uc_method %s:%p->%d\n", _RAW(px->pid), px, px->pid);
 #endif // CC_DEBUG
-    r->acl &= ~ACL_SELF;						// clear CLASS modification flags if any
+    r->acl &= ~ACL_TCLASS;						// clear CLASS modification flags if any
     *(r+1) = EMPTY;								// clean up proc
 }
 
@@ -1259,7 +1269,7 @@ uc_tclass(guru_vm *vm)
 	GR *ra = _R(a);
 
 	_RA_T(GT_CLASS, off=VM_STATE(vm)->klass);
-	ra->acl |= ACL_SELF;
+	ra->acl |= ACL_TCLASS;
 	ra->acl &= ~ACL_SCLASS;
 }
 
@@ -1274,9 +1284,8 @@ uc_sclass(guru_vm *vm)
 {
 	GR *r = _R(b);
 	if (r->gt==GT_OBJ) {							// singleton class (extending an object)
-		U8 *name = (U8*)"_S_";
 		GP super = class_by_obj(r);
-		GP cls   = guru_define_class(name, super);
+		GP cls   = guru_define_class(NULL, _CLS(super)->cid, super);
 		GR_OBJ(r)->cls = cls;
 	}
 	else if (r->gt==GT_CLASS) {						// meta class (for class methods)
@@ -1285,7 +1294,7 @@ uc_sclass(guru_vm *vm)
 	else ASSERT(1==0);
 
 	r->acl |= ACL_SCLASS;
-	r->acl &= ~ACL_SELF;
+	r->acl &= ~ACL_TCLASS;
 }
 
 //================================================================
@@ -1441,8 +1450,8 @@ ucode_step(guru_vm *vm)
 			uc_setcv,		//    OP_SETCV      A Bx    cvset(Syms(Bx),R(A))
 			uc_getconst,	//    OP_GETCONST   A Bx    R(A) := constget(Syms(Bx))
 			uc_setconst,	//    OP_SETCONST   A Bx    constset(Syms(Bx),R(A))
-			uc_getmconst,	//    OP_GETMCNST   A Bx    R(A) := R(A)::Syms(Bx)
-			uc_setmconst,	//    OP_SETMCNST   A Bx    R(A+1)::Syms(Bx) := R(A)
+			uc_getmcnst,	//    OP_GETMCNST   A Bx    R(A) := R(A)::Syms(Bx)
+			uc_setmcnst,	//    OP_SETMCNST   A Bx    R(A+1)::Syms(Bx) := R(A)
 			uc_getupvar,	//    OP_GETUPVAR   A B C   R(A) := uvget(B,C)
 			uc_setupvar,	//    OP_SETUPVAR   A B C   uvset(B,C,R(A))
 	// 0x17 Branch Unit
@@ -1497,7 +1506,7 @@ ucode_step(guru_vm *vm)
 	// 0x42 Class
 			NULL,			//    OP_OCLASS,    A       R(A) := ::Object
 			uc_class,		//    OP_CLASS,     A B     R(A) := newclass(R(A),Syms(B),R(A+1))
-			uc_class,		//    OP_MODULE,    A B     R(A) := newmoducule(R(A),Syms(B))
+			uc_module,		//    OP_MODULE,    A B     R(A) := newmoducule(R(A),Syms(B))
 			uc_exec,		//    OP_EXEC,      A Bx    R(A) := blockexec(R(A),SEQ[Bx])
 			uc_method,		//    OP_METHOD,    A B     R(A).newmethod(Syms(B),R(A+1))
 			uc_sclass,		//    OP_SCLASS,    A B     R(A) := R(B).singleton_class
