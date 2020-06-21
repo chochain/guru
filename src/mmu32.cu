@@ -188,9 +188,9 @@ __idx(U32 sz)
 {
 	U32 l1 = __xls(sz >> BASE_BITS) + 1;		// __xls returns -1 if no bit is set
 	U32 l2 = (sz >> (l1 + MN_BITS - (l1!=0))) & L2_MASK;
-#if CC_DEBUG
+#if MMU_DEBUG && CC_DEBUG
     PRINTF("mmu#__idx(%04x):       INDEX(%x,%x) => %x\n", sz, l1, l2, INDEX(l1, l2));
-#endif // CC_DEBUG
+#endif // MMU_DEBUG && CC_DEBUG
     return INDEX(l1, l2);
 }
 
@@ -364,9 +364,9 @@ _find_free_index(U32 sz)
     else {
     	l1 = l2 = 0xff;							// out of memory
     }
-#if CC_DEBUG
+#if MMU_DEBUG && CC_DEBUG
     PRINTF("mmu#found(%04x): %2x_%x INDEX(%x,%x) => %x, o2=%x, m2=%x\n", sz, m1, m2, l1, l2, INDEX(l1, l2), o2, _l2_map[l1]);
-#endif // CC_DEBUG
+#endif // MMU_DEBUG && CC_DEBUG
     return INDEX(l1, l2);               		// index to freelist head
 }
 

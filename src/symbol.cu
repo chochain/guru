@@ -113,7 +113,7 @@ name2id(const U8 *str)
 #if CC_DEBUG
 	guru_sym *sym = _SYM(sid);
 	U8       *raw = _RAW(sid);
-    printf("%2d> sym[%2d]%08x=>%s\n", threadIdx.x, sid, sym, raw);
+    printf("%2d> sym[%2x]%08x=>%s\n", threadIdx.x, sid, sym, raw);
 #endif // CC_DEBUG
 
 	return sid;						// different value for each parent thread
