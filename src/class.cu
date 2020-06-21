@@ -108,7 +108,7 @@ class_by_obj(GR *r)
 #if CC_DEBUG
 	PRINTF("!!!class_by_obj(%p) r->gt=%d, r->off=x%x: ", r, r->gt, r->off);
 	const char *tname[] = {
-			"???", "Nil", "False", "True", "Integer", "Float", "Symbol", "Sys",
+			"Empty", "Nil", "False", "True", "Integer", "Float", "Symbol", "Sys",
             "", "Proc", "", "Array", "String", "Range", "Hash", "???"
 	};
 #endif // CC_DEBUG
@@ -129,7 +129,7 @@ class_by_obj(GR *r)
 #endif // CC_DEBUG
     	ret  = IS_BUILTIN(cx)
     		? cls
-    		: (IS_SCLASS(r) ? meta : (IS_SELF(r) ? cls : meta));
+    		: (IS_SCLASS(r) ? meta : (IS_TCLASS(r) ? cls : meta));
     } break;
     default:
     	ret = guru_rom_get_class(r->gt);
@@ -247,13 +247,51 @@ proc_by_id(GR *r, GS pid)
   @param  super		super class.
 */
 __GURU__ GP
-guru_define_class(const U8 *name, GP super)
+guru_define_class(guru_class *cx, GS cid, GP super)		// fill the ROM class storage
 {
-	GT super_cid = (GT)((super - guru_rom_get_class(GT_OBJ))/sizeof(guru_class) + GT_OBJ);
+	if (!cx) {
+		ASSERT(guru_device_rom.ncls < MAX_ROM_CLASS);
+		cx = _CLS(guru_device_rom.cls) + guru_device_rom.ncls++;
+	}
+    cx->rc     = cx->n = 0;						// zero function defined yet
+	cx->kt     = 0;								// default to user defined (i.e. non-builtin) class
+    cx->cid    = cid;							// class name symbol id
+    cx->ivar   = 0;								// class variables, lazily allocated when needed
+    cx->ctbl   = MEMOFF(cx);					// keep class id for constant lookup
+    cx->meta   = 0;								// meta-class, lazily allocated when needed
+    cx->super  = super;
+    cx->mtbl   = 0;
+    cx->flist  = 0;								// head of list
 
-	return guru_rom_add_class(GT_EMPTY, (char*)name, super_cid, NULL, 0);
+    return MEMOFF(cx);
 }
 
+//================================================================
+/*!@brief
+  include module into a class (by walking up module hierarchy
+
+  @param super 	pointer to super class
+  @param mod    pointer to module
+*/
+__GURU__ GP
+guru_class_include(GP cls, GP mod)
+{
+	GP top = guru_rom_get_class(GT_OBJ);
+
+	guru_class *cx  = _CLS(cls);
+	guru_class *mcx = _CLS(mod);
+	if (mcx->super != top) {								// at the top of the class hierarchy?
+		guru_class_include(cls, mcx->super);				// climb up recursively
+	}
+	guru_class *dup = (guru_class*)guru_alloc(sizeof(guru_class));
+	MEMCPY(dup, mcx, sizeof(guru_class));					// deep copy so mtbl can be modified later
+
+	dup->kt    |= USER_META_CLASS;
+	dup->meta   = mod;										// pointing backward, for get_const
+	dup->super  = cx->super;								// insert module between parent and current class
+
+	return cx->super = MEMOFF(dup);
+}
 //================================================================
 /*!@brief
   add metaclass to a class
@@ -261,7 +299,7 @@ guru_define_class(const U8 *name, GP super)
   @param  r			pointer to class variable
 */
 __GURU__ GP
-guru_class_add_meta(GR *r)							// lazy add metaclass to a class
+guru_class_add_meta(GR *r)												// lazy add metaclass to a class
 {
 	ASSERT(r->gt==GT_CLASS);
 
@@ -269,24 +307,13 @@ guru_class_add_meta(GR *r)							// lazy add metaclass to a class
 	if (cx->meta) return cx->meta;
 
 	// lazily create the metaclass
-	U8  *cname = _RAW(cx->cid);
-	U32 sz     = STRLENB(cname);
-	U8  *buf   = (U8*)guru_alloc(ALIGN8(sz+2));
+	guru_class *mcx = (guru_class*)guru_alloc(sizeof(guru_class));
+	guru_class *scx = _CLS(cx->super);
+	GP mcls  = guru_define_class(mcx, cx->cid, scx->meta);
 
-	*buf = '#';										// prefix meta class_name with '#'
-	MEMCPY(buf+1, cname, sz+1);
+	_CLS(mcls)->kt |= USER_META_CLASS;
 
-	guru_class *super = _CLS(cx->super);
-	GP msuper  = super->meta ? super->meta : guru_rom_get_class(GT_OBJ);
-	GP mcls    = guru_define_class(buf, msuper);
-
-	guru_free(buf);
-
-	guru_class *mcx = _CLS(mcls);
-	mcx->kt   |= USER_META_CLASS;
-	mcx->meta  = (r+1)->off;						// backward pointing to module
-
-	return cx->meta = mcls;							// self pointing =~ metaclass
+	return cx->meta = mcls;												// self pointing =~ metaclass
 }
 
 

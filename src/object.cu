@@ -130,19 +130,6 @@ obj_class(GR r[], S32 ri)
     RETURN_VAL(ret);
 }
 
-__GURU__ void
-_include(GP cls, GP mod)
-{
-	guru_class *cx  = _CLS(cls);
-	guru_class *dup = (guru_class*)guru_alloc(sizeof(guru_class));
-	MEMCPY(dup, _CLS(mod), sizeof(guru_class));							// TODO: deep copy so mtbl can be modified later
-
-	dup->kt    |= USER_META_CLASS;
-	dup->meta   = mod;													// pointing backward, for get_const
-	dup->super  = cx->super;											// put module as the super-class
-	cx->super   = MEMOFF(dup);
-}
-
 //================================================================
 /*! (method) include
  */
@@ -150,7 +137,8 @@ __CFUNC__
 obj_include(GR r[], S32 ri)
 {
 	ASSERT(r->gt==GT_CLASS && (r+1)->gt==GT_CLASS);
-	_include(r->off, (r+1)->off);
+
+	guru_class_include(r->off, (r+1)->off);
 }
 
 //================================================================
@@ -162,11 +150,11 @@ obj_extend(GR r[], S32 ri)
 	ASSERT(r->gt==GT_CLASS && (r+1)->gt==GT_CLASS);
 
 #if GURU_CXX_CODEBASE
-	ClassMgr::getInstance()->class_add_meta(r);		// lazily add metaclass if needed
+	ClassMgr::getInstance()->class_add_meta(r);			// lazily add metaclass if needed
 #else
 	guru_class_add_meta(r);
 #endif // GURU_CXX_CODEBASE
-	_include(GR_CLS(r)->meta, (r+1)->off);			// add to class methods
+	guru_class_include(GR_CLS(r)->meta, (r+1)->off);	// add to class methods
 }
 
 //================================================================
@@ -230,7 +218,7 @@ obj_attr_accessor(GR r[], S32 ri)
 	GP cls = IS_SCLASS(r) ? GR_CLS(r)->meta : r->off;				// fetch class offset
 #if CC_DEBUG
 	guru_class *cx = _CLS(cls);
-    printf("%p:%s, sc=%d self=%d #attr_accessor\n", cx, _RAW(cx->cid), IS_SCLASS(r), IS_SELF(r));
+    printf("%p:%s, sc=%d self=%d #attr_accessor\n", cx, _RAW(cx->cid), IS_SCLASS(r), IS_TCLASS(r));
 #endif // CC_DEBUG
 	GR *s  = r+1;
 	GR buf = guru_str_buf(GURU_STRBUF_SIZE);

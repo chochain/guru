@@ -27,15 +27,15 @@ typedef struct RClass {			// 32-byte
 	GURU_HDR;
 	GP				ivar;		// (GR*) class-level instance variables
 	GP				ctbl;		// TODO: (GR*) constant table
-	GP				super;		// (RClass*) offset to guru_class*
 	GP				meta;		// (RClass*) offset to guru_class*
+	GP				super;		// (RClass*) offset to guru_class*
     GP				mtbl;		// (RProc*) c-func array (in constant memory, rc is the number of functions)
     GP				flist;		// (RProc*) head of guru_proc linked list
 } guru_class;
 
-#define USER_DEF_CLASS	0x1
+#define BUILTIN_CLASS	0x1
 #define USER_META_CLASS	0x2
-#define IS_BUILTIN(cx)		(!(cx->kt & USER_DEF_CLASS))
+#define IS_BUILTIN(cx)		(cx->kt & BUILTIN_CLASS)
 #define IS_META(cx)			(cx->kt & USER_META_CLASS)
 
 //================================================================
@@ -60,7 +60,8 @@ typedef struct RProc {		// 32-byte
 #define AS_IREP(px)		((px)->kt & PROC_IREP)
 #define AS_LAMBDA(px)	((px)->kt & PROC_LAMBDA)
 
-__GURU__ GP 	guru_define_class(const U8 *name, GP super);
+__GURU__ GP 	guru_define_class(guru_class *cx, GS cid, GP super);
+__GURU__ GP		guru_class_include(GP super, GP mod);
 __GURU__ GP 	guru_class_add_meta(GR *r);				// lazy add metaclass to a class
 
 // common class functions

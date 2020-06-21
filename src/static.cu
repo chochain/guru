@@ -20,22 +20,6 @@ __GURU__ guru_rom *_rom = &guru_device_rom;
 #define _LOCK		{ MUTEX_LOCK(guru_device_rom); }
 #define _UNLOCK 	{ MUTEX_FREE(guru_device_rom); }
 
-__GURU__ guru_class*
-_define_class(const char *name, GT cid, GT super_cid)
-{
-	guru_class *cx = _CLS(_rom->cls) + cid;		// offset from _rom->cls
-
-    cx->rc     = cx->n = cx->kt = 0;			// BUILT-IN class
-    cx->cid    = guru_rom_add_sym(name);		// symbol id
-    cx->ivar   = 0;								// class variables, lazily allocated when needed
-    cx->meta   = 0;								// meta-class, lazily allocated when needed
-    cx->super  = guru_rom_get_class(super_cid);
-    cx->mtbl   = 0;
-    cx->flist  = 0;								// head of list
-
-    return cx;
-}
-
 //================================================================
 /* methods to add builtin (ROM) class/proc for GURU
  * it uses (const U8 *) for static string
@@ -70,7 +54,8 @@ guru_rom_get_sym(const char *s1)
 	for (int i=0; i<_rom->nsym; i++, sym++) {			// sequential search
 		if (sym->hash==hsh1) {
 #if CC_DEBUG
-			PRINTF("  sym[%02d]->str%04x:H%08x~%s\n", i, i, sym->raw, MEMPTR(_rom->str)+sym->raw);
+			U8 *s0 = MEMPTR(_rom->str)+sym->raw;
+			PRINTF("  sym[%02x]->str%04x:x%08x~%s\n", i, sym->raw, MEMOFF(s0), s0);
 #endif // CC_DEBUG
 			return i;
 		}
@@ -100,7 +85,7 @@ guru_rom_add_sym(const char *s1)						// create new symbol
 	ASSERT((_rom->nsym + 1) < MAX_ROM_SYMBOL);
 #endif // GURU_DEBUG
 #if CC_DEBUG
-	PRINTF("  sym[%02d]->str%04x:x%08x %s\n", ns, _rom->nstr, sym->hash, s1);
+	PRINTF("  sym[%02x]->str%04x:H%08x %s\n", ns, _rom->nstr, sym->hash, s1);
 #endif // CC_DEBUG
 	_rom->nstr += ALIGN4(asz);
 	_rom->nsym++;
@@ -109,38 +94,43 @@ guru_rom_add_sym(const char *s1)						// create new symbol
 }
 
 __GURU__ GP
-guru_rom_get_class(GT cid)
+guru_rom_get_class(GT cidx)
 {
-	return cid ? MEMOFF(_CLS(_rom->cls)+cid) : (GP)0;	// memory offset to the class object
+	return MEMOFF(_CLS(_rom->cls) + cidx);				// memory offset to the class object
 }
 
 __GURU__ GP
-guru_rom_add_class(GT cid, const char *name, GT super_cid, const Vfunc mtbl[], int n)
+guru_rom_add_class(GT cidx, const char *name, GT super_cidx, const Vfunc mtbl[], int n)
 {
 #if CC_DEBUG
-    PRINTF("%s:: class[%d] defined with %d method(s) at mtbl[%2d]\n", name, cid, n, _rom->nprc);
+    PRINTF("%s:: class[%d] defined with %d method(s) at mtbl[%2d]\n", name, cidx, n, _rom->nprc);
 #endif // CC_DEBUG
 
 #if GURU_DEBUG
-    ASSERT((_rom->nprc + n) < MAX_ROM_PROC);	// size checking
+    ASSERT((_rom->nprc + n) < MAX_ROM_PROC);			// size checking
 #endif // GURU_DEBUG
 
-    guru_class *cx  = _define_class(name, ((cid==GT_EMPTY) ? (GT)_rom->ncls : cid), super_cid);
-    guru_proc  *px  = _PRC(_rom->prc) + _rom->nprc;
 
-    cx->rc   = n;								// number of built-in functions
-    cx->mtbl = n ? MEMOFF(px) : 0;				// built-in proc starting index
+    guru_proc  *px = _PRC(_rom->prc) + _rom->nprc;
+	guru_class *cx = _CLS(_rom->cls) + cidx;			// offset from _rom->cls
+	GP cid   = guru_rom_add_sym(name);
+	GP scls  = super_cidx ? guru_rom_get_class(super_cidx) : 0;	// 0: Object (root) class
+    GP cls   = guru_define_class(cx, cid, scls);
 
-    Vfunc *fp = (Vfunc*)mtbl;					// TODO: nvcc allocates very sparsely for String literals
+    cx->kt  |= BUILTIN_CLASS;
+    cx->rc   = n;										// number of built-in functions
+    cx->mtbl = n ? MEMOFF(px) : 0;						// built-in proc starting index
+
+    Vfunc *fp = (Vfunc*)mtbl;							// TODO: nvcc allocates very sparsely for String literals
     for (int i=0; i<n; i++, px++, fp++) {
-    	px->rc   = px->kt = px->n = 0;			// built-in class type (not USER_DEF_CLASS)
-    	px->pid  = guru_rom_add_sym(fp->name);	// raw string function table defined in code
-    	px->cid  = cx->cid;
+    	px->rc   = px->kt = px->n = 0;					// kt:0 built-in C-function
+    	px->pid  = guru_rom_add_sym(fp->name);			// raw string function table defined in code
+    	px->cid  = cid;
     	px->func = MEMOFF(fp->func);
     	px->next = 0;
     }
-    _rom->nprc += n;							// advance proc counter
-    _rom->ncls++;								// count them
+    _rom->nprc += n;									// advance proc counter
+    _rom->ncls++;										// count them
 
     return MEMOFF(cx);
 }
@@ -157,7 +147,7 @@ guru_rom_add_class(GT cid, const char *name, GT super_cid, const Vfunc mtbl[], i
 __GURU__ GP
 guru_define_method(GP cls, const U8 *name, GP cfunc)
 {
-    if (!cls) cls = guru_rom_get_class(GT_OBJ);	// set default to Object.
+    ASSERT(cls);								// set default to Object.
 
 #if GURU_DEBUG
     ASSERT((_rom->nprc + 1) < MAX_ROM_PROC);
@@ -174,7 +164,7 @@ guru_define_method(GP cls, const U8 *name, GP cfunc)
     GP prc    = MEMOFF(px);
     _LOCK;										// cached class
     px->next  = cx->flist;						// add as the new list head
-    cx->flist = prc;							// TODO: change to array implementation
+    cx->flist = prc;							// TODO: change to array implementation, to fix cls_08 unit test
     _UNLOCK;
 
     return prc;

@@ -24,12 +24,3 @@ puts MyClass.a
 puts MyClass.h
 puts (x.h rescue 'Err xh')
 puts (MyClass.i rescue 'Err mi')
-
-
-
-
-
-
-
-
-
