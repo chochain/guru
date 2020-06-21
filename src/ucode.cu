@@ -1173,8 +1173,8 @@ uc_lambda(guru_vm *vm)
 	GP prc  = guru_define_method(cls, NULL, irep);
 
 	guru_proc *px = _PRC(prc);
-    px->kt = PROC_IREP;									// instead of C-function
-    px->n  = (obj->gt==GT_HASH) ? vm->cz : vm->cz>>1;	// TODO: not sure how Cz works,  assume this is parameter count
+    px->kt  = PROC_IREP;								// instead of C-function
+    px->n   = (obj->gt==GT_HASH) ? vm->cz : vm->cz>>1;	// TODO: not sure how Cz works,  assume this is parameter count
 
     _RA_T(GT_PROC, off=prc);							// regs[ra].prc = prc
 }

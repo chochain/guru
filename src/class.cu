@@ -309,7 +309,8 @@ guru_class_add_meta(GR *r)												// lazy add metaclass to a class
 	// lazily create the metaclass
 	guru_class *mcx = (guru_class*)guru_alloc(sizeof(guru_class));
 	guru_class *scx = _CLS(cx->super);
-	GP mcls  = guru_define_class(mcx, cx->cid, scx->meta);
+	GP scls = scx->meta ? scx->meta : guru_rom_get_class(GT_OBJ);
+	GP mcls = guru_define_class(mcx, cx->cid, scls);
 
 	_CLS(mcls)->kt |= USER_META_CLASS;
 
