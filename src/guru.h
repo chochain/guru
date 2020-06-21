@@ -115,12 +115,12 @@ typedef S32			GX;						// index, to object[]
 
 #define ACL_HAS_REF		0x1
 #define ACL_SCLASS		0x2
-#define ACL_SELF		0x4
+#define ACL_TCLASS		0x4
 
 #define HAS_REF(v)		((v)->acl & ACL_HAS_REF)
 #define HAS_NO_REF(v)	(!HAS_REF(v))
 #define IS_SCLASS(v)	((v)->acl & ACL_SCLASS)
-#define IS_SELF(v)		((v)->acl & ACL_SELF)
+#define IS_TCLASS(v)	((v)->acl & ACL_TCLASS)
 
 //===============================================================================
 /*!@brief

@@ -53,7 +53,7 @@ _exec(guru_vm *vm, GR r[], S32 ri, GP prc)
     	r->oid = px->pid;								// parameter pid is passed as object id
     	_CALL(prc, r, ri);								// call C-based function
     	_wipe_stack(r+1, ri+1);
-    	r->acl &= ~(ACL_SCLASS|ACL_SELF);
+    	r->acl &= ~(ACL_SCLASS|ACL_TCLASS);
     }
     return 0;
 }

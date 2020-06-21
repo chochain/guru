@@ -178,7 +178,7 @@ ostore_new(GP cls)
     o->cls = cls;
     o->sz  = o->n = 0;
 
-    GR r { GT_OBJ, ACL_HAS_REF|ACL_SELF, 0, MEMOFF(o) };
+    GR r { GT_OBJ, ACL_HAS_REF|ACL_TCLASS, 0, MEMOFF(o) };
 
     return r;
 }

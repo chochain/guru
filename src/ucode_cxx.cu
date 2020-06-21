@@ -554,7 +554,7 @@ class Ucode::Impl
         else if (IS_NEW(st)) {
             ret = *_R0;								// return the object itself
         }
-        ret.acl &= ~(ACL_SELF|ACL_SCLASS);			// turn off TCLASS and NEW flags if any
+        ret.acl &= ~(ACL_TCLASS|ACL_SCLASS);		// turn off TCLASS and NEW flags if any
 
         _sm->pop_state(ret);						// pop callee's context
         if (map) {                                  // put return array to caller stack
@@ -1117,7 +1117,7 @@ class Ucode::Impl
         PRINTF("!!!uc_method %s:%p->%d\n", _RAW(px->pid), px, px->pid);
     #endif // CC_DEBUG
 
-        r->acl &= ~ACL_SELF;						// clear CLASS modification flags if any
+        r->acl &= ~ACL_TCLASS;						// clear CLASS modification flags if any
         *(r+1) = EMPTY;								// clean up proc
     }
     //================================================================
@@ -1132,7 +1132,7 @@ class Ucode::Impl
         GR *ra = _R(a);
 
         _RA_T(GT_CLASS, off=VM_STATE(_vm)->klass);
-        ra->acl |= ACL_SELF;
+        ra->acl |= ACL_TCLASS;
         ra->acl &= ~ACL_SCLASS;
     }
     //================================================================
@@ -1157,7 +1157,7 @@ class Ucode::Impl
         else ASSERT(1==0);
 
         r->acl |= ACL_SCLASS;
-        r->acl &= ~ACL_SELF;
+        r->acl &= ~ACL_TCLASS;
     }
     //================================================================
     /*!@brief
