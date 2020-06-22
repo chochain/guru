@@ -114,13 +114,13 @@ class_by_obj(GR *r)
 #endif // CC_DEBUG
 	GP ret;
 	switch (r->gt) {
-	case GT_OBJ: {
+	case GT_OBJ: {						// object class
     	ret = GR_OBJ(r)->cls;
 #if CC_DEBUG
     	PRINTF(" OBJ");
 #endif // CC_DEBUG
     } break;
-    case GT_CLASS: {
+    case GT_CLASS: {					// singleton class
     	guru_class *cx = GR_CLS(r);
     	GP meta = cx->meta ? cx->meta : guru_rom_get_class(GT_OBJ);
     	GP cls  = r->off;
@@ -207,10 +207,11 @@ proc_by_id(GR *r, GS pid)
 {
 	GP cls = class_by_obj(r);
 	GP prc = 0;
-
 	while (cls) {
     	guru_class *cx = _CLS(cls);
-
+    	if (IS_META(cx)) {
+    		cx = _CLS(cx->ctbl);		// use original singleton class (template)
+    	}
     	prc = __scan_flist(cx, pid);	// TODO: combine flist into mtbl[]
     	if (prc) break;
 

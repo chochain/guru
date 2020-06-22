@@ -10,7 +10,7 @@ end
 class X
     include M               # M becomes the child of super-class
     p A
-    p (a rescue 'err X::a') # only instantiated
+    p (a rescue 'err X::a') # only by instantiated object
 end
 
 class Y
@@ -21,4 +21,4 @@ end
 
 x = X.new
 p x.a+2
-p Y::a+3
+p Y.a+3
