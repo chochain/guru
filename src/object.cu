@@ -25,6 +25,7 @@
 #include "c_range.h"
 
 #include "base.h"
+#include "global.h"
 #include "static.h"
 #include "object.h"
 
@@ -154,7 +155,6 @@ obj_extend(GR r[], S32 ri)
 #else
 	guru_class_add_meta(r);
 #endif // GURU_CXX_CODEBASE
-	guru_class_include(GR_CLS(r)->meta, (r+1)->off);	// add to class methods
 }
 
 //================================================================
@@ -452,11 +452,19 @@ guru_core_init(void)
 	if (blockIdx.x!=0 || threadIdx.x!=0) return;
 
 	guru_rom_init();
+
+	// setup StandardError constant
+	GS sid = guru_rom_add_sym("StandardError");
+	GP cls = guru_rom_get_class(GT_OBJ);
+	GR sym { GT_SYM, 0, 0, sid };
+    const_set(cls, sid, &sym);
+
 	_install_all_class();			// TODO: load image into context memory
 
 #if CC_DEBUG
 	guru_rom *rom = &guru_device_rom;
-    PRINTF("ROM createdd with ncls=%d, nprc=%d, nsym=%d, nstr=%d\n", rom->ncls, rom->nprc, rom->nsym, rom->nstr);
+    	PRINTF("ROM createdd with ncls=%d, nprc=%d, nsym=%d, nstr=%d\n", rom->ncls, rom->nprc, rom->nsym, rom->nstr);
 #endif // CC_DEBUG
-	guru_rom_burn();
+
+    guru_rom_burn();
 }
