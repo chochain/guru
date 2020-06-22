@@ -291,14 +291,11 @@ uc_getconst(guru_vm *vm)
 	cls    = (r0->gt==GT_CLASS) ? r0->off : class_by_obj(r0);
     while (cls) {
     	guru_class *cx = _CLS(cls);
-    	ret = *const_get(cls, cid);				// search the class itself
-    	if ((ret.gt==GT_NIL) && IS_META(cx)) {
-    		ret = *const_get(cx->meta, cid);	// try searching meta-class
-    	}
+    	ret = *const_get(cx->ctbl, cid);		// search constant cache with class key
         if (ret.gt!=GT_NIL) break;
     	cls = _CLS(cls)->super;
    }
-//   vm->err = (ret.gt==GT_NIL);
+   vm->err = (ret.gt==GT_NIL);
    _RA(ret);
 }
 
@@ -318,7 +315,7 @@ uc_setconst(guru_vm *vm)
 
 	ra->acl &= ~ACL_HAS_REF;				// set it to constant
 
-    const_set(cls, sid, ra);
+    const_set(_CLS(cls)->ctbl, sid, ra);
 }
 
 //================================================================
@@ -335,9 +332,10 @@ uc_getmcnst(guru_vm *vm)
 	GP cls = (ra->gt==GT_CLASS) ? ra->off : class_by_obj(ra);
 	GR ret = NIL;
     while (cls) {
-    	ret = *const_get(cls, sid);
+    	guru_class *cx = _CLS(cls);
+    	ret = *const_get(cx->ctbl, sid);
         if (ret.gt!=GT_NIL) break;
-    	cls = _CLS(cls)->super;
+    	cls = cx->super;
     }
     vm->err = (ret.gt==GT_NIL);
     _RA(ret);
@@ -360,7 +358,7 @@ uc_setmcnst(guru_vm *vm)
 
 	rm->acl &= ~ACL_HAS_REF;				// set it to constant
 
-    const_set(cls, sid, ra);
+    const_set(_CLS(cls)->ctbl, sid, ra);
 }
 
 //================================================================
