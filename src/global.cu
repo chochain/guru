@@ -21,7 +21,7 @@
   In case of adding a global object, insertion sort is used.
 */
 typedef struct {						// 32-bit
-    GP		cls;						// offset to class, 0 => global
+    GP		key;						// cache key (0: global)
     GS 		xid;
 } _gidx;
 
@@ -40,59 +40,59 @@ __GURU__ GR		_NIL = { .gt=GT_NIL, .acl=0 };
 /* TODO: Use binary search */
 #if CUDA_ENABLE_CDP
 __GPU__ void
-__idx(S32 *idx, GP cls, GS xid)
+__idx(S32 *idx, GP key, GS xid)
 {
 	S32    i = threadIdx.x;
 	_gidx *p = _global_idx + i;
 
-	if (i<_global_sz && p->cls==cls && p->xid==xid) *idx = i;
+	if (i<_global_sz && p->key==key && p->xid==xid) *idx = i;
 }
 #else
 __GURU__ S32
-__idx(GP cls, GS xid)
+__idx(GP key, GS xid)
 {
 	_gidx *p = _global_idx;
 	for (int i=0; i<_global_sz; i++, p++) {
-		if (p->cls==cls && p->xid==xid) return i;
+		if (p->key==key && p->xid==xid) return i;
 	}
 	return -1;
 }
 #endif // CUDA_ENABLE_CDP
 
 __GURU__ S32
-_find_idx(GP cls, GS xid)
+_find_idx(GP key, GS xid)
 {
 	static S32 idx;					// warning: outside of function scope
 #if CUDA_ENABLE_CDP
 	idx = -1;
-	__idx<<<1, 32*(1+(_global_sz>>5))>>>(&idx, cls, xid);
+	__idx<<<1, 32*(1+(_global_sz>>5))>>>(&idx, key, xid);
 	GPU_CHK();						// make sure idx is captured
 #else
-	idx = __idx(cls, xid);
+	idx = __idx(key, xid);
 #endif // CUDA_ENABLE_CDP
 	return idx;
 }
 
 __GURU__ GR *
-_get(GP cls, GS xid)
+_get(GP key, GS xid)
 {
-	S32 i = _find_idx(cls, xid);
+	S32 i = _find_idx(key, xid);
     if (i < 0) return &_NIL;		// not found
 
     return &_global[i];				// pointer to global object
 }
 
 __GURU__ void
-_set(GP cls, GS xid, GR *r)
+_set(GP key, GS xid, GR *r)
 {
-    S32 i = _find_idx(cls, xid);
+    S32 i = _find_idx(key, xid);
 
     _LOCK;
     if (i<0) {
     	i = _global_sz++;
     	ASSERT(i<MAX_GLOBAL_COUNT);	// maybe raise ex
     }
-    _global_idx[i].cls = cls;
+    _global_idx[i].key = key;
     _global_idx[i].xid = xid;
     _global[i] = *r;
     _UNLOCK;
@@ -118,14 +118,14 @@ global_get(GS xid)
 }
 
 __GURU__ void
-const_set(GP cls, GS xid, GR *r)
+const_set(GP key, GS xid, GR *r)
 {
-    _set(cls, xid, r);
+    _set(key, xid, r);
 }
 
 /* add const */
 __GURU__ GR *
-const_get(GP cls, GS xid)
+const_get(GP key, GS xid)
 {
-    return _get(cls, xid);
+    return _get(key, xid);
 }
