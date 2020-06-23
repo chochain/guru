@@ -12,10 +12,9 @@
 */
 #include "guru.h"
 #include "util.h"
-#include "static.h"
-#include "mmu.h"
-#include "class.h"		// class_by_obj
-#include "symbol.h"		// name2id
+#include "static.h"		// _RAW
+#include "mmu.h"		// MEMPTR
+#include "class.h"		// GR_CLS
 
 #if GURU_USE_ARRAY
 #include "c_array.h"
@@ -45,11 +44,7 @@ _p(GR *r)
     	PRINTF("%s", name);
     } break;
     case GT_OBJ: {
-#if GURU_CXX_CODEBASE
-    	GP cls = ClassMgr::getInstance()->class_by_obj(r);
-#else
-    	GP cls = class_by_obj(r);
-#endif // GURU_CXX_CODEBASE
+    	GP cls   = GR_OBJ(r)->cls;								// get class of object
     	U8 *name = _RAW(_CLS(cls)->cid);						// ~= class->cname
     	PRINTF("#<%s:%p>", name, GR_OBJ(r));
     } break;

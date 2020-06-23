@@ -113,6 +113,7 @@ typedef S32			GX;						// index, to object[]
 #define U8PSUB(p, n)	((U8*)(p) - (n))					// sub
 #define U8POFF(p1, p0)	((S32)((U8*)(p1) - (U8*)(p0)))	    // offset (downshift from 64-bit)
 
+// read-only and lexical scope control
 #define ACL_HAS_REF		0x1
 #define ACL_SCLASS		0x2
 #define ACL_TCLASS		0x4
@@ -135,7 +136,7 @@ typedef S32			GX;						// index, to object[]
 */
 typedef struct {					// 16-bytes (128 bits) for ease of debugging
 	GT  	gt   : 8;
-	U32     acl  : 8;
+	U32 	acl  : 8;
 	GS		oid  : 16;
 	union {
 		GI  	i;					// INT, SYM				32-bit

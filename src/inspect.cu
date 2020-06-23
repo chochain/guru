@@ -16,7 +16,7 @@
 #include "mmu.h"
 #include "base.h"
 
-#include "class.h"
+#include "class.h"			// GR_CLS
 #include "inspect.h"
 
 #include "c_string.h"
@@ -147,11 +147,8 @@ __GURU__ void
 _obj(GR *buf, GR *r)
 {
 	ASSERT(r->gt==GT_OBJ);
-#if GURU_CXX_CODEBASE
-	GP cls    = ClassMgr::getInstance()->class_by_obj(r);
-#else
-	GP cls    = class_by_obj(r);
-#endif // GURU_CXX_CODEBASE
+
+	GP cls    = GR_OBJ(r)->cls;							// get class id
 	U8 *cname = _RAW(_CLS(cls)->cid);					// ~= class->cname
 	guru_buf_add_cstr(buf, "#<");
 	guru_buf_add_cstr(buf, cname);
