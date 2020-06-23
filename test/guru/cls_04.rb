@@ -10,9 +10,19 @@ a = MyClass.new
 b = MyClass.new
     
 def b.f1
-    "single"
+    "b.f1"
 end
+
+class << a
+    def f2
+       "a.f2"
+    end
+end  
     
-puts a.f1
-puts b.f1
+p a.f1
+p b.f1
+p a.f2
+p (b.f2 rescue 'err')
+
+
     

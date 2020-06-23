@@ -2,11 +2,10 @@
     
 class MyClass
   def initialize(n)
-    puts "class init"
-    puts n
+    puts "init(#{n})"
   end
-  def func
-    puts "class func"
+  def f1
+    puts "f1"
   end
 end
 
@@ -14,7 +13,15 @@ class MyClass2 < MyClass
 end    
 
 a = MyClass.new(5)
-a.func
+a.f1
 
 b = MyClass2.new(5)
-b.func
+b.f1
+
+class MyClass
+    def f2
+        p "f2"
+    end
+end
+
+b.f2
