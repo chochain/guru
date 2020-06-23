@@ -277,11 +277,11 @@ guru_define_class(guru_class *cx, GS cid, GP super)		// fill the ROM class stora
 __GURU__ GP
 guru_class_include(GP cls, GP mod)
 {
-	GP top = guru_rom_get_class(GT_OBJ);
+	GP OBJ = guru_rom_get_class(GT_OBJ);
 
 	guru_class *cx  = _CLS(cls);
 	guru_class *mcx = _CLS(mod);
-	if (mcx->super != top) {								// at the top of the class hierarchy?
+	if (mcx->super != OBJ) {								// at the top of the class hierarchy?
 		guru_class_include(cls, mcx->super);				// climb up recursively
 	}
 	guru_class *dup = (guru_class*)guru_alloc(sizeof(guru_class));
@@ -313,9 +313,25 @@ guru_class_add_meta(GR *r)												// lazy add metaclass to a class
 	GP scls = scx->meta ? scx->meta : guru_rom_get_class(GT_OBJ);
 	GP mcls = guru_define_class(mcx, cx->cid, scls);
 
-	_CLS(mcls)->kt |= USER_META_CLASS;
+	mcx->kt |= USER_META_CLASS;
 
 	return cx->meta = mcls;												// self pointing =~ metaclass
+}
+
+__GURU__ GP
+guru_object_add_meta(GR *r)
+{
+	ASSERT(r->gt==GT_OBJ);
+
+	guru_obj   *obj = GR_OBJ(r);
+	GP         cls  = obj->cls;											//
+	guru_class *cx  = _CLS(cls);
+	if (IS_META(cx)) return cls;										// meta class exists already
+
+	GP scls = guru_define_class(NULL, cx->cid, cls);
+	_CLS(scls)->kt |= USER_META_CLASS;
+
+	return obj->cls = scls;												// set singleton class
 }
 
 

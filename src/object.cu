@@ -121,11 +121,7 @@ obj_eq3(GR r[], S32 ri)
 __CFUNC__
 obj_class(GR r[], S32 ri)
 {
-#if GURU_CXX_CODEBASE
-	GP cls = ClassMgr::getInstance()->class_by_obj(r);
-#else
-	GP cls = class_by_obj(r);
-#endif // GURU_CXX_CODEBASE
+	GP cls = GR_OBJ(r)->cls;
     GR ret { GT_CLASS, 0, 0, cls };
 
     RETURN_VAL(ret);
@@ -155,6 +151,9 @@ obj_extend(GR r[], S32 ri)
 #else
 	guru_class_add_meta(r);
 #endif // GURU_CXX_CODEBASE
+
+	guru_class *mcx = _CLS(GR_CLS(r)->meta);			// the meta class
+	mcx->ctbl = (r+1)->off;								// pointing to the original module
 }
 
 //================================================================
@@ -215,7 +214,7 @@ __CFUNC__
 obj_attr_accessor(GR r[], S32 ri)
 {
 	ASSERT(r->gt==GT_CLASS);
-	GP cls = IS_SCLASS(r) ? GR_CLS(r)->meta : r->off;				// fetch class offset
+	GP cls = IS_SCLASS(r) ? GR_CLS(r)->meta : r->off;				// fetch lexical scope
 #if CC_DEBUG
 	guru_class *cx = _CLS(cls);
     printf("%p:%s, sc=%d self=%d #attr_accessor\n", cx, _RAW(cx->cid), IS_SCLASS(r), IS_TCLASS(r));
@@ -242,11 +241,8 @@ obj_kind_of(GR r[], S32 ri)
     if ((r+1)->gt != GT_CLASS) {
         RETURN_BOOL(0);
     }
-#if GURU_CXX_CODEBASE
-    GP cls = ClassMgr::getInstance()->class_by_obj(r);
-#else
-    GP cls = class_by_obj(r);
-#endif // GURU_CXX_CODEBASE
+
+    GP cls = GR_OBJ(r)->cls;
     while (cls) {
         if (cls==(r+1)->off) break;
         cls = _CLS(cls)->super;
@@ -452,14 +448,13 @@ guru_core_init(void)
 	if (blockIdx.x!=0 || threadIdx.x!=0) return;
 
 	guru_rom_init();
+	_install_all_class();			// TODO: load image into context memory
 
 	// setup StandardError constant
 	GS sid = guru_rom_add_sym("StandardError");
 	GP cls = guru_rom_get_class(GT_OBJ);
 	GR sym { GT_SYM, 0, 0, sid };
     const_set(cls, sid, &sym);
-
-	_install_all_class();			// TODO: load image into context memory
 
 #if CC_DEBUG
 	guru_rom *rom = &guru_device_rom;

@@ -203,7 +203,7 @@ _sid_wo_at_sign(guru_vm *vm)
 	GS sid     = VM_SYM(vm, vm->bx);
 	char *name = (char*)_RAW(sid);
 
-	return guru_rom_add_sym(name+1);	// skip leading '@'
+	return guru_rom_add_sym(name+1);	// skip leading '@'id2name
 }
 
 __UCODE__
@@ -280,22 +280,19 @@ uc_getconst(guru_vm *vm)
 {
     GS cid = VM_SYM(vm, vm->bx);				// In Ruby, class is a constant, too
     GP cls = class_by_id(cid);					// search class rom first
-    if (cls) {
-        GR ret { GT_CLASS, 0, 0, { cls } };
-    	_RA(ret);
-    	return;									// return ROM class
+    GR ret = { GT_CLASS, 0, 0, { cls } };
+    if (!cls) {
+    	GR *r0 = _R0;
+    	cls    = (r0->gt==GT_CLASS) ? r0->off : GR_OBJ(r0)->cls;
+    	ret    = NIL;
+    	while (cls) {
+    		guru_class *cx = _CLS(cls);
+    		ret = *const_get(cx->ctbl, cid);		// search constant cache with class key
+    		if (ret.gt!=GT_NIL) break;
+    		cls = _CLS(cls)->super;
+    	}
+    	vm->err = (ret.gt==GT_NIL);
     }
-    // search into constant cache, recursively up class hierarchy if needed
-    GR ret = NIL;
-	GR *r0 = _R0;
-	cls    = (r0->gt==GT_CLASS) ? r0->off : class_by_obj(r0);
-    while (cls) {
-    	guru_class *cx = _CLS(cls);
-    	ret = *const_get(cx->ctbl, cid);		// search constant cache with class key
-        if (ret.gt!=GT_NIL) break;
-    	cls = _CLS(cls)->super;
-   }
-   vm->err = (ret.gt==GT_NIL);
    _RA(ret);
 }
 
@@ -311,9 +308,9 @@ uc_setconst(guru_vm *vm)
 	GS sid = VM_SYM(vm, vm->bx);
 	GR *ra = _R(a);
 	GR *r0 = _R0;
-	GP cls = (r0->gt==GT_CLASS) ? r0->off : class_by_obj(r0);
+	GP cls = (r0->gt==GT_CLASS) ? r0->off : GR_OBJ(r0)->cls;
 
-	ra->acl &= ~ACL_HAS_REF;				// set it to constant
+	ra->acl &= ~ACL_HAS_REF;					// set it to constant
 
     const_set(_CLS(cls)->ctbl, sid, ra);
 }
@@ -329,7 +326,7 @@ uc_getmcnst(guru_vm *vm)
 {
     GS sid = VM_SYM(vm, vm->bx);				// In Ruby, class is a constant, too
     GR *ra = _R(a);
-	GP cls = (ra->gt==GT_CLASS) ? ra->off : class_by_obj(ra);
+	GP cls = (ra->gt==GT_CLASS) ? ra->off : GR_OBJ(ra)->cls;
 	GR ret = NIL;
     while (cls) {
     	guru_class *cx = _CLS(cls);
@@ -354,7 +351,7 @@ uc_setmcnst(guru_vm *vm)
 	GR *ra = _R(a);
 	GR *rm = ra + 1;
 
-	GP cls = (rm->gt==GT_CLASS) ? rm->off : class_by_obj(rm);
+	GP cls = (rm->gt==GT_CLASS) ? rm->off : GR_OBJ(rm)->cls;
 
 	rm->acl &= ~ACL_HAS_REF;				// set it to constant
 
@@ -541,10 +538,11 @@ uc_raise(guru_vm *vm)
 __GURU__ GR *
 _undef(GR *buf, GR *r, GS pid)
 {
+	GP cls = class_by_obj(r);
 	guru_buf_add_cstr(buf, "undefined method '");
 	guru_buf_add_cstr(buf, _RAW(pid));
 	guru_buf_add_cstr(buf, "' for class #");
-	guru_buf_add_cstr(buf, _RAW(_CLS(class_by_obj(r))->cid));
+	guru_buf_add_cstr(buf, _RAW(_CLS(cls)->cid));
 
 	return buf;
 }
@@ -1165,10 +1163,10 @@ __UCODE__
 uc_lambda(guru_vm *vm)
 {
 	GR *obj = _R(a) - 1;
-	GP cls  = class_by_obj(obj);						// current class
+	GP cls  = class_by_obj(obj);						// use current class for lexical scope
 	GP irep = MEMOFF(VM_REPS(vm, vm->bz));				// fetch from children irep list
 
-	GP prc  = guru_define_method(cls, NULL, irep);
+	GP prc  = guru_define_method(cls, NULL, irep);		// create proc with no name, pid will be filled by OP_METHOD
 
 	guru_proc *px = _PRC(prc);
     px->kt  = PROC_IREP;								// instead of C-function
@@ -1188,11 +1186,13 @@ uc_lambda(guru_vm *vm)
 __UCODE__
 uc_class(guru_vm *vm)
 {
-	GR *r1   = _R(a)+1;
-    GP super = (r1->gt==GT_CLASS) ? r1->off : VM_STATE(vm)->klass;
-    GS cid   = VM_SYM(vm, vm->b);
-    GP cls   = guru_define_class(NULL, cid, super);
-
+	GR *r1 = _R(a)+1;
+    GS cid = VM_SYM(vm, vm->b);
+    GP cls = class_by_id(cid);
+    if (!cls) {
+        GP super = (r1->gt==GT_CLASS) ? r1->off : VM_STATE(vm)->klass;
+    	cls = guru_define_class(NULL, cid, super);
+    }
     _RA_T(GT_CLASS, off=cls);
 	*r1 = EMPTY;
 }
@@ -1241,7 +1241,7 @@ uc_method(guru_vm *vm)
     ASSERT(r->gt==GT_OBJ || r->gt == GT_CLASS);	// enforce class checking
 
     // check whether the name has been defined in current class (i.e. vm->state->klass)
-    GS pid = VM_SYM(vm, vm->b);				// fetch name from IREP symbol table
+    GS pid = VM_SYM(vm, vm->b);					// fetch name from IREP symbol table
 
     guru_proc *px = GR_PRC(r+1);				// override (if exist) with proc by OP_LAMBDA
     _LOCK;
@@ -1251,7 +1251,7 @@ uc_method(guru_vm *vm)
 #if CC_DEBUG
     PRINTF("!!!uc_method %s:%p->%d\n", _RAW(px->pid), px, px->pid);
 #endif // CC_DEBUG
-    r->acl &= ~ACL_TCLASS;						// clear CLASS modification flags if any
+    r->acl &= ~(ACL_TCLASS|ACL_SCLASS);			// clear class lexicial scope if any
     *(r+1) = EMPTY;								// clean up proc
 }
 
@@ -1265,10 +1265,10 @@ __UCODE__
 uc_tclass(guru_vm *vm)
 {
 	GR *ra = _R(a);
+	GP cls = VM_STATE(vm)->klass;
 
-	_RA_T(GT_CLASS, off=VM_STATE(vm)->klass);
-	ra->acl |= ACL_TCLASS;
-	ra->acl &= ~ACL_SCLASS;
+	_RA_T(GT_CLASS, off=cls);
+	ra->acl |= ACL_TCLASS;							// switch lexical scope to class
 }
 
 //================================================================
@@ -1281,18 +1281,16 @@ __UCODE__
 uc_sclass(guru_vm *vm)
 {
 	GR *r = _R(b);
-	if (r->gt==GT_OBJ) {							// singleton class (extending an object)
-		GP super = class_by_obj(r);
-		GP cls   = guru_define_class(NULL, _CLS(super)->cid, super);
-		GR_OBJ(r)->cls = cls;
+	if (r->gt==GT_OBJ) {							// singleton class for an object
+		guru_object_add_meta(r);					// extend an object
 	}
-	else if (r->gt==GT_CLASS) {						// meta class (for class methods)
+	else if (r->gt==GT_CLASS) {						// metaclass for a class
 		guru_class_add_meta(r);						// lazily add metaclass if needed
 	}
 	else ASSERT(1==0);
 
-	r->acl |= ACL_SCLASS;
-	r->acl &= ~ACL_TCLASS;
+	r->acl |= ACL_SCLASS;							// switch lexical scope to singleton
+//	_RA_X(r);										// R(A) is the same as R(B)
 }
 
 //================================================================
@@ -1305,7 +1303,7 @@ uc_sclass(guru_vm *vm)
 __UCODE__
 uc_stop(guru_vm *vm)
 {
-	vm->run  = VM_STATUS_STOP;					// VM suspended
+	vm->run  = VM_STATUS_STOP;						// VM suspended
 }
 
 //================================================================

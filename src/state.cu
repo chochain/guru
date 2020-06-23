@@ -53,7 +53,7 @@ _exec(guru_vm *vm, GR r[], S32 ri, GP prc)
     	r->oid = px->pid;								// parameter pid is passed as object id
     	_CALL(prc, r, ri);								// call C-based function
     	_wipe_stack(r+1, ri+1);
-    	r->acl &= ~(ACL_SCLASS|ACL_TCLASS);
+    	r->acl &= ~(ACL_SCLASS|ACL_TCLASS);				// clear lexical scope
     }
     return 0;
 }
@@ -223,9 +223,9 @@ vm_state_push(guru_vm *vm, GP irep, U32 pc, GR r[], S32 ri)
     ASSERT(st);
 
     switch(r->gt) {
-    case GT_OBJ:
-    case GT_CLASS: 	st->klass = r->off;			 break;
-    case GT_PROC: 	st->klass = _REGS(top)->off; break; 	// top->regs[0].off (top != NULL)
+    case GT_OBJ:	st->klass = GR_OBJ(r)->cls;		break;
+    case GT_CLASS: 	st->klass = r->off;			 	break;
+    case GT_PROC: 	st->klass = _REGS(top)->off; 	break; 	// top->regs[0].off (top != NULL)
     default: ASSERT(1==0);
     }
     st->irep  = irep;
@@ -260,8 +260,9 @@ vm_state_pop(guru_vm *vm, GR ret_val)
     if (!IS_LAMBDA(st)) {
         guru_irep  *irep = (guru_irep*)MEMPTR(st->irep);
         GR         *regs = _REGS(st);
-    	if (!IS_NEW(st)) {								// new() returns itself, keep ref cnt
+    	if (ret_val.off!=regs->off) {					// keep ref cnt when object returns itself, i.g. new()
     		ref_inc(&ret_val);							// to be referenced by the caller
+    		ref_dec(&regs[0]);
     	}
     	_wipe_stack(regs+1, irep->nr);
     	regs[0] = ret_val;								// put return value on top of current stack
