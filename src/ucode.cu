@@ -15,6 +15,7 @@
 #include "global.h"
 #include "symbol.h"
 #include "mmu.h"
+#include "object.h"
 #include "ostore.h"
 #include "iter.h"
 
@@ -486,14 +487,15 @@ uc_rescue(guru_vm *vm)
 	GR  *x = r + 1;					// exception on stack
 
 	if (c) {						// 2nd: get cycle
-		if (x->gt != GT_NIL) {		// if exception is not given
+		if (r->gt!=GT_ERROR) {
+			*(r+2) = *r;			// make a temp copy
+			err_new(x, 0);
 			_RA_X(x);				// override exception (msg) if not given
 		}
 		x->gt  = GT_TRUE;			// here: modifying return stack directly is questionable!!
 		x->acl = 0;
 	}
 	else {							// 1st: set cycle
-		if (r->gt==GT_CLASS) x++;
 		_RA_X(x);					// keep exception in RA
 		*(x) = EMPTY;
 	}
@@ -524,9 +526,7 @@ uc_poperr(guru_vm *vm)
 __UCODE__
 uc_raise(guru_vm *vm)
 {
-	GR *ra = _R(a);
-
-	_RA(*ra);
+	ASSERT(1==0);			// handle by missing_method
 }
 
 //================================================================

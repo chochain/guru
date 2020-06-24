@@ -20,6 +20,7 @@ extern "C" {
 #endif
 
 __CFUNC__	sym_to_s(GR r[], S32 ri);		// no leading ':' (Ruby's quirk)
+__CFUNC__   err_to_s(GR r[], S32 ri);		// #<StandardError: msg>
 __CFUNC__ 	gr_to_s(GR r[], S32 ri);
 __CFUNC__	int_chr(GR r[], S32 ri);
 __CFUNC__ 	ary_join(GR r[], S32 ri);

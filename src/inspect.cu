@@ -25,6 +25,8 @@
 #include "c_range.h"
 
 #if !GURU_USE_STRING
+__CFUNC__	sym_to_s(GR r[], S32 ri)		{}
+__CFUNC__	err_to_s(GR r[], S32 ri)		{}
 __CFUNC__	gr_to_s(GR r[], S32 ri)			{}
 __CFUNC__ 	ary_join(GR r[], S32 ri)		{}
 __CFUNC__	str_sprintf(GR r[], S32 ri)		{}
@@ -112,6 +114,14 @@ __GURU__ void
 _sym(GR *buf, GR *r)
 {
 	guru_buf_add_cstr(buf, ":");
+    guru_buf_add_cstr(buf, _RAW(r->i));
+}
+
+//================================================================
+// Error class
+__GURU__ void
+_err(GR *buf, GR *r)
+{
     guru_buf_add_cstr(buf, _RAW(r->i));
 }
 
@@ -222,6 +232,7 @@ _append(GR *buf, GR r[], U32 n)
     case GT_INT: 	_int(buf, r, n);	break;
     case GT_FLOAT: 	_flt(buf, r);		break;
     case GT_SYM:    _sym(buf, r);		break;
+    case GT_ERROR:  _err(buf, r);		break;
     case GT_PROC:	_prc(buf, r);		break;
     case GT_CLASS:	_cls(buf, r);		break;
     case GT_OBJ:	_obj(buf, r);		break;
@@ -240,6 +251,22 @@ sym_to_s(GR r[], S32 ri)		// no leading ':' (Ruby's quirky)
 	U8 *s  = _RAW(r->i);
 	GR ret = guru_str_new(s);
     RETURN_VAL(ret);
+}
+
+__CFUNC__
+err_to_s(GR r[], S32 ri)
+{
+	GR buf = guru_str_buf(GURU_STRBUF_SIZE);
+
+	U8 *msg = _RAW(r->i);
+
+	guru_buf_add_cstr(&buf, "<");
+	guru_buf_add_cstr(&buf, _RAW(GR_CLS(r)->cid));
+	guru_buf_add_cstr(&buf, ": ");
+	_append(&buf, r, ri);
+	guru_buf_add_cstr(&buf, ">");
+
+	RETURN_VAL(buf);
 }
 
 __CFUNC__

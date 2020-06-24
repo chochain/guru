@@ -24,6 +24,8 @@ __GPU__  void		guru_ext_init(void);
 
 __GURU__ void     	guru_obj_del(GR *r);						// a facade to ostore_del
 
+__CFUNC__			err_new(GR r[], S32 ri);
+
 #ifdef __cplusplus
 }
 #endif

@@ -387,6 +387,31 @@ __GURU__ __const__ Vfunc sym_mtbl[] = {
 	{ "inspect", 	gr_to_s		}
 };
 
+//================================================================
+/*! StandardError class
+ */
+__CFUNC__
+err_new(GR r[], S32 ri)
+{
+	GR *r1 = r + 1;
+	GS sid = r1->off;
+	if (r1->gt==GT_STR) {
+		U8 *s  = GR_RAW(r1);
+		sid = guru_rom_add_sym((char*)s);
+	}
+
+	GR x { GT_ERROR, 0, 0, sid };
+	ref_dec(r);
+	*r     = x;
+	*(r+1) = EMPTY;
+}
+
+__GURU__ __const__ Vfunc err_mtbl[] = {
+	{ "new",        err_new     },
+	{ "to_s", 		gr_to_s 	},
+	{ "inspect", 	err_to_s	}
+};
+
 #if GURU_DEBUG
 //================================================================
 /*! System class (guru only, i.e. non-Ruby)
@@ -423,8 +448,9 @@ _install_all_class(void)
     guru_rom_add_class(GT_TRUE, "TrueClass",  	GT_OBJ, 	true_mtbl, 	VFSZ(true_mtbl));
     guru_rom_add_class(GT_SYM,  "Symbol", 		GT_OBJ, 	sym_mtbl, 	VFSZ(sym_mtbl));
     guru_rom_add_class(GT_PROC, "Proc",     	GT_OBJ, 	prc_mtbl,  	VFSZ(prc_mtbl));
+    guru_rom_add_class(GT_ERROR,"StandardError",GT_OBJ,     err_mtbl,   VFSZ(err_mtbl));
 #if GURU_DEBUG
-    guru_rom_add_class(GT_SYS, 	"Sys", 			GT_OBJ, 	sys_mtbl,  	VFSZ(sys_mtbl));
+    guru_rom_add_class(GT_CLASS,"Sys", 			GT_OBJ, 	sys_mtbl,  	VFSZ(sys_mtbl));
 #endif
 
     guru_register_func(GT_OBJ, NULL, guru_obj_del, NULL);
@@ -449,12 +475,6 @@ guru_core_init(void)
 
 	guru_rom_init();
 	_install_all_class();			// TODO: load image into context memory
-
-	// setup StandardError constant
-	GS sid = guru_rom_add_sym("StandardError");
-	GP cls = guru_rom_get_class(GT_OBJ);
-	GR sym { GT_SYM, 0, 0, sid };
-    const_set(cls, sid, &sym);
 
 #if CC_DEBUG
 	guru_rom *rom = &guru_device_rom;

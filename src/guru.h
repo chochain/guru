@@ -65,7 +65,7 @@ typedef enum {
     GT_INT,
     GT_FLOAT,
     GT_SYM,
-    GT_SYS,
+    GT_ERROR,
 
     GT_CLASS    = 0x8,
     GT_PROC,

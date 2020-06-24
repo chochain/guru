@@ -39,6 +39,15 @@ _p(GR *r)
     case GT_TRUE:	PRINTF("true");			break;
     case GT_INT: 	PRINTF("%d", r->i);		break;
     case GT_FLOAT:  PRINTF("%.7g", r->f);	break;				// 23-digit fraction ~= 1/16M => 7 digit
+    case GT_SYM: {
+        U8 *name = _RAW(r->i);
+        STRCHR(name, ';') ? PRINTF("\"%s\"", name) : PRINTF(":%s", name);
+    } break;
+    case GT_ERROR: {
+    	U8 *cname = _RAW(GR_CLS(r)->cid);
+        U8 *msg   = _RAW(r->i);
+        PRINTF("<%s: %s>", cname, msg);
+    } break;
     case GT_CLASS: {
     	U8 *name = _RAW(GR_CLS(r)->cid);						// ~= class->cname in GURU_DEBUG mode
     	PRINTF("%s", name);
@@ -51,10 +60,6 @@ _p(GR *r)
     case GT_PROC:
     	PRINTF("#<Proc:%p>", GR_PRC(r));
     	break;
-    case GT_SYM: {
-        U8 *name = _RAW(r->i);
-        STRCHR(name, ';') ? PRINTF("\"%s\"", name) : PRINTF(":%s", name);
-    } break;
     case GT_STR:
     	PRINTF("\"%s\"", GR_RAW(r));
     	break;
