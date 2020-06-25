@@ -280,16 +280,16 @@ __UCODE__
 uc_getconst(guru_vm *vm)
 {
     GS cid = VM_SYM(vm, vm->bx);				// In Ruby, class is a constant, too
-    GP cls = class_by_id(cid);					// search class rom first
+    GP cls = find_class_by_id(cid);				// search class rom first
     GR ret = { GT_CLASS, 0, 0, { cls } };
-    if (!cls) {
+    if (!cls) {									// not a class, search into constant cache
     	GR *r0 = _R0;
-    	cls    = (r0->gt==GT_CLASS) ? r0->off : GR_OBJ(r0)->cls;
+    	cls    = lex_scope(r0);
     	ret    = NIL;
     	while (cls) {
-    		guru_class *cx = _CLS(cls);
-    		ret = *const_get(cx->ctbl, cid);		// search constant cache with class key
+    		ret = *const_get(cls, cid);			// search constant cache with class key
     		if (ret.gt!=GT_NIL) break;
+
     		cls = _CLS(cls)->super;
     	}
     	vm->err = (ret.gt==GT_NIL);
@@ -309,11 +309,11 @@ uc_setconst(guru_vm *vm)
 	GS sid = VM_SYM(vm, vm->bx);
 	GR *ra = _R(a);
 	GR *r0 = _R0;
-	GP cls = (r0->gt==GT_CLASS) ? r0->off : GR_OBJ(r0)->cls;
+	GP cls = lex_scope(r0);
 
 	ra->acl &= ~ACL_HAS_REF;					// set it to constant
 
-    const_set(_CLS(cls)->ctbl, sid, ra);
+    const_set(cls, sid, ra);
 }
 
 //================================================================
@@ -327,13 +327,12 @@ uc_getmcnst(guru_vm *vm)
 {
     GS sid = VM_SYM(vm, vm->bx);				// In Ruby, class is a constant, too
     GR *ra = _R(a);
-	GP cls = (ra->gt==GT_CLASS) ? ra->off : GR_OBJ(ra)->cls;
+	GP cls = lex_scope(ra);
 	GR ret = NIL;
     while (cls) {
-    	guru_class *cx = _CLS(cls);
-    	ret = *const_get(cx->ctbl, sid);
+    	ret = *const_get(cls, sid);
         if (ret.gt!=GT_NIL) break;
-    	cls = cx->super;
+    	cls = _CLS(cls)->super;
     }
     vm->err = (ret.gt==GT_NIL);
     _RA(ret);
@@ -351,12 +350,11 @@ uc_setmcnst(guru_vm *vm)
 	GS sid = VM_SYM(vm, vm->bx);
 	GR *ra = _R(a);
 	GR *rm = ra + 1;
-
-	GP cls = (rm->gt==GT_CLASS) ? rm->off : GR_OBJ(rm)->cls;
+	GP cls = lex_scope(rm);
 
 	rm->acl &= ~ACL_HAS_REF;				// set it to constant
 
-    const_set(_CLS(cls)->ctbl, sid, ra);
+    const_set(cls, sid, ra);
 }
 
 //================================================================
@@ -538,7 +536,8 @@ uc_raise(guru_vm *vm)
 __GURU__ GR *
 _undef(GR *buf, GR *r, GS pid)
 {
-	GP cls = class_by_obj(r);
+	GP cls = find_class_by_obj(r);
+
 	guru_buf_add_cstr(buf, "undefined method '");
 	guru_buf_add_cstr(buf, _RAW(pid));
 	guru_buf_add_cstr(buf, "' for class #");
@@ -1163,7 +1162,7 @@ __UCODE__
 uc_lambda(guru_vm *vm)
 {
 	GR *obj = _R(a) - 1;
-	GP cls  = class_by_obj(obj);						// use current class for lexical scope
+	GP cls  = lex_scope(obj);							// use current class for lexical scope
 	GP irep = MEMOFF(VM_REPS(vm, vm->bz));				// fetch from children irep list
 
 	GP prc  = guru_define_method(cls, NULL, irep);		// create proc with no name, pid will be filled by OP_METHOD
@@ -1188,12 +1187,13 @@ uc_class(guru_vm *vm)
 {
 	GR *r1 = _R(a)+1;
     GS cid = VM_SYM(vm, vm->b);
-    GP cls = class_by_id(cid);
+    GP cls = find_class_by_id(cid);
     if (!cls) {
         GP super = (r1->gt==GT_CLASS) ? r1->off : VM_STATE(vm)->klass;
     	cls = guru_define_class(NULL, cid, super);
     }
     _RA_T(GT_CLASS, off=cls);
+    _R(a)->acl |= ACL_TCLASS;
 	*r1 = EMPTY;
 }
 
@@ -1207,7 +1207,7 @@ __UCODE__
 uc_module(guru_vm *vm)
 {
 	GS cid = VM_SYM(vm, vm->b);
-	GP cls = class_by_id(cid);					// check whether the class exists
+	GP cls = find_class_by_id(cid);				// check whether the class exists
 	GP mod = cls ? cls : guru_define_class(NULL, cid, guru_rom_get_class(GT_OBJ));
 
     _RA_T(GT_CLASS, off=mod);
@@ -1251,7 +1251,6 @@ uc_method(guru_vm *vm)
 #if CC_DEBUG
     PRINTF("!!!uc_method %s:%p->%d\n", _RAW(px->pid), px, px->pid);
 #endif // CC_DEBUG
-    r->acl &= ~(ACL_TCLASS|ACL_SCLASS);			// clear class lexicial scope if any
     *(r+1) = EMPTY;								// clean up proc
 }
 
@@ -1268,7 +1267,8 @@ uc_tclass(guru_vm *vm)
 	GP cls = VM_STATE(vm)->klass;
 
 	_RA_T(GT_CLASS, off=cls);
-	ra->acl |= ACL_TCLASS;							// switch lexical scope to class
+	ra->acl &= ~ACL_SCLASS;							// switch lexical scope to class
+	ra->acl |= ACL_TCLASS;
 }
 
 //================================================================
@@ -1281,16 +1281,11 @@ __UCODE__
 uc_sclass(guru_vm *vm)
 {
 	GR *r = _R(b);
-	if (r->gt==GT_OBJ) {							// singleton class for an object
-		guru_object_add_meta(r);					// extend an object
-	}
-	else if (r->gt==GT_CLASS) {						// metaclass for a class
-		guru_class_add_meta(r);						// lazily add metaclass if needed
-	}
-	else ASSERT(1==0);
 
-	r->acl |= ACL_SCLASS;							// switch lexical scope to singleton
-//	_RA_X(r);										// R(A) is the same as R(B)
+	guru_add_metaclass(r);							// add metaclass to an object or a class
+
+	r->acl |= ACL_SCLASS;							// mark lexical scope as singleton (possibly on top of TCLASS)
+//	_RA_X(r);										// TODO: R(A) is always the same as R(B)
 }
 
 //================================================================

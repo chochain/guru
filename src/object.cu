@@ -149,11 +149,8 @@ obj_extend(GR r[], S32 ri)
 #if GURU_CXX_CODEBASE
 	ClassMgr::getInstance()->class_add_meta(r);			// lazily add metaclass if needed
 #else
-	guru_class_add_meta(r);
+	guru_add_metaclass(r);
 #endif // GURU_CXX_CODEBASE
-
-	guru_class *mcx = _CLS(GR_CLS(r)->meta);			// the meta class
-	mcx->ctbl = (r+1)->off;								// pointing to the original module
 }
 
 //================================================================
@@ -196,12 +193,12 @@ __CFUNC__
 obj_attr_reader(GR r[], S32 ri)
 {
 	ASSERT(r->gt==GT_CLASS);
-	GP cls = r->off;									// fetch class offset
+	GP cls = lex_scope(r);											// fetch lexical scope
 	GR *s  = r+1;
     for (int i = 0; i < ri; i++, s++) {
         ASSERT(s->gt==GT_SYM);
 
-        U8 *name = _RAW(s->i);							// SYM2RAW
+        U8 *name = _RAW(s->i);								// SYM2RAW
         ASSERT(guru_define_method(cls, name, MEMOFF(obj_getiv)));
     }
 }
@@ -214,7 +211,8 @@ __CFUNC__
 obj_attr_accessor(GR r[], S32 ri)
 {
 	ASSERT(r->gt==GT_CLASS);
-	GP cls = IS_SCLASS(r) ? GR_CLS(r)->meta : r->off;				// fetch lexical scope
+
+	GP cls = lex_scope(r);											// fetch lexical scope
 #if CC_DEBUG
 	guru_class *cx = _CLS(cls);
     printf("%p:%s, sc=%d self=%d #attr_accessor\n", cx, _RAW(cx->cid), IS_SCLASS(r), IS_TCLASS(r));
@@ -447,8 +445,8 @@ _install_all_class(void)
     guru_rom_add_class(GT_FALSE,"FalseClass", 	GT_OBJ, 	false_mtbl,	VFSZ(false_mtbl));
     guru_rom_add_class(GT_TRUE, "TrueClass",  	GT_OBJ, 	true_mtbl, 	VFSZ(true_mtbl));
     guru_rom_add_class(GT_SYM,  "Symbol", 		GT_OBJ, 	sym_mtbl, 	VFSZ(sym_mtbl));
-    guru_rom_add_class(GT_PROC, "Proc",     	GT_OBJ, 	prc_mtbl,  	VFSZ(prc_mtbl));
     guru_rom_add_class(GT_ERROR,"StandardError",GT_OBJ,     err_mtbl,   VFSZ(err_mtbl));
+    guru_rom_add_class(GT_PROC, "Proc",     	GT_OBJ, 	prc_mtbl,  	VFSZ(prc_mtbl));
 #if GURU_DEBUG
     guru_rom_add_class(GT_CLASS,"Sys", 			GT_OBJ, 	sys_mtbl,  	VFSZ(sys_mtbl));
 #endif

@@ -21,7 +21,7 @@
 #include "iter.h"
 
 #include "base.h"
-#include "class.h"		// proc_by_id
+#include "class.h"		// find_proc
 #include "state.h"
 #include "puts.h"		// guru_puts
 
@@ -53,7 +53,6 @@ _exec(guru_vm *vm, GR r[], S32 ri, GP prc)
     	r->oid = px->pid;								// parameter pid is passed as object id
     	_CALL(prc, r, ri);								// call C-based function
     	_wipe_stack(r+1, ri+1);
-    	r->acl &= ~(ACL_SCLASS|ACL_TCLASS);				// clear lexical scope
     }
     return 0;
 }
@@ -300,7 +299,8 @@ vm_method_exec(guru_vm *vm, GR r[], S32 ri, GS pid)
 #if CC_DEBUG
     PRINTF("!!!vm_method_exec(%p, %p, %d, %d)\n", vm, r, ri, pid);
 #endif // CC_DEBUG
-    GP prc = proc_by_id(r, pid);						// r->gt in [GT_OBJ, GT_CLASS]
+	GP cls = find_class_by_obj(r);						// determine class
+    GP prc = find_proc(cls, pid);						// r->gt in [GT_OBJ, GT_CLASS]
 
     if (prc==0) {										// not found, try VM functions
     	return _method_missing(vm, r, ri, pid);

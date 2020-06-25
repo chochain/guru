@@ -62,15 +62,15 @@ typedef struct RProc {		// 32-byte
 
 __GURU__ GP 	guru_define_class(guru_class *cx, GS cid, GP super);
 __GURU__ GP		guru_class_include(GP super, GP mod);
-__GURU__ GP 	guru_class_add_meta(GR *r);				// add metaclass to a class
-__GURU__ GP		guru_object_add_meta(GR *r);			// add metaclass to an object
+__GURU__ GP 	guru_add_metaclass(GR *r);				// add metaclass to a class or an object
 
 // common class functions
 __GURU__ GR 	inspect(GR *v, GR *obj);				// inspect obj using v[] as stack
 __GURU__ GR 	kind_of(GR *v);							// whether v1 is a kind of v0
-__GURU__ GP		class_by_obj(GR *v);
-__GURU__ GP		class_by_id(GS cid);
-__GURU__ GP  	proc_by_id(GR *v, GS pid);
+__GURU__ GP		lex_scope(GR *v);
+__GURU__ GP		find_class_by_obj(GR *v);
+__GURU__ GP		find_class_by_id(GS cid);
+__GURU__ GP  	find_proc(GP cls, GS pid);
 
 #ifdef __cplusplus
 };
@@ -96,9 +96,9 @@ public:
 	// common class functions
 	__GURU__ GR	inspect(GR *v, GR *obj);				// inspect obj using v[] as stack
 	__GURU__ GR	kind_of(GR *v);							// whether v1 is a kind of v0
-	__GURU__ GP	class_by_obj(GR *v);
-	__GURU__ GP class_by_id(GS cid);
-	__GURU__ GP	proc_by_id(GR *v, GS pid);
+	__GURU__ GP	find_class_by_obj(GR *v);
+	__GURU__ GP find_class_by_id(GS cid);
+	__GURU__ GP	find_proc(GP cls, GS pid);
 	__GURU__ GR send(GR r[], GR *rcv, const U8 *method, U32 argc, ...);
 };
 #define CLS_MGR		(ClassMgr::getInstance())
