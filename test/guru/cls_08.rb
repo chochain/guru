@@ -1,24 +1,24 @@
 # module with new method
 #
-module X
-    def x
+module M
+    def f
         1
     end
 end
 
 class Y
-    include X
+    include M
 end
 
 y = Y.new
-p y.x
+p y.f
 
-module X
-    def x2
+module M
+    def f2
         2
     end
 end
 
-p y.x2
+p y.f2
 
 

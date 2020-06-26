@@ -21,7 +21,7 @@
 #include "iter.h"
 
 #include "base.h"
-#include "class.h"		// find_proc
+#include "class.h"		// find_class_by_obj, find_proc
 #include "state.h"
 #include "puts.h"		// guru_puts
 
@@ -299,7 +299,7 @@ vm_method_exec(guru_vm *vm, GR r[], S32 ri, GS pid)
 #if CC_DEBUG
     PRINTF("!!!vm_method_exec(%p, %p, %d, %d)\n", vm, r, ri, pid);
 #endif // CC_DEBUG
-	GP cls = find_class_by_obj(r);						// determine class
+	GP cls = find_class_by_obj(r);						// determine active class
     GP prc = find_proc(cls, pid);						// r->gt in [GT_OBJ, GT_CLASS]
 
     if (prc==0) {										// not found, try VM functions

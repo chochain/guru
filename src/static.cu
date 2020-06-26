@@ -117,7 +117,7 @@ guru_rom_add_class(GT cidx, const char *name, GT super_cidx, const Vfunc mtbl[],
 	GP scls  = super_cidx ? guru_rom_get_class(super_cidx) : 0;	// 0: Object (root) class
     GP cls   = guru_define_class(cx, cid, scls);
 
-    cx->kt  |= BUILTIN_CLASS;
+    cx->kt  |= CLASS_BUILTIN;
     cx->rc   = n;										// number of built-in functions
     cx->mtbl = n ? MEMOFF(px) : 0;						// built-in proc starting index
 

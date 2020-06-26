@@ -33,10 +33,12 @@ typedef struct RClass {			// 32-byte
     GP				flist;		// (RProc*) head of guru_proc linked list
 } guru_class;
 
-#define BUILTIN_CLASS	0x1
-#define USER_META_CLASS	0x2
-#define IS_BUILTIN(cx)		(cx->kt & BUILTIN_CLASS)
-#define IS_META(cx)			(cx->kt & USER_META_CLASS)
+#define CLASS_BUILTIN	0x1
+#define CLASS_SINGLETON 0x2
+#define CLASS_META		0x4
+#define IS_BUILTIN(cx)		(cx->kt & CLASS_BUILTIN)
+#define IS_SINGLETON(cx)	(cx->kt & CLASS_SINGLETON)
+#define IS_META(cx)			(cx->kt & CLASS_META)
 
 //================================================================
 /*! Define instance data handle.
