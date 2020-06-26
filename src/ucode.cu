@@ -289,7 +289,6 @@ uc_getconst(guru_vm *vm)
     	while (cls) {
     		ret = *const_get(cls, cid);			// search constant cache with class key
     		if (ret.gt!=GT_NIL) break;
-
     		cls = _CLS(cls)->super;
     	}
     	vm->err = (ret.gt==GT_NIL);
@@ -567,6 +566,7 @@ uc_send(guru_vm *vm)
     	GR buf  = guru_str_buf(GURU_STRBUF_SIZE);	// put error message on return stack
     	*(r+1)  = *_undef(&buf, r, xid);			// TODO: exception class
     }
+    r->acl &= ~(ACL_TCLASS|ACL_SCLASS);
 }
 
 //================================================================
@@ -1193,7 +1193,6 @@ uc_class(guru_vm *vm)
     	cls = guru_define_class(NULL, cid, super);
     }
     _RA_T(GT_CLASS, off=cls);
-    _R(a)->acl |= ACL_TCLASS;
 	*r1 = EMPTY;
 }
 
@@ -1251,7 +1250,8 @@ uc_method(guru_vm *vm)
 #if CC_DEBUG
     PRINTF("!!!uc_method %s:%p->%d\n", _RAW(px->pid), px, px->pid);
 #endif // CC_DEBUG
-    *(r+1) = EMPTY;								// clean up proc
+    r->acl &= ~(ACL_TCLASS|ACL_SCLASS);
+    *(r+1)  = EMPTY;							// clean up proc
 }
 
 //================================================================
@@ -1282,7 +1282,7 @@ uc_sclass(guru_vm *vm)
 {
 	GR *r = _R(b);
 
-	guru_add_metaclass(r);							// add metaclass to an object or a class
+	guru_add_metaclass(r);							// add metaclass to an object or a class if not exist
 
 	r->acl |= ACL_SCLASS;							// mark lexical scope as singleton (possibly on top of TCLASS)
 //	_RA_X(r);										// TODO: R(A) is always the same as R(B)
