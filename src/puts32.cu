@@ -108,7 +108,7 @@ _print(GR *r)
 {
 	U32 cr = 1;
 
-    switch (r->gt){		// somehow, Ruby handled the following differently
+	switch (r->gt){		// somehow, Ruby handled the following differently
     case GT_NIL: 		/* print blank */   break;
     case GT_SYM: PRINTF(":%s", _RAW(r->i));	break;
     case GT_STR: {

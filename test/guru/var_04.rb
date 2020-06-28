@@ -16,11 +16,11 @@ class MyClass
 end
 
 x = MyClass.new
-puts x.get_iv
-puts x.iv
+p x.get_iv
+p x.iv
 x.iv = [ 1, 2 ]
-puts x.get_iv
-puts x.iv
-puts x.get_ix
-puts (x.ix rescue "err")
+p x.get_iv
+p x.iv
+p x.get_ix
+p (x.ix rescue "err")
     

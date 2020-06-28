@@ -35,7 +35,6 @@ guru_rom_init()
 	rom->str = MEMOFF(guru_alloc(sizeof(U8)        *MAX_ROM_STRBUF));
 
 	_CLS(guru_rom_get_class(GT_EMPTY))->cid = 0xffff;		// make sure it will not be used
-	_CLS(guru_rom_get_class(GT_CLASS))->cid = 0xffff;
 
 	return !(rom->cls && rom->prc && rom->sym && rom->str);
 }
@@ -110,7 +109,6 @@ guru_rom_add_class(GT cidx, const char *name, GT super_cidx, const Vfunc mtbl[],
     ASSERT((_rom->nprc + n) < MAX_ROM_PROC);			// size checking
 #endif // GURU_DEBUG
 
-
     guru_proc  *px = _PRC(_rom->prc) + _rom->nprc;
 	guru_class *cx = _CLS(_rom->cls) + cidx;			// offset from _rom->cls
 	GP cid   = guru_rom_add_sym(name);
@@ -119,6 +117,7 @@ guru_rom_add_class(GT cidx, const char *name, GT super_cidx, const Vfunc mtbl[],
 
     cx->kt  |= CLASS_BUILTIN;
     cx->rc   = n;										// number of built-in functions
+    cx->meta = cls;										// TODO: for now, BUILTIN classes uses itself as metaclass to save one block
     cx->mtbl = n ? MEMOFF(px) : 0;						// built-in proc starting index
 
     Vfunc *fp = (Vfunc*)mtbl;							// TODO: nvcc allocates very sparsely for String literals

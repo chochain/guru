@@ -17,10 +17,10 @@ c  = MyClass.init
 x  = MyClass.new
 
 puts c.to_s
-puts x.i
-puts x.a
+p x.i
+p x.a
     
-puts MyClass.a
-puts MyClass.h
-puts (x.h rescue 'Err xh')
-puts (MyClass.i rescue 'Err mi')
+p MyClass.a
+p MyClass.h
+p (x.h rescue 'Err xh')
+p (MyClass.i rescue 'Err mi')

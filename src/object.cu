@@ -193,7 +193,7 @@ __CFUNC__
 obj_attr_reader(GR r[], S32 ri)
 {
 	ASSERT(r->gt==GT_CLASS);
-	GP cls = lex_scope(r);											// fetch lexical scope
+	GP cls = find_class_by_obj(r);
 	GR *s  = r+1;
     for (int i = 0; i < ri; i++, s++) {
         ASSERT(s->gt==GT_SYM);
@@ -212,7 +212,7 @@ obj_attr_accessor(GR r[], S32 ri)
 {
 	ASSERT(r->gt==GT_CLASS);
 
-	GP cls = lex_scope(r);											// fetch lexical scope
+	GP cls = find_class_by_obj(r);
 #if CC_DEBUG
 	guru_class *cx = _CLS(cls);
     printf("%p:%s, sc=%d self=%d #attr_accessor\n", cx, _RAW(cx->cid), IS_SCLASS(r), IS_TCLASS(r));
@@ -410,12 +410,11 @@ __GURU__ __const__ Vfunc err_mtbl[] = {
 	{ "inspect", 	err_to_s	}
 };
 
-#if GURU_DEBUG
 //================================================================
 /*! System class (guru only, i.e. non-Ruby)
  */
 __CFUNC__
-sys_mstat(GR r[], S32 ri)
+cls_mstat(GR r[], S32 ri)
 {
 	GR  si; { si.gt=GT_INT; si.acl=0; }
 	GR  ret = guru_array_new(8);
@@ -428,18 +427,17 @@ sys_mstat(GR r[], S32 ri)
 	*r = ret;
 }
 
-__GURU__ __const__ Vfunc sys_mtbl[] = {
-	{ "mstat", 		sys_mstat	}
+__GURU__ __const__ Vfunc cls_mtbl[] = {
+	{ "mstat", 		cls_mstat	}
 };
 
-#endif // GURU_DEBUG
 //================================================================
 // initialize
 // TODO: move into ROM
 __GURU__ void
 _install_all_class(void)
 {
-    guru_rom_add_class(GT_OBJ,	"Object", 		GT_EMPTY, 	obj_mtbl, 	VFSZ(obj_mtbl));
+    guru_rom_add_class(GT_OBJ,	"Object", 		(GT)0, 		obj_mtbl, 	VFSZ(obj_mtbl));
 
     guru_rom_add_class(GT_NIL, 	"NilClass", 	GT_OBJ, 	nil_mtbl,  	VFSZ(nil_mtbl));
     guru_rom_add_class(GT_FALSE,"FalseClass", 	GT_OBJ, 	false_mtbl,	VFSZ(false_mtbl));
@@ -447,9 +445,7 @@ _install_all_class(void)
     guru_rom_add_class(GT_SYM,  "Symbol", 		GT_OBJ, 	sym_mtbl, 	VFSZ(sym_mtbl));
     guru_rom_add_class(GT_ERROR,"StandardError",GT_OBJ,     err_mtbl,   VFSZ(err_mtbl));
     guru_rom_add_class(GT_PROC, "Proc",     	GT_OBJ, 	prc_mtbl,  	VFSZ(prc_mtbl));
-#if GURU_DEBUG
-    guru_rom_add_class(GT_CLASS,"Sys", 			GT_OBJ, 	sys_mtbl,  	VFSZ(sys_mtbl));
-#endif
+    guru_rom_add_class(GT_CLASS,"Class", 		GT_OBJ, 	cls_mtbl,  	VFSZ(cls_mtbl));
 
     guru_register_func(GT_OBJ, NULL, guru_obj_del, NULL);
 

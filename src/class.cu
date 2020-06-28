@@ -45,8 +45,7 @@ _send(GR r[], GR *rcv, const char *method, U32 argc, ...)
 {
     GR *regs = r + 2;	     			// allocate 2 for stack
     GS pid   = name2id((U8*)method);	// symbol lookup
-    GP cls   = find_class_by_obj(r);
-    GP prc   = find_proc(cls, pid);		// find method for receiver object
+    GP prc   = find_proc(r, pid);		// find method for receiver object
 
     ASSERT(prc);
 
@@ -97,43 +96,37 @@ find_class_by_id(GS cid)
 
 //================================================================
 /*!@brief
-  find class by object
+  determine lexical scope
 
-  @param  vm
   @param  obj
   @return pointer to guru_class
 */
 __GURU__ GP
 lex_scope(GR *r)
 {
-	GP cls;
 	switch (r->gt) {
-	case GT_OBJ: 	cls = GR_OBJ(r)->cls;									break;
-    case GT_CLASS:  cls = IS_SCLASS(r) ? GR_CLS(r)->meta : GR_CLS(r)->ctbl;	break;
-    default: 		cls = guru_rom_get_class(r->gt);
-    }
-	return cls;
+	case GT_OBJ: 	return GR_OBJ(r)->cls;
+	case GT_CLASS:  return IS_TCLASS(r) ? r->off : GR_CLS(r)->meta;
+	default: return guru_rom_get_class(r->gt);
+	}
 }
 
+//================================================================
+/*!@brief
+  find class by object
+
+  @param  obj
+  @return pointer to guru_class
+*/
 __GURU__ GP
 find_class_by_obj(GR *r)
 {
-	GP ret;
-	switch (r->gt) {
-	case GT_OBJ: ret = GR_OBJ(r)->cls;	break;
-	case GT_CLASS: {
-		guru_class *cx = GR_CLS(r);
-		GP meta = cx->meta ? cx->meta : guru_rom_get_class(GT_OBJ);
-		GP cls  = GR_CLS(r)->ctbl;
-		ret = IS_BUILTIN(cx)
-			? cls
-			: IS_SCLASS(r)
-			    ? meta
-				: (IS_TCLASS(r) ? cls : meta);
-	} break;
-	default: ret = guru_rom_get_class(r->gt);
-	}
-	return ret;
+	GP cls = (r->gt==GT_CLASS && IS_SCLASS(r)) ? GR_CLS(r)->meta : lex_scope(r);
+	return cls;
+
+	guru_class *cx = _CLS(cls ? cls : guru_rom_get_class(GT_OBJ));
+
+	return IS_META(cx) ? cx->cls : cls;
 }
 
 //================================================================
@@ -196,15 +189,13 @@ __scan_flist(guru_class *cx, GS pid)
 #endif // CUDA_ENABLE_CDP
 
 __GURU__ GP
-find_proc(GP cls, GS pid)
+find_proc(GR *r, GS pid)
 {
-	GP prc = 0;
+	GP  cls = find_class_by_obj(r);					// determine active class
+	GP 	prc = 0;
 	while (cls) {
     	guru_class *cx = _CLS(cls);
-    	if (IS_META(cx)) {
-    		cx = _CLS(cx->ctbl);
-    	}
-    	prc = __scan_flist(cx, pid);		// TODO: combine flist into mtbl[]
+    	prc = __scan_flist(_CLS(cx->cls), pid);	// TODO: combine flist into mtbl[]
     	if (prc) break;
 
 #if CUDA_ENABLE_CDP
@@ -219,7 +210,7 @@ find_proc(GP cls, GS pid)
         }
         */
 #else
-    	prc = __scan_mtbl(cx, pid);			// search for C-functions
+    	prc = __scan_mtbl(_CLS(cx->cls), pid);		// search for C-functions
     	if (prc) break;
 #endif // CUDA_ENABLE_CDP
 
@@ -250,7 +241,7 @@ guru_define_class(guru_class *cx, GS cid, GP super)		// fill the ROM class stora
 	cx->kt     = 0;								// default to user defined (i.e. non-builtin) class
     cx->cid    = cid;							// class name symbol id
     cx->ivar   = 0;								// class variables, lazily allocated when needed
-    cx->ctbl   = MEMOFF(cx);					// keep class id for constant lookup
+    cx->cls    = MEMOFF(cx);					// keep class id for constant lookup
     cx->meta   = 0;								// meta-class, lazily allocated when needed
     cx->super  = super;
     cx->mtbl   = 0;
@@ -271,16 +262,16 @@ guru_class_include(GP cls, GP mod)
 {
 	GP OBJ = guru_rom_get_class(GT_OBJ);
 
-	guru_class *cx  = _CLS(cls);
-	guru_class *mcx = _CLS(mod);
-	if (mcx->super != OBJ) {								// at the top of the class hierarchy?
-		guru_class_include(cls, mcx->super);				// climb up recursively
+	guru_class *cx = _CLS(cls);
+	guru_class *mx = _CLS(mod);
+	if (mx->super != OBJ) {									// at the top of the class hierarchy?
+		guru_class_include(cls, mx->super);					// climb up recursively
 	}
+	// inherit from root and cascade down the tree
 	guru_class *dup = (guru_class*)guru_alloc(sizeof(guru_class));
-	MEMCPY(dup, mcx, sizeof(guru_class));					// deep copy so mtbl can be modified later
+	MEMCPY(dup, mx, sizeof(guru_class));					// deep copy so mtbl can be modified later
 
-	dup->kt    |= CLASS_META;
-	dup->super  = cx->super;								// insert module between parent and current class
+	dup->super = cx->super;									// insert module between parent and current class
 
 	return cx->super = MEMOFF(dup);
 }
@@ -302,13 +293,13 @@ _cls_meta(GR *r)									// lazy add metaclass to a class
 	GP scls = scx->meta ? scx->meta : guru_rom_get_class(GT_OBJ);
 	GP mcls = guru_define_class(mcx, cx->cid, scls);
 
-	mcx->kt   |= CLASS_META;
+//	mcx->kt = CLASS_META;
 	if ((r+1)->gt == GT_CLASS) {					// extend module
-		mcx->ctbl = (r+1)->off;						// point to the module
+		mcx->cls = (r+1)->off;						// point to the original module, instead of the dup
 	}
-	else {											// metaclass
-		mcx->meta = r->off;							// pointing backward
-	}
+//	else {
+//		mcx->meta = r->off;							// double pointers, back to calling class
+//	}
 	return cx->meta = mcls;							// self pointing =~ metaclass
 }
 
@@ -319,7 +310,7 @@ _cls_meta(GR *r)									// lazy add metaclass to a class
   @param  r			pointer to object variable
 */
 __GURU__ GP
-_obj_single(GR *r)
+_obj_meta(GR *r)
 {
 	guru_obj   *obj = GR_OBJ(r);
 	GP         cls  = obj->cls;
@@ -336,7 +327,7 @@ __GURU__ GP
 guru_add_metaclass(GR *r)
 {
 	GP cls = r->gt==GT_OBJ
-		? _obj_single(r)							// singleton class of an object
+		? _obj_meta(r)								// singleton class of an object
 		: (r->gt==GT_CLASS ? _cls_meta(r) : 0);		// extending a class
 
 	return cls;

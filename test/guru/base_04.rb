@@ -1,13 +1,15 @@
 # Array simple
     
 a = Array.new(4,100)
-puts a.size
+p a.size
+p a
 puts a
 a[1]=1
 a[2]=3
 a[3]=4
 a[4]=5
 a[6]=6
+p a
 puts a
 
 # Show elements from two arrays

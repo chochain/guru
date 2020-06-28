@@ -1,4 +1,5 @@
 # Module constant
+A = 456
 
 module M
     A = 123
@@ -15,7 +16,7 @@ end
 
 class Y
     extend M                # add f1,f2 as class methods
-    p (A rescue 'err Y::A') # constant is not extended
+    p A                     # constant is not extended, use outer scope
     p a                     # 'a' become a class method
 end
 
