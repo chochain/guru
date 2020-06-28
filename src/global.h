@@ -18,8 +18,8 @@
 extern "C" {
 #endif
 
-__GURU__ void 	global_set(GS xid, GR *r);
-__GURU__ GR 	*global_get(GS xid);
+__GURU__ void 	gv_set(GS xid, GR *r);
+__GURU__ GR 	*gv_get(GS xid);
 
 __GURU__ void 	const_set(GP key, GS xid,  GR *r);
 __GURU__ GR 	*const_get(GP key, GS xid);

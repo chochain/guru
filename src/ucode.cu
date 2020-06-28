@@ -25,7 +25,7 @@
 #include "c_range.h"
 
 #include "inspect.h"
-#include "state.h"
+#include "state.h"		// find_class_by_obj
 #include "ucode.h"
 
 #define _LOCK		{ MUTEX_LOCK(_mutex_uc); }
@@ -169,11 +169,11 @@ uc_loadf(guru_vm *vm)
   R(A) := getglobal(Syms(Bx))
 */
 __UCODE__
-uc_getglobal(guru_vm *vm)
+uc_getgv(guru_vm *vm)
 {
     GS sid = VM_SYM(vm, vm->bx);
 
-    GR *r = global_get(sid);
+    GR *r = gv_get(sid);
 
     _RA(*r);
 }
@@ -185,11 +185,11 @@ uc_getglobal(guru_vm *vm)
   setglobal(Syms(Bx), R(A))
 */
 __UCODE__
-uc_setglobal(guru_vm *vm)
+uc_setgv(guru_vm *vm)
 {
     GS sid = VM_SYM(vm, vm->bx);
 
-    global_set(sid, _R(a));
+    gv_set(sid, _R(a));
 }
 
 //================================================================
@@ -276,23 +276,31 @@ uc_setcv(guru_vm *vm)
 
   R(A) := constget(Syms(Bx))
 */
+__GURU__ U32
+_scan_class(guru_vm *vm, GS cid)				// In Ruby, class is a constant, too
+{
+    GP cls = find_class_by_id(cid);				// search class rom first
+    GR ret = { GT_CLASS, 0, 0, { cls } };
+
+    return cls ? (_RA(ret), 1) : 0;
+}
+
 __UCODE__
 uc_getconst(guru_vm *vm)
 {
-    GS cid = VM_SYM(vm, vm->bx);				// In Ruby, class is a constant, too
-    GP cls = find_class_by_id(cid);				// search class rom first
-    GR ret = { GT_CLASS, 0, 0, { cls } };
-    if (!cls) {									// not a class, search into constant cache
-    	GR *r0 = _R0;
-    	cls    = lex_scope(r0);
-    	ret    = NIL;
-    	while (cls) {
-    		ret = *const_get(cls, cid);			// search constant cache with class key
-    		if (ret.gt!=GT_NIL) break;
-    		cls = _CLS(cls)->super;
-    	}
-    	vm->err = (ret.gt==GT_NIL);
+    GS cid = VM_SYM(vm, vm->bx);
+	if (_scan_class(vm, cid)) return;			// see whether it's a class
+
+    GR *r0 = _R0;
+    GP cls = lex_scope(r0);
+    GR ret = NIL;
+    while (cls) {
+    	guru_class *cx = _CLS(cls);
+    	ret = *const_get(cx->cls, cid);			// search constant cache with class key
+    	if (ret.gt!=GT_NIL) break;
+    	cls = cx->super;
     }
+    vm->err = (ret.gt==GT_NIL);
    _RA(ret);
 }
 
@@ -324,14 +332,16 @@ uc_setconst(guru_vm *vm)
 __UCODE__
 uc_getmcnst(guru_vm *vm)
 {
-    GS sid = VM_SYM(vm, vm->bx);				// In Ruby, class is a constant, too
-    GR *ra = _R(a);
-	GP cls = lex_scope(ra);
+    GS cid = VM_SYM(vm, vm->bx);
+	if (_scan_class(vm, cid)) return;			// see whether it is a class
+
+	GP cls = lex_scope(_R(a));
 	GR ret = NIL;
     while (cls) {
-    	ret = *const_get(cls, sid);
+    	guru_class *cx = _CLS(cls);
+    	ret = *const_get(cx->cls, cid);
         if (ret.gt!=GT_NIL) break;
-    	cls = _CLS(cls)->super;
+    	cls = cx->super;
     }
     vm->err = (ret.gt==GT_NIL);
     _RA(ret);
@@ -545,7 +555,8 @@ _undef(GR *buf, GR *r, GS pid)
 	return buf;
 }
 
-//================================================================
+//================================================================	_R0->acl |= ACL_TCLASS;
+
 /*!@brief
   OP_SEND / OP_SENDB
 
@@ -566,7 +577,6 @@ uc_send(guru_vm *vm)
     	GR buf  = guru_str_buf(GURU_STRBUF_SIZE);	// put error message on return stack
     	*(r+1)  = *_undef(&buf, r, xid);			// TODO: exception class
     }
-    r->acl &= ~(ACL_TCLASS|ACL_SCLASS);
 }
 
 //================================================================
@@ -1162,9 +1172,8 @@ __UCODE__
 uc_lambda(guru_vm *vm)
 {
 	GR *obj = _R(a) - 1;
-	GP cls  = lex_scope(obj);							// use current class for lexical scope
+	GP cls  = find_class_by_obj(obj);					// use current class for lexical scope
 	GP irep = MEMOFF(VM_REPS(vm, vm->bz));				// fetch from children irep list
-
 	GP prc  = guru_define_method(cls, NULL, irep);		// create proc with no name, pid will be filled by OP_METHOD
 
 	guru_proc *px = _PRC(prc);
@@ -1176,7 +1185,22 @@ uc_lambda(guru_vm *vm)
 
 //================================================================
 /*!@brief
-  OP_CLASS, OP_MODULE
+  OP_OCLASS
+
+  R(A) := ::Object
+*/
+__UCODE__
+uc_oclass(guru_vm *vm)
+{
+	GP cls = guru_rom_get_class(GT_OBJ);
+	GR ret { GT_CLASS, 0, 0, cls };
+
+    _RA(ret);
+}
+
+//================================================================
+/*!@brief
+  OP_CLASS
 
   R(A) := newclass(R(A),Syms(B),R(A+1))
   Syms(B): class name
@@ -1223,8 +1247,10 @@ uc_exec(guru_vm *vm)
 {
 	ASSERT(_R0->gt == GT_CLASS);				// check
 	GP irep = MEMOFF(VM_REPS(vm, vm->bx));		// child IREP[rb]
+	GR *ra  = _R(a);
+	ra->acl |= ACL_TCLASS;						// default ACL state
 
-    vm_state_push(vm, irep, 0, _R(a), 0);		// push call stack
+    vm_state_push(vm, irep, 0, ra, 0);			// push call stack
 }
 
 //================================================================
@@ -1250,7 +1276,6 @@ uc_method(guru_vm *vm)
 #if CC_DEBUG
     PRINTF("!!!uc_method %s:%p->%d\n", _RAW(px->pid), px, px->pid);
 #endif // CC_DEBUG
-    r->acl &= ~(ACL_TCLASS|ACL_SCLASS);
     *(r+1)  = EMPTY;							// clean up proc
 }
 
@@ -1267,7 +1292,8 @@ uc_tclass(guru_vm *vm)
 	GP cls = VM_STATE(vm)->klass;
 
 	_RA_T(GT_CLASS, off=cls);
-	ra->acl &= ~ACL_SCLASS;							// switch lexical scope to class
+
+	ra->acl &= ACL_SCLASS;							// switch lexical scope back to class
 	ra->acl |= ACL_TCLASS;
 }
 
@@ -1284,8 +1310,8 @@ uc_sclass(guru_vm *vm)
 
 	guru_add_metaclass(r);							// add metaclass to an object or a class if not exist
 
+	//	_RA_X(r);									// TODO: R(A) is always the same as R(B)
 	r->acl |= ACL_SCLASS;							// mark lexical scope as singleton (possibly on top of TCLASS)
-//	_RA_X(r);										// TODO: R(A) is always the same as R(B)
 }
 
 //================================================================
@@ -1352,8 +1378,8 @@ ucode_step(guru_vm *vm)
     case OP_LOADT:      uc_loadt     (vm); break;
     case OP_LOADF:      uc_loadf     (vm); break;
 // VARIABLES
-    case OP_GETGLOBAL:  uc_getglobal (vm); break;
-    case OP_SETGLOBAL:  uc_setglobal (vm); break;
+    case OP_GETGV:      uc_getgv     (vm); break;
+    case OP_SETGV:      uc_setgv     (vm); break;
     case OP_GETIV:      uc_getiv     (vm); break;
     case OP_SETIV:      uc_setiv     (vm); break;
     case OP_GETCV:		uc_getcv	 (vm); break;
@@ -1404,6 +1430,7 @@ ucode_step(guru_vm *vm)
     case OP_RANGE:      uc_range     (vm); break;
 // CLASS, PROC (STACK ops)
     case OP_LAMBDA:     uc_lambda    (vm); break;
+    case OP_OCLASS:		uc_oclass 	 (vm); break;
     case OP_CLASS:
     case OP_MODULE:	    uc_class	 (vm); break;
     case OP_EXEC:       uc_exec      (vm); break;
@@ -1431,10 +1458,10 @@ ucode_step(guru_vm *vm)
 			uc_loadt,		//    OP_LOADT      A       R(A) := true
 			uc_loadf,		//    OP_LOADF      A       R(A) := false
 	// 0x9 Load/Store
-			uc_getglobal,	//    OP_GETGLOBAL  A Bx    R(A) := getglobal(Syms(Bx))
-			uc_setglobal,	//    OP_SETGLOBAL  A Bx    setglobal(Syms(Bx), R(A))
-			NULL,			//    OP_GETSPECIAL A Bx    R(A) := Special[Bx]
-			NULL,			//    OP_SETSPECIAL	A Bx    Special[Bx] := R(A)
+			uc_getgv,		//    OP_GETGV      A Bx    R(A) := getglobal(Syms(Bx))
+			uc_setgv,		//    OP_SETGV      A Bx    setglobal(Syms(Bx), R(A))
+			NULL,			//    OP_GETSV      A Bx    R(A) := Special[Bx]
+			NULL,			//    OP_SETSV   	A Bx    Special[Bx] := R(A)
 			uc_getiv,		//    OP_GETIV      A Bx    R(A) := ivget(Syms(Bx))
 			uc_setiv,		//    OP_SETIV      A Bx    ivset(Syms(Bx),R(A))
 			uc_getcv,		//    OP_GETCV      A Bx    R(A) := cvget(Syms(Bx))
@@ -1495,7 +1522,7 @@ ucode_step(guru_vm *vm)
 			uc_lambda,		//    OP_LAMBDA,    A Bz Cz R(A) := lambda(SEQ[Bz],Cz)
 			uc_range,		//    OP_RANGE,     A B C   R(A) := range_new(R(B),R(B+1),C)
 	// 0x42 Class
-			NULL,			//    OP_OCLASS,    A       R(A) := ::Object
+			uc_oclass,		//    OP_OCLASS,    A       R(A) := ::Object
 			uc_class,		//    OP_CLASS,     A B     R(A) := newclass(R(A),Syms(B),R(A+1))
 			uc_module,		//    OP_MODULE,    A B     R(A) := newmoducule(R(A),Syms(B))
 			uc_exec,		//    OP_EXEC,      A Bx    R(A) := blockexec(R(A),SEQ[Bx])

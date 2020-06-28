@@ -220,11 +220,11 @@ class Ucode::Impl
   	  R(A) := getglobal(Syms(Bx))
      */
     __UCODE__
-    getglobal()
+    getgv()
     {
         GS sid = VM_SYM(_vm, _vm->bx);
 
-        GR *r = global_get(sid);
+        GR *r = gv_get(sid);
 
         _RA(*r);
     }
@@ -235,7 +235,7 @@ class Ucode::Impl
   	  setglobal(Syms(Bx), R(A))
      */
     __UCODE__
-    setglobal()
+    setgv()
     {
         GS sid = VM_SYM(_vm, _vm->bx);
 
@@ -1206,10 +1206,10 @@ class Ucode::Impl
             &Impl::loadt,			//    OP_LOADT      A       R(A) := true
             &Impl::loadf,			//    OP_LOADF      A       R(A) := false
             // 0x9 Load/Store
-            &Impl::getglobal,		//    OP_GETGLOBAL  A Bx    R(A) := getglobal(Syms(Bx))
-            &Impl::setglobal,		//    OP_SETGLOBAL  A Bx    setglobal(Syms(Bx), R(A))
-            &Impl::nop,				//    OP_GETSPECIAL A Bx    R(A) := Special[Bx]
-            &Impl::nop,				//    OP_SETSPECIAL	A Bx    Special[Bx] := R(A)
+            &Impl::getgv,			//    OP_GETGV  	A Bx    R(A) := getglobal(Syms(Bx))
+            &Impl::setgv,			//    OP_SETGV  	A Bx    setglobal(Syms(Bx), R(A))
+            &Impl::nop,				//    OP_GETSV 		A Bx    R(A) := Special[Bx]
+            &Impl::nop,				//    OP_SETSV		A Bx    Special[Bx] := R(A)
             &Impl::getiv,			//    OP_GETIV      A Bx    R(A) := ivget(Syms(Bx))
             &Impl::setiv,			//    OP_SETIV      A Bx    ivset(Syms(Bx),R(A))
             &Impl::getcv,			//    OP_GETCV      A Bx    R(A) := cvget(Syms(Bx))
@@ -1269,9 +1269,9 @@ class Ucode::Impl
             &Impl::lambda,			//    OP_LAMBDA,    A Bz Cz R(A) := lambda(SEQ[Bz],Cz)
             &Impl::range,			//    OP_RANGE,     A B C   R(A) := range_new(R(B),R(B+1),C)
             // 0x42 Class
-            &Impl::nop,				//    OP_OCLASS,    A       R(A) := ::Object
+            &Impl::oclass,			//    OP_OCLASS,    A       R(A) := ::Object
             &Impl::class_,			//    OP_CLASS,     A B     R(A) := newclass(R(A),Syms(B),R(A+1))
-            &Impl::class_,			//    OP_MODULE,    A B     R(A) := newmodule(R(A),Syms(B))
+            &Impl::module_,			//    OP_MODULE,    A B     R(A) := newmodule(R(A),Syms(B))
             &Impl::exec,			//    OP_EXEC,      A Bx    R(A) := blockexec(R(A),SEQ[Bx])
             &Impl::method,			//    OP_METHOD,    A B     R(A).newmethod(Syms(B),R(A+1))
             &Impl::sclass,			//    OP_SCLASS,    A B     R(A) := R(B).singleton_class

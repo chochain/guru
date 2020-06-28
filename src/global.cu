@@ -105,14 +105,14 @@ _set(GP key, GS xid, GR *r)
 /* add */
 /* TODO: Check reference count */
 __GURU__ void
-global_set(GS xid, GR *r)
+gv_set(GS xid, GR *r)
 {
     _set(0, xid, r);
 }
 
 /* get */
 __GURU__ GR *
-global_get(GS xid)
+gv_get(GS xid)
 {
     return _get(0, xid);
 }

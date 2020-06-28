@@ -32,20 +32,20 @@ typedef void (*UCODE)(guru_vm *vm);				// microcode function prototype
 enum OPCODE {
 	// Inline Instructions
     OP_NOP      = 0,
-    OP_MOVE,     /*  A B     R(A) := R(B)                                    */
-    OP_LOADL,    /*  A Bx    R(A) := Pool(Bx)                                */
-    OP_LOADI,    /*  A sBx   R(A) := sBx                                     */
-    OP_LOADSYM,  /*  A Bx    R(A) := Syms(Bx)                                */
-    OP_LOADNIL,  /*  A       R(A) := nil                                     */
-    OP_LOADSELF, /*  A       R(A) := self                                    */
-    OP_LOADT,    /*  A       R(A) := true                                    */
-    OP_LOADF,    /*  A       R(A) := false                                   */
+    OP_MOVE,      /*  A B     R(A) := R(B)                                    */
+    OP_LOADL,     /*  A Bx    R(A) := Pool(Bx)                                */
+    OP_LOADI,     /*  A sBx   R(A) := sBx                                     */
+    OP_LOADSYM,   /*  A Bx    R(A) := Syms(Bx)                                */
+    OP_LOADNIL,   /*  A       R(A) := nil                                     */
+    OP_LOADSELF,  /*  A       R(A) := self                                    */
+    OP_LOADT,     /*  A       R(A) := true                                    */
+    OP_LOADF,     /*  A       R(A) := false                                   */
 
     // 0x09	Load/Store Instructions
-    OP_GETGLOBAL ,/* A Bx    R(A) := getglobal(Syms(Bx))                     */
-    OP_SETGLOBAL, /* A Bx    setglobal(Syms(Bx), R(A))                       */
-    OP_GETSPECIAL,/* A Bx    R(A) := Special[Bx]                             */
-    OP_SETSPECIAL,/* A Bx    Special[Bx] := R(A)                             */
+    OP_GETGV,     /* A Bx    R(A) := getglobal(Syms(Bx))                     */
+    OP_SETGV,     /* A Bx    setglobal(Syms(Bx), R(A))                       */
+    OP_GETSV,     /* A Bx    R(A) := Special[Bx]                             */
+    OP_SETSV,     /* A Bx    Special[Bx] := R(A)                             */
     OP_GETIV,     /* A Bx    R(A) := ivget(Syms(Bx))                         */
     OP_SETIV,     /* A Bx    ivset(Syms(Bx),R(A))                            */
     OP_GETCV,     /* A Bx    R(A) := cvget(Syms(Bx))                         */

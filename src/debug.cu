@@ -47,14 +47,14 @@ static const char *_errcode[] = {
 
 static const char *_opcode[] = {
     "NOP ",	"MOVE",	"LOADL","LOADI","LOADSYM","LOADNIL","LOADSLF","LOADT",
-    "LOADF","GETGBL","SETGBL","GETSPC","SETSPC","GETIV","SETIV","GETCV",
+    "LOADF","GETGV","SETGV","GETSV","SETSV","GETIV","SETIV","GETCV",
     "SETCV","GETCONS","SETCONS","GETMCST","SETMCST","GETUVAR","SETUVAR","JMP ",
     "JMPIF","JMPNOT","ONERR","RESCUE","POPERR","RAISE","EPUSH","EPOP",
     "SEND","SENDB","","CALL","","","ENTER","",
     "","RETURN","","BLKPUSH","ADD ","ADDI","SUB ","SUBI",
     "MUL ","DIV ","EQ  ","LT  ","LE  ","GT  ","GE  ","ARRAY",
     "ARYCAT","ARYPUSH","AREF","ASET","APOST","STRING","STRCAT","HASH",
-    "LAMBDA","RANGE","","CLASS","MODULE","EXEC","METHOD","SCLASS",
+    "LAMBDA","RANGE","OCLASS","CLASS","MODULE","EXEC","METHOD","SCLASS",
     "TCLASS","","STOP","","","","","",
     "ABORT"
 };
@@ -63,7 +63,7 @@ static const int _op_bru[] = {
 	OP_LOADNIL, OP_LOADSELF, OP_LOADT, OP_LOADF,
     OP_POPERR, OP_RAISE,
     OP_CALL, OP_RETURN, OP_BLKPUSH,
-    OP_LAMBDA, OP_TCLASS, OP_STOP
+    OP_OCLASS, OP_LAMBDA, OP_TCLASS, OP_STOP
 };
 #define SZ_BRU 	(sizeof(_op_bru)/sizeof(int))
 
@@ -81,7 +81,7 @@ static const int _op_jmp[] = {
 
 static const int _op_sym[] = {
 	OP_LOADSYM,
-	OP_GETGLOBAL, OP_SETGLOBAL,
+	OP_GETGV, OP_SETGV,
 	OP_GETCONST, OP_SETCONST,
 	OP_GETMCNST, OP_SETMCNST,
 	OP_GETIV, OP_SETIV, OP_SETCV, OP_GETCV
