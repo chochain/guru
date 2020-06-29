@@ -69,7 +69,6 @@ __GURU__ GP 	guru_add_metaclass(GR *r);				// add metaclass to a class or an obj
 // common class functions
 __GURU__ GR 	inspect(GR *v, GR *obj);				// inspect obj using v[] as stack
 __GURU__ GR 	kind_of(GR *v);							// whether v1 is a kind of v0
-__GURU__ GP		lex_scope(GR *v);
 __GURU__ GP		find_class_by_obj(GR *v);
 __GURU__ GP		find_class_by_id(GS cid);
 __GURU__ GP  	find_proc(GR *v, GS pid);

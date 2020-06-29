@@ -25,7 +25,7 @@
 #include "c_range.h"
 
 #include "inspect.h"
-#include "state.h"		// find_class_by_obj
+#include "state.h"
 #include "ucode.h"
 
 #define _LOCK		{ MUTEX_LOCK(_mutex_uc); }
@@ -33,7 +33,7 @@
 
 __GURU__ U32 _mutex_uc;
 //
-// becareful with the following macros, because they release regs[ra] first
+// be careful with the following macros, because they release regs[ra] first
 // so, make sure value is kept before the release
 //
 #define _R0             (_REGS(VM_STATE(vm)))
@@ -276,13 +276,19 @@ uc_setcv(guru_vm *vm)
 
   R(A) := constget(Syms(Bx))
 */
-__GURU__ U32
+__GURU__ __INLINE__ U32
 _scan_class(guru_vm *vm, GS cid)				// In Ruby, class is a constant, too
 {
     GP cls = find_class_by_id(cid);				// search class rom first
     GR ret = { GT_CLASS, 0, 0, { cls } };
 
     return cls ? (_RA(ret), 1) : 0;
+}
+
+__GURU__ __INLINE__ GP
+_const_scope(GR *r)
+{
+	return (r->gt==GT_CLASS) ? r->off : GR_OBJ(r)->cls;
 }
 
 __UCODE__
@@ -292,7 +298,7 @@ uc_getconst(guru_vm *vm)
 	if (_scan_class(vm, cid)) return;			// see whether it's a class
 
     GR *r0 = _R0;
-    GP cls = lex_scope(r0);
+    GP cls = _const_scope(r0);
     GR ret = NIL;
     while (cls) {
     	guru_class *cx = _CLS(cls);
@@ -316,7 +322,7 @@ uc_setconst(guru_vm *vm)
 	GS sid = VM_SYM(vm, vm->bx);
 	GR *ra = _R(a);
 	GR *r0 = _R0;
-	GP cls = lex_scope(r0);
+	GP cls = _const_scope(r0);
 
 	ra->acl &= ~ACL_HAS_REF;					// set it to constant
 
@@ -335,7 +341,7 @@ uc_getmcnst(guru_vm *vm)
     GS cid = VM_SYM(vm, vm->bx);
 	if (_scan_class(vm, cid)) return;			// see whether it is a class
 
-	GP cls = lex_scope(_R(a));
+	GP cls = _const_scope(_R(a));
 	GR ret = NIL;
     while (cls) {
     	guru_class *cx = _CLS(cls);
@@ -359,7 +365,7 @@ uc_setmcnst(guru_vm *vm)
 	GS sid = VM_SYM(vm, vm->bx);
 	GR *ra = _R(a);
 	GR *rm = ra + 1;
-	GP cls = lex_scope(rm);
+	GP cls = _const_scope(rm);
 
 	rm->acl &= ~ACL_HAS_REF;				// set it to constant
 
@@ -555,7 +561,7 @@ _undef(GR *buf, GR *r, GS pid)
 	return buf;
 }
 
-//================================================================	_R0->acl |= ACL_TCLASS;
+//================================================================
 
 /*!@brief
   OP_SEND / OP_SENDB

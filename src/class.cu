@@ -102,12 +102,12 @@ find_class_by_id(GS cid)
   @return pointer to guru_class
 */
 __GURU__ GP
-lex_scope(GR *r)
+_lex_scope(GR *r)
 {
 	switch (r->gt) {
 	case GT_OBJ: 	return GR_OBJ(r)->cls;
 	case GT_CLASS:  return IS_TCLASS(r) ? r->off : GR_CLS(r)->meta;
-	default: return guru_rom_get_class(r->gt);
+	default: return guru_rom_get_class(r->gt);			// BUILTIN metaclass by object type
 	}
 }
 
@@ -121,7 +121,7 @@ lex_scope(GR *r)
 __GURU__ GP
 find_class_by_obj(GR *r)
 {
-	GP cls = (r->gt==GT_CLASS && IS_SCLASS(r)) ? GR_CLS(r)->meta : lex_scope(r);
+	GP cls = (r->gt==GT_CLASS && IS_SCLASS(r)) ? GR_CLS(r)->meta : _lex_scope(r);
 	return cls;
 
 	guru_class *cx = _CLS(cls ? cls : guru_rom_get_class(GT_OBJ));
@@ -191,11 +191,14 @@ __scan_flist(guru_class *cx, GS pid)
 __GURU__ GP
 find_proc(GR *r, GS pid)
 {
-	GP  cls = find_class_by_obj(r);					// determine active class
+	GP  cls = _lex_scope(r);						// determine lexical scope
+//	GP  cls = find_class_by_obj(r);					// determine active class
+	//	GP  cls = (r->gt==GT_CLASS && IS_SCLASS(r)) ? GR_CLS(r)->meta : _lex_scope(r);
 	GP 	prc = 0;
 	while (cls) {
     	guru_class *cx = _CLS(cls);
-    	prc = __scan_flist(_CLS(cx->cls), pid);	// TODO: combine flist into mtbl[]
+    	guru_class *mx = (r->gt==GT_CLASS && IS_SCLASS(r)) ? _CLS(cx->meta) : _CLS(cx->cls);				// original module
+    	prc = __scan_flist(mx, pid);				// TODO: combine flist into mtbl[]
     	if (prc) break;
 
 #if CUDA_ENABLE_CDP
@@ -210,7 +213,7 @@ find_proc(GR *r, GS pid)
         }
         */
 #else
-    	prc = __scan_mtbl(_CLS(cx->cls), pid);		// search for C-functions
+    	prc = __scan_mtbl(mx, pid);					// search for C-functions
     	if (prc) break;
 #endif // CUDA_ENABLE_CDP
 
