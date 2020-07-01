@@ -106,8 +106,8 @@ _lex_scope(GR *r)
 {
 	switch (r->gt) {
 	case GT_OBJ: 	return GR_OBJ(r)->cls;
-	case GT_CLASS:  return IS_TCLASS(r) ? r->off : GR_CLS(r)->meta;
-	default: return guru_rom_get_class(r->gt);			// BUILTIN metaclass by object type
+	case GT_CLASS : return r->off;
+	default: 		return guru_rom_get_class(r->gt);			// BUILTIN metaclass by object type
 	}
 }
 
@@ -121,12 +121,11 @@ _lex_scope(GR *r)
 __GURU__ GP
 find_class_by_obj(GR *r)
 {
-	GP cls = (r->gt==GT_CLASS && IS_SCLASS(r)) ? GR_CLS(r)->meta : _lex_scope(r);
+	GP lex = _lex_scope(r);
+	GP cls = (r->gt==GT_CLASS && IS_SCLASS(r))
+				? (_CLS(lex)->meta ? _CLS(lex)->meta : guru_rom_get_class(GT_OBJ))
+				: _CLS(lex)->cls;
 	return cls;
-
-	guru_class *cx = _CLS(cls ? cls : guru_rom_get_class(GT_OBJ));
-
-	return IS_META(cx) ? cx->cls : cls;
 }
 
 //================================================================
@@ -191,13 +190,14 @@ __scan_flist(guru_class *cx, GS pid)
 __GURU__ GP
 find_proc(GR *r, GS pid)
 {
-	GP  cls = _lex_scope(r);						// determine lexical scope
-//	GP  cls = find_class_by_obj(r);					// determine active class
-	//	GP  cls = (r->gt==GT_CLASS && IS_SCLASS(r)) ? GR_CLS(r)->meta : _lex_scope(r);
+	U32 mta = r->gt==GT_CLASS && !IS_TCLASS(r);		// metaclass flag
+	GP  lex = _lex_scope(r);						// determine lexicial scope
 	GP 	prc = 0;
-	while (cls) {
-    	guru_class *cx = _CLS(cls);
-    	guru_class *mx = (r->gt==GT_CLASS && IS_SCLASS(r)) ? _CLS(cx->meta) : _CLS(cx->cls);				// original module
+	while (lex) {
+    	guru_class *cx = _CLS(lex);
+    	guru_class *mx = mta
+    			? _CLS(cx->meta ? cx->meta : guru_rom_get_class(GT_OBJ))
+    			: _CLS(cx->cls);					// redirect to source module
     	prc = __scan_flist(mx, pid);				// TODO: combine flist into mtbl[]
     	if (prc) break;
 
@@ -217,7 +217,7 @@ find_proc(GR *r, GS pid)
     	if (prc) break;
 #endif // CUDA_ENABLE_CDP
 
-    	cls = cx->super;
+    	lex = cx->super;
     }
 #if CC_DEBUG
 	U8* pname = _RAW(pid);
@@ -296,7 +296,6 @@ _cls_meta(GR *r)									// lazy add metaclass to a class
 	GP scls = scx->meta ? scx->meta : guru_rom_get_class(GT_OBJ);
 	GP mcls = guru_define_class(mcx, cx->cid, scls);
 
-//	mcx->kt = CLASS_META;
 	if ((r+1)->gt == GT_CLASS) {					// extend module
 		mcx->cls = (r+1)->off;						// point to the original module, instead of the dup
 	}
