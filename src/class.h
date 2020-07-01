@@ -26,8 +26,8 @@ extern "C" {
 typedef struct RClass {			// 32-byte
 	GURU_HDR;
 	GP				ivar;		// (GR*) class-level instance variables
-	GP				cls;		// actual class/module offset (in the case of module dup)
-	GP				meta;		// (RClass*) offset to guru_class*
+	GP				klass;		// (RClass*) offset to guru_class*
+	GP				self;		// actual class/module offset (in the case of module dup)
 	GP				super;		// (RClass*) offset to guru_class*
     GP				mtbl;		// (RProc*) c-func array (in constant memory, rc is the number of functions)
     GP				flist;		// (RProc*) head of guru_proc linked list
@@ -35,10 +35,10 @@ typedef struct RClass {			// 32-byte
 
 #define CLASS_BUILTIN	0x1
 #define CLASS_SINGLETON 0x2
-#define CLASS_META		0x4
+#define CLASS_EXTENDED	0x4
 #define IS_BUILTIN(cx)		(cx->kt & CLASS_BUILTIN)
 #define IS_SINGLETON(cx)	(cx->kt & CLASS_SINGLETON)
-#define IS_META(cx)			(cx->kt & CLASS_META)
+#define IS_EXTENDED(cx)		(cx->kt & CLASS_EXTENDED)
 
 //================================================================
 /*! Define instance data handle.
@@ -64,7 +64,7 @@ typedef struct RProc {		// 32-byte
 
 __GURU__ GP 	guru_define_class(guru_class *cx, GS cid, GP super);
 __GURU__ GP		guru_class_include(GP super, GP mod);
-__GURU__ GP 	guru_add_metaclass(GR *r);				// add metaclass to a class or an object
+__GURU__ GP 	guru_create_metaclass(GR *r);			// add metaclass to a class or an object
 
 // common class functions
 __GURU__ GR 	inspect(GR *v, GR *obj);				// inspect obj using v[] as stack

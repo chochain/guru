@@ -121,8 +121,8 @@ obj_eq3(GR r[], S32 ri)
 __CFUNC__
 obj_class(GR r[], S32 ri)
 {
-	GP cls = GR_OBJ(r)->cls;
-    GR ret { GT_CLASS, 0, 0, cls };
+	GP kls = GR_OBJ(r)->klass;
+    GR ret { GT_CLASS, 0, 0, kls };
 
     RETURN_VAL(ret);
 }
@@ -149,7 +149,9 @@ obj_extend(GR r[], S32 ri)
 #if GURU_CXX_CODEBASE
 	ClassMgr::getInstance()->class_add_meta(r);			// lazily add metaclass if needed
 #else
-	guru_add_metaclass(r);
+	guru_class *cx = GR_CLS(r);
+	cx->kt   |= CLASS_EXTENDED;
+	cx->klass = (r+1)->off;								// extend lexical scope
 #endif // GURU_CXX_CODEBASE
 }
 
@@ -240,10 +242,10 @@ obj_kind_of(GR r[], S32 ri)
         RETURN_BOOL(0);
     }
 
-    GP cls = GR_OBJ(r)->cls;
-    while (cls) {
-        if (cls==(r+1)->off) break;
-        cls = _CLS(cls)->super;
+    GP kls = GR_OBJ(r)->klass;
+    while (kls) {
+        if (kls==(r+1)->off) break;
+        kls = _CLS(kls)->super;
     }
 }
 

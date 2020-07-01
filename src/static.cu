@@ -117,7 +117,7 @@ guru_rom_add_class(GT cidx, const char *name, GT super_cidx, const Vfunc mtbl[],
 
     cx->kt  |= CLASS_BUILTIN;
     cx->rc   = n;										// number of built-in functions
-    cx->meta = cls;										// TODO: for now, BUILTIN classes uses itself as metaclass to save one block
+    cx->klass= cls;										// TODO: for now, BUILTIN classes uses itself as metaclass to save one block
     cx->mtbl = n ? MEMOFF(px) : 0;						// built-in proc starting index
 
     Vfunc *fp = (Vfunc*)mtbl;							// TODO: nvcc allocates very sparsely for String literals

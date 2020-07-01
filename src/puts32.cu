@@ -53,8 +53,8 @@ _p(GR *r)
     	PRINTF("%s", name);
     } break;
     case GT_OBJ: {
-    	GP cls   = GR_OBJ(r)->cls;								// get class of object
-    	U8 *name = _RAW(_CLS(cls)->cid);						// ~= class->cname
+    	GP kls   = GR_OBJ(r)->klass;							// get class of object
+    	U8 *name = _RAW(_CLS(kls)->cid);						// ~= class->cname
     	PRINTF("#<%s:%p>", name, GR_OBJ(r));
     } break;
     case GT_PROC:

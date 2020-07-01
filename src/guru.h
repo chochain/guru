@@ -230,7 +230,7 @@ typedef struct RSymbol {		// Symbol container
 typedef struct RObj {			// 16-byte
 	GURU_HDR;
 	GP				ivar;		// (GR*) object instance variables
-	GP				cls;		// (RClass*) class that this object belongs to (RClass*)
+	GP				klass;		// (RClass*) class that this object belongs to (RClass*)
 } guru_obj;
 
 typedef struct RString {		// 16-byte

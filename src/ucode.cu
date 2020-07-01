@@ -288,21 +288,22 @@ _scan_class(guru_vm *vm, GS cid)				// In Ruby, class is a constant, too
 __GURU__ __INLINE__ GP
 _const_scope(GR *r)
 {
-	return (r->gt==GT_CLASS) ? r->off : GR_OBJ(r)->cls;
+	return (r->gt==GT_CLASS) ? r->off : GR_OBJ(r)->klass;
 }
 
 __UCODE__
 uc_getconst(guru_vm *vm)
 {
     GS cid = VM_SYM(vm, vm->bx);
-	if (_scan_class(vm, cid)) return;			// see whether it's a class
+	if (_scan_class(vm, cid)) return;				// see whether it's a class
 
-    GR *r0 = _R0;
-    GP cls = _const_scope(r0);
-    GR ret = NIL;
+    GR *r   = _R0;
+    GP  cls = _const_scope(r);
+    GR  ret = NIL;
     while (cls) {
     	guru_class *cx = _CLS(cls);
-    	ret = *const_get(cx->cls, cid);			// search constant cache with class key
+    	GP         mls = !IS_TCLASS(r) && IS_EXTENDED(cx) ? cx->klass : cx->self;
+    	ret = *const_get(mls, cid);
     	if (ret.gt!=GT_NIL) break;
     	cls = cx->super;
     }
@@ -319,12 +320,12 @@ uc_getconst(guru_vm *vm)
 __UCODE__
 uc_setconst(guru_vm *vm)
 {
-	GS sid = VM_SYM(vm, vm->bx);
-	GR *ra = _R(a);
-	GR *r0 = _R0;
-	GP cls = _const_scope(r0);
+	GS  sid = VM_SYM(vm, vm->bx);
+	GR  *ra = _R(a);
+	GR  *r  = _R0;
+	GP  cls = _const_scope(r);
 
-	ra->acl &= ~ACL_HAS_REF;					// set it to constant
+	ra->acl &= ~ACL_HAS_REF;						// set it to constant
 
     const_set(cls, sid, ra);
 }
@@ -345,7 +346,7 @@ uc_getmcnst(guru_vm *vm)
 	GR ret = NIL;
     while (cls) {
     	guru_class *cx = _CLS(cls);
-    	ret = *const_get(cx->cls, cid);
+    	ret = *const_get(cx->self, cid);
         if (ret.gt!=GT_NIL) break;
     	cls = cx->super;
     }
@@ -583,6 +584,7 @@ uc_send(guru_vm *vm)
     	GR buf  = guru_str_buf(GURU_STRBUF_SIZE);	// put error message on return stack
     	*(r+1)  = *_undef(&buf, r, xid);			// TODO: exception class
     }
+    _R0->acl &= ~(ACL_TCLASS|ACL_SCLASS);
 }
 
 //================================================================
@@ -1314,7 +1316,7 @@ uc_sclass(guru_vm *vm)
 {
 	GR *r = _R(b);
 
-	guru_add_metaclass(r);							// add metaclass to an object or a class if not exist
+	guru_create_metaclass(r);
 
 	//	_RA_X(r);									// TODO: R(A) is always the same as R(B)
 	r->acl |= ACL_SCLASS;							// mark lexical scope as singleton (possibly on top of TCLASS)

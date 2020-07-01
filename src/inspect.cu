@@ -158,8 +158,8 @@ _obj(GR *buf, GR *r)
 {
 	ASSERT(r->gt==GT_OBJ);
 
-	GP cls    = GR_OBJ(r)->cls;							// get class id
-	U8 *cname = _RAW(_CLS(cls)->cid);					// ~= class->cname
+	GP kls    = GR_OBJ(r)->klass;						// get class id
+	U8 *cname = _RAW(_CLS(kls)->cid);					// ~= class->cname
 	guru_buf_add_cstr(buf, "#<");
 	guru_buf_add_cstr(buf, cname);
 	guru_buf_add_cstr(buf, ":");

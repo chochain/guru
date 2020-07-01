@@ -105,7 +105,7 @@ __GURU__ GP
 _lex_scope(GR *r)
 {
 	switch (r->gt) {
-	case GT_OBJ: 	return GR_OBJ(r)->cls;
+	case GT_OBJ: 	return GR_OBJ(r)->klass;
 	case GT_CLASS : return r->off;
 	default: 		return guru_rom_get_class(r->gt);			// BUILTIN metaclass by object type
 	}
@@ -123,8 +123,8 @@ find_class_by_obj(GR *r)
 {
 	GP lex = _lex_scope(r);
 	GP cls = (r->gt==GT_CLASS && IS_SCLASS(r))
-				? (_CLS(lex)->meta ? _CLS(lex)->meta : guru_rom_get_class(GT_OBJ))
-				: _CLS(lex)->cls;
+				? (_CLS(lex)->klass ? _CLS(lex)->klass : guru_rom_get_class(GT_OBJ))
+				: _CLS(lex)->self;
 	return cls;
 }
 
@@ -168,7 +168,7 @@ __scan_mtbl(guru_class *cx, GS pid)
 __GURU__ GP
 __scan_flist(guru_class *cx, GS pid)
 {
-	GP prc = cx->flist;							// walk IREP linked-list
+	GP prc = cx->flist;							// walk IR	guru_class *cx  = GR_CLS(r);
 	int i=0;
 	while (prc) {								// TODO: IREP should be added into guru_class->mtbl[]
 		guru_proc *px = _PRC(prc);
@@ -196,8 +196,8 @@ find_proc(GR *r, GS pid)
 	while (lex) {
     	guru_class *cx = _CLS(lex);
     	guru_class *mx = mta
-    			? _CLS(cx->meta ? cx->meta : guru_rom_get_class(GT_OBJ))
-    			: _CLS(cx->cls);					// redirect to source module
+    			? _CLS(cx->klass ? cx->klass : guru_rom_get_class(GT_OBJ))
+    			: _CLS(cx->self);					// redirect to source module
     	prc = __scan_flist(mx, pid);				// TODO: combine flist into mtbl[]
     	if (prc) break;
 
@@ -244,8 +244,8 @@ guru_define_class(guru_class *cx, GS cid, GP super)		// fill the ROM class stora
 	cx->kt     = 0;								// default to user defined (i.e. non-builtin) class
     cx->cid    = cid;							// class name symbol id
     cx->ivar   = 0;								// class variables, lazily allocated when needed
-    cx->cls    = MEMOFF(cx);					// keep class id for constant lookup
-    cx->meta   = 0;								// meta-class, lazily allocated when needed
+    cx->self   = MEMOFF(cx);					// keep class id for constant lookup
+    cx->klass  = 0;								// meta-class, lazily allocated when needed
     cx->super  = super;
     cx->mtbl   = 0;
     cx->flist  = 0;								// head of list
@@ -285,24 +285,21 @@ guru_class_include(GP cls, GP mod)
   @param  r			pointer to class variable
 */
 __GURU__ GP
-_cls_meta(GR *r)									// lazy add metaclass to a class
+_cls_meta(GR *r)									// add metaclass to a class
 {
 	guru_class *cx  = GR_CLS(r);
-	if (cx->meta) return cx->meta;
+	if (cx->klass) return cx->klass;				// return if already exists
 
-	// lazily create the metaclass
-	guru_class *mcx = (guru_class*)guru_alloc(sizeof(guru_class));
 	guru_class *scx = _CLS(cx->super);
-	GP scls = scx->meta ? scx->meta : guru_rom_get_class(GT_OBJ);
-	GP mcls = guru_define_class(mcx, cx->cid, scls);
+	guru_class *mcx = (guru_class*)guru_alloc(sizeof(guru_class));
+
+	GP skls = scx->klass ? scx->klass : guru_rom_get_class(GT_OBJ);
+	GP mkls = guru_define_class(mcx, cx->cid, skls);
 
 	if ((r+1)->gt == GT_CLASS) {					// extend module
-		mcx->cls = (r+1)->off;						// point to the original module, instead of the dup
+		mcx->self = (r+1)->off;						// point to the original module, instead of the dup
 	}
-//	else {
-//		mcx->meta = r->off;							// double pointers, back to calling class
-//	}
-	return cx->meta = mcls;							// self pointing =~ metaclass
+	return cx->klass = mkls;						// self pointing =~ metaclass
 }
 
 //================================================================
@@ -315,23 +312,23 @@ __GURU__ GP
 _obj_meta(GR *r)
 {
 	guru_obj   *obj = GR_OBJ(r);
-	GP         cls  = obj->cls;
-	guru_class *cx  = _CLS(cls);
-	if (IS_SINGLETON(cx)) return cls;				// return if exists already
+	GP         kls  = obj->klass;
+	guru_class *cx  = _CLS(kls);
+	if (IS_SINGLETON(cx)) return kls;				// return if exists already
 
-	GP scls = guru_define_class(NULL, cx->cid, cls);
-	_CLS(scls)->kt |= CLASS_SINGLETON;
+	GP skls = guru_define_class(NULL, cx->cid, kls);
+	_CLS(skls)->kt |= CLASS_SINGLETON;
 
-	return obj->cls = scls;							// set singleton class
+	return obj->klass = skls;						// set singleton class
 }
 
 __GURU__ GP
-guru_add_metaclass(GR *r)
+guru_create_metaclass(GR *r)
 {
-	GP cls = r->gt==GT_OBJ
+	GP kls = r->gt==GT_OBJ
 		? _obj_meta(r)								// singleton class of an object
 		: (r->gt==GT_CLASS ? _cls_meta(r) : 0);		// extending a class
 
-	return cls;
+	return kls;
 }
 

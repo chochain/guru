@@ -222,7 +222,7 @@ vm_state_push(guru_vm *vm, GP irep, U32 pc, GR r[], S32 ri)
     ASSERT(st);
 
     switch(r->gt) {
-    case GT_OBJ:	st->klass = GR_OBJ(r)->cls;		break;
+    case GT_OBJ:	st->klass = GR_OBJ(r)->klass;	break;
     case GT_CLASS: 	st->klass = r->off;			 	break;
     case GT_PROC: 	st->klass = _REGS(top)->off; 	break; 	// top->regs[0].off (top != NULL)
     default: ASSERT(1==0);
