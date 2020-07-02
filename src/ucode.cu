@@ -302,7 +302,7 @@ uc_getconst(guru_vm *vm)
     GR  ret = NIL;
     while (cls) {
     	guru_class *cx = _CLS(cls);
-    	GP         mls = !IS_TCLASS(r) && IS_EXTENDED(cx) ? cx->klass : cx->self;
+    	GP         mls = !IS_TCLASS(r) && IS_EXTENDED(cx) ? cx->klass : cx->csrc;
     	ret = *const_get(mls, cid);
     	if (ret.gt!=GT_NIL) break;
     	cls = cx->super;
@@ -346,7 +346,7 @@ uc_getmcnst(guru_vm *vm)
 	GR ret = NIL;
     while (cls) {
     	guru_class *cx = _CLS(cls);
-    	ret = *const_get(cx->self, cid);
+    	ret = *const_get(cx->csrc, cid);
         if (ret.gt!=GT_NIL) break;
     	cls = cx->super;
     }
@@ -1290,7 +1290,6 @@ uc_method(guru_vm *vm)
 //================================================================
 /*!@brief
   OP_TCLASS
-->self
   R(A) := target_class
 */
 __UCODE__

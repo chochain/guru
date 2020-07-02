@@ -26,9 +26,9 @@ extern "C" {
 typedef struct RClass {			// 32-byte
 	GURU_HDR;
 	GP				ivar;		// (GR*) class-level instance variables
-	GP				klass;		// (RClass*) offset to guru_class*
-	GP				self;		// actual class/module offset (in the case of module dup)
-	GP				super;		// (RClass*) offset to guru_class*
+	GP				klass;		// (RClass*) offset to *metaclass
+	GP				csrc;		// (RClass*) offset to lexical scope (i.e. *guru_class itself or module source)
+	GP				super;		// (RClass*) offset to *guru_class
     GP				mtbl;		// (RProc*) c-func array (in constant memory, rc is the number of functions)
     GP				flist;		// (RProc*) head of guru_proc linked list
 } guru_class;

@@ -135,8 +135,8 @@ _bset(guru_obj *o, GS oid, GR*val)
 #endif // GURU_DEBUG
 //================================================================
 /*! getter the following objects which shared the same structure
-	GT_OBJ:   r->self->ivar
-	GT_CLASS: r->cls->ivar
+	GT_OBJ:   r->klass->ivar
+	GT_CLASS: r->klass->ivar
 
   @param  st	pointer to instance store handle.
   @param  oid	object store ID.

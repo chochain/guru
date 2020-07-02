@@ -111,14 +111,14 @@ guru_rom_add_class(GT cidx, const char *name, GT super_cidx, const Vfunc mtbl[],
 
     guru_proc  *px = _PRC(_rom->prc) + _rom->nprc;
 	guru_class *cx = _CLS(_rom->cls) + cidx;			// offset from _rom->cls
-	GP cid   = guru_rom_add_sym(name);
-	GP scls  = super_cidx ? guru_rom_get_class(super_cidx) : 0;	// 0: Object (root) class
-    GP cls   = guru_define_class(cx, cid, scls);
+	GP cid    = guru_rom_add_sym(name);
+	GP scls   = super_cidx ? guru_rom_get_class(super_cidx) : 0;	// 0: Object (root) class
+    GP cls    = guru_define_class(cx, cid, scls);
 
-    cx->kt  |= CLASS_BUILTIN;
-    cx->rc   = n;										// number of built-in functions
-    cx->klass= cls;										// TODO: for now, BUILTIN classes uses itself as metaclass to save one block
-    cx->mtbl = n ? MEMOFF(px) : 0;						// built-in proc starting index
+    cx->kt   |= CLASS_BUILTIN;
+    cx->rc    = n;										// number of built-in functions
+    cx->klass = cls;										// TODO: for now, BUILTIN classes uses itself as metaclass to save one block
+    cx->mtbl  = n ? MEMOFF(px) : 0;						// built-in proc starting index
 
     Vfunc *fp = (Vfunc*)mtbl;							// TODO: nvcc allocates very sparsely for String literals
     for (int i=0; i<n; i++, px++, fp++) {
