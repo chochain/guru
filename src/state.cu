@@ -43,15 +43,15 @@ __GURU__ U32
 _exec(guru_vm *vm, GR r[], S32 ri, GP prc)
 {
     guru_proc *px = _PRC(prc);
-    if (AS_IREP(px)) {									// a Ruby-based IREP
-    	vm_state_push(vm, px->irep, 0, r, ri);			// switch to callee's context
+    if (AS_IREP(px)) {								// a Ruby-based IREP
+    	vm_state_push(vm, px->irep, 0, r, ri);		// switch to callee's context
     }
-    else {												// must be a C-function
+    else {											// must be a C-function
 #if CC_DEBUG
     	PRINTF("!!!_CALL(x%x, %p, %d)\n", prc, r, ri);
 #endif // CC_DEBUG
-    	r->oid = px->pid;								// parameter pid is passed as object id
-    	_CALL(prc, r, ri);								// call C-based function
+    	r->oid = px->pid;							// parameter pid is passed as object id
+    	_CALL(prc, r, ri);							// call C-based function
     	_wipe_stack(r+1, ri+1);
     }
     return 0;
@@ -69,11 +69,11 @@ _call(guru_vm *vm, GR r[], S32 ri)
 	if (AS_LAMBDA(px)) {
 		guru_state *st = VM_STATE(vm);
 		vm_state_push(vm, st->irep, st->pc, regs, ri);	// switch into callee's context
-		VM_STATE(vm)->flag |= STATE_LAMBDA;				// vm->state changed
-		vm_state_push(vm, irep, 0, r, ri);				// switch into lambda using closure stack frame
+		VM_STATE(vm)->flag |= STATE_LAMBDA;			// vm->state changed
+		vm_state_push(vm, irep, 0, r, ri);			// switch into lambda using closure stack frame
 	}
 	else if (AS_IREP(px)){
-		vm_state_push(vm, irep, 0, r, ri);				// switch into callee's context
+		vm_state_push(vm, irep, 0, r, ri);			// switch into callee's context
 	}
 	else ASSERT(1==0);
 }
@@ -127,11 +127,11 @@ _map(guru_vm *vm, GR r[], S32 ri)
 __GURU__ void
 _new(guru_vm *vm, GR r[], S32 ri)
 {
-	ASSERT(r->gt==GT_CLASS);							// ensure it is a class object
-	GR obj = r[0] = ostore_new(r->off);					// instantiate object itself (with 0 var);
-	GS sid = name2id((U8*)"initialize"); 				// search for initializer
+	ASSERT(r->gt==GT_CLASS);						// ensure it is a class object
+	GR obj = r[0] = ostore_new(r->off);				// instantiate object itself (with 0 var);
+	GS sid = name2id((U8*)"initialize"); 			// search for initializer
 
-	vm_method_exec(vm, r, ri, sid);						// run custom initializer if any
+	vm_method_exec(vm, r, ri, sid);					// run custom initializer if any
 
 	VM_STATE(vm)->flag |= STATE_NEW;
 }
@@ -148,7 +148,7 @@ _lambda(guru_vm *vm, GR r[], S32 ri)
 	GR  *rf = guru_gr_alloc(n);
 	px->regs = MEMOFF(rf);
 
-	GR  *r0 = _REGS(VM_STATE(vm));						// deep copy register file
+	GR  *r0 = _REGS(VM_STATE(vm));					// deep copy register file
 	for (int i=0; i<n; *rf++=*r0++, i++);
 
     *r = *(r+1);
@@ -160,7 +160,7 @@ _raise(guru_vm *vm, GR r[], S32 ri)
 {
 	ASSERT(vm->xcp > 0);
 
-	VM_STATE(vm)->pc = RESCUE_POP(vm);		// pop from exception return stack
+	VM_STATE(vm)->pc = RESCUE_POP(vm);				// pop from exception return stack
 }
 
 typedef struct {
@@ -170,26 +170,26 @@ typedef struct {
 } Xf;
 
 __GURU__ U32
-_method_missing(guru_vm *vm, GR r[], S32 ri, GS pid)
+_root_class_method(guru_vm *vm, GR r[], S32 ri, GS pid)
 {
 	static Xf miss_mtbl[] = {
-		{ "call", 		_call,   0 },			// C-based prc_call (hacked handler, it needs vm->state)
-		{ "each",   	_each,   0 },			// push into call stack, obj at stack[0]
-		{ "times",  	_each,   0 },			// looper
-		{ "map",    	_map,    0 },			// mapper
+		{ "call", 		_call,   0 },				// C-based prc_call (hacked handler, it needs vm->state)
+		{ "each",   	_each,   0 },				// push into call stack, obj at stack[0]
+		{ "times",  	_each,   0 },				// looper
+		{ "map",    	_map,    0 },				// mapper
 		{ "collect",	_map,    0 },
 		{ "new",    	_new,    0 },
-		{ "lambda", 	_lambda, 0 },			// create object
-		{ "raise",  	_raise,  0 }			// exception handler
+		{ "lambda", 	_lambda, 0 },				// create object
+		{ "raise",  	_raise,  0 }				// exception handler
 	};
 	static int xfcnt = sizeof(miss_mtbl)/sizeof(Xf);
 
 	Xf *xp = miss_mtbl;
-	if (miss_mtbl[0].pid==0) {				// lazy init
+	if (miss_mtbl[0].pid==0) {						// lazy init
 		for (int i=0; i<xfcnt; i++, xp++) {
 			xp->pid = guru_rom_add_sym(xp->name);
 		}
-		xp = miss_mtbl;						// rewind
+		xp = miss_mtbl;								// rewind
 	}
 	for (int i=0; i<xfcnt; i++, xp++) {
 		if (xp->pid==pid) {
@@ -203,7 +203,7 @@ _method_missing(guru_vm *vm, GR r[], S32 ri, GS pid)
 #if CC_DEBUG
 	PRINTF("ERROR: method not found (pid=x%04x)-------\n", pid);
 #endif // CC_DEBUG
-	_wipe_stack(r+1, ri+1);					// wipe call stack and return
+	_wipe_stack(r+1, ri+1);							// wipe call stack and return
 	return (vm->err = 1);
 }
 //================================================================
@@ -302,7 +302,7 @@ vm_method_exec(guru_vm *vm, GR r[], S32 ri, GS pid)
     GP prc = find_proc(r, pid);							// r->gt in [GT_OBJ, GT_CLASS]
 
     if (prc==0) {										// not found, try VM functions
-    	return _method_missing(vm, r, ri, pid);
+    	return _root_class_method(vm, r, ri, pid);
     }
     return _exec(vm, r, ri, prc);
 }
