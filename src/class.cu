@@ -121,10 +121,10 @@ _lex_scope(GR *r)
 __GURU__ GP
 find_class_by_obj(GR *r)
 {
-	GP lex = _lex_scope(r);
+	guru_class *cx = _CLS(_lex_scope(r));
 	GP cls = (r->gt==GT_CLASS && IS_SCLASS(r))
-				? (_CLS(lex)->klass ? _CLS(lex)->klass : guru_rom_get_class(GT_OBJ))
-				: _CLS(lex)->self;
+				? (cx->klass ? cx->klass : guru_rom_get_class(GT_OBJ))
+				: cx->csrc;
 	return cls;
 }
 
@@ -152,7 +152,7 @@ __GURU__ GP
 __scan_mtbl(guru_class *cx, GS pid)
 {
 	guru_proc *px = _PRC(cx->mtbl);				// sequential search thru the array
-	for (int i=0; i<cx->rc; i++, px++) {	// TODO: parallel search (i.e. CDP, see above)
+	for (int i=0; i<cx->rc; i++, px++) {		// TODO: parallel search (i.e. CDP, see above)
 		if (px->pid==pid) {
 #if CC_DEBUG
 			U8 *cname = _RAW(cx->cid);
@@ -195,28 +195,29 @@ find_proc(GR *r, GS pid)
 	GP 	prc = 0;
 	while (lex) {
     	guru_class *cx = _CLS(lex);
-    	guru_class *mx = mta
-    			? _CLS(cx->klass ? cx->klass : guru_rom_get_class(GT_OBJ))
-    			: _CLS(cx->self);					// redirect to source module
-    	prc = __scan_flist(mx, pid);				// TODO: combine flist into mtbl[]
-    	if (prc) break;
-
+    	guru_class *mx = mta 						// meta-class or class itself
+    			? (cx->klass ? _CLS(cx->klass) : NULL)
+    			:  _CLS(cx->csrc);
 #if CUDA_ENABLE_CDP
-        static __GURU__ S32 _proc_idx[32];
-    	/* CC: hold! CUDA 10.2 profiler does not support CDP yet,
-        if (IS_BUILTIN(cls)) {
-        	S32 *idx = &_proc_idx[threadIdx.x];
-        	*idx = -1;
-        	__find_proc<<<(cls->rc>>5)+1, 32>>>(idx, cls, sid);
-        	GPU_CHK();
-            if (*idx>=0) return &cls->mtbl[*idx];
-        }
-        */
+    		static __GURU__ S32 _proc_idx[32];
+    		/* CC: hold! CUDA 10.2 profiler does not support CDP yet,
+        	if (IS_BUILTIN(cls)) {
+        		S32 *idx = &_proc_idx[threadIdx.x];
+    		    *idx = -1;
+        	    __find_proc<<<(cls->rc>>5)+1, 32>>>(idx, cls, sid);
+        		GPU_CHK();
+            	if (*idx>=0) return &cls->mtbl[*idx];
+        	}
+    		*/
 #else
-    	prc = __scan_mtbl(mx, pid);					// search for C-functions
-    	if (prc) break;
-#endif // CUDA_ENABLE_CDP
+    	if (mx) {
+    		prc = __scan_flist(mx, pid);			// TODO: combine flist into mtbl[]
+    		if (prc) break;
 
+    		prc = __scan_mtbl(mx, pid);				// search for C-functions
+    		if (prc) break;
+    	}
+#endif // CUDA_ENABLE_CDP
     	lex = cx->super;
     }
 #if CC_DEBUG
@@ -244,8 +245,8 @@ guru_define_class(guru_class *cx, GS cid, GP super)		// fill the ROM class stora
 	cx->kt     = 0;								// default to user defined (i.e. non-builtin) class
     cx->cid    = cid;							// class name symbol id
     cx->ivar   = 0;								// class variables, lazily allocated when needed
-    cx->self   = MEMOFF(cx);					// keep class id for constant lookup
     cx->klass  = 0;								// meta-class, lazily allocated when needed
+    cx->csrc   = MEMOFF(cx);					// keep class id for constant lookup
     cx->super  = super;
     cx->mtbl   = 0;
     cx->flist  = 0;								// head of list
@@ -297,7 +298,7 @@ _cls_meta(GR *r)									// add metaclass to a class
 	GP mkls = guru_define_class(mcx, cx->cid, skls);
 
 	if ((r+1)->gt == GT_CLASS) {					// extend module
-		mcx->self = (r+1)->off;						// point to the original module, instead of the dup
+		mcx->csrc = (r+1)->off;						// point to the original module, instead of the dup
 	}
 	return cx->klass = mkls;						// self pointing =~ metaclass
 }
