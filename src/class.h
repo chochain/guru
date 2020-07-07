@@ -99,7 +99,7 @@ public:
 	__GURU__ GR	kind_of(GR *v);							// whether v1 is a kind of v0
 	__GURU__ GP	find_class_by_obj(GR *v);
 	__GURU__ GP find_class_by_id(GS cid);
-	__GURU__ GP	find_proc(GP cls, GS pid);
+	__GURU__ GP	find_proc(GR *v, GS pid);
 	__GURU__ GR send(GR r[], GR *rcv, const U8 *method, U32 argc, ...);
 };
 #define CLS_MGR		(ClassMgr::getInstance())

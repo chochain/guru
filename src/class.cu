@@ -96,23 +96,6 @@ find_class_by_id(GS cid)
 
 //================================================================
 /*!@brief
-  determine lexical scope
-
-  @param  obj
-  @return pointer to guru_class
-*/
-__GURU__ GP
-_lex_scope(GR *r)
-{
-	switch (r->gt) {
-	case GT_OBJ: 	return GR_OBJ(r)->klass;
-	case GT_CLASS : return r->off;
-	default: 		return guru_rom_get_class(r->gt);			// BUILTIN metaclass by object type
-	}
-}
-
-//================================================================
-/*!@brief
   find class by object
 
   @param  obj
@@ -121,11 +104,16 @@ _lex_scope(GR *r)
 __GURU__ GP
 find_class_by_obj(GR *r)
 {
-	guru_class *cx = _CLS(_lex_scope(r));
-	GP cls = (r->gt==GT_CLASS && IS_SCLASS(r))
-				? (cx->klass ? cx->klass : guru_rom_get_class(GT_OBJ))
-				: cx->csrc;
-	return cls;
+	switch (r->gt) {
+	case GT_OBJ: return _CLS(GR_OBJ(r)->klass)->csrc;
+	case GT_CLASS: {
+		guru_class *cx = GR_CLS(r);
+		return IS_SCLASS(r)
+					? cx->klass ? cx->klass : guru_rom_get_class(GT_OBJ)
+					: cx->csrc;
+	}
+	default: return guru_rom_get_class(r->gt);					// singleton class pointing back to core class
+	}
 }
 
 //================================================================
@@ -187,11 +175,23 @@ __scan_flist(guru_class *cx, GS pid)
 }
 #endif // CUDA_ENABLE_CDP
 
+//================================================================
+/*!@brief
+  determine lexical scope
+
+  @param  obj
+  @return pointer to guru_class
+*/
 __GURU__ GP
 find_proc(GR *r, GS pid)
 {
-	U32 mta = r->gt==GT_CLASS && !IS_TCLASS(r);		// metaclass flag
-	GP  lex = _lex_scope(r);						// determine lexicial scope
+	U32 mta = 0;									// metaclass flag
+	GP  lex;
+	switch (r->gt) {								// determine lexical scope (== vm_state->klass)
+	case GT_OBJ: 	lex = GR_OBJ(r)->klass; 				break;
+	case GT_CLASS:	lex = r->off; 	mta = !IS_TCLASS(r);	break;
+	default:		lex = guru_rom_get_class(r->gt);
+	}
 	GP 	prc = 0;
 	while (lex) {
     	guru_class *cx = _CLS(lex);

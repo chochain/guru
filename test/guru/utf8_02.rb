@@ -32,7 +32,7 @@ module HexSet
     )
 
     def init
-        @set, @kmap, @hmap = Array.new(64), Hash.new(64), Hash.new(64)
+        @set, @kmap, @hmap = [], {}, {}
         id = 0
         H64.each do |u|
             hi, lo, v = u[0], u[1], u[2..3]
