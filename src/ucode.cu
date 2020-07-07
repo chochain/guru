@@ -297,12 +297,11 @@ uc_getconst(guru_vm *vm)
     GS cid = VM_SYM(vm, vm->bx);
 	if (_scan_class(vm, cid)) return;				// see whether it's a class
 
-    GR *r   = _R0;
-    GP  cls = _const_scope(r);
+    GP  cls = VM_STATE(vm)->klass;
     GR  ret = NIL;
     while (cls) {
     	guru_class *cx = _CLS(cls);
-    	GP         mls = !IS_TCLASS(r) && IS_EXTENDED(cx) ? cx->klass : cx->csrc;
+    	GP         mls = cx->csrc;
     	ret = *const_get(mls, cid);
     	if (ret.gt!=GT_NIL) break;
     	cls = cx->super;
@@ -322,8 +321,7 @@ uc_setconst(guru_vm *vm)
 {
 	GS  sid = VM_SYM(vm, vm->bx);
 	GR  *ra = _R(a);
-	GR  *r  = _R0;
-	GP  cls = _const_scope(r);
+	GP  cls = VM_STATE(vm)->klass;
 
 	ra->acl &= ~ACL_HAS_REF;						// set it to constant
 
@@ -1174,19 +1172,32 @@ __UCODE__	uc_range(guru_vm *vm) 	{ QUIT("Range class"); }
 /*!@brief
   OP_LAMBDA
 
-  R(A) := lambda(SEQ[Bz],Cz)
+  R(A) := lambda(SEQ[Bz],Cz)  Bz:Cz(14:2)
+
+  Cz: 1, STRICT  (method)
+  Cz: 2, CAPTURE (closure, block)
+  Cz: 3, LAMBDA
 */
 __UCODE__
 uc_lambda(guru_vm *vm)
 {
-	GR *obj = _R(a) - 1;
-	GP cls  = find_class_by_obj(obj);					// use current class for lexical scope
+	guru_state *st = VM_STATE(vm);
+	GR *r  = _R(a) - 1;
+	GP cls = 0;
+
+	switch (vm->cz) {									// TODO: not sure how Cz works, detailed analysis later
+	case 0: break;										// ??
+	case 1: cls = find_class_by_obj(r);	break;			// method use object before target register
+	case 2:	cls = st->klass;			break;			// closure or block
+	case 3: break;										// ??
+	}
+
 	GP irep = MEMOFF(VM_REPS(vm, vm->bz));				// fetch from children irep list
-	GP prc  = guru_define_method(cls, NULL, irep);		// create proc with no name, pid will be filled by OP_METHOD
+	GP prc  = guru_define_method(cls, NULL, irep);
 
 	guru_proc *px = _PRC(prc);
     px->kt  = PROC_IREP;								// instead of C-function
-    px->n   = (obj->gt==GT_HASH) ? vm->cz : vm->cz>>1;	// TODO: not sure how Cz works,  assume this is parameter count
+    px->n   = (r->gt==GT_HASH) ? 2 : 1;					// TODO: not sure how Cz works,  assume this is parameter count
 
     _RA_T(GT_PROC, off=prc);							// regs[ra].prc = prc
 }
