@@ -63,7 +63,7 @@ static const int _op_bru[] = {
 	OP_LOADNIL, OP_LOADSELF, OP_LOADT, OP_LOADF,
     OP_POPERR, OP_RAISE,
     OP_CALL, OP_RETURN, OP_BLKPUSH,
-    OP_OCLASS, OP_LAMBDA, OP_TCLASS, OP_STOP
+    OP_OCLASS, OP_TCLASS, OP_STOP
 };
 #define SZ_BRU 	(sizeof(_op_bru)/sizeof(int))
 
@@ -149,6 +149,7 @@ _get_irep_id(guru_state *st)
 	U8 idx = 'a';
 	if (!_match_irep(ST_IREP(sx), ix0, &idx)) idx='?';	// recursively find the id
 
+
 	return idx;
 }
 
@@ -170,20 +171,19 @@ _show_regs(GR *r, S32 ri)
 __HOST__ void
 _show_state_regs(guru_state *st, U32 lvl)
 {
-	if (st->prev) {
+	if (st->prev) {											// find the top of register file, recursively
 		guru_state *st1 = h_STATE(st->prev);
 		_show_state_regs(st1, lvl+1);						// back tracing recursion
 	}
-	U32 n  = st->nv;										// depth of current stack frame
-	GR  *r = ST_REGS(st);
-	if (lvl==0) { 											// top most
+	U32 n = st->nv;											// depth of current stack frame
+	if (lvl==0) { 											// top most state
 		guru_irep *irep = ST_IREP(st);
-		r = ST_REGS(st) + irep->nr;
-		for (n=irep->nr; n>0 && r->gt==GT_EMPTY; n--, r--);
+		GR        *x    = ST_REGS(st) + irep->nr;
+		for (n=irep->nr; n>0 && x->gt==GT_EMPTY; n--, x--);	// find first non-empty parameter
 		n++;
 	}
-	r = ST_REGS(st);
-	if (IS_LOOP(st)) _show_regs(r-3, n+1);					// alloc for looper
+	GR *r = ST_REGS(st);
+	if (IS_LOOP(st)) _show_regs(r-3, n+1);
 	else			 _show_regs(r,   n);
 }
 
@@ -225,7 +225,11 @@ _show_decode(guru_state *st, GAR ar)
 		printf(" %d:%d:%d:%d:%d:%d:%d pc+%-6d",
 			ax->req, ax->opt, ax->rst, ax->pst, ax->key, ax->dic, ax->blk,
 			(!ax->opt || (st->argc & 0x40)) ? 0 : (1 + st->argc - ax->req - ax->pst));
-	} 																				return;
+	}																				return;
+	case OP_LAMBDA: {
+		static char mx[4] = { '0', 'm', 'b', '3' };
+		printf(" r%-2d =%cI+%-15d", a, mx[ar.cz], ar.bz);
+	} 																			    return;
 	case OP_RESCUE:
 		if (ar.c) 		printf(" r%-2d < x%-16d", a+1, a);
 		else			printf(" x%-2d < r%-16d", a, a+1);							return;
