@@ -45,6 +45,7 @@ _exec(guru_vm *vm, GR r[], S32 ri, GP prc)
     guru_proc *px = _PRC(prc);
     if (AS_IREP(px)) {								// a Ruby-based IREP
     	vm_state_push(vm, px->irep, 0, r, ri);		// switch to callee's context
+    	VM_STATE(vm)->klass = find_class_by_id(px->cid);	// TODO: this is a hack! should fix #vm_state_push
     }
     else {											// must be a C-function
 #if CC_DEBUG
@@ -54,6 +55,8 @@ _exec(guru_vm *vm, GR r[], S32 ri, GP prc)
     	_CALL(prc, r, ri);							// call C-based function
     	_wipe_stack(r+1, ri+1);
     }
+    VM_STATE(vm)->flag &= ~(STATE_LOOP|STATE_LAMBDA);
+
     return 0;
 }
 
@@ -68,7 +71,7 @@ _call(guru_vm *vm, GR r[], S32 ri)
 
 	if (AS_LAMBDA(px)) {
 		guru_state *st = VM_STATE(vm);
-		vm_state_push(vm, st->irep, st->pc, regs, ri);	// switch into callee's context
+		vm_state_push(vm, st->irep, st->pc, regs, ri);	// save current stack frame
 		VM_STATE(vm)->flag |= STATE_LAMBDA;			// vm->state changed
 		vm_state_push(vm, irep, 0, r, ri);			// switch into lambda using closure stack frame
 	}
@@ -87,23 +90,21 @@ __loop(guru_vm *vm, GR r[], S32 ri, U32 collect)
 
 	guru_state *st = VM_STATE(vm);
 	guru_proc  *px = GR_PRC(r1);
-	U32	pc0   = st->pc;
-	GP 	irep0 = st->irep;							// current context
-	GP 	irep1 = px->irep;							// callee IREP
-	GR 	git   = guru_iter_new(r, NULL);				// create iterator
+	U32	pc0 = st->pc;
+	GR 	git = guru_iter_new(r, NULL);				// create iterator
 
 	// push stack out (1 space for iterator)
-	GR *p = r;
+	GR *p  = r;
 	*(++p) = collect ? guru_array_new(4) : EMPTY;	// replace prc with map array
 	*(++p) = git;
 	*(++p) = *_REGS(st);
 
 	// allocate iterator state (using same stack frame)
-	vm_state_push(vm, irep0, pc0, p, px->n);
+	vm_state_push(vm, st->irep, pc0, p, vm->a);		// use current stack frame
 	VM_STATE(vm)->flag |= STATE_LOOP;
 
 	// switch into callee's context with v[1]=1st element
-	vm_state_push(vm, irep1, 0, p, px->n);
+	vm_state_push(vm, px->irep, 0, p, px->n);		// callee IREP
 	guru_iter *it = GR_ITR(&git);
 	*(++p) = *(it->inc);
 	if (it->n==GT_HASH) {
