@@ -34,11 +34,13 @@ typedef struct RClass {			// 32-byte
 } guru_class;
 
 #define CLASS_BUILTIN	0x1
-#define CLASS_SINGLETON 0x2
+#define CLASS_SUBCLASS  0x2
 #define CLASS_EXTENDED	0x4
+#define CLASS_SINGLETON 0x8
 #define IS_BUILTIN(cx)		(cx->kt & CLASS_BUILTIN)
-#define IS_SINGLETON(cx)	(cx->kt & CLASS_SINGLETON)
+#define IS_SUBCLASS(cx)		(cx->kt & CLASS_SUBCLASS)
 #define IS_EXTENDED(cx)		(cx->kt & CLASS_EXTENDED)
+#define IS_SINGLETON(cx)	(cx->kt & CLASS_SINGLETON)
 
 //================================================================
 /*! Define instance data handle.

@@ -128,11 +128,11 @@ _map(guru_vm *vm, GR r[], S32 ri)
 __GURU__ void
 _new(guru_vm *vm, GR r[], S32 ri)
 {
-	ASSERT(r->gt==GT_CLASS);						// ensure it is a class object
-	GR obj = r[0] = ostore_new(r->off);				// instantiate object itself (with 0 var);
-	GS sid = name2id((U8*)"initialize"); 			// search for initializer
+	ASSERT(r->gt==GT_CLASS);							// ensure it is a class object
+	GS sid = name2id((U8*)"initialize"); 				// search for initializer
+	*r = ostore_new(r->off);						    // instantiate an object (with 0 var);
 
-	vm_method_exec(vm, r, ri, sid);					// run custom initializer if any
+	vm_method_exec(vm, r, ri, sid);						// run custom initializer if any
 
 	VM_STATE(vm)->flag |= STATE_NEW;
 }

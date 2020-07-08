@@ -338,7 +338,7 @@ __UCODE__
 uc_getmcnst(guru_vm *vm)
 {
     GS cid = VM_SYM(vm, vm->bx);
-	if (_scan_class(vm, cid)) return;			// see whether it is a class
+	if (_scan_class(vm, cid)) return;				// see whether it's a class
 
 	GP cls = _const_scope(_R(a));
 	GR ret = NIL;

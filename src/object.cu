@@ -272,6 +272,32 @@ obj_lambda(GR r[], S32 ri)
 }
 
 //================================================================
+/*! set constant
+ */
+__CFUNC__
+obj_const_set(GR r[], S32 ri)
+{
+	GP cls = r->off;
+	GS xid = (r+1)->off;
+	(r+2)->acl &= ~ACL_HAS_REF;			// make it constant
+
+	const_set(cls, xid, r+2);
+}
+
+//================================================================
+/*! get constant
+ */
+__CFUNC__
+obj_const_get(GR r[], S32 ri)
+{
+	GP cls = r->off;
+	GS xid = (r+1)->off;
+	GR ret = *const_get(cls, xid);
+
+	RETURN_VAL(ret);
+}
+
+//================================================================
 /*! pseudo random number generator
  */
 __CFUNC__
@@ -301,10 +327,12 @@ __GURU__ __const__ Vfunc obj_mtbl[] = {
 	{ "puts",          	obj_puts 		},				// handled by state#_method_missing
 	{ "initialize", 	obj_nop 		},
     { "private",		obj_nop			},				// do nothing now
+    // comparators
 	{ "!",				obj_not 		},
 	{ "!=",          	obj_neq 		},
 	{ "<=>",           	obj_cmp 		},
 	{ "===",           	obj_eq3 		},
+	// class ops
 	{ "class",         	obj_class		},
 	{ "include",		obj_include     },
 	{ "extend",			obj_extend		},
@@ -315,10 +343,13 @@ __GURU__ __const__ Vfunc obj_mtbl[] = {
 	{ "is_a?",         	obj_kind_of		},
     { "kind_of?",      	obj_kind_of		},
     { "lambda",			obj_lambda		},
-	{ "rand",           obj_rand        },
-	{ "print",         	obj_puts		},
+    // misc functions
+	{ "const_set",		obj_const_set	},
+	{ "const_get",      obj_const_get   },
+    { "rand",           obj_rand        },
+    // print functions (puts is pulled to top)
+    { "print",         	obj_puts		},
 	{ "p", 				obj_p    		},
-
     // the following functions depends on string, implemented in inspect.cu
     { "to_s",          	gr_to_s  		},
     { "inspect",       	gr_to_s  		},
@@ -413,6 +444,23 @@ __GURU__ __const__ Vfunc err_mtbl[] = {
 };
 
 //================================================================
+/*! Create a inner class
+ */
+__CFUNC__
+cls_new(GR r[], S32 ri)
+{
+	ASSERT((r-2)->gt==GT_CLASS && r->gt==GT_CLASS);
+
+	GP super = (r-2)->off;
+	GS xid   = (r-1)->off;
+	GP cls   = guru_define_class(NULL, xid, super);			// fill the ROM class storage
+
+	_CLS(cls)->kt |= CLASS_SUBCLASS;
+
+	r->off = cls;
+}
+
+//================================================================
 /*! System class (guru only, i.e. non-Ruby)
  */
 __CFUNC__
@@ -430,6 +478,7 @@ cls_mstat(GR r[], S32 ri)
 }
 
 __GURU__ __const__ Vfunc cls_mtbl[] = {
+    { "new",        cls_new     },
 	{ "mstat", 		cls_mstat	}
 };
 
@@ -462,6 +511,15 @@ _install_all_class(void)
 #if GURU_USE_MATH
     guru_init_class_math();
 #endif // GURU_USE_MATH
+
+    // duplicate module methods
+    GP cls = guru_rom_get_class(GT_CLASS);
+    GS xid = guru_rom_add_sym("Module");
+    GP mod = guru_define_class(NULL, xid, guru_rom_get_class(GT_OBJ));
+    guru_class *mx = _CLS(mod);
+
+    *mx     = *_CLS(cls);
+    mx->cid = xid;
 }
 
 __GPU__ void

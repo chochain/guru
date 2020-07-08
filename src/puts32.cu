@@ -49,8 +49,11 @@ _p(GR *r)
         PRINTF("<%s: %s>", cname, msg);
     } break;
     case GT_CLASS: {
-    	U8 *name = _RAW(GR_CLS(r)->cid);						// ~= class->cname in GURU_DEBUG mode
-    	PRINTF("%s", name);
+    	guru_class 	*cx   = GR_CLS(r);
+    	U32 prefix = IS_SUBCLASS(cx) && (cx->super!=guru_rom_get_class(GT_OBJ));
+    	U8  *name  = _RAW(cx->cid);								// ~= class->cname in GURU_DEBUG mode
+    	U8  *sname = prefix ? _RAW(_CLS(cx->super)->cid) : (U8*)"";
+    	PRINTF("%s%s%s", sname, prefix ? "::" : "", name);
     } break;
     case GT_OBJ: {
     	GP kls   = GR_OBJ(r)->klass;							// get class of object
