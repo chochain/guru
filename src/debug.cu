@@ -37,8 +37,8 @@ __id2str(GS sid, U8 *str)
 //========================================================================================
 #if GURU_DEBUG
 static const char *_vtype[] = {
-	"___","nil","f  ","t  ","num","flt","sym","err",	// 0x0
-	"cls","prc","obj","ary","str","rng","hsh","itr"		// 0x8
+	"___","nil","f  ","t  ","num","flt","sym","err",	// 0x0-0x7
+	"cls","prc","obj","ary","str","rng","hsh","itr"     // 0x8-0xf
 };
 
 static const char *_errcode[] = {

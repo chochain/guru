@@ -488,38 +488,45 @@ __GURU__ __const__ Vfunc cls_mtbl[] = {
 __GURU__ void
 _install_all_class(void)
 {
-    guru_rom_add_class(GT_OBJ,	"Object", 		(GT)0, 		obj_mtbl, 	VFSZ(obj_mtbl));
+    guru_rom_add_class(GT_OBJ,	"Object", 		(GT)0, 		obj_mtbl, 	VFSZ(obj_mtbl));		// xa
 
-    guru_rom_add_class(GT_NIL, 	"NilClass", 	GT_OBJ, 	nil_mtbl,  	VFSZ(nil_mtbl));
-    guru_rom_add_class(GT_FALSE,"FalseClass", 	GT_OBJ, 	false_mtbl,	VFSZ(false_mtbl));
-    guru_rom_add_class(GT_TRUE, "TrueClass",  	GT_OBJ, 	true_mtbl, 	VFSZ(true_mtbl));
-    guru_rom_add_class(GT_SYM,  "Symbol", 		GT_OBJ, 	sym_mtbl, 	VFSZ(sym_mtbl));
-    guru_rom_add_class(GT_ERROR,"StandardError",GT_OBJ,     err_mtbl,   VFSZ(err_mtbl));
-    guru_rom_add_class(GT_PROC, "Proc",     	GT_OBJ, 	prc_mtbl,  	VFSZ(prc_mtbl));
-    guru_rom_add_class(GT_CLASS,"Class", 		GT_OBJ, 	cls_mtbl,  	VFSZ(cls_mtbl));
+    guru_rom_add_class(GT_NIL, 	"NilClass", 	GT_OBJ, 	nil_mtbl,  	VFSZ(nil_mtbl));		// x1
+    guru_rom_add_class(GT_FALSE,"FalseClass", 	GT_OBJ, 	false_mtbl,	VFSZ(false_mtbl));		// x2
+    guru_rom_add_class(GT_TRUE, "TrueClass",  	GT_OBJ, 	true_mtbl, 	VFSZ(true_mtbl));		// x3
+    guru_rom_add_class(GT_SYM,  "Symbol", 		GT_OBJ, 	sym_mtbl, 	VFSZ(sym_mtbl));		// x6
+    guru_rom_add_class(GT_ERROR,"StandardError",GT_OBJ,     err_mtbl,   VFSZ(err_mtbl));		// x7
+    guru_rom_add_class(GT_CLASS,"Class", 		GT_OBJ, 	cls_mtbl,  	VFSZ(cls_mtbl));		// x8
+    guru_rom_add_class(GT_PROC, "Proc",     	GT_OBJ, 	prc_mtbl,  	VFSZ(prc_mtbl));		// x9
 
     guru_register_func(GT_OBJ, NULL, guru_obj_del, NULL);
 
-    guru_init_class_int();			// c_fixnum.cu
-    guru_init_class_float();		// c_fixnum.cu
+    guru_init_class_int();			// c_fixnum.cu  x4
+    guru_init_class_float();		// c_fixnum.cu	x5
 
-    guru_init_class_range();		// c_range.cu
-    guru_init_class_string();		// c_string.cu
-    guru_init_class_array();		// c_array.cu
-    guru_init_class_hash();			// c_hash.cu
+    guru_init_class_range();		// c_range.cu	xb
+    guru_init_class_string();		// c_string.cu	xc
+    guru_init_class_array();		// c_array.cu	xd
+    guru_init_class_hash();			// c_hash.cu	xe
 
 #if GURU_USE_MATH
     guru_init_class_math();
 #endif // GURU_USE_MATH
+}
 
-    // duplicate module methods
-    GP cls = guru_rom_get_class(GT_CLASS);
-    GS xid = guru_rom_add_sym("Module");
-    GP mod = guru_define_class(NULL, xid, guru_rom_get_class(GT_OBJ));
-    guru_class *mx = _CLS(mod);
+__GURU__ void
+_setup_for_module(void)
+{
+    // duplicate module as class
+	GS mid = guru_rom_add_sym("Module");
+	GP obj = guru_rom_get_class(GT_OBJ);
+	GP cls = guru_rom_get_class(GT_CLASS);
 
-    *mx     = *_CLS(cls);
-    mx->cid = xid;
+	GR *r  = (GR*)guru_alloc(sizeof(GR));		// TODO: utilize GT_ITER class block (which is not used)
+	r->gt  = GT_CLASS;
+	r->acl = 0;
+	r->off = cls;
+
+	const_set(obj, mid, r);
 }
 
 __GPU__ void
@@ -528,7 +535,8 @@ guru_core_init(void)
 	if (blockIdx.x!=0 || threadIdx.x!=0) return;
 
 	guru_rom_init();
-	_install_all_class();			// TODO: load image into context memory
+	_install_all_class();						// TODO: load image into context memory
+	_setup_for_module();
 
 #if CC_DEBUG
 	guru_rom *rom = &guru_device_rom;

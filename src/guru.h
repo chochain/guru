@@ -72,13 +72,13 @@ typedef enum {
 
     /* non-primitive */
     GT_OBJ 		= 0xa,
-    GT_ARRAY,
-    GT_STR,
     GT_RANGE,
+    GT_STR,
+    GT_ARRAY,
     GT_HASH,
     GT_ITER,
 
-    GT_MAX      = 0x10
+    GT_MAX       = 0x10
 } GT;
 
 #define GT_BOOL(v)		((v) ? GT_TRUE : GT_FALSE)
