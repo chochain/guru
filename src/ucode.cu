@@ -286,19 +286,29 @@ _scan_class(guru_vm *vm, GS cid)				// In Ruby, class is a constant, too
 }
 
 __GURU__ __INLINE__ GP
-_const_scope(GR *r)
+_const_scope(guru_vm *vm)
 {
-	return (r->gt==GT_CLASS) ? r->off : GR_OBJ(r)->klass;
+    GP cls = VM_STATE(vm)->klass;
+
+    guru_class *cx = _CLS(cls);
+
+    return IS_EXTENDED(cx) ? cx->klass : cls;
 }
 
+//================================================================
+/*!@brief
+  OP_GETCONST
+
+  R(A) = constget(Syms(Bx))
+*/
 __UCODE__
 uc_getconst(guru_vm *vm)
 {
     GS cid = VM_SYM(vm, vm->bx);
 	if (_scan_class(vm, cid)) return;				// see whether it's a class
 
-    GP  cls = VM_STATE(vm)->klass;
-    GR  ret = NIL;
+    GP cls = _const_scope(vm);
+    GR ret = NIL;
     while (cls) {
     	guru_class *cx = _CLS(cls);
     	GP         mls = cx->csrc;
@@ -321,7 +331,7 @@ uc_setconst(guru_vm *vm)
 {
 	GS  sid = VM_SYM(vm, vm->bx);
 	GR  *ra = _R(a);
-	GP  cls = VM_STATE(vm)->klass;
+	GP  cls = _const_scope(vm);
 
 	ra->acl &= ~ACL_HAS_REF;						// set it to constant
 
@@ -340,7 +350,8 @@ uc_getmcnst(guru_vm *vm)
     GS cid = VM_SYM(vm, vm->bx);
 	if (_scan_class(vm, cid)) return;				// see whether it's a class
 
-	GP cls = _const_scope(_R(a));
+	GR *r  = _R(a);
+	GP cls = (r->gt==GT_CLASS) ? r->off : GR_OBJ(r)->klass;
 	GR ret = NIL;
     while (cls) {
     	guru_class *cx = _CLS(cls);
@@ -363,10 +374,10 @@ uc_setmcnst(guru_vm *vm)
 {
 	GS sid = VM_SYM(vm, vm->bx);
 	GR *ra = _R(a);
-	GR *rm = ra + 1;
-	GP cls = _const_scope(rm);
+	GR *r1 = ra + 1;
+	GP cls = (r1->gt==GT_CLASS) ? r1->off : GR_OBJ(r1)->klass;
 
-	rm->acl &= ~ACL_HAS_REF;				// set it to constant
+	ra->acl &= ~ACL_HAS_REF;							// set it to constant
 
     const_set(cls, sid, ra);
 }

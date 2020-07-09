@@ -17,8 +17,6 @@ class Hexagram
 end
 
 module HexSet
-    class << self; attr_accessor :set, :kmap, :hmap; end
-
     GUA = %w(地 雷 水 澤 山 火 風 天)
     H64 = %w(
     天天乾　 地地坤　 水雷屯　 山水蒙　 水天需　 天水訟　 地水師　 水地比　

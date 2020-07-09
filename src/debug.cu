@@ -38,7 +38,7 @@ __id2str(GS sid, U8 *str)
 #if GURU_DEBUG
 static const char *_vtype[] = {
 	"___","nil","f  ","t  ","num","flt","sym","err",	// 0x0-0x7
-	"cls","prc","obj","ary","str","rng","hsh","itr"     // 0x8-0xf
+	"cls","prc","obj","rng","str","ary","hsh","itr"     // 0x8-0xf
 };
 
 static const char *_errcode[] = {
@@ -212,7 +212,7 @@ _show_decode(guru_state *st, GAR ar)
 	case OP_ARRAY:
 	case OP_HASH:
 		if (ar.c<1)		printf(" r%-2d < %-17s", a, op==OP_ARRAY ? "[]" : "{}");
-		else			printf(" r%-2d <r%-2d..r%-12d", a, ar.b, ar.b+ar.c-1);
+		else			printf(" r%-2d <r%-2d..r%-10d", a, ar.b, ar.b+ar.c-1);
 		return;
 	case OP_ARYCAT:
 	case OP_ARYPUSH:    printf(" r%-2d <r%-17d", a, ar.b);							return;
