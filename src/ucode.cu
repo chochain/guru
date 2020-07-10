@@ -392,7 +392,7 @@ _upvar(guru_vm *vm)
 {
 	guru_state *st = VM_STATE(vm);
 	for (int i=0; i<=vm->c; i++) {						// walk up stack frame
-		st = IN_LAMBDA(st)
+		st = IN_CALL(st)
 			? _STATE(st->prev)
 			: _STATE(_STATE(st->prev)->prev);			// 1 extra for each_loop
 	}
@@ -638,7 +638,7 @@ uc_return(guru_vm *vm)
 		vm_state_pop(vm, *ra);					// pop off ITERATOR state and transfer last returned value
 		ret = *_R0;								// capture return value from inner loop
 	}
-	else if (IN_LAMBDA(st)) {
+	else if (IN_CALL(st)) {
 		vm_state_pop(vm, *ra);					// pop off LAMBDA state, transfer current stack top value
 	}
 	else if (IS_NEW(st)) {

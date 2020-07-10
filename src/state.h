@@ -60,14 +60,14 @@ typedef struct RState {			// 20-byte
 //
 #define STATE_LOOP				0x1
 #define STATE_COLLECT			0x2
-#define STATE_LAMBDA			0x4
+#define STATE_CALL				0x4
 #define STATE_NEW				0x8
 
 #define IN_LOOP(st)				((st)->prev && (_STATE((st)->prev)->flag & STATE_LOOP))
-#define IN_LAMBDA(st)			((st)->prev && (_STATE((st)->prev)->flag & STATE_LAMBDA))
+#define IN_CALL(st)				((st)->prev && (_STATE((st)->prev)->flag & STATE_CALL))
 #define IS_LOOP(st)				((st)->flag & STATE_LOOP)
 #define IS_COLLECT(st)			((st)->flag & STATE_COLLECT)
-#define IS_LAMBDA(st)			((st)->flag & STATE_LAMBDA)
+#define IS_CALL(st)				((st)->flag & STATE_CALL)
 #define IS_NEW(st)				((st)->flag & STATE_NEW)
 
 //============================================================================================

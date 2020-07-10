@@ -55,7 +55,7 @@ _exec(guru_vm *vm, GR r[], S32 ri, GP prc)
     	_CALL(prc, r, ri);							// call C-based function
     	_wipe_stack(r+1, ri+1);
     }
-    VM_STATE(vm)->flag &= ~(STATE_LOOP|STATE_LAMBDA);
+    VM_STATE(vm)->flag &= ~(STATE_LOOP|STATE_CALL);
 
     return 0;
 }
@@ -72,7 +72,7 @@ _call(guru_vm *vm, GR r[], S32 ri)
 	if (AS_LAMBDA(px)) {
 		guru_state *st = VM_STATE(vm);
 		vm_state_push(vm, st->irep, st->pc, regs, ri);	// save current stack frame
-		VM_STATE(vm)->flag |= STATE_LAMBDA;			// vm->state changed
+		VM_STATE(vm)->flag |= STATE_CALL;			// vm->state changed
 		vm_state_push(vm, irep, 0, r, ri);			// switch into lambda using closure stack frame
 	}
 	else if (AS_IREP(px)){
@@ -236,7 +236,7 @@ vm_state_push(guru_vm *vm, GP irep, U32 pc, GR r[], S32 ri)
     st->prev  = vm->state;			// push current state into context stack
 
     if (top) {						// keep stack frame depth
-    	top->nv = IN_LAMBDA(st) ? GR_PRC(r)->n : vm->a;
+    	top->nv = IN_CALL(st) ? GR_PRC(r)->n : vm->a;
     }
     else {
     	st->nv = ((guru_irep*)MEMPTR(irep))->nr;			// top most stack frame depth
@@ -257,7 +257,7 @@ vm_state_pop(guru_vm *vm, GR ret_val)
 {
     guru_state 	*st = VM_STATE(vm);
 
-    if (!IS_LAMBDA(st)) {
+    if (!IS_CALL(st)) {
         guru_irep  *irep = (guru_irep*)MEMPTR(st->irep);
         GR         *regs = _REGS(st);
     	if (ret_val.off!=regs->off) {					// keep ref cnt when object returns itself, i.g. new()

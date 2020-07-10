@@ -68,7 +68,7 @@ class Ucode::Impl
     {
     	guru_state *st = VM_STATE(_vm);
         for (int i=0; i<=_vm->c; i++) {						// walk up stack frame
-            st = IN_LAMBDA(st)
+            st = IN_CALL(st)
                 ? _STATE(st->prev)
                 : _STATE(_STATE(st->prev)->prev);			// 1 extra for each_loop
         }
@@ -548,7 +548,7 @@ class Ucode::Impl
             _sm->pop_state(ret);					// pop off ITERATOR state
             ret = *_R0;								// return the object itself
         }
-        else if (IN_LAMBDA(st)) {
+        else if (IN_CALL(st)) {
             _sm->pop_state(ret);					// pop off LAMBDA state
         }
         else if (IS_NEW(st)) {

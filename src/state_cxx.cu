@@ -88,7 +88,7 @@ class StateMgr::Impl
 		if (AS_LAMBDA(px)) {
 			guru_state *st = VM_STATE(_vm);
 			push_state(st->irep, st->pc, regs, ri);		// switch into callee's context
-			VM_STATE(_vm)->flag |= STATE_LAMBDA;		// vm->state changed
+			VM_STATE(_vm)->flag |= STATE_CALL;			// vm->state changed
 			push_state(irep, 0, r, ri);					// switch into lambda using closure stack frame
 		}
 		else if (AS_IREP(px)){
@@ -246,7 +246,7 @@ public:
 	{
 	    guru_state 	*st = VM_STATE(_vm);
 
-	    if (!(st->flag & STATE_LAMBDA)) {
+	    if (!(st->flag & STATE_CALL)) {
 	        guru_irep  *irep = (guru_irep*)MEMPTR(st->irep);
 	        GR         *regs = _REGS(st);
 	    	ref_inc(&ret_val);								// to be referenced by the caller
