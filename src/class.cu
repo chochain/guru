@@ -13,7 +13,7 @@
 #include <stdarg.h>
 #include "guru.h"
 #include "util.h"
-#include "global.h"
+#include "const.h"
 #include "symbol.h"
 #include "mmu.h"
 

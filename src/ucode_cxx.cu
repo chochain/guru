@@ -12,7 +12,7 @@
 #include "guru.h"
 #include "static.h"
 #include "symbol.h"
-#include "global.h"
+#include "const.h"
 #include "mmu.h"
 #include "inspect.h"
 #include "ostore.h"

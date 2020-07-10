@@ -16,7 +16,7 @@
 #include "mmu.h"
 #include "symbol.h"
 #include "static.h"
-#include "global.h"
+#include "const.h"
 #include "class.h"
 
 #include "console.h"

@@ -25,7 +25,7 @@
 #include "c_range.h"
 
 #include "base.h"
-#include "global.h"
+#include "const.h"
 #include "static.h"
 #include "object.h"
 

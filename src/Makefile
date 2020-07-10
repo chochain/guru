@@ -49,7 +49,7 @@ main.o: main.c gurux.h
 
 util.o: util.cu			vm_config.h util.h
 
-global.o: global.cu	    vm_config.h guru.h global.h
+const.o: const.cu	    vm_config.h guru.h const.h
 
 mmu32.o: mmu32.cu   	$(_CORE) mmu32.h
 
@@ -75,7 +75,7 @@ guru_test.o: guru_test.cu $(_CORE) helper_cuda.h helper_string.h
 
 guru.o: guru.cu         $(_CORE) vmx.h
 
-class.o: class.cu	    $(_CORE) class.h global.h symbol.h
+class.o: class.cu	    $(_CORE) class.h const.h symbol.h
 
 static.o: static.cu	    $(_CORE) class.h static.h
 

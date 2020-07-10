@@ -32,8 +32,8 @@
 #define VM_REGFILE_SIZE 	128
 
 /* max objects in symbol and global/constant caches allowed */
+#define MAX_CONST_COUNT 	64
 #define MAX_SYMBOL_COUNT 	256
-#define MAX_GLOBAL_COUNT 	64
 
 /* Guru can minimize usage for micro device */
 #define GURU_USE_STRING 	1
