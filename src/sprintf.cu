@@ -21,8 +21,6 @@
 #include "console.h"
 #include "sprintf.h"
 
-#define PRINT_BUFSIZE	128		// local memory
-
 //================================================================
 /*! initialize data container.
 
@@ -69,8 +67,8 @@ _done(guru_print *pf)
 /*! sprintf subcontract function
 
   @param  pf	pointer to guru_print
-  @retval 0	(format string) done.
-  @retval 1	found a format identifier.
+  @retval 0		(format string) done.
+  @retval 1		found a format identifier.
   @retval -1	buffer full.
   @note		not terminate ('\0') buffer tail.
 */
@@ -134,7 +132,7 @@ PARSE_WIDTH:
   @note		not terminate ('\0') buffer tail.
 */
 __GURU__ S32
-__char(guru_print *pf, U8 ch)
+_char(guru_print *pf, U8 ch)
 {
     if (pf->fmt.minus) {
         if (_size(pf)) *pf->p++ = ch;
@@ -161,7 +159,7 @@ __char(guru_print *pf, U8 ch)
   @retval -1	buffer full.
 */
 __GURU__ int
-__float(guru_print *pf, double value)
+_float(guru_print *pf, double value)
 {
     U8  fstr[16];
     U8 *p0 = (U8*)pf->fstr;
@@ -173,8 +171,7 @@ __float(guru_print *pf, double value)
     // TODO: 20181025 format print float
     //snprintf(pf->p, (pf->buf_end - pf->p + 1), p1, value);
 
-    while (*pf->p != '\0')
-        pf->p++;
+    while (*pf->p != '\0') pf->p++;
 
     return _size(pf);
 }
@@ -191,7 +188,7 @@ __float(guru_print *pf, double value)
   @note		not terminate ('\0') buffer tail.
 */
 __GURU__ S32
-__str(guru_print *pf, U8 *str, U8 pad)
+_str(guru_print *pf, U8 *str, U8 pad)
 {
 	U32 len = STRLENB(str);
     S32 ret = 0;
@@ -209,13 +206,15 @@ __str(guru_print *pf, U8 *str, U8 pad)
     ASSERT(tw  <= _size(pf));
 
     S32 n_pad = tw - len;
+    S32 minus = pf->fmt.minus;
 
-    if (!pf->fmt.minus) {							// right padding
+    if (!minus) {										// left padding
     	MEMSET(pf->p, pad, n_pad);	pf->p += n_pad;
     }
     MEMCPY(pf->p, str, len);	pf->p += len;
-    MEMSET(pf->p, pad, n_pad);	pf->p += n_pad;		// left padding
-
+    if (minus) {
+    	MEMSET(pf->p, pad, n_pad);	pf->p += n_pad;		// right padding
+    }
     return ret;
 }
 
@@ -230,7 +229,7 @@ __str(guru_print *pf, U8 *str, U8 pad)
   @note		not terminate ('\0') buffer tail.
 */
 __GURU__ S32
-__int(guru_print *pf, GI value, U32 base)
+_int(guru_print *pf, GI value, U32 base)
 {
     U32 sign = 0;
     U32 v = value;			// (note) Change this when supporting 64 bit.
@@ -246,7 +245,7 @@ __int(guru_print *pf, GI value, U32 base)
         }
     }
     if (pf->fmt.minus || pf->fmt.width == 0) {
-        pf->fmt.zero = 0; 	// disable zero padding if left align or width zero.
+        pf->fmt.zero = 0; 		// disable zero padding if left align or width zero.
     }
     pf->fmt.prec = 0;
 
@@ -271,130 +270,99 @@ __int(guru_print *pf, GI value, U32 base)
             if (!_size(pf)) return -1;
             pf->fmt.width--;
         }
-    } else {
+    }
+    else {
         pad = ' ';
         if (sign) *--p = sign;
     }
-    return __str(pf, (U8*)p, pad);
+    return _str(pf, (U8*)p, pad);
 }
 
 //================================================================
 /*! output formatted string
 
+  @param  buf       output buffer
   @param  fstr		format string.
 */
 __GURU__ void
-guru_printf(const U8 *fstr, ...)
+guru_printf(U8 *buf, const U8 *fstr, ...)
 {
-	U8 buf[PRINT_BUFSIZE];
     va_list ap;
     va_start(ap, fstr);
 
-    U32 ret = 0;
-    guru_print pa, *pf = _init(&pa, buf, PRINT_BUFSIZE, fstr);
+    U32 x = 0;
+    guru_print pa, *pf = _init(&pa, buf, GURU_STRBUF_SIZE, fstr);
 
-    while (ret==0 && _next(pf)) {
+    while (x==0 && _next(pf)) {
     	switch(pf->fmt.type) {
-        case 'c': ret = __char(pf, va_arg(ap, int));        	 	break;
-        case 's': ret = __str(pf, va_arg(ap, U8 *), ' '); 	 		break;
+        case 'c': x = _char(pf, va_arg(ap, int));        	 	break;
+        case 's': x = _str(pf, va_arg(ap, U8 *), ' '); 	 		break;
         case 'd':
         case 'i':
-        case 'u': ret = __int(pf, va_arg(ap, unsigned int), 10); 	break;
+        case 'u': x = _int(pf, va_arg(ap, unsigned int), 10); 	break;
         case 'b':
-        case 'B': ret = __int(pf, va_arg(ap, unsigned int), 2);  	break;
+        case 'B': x = _int(pf, va_arg(ap, unsigned int), 2);  	break;
         case 'x':
-        case 'X': ret = __int(pf, va_arg(ap, unsigned int), 16); 	break;
+        case 'X': x = _int(pf, va_arg(ap, unsigned int), 16); 	break;
 #if GURU_USE_FLOAT
         case 'f':
         case 'e':
         case 'E':
         case 'g':
-        case 'G': ret = __float(pf, va_arg(ap, double)); 		 	break;
+        case 'G': x = _float(pf, va_arg(ap, double)); 		 	break;
 #endif // GURU_USE_FLOAT
-        default:
-            console_str("?format: ");
-            console_char(pf->fmt.type);
-            console_str("\n");
-            break;
+        default: x=0;
         }
     }
     va_end(ap);
     _done(pf);
-
-    console_str(pf->buf);
 }
 
 __GURU__ void
-guru_vprintf(const U8 *fstr, GR r[], S32 ri)		// << from c_string.cu
+guru_vprintf(U8 *buf, const U8 *fstr, GR r[], S32 ri)
 {
-	U8  buf[PRINT_BUFSIZE];
-    U32 i   = 0;
-    U32 ret = 0;
-    guru_print pa, *pf = _init(&pa, buf, PRINT_BUFSIZE, fstr);
+    U32 i = 0;
+    U32 x = 0;
+    guru_print pa, *pf = _init(&pa, buf, GURU_STRBUF_SIZE, fstr);
 
-    while (ret==0 && _next(pf)) {
+    while (x==0 && _next(pf)) {
         if (i > ri) {
-        	console_str("#guru_vprint ArgumentError\n");
+        	NA("#guru_vprint ArgumentError\n");
         }
+    	GR *v = r + i++;
         switch(pf->fmt.type) {
-        case 'c':
-            if (r[i].gt==GT_INT) {
-                ret = __char(pf, r[i].i);
-            }
-            break;
+        case 'c': x = v->gt==GT_INT ? _char(pf, v->i) : 0;				break;
         case 's':
-            if (r[i].gt==GT_STR) {
-                ret = __str(pf, GR_RAW(r+i), ' ');
-            }
-            else if (r[i].gt==GT_SYM) {
-                ret = __str(pf, _RAW(r[i].i), ' ');
-            }
+        	x = v->gt==GT_STR
+        	  ? _str(pf, GR_RAW(v), ' ')
+        	  : (v->gt==GT_SYM ? _str(pf, _RAW(v->i), ' ') : 0);
             break;
         case 'd':
         case 'i':
         case 'u':
-            if (r[i].gt==GT_INT) {
-                ret = __int(pf, r[i].i, 10);
-#if GURU_USE_FLOAT
-            } else if (r[i].gt==GT_FLOAT) {
-                ret = __int(pf, (GI)r[i].f, 10);
-#endif // GURU_USE_FLOAT
-            } else if (r[i].gt==GT_STR) {
-                GI ival = ATOI(GR_RAW(r+i), 10);
-                ret = __int(pf, ival, 10);
-            }
-            break;
+        	switch(v->gt) {
+        	case GT_INT: 	x = _int(pf, v->i, 10);						break;
+        	case GT_FLOAT: 	x = _int(pf, (GI)v->f, 10);					break;
+        	case GT_STR:    x = _int(pf, (GI)ATOI(GR_RAW(v), 10), 10);	break;
+        	default: 		x = 0;
+        	} break;
         case 'b':
-        case 'B':
-            if (r[i].gt==GT_INT) {
-                ret = __int(pf, r[i].i, 2);
-            }
-            break;
+        case 'B': x = v->gt==GT_INT ? _int(pf, v->i,  2) : 0;			break;
         case 'x':
-        case 'X':
-            if (r[i].gt==GT_INT) {
-                ret = __int(pf, r[i].i, 16);
-            }
-            break;
+        case 'X': x = v->gt==GT_INT ? _int(pf, v->i, 16) : 0;			break;
 #if GURU_USE_FLOAT
         case 'f':
         case 'e':
         case 'E':
         case 'g':
         case 'G':
-            if (r[i].gt==GT_FLOAT) {
-                ret = __float(pf, r[i].f);
-            }
-            else if (r[i].gt==GT_INT) {
-            	ret = __float(pf, r[i].i);
-            }
+        	x = (v->gt==GT_FLOAT)
+        		? _float(pf, v->f)
+        		: (v->gt==GT_INT ? _float(pf, v->i) : 0);
             break;
 #endif // GURU_USE_FLOAT
         default: break;
         }
-        i++;
     }
     _done(pf);
-
-    console_str(pf->buf);
 }

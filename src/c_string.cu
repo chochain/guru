@@ -16,8 +16,10 @@
 
 #include "base.h"
 #include "static.h"
+#include "sprintf.h"		// guru_vprintf
 
 #include "c_range.h"
+#include "c_array.h"
 #include "c_string.h"
 
 #if !GURU_USE_STRING
@@ -49,13 +51,27 @@ _is_space(U8 ch)
     return false;
 }
 
+__GURU__ __INLINE__ void
+_next_utf8(char **sp)
+{
+	char c = **sp;
+	int  b = 0;
+	if      (c>0 && c<=127) 		b=1;
+	else if ((c & 0xE0) == 0xC0) 	b=2;
+	else if ((c & 0xF0) == 0xE0) 	b=3;
+	else if ((c & 0xF8) == 0xF0) 	b=4;
+	else *sp=NULL;					// invalid utf8
+
+	*sp+=b;
+}
+
 //================================================================
 /*! get size
  */
 __GURU__ __INLINE__ U32
 _sz(const GR *r)
 {
-    return GR_STR(r)->sz;
+	return GR_STR(r)->sz;
 }
 
 //================================================================
@@ -134,15 +150,18 @@ _dup(const GR *r0)
 __GURU__ S32
 _index(const GR *r, const GR *pattern, U32 offset)
 {
-    U8  *p0 = GR_RAW(r) + offset;
-    U8  *p1 = GR_RAW(pattern);
-    U32 sz  = _sz(pattern);
-    U32 nz  = _sz(r) - sz - offset;
+    U8  *s0 = GR_RAW(pattern);
+    U8  *p  = GR_RAW(r) + offset, *p0 = p;
+    S32 sz  = _sz(pattern);
+    S32 nz  = _sz(r) - offset;
 
-    for (int i=0; nz>0 && i <= nz; i++, p0++) {
-        if (MEMCMP(p0, p1, sz)==0) {
-            return p1 - GR_RAW(r);			// matched.
+    while (nz >= sz) {
+        if (MEMCMP(p, s0, sz)==0) {
+            return p - GR_RAW(r);					// matched.
         }
+        _next_utf8((char**)&p);
+        nz -= (p - p0);
+        p0  = p;
     }
     return -1;
 }
@@ -161,18 +180,18 @@ _strip(GR *r, U32 mode)
 	U8  *p0 = GR_RAW(r), *raw = p0;					// head of string
     U8  *p1 = p0 + sz0 - 1;							// tail of string
 
-    for (; (mode&0x01) && (p0 <= p1); p0++) {			// left-side
+    for (; (mode&0x01) && (p0 <= p1); p0++) {		// left-side
     	if (*p0=='\0') 		 break;
     	if (!_is_space(*p0)) break;
     }
-    for (; (mode&0x02) && (p0 <= p1); p1--) {			// right-side
+    for (; (mode&0x02) && (p0 <= p1); p1--) {		// right-side
     	if (!_is_space(*p1)) break;
     }
     U32 new_sz = p1 - p0 + 1;
     if (new_sz==sz0) return 0;
 
     if (p0 != raw) {
-    	MEMCPY(raw, p0, new_sz);					// hopefully no overstepping
+    	MEMCPY(raw, p0, new_sz);					// hopefully no over stepping
     }
     raw[new_sz] = '\0';
 
@@ -728,22 +747,18 @@ str_inspect(GR r[], S32 ri)
 __CFUNC__
 str_format(GR r[], S32 ri)
 {
-	U32 sz = _sz(r);
+	U8 buf[GURU_STRBUF_SIZE];
+	GR *r1 = r + 1;
+	if (r1->gt==GT_ARRAY) {
+		guru_array *ary = GR_ARY(r1);
+		guru_vprintf(buf, GR_RAW(r), ary->data, ary->n);
+	}
+	else {
+		guru_vprintf(buf, GR_RAW(r), r1, ri-1);
+	}
 
-    if (r[1].gt != GT_INT) {
-        PRINTF("TypeError\n");	// raise?
-        return;
-    }
-    GR ret = _blank(sz * r[1].i);
-
-    U8 *s0 = GR_RAW(r);
-    U8 *s1 = GR_RAW(&ret);
-    for (int i=0; i < r[1].i; i++, s1+=sz) {
-        MEMCPY(s1, s0, sz);
-    }
-    *s1 = '\0';
-
-    RETURN_VAL(ret);
+	GR ret  = _new(buf);
+	RETURN_VAL(ret);
 }
 
 //================================================================

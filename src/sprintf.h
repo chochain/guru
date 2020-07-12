@@ -42,8 +42,8 @@ typedef struct RPrint {
     U8       		*p;					//!< output buffer write point.
 } guru_print;
 
-__GURU__ void guru_printf(const U8 *fstr, ...);							// fstr is always static string (char *)
-__GURU__ void guru_vprintf(const U8 *fstr, GR r[], S32 ri);
+__GURU__ void guru_printf(U8 *buf, const U8 *fstr, ...);					// fstr is always static string (char *)
+__GURU__ void guru_vprintf(U8 *buf, const U8 *fstr, GR r[], S32 ri);
 
 #ifdef __cplusplus
 }
