@@ -154,9 +154,9 @@ _get_irep_id(guru_state *st)
 }
 
 __HOST__ void
-_show_regs(GR *r, S32 ri)
+_show_regs(GR *r, S32 n)
 {
-	for (int i=0; i<ri; i++, r++) {
+	for (int i=0; i<n; i++, r++) {
 		const char *t = _vtype[r->gt];
 		U8  c  = (i==0) ? '|' : ' ';
 		if (HAS_REF(r)) {
@@ -171,20 +171,20 @@ _show_regs(GR *r, S32 ri)
 __HOST__ void
 _show_state_regs(guru_state *st, U32 lvl)
 {
-	if (st->prev) {											// find the top of register file, recursively
-		guru_state *st1 = h_STATE(st->prev);
+	if (st->prev) {											// find the top of register file
+		guru_state *st1 = h_STATE(st->prev);				// recursively, because no st->next
 		_show_state_regs(st1, lvl+1);						// back tracing recursion
 	}
 	U32 n = st->nv;											// depth of current stack frame
 	if (lvl==0) { 											// top most state
 		guru_irep *irep = ST_IREP(st);
-		GR        *x    = ST_REGS(st) + irep->nr;
+		GR *x = ST_REGS(st) + irep->nr;
 		for (n=irep->nr; n>0 && x->gt==GT_EMPTY; n--, x--);	// find first non-empty parameter
 		n++;
 	}
 	GR *r = ST_REGS(st);
-	if (IS_LOOP(st)) _show_regs(r-3, n+1);
-	else			 _show_regs(r,   n);
+	if (IS_LOOP(st)) 	_show_regs(r-3, 3);
+	else				_show_regs(r,   n);
 }
 
 __HOST__ void
@@ -199,7 +199,7 @@ _show_decode(guru_state *st, GAR ar)
 	case OP_MOVE: 		printf(" r%-2d =r%-17d", a, ar.b);							return;
 	case OP_STRING: {
 		guru_str *s0 = h_STR(ST_STR(st, ar.bx)->off);
-		printf(" r%-2d ='%-17s", a, guru_host_heap + s0->raw);
+		printf(" r%-2d ='%-18s", a, guru_host_heap + s0->raw);
 		return;
 	}
 	case OP_LOADI:		printf(" r%-2d =%-18d",  a, ar.bx - MAX_sBx);				return;
@@ -212,7 +212,7 @@ _show_decode(guru_state *st, GAR ar)
 	case OP_ARRAY:
 	case OP_HASH:
 		if (ar.c<1)		printf(" r%-2d < %-17s", a, op==OP_ARRAY ? "[]" : "{}");
-		else			printf(" r%-2d <r%-2d..r%-10d", a, ar.b, ar.b+ar.c-1);
+		else			printf(" r%-2d <r%-2d..r%-12d", a, ar.b, ar.b+ar.c-1);
 		return;
 	case OP_ARYCAT:
 	case OP_ARYPUSH:    printf(" r%-2d <r%-17d", a, ar.b);							return;

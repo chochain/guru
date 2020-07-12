@@ -467,14 +467,15 @@ ary_get(GR r[], S32 ri)
 	GR ret;
 	if (r->gt==GT_ARRAY) {
 		ret = _get(r, ri, r[1].i, r[1].i+r[2].i-1);
+		RETURN_REF(ret);
 	}
 	else {
         ret = guru_array_new(ri);
         for (int i=0; i < ri; i++) {
             _set(&ret, i, r+1+i);
         }
+        RETURN_VAL(ret);
 	}
-	RETURN_VAL(ret);
 }
 
 //================================================================
@@ -568,7 +569,7 @@ ary_first(GR r[], S32 ri)
 {
 	U32 n = r[1].gt==GT_INT;
 	GR  ret = _get(r, n ? 2 : 1, 0, n ? r[1].i-1 : 0);
-	RETURN_VAL(ret);
+	RETURN_REF(ret);
 }
 
 //================================================================
@@ -579,7 +580,7 @@ ary_last(GR r[], S32 ri)
 {
 	U32 n = r[1].gt==GT_INT;
 	GR  ret = _get(r, n ? 2 : 1, n ? -r[1].i : -1, -1);
-	RETURN_VAL(ret);
+	RETURN_REF(ret);
 }
 
 //================================================================
@@ -598,7 +599,8 @@ __CFUNC__
 ary_pop(GR r[], S32 ri)
 {
     if (ri==0) {							// pop() -> object | nil
-        RETURN_VAL(_pop(r));
+    	GR ret = _pop(r);
+        RETURN_REF(ret);
     }
     else if (ri==1 && r[1].gt==GT_INT) {	// pop(n) -> Array | nil
         NA("pop(n)");						// TODO: loop
@@ -640,7 +642,8 @@ __CFUNC__
 ary_shift(GR r[], S32 ri)
 {
     if (ri==0) {							// shift() -> object | nil
-        RETURN_VAL(_shift(r));
+    	GR ret = _shift(r);
+        RETURN_REF(ret);
     }
     else if (ri==1 && r[1].gt==GT_INT) {	// shift() -> Array | nil
         NA("shift(n)");						// TODO: loop
@@ -688,7 +691,10 @@ ary_min(GR r[], S32 ri)
 
     _minmax(r, &min, &max);
 
-    if (min) RETURN_VAL(*min);
+    if (min) {
+    	GR ret = *min;
+    	RETURN_REF(ret);
+    }
 
     RETURN_NIL();
 }
@@ -703,7 +709,10 @@ ary_max(GR r[], S32 ri)
     GR *min, *max;
 
     _minmax(r, &min, &max);
-    if (max) RETURN_VAL(*max);
+    if (max) {
+    	GR ret = *max;
+    	RETURN_REF(ret);
+    }
 
     RETURN_NIL();
 }

@@ -196,8 +196,8 @@ class Debug::Impl
     {
         U32  op = ar.op;
         U32  a  = ar.a;
-        U32  in_lambda = st->prev && (h_STATE(st->prev)->flag & STATE_CALL);
-        U32  up = (ar.c+1)<<(in_lambda ? 0 : 1);
+        U32  in_call = st->prev && (h_STATE(st->prev)->flag & STATE_CALL);
+        U32  up = (ar.c+1)<<(in_call ? 0 : 1);
 
         switch (op) {
         case OP_MOVE: 		printf(" r%-2d =r%-17d", a, ar.b);							return;

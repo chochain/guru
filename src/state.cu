@@ -53,7 +53,7 @@ _exec(guru_vm *vm, GR r[], S32 ri, GP prc)
 #endif // CC_DEBUG
     	r->oid = px->pid;							// parameter pid is passed as object id
     	_CALL(prc, r, ri);							// call C-based function
-    	_wipe_stack(r+1, ri+1);
+    	_wipe_stack(r+1, ri);
     }
     VM_STATE(vm)->flag &= ~(STATE_LOOP|STATE_CALL);
 
@@ -97,10 +97,10 @@ __loop(guru_vm *vm, GR r[], S32 ri, U32 collect)
 	GR *p  = r;
 	*(++p) = collect ? guru_array_new(4) : EMPTY;	// replace prc with map array
 	*(++p) = git;
-	*(++p) = *_REGS(st);
+	*(++p) = *ref_inc(_REGS(st));
 
 	// allocate iterator state (using same stack frame)
-	vm_state_push(vm, st->irep, pc0, p, vm->a);		// use current stack frame
+	vm_state_push(vm, st->irep, pc0, p, px->n);		// use current stack frame
 	VM_STATE(vm)->flag |= STATE_LOOP;
 
 	// switch into callee's context with v[1]=1st element
@@ -217,7 +217,7 @@ vm_state_push(guru_vm *vm, GP irep, U32 pc, GR r[], S32 ri)
 #if CC_DEBUG
 	PRINTF("!!!vm_state_push(%p, x%x, %d, %p, %d)\n", vm, irep, pc, r, ri);
 #endif // CC_DEBUG
-	guru_state  *top = vm->state ? VM_STATE(vm) : NULL;
+	guru_state  *st0 = vm->state ? VM_STATE(vm) : NULL;
     guru_state 	*st  = (guru_state *)guru_alloc(sizeof(guru_state));
 
     ASSERT(st);
@@ -225,7 +225,7 @@ vm_state_push(guru_vm *vm, GP irep, U32 pc, GR r[], S32 ri)
     switch(r->gt) {
     case GT_OBJ:	st->klass = GR_OBJ(r)->klass;	break;
     case GT_CLASS: 	st->klass = r->off;			 	break;
-    case GT_PROC: 	st->klass = _REGS(top)->off; 	break; 	// top->regs[0].off (top != NULL)
+    case GT_PROC: 	st->klass = _REGS(st0)->off; 	break; 	// st0->regs[0].off (st0 != NULL)
     default: ASSERT(1==0);
     }
     st->irep  = irep;
@@ -235,11 +235,11 @@ vm_state_push(guru_vm *vm, GP irep, U32 pc, GR r[], S32 ri)
     st->flag  = 0;					// non-iterator
     st->prev  = vm->state;			// push current state into context stack
 
-    if (top) {						// keep stack frame depth
-    	top->nv = IN_CALL(st) ? GR_PRC(r)->n : vm->a;
+    if (st0) {
+    	st0->nv = IN_CALL(st) ? GR_PRC(r)->n : vm->a;		// some stack above us
     }
     else {
-    	st->nv = ((guru_irep*)MEMPTR(irep))->nr;			// top most stack frame depth
+    	st->nv  = ((guru_irep*)MEMPTR(irep))->nr;			// top most stack frame
     }
     vm->state = MEMOFF(st);			// TODO: use array-based stack
 }
@@ -260,11 +260,8 @@ vm_state_pop(guru_vm *vm, GR ret_val)
     if (!IS_CALL(st)) {
         guru_irep  *irep = (guru_irep*)MEMPTR(st->irep);
         GR         *regs = _REGS(st);
-    	if (ret_val.off!=regs->off) {					// keep ref cnt when object returns itself, i.g. new()
-    		ref_inc(&ret_val);							// to be referenced by the caller
-    		ref_dec(&regs[0]);
-    	}
-    	_wipe_stack(regs+1, irep->nr);
+        ref_inc(&ret_val);								// to be referenced by the caller
+    	_wipe_stack(regs, irep->nr+1);					// clean the stack including reg[0]
     	regs[0] = ret_val;								// put return value on top of current stack
     }
     vm->state = st->prev;								// restore previous state

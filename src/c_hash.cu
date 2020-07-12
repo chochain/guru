@@ -256,7 +256,7 @@ hsh_get(GR r[], S32 ri)
 	ASSERT(ri==1);
 	GR ret = _get(r, r+1);
 
-    RETURN_VAL(ret);
+    RETURN_REF(ret);
 }
 
 //================================================================
@@ -346,7 +346,8 @@ hsh_key(GR r[], S32 ri)
     U32 n  = _size(r);
     for (int i=0; i<n; i++, p+=2) {
         if (guru_cmp(p+1, r+1)==0) {
-            RETURN_VAL(*p);
+        	GR ret = *p;
+            RETURN_REF(ret);
         }
     }
     RETURN_NIL();

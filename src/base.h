@@ -36,6 +36,7 @@ __GURU__ GR 	*ref_inc(GR *r);
 extern __GURU__ GR 	NIL;
 extern __GURU__ GR 	EMPTY;
 
+#define RETURN_REF(v)   { ref_inc(&v); ref_dec(r); *r=(v);      return; }
 #define RETURN_VAL(n)	{ ref_dec(r); *r=(n); 		 			return; }
 #define RETURN_NIL()	{ ref_dec(r); r->acl=0; r->gt=GT_NIL;   return; }
 #define RETURN_FALSE()	{ ref_dec(r); r->acl=0; r->gt=GT_FALSE; return; }
