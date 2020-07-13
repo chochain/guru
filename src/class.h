@@ -23,7 +23,7 @@ extern "C" {
 /*!@brief
   Guru class object.
 */
-typedef struct RClass {			// 32-byte
+typedef struct RClass {			// 40-byte
 	GURU_HDR;
 	GP				ivar;		// (GR*) class-level instance variables
 	GP				klass;		// (RClass*) offset to *metaclass
@@ -31,6 +31,8 @@ typedef struct RClass {			// 32-byte
 	GP				super;		// (RClass*) offset to *guru_class
     GP				mtbl;		// (RProc*) c-func array (in constant memory, rc is the number of functions)
     GP				flist;		// (RProc*) head of guru_proc linked list
+    GP				ns;			// namespace
+    GP				xxx;		// reserved
 } guru_class;
 
 #define CLASS_BUILTIN	0x1
@@ -64,7 +66,7 @@ typedef struct RProc {		// 32-byte
 #define AS_IREP(px)		((px)->kt & PROC_IREP)
 #define AS_LAMBDA(px)	((px)->kt & PROC_LAMBDA)
 
-__GURU__ GP 	guru_define_class(guru_class *cx, GS cid, GP super);
+__GURU__ GP 	guru_define_class(guru_class *cx, GS cid, GP super, GP nspace);
 __GURU__ GP		guru_class_include(GP super, GP mod);
 __GURU__ GP 	guru_create_metaclass(GR *r);			// add metaclass to a class or an object
 
@@ -72,7 +74,7 @@ __GURU__ GP 	guru_create_metaclass(GR *r);			// add metaclass to a class or an o
 __GURU__ GR 	inspect(GR *v, GR *obj);				// inspect obj using v[] as stack
 __GURU__ GR 	kind_of(GR *v);							// whether v1 is a kind of v0
 __GURU__ GP		find_class_by_obj(GR *v);
-__GURU__ GP		find_class_by_id(GS cid);
+__GURU__ GP		find_class_by_id(GS cid, GP nspace);
 __GURU__ GP  	find_proc(GR *v, GS pid);
 
 #ifdef __cplusplus
@@ -97,10 +99,10 @@ public:
 	__GURU__ GP	define_method(GP cls, const U8 *name, GP cfunc);
 
 	// common class functions
-	__GURU__ GR	inspect(GR *v, GR *obj);				// inspect obj using v[] as stack
-	__GURU__ GR	kind_of(GR *v);							// whether v1 is a kind of v0
+	__GURU__ GR	inspect(GR *v, GR *obj);						// inspect obj using v[] as stack
+	__GURU__ GR	kind_of(GR *v);									// whether v1 is a kind of v0
 	__GURU__ GP	find_class_by_obj(GR *v);
-	__GURU__ GP find_class_by_id(GS cid);
+	__GURU__ GP find_class_by_id(GS cid, GP ns);				// find class in namespace
 	__GURU__ GP	find_proc(GR *v, GS pid);
 	__GURU__ GR send(GR r[], GR *rcv, const U8 *method, U32 argc, ...);
 };

@@ -113,7 +113,8 @@ guru_rom_add_class(GT cidx, const char *name, GT super_cidx, const Vfunc mtbl[],
 	guru_class *cx = _CLS(_rom->cls) + cidx;			// offset from _rom->cls
 	GP cid    = guru_rom_add_sym(name);
 	GP scls   = super_cidx ? guru_rom_get_class(super_cidx) : 0;	// 0: Object (root) class
-    GP cls    = guru_define_class(cx, cid, scls);
+	GP ns     = guru_rom_get_class(GT_OBJ);
+    GP cls    = guru_define_class(cx, cid, scls, ns);
 
     cx->kt   |= CLASS_BUILTIN;
     cx->rc    = n;										// number of built-in functions
@@ -153,7 +154,7 @@ guru_define_method(GP cls, const U8 *name, GP cfunc)
 #endif // GURU_DEBUG
 
     guru_proc  *px  = _PRC(_rom->prc) + _rom->nprc++;
-    guru_class *cx = _CLS(cls);
+    guru_class *cx  = _CLS(cls);
 
     px->rc = px->kt = px->n = 0;				// No LAMBDA register file, C-function (from BUILT-IN class)
     px->pid   = name ? guru_rom_add_sym((char*)name) : 0xffff;

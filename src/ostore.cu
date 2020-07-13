@@ -213,7 +213,8 @@ ostore_set(GR *r, GS oid, GR *val)
 	guru_obj *o = GR_OBJ(r);				// NOTE: guru_obj->ivar, guru_class->ivar share the same struct
 	if (!o->ivar) {
 		o->ivar = MEMOFF(guru_gr_alloc(4));	// lazy allocation
-	    o->sz   = 4;						// number of local variables
+	    o->sz   = 4;						// space allocated for local variables
+	    o->n    = 0;						// local variable count
 	}
 
 #if !GURU_DEBUG

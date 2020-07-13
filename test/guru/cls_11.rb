@@ -2,9 +2,10 @@
 # module/class namespace
 #
 module M
+    X = 123
     class A
         def a
-            123
+            X
         end
     end
     def m

@@ -277,9 +277,9 @@ uc_setcv(guru_vm *vm)
   R(A) := constget(Syms(Bx))
 */
 __GURU__ __INLINE__ U32
-_scan_class(guru_vm *vm, GS cid)				// In Ruby, class is a constant, too
+_scan_class(guru_vm *vm, GS cid, GP ns)					// In Ruby, class is a constant, too
 {
-    GP cls = find_class_by_id(cid);				// search class rom first
+    GP cls = find_class_by_id(cid, ns);					// search class rom first
     GR ret = { GT_CLASS, 0, 0, { cls } };
 
     return cls ? (_RA(ret), 1) : 0;
@@ -305,9 +305,9 @@ __UCODE__
 uc_getconst(guru_vm *vm)
 {
     GS cid = VM_SYM(vm, vm->bx);
-	if (_scan_class(vm, cid)) return;				// see whether it's a class
-
     GP cls = _const_scope(vm);
+	if (_scan_class(vm, cid, cls)) return;				// see whether it's a class
+
     GR ret = NIL;
     while (cls) {
     	guru_class *cx = _CLS(cls);
@@ -347,11 +347,11 @@ uc_setconst(guru_vm *vm)
 __UCODE__
 uc_getmcnst(guru_vm *vm)
 {
-    GS cid = VM_SYM(vm, vm->bx);
-	if (_scan_class(vm, cid)) return;				// see whether it's a class
-
 	GR *r  = _R(a);
+    GS cid = VM_SYM(vm, vm->bx);
 	GP cls = (r->gt==GT_CLASS) ? r->off : GR_OBJ(r)->klass;
+	if (_scan_class(vm, cls, cid)) return;				// see whether it's a class
+
 	GR ret = NIL;
     while (cls) {
     	guru_class *cx = _CLS(cls);
@@ -1241,10 +1241,11 @@ uc_class(guru_vm *vm)
 {
 	GR *r1 = _R(a)+1;
     GS cid = VM_SYM(vm, vm->b);
-    GP cls = find_class_by_id(cid);
-    if (!cls) {
-        GP super = (r1->gt==GT_CLASS) ? r1->off : VM_STATE(vm)->klass;
-    	cls = guru_define_class(NULL, cid, super);
+    GP ns  = _const_scope(vm);
+    GP cls = find_class_by_id(cid, ns);									// search named class in domain
+    if (!cls) {															// create new if not found
+        GP super = (r1->gt==GT_CLASS) ? r1->off : VM_STATE(vm)->klass;	// super class
+    	cls = guru_define_class(NULL, cid, super, ns);
     }
     _RA_T(GT_CLASS, off=cls);
 	*r1 = EMPTY;
@@ -1260,8 +1261,9 @@ __UCODE__
 uc_module(guru_vm *vm)
 {
 	GS cid = VM_SYM(vm, vm->b);
-	GP cls = find_class_by_id(cid);				// check whether the class exists
-	GP mod = cls ? cls : guru_define_class(NULL, cid, guru_rom_get_class(GT_OBJ));
+	GP ns  = _const_scope(vm);
+	GP cls = find_class_by_id(cid, ns);		// check whether the class exists
+	GP mod = cls ? cls : guru_define_class(NULL, cid, guru_rom_get_class(GT_OBJ), ns);
 
     _RA_T(GT_CLASS, off=mod);
 }

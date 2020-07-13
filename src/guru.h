@@ -201,7 +201,9 @@ typedef struct RSymbol {		// Symbol container
     n   : Array, Hash actual number of elements in built-in object, or
         : Proc parameter count
         : Iterator range object type (i.e. GT_*)
+        : Class variable count
     sz  : storage space for built-in complex objects (i.e. Array, Hash, String)
+        : storage space for Class variables
     bsz : byte count for string
     pid : proc id for Proc
     cid : class id for Class, Proc

@@ -43,16 +43,18 @@ __GURU__ U32
 _exec(guru_vm *vm, GR r[], S32 ri, GP prc)
 {
     guru_proc *px = _PRC(prc);
-    if (AS_IREP(px)) {								// a Ruby-based IREP
-    	vm_state_push(vm, px->irep, 0, r, ri);		// switch to callee's context
-    	VM_STATE(vm)->klass = find_class_by_id(px->cid);	// TODO: this is a hack! should fix #vm_state_push
+    if (AS_IREP(px)) {									// a Ruby-based IREP
+    	GP ns  = VM_STATE(vm)->klass;
+    	GP cls = find_class_by_id(px->cid, ns);			// TODO: this is a hack! should fix #vm_state_push
+    	vm_state_push(vm, px->irep, 0, r, ri);			// switch to callee's context
+    	if (cls) VM_STATE(vm)->klass = cls;
     }
-    else {											// must be a C-function
+    else {												// must be a C-function
 #if CC_DEBUG
     	PRINTF("!!!_CALL(x%x, %p, %d)\n", prc, r, ri);
 #endif // CC_DEBUG
-    	r->oid = px->pid;							// parameter pid is passed as object id
-    	_CALL(prc, r, ri);							// call C-based function
+    	r->oid = px->pid;								// parameter pid is passed as object id
+    	_CALL(prc, r, ri);								// call C-based function
     	_wipe_stack(r+1, ri);
     }
     VM_STATE(vm)->flag &= ~(STATE_LOOP|STATE_CALL);

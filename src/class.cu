@@ -83,12 +83,14 @@ kind_of(GR *r)		// whether v1 is a kind of v0
 }
 
 __GURU__ GP
-find_class_by_id(GS cid)
+find_class_by_id(GS cid, GP nspace)
 {
 	guru_class *cx = _CLS(guru_device_rom.cls);
 	for (int i=0; i<guru_device_rom.ncls; i++, cx++) {
-		if (cx->cid == cid) {
-			return MEMOFF(cx);
+		for (GP ns=nspace; ns; ns=_CLS(ns)->super) {			// search up class hierarchy
+			if (cx->ns==ns && cx->cid==cid) {
+				return MEMOFF(cx);
+			}
 		}
 	}
 	return 0;
@@ -233,9 +235,10 @@ find_proc(GR *r, GS pid)
 
   @param  name		class name.
   @param  super		super class.
+  @param  ns        name space (used in module)
 */
 __GURU__ GP
-guru_define_class(guru_class *cx, GS cid, GP super)		// fill the ROM class storage
+guru_define_class(guru_class *cx, GS cid, GP super, GP nspace)		// fill the ROM class storage
 {
 	if (!cx) {
 		ASSERT(guru_device_rom.ncls < MAX_ROM_CLASS);
@@ -247,9 +250,10 @@ guru_define_class(guru_class *cx, GS cid, GP super)		// fill the ROM class stora
     cx->ivar   = 0;								// class variables, lazily allocated when needed
     cx->klass  = 0;								// meta-class, lazily allocated when needed
     cx->csrc   = MEMOFF(cx);					// keep class id for constant lookup
-    cx->super  = super;
-    cx->mtbl   = 0;
-    cx->flist  = 0;								// head of list
+    cx->super  = super;							// super class
+    cx->mtbl   = 0;								// vfunction table
+    cx->flist  = 0;								// head of linked list to user defined methods
+	cx->ns     = nspace;						// class namespace
 
     return MEMOFF(cx);
 }
@@ -295,7 +299,7 @@ _cls_meta(GR *r)									// add metaclass to a class
 	guru_class *mcx = (guru_class*)guru_alloc(sizeof(guru_class));
 
 	GP skls = scx->klass ? scx->klass : guru_rom_get_class(GT_OBJ);
-	GP mkls = guru_define_class(mcx, cx->cid, skls);
+	GP mkls = guru_define_class(mcx, cx->cid, skls, skls);
 
 	if ((r+1)->gt == GT_CLASS) {					// extend module
 		mcx->csrc = (r+1)->off;						// point to the original module, instead of the dup
@@ -317,7 +321,7 @@ _obj_meta(GR *r)
 	guru_class *cx  = _CLS(kls);
 	if (IS_SINGLETON(cx)) return kls;				// return if exists already
 
-	GP skls = guru_define_class(NULL, cx->cid, kls);
+	GP skls = guru_define_class(NULL, cx->cid, kls, kls);
 	_CLS(skls)->kt |= CLASS_SINGLETON;
 
 	return obj->klass = skls;						// set singleton class

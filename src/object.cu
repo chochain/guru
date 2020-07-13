@@ -453,7 +453,7 @@ cls_new(GR r[], S32 ri)
 
 	GP super = (r-2)->off;
 	GS xid   = (r-1)->off;
-	GP cls   = guru_define_class(NULL, xid, super);			// fill the ROM class storage
+	GP cls   = guru_define_class(NULL, xid, super, super);			// fill the ROM class storage
 
 	_CLS(cls)->kt |= CLASS_SUBCLASS;
 
