@@ -304,8 +304,11 @@ _const_scope(guru_vm *vm)
 __UCODE__
 uc_getconst(guru_vm *vm)
 {
+    guru_state *st = VM_STATE(vm);
+    guru_class *cx = _CLS(st->klass);
+
     GS cid = VM_SYM(vm, vm->bx);
-    GP cls = _const_scope(vm);
+    GP cls = IS_EXTENDED(cx) ? cx->klass : st->klass;	// this failed cls_09.rb
 	if (_scan_class(vm, cid, cls)) return;				// see whether it's a class
 
     GR ret = NIL;
@@ -350,7 +353,7 @@ uc_getmcnst(guru_vm *vm)
 	GR *r  = _R(a);
     GS cid = VM_SYM(vm, vm->bx);
 	GP cls = (r->gt==GT_CLASS) ? r->off : GR_OBJ(r)->klass;
-	if (_scan_class(vm, cls, cid)) return;				// see whether it's a class
+	if (_scan_class(vm, cid, cls)) return;			// see whether it's a class
 
 	GR ret = NIL;
     while (cls) {

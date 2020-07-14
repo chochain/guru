@@ -87,7 +87,7 @@ find_class_by_id(GS cid, GP nspace)
 {
 	guru_class *cx = _CLS(guru_device_rom.cls);
 	for (int i=0; i<guru_device_rom.ncls; i++, cx++) {
-		for (GP ns=nspace; ns; ns=_CLS(ns)->super) {			// search up class hierarchy
+		for (GP ns=nspace; ns; ns=_CLS(ns)->super) {			// search up namespace hierarchy
 			if (cx->ns==ns && cx->cid==cid) {
 				return MEMOFF(cx);
 			}

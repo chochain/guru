@@ -31,7 +31,7 @@ typedef struct RClass {			// 40-byte
 	GP				super;		// (RClass*) offset to *guru_class
     GP				mtbl;		// (RProc*) c-func array (in constant memory, rc is the number of functions)
     GP				flist;		// (RProc*) head of guru_proc linked list
-    GP				ns;			// namespace
+    GP 				ns;			// namespace
     GP				xxx;		// reserved
 } guru_class;
 
