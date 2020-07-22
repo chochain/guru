@@ -47,11 +47,14 @@ _exec(guru_vm *vm, GR r[], S32 ri, GP prc)
     	GP ns  = VM_STATE(vm)->klass;
     	GP cls = find_class_by_id(px->cid, ns);			// TODO: this is a hack! should fix #vm_state_push
     	vm_state_push(vm, px->irep, 0, r, ri);			// switch to callee's context
-    	if (cls) VM_STATE(vm)->klass = cls;
+    	if (cls && ns != cls) {							// TODO: this is a hack! using callee's namespace
+    		PRINTF("%x:=%x\n", VM_STATE(vm)->klass, cls);
+    		VM_STATE(vm)->klass = cls;
+    	}
     }
     else {												// must be a C-function
 #if CC_DEBUG
-    	PRINTF("!!!_CALL(x%x, %p, %d)\n", prc, r, ri);
+    	PRINTF("!!!_CALL(prc=%x, r=%p, ri=%x)\n", prc, r, ri);
 #endif // CC_DEBUG
     	r->oid = px->pid;								// parameter pid is passed as object id
     	_CALL(prc, r, ri);								// call C-based function
@@ -99,7 +102,9 @@ __loop(guru_vm *vm, GR r[], S32 ri, U32 collect)
 	GR *p  = r;
 	*(++p) = collect ? guru_array_new(4) : EMPTY;	// replace prc with map array
 	*(++p) = git;
-	*(++p) = *ref_inc(_REGS(st));
+//	*(++p) = *ref_inc(_REGS(st));
+	GR cls { GT_CLASS, 0, 0, VM_STATE(vm)->klass };
+	*(++p) = cls;
 
 	// allocate iterator state (using same stack frame)
 	vm_state_push(vm, st->irep, pc0, p, px->n);		// use current stack frame
@@ -132,7 +137,8 @@ _new(guru_vm *vm, GR r[], S32 ri)
 {
 	ASSERT(r->gt==GT_CLASS);							// ensure it is a class object
 	GS sid = name2id((U8*)"initialize"); 				// search for initializer
-	*r = ostore_new(r->off);						    // instantiate an object (with 0 var);
+	GP cls = r->off;
+	*r = ostore_new(cls);							    // instantiate an object (with 0 var);
 
 	vm_method_exec(vm, r, ri, sid);						// run custom initializer if any
 
@@ -166,49 +172,6 @@ _raise(guru_vm *vm, GR r[], S32 ri)
 	VM_STATE(vm)->pc = RESCUE_POP(vm);				// pop from exception return stack
 }
 
-typedef struct {
-	const char  *name;								// raw string usually
-	void (*func)(guru_vm *vm, GR r[], S32 ri);		// C-function pointer
-	GS			pid;
-} Xf;
-
-__GURU__ U32
-_root_class_method(guru_vm *vm, GR r[], S32 ri, GS pid)
-{
-	static Xf miss_mtbl[] = {
-		{ "call", 		_call,   0 },				// C-based prc_call (hacked handler, it needs vm->state)
-		{ "each",   	_each,   0 },				// push into call stack, obj at stack[0]
-		{ "times",  	_each,   0 },				// looper
-		{ "map",    	_map,    0 },				// mapper
-		{ "collect",	_map,    0 },
-		{ "new",    	_new,    0 },
-		{ "lambda", 	_lambda, 0 },				// create object
-		{ "raise",  	_raise,  0 }				// exception handler
-	};
-	static int xfcnt = sizeof(miss_mtbl)/sizeof(Xf);
-
-	Xf *xp = miss_mtbl;
-	if (miss_mtbl[0].pid==0) {						// lazy init
-		for (int i=0; i<xfcnt; i++, xp++) {
-			xp->pid = guru_rom_add_sym(xp->name);
-		}
-		xp = miss_mtbl;								// rewind
-	}
-	for (int i=0; i<xfcnt; i++, xp++) {
-		if (xp->pid==pid) {
-#if CC_DEBUG
-			PRINTF("!!!missing_func %p:%s -> %d\n", xp, xp->name, pid);
-#endif // CC_DEBUG
-			xp->func(vm, r, ri);
-			return 0;
-		}
-	}
-#if CC_DEBUG
-	PRINTF("ERROR: method not found (pid=x%04x)-------\n", pid);
-#endif // CC_DEBUG
-	_wipe_stack(r+1, ri+1);							// wipe call stack and return
-	return (vm->err = 1);
-}
 //================================================================
 /*!@brief
   Push current status to callinfo stack
@@ -217,7 +180,7 @@ __GURU__ void
 vm_state_push(guru_vm *vm, GP irep, U32 pc, GR r[], S32 ri)
 {
 #if CC_DEBUG
-	PRINTF("!!!vm_state_push(%p, x%x, %d, %p, %d)\n", vm, irep, pc, r, ri);
+	PRINTF("!!!vm_state_push(vm=%p, irep=%x, pc=%x, r=%p, ri=%x)\n", vm, irep, pc, r, ri);
 #endif // CC_DEBUG
 	guru_state  *st0 = vm->state ? VM_STATE(vm) : NULL;
     guru_state 	*st  = (guru_state *)guru_alloc(sizeof(guru_state));
@@ -293,17 +256,56 @@ vm_loop_next(guru_vm *vm)
 	return 1;
 }
 
+typedef struct {
+	const char  *name;								// raw string usually
+	void (*func)(guru_vm *vm, GR r[], S32 ri);		// C-function pointer
+	GS			pid;
+} Xf;
+
+// method not found, try default methods
+__GURU__ static Xf miss_mtbl[] = {
+	{ "call", 		_call,   0 },					// C-based prc_call (hacked handler, it needs vm->state)
+	{ "each",   	_each,   0 },					// push into call stack, obj at stack[0]
+	{ "times",  	_each,   0 },					// looper
+	{ "map",    	_map,    0 },					// mapper
+	{ "collect",	_map,    0 },
+	{ "new",    	_new,    0 },
+	{ "lambda", 	_lambda, 0 },					// create object
+	{ "raise",  	_raise,  0 }					// exception handler
+};
+__GURU__ static int xfcnt = sizeof(miss_mtbl)/sizeof(Xf);
+
 __GURU__ U32
 vm_method_exec(guru_vm *vm, GR r[], S32 ri, GS pid)
 {
 #if CC_DEBUG
-    PRINTF("!!!vm_method_exec(%p, %p, %d, %d)\n", vm, r, ri, pid);
+    PRINTF("!!!vm_method_exec(vm=%p, r=%p, ri=%x, pid=%x)\n", vm, r, ri, pid);
 #endif // CC_DEBUG
     GP prc = find_proc(r, pid);							// r->gt in [GT_OBJ, GT_CLASS]
-
-    if (prc==0) {										// not found, try VM functions
-    	return _root_class_method(vm, r, ri, pid);
+    if (prc) {
+    	return _exec(vm, r, ri, prc);
     }
-    return _exec(vm, r, ri, prc);
-}
 
+	Xf *xp = miss_mtbl;
+	if (miss_mtbl[0].pid==0) {							// lazy init
+		for (int i=0; i<xfcnt; i++, xp++) {
+			xp->pid = guru_rom_add_sym(xp->name);
+		}
+		xp = miss_mtbl;									// rewind
+	}
+	for (int i=0; i<xfcnt; i++, xp++) {
+		if (xp->pid==pid) {
+#if CC_DEBUG
+			PRINTF("!!!default_func %p#%s pid=%x\n", xp, xp->name, pid);
+#endif // CC_DEBUG
+			xp->func(vm, r, ri);
+			return 0;
+		}
+	}
+#if CC_DEBUG
+	PRINTF("ERROR: method not found (pid=%x)-------\n", pid);
+#endif // CC_DEBUG
+	_wipe_stack(r+1, ri+1);								// wipe call stack and return
+
+	return (vm->err = 2);
+}
