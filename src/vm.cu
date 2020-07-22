@@ -188,6 +188,7 @@ __HOST__ int
 _has_job() {
 	guru_vm *vm = _vm_pool;
 	for (int i=0; i<MIN_VM_COUNT; i++, vm++) {
+		debug_error(vm->err);
 		if (vm->run==VM_STATUS_RUN && !vm->err) return 1;
 	}
 	return 0;
@@ -211,7 +212,6 @@ vm_main_start()
 				printf("CUDA ERROR: %s, bailing\n", cudaGetErrorString(e));
 				vm->err = 3;
 			}
-			debug_error(vm->err);
 			// add post-hook here
 		}
 		GPU_SYNC();									// TODO: cooperative thread group

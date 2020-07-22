@@ -346,7 +346,7 @@ debug_disasm(guru_vm *vm)
 __HOST__ void
 debug_error(int ec)
 {
-	if (_debug<1 || !ec) return;
+	if (!ec) return;
 
 	switch (ec) {
 	case -11: fprintf(stderr, "ERROR: failed to allocate device main memory block!\n");	break;
@@ -358,7 +358,7 @@ debug_error(int ec)
 	case -32: fprintf(stderr, "ERROR: No more VM available!");						 	break;
 	case -33: fprintf(stderr, "ERROR: bytecode parse failure!");						break;
 	case -34: fprintf(stderr, "ERROR: failed to transition VM state!"); 				break;
-	default: printf("ERROR: %s\n", _errcode[ec]);
+	default:  fprintf(stderr, "ERROR: %s\n", ec>0 ? _errcode[ec] : "unknown error!");
 	}
 }
 
