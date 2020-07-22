@@ -21,7 +21,7 @@
   In case of adding a constant object, insertion sort is used.
 */
 typedef struct {						// 32-bit
-    GP		key;						// cache key (0: global)
+    GP		ns;							// cache namespace (0: global)
     GS 		xid;
 } _gidx;
 
@@ -40,59 +40,59 @@ __GURU__ GR		_NIL = { .gt=GT_NIL, .acl=0 };
 /* TODO: Use binary search */
 #if CUDA_ENABLE_CDP
 __GPU__ void
-__idx(S32 *idx, GP key, GS xid)
+__idx(S32 *idx, GP ns, GS xid)
 {
 	S32    i = threadIdx.x;
 	_gidx *p = _const_idx + i;
 
-	if (i<_const_sz && p->key==key && p->xid==xid) *idx = i;
+	if (i<_const_sz && p->ns==ns && p->xid==xid) *idx = i;
 }
 #else
 __GURU__ S32
-__idx(GP key, GS xid)
+__idx(GP ns, GS xid)
 {
 	_gidx *p = _const_idx;
 	for (int i=0; i<_const_sz; i++, p++) {
-		if (p->key==key && p->xid==xid) return i;
+		if (p->ns==ns && p->xid==xid) return i;
 	}
 	return -1;
 }
 #endif // CUDA_ENABLE_CDP
 
 __GURU__ S32
-_find_idx(GP key, GS xid)
+_find_idx(GP ns, GS xid)
 {
 	static S32 idx;					// warning: outside of function scope
 #if CUDA_ENABLE_CDP
 	idx = -1;
-	__idx<<<1, 32*(1+(_const_sz>>5))>>>(&idx, key, xid);
+	__idx<<<1, 32*(1+(_const_sz>>5))>>>(&idx, ns, xid);
 	GPU_CHK();						// make sure idx is captured
 #else
-	idx = __idx(key, xid);
+	idx = __idx(ns, xid);
 #endif // CUDA_ENABLE_CDP
 	return idx;
 }
 
 __GURU__ GR *
-_get(GP key, GS xid)
+_get(GP ns, GS xid)
 {
-	S32 i = _find_idx(key, xid);
+	S32 i = _find_idx(ns, xid);
     if (i < 0) return &_NIL;		// not found
 
     return &_const[i];				// pointer to global object
 }
 
 __GURU__ void
-_set(GP key, GS xid, GR *r)
+_set(GP ns, GS xid, GR *r)
 {
-    S32 i = _find_idx(key, xid);
+    S32 i = _find_idx(ns, xid);
 
     _LOCK;
     if (i<0) {
     	i = _const_sz++;
     	ASSERT(i<MAX_CONST_COUNT);	// maybe raise ex
     }
-    _const_idx[i].key = key;
+    _const_idx[i].ns  = ns;
     _const_idx[i].xid = xid;
     _const[i] = *r;
     _UNLOCK;
@@ -118,14 +118,16 @@ gv_get(GS xid)
 }
 
 __GURU__ void
-const_set(GP key, GS xid, GR *r)
+const_set(GP ns, GS xid, GR *r)
 {
-    _set(key, xid, r);
+	r->acl &= ~ACL_HAS_REF;			// set to constant
+
+    _set(ns, xid, r);
 }
 
 /* add const */
 __GURU__ GR *
-const_get(GP key, GS xid)
+const_get(GP ns, GS xid)
 {
-    return _get(key, xid);
+    return _get(ns, xid);
 }
