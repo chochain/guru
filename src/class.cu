@@ -107,12 +107,12 @@ __GURU__ GP
 find_class_by_obj(GR *r)
 {
 	switch (r->gt) {
-	case GT_OBJ: return _CLS(GR_OBJ(r)->klass)->csrc;
+	case GT_OBJ: return _CLS(GR_OBJ(r)->klass)->orig;
 	case GT_CLASS: {
 		guru_class *cx = GR_CLS(r);
 		return IS_SCLASS(r)
 					? cx->klass ? cx->klass : guru_rom_get_class(GT_OBJ)
-					: cx->csrc;
+					: cx->orig;
 	}
 	default: return guru_rom_get_class(r->gt);					// singleton class pointing back to core class
 	}
@@ -147,7 +147,7 @@ __scan_mtbl(guru_class *cx, GS pid)
 #if CC_DEBUG
 			U8 *cname = _RAW(cx->cid);
 			U8 *pname = _RAW(px->pid);
-			PRINTF("!!!mtbl[%d] hit %p:%p %s#%s -> %d\n", i, cx, px, cname, pname, pid);
+			PRINTF("mtbl[%x] hit %x=%x:%p %s#%s", i, pid, cx->orig, px, cname, pname);
 #endif // CC_DEBUG
 			return MEMOFF(px);
 		}
@@ -166,7 +166,7 @@ __scan_flist(guru_class *cx, GS pid)
 #if CC_DEBUG
 			U8 *cname = _RAW(cx->cid);
 			U8 *pname = _RAW(px->pid);
-			PRINTF("!!!flst[%d] hit %p:%p %s#%s -> %d\n", i, cx, px, cname, pname, pid);
+			PRINTF("flst[%x] hit %x=%x:%p %s#%s", i, pid, cx->orig, px, cname, pname);
 #endif // CC_DEBUG
 			return prc;
 		}
@@ -194,12 +194,15 @@ find_proc(GR *r, GS pid)
 	case GT_CLASS:	lex = r->off; 	mta = !IS_TCLASS(r);	break;
 	default:		lex = guru_rom_get_class(r->gt);
 	}
+#if CC_DEBUG
+    PRINTF("!!!find_proc(%x, %x): ", lex, pid);
+#endif // CC_DEBUG
 	GP 	prc = 0;
 	while (lex) {
     	guru_class *cx = _CLS(lex);
     	guru_class *mx = mta 						// meta-class or class itself
     			? (cx->klass ? _CLS(cx->klass) : NULL)
-    			:  _CLS(cx->csrc);
+    			:  _CLS(cx->orig);
 #if CUDA_ENABLE_CDP
     		static __GURU__ S32 _proc_idx[32];
     		/* CC: hold! CUDA 10.2 profiler does not support CDP yet,
@@ -223,8 +226,7 @@ find_proc(GR *r, GS pid)
     	lex = cx->super;
     }
 #if CC_DEBUG
-	U8* pname = _RAW(pid);
-    PRINTF("!!!find_proc(%x, %d)=>%s %d[x%04x]\n", cls, pid, pname, prc, prc);
+    PRINTF(" => %x %s\n", prc, prc ? "" : " search defaults");
 #endif // CC_DEBUG
     return prc;
 }
@@ -249,7 +251,7 @@ guru_define_class(guru_class *cx, GS cid, GP super, GP nspace)		// fill the ROM 
     cx->cid    = cid;							// class name symbol id
     cx->ivar   = 0;								// class variables, lazily allocated when needed
     cx->klass  = 0;								// meta-class, lazily allocated when needed
-    cx->csrc   = MEMOFF(cx);					// keep class id for constant lookup
+    cx->orig   = MEMOFF(cx);					// keep origin class id for constant lookup
     cx->super  = super;							// super class
     cx->mtbl   = 0;								// vfunction table
     cx->flist  = 0;								// head of linked list to user defined methods
@@ -302,8 +304,9 @@ _cls_meta(GR *r)									// add metaclass to a class
 	GP mkls = guru_define_class(mcx, cx->cid, skls, skls);
 
 	if ((r+1)->gt == GT_CLASS) {					// extend module
-		mcx->csrc = (r+1)->off;						// point to the original module, instead of the dup
+		mcx->orig = (r+1)->off;						// point to the origin module, instead of the dup
 	}
+	PRINTF("%x:%x ns=%x\n", mkls, skls, skls);
 	return cx->klass = mkls;						// self pointing =~ metaclass
 }
 
@@ -324,6 +327,7 @@ _obj_meta(GR *r)
 	GP skls = guru_define_class(NULL, cx->cid, kls, kls);
 	_CLS(skls)->kt |= CLASS_SINGLETON;
 
+	PRINTF("%x:%x ns=%x\n", skls, kls, kls);
 	return obj->klass = skls;						// set singleton class
 }
 

@@ -27,7 +27,7 @@ typedef struct RClass {			// 40-byte
 	GURU_HDR;
 	GP				ivar;		// (GR*) class-level instance variables
 	GP				klass;		// (RClass*) offset to *metaclass
-	GP				csrc;		// (RClass*) offset to lexical scope (i.e. *guru_class itself or module source)
+	GP				orig;		// (RClass*) offset to lexical scope (i.e. *guru_class itself or module origin)
 	GP				super;		// (RClass*) offset to *guru_class
     GP				mtbl;		// (RProc*) c-func array (in constant memory, rc is the number of functions)
     GP				flist;		// (RProc*) head of guru_proc linked list
@@ -37,11 +37,9 @@ typedef struct RClass {			// 40-byte
 
 #define CLASS_BUILTIN	0x1
 #define CLASS_SUBCLASS  0x2
-#define CLASS_EXTENDED	0x4
 #define CLASS_SINGLETON 0x8
 #define IS_BUILTIN(cx)		(cx->kt & CLASS_BUILTIN)
 #define IS_SUBCLASS(cx)		(cx->kt & CLASS_SUBCLASS)
-#define IS_EXTENDED(cx)		(cx->kt & CLASS_EXTENDED)
 #define IS_SINGLETON(cx)	(cx->kt & CLASS_SINGLETON)
 
 //================================================================

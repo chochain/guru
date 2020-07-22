@@ -67,7 +67,7 @@ public:
 	#if CC_DEBUG
                 U8 *cname = _RAW(cx->cid);
                 U8 *pname = _RAW(px->pid);
-                PRINTF("!!!vtbl[%d] hit %p:%p %s#%s -> %d\n", i, cx, px, cname, pname, pid);
+                PRINTF("!!!vtbl[%x] hit %x -> %p:%p %s#%s\n", i, pid, cx, px, cname, pname);
 	#endif // CC_DEBUG
                 return MEMOFF(px);
             }
@@ -87,7 +87,7 @@ public:
 	#if CC_DEBUG
                 U8 *cname = _RAW(cx->cid);
                 U8 *pname = _RAW(px->pid);
-                PRINTF("!!!flst[%d] hit %p:%p %s#%s -> %d\n", i, cx, px, cname, pname, pid);
+                PRINTF("!!!flst[%x] hit %x -> %x:%p %s#%s\n", i, pid, cx->orig, px, cname, pname);
 	#endif // CC_DEBUG
 				return prc;
 			}
@@ -195,7 +195,7 @@ ClassMgr::proc_by_id(GR *r, GS pid)
     }
 #if CC_DEBUG
 	U8* pname = _RAW(pid);
-    PRINTF("!!!proc_by_id(%p, %d)=>%s %d[x%04x]\n", r, pid, pname, prc, prc);
+    PRINTF("!!!proc_by_id(%p, %x) => %x#%s %d[%x]\n", r, cls, pid, pname, prc, prc);
 #endif // CC_DEBUG
     return prc;
 }
@@ -212,7 +212,7 @@ __GURU__ GP
 ClassMgr::class_by_obj(GR *r)
 {
 #if CC_DEBUG
-	PRINTF("!!!class_by_obj(%p) r->gt=%d, r->off=x%x: ", r, r->gt, r->off);
+	PRINTF("!!!class_by_obj(%p) r->gt=%x, r->off=%x: ", r, r->gt, r->off);
 	const char *tname[] = {
 			"???", "Nil", "False", "True", "Integer", "Float", "Symbol", "Sys",
             "", "Proc", "", "Array", "String", "Range", "Hash", "???"
@@ -231,7 +231,7 @@ ClassMgr::class_by_obj(GR *r)
     	GP meta = cx->meta ? cx->meta : guru_rom_get_class(GT_OBJ);
     	GP cls  = r->off;
 #if CC_DEBUG
-    	PRINTF(" CLS[x%04x]=%s:%p", cls, _RAW(cx->cid), cx);
+    	PRINTF(" CLS[%04x]=%s:%p", cls, _RAW(cx->cid), cx);
 #endif // CC_DEBUG
     	ret  = IS_BUILTIN(cx)
     		? cls
@@ -240,11 +240,11 @@ ClassMgr::class_by_obj(GR *r)
     default:
     	ret = guru_rom_get_class(r->gt);
 #if CC_DEBUG
-        PRINTF(" CLS[x%04x]=%s:%p", ret, tname[r->gt], GR_CLS(r));
+        PRINTF(" CLS[%04x]=%s:%p", ret, tname[r->gt], GR_CLS(r));
 #endif // CC_DEBUG
     }
 #if CC_DEBUG
-	PRINTF("=> x%04x\n", ret);
+	PRINTF("=> %04x\n", ret);
 #endif // CC_DEBUG
 	return ret;
 }
