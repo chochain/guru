@@ -78,7 +78,7 @@ typedef enum {
     GT_HASH,
     GT_ITER,
 
-    GT_MAX       = 0x10
+    GT_MAX      = 0x10
 } GT;
 
 #define GT_BOOL(v)		((v) ? GT_TRUE : GT_FALSE)
@@ -192,7 +192,7 @@ typedef struct RSymbol {		// Symbol container
 
 //================================================================
 /*!@brief
-  Guru object header. (i.e. Ruby's RBasic)
+  Guru common header. i.e. Ruby's RBasic (8-byte)
     rc  : reference counter, sizeof class->mtbl[]
     kt  : [class,function] type for Class, Proc, lambda, iterator object type
         : proc=[0=Built-in C-func|PROC_IREP|PROC_LAMBDA]
@@ -225,14 +225,21 @@ typedef struct RSymbol {		// Symbol container
 		GI i;			\
     }
 
+/*
+ Shared header for class and object (16-bytes)
+ 	 ivar : pointer to class variables or instance variables
+ 	 klass: class of an object or metaclass of a class
+ */
+#define GURU_OBJ		\
+	GURU_HDR;			\
+	GP			ivar;	\
+	GP			klass
 //================================================================
 /*!@brief
   physical store for Guru object instance.
 */
 typedef struct RObj {			// 16-byte
-	GURU_HDR;
-	GP				ivar;		// (GR*) object instance variables
-	GP				klass;		// (RClass*) class that this object belongs to (RClass*)
+	GURU_OBJ;
 } guru_obj;
 
 typedef struct RString {		// 16-byte

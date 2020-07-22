@@ -24,9 +24,7 @@ extern "C" {
   Guru class object.
 */
 typedef struct RClass {			// 40-byte
-	GURU_HDR;
-	GP				ivar;		// (GR*) class-level instance variables
-	GP				klass;		// (RClass*) offset to *metaclass
+	GURU_OBJ;					// a class shared the same prefix of an object (i.e. .ivar, .klass)
 	GP				orig;		// (RClass*) offset to lexical scope (i.e. *guru_class itself or module origin)
 	GP				super;		// (RClass*) offset to *guru_class
     GP				mtbl;		// (RProc*) c-func array (in constant memory, rc is the number of functions)
