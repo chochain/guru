@@ -198,6 +198,23 @@ uc_setgv(guru_vm *vm)
 
   R(A) := ivget(Syms(Bx))
 */
+__GURU__ __INLINE__ guru_obj*
+_vscope(GR *r)
+{
+	guru_obj *o;
+	switch (r->gt) {
+	case GT_OBJ:   o = GR_OBJ(r);	break;
+	case GT_CLASS: {						// class and object share the same struct prefix
+		GP kls = GR_CLS(r)->klass;
+		o = (guru_obj*)_CLS(IS_TCLASS(r) ? r->off : (kls ? kls : r->off));
+	} break;
+	default:
+		ASSERT(1==0);
+		o = NULL;
+	}
+	return o;
+}
+
 __GURU__ __INLINE__ GS
 _sid_wo_at_sign(guru_vm *vm)
 {
@@ -210,11 +227,12 @@ _sid_wo_at_sign(guru_vm *vm)
 __UCODE__
 uc_getiv(guru_vm *vm)
 {
-	GR *r  = _R0;
-	ASSERT(r->gt==GT_OBJ || r->gt==GT_CLASS);
+    GS       sid = _sid_wo_at_sign(vm);
+	GR       *r  = _R0;
+    guru_obj *o  = _vscope(r);
+    GR       ret = ostore_get(o, sid);
 
-    GS sid = _sid_wo_at_sign(vm);
-    GR ret = ostore_get(r, sid);
+    PRINTF("%x:%x\n", MEMOFF(o), sid);
 
     _RA(ret);
 }
@@ -228,14 +246,15 @@ uc_getiv(guru_vm *vm)
 __UCODE__
 uc_setiv(guru_vm *vm)
 {
-	GR *r  = _R0;
-	ASSERT(r->gt==GT_OBJ || r->gt==GT_CLASS);
-
-	GS sid = _sid_wo_at_sign(vm);
-	GR *ra = _R(a);
-
+	GS 		 sid = _sid_wo_at_sign(vm);
+	GR 		 *ra = _R(a);
 	guru_pack(ra);							// compact to save space
-    ostore_set(r, sid, ra);					// store instance variable
+
+	GR       *r  = _R0;
+	guru_obj *o  = _vscope(r);
+    ostore_set(o, sid, ra);					// save instance variable
+
+    PRINTF("%x:%x\n", MEMOFF(o), sid);
 }
 
 //================================================================
@@ -249,7 +268,9 @@ uc_getcv(guru_vm *vm)
 {
 	GR *r  = _R0;
 	GS sid = VM_SYM(vm, vm->bx);
-	GR ret = ostore_getcv(r, sid);
+
+	guru_obj *o = _vscope(r);
+	GR ret = ostore_getcv(o, sid);
 
 	_RA(ret);
 }
@@ -263,11 +284,11 @@ uc_getcv(guru_vm *vm)
 __UCODE__
 uc_setcv(guru_vm *vm)
 {
-	GR *r = _R0;
-	ASSERT(r->gt==GT_CLASS);
-
+	GR *r  = _R0;
     GS sid = VM_SYM(vm, vm->bx);
-    ostore_set(r, sid, _R(a));
+
+    guru_obj *o = _vscope(r);
+    ostore_set(o, sid, _R(a));
 }
 
 //================================================================
@@ -286,13 +307,15 @@ _scan_class(guru_vm *vm, GS cid, GP ns)					// In Ruby, class is a constant, too
 }
 
 __GURU__ __INLINE__ GP
-_const_scope(guru_vm *vm)
+_cscope(guru_vm *vm, GR *r)
 {
-    GP cls = VM_STATE(vm)->klass;
+    return r->gt==GT_OBJ ? GR_OBJ(r)->klass : VM_STATE(vm)->klass;
+}
 
-    guru_class *cx = _CLS(cls);
-
-    return IS_EXTENDED(cx) ? cx->klass : cls;
+__GURU__ __INLINE__ GP
+_mscope(GR *r)
+{
+	return r->gt==GT_OBJ ? GR_OBJ(r)->klass : r->off;
 }
 
 //================================================================
@@ -304,18 +327,18 @@ _const_scope(guru_vm *vm)
 __UCODE__
 uc_getconst(guru_vm *vm)
 {
-    guru_state *st = VM_STATE(vm);
-    guru_class *cx = _CLS(st->klass);
+    GS sid = VM_SYM(vm, vm->bx);
+    GP cls = _cscope(vm, _R0);							// get current namespace
+	PRINTF("?%x:%x\n", cls, sid);
 
-    GS cid = VM_SYM(vm, vm->bx);
-    GP cls = IS_EXTENDED(cx) ? cx->klass : st->klass;	// this failed cls_09.rb
-	if (_scan_class(vm, cid, cls)) return;				// see whether it's a class
+	if (_scan_class(vm, sid, cls)) return;				// see whether it's a class
 
     GR ret = NIL;
     while (cls) {
     	guru_class *cx = _CLS(cls);
-    	GP         mls = cx->csrc;
-    	ret = *const_get(mls, cid);
+    	GP         mls = cx->orig;
+    	PRINTF("?%x:%x\n", mls, sid);
+    	ret = *const_get(mls, sid);
     	if (ret.gt!=GT_NIL) break;
     	cls = cx->super;
     }
@@ -334,10 +357,9 @@ uc_setconst(guru_vm *vm)
 {
 	GS  sid = VM_SYM(vm, vm->bx);
 	GR  *ra = _R(a);
-	GP  cls = _const_scope(vm);
+	GP  cls = _cscope(vm, _R0);							// get current namespace
 
-	ra->acl &= ~ACL_HAS_REF;						// set it to constant
-
+	PRINTF("%x:%x\n", cls, sid);
     const_set(cls, sid, ra);
 }
 
@@ -350,15 +372,14 @@ uc_setconst(guru_vm *vm)
 __UCODE__
 uc_getmcnst(guru_vm *vm)
 {
-	GR *r  = _R(a);
-    GS cid = VM_SYM(vm, vm->bx);
-	GP cls = (r->gt==GT_CLASS) ? r->off : GR_OBJ(r)->klass;
-	if (_scan_class(vm, cid, cls)) return;			// see whether it's a class
+    GS sid = VM_SYM(vm, vm->bx);
+	GP cls = _mscope(_R(a));							// get namespace
+	if (_scan_class(vm, sid, cls)) return;				// see whether it's a class
 
 	GR ret = NIL;
     while (cls) {
     	guru_class *cx = _CLS(cls);
-    	ret = *const_get(cx->csrc, cid);
+    	ret = *const_get(cx->orig, sid);
         if (ret.gt!=GT_NIL) break;
     	cls = cx->super;
     }
@@ -377,10 +398,7 @@ uc_setmcnst(guru_vm *vm)
 {
 	GS sid = VM_SYM(vm, vm->bx);
 	GR *ra = _R(a);
-	GR *r1 = ra + 1;
-	GP cls = (r1->gt==GT_CLASS) ? r1->off : GR_OBJ(r1)->klass;
-
-	ra->acl &= ~ACL_HAS_REF;							// set it to constant
+	GP cls = _mscope(_R(a)+1);
 
     const_set(cls, sid, ra);
 }
@@ -556,25 +574,6 @@ uc_raise(guru_vm *vm)
 }
 
 //================================================================
-/*!@brief
-  _undef
-
-  create undefined method error message (different between mruby1.4 and ruby2.x
-*/
-__GURU__ GR *
-_undef(GR *buf, GR *r, GS pid)
-{
-	GP cls = find_class_by_obj(r);
-
-	guru_buf_add_cstr(buf, "undefined method '");
-	guru_buf_add_cstr(buf, _RAW(pid));
-	guru_buf_add_cstr(buf, "' for class #");
-	guru_buf_add_cstr(buf, _RAW(_CLS(cls)->cid));
-
-	return buf;
-}
-
-//================================================================
 
 /*!@brief
   OP_SEND / OP_SENDB
@@ -589,14 +588,11 @@ uc_send(guru_vm *vm)
     GR  *r  = _R(a);								// call stack, obj is receiver object
     S32 argc= (vm->c & 0x40) ? -(0x80-vm->c) : vm->c;
 #if CC_DEBUG
-    PRINTF("!!!uc_send(%p) R(%d)=%p, xid=%d\n", vm, vm->a, r, xid);
+    PRINTF("!!!uc_send(%p) R(%d)=%p, xid=%x\n", vm, vm->a, r, xid);
 #endif // CC_DEBUG
-    if (vm_method_exec(vm, r, argc, xid)) { 		// in state.cu, call stack will be wiped before return
-    	vm->err = 2;								// raise Method Not Found exception
-    	GR buf  = guru_str_buf(GURU_STRBUF_SIZE);	// put error message on return stack
-    	*(r+1)  = *_undef(&buf, r, xid);			// TODO: exception class
-    }
-    _R0->acl &= ~(ACL_TCLASS|ACL_SCLASS);
+
+    vm_method_exec(vm, r, argc, xid); 				// in state.cu, call stack will be wiped before return
+    _R0->acl &= ~(ACL_TCLASS|ACL_SCLASS);			// clear T|SCLASS flags
 }
 
 //================================================================
@@ -647,8 +643,8 @@ uc_return(guru_vm *vm)
 	else if (IS_NEW(st)) {
 		ret = *_R0;								// return the object itself
 	}
-	ret.acl &= ~(ACL_TCLASS|ACL_SCLASS);		// turn off TCLASS and NEW flags if any
-	vm_state_pop(vm, map ? EMPTY : ret);		// pop callee's context
+	ret.acl &= ~(ACL_TCLASS|ACL_SCLASS);		// turn off TCLASS/SCLASS flags if any
+	vm_state_pop(vm, map ? EMPTY : ret);		// pop callee's context (and pop off NEW state)
 
 	if (map) {									// put return array back to caller stack
 		ref_dec(ma-1);							// TODO: this is a hack, needs a better way
@@ -1201,13 +1197,14 @@ uc_lambda(guru_vm *vm)
 
 	switch (vm->cz) {									// TODO: not sure how Cz works, detailed analysis later
 	case 0: break;										// ??
-	case 1: cls = find_class_by_obj(r);	break;			// method use object before target register
+	case 1: cls = find_class_by_obj(r);	break;			// method, use class of object
 	case 2:	cls = st->klass;			break;			// closure or block
 	case 3: break;										// ??
 	}
 
 	GP irep = MEMOFF(VM_REPS(vm, vm->bz));				// fetch from children irep list
 	GP prc  = guru_define_method(cls, NULL, irep);
+	PRINTF("%x:%x\n", cls, prc);
 
 	guru_proc *px = _PRC(prc);
     px->kt  = PROC_IREP;								// instead of C-function
@@ -1244,11 +1241,12 @@ uc_class(guru_vm *vm)
 {
 	GR *r1 = _R(a)+1;
     GS cid = VM_SYM(vm, vm->b);
-    GP ns  = _const_scope(vm);
+    GP ns  = VM_STATE(vm)->klass;										// get current namespace
     GP cls = find_class_by_id(cid, ns);									// search named class in domain
     if (!cls) {															// create new if not found
         GP super = (r1->gt==GT_CLASS) ? r1->off : VM_STATE(vm)->klass;	// super class
     	cls = guru_define_class(NULL, cid, super, ns);
+    	PRINTF("%x:%x ns=%x\n", cls, super, ns);
     }
     _RA_T(GT_CLASS, off=cls);
 	*r1 = EMPTY;
@@ -1264,9 +1262,10 @@ __UCODE__
 uc_module(guru_vm *vm)
 {
 	GS cid = VM_SYM(vm, vm->b);
-	GP ns  = _const_scope(vm);
-	GP cls = find_class_by_id(cid, ns);		// check whether the class exists
+	GP ns  = VM_STATE(vm)->klass;				// get current namespace
+	GP cls = find_class_by_id(cid, ns);			// check whether the class exists
 	GP mod = cls ? cls : guru_define_class(NULL, cid, guru_rom_get_class(GT_OBJ), ns);
+	PRINTF("%x:obj ns=%x\n", mod, ns);
 
     _RA_T(GT_CLASS, off=mod);
 }
@@ -1309,8 +1308,9 @@ uc_method(guru_vm *vm)
     _UNLOCK;
 
 #if CC_DEBUG
-    PRINTF("!!!uc_method %s:%p->%d\n", _RAW(px->pid), px, px->pid);
+    PRINTF("!!!uc_method %s#%s:%p pid=%x\n", _RAW(px->cid), _RAW(px->pid), px, px->pid);
 #endif // CC_DEBUG
+
     *(r+1)  = EMPTY;							// clean up proc
 }
 
