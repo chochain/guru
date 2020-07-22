@@ -19,11 +19,11 @@
 extern "C" {
 #endif
 
-__GURU__ GR 	ostore_new(GP cls);
-__GURU__ void   ostore_del(GR *r);
-__GURU__ void   ostore_set(GR *r, GS oid, GR *val);
-__GURU__ GR 	ostore_get(GR *r, GS oid);
-__GURU__ GR		ostore_getcv(GR *r, GS oid);
+__GURU__ GR 	ostore_new(GP ns);
+__GURU__ void   ostore_del(guru_obj *o);
+__GURU__ void   ostore_set(guru_obj *o, GS oid, GR *val);
+__GURU__ GR 	ostore_get(guru_obj *o, GS oid);
+__GURU__ GR		ostore_getcv(guru_obj *o, GS oid);
 
 #ifdef __cplusplus
 }

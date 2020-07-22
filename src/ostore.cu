@@ -165,17 +165,17 @@ _bget(guru_obj *o, GS oid)
 //================================================================
 /*! guru_var constructor
 
-  @param  kls	Pointer to Class (guru_class).
+  @param  ns	object/class namespace.
   @return       guru_ostore object with zero attribute
 */
 __GURU__ GR
-ostore_new(GP kls)
+ostore_new(GP ns)
 {
     guru_obj *o = (guru_obj *)guru_alloc(sizeof(guru_obj));
 
     o->rc    = 1;
     o->ivar  = 0;					// attributes, lazy allocation until _set is called
-    o->klass = kls;
+    o->klass = ns;					// namespace
     o->sz = o->n = 0;
 
     GR r { GT_OBJ, ACL_HAS_REF|ACL_TCLASS, 0, MEMOFF(o) };
@@ -189,9 +189,8 @@ ostore_new(GP kls)
   @param  v	pointer to target value
 */
 __GURU__ void
-ostore_del(GR *r)
+ostore_del(guru_obj *o)
 {
-	guru_obj *o = GR_OBJ(r);
 	GR *p = _IVAR(o);
 
     for (int i=0; i<o->n; i++, ref_dec(p++));
@@ -203,15 +202,14 @@ ostore_del(GR *r)
 //================================================================
 /*! instance variable setter
 
-  @param  v		pointer to target.
+  @param  o		pointer to guru_obj.
   @param  oid	attribute id.
   @param  val	pointer to value.
 */
 __GURU__ void
-ostore_set(GR *r, GS oid, GR *val)
+ostore_set(guru_obj *o, GS oid, GR *val)
 {
-	guru_obj *o = GR_OBJ(r);				// NOTE: guru_obj->ivar, guru_class->ivar share the same struct
-	if (!o->ivar) {
+	if (!o->ivar) {							// NOTE: guru_obj->ivar, guru_class->ivar share the same struct
 		o->ivar = MEMOFF(guru_gr_alloc(4));	// lazy allocation
 	    o->sz   = 4;						// space allocated for local variables
 	    o->n    = 0;						// local variable count
@@ -227,19 +225,17 @@ ostore_set(GR *r, GS oid, GR *val)
 //================================================================
 /*! instance variable getter
 
-  @param  v		pointer to target.
+  @param  o		pointer to guru_obj.
   @param  oid	attribute id.
   @return		value.
 */
 __GURU__ GR
-ostore_get(GR *r, GS oid)
+ostore_get(guru_obj *o, GS oid)
 {
-//	NOTE: common struct header
-//
 #if !GURU_DEBUG
-	GR *val = _get(GR_OBJ(r), oid);
+	GR *val = _get(o, oid);
 #else
-	GR *val = _bget(GR_OBJ(r), oid);		// get via binary search
+	GR *val = _bget(o, oid);				// get via binary search
 #endif // GURU_DEBUG
     return val ? *ref_inc(val) : NIL;
 }
@@ -252,16 +248,13 @@ ostore_get(GR *r, GS oid)
   @return		value.
 */
 __GURU__ GR
-ostore_getcv(GR *r, GS oid)
+ostore_getcv(guru_obj *o, GS oid)
 {
-	ASSERT(r->gt==GT_OBJ);
-
-	GP kls = GR_OBJ(r)->klass;								// get class of given object
-	GR cv  { GT_CLASS, 0, 0, kls };
+	guru_class *cx = (guru_class*)o;
 	GR ret { GT_NIL };
-	while (kls) {
-		if ((ret=ostore_get(&cv, oid)).gt!=GT_NIL) break;	// fetch class variable
-		cv.off = kls = _CLS(kls)->super;					// not found, search parent class
+	while (cx) {
+		if ((ret=ostore_get((guru_obj*)cx, oid)).gt!=GT_NIL) break;		// fetch class variable
+		cx = cx->super ? _CLS(cx->super) : 0;
 	}
 	return ret;
 }

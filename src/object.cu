@@ -36,8 +36,9 @@ __GURU__ void
 guru_obj_del(GR *r)
 {
 	ASSERT(r->gt==GT_OBJ);
+	guru_obj *o = GR_OBJ(r);
 
-	ostore_del(r);
+	ostore_del(o);
 }
 
 //================================================================
@@ -135,7 +136,8 @@ obj_include(GR r[], S32 ri)
 {
 	ASSERT(r->gt==GT_CLASS && (r+1)->gt==GT_CLASS);
 
-	guru_class_include(r->off, (r+1)->off);
+	GP cls = guru_class_include(r->off, (r+1)->off);
+	PRINTF("i%x:%x\n", cls, r->off);
 }
 
 //================================================================
@@ -150,9 +152,9 @@ obj_extend(GR r[], S32 ri)
 	ClassMgr::getInstance()->class_add_meta(r);			// lazily add metaclass if needed
 #else
 	guru_class *cx = GR_CLS(r);
-	cx->kt   |= CLASS_EXTENDED;
 	cx->klass = (r+1)->off;								// extend lexical scope
 #endif // GURU_CXX_CODEBASE
+	PRINTF("m%x:%x\n", cx->klass, r->off);
 }
 
 //================================================================
@@ -161,7 +163,7 @@ obj_extend(GR r[], S32 ri)
 __CFUNC__
 obj_getiv(GR r[], S32 ri)
 {
-    RETURN_VAL(ostore_get(r, r->oid));				// attribute 'x'
+    RETURN_VAL(ostore_get(GR_OBJ(r), r->oid));		// attribute 'x'
 }
 
 //================================================================
@@ -170,10 +172,9 @@ obj_getiv(GR r[], S32 ri)
 __CFUNC__
 obj_setiv(GR r[], S32 ri)
 {
-    GS oid = r->oid;							// attribute 'x='
-    ostore_set(r, oid-1, r+1);					// attribute 'x' (hopefully at one entry before 'x=')
+    GS oid = r->oid;								// attribute 'x='
+    ostore_set(GR_OBJ(r), oid-1, r+1);				// attribute 'x' (hopefully at one entry before 'x=')
 }
-
 
 //================================================================
 /*! append '=' to create name for attr_writer
@@ -223,8 +224,8 @@ obj_attr_accessor(GR r[], S32 ri)
 	GR buf = guru_str_buf(GURU_STRBUF_SIZE);
     for (int i=0; i < ri; i++, s++) {
         ASSERT(s->gt==GT_SYM);
-        U8 *a0 = _RAW(s->i);										// reader
-        U8 *a1 = _postfix_eq_sign(&buf, a0);						// writer
+        U8 *a0 = _RAW(s->i);										// getter
+        U8 *a1 = _postfix_eq_sign(&buf, a0);						// setter
         ASSERT(guru_define_method(cls, a0, MEMOFF(obj_getiv)));
         ASSERT(guru_define_method(cls, a1, MEMOFF(obj_setiv)));
     }
@@ -279,7 +280,6 @@ obj_const_set(GR r[], S32 ri)
 {
 	GP cls = r->off;
 	GS xid = (r+1)->off;
-	(r+2)->acl &= ~ACL_HAS_REF;			// make it constant
 
 	const_set(cls, xid, r+2);
 }
