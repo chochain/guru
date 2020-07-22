@@ -49,7 +49,7 @@ __GURU__ free_block		*_free_list[FL_SLOTS];
 __GURU__ void
 _dump_freelist(const char *hdr, int sz)
 {
-	PRINTF("mmu#%6s(x%04x) L1=%03x: ", hdr, sz, _l1_map);
+	PRINTF("mmu#%6s(%04x) L1=%03x: ", hdr, sz, _l1_map);
 	for (int i=L1_BITS-1; i>=0; i--) { PRINTF("%02x%s", _l2_map[i], i%4==0 ? " " : ""); }
 	for (int i=FL_SLOTS-1; i>=0; i--) {
 		if (!_free_list[i]) continue;
@@ -100,7 +100,7 @@ guru_mmu_check(U32 level)
 	if (level & 1) {
 		_alloc_stat<<<1,1>>>(s);
 		GPU_SYNC();
-		printf("%14smem=%d(0x%x): free=%d(0x%x), used=%d(0x%x), nblk=%d, nfrag=%d, %d%% allocated\n",
+		printf("%14smem=%d(%x): free=%d(%x), used=%d(%x), nblk=%d, nfrag=%d, %d%% allocated\n",
 			"", s->total, s->total, s->free, s->free, s->used, s->used, s->nblk, s->nfrag, s->pct_used);
 	}
 	if (level & 2) {

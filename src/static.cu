@@ -54,7 +54,7 @@ guru_rom_get_sym(const char *s1)
 		if (sym->hash==hsh1) {
 #if CC_DEBUG
 			U8 *s0 = MEMPTR(_rom->str)+sym->raw;
-			PRINTF("  sym[%02x]->str%04x:x%08x~%s\n", i, sym->raw, MEMOFF(s0), s0);
+			PRINTF("  sym[%02x]->str%04x:%08x~%s\n", i, sym->raw, MEMOFF(s0), s0);
 #endif // CC_DEBUG
 			return i;
 		}
