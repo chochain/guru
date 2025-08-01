@@ -1,3 +1,6 @@
+# GPU Ruby
+This is an attemp to bring Ruby into nVidia GPU. The base concept is to merge mrubyc into CUDA. Some test cases has successfully run but the project is far from public consumable. Also, I have switch my focus to Forth which is much easier from control and implementation point of views. See https://github.com/chochain/tensorForth
+
 * NSight project rebuild
 + rename ~/lib/guru to ~/lib/guru.bak
 + NSight
